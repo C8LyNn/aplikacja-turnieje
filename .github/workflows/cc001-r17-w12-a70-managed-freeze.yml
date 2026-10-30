@@ -1,0 +1,84 @@
+name: CC-001 R17 W11 frozen SHA managed Windows QA
+
+on:
+  push:
+    branches:
+      - feat/cc001-r17-w12-a70-frozen-managed-ci-20261030
+    paths:
+      - ".github/workflows/cc001-r17-w12-a70-managed-freeze.yml"
+      - "scripts/cc001/w12/a70/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cc001-w11-frozen-managed
+  cancel-in-progress: false
+
+jobs:
+  validate-runner:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Fetch isolated W12 tool source
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install Node22
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Verify source syntax and independent offline self-test
+        run: |
+          node --check scripts/cc001/w12/a70/run-frozen-managed.cjs
+          node scripts/cc001/w12/a70/run-frozen-managed.cjs --self-test
+          node --test scripts/cc001/w12/a70/fresh-test-evidence.test.cjs
+  exact-frozen-managed:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout the isolated W12 runner (not game source)
+        uses: actions/checkout@v4
+        with:
+          path: w12-tools
+          persist-credentials: false
+      - name: Checkout EXACT immutable W11 source for compilation
+        uses: actions/checkout@v4
+        with:
+          ref: 3f972cdbaea6289a7e33ce608f5d3256cfdab0a3
+          fetch-depth: 0
+          path: frozen
+          persist-credentials: true
+      - name: Install Node 22 for fail-closed evidence runner
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install .NET 9 SDK for real managed compilation and tests
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "9.0.x"
+      - name: Run actual Node runner self-test on Windows
+        shell: pwsh
+        run: |
+          node --check "w12-tools/scripts/cc001/w12/a70/run-frozen-managed.cjs"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node "w12-tools/scripts/cc001/w12/a70/run-frozen-managed.cjs" --self-test
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test "w12-tools/scripts/cc001/w12/a70/fresh-test-evidence.test.cjs"
+          exit $LASTEXITCODE
+      - name: Compile and execute frozen W11 .NET 9 managed game suite
+        shell: pwsh
+        run: |
+          $repo = Join-Path $env:GITHUB_WORKSPACE "frozen"
+          $out = Join-Path $env:RUNNER_TEMP "cc001-w11-frozen-managed-evidence"
+          node "w12-tools/scripts/cc001/w12/a70/run-frozen-managed.cjs" "--repo=$repo" "--out=$out"
+          exit $LASTEXITCODE
+      - name: Preserve original logs, manifest and exact-source receipt
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cc001-w11-3f972cd-managed-only-evidence
+          path: ${{ runner.temp }}/cc001-w11-frozen-managed-evidence/
+          if-no-files-found: warn
+          retention-days: 14
