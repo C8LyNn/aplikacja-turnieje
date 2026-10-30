@@ -27,7 +27,7 @@ try{const root=path.join(temp,'player');fs.mkdirSync(root);fs.writeFileSync(path
  test(()=>assert.equal(files(root).some(x=>x.path==='CoreClash_Data/Managed/Assembly-CSharp.dll'),true));
  test(()=>assert.equal(files(root).some(x=>x.path==='Assembly-CSharp.dll'),false));
  test(()=>assert.equal(files(root).some(x=>x.path==='CoreClash_Data/file-1.dat'),true));
- test(()=>assert.equal(check({...manifest,playerInventory:manifest.playerInventory.map(x=>({...x,path:x.path.split('/').at(-1)}))},root,sha).status,'HOLD'));
+ test(()=>rejected(()=>check({...manifest,playerInventory:manifest.playerInventory.map(x=>({...x,path:x.path.split('/').at(-1)}))},root,sha)));
  test(()=>{fs.appendFileSync(path.join(managed,'Assembly-CSharp.dll'),'tampered');assert.equal(check(manifest,root,sha).status,'HOLD');fs.writeFileSync(path.join(managed,'Assembly-CSharp.dll'),'original-compiled-assembly')});
  test(()=>rejected(()=>check({...manifest,playerInventory:manifest.playerInventory.filter(x=>x.path!=='CoreClash_Data/Managed/Assembly-CSharp.dll')},root,sha)));
  test(()=>rejected(()=>check(manifest,root,'a'.repeat(40))));
