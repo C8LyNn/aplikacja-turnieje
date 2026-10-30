@@ -149,3 +149,38 @@ test('16 | smoothing never overwrites host-authoritative player state through dr
   assert.match(app, /Simulation\.State\s*=\s*state/);
   assert.doesNotMatch(smooth, /Simulation\.State\s*=/);
 });
+
+test('17 | disconnected Moving state must prioritize connection over RESOLVING', () => {
+  for (const name of ['Status', 'ActionHint', 'CompactStatus']) {
+    const body = method(selection, name);
+    const disconnected = body.indexOf('multiplayer&&!connected');
+    const moving = body.indexOf('state.phase==MatchPhase.Moving');
+    assert.ok(disconnected >= 0 && moving >= 0 && disconnected < moving,
+      name + ': disconnected seat should not show normal movement status');
+  }
+});
+
+test('18 | stale notice cannot obscure opponent/disconnected state on compact UI', () => {
+  const compact = method(match, 'RenderCompactLandscape');
+  const uses = compact.match(/LocalTurnPresentation\.ActionMessage\s*\(/g) || [];
+  assert.equal(uses.length, 2, 'both compact notice positions must use guarded ActionMessage');
+  const policy = method(selection, 'ActionMessage');
+  assert.match(policy, /state\.turn\s*==\s*localOwner/);
+  assert.match(policy, /connected\s*&&/);
+  assert.match(policy, /!System\.String\.IsNullOrEmpty\(notice\)/);
+  assert.match(policy, /return ActionHint\(/);
+});
+
+test('19 | desktop stale notice requires ability of local seat to act', () => {
+  const desktop = method(match, 'RenderMatch');
+  assert.match(desktop, /notice\.Length\s*>\s*0\s*&&\s*CanChoose/,
+    'historic failed-shot notice must not override remote/disconnected desktop copy');
+});
+
+test('20 | visual revision is propagated from NGO to read-only client smoother', () => {
+  assert.match(ngo, /app\.ReceiveNetworkState\(\s*adapter\.State\s*,\s*revision\s*\)/);
+  assert.match(app, /ReceiveNetworkState\(\s*GameState\s+state\s*,\s*int\s+snapshotRevision\s*=\s*-1\s*\)/);
+  assert.match(app, /remoteBallSmoother\.Observe\(\s*state\s*,\s*Time\.unscaledTime\s*,\s*instantBallIds\s*,\s*snapshotRevision\s*\)/);
+  assert.match(smooth, /snapshotRevision\s*<=\s*lastSnapshotRevision\s*\)\s*return\s*;/);
+  assert.match(smooth, /lastSnapshotRevision\s*=\s*snapshotRevision\s*;/);
+});
