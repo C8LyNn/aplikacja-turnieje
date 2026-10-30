@@ -207,7 +207,6 @@ namespace CoreClash.Presentation
             var drag = new Vector2(aim.AimX - aim.OriginX, aim.AimY - aim.OriginY);
             float distance = drag.magnitude;
             if (!GameSimulation.Finite(distance)) return;
-            float power = Mathf.Clamp01(distance * 3.38f / 590);
             bool ready = distance >= 18;
             Color team = Draw.Owner(state.turn);
             Color vector = ready ? Color.Lerp(team, Color.white, .36f) : Alpha(team, .42f);
@@ -247,14 +246,8 @@ namespace CoreClash.Presentation
             Ring(finger, 10 * scale, Alpha(team, .65f), Mathf.Max(1, 1.5f * scale));
             Draw.Circle(new Rect(finger.x - 2.5f * scale, finger.y - 2.5f * scale, 5 * scale, 5 * scale), new Color(.89f, .98f, 1, .9f));
 
-            float labelWidth=Mathf.Clamp(192*scale,124,192),labelHeight=Mathf.Clamp(56*scale,39,56);
-            var labelPoint=Point(board,270,state.turn==0?738:118);
-            float labelY=state.turn==0?Mathf.Min(labelPoint.y,origin.y-labelHeight-28):Mathf.Max(labelPoint.y,origin.y+28);
-            var label=new Rect(labelPoint.x-labelWidth/2,labelY,labelWidth,labelHeight);
-            Draw.Surface(label,new Color(.025f,.06f,.095f,.96f),Alpha(team,.4f));
-            Draw.Text(new Rect(label.x+6,label.y+4,label.width-12,16),ready?"RELEASE TO LAUNCH":"DRAG TO BUILD POWER",9,ready?new Color(.88f,.97f,1):Draw.Muted,TextAnchor.MiddleCenter,true);
-            Draw.Rect(new Rect(label.x+10,label.yMax-12,label.width-48,4),Draw.Edge);Draw.Rect(new Rect(label.x+10,label.yMax-12,(label.width-48)*power,4),ready?team:Alpha(team,.4f));
-            Draw.Text(new Rect(label.xMax-36,label.yMax-20,32,18),Mathf.RoundToInt(power*100)+"%",9,vector,TextAnchor.MiddleCenter,true);
+            // W10/A33 A10-approved simplification: the trajectory and readiness tint
+            // are the aiming-power cues. Avoid the redundant percentage/meter overlay.
         }
 
         static void RenderFrame(Rect board, GameState state)
