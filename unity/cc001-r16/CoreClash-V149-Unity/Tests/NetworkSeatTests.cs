@@ -205,5 +205,42 @@ public static partial class Program
             False(seat.Commit(401,12));True(seat.Commit(402,12));
             False(seat.Release(401));True(seat.Owns(402));
         });
+        // R17-W9: adaptive snapshots address P2's former five-Hz teleport-like jumps.
+        // These are managed policy tests; they do not certify live network smoothness.
+        Test("R17 W9 moving small snapshots target twelve updates per second",()=>{
+            float interval=NetworkSnapshotRate.Interval(MatchPhase.Moving,900);
+            True(System.Math.Abs(interval-1f/12f)<0.00001f);
+            True(interval<.2f);
+        });
+        Test("R17 W9 larger moving snapshots respect bandwidth step-down",()=>{
+            True(System.Math.Abs(NetworkSnapshotRate.Interval(MatchPhase.Moving,16*1024-1)-1f/12f)<0.00001f);
+            True(System.Math.Abs(NetworkSnapshotRate.Interval(MatchPhase.Moving,16*1024)-.125f)<0.00001f);
+            True(System.Math.Abs(NetworkSnapshotRate.Interval(MatchPhase.Moving,64*1024-1)-.125f)<0.00001f);
+            True(System.Math.Abs(NetworkSnapshotRate.Interval(MatchPhase.Moving,64*1024)-.25f)<0.00001f);
+            True(System.Math.Abs(NetworkSnapshotRate.Interval(MatchPhase.Moving,256*1024)-.25f)<0.00001f);
+        });
+        Test("R17 W9 idle turn and match-over snapshots stay on bounded refresh",()=>{
+            True(System.Math.Abs(NetworkSnapshotRate.Interval(MatchPhase.Aiming,900)-.5f)<0.00001f);
+            True(System.Math.Abs(NetworkSnapshotRate.Interval(MatchPhase.Over,900)-.5f)<0.00001f);
+            True(System.Math.Abs(NetworkSnapshotRate.Interval(MatchPhase.Aiming,256*1024)-.5f)<0.00001f);
+            True(NetworkSnapshotRate.Interval(MatchPhase.Moving,900)<NetworkSnapshotRate.Interval(MatchPhase.Aiming,900));
+        });
+        Test("R17 W9 result must match current pending P2 intent",()=>{
+            False(NetworkIntentReceipt.MatchesPending(false,4,4));
+            False(NetworkIntentReceipt.MatchesPending(true,0,0));
+            False(NetworkIntentReceipt.MatchesPending(true,4,3));
+            False(NetworkIntentReceipt.MatchesPending(true,4,5));
+            True(NetworkIntentReceipt.MatchesPending(true,4,4));
+        });
+        Test("R17 W9 old ack cannot clear a later pending sequence after reconnect",()=>{
+            // First result was already consumed (pending=false).
+            False(NetworkIntentReceipt.MatchesPending(false,1,1));
+            // New connection's pending sequence belongs to the current local lifecycle.
+            False(NetworkIntentReceipt.MatchesPending(true,2,1));
+            True(NetworkIntentReceipt.MatchesPending(true,2,2));
+            // Sequence 1 may legitimately recur on a new transport; pending guard
+            // must also be cleared as ResetSession begins that transport lifecycle.
+            False(NetworkIntentReceipt.MatchesPending(false,1,1));
+        });
     }
 }
