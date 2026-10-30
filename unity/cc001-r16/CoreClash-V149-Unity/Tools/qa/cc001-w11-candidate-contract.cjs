@@ -71,11 +71,14 @@ function audit(s, sources = Object.keys(names)){
     has('smooth',/IsFreshRevision\(int previous,int incoming\)[\s\S]{0,100}incoming>0&&incoming>previous/) &&
     has('app',/remoteLastEventId=remoteLastRevision=0;/) &&
     (()=>{const app=s.app||'';
-      const guard=app.indexOf('if(!RemoteSnapshotEvents.IsFreshRevision(remoteLastRevision,snapshotRevision))return;');
-      const cursor=app.indexOf('remoteLastEventId=latestEventId;',guard);
-      const authority=app.indexOf('Simulation.State=state;',guard);
-      const observe=app.indexOf('remoteBallSmoother.Observe(',guard);
-      return guard>=0&&cursor>guard&&authority>guard&&observe>guard;})(),
+      const method=app.indexOf('public void ReceiveNetworkState(GameState state,int snapshotRevision)');
+      const guard=app.indexOf('if(!RemoteSnapshotEvents.IsFreshRevision(remoteLastRevision,snapshotRevision))return;',method);
+      // Compare FIRST write in the METHOD, not merely first write after the guard.
+      const cursor=app.indexOf('remoteLastEventId=latestEventId;',method);
+      const authority=app.indexOf('Simulation.State=state;',method);
+      const observe=app.indexOf('remoteBallSmoother.Observe(',method);
+      const storedRevision=app.indexOf('remoteLastRevision=snapshotRevision;',method);
+      return method>=0&&guard>method&&cursor>guard&&authority>guard&&observe>guard&&storedRevision>guard;})(),
     'Discard stale/unversioned snapshot before event cursor, visual pose or authoritative client state updates');
   gate('W12_FREEZE_4HZ_SMOOTHING',
     has('smooth',/MaxDuration\s*=\s*0\.25f/) &&
