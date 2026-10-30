@@ -74,3 +74,43 @@ All cases use `GameState.phase=MatchPhase.Moving`, monotonic `frame`, unchanged 
 **DESIGNED:** COMPLETE acceptance logic. **IMPLEMENTED:** 3 executable test definitions, no production gameplay modification. **TESTED:** source review only; managed/Unity two-PC **NOT_RUN**. **INTEGRATED:** NO. **RELEASED:** NO. **GATE:** TEST-ONLY RED ORACLES / HOLD until A34 repair and A60 independent runtime.
 
 **Do not replace this with a balance or physics tuning change without an actual failing trace.**
+
+---
+
+## 6. LIVE W10 RESOLUTION — A34 UPSTREAM CLOSED THE IDENTITY SOURCE GAP
+
+**Important: section 2 documents the source truth at the original A34 SHA `d237612...`. It is historical, no longer an open source defect at the latest A34 HEAD.**
+
+While A50 created its dependent regression branch, **A34 independently updated the same selected visual implementation**. Latest exact A34 `feat/cc001-r17-w9-a34-client-visual-smoothing` and PR #174 HEAD:
+
+```
+d6053901edce86eb705919aab819c213b53c5143
+```
+
+A34 now stores `owner` and `type` in `RemoteBallSmoother.Pose` and checks both before interpolating. On owner/type change it directly resets `fromX/toX/fromY/toY` to the *new authoritative coordinates*, sets duration0 and continues without tween. A34 also added its own C# tests for owner/type conversion, 20Hz pacing, malformed/null balls and duplicate IDs. **Thirteen total A34 named managed tests** now exist; A50's 3 dependent test definitions are overlapping and not needed for the final integration path.
+
+**Current Git blob IDs on selected A34 HEAD:**
+- `Presentation/RemoteBallSmoother.cs` — `bbf1dc828158af7a2bf6e1c110f9cacdd6228e5a`
+- `Tests/RemoteBallSmootherTests.cs` — `bf81e6b192b6cdd55f4d0788aae00a508d4bc235`
+- `Presentation/CoreClashApp.cs` — `508e64a536d147eb95f75e14dec6eaf811ccefd5`
+- `Presentation/BoardView.cs` — `0bcc925426878772628b2749c89eb5ba0d2be86e`
+- `Presentation/BallView.cs` — `ad4cb6acbd8f49e7d11a934ed48b6e755c51c343`
+
+**A50 performed 21/21 new STATIC source and ancestry/ownership checks PASS**, including exact latest branch SHA, owner/type invalidation, identity snap, duplicate/null guards, absence of source authority writes, app→board→ball display integration, original A34 tests, and both old A50 PRs closed unmerged. This does not substitute for managed C# compilation or native LAN two-device tests.
+
+**Competing PRs explicitly disposed:**
+- Original A50 draft **PR #169** (unwired Physics/RemoteBallPoseSmoother) — **CLOSED UNMERGED**; superseded by selected A34 implementation. No deletion, branch SHA `38cc4c851011da2e81c94f1a73910aee95852d2c` preserved.
+- A50 dependent **PR #185** with three early W10 tests — **CLOSED UNMERGED**; duplicated by later A34 tests. Branch source/test commit `46c2c142a5d7e64a79eb2125f995c75f5222efee` preserved; report commit before this note `e5dcffe1ca3b1a2ec3a7e6ae7d48a271840c4713` preserved.
+- **A34 PR #174** — sole selected visual smoother candidate, still a **DRAFT with unexecuted C# and independent Windows PC1–PC2 QA**. Selection is not A70 integration authority or release approval.
+
+**Only A70** may assemble a disposable W10 gameplay candidate from the accepted, source-verified owner patches. Any A30/A41 snapshot-rate policy selection belongs to A31/A70, as these PRs conflict in Ngo networking files. The A34 display changes must be reconciled with A20/A30/A32 overlapping presentation files, preserving both world-to-screen and inverse pointer transforms.
+
+**FINAL A50 W10 HANDOFF:**
+- DESIGN: resolved selection and regression contract.
+- IMPLEMENTATION: original A50 test-only branch exists for traceability, **NOT SELECTED**; upstream A34 has source-fixed the identified identity issue.
+- TESTS A50 ACTUALLY EXECUTED: source/branch/blob/ownership **21/21 STATIC PASS**; `dotnet --info` exit127, Unity lookup exit1. **A34 C# 13/13: NOT_RUN by A50** (not a PASS).
+- INTEGRATED: **NO**.
+- RELEASED: **NO**.
+- GATE: `A50_VISUAL_SOURCE_SELECTION=COMPLETE`, `A34_SOURCE_IDENTITY=FIXED_STATIC`, `C_SHARP_UNITY_PC1_PC2=HOLD`, `A60_INDEPENDENT_QA=PENDING`, `RC1_MAIN_RELEASE=UNCHANGED`.
+
+No protected RC1/R16/V148, Protocol149, production networking, or foreign-owned source paths were edited by A50.
