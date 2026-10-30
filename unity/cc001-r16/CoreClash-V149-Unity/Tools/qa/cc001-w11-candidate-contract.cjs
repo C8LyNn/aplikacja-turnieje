@@ -118,7 +118,7 @@ function selfTest(){
   const badList=keys.concat('Assets/CoreClash/Physics/RemoteBallPoseSmoother.cs');
   assert.equal(audit(sample,badList).checks.SINGLE_REMOTE_SMOOTHER.status,'FAIL');
   assert.equal(audit(sample).physicalTwoPC,'NOT_RUN');
-  console.log('A60 W11 gate: 5/5 synthetic control assertions PASS; actual source must be supplied separately');
+  console.log('A60 W11 gate: 6/6 synthetic control assertions PASS; actual source must be supplied separately');
 }
 if(require.main===module){
   if(process.argv[2]==='--self-test')selfTest();
