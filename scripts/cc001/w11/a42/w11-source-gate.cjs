@@ -60,7 +60,7 @@ const expectedPatterns={
   ['smootherSignature',/void\s+Observe\s*\(\s*GameState\s+state\s*,\s*float\s+now\s*,\s*ISet<int>\s+instantBallIds\s*=\s*null\s*,\s*int\s+snapshotRevision\s*=\s*-1\s*\)/],
   ['staleRefusal',/snapshotRevision\s*<=\s*lastSnapshotRevision\s*\)\s*return/],
   ['lastAccepted',/lastSnapshotRevision\s*=\s*snapshotRevision/],
-  ['sessionReset',/lastSnapshotRevision\s*=\s*-1/],
+  ['sessionReset',/void\s+Reset\s*\(\s*\)\s*\{[^}]*lastSnapshotRevision\s*=\s*-1/],
   ['revisionRegressionTests',/A70 W11 repeated and older snapshot revisions cannot overwrite client visual pose/],
   ['resetRegressionTests',/A70 W11 new session reset allows low snapshot revision again/],
   ['p2AuthorityTests',/W10 A40 P2 authoritative snapshot preserves moving ball owner position and action/],
