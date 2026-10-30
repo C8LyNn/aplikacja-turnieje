@@ -5,11 +5,12 @@
 const fs = require('node:fs');
 const assert = require('node:assert/strict');
 const SHA = /^[0-9a-f]{40}$/i;
+const SHA256 = /^[0-9a-f]{64}$/i;
 const finite = n => typeof n === 'number' && Number.isFinite(n);
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 const result = (status, detail) => ({ status, detail });
 
-function evaluate(pc1, pc2) {
+function evaluate(pc1, pc2, expectedSha) {
   const gates = {};
   const fail = (key, detail) => { gates[key] = result('FAIL', detail); };
   const pass = (key, detail) => { gates[key] = result('PASS', detail); };
@@ -23,6 +24,23 @@ function evaluate(pc1, pc2) {
     typeof pc1.session === 'string' && pc1.session.length > 0 && pc1.session === pc2.session;
   if (validIdentity) pass('PEER_IDENTITY', 'PC1=owner0, PC2=owner1; exact SHA and session match');
   else fail('PEER_IDENTITY', 'Device/owner, exact source SHA or session mismatch');
+
+  // Independent W11 devices must match the selected A70 commit, not merely each other.
+  if (expectedSha === undefined) hold('TARGET_SHA_PIN', 'Explicit selected A70 candidate SHA is required');
+  else if (!SHA.test(expectedSha) || pc1.sourceSha !== expectedSha || pc2.sourceSha !== expectedSha)
+    fail('TARGET_SHA_PIN','PC1/PC2 source SHA differs from selected exact candidate');
+  else pass('TARGET_SHA_PIN','Both endpoint source SHA values match the selected candidate');
+
+  // Binary identity is a separate gate from an equal source SHA. The data
+  // must be obtained from actual original Windows files on EACH machine.
+  const fingerprints=['playerExeSha256','assemblyCSharpSha256','playerManifestSha256'];
+  const provided=fingerprints.filter(k => pc1[k] !== undefined || pc2[k] !== undefined);
+  if (!provided.length) hold('BINARY_IDENTITY','Missing original PC1/PC2 EXE, managed DLL, and full-file manifest SHA256');
+  else if (fingerprints.some(k => pc1[k] === undefined || pc2[k] === undefined))
+    hold('BINARY_IDENTITY','Incomplete endpoint EXE/DLL/full manifest SHA256 set');
+  else if (fingerprints.some(k => !SHA256.test(pc1[k]) || !SHA256.test(pc2[k]) || pc1[k].toLowerCase() !== pc2[k].toLowerCase()))
+    fail('BINARY_IDENTITY','Invalid or different EXE/DLL/full manifest SHA256 across the devices');
+  else pass('BINARY_IDENTITY','All three original binary/manifest hashes match between PC1 and PC2');
 
   const a = Array.isArray(pc1.frames) ? pc1.frames : [];
   const b = Array.isArray(pc2.frames) ? pc2.frames : [];
@@ -180,14 +198,25 @@ function selfTest(){
   {const c=cloned(client);c.frames[1].aim={board:{x:0,y:0,width:540,height:900},from:{x:270,y:853},to:{x:260,y:800}};
    c.frames[1].powerUi={barVisible:false};
    assert.equal(evaluate(host,c).gates.POWER_BAR_SIMPLIFICATION.status,'FAIL');}
-  console.log('A60 W10 self-test PASS: 20 assertions; no Unity/net execution');
+  {assert.equal(evaluate(host,client,sourceSha).gates.TARGET_SHA_PIN.status,'PASS');}
+  {assert.equal(evaluate(host,client,'f'.repeat(40)).gates.TARGET_SHA_PIN.status,'FAIL');}
+  {assert.equal(evaluate(host,client,sourceSha).gates.BINARY_IDENTITY.status,'HOLD');}
+  {const h=cloned(host),c=cloned(client);
+   for(const key of ['playerExeSha256','assemblyCSharpSha256','playerManifestSha256']){h[key]='a'.repeat(64);c[key]='a'.repeat(64);}
+   assert.equal(evaluate(h,c,sourceSha).gates.BINARY_IDENTITY.status,'PASS');
+   c.assemblyCSharpSha256='b'.repeat(64);
+   assert.equal(evaluate(h,c,sourceSha).gates.BINARY_IDENTITY.status,'FAIL');
+   delete c.playerManifestSha256;
+   assert.equal(evaluate(h,c,sourceSha).gates.BINARY_IDENTITY.status,'HOLD');
+  }
+  console.log('A60 W11 self-test PASS: 26 assertions; no Unity/net execution');
 }
 if (require.main === module) {
   if (process.argv[2] === '--self-test') selfTest();
-  else if (process.argv.length !== 4) { console.error('Usage: node cc001-w9-two-pc-gate.cjs PC1.json PC2.json | --self-test'); process.exitCode=64; }
+  else if (process.argv.length !== 5 || !SHA.test(process.argv[4])) { console.error('Usage: node cc001-w9-two-pc-gate.cjs PC1.json PC2.json SELECTED_40_SHA | --self-test'); process.exitCode=64; }
   else {
     try {
-      const out=evaluate(JSON.parse(fs.readFileSync(process.argv[2],'utf8')),JSON.parse(fs.readFileSync(process.argv[3],'utf8')));
+      const out=evaluate(JSON.parse(fs.readFileSync(process.argv[2],'utf8')),JSON.parse(fs.readFileSync(process.argv[3],'utf8')),process.argv[4]);
       console.log(JSON.stringify(out,null,2));process.exitCode=out.decision==='PASS'?0:out.decision==='FAIL'?1:2;
     } catch(e){console.error('Invalid input: '+e.message);process.exitCode=64;}
   }
