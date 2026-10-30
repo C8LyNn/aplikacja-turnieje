@@ -27,6 +27,28 @@ public static partial class Program
             True(line.Contains("maxRxGapMs=250"));
             True(line.Contains("frameP95ms=40"));
         });
+        Test("A34 W14 zero-length visual snap never creates fake post-blend wait",()=>{
+            var p=new RemoteVisualPacingTelemetry();
+            p.AcceptSnapshot(1f,0f,10);
+            False(p.SampleFrame(1f,.01f,true,out _));
+            False(p.SampleFrame(1.1f,.02f,true,out _));
+            True(p.SampleFrame(6.1f,.01f,true,out var line));
+            True(line.Contains("postBlendWaitMs=0"));
+            True(line.Contains("postBlendWaitFrames=0"));
+            True(line.Contains("snapshots=1"));
+        });
+        Test("A34 W14 transitioning from motion to instant warp stops wait accrual",()=>{
+            var p=new RemoteVisualPacingTelemetry();
+            p.AcceptSnapshot(1f,.05f,10);
+            False(p.SampleFrame(1f,.01f,true,out _));
+            False(p.SampleFrame(1.1f,.02f,true,out _));
+            p.AcceptSnapshot(1.15f,0f,10);
+            False(p.SampleFrame(1.2f,.02f,true,out _));
+            True(p.SampleFrame(6.1f,.01f,true,out var line));
+            True(line.Contains("postBlendWaitMs=20"));
+            True(line.Contains("postBlendWaitFrames=1"));
+            True(line.Contains("snapshots=2"));
+        });
         Test("A34 W12 no future prediction and post-blend wait accounted per frame",()=>{
             var p=new RemoteVisualPacingTelemetry();
             p.AcceptSnapshot(1f,.05f);
