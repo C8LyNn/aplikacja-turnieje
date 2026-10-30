@@ -43,13 +43,17 @@ const cases = [
  ['final state parity always remains unverified', () => assert.ok(analyzer.analyze(host(tx(10,100),tx(11,200)),client(rx(10,120),rx(11,240))).blockers.includes('NO_INDEPENDENT_FINAL_STATE_PARITY'))],
  ['host TX and client RX independently measured', () => {const r=analyzer.analyze(host(tx(10,100),tx(11,220)),client(rx(10,5100),rx(11,5240)));assert.equal(r.host.txIntervals.meanMs,120);assert.equal(r.client.rxIntervals.meanMs,140);}]
 ];
-const knownLimitations = [
- ['owner=10 misrecognized as P2 connection', () => assert.equal(analyzer.parse('CC_NET_PEER_CONNECTED owner=10').peerConnected,0)],
- ['owner=10 misrecognized as P2 accepted command', () => assert.equal(analyzer.parse('CC_NET_INTENT_ACCEPT owner=10 seq=20 action=4').accept.length,0)]
-];
-let passed=0,failed=0,unexpectedPass=0;
+// W10: exact event and exact owner token are mandatory, not substring matches.
+cases.push(
+ ['owner=10 is not P2 connection', () => assert.equal(analyzer.parse('CC_NET_PEER_CONNECTED owner=10').peerConnected,0)],
+ ['owner=10 is not P2 accepted command', () => assert.equal(analyzer.parse('CC_NET_INTENT_ACCEPT owner=10 seq=20 action=4').accept.length,0)],
+ ['owner=10 is not P2 launch', () => assert.equal(analyzer.parse('CORE_CLASH_LAUNCH owner=10').clientLaunch,0)],
+ ['owner=1suffix is not owner=1', () => assert.equal(analyzer.parse('CC_NET_PEER_CONNECTED owner=1suffix').peerConnected,0)],
+ ['event prefix is not an accepted intent event', () => assert.equal(analyzer.parse('CC_NET_INTENT_ACCEPTED owner=1 seq=20 action=4').accept.length,0)],
+ ['owner token order does not change accepted action', () => assert.deepEqual(analyzer.parse('CC_NET_INTENT_ACCEPT seq=20 action=4 owner=1').accept,[{seq:20,action:4}])]
+);
+let passed=0,failed=0;
 for(const [name,run] of cases){try{run();passed++;console.log('PASS',name);}catch(e){failed++;console.error('FAIL',name,e.message);}}
-for(const [name,run] of knownLimitations){try{run();unexpectedPass++;console.log('XPASS',name,'— A31 parser may now be fixed');}catch(e){console.log('XFAIL',name,'— known unsafe substring match in A31, requires owner fix');}}
-console.log(`TOTAL=${cases.length} PASS=${passed} FAIL=${failed} KNOWN_XFAIL=${knownLimitations.length-unexpectedPass} XPASS=${unexpectedPass}`);
+console.log(`TOTAL=${cases.length} PASS=${passed} FAIL=${failed}`);
 console.log('SCOPE=SYNTHETIC_ANALYZER_CONTRACT_ONLY G3=NOT_ATTESTED NO_GAMEPLAY_CLAIM');
 process.exitCode=failed?1:0;
