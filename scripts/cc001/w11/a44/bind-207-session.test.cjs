@@ -38,3 +38,30 @@ test('real CLI writes digest receipts only, refuses overwrite',()=>{
  }finally{fs.rmSync(dir,{recursive:true,force:true})}
 });
 test('tampered full-inventory count rejected',()=>{let x=fixture();x.summary.playerCount=77;a.throws(()=>validate(...Object.values(x)),/A72_COUNT_MISMATCH/);});
+test('full W9 capture -> W10 session -> W11 #207 binding on synthetic paired evidence',()=>{
+ const {capture}=require('../../w9/a44/pack-multiplayer-evidence.cjs');
+ const {create}=require('../../w10/a44/assemble-session.cjs');
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'cc001-w11-a44-e2e-'));
+ try {
+  const host=path.join(dir,'h.log'),client=path.join(dir,'c.log'),hExe=path.join(dir,'h.exe'),cExe=path.join(dir,'c.exe');
+  fs.writeFileSync(host,'CC_NET_HOST_READY token=SECRET_TEST_X addr=192.168.1.2\nCC_NET_INTENT_ACCEPT owner=1 seq=1 action=2\n');
+  fs.writeFileSync(client,'CC_NET_STATE_APPLIED rev=5\nCC_NET_TRACE_RX rev=5 serial=2 turn=1\n');
+  fs.writeFileSync(hExe,'exe');fs.writeFileSync(cExe,'exe');
+  const pack=path.join(dir,'pack');
+  const manifest=capture({host,client,out:pack,session:'PC1_PC2_W11_REAL_01',hostExe:hExe,clientExe:cExe,expectedExeSha:hash('exe')});
+  a.equal(manifest.pc1.exe.status,'MATCHES_OPERATOR_EXPECTATION');
+  a.ok(!fs.readFileSync(path.join(pack,'PC1_Player.redacted.log'),'utf8').includes('SECRET_TEST_X'));
+  const obs={schemaVersion:1,sessionId:manifest.sessionId,startedAtUtc:'2026-10-30T18:00:00Z',endedAtUtc:'2026-10-30T18:05:00Z',topology:'PRIVATE_LAN',environment:'LOCAL_WINDOWS_TWO_PC',pc1:{deviceClass:'WINDOWS_DESKTOP',role:'HOST',screenResolution:'1920x1080'},pc2:{deviceClass:'WINDOWS_DESKTOP',role:'CLIENT',screenResolution:'1366x768'},scenarios:[{id:'MOVING_SYNC',status:'NOT_RUN'}],issues:[]};
+  const obsPath=path.join(dir,'observations.json');fs.writeFileSync(obsPath,JSON.stringify(obs));
+  const recordPath=path.join(dir,'record.json'); const rec=create({packDir:pack,observations:obsPath,out:recordPath});
+  a.equal(rec.buildIdentity.pairExeByteIdentity,'MATCHED');
+  const x=fixture();
+  const summaryPath=path.join(dir,'summary.json'),p1=path.join(dir,'pc1.json'),p2=path.join(dir,'pc2.json');
+  for(const [file,value] of [[summaryPath,x.summary],[p1,x.pc1],[p2,x.pc2]])fs.writeFileSync(file,JSON.stringify(value));
+  const result=run({summary:summaryPath,session:recordPath,pc1:p1,pc2:p2,out:path.join(dir,'bound.json')});
+  a.equal(result.candidateCommit,APPROVED_SHA);
+  a.equal(result.logSha256.pc1,manifest.pc1.log.sanitizedSha256);
+  a.equal(result.qaDisposition,'PENDING_INDEPENDENT_A60_PHYSICAL_QA');
+  a.equal(result.realDeviceProvenance,'NOT_ATTESTED_BY_A44');
+ }finally{fs.rmSync(dir,{recursive:true,force:true});}
+});
