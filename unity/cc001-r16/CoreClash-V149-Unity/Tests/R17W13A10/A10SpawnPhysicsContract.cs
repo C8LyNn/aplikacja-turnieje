@@ -196,6 +196,8 @@ internal static class A10W13SpawnPhysicsContract
                             MatchPerspective.SimulationY(100,1));
             Assert(gesture.Release(17,1,sim.State.turnNumber,"normal",ball.id,out var c),
                 "Replay gesture rejected");
+            Assert(c != null && c.owner==1 && c.kind==CommandKind.Replay && c.ballId==ball.id,
+                "Replay command lost canonical owner, kind or ball ID");
             Assert(sim.TryCommand(c,out var reason),"Authoritative replay rejected: "+reason);
             Assert(sim.State.balls.Count==1&&sim.State.replayedIds.Contains(ball.id),
                 "Replay unexpectedly spawned a new ball or lost ID");
