@@ -152,6 +152,41 @@ public static partial class Program
             });
         }
 
+        // W14: 2 authoritative turns x 2 local seats x 2 LAN connection states x 6
+        // drag vectors. A client must NEVER see RELEASE when disconnected, waiting,
+        // or when the drag vector is too short / non-finite.
+        var aimCases=new (string label,float dx,float dy,bool ready)[]{
+            ("zero",0f,0f,false),
+            ("below18",17.99f,0f,false),
+            ("exact18",18f,0f,true),
+            ("diagonal",13f,13f,true),
+            ("nan",float.NaN,0f,false),
+            ("infinite",float.PositiveInfinity,0f,false)
+        };
+        foreach(int active in new[]{0,1})
+        foreach(int local in new[]{0,1})
+        foreach(bool connected in new[]{false,true})
+        foreach(var aimCase in aimCases)
+        {
+            Test($"A84 W14 aim affordance active={active} local={local} connected={connected} vector={aimCase.label}",()=>{
+                var sim=Sim();var state=sim.State;
+                state.turn=active;state.phase=MatchPhase.Aiming;
+                int serial=state.actionSerial,revision=state.revision,turn=state.turn;
+                bool ownTurn=connected&&active==local;
+                string hint=LocalTurnPresentation.ActionHint(state,local,true,connected,
+                    true,aimCase.dx,aimCase.dy,"DRAG FROM LAUNCHER");
+                string message=LocalTurnPresentation.ActionMessage(state,local,true,connected,
+                    true,aimCase.dx,aimCase.dy,"DRAG FROM LAUNCHER","");
+                Eq(hint,message);
+                if(!connected)Eq("WAITING FOR CONNECTION",hint);
+                else if(!ownTurn)Eq("WAITING FOR PLAYER "+(active+1),hint);
+                else Eq(aimCase.ready?"RELEASE TO LAUNCH":"DRAG TO BUILD POWER",hint);
+                if(!ownTurn||!aimCase.ready)
+                    False(hint.Contains("RELEASE"),"non-actionable aim must never offer release");
+                Eq(turn,state.turn);Eq(serial,state.actionSerial);Eq(revision,state.revision);
+            });
+        }
+
         Test("A84 W12 no match state is never actionable",()=>{
             Eq("WAITING FOR MATCH",LocalTurnPresentation.Status(null,1,true,false));
             Eq("WAIT",LocalTurnPresentation.CompactStatus(null,1,true,false));
