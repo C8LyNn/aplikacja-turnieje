@@ -133,7 +133,7 @@ namespace CoreClash.Presentation
 
         static void DrawWake(Vector2 point, BallRuntime ball, Color color, float scale,int localOwner)
         {
-            var velocity = localOwner==1?new Vector2(-ball.vx,-ball.vy):new Vector2(ball.vx,ball.vy);
+            var velocity = localOwner==1?new Vector2(ball.vx,-ball.vy):new Vector2(ball.vx,ball.vy);
             if (!ball.moving || velocity.sqrMagnitude < 8100) return;
             float length = Mathf.Min(42, velocity.magnitude * .075f) * scale;
             Vector2 direction = velocity.normalized;
