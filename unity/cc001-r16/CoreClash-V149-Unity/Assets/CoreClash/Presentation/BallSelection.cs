@@ -72,7 +72,7 @@ namespace CoreClash.Presentation
     public static class AimUiStatus
     {
         public static bool Ready(bool active,float dragX,float dragY)=>
-            active&&double.IsFinite((double)dragX*dragX+(double)dragY*dragY)&&
+            active&&GameSimulation.Finite(dragX)&&GameSimulation.Finite(dragY)&&
             (double)dragX*dragX+(double)dragY*dragY>=18d*18d;
 
         public static string Hint(bool active,float dragX,float dragY)=>
