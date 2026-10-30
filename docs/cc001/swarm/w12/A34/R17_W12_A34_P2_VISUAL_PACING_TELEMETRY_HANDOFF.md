@@ -40,3 +40,41 @@ Wired into `Tests/Program.cs`, added to `CoreClash.Tests.csproj`:
 
 **Owner constraints:** Mitosis V148 identical, Furnace FIRE zone with periodic ticks only, HP R16. No protected gameplay, catalog, Protocol149, RC1, R16, V148 changes; no main merge/release.
 **Status:** CODE DELIVERED ISOLATED / C# TESTS AUTHORED / BUILD NOT RUN / PC1-PC2 NOT RUN / W11 NOT CLOSED / W12 INTEGRATION HOLD.
+
+
+## R17-W13 — measured pacing edge-case fixes (2026-10-30)
+
+**Agent:** A34, continuing existing isolated W12 PR #233 (no competing separate smoother or packet-trace system). **Frozen W11:** `integration/cc001-r17-w11-qa-freeze-20261030` at `3f972cdbaea6289a7e33ce608f5d3256cfdab0a3`, not modified. **Development base:** post-freeze `87b718432f4ce3906c907a7f4a1e2b4fb2a95f9c`, not selected W11 QA.
+
+### Confirmed instrumentation correctness bug, fixed in production code
+
+On action-serial change, frame rewind or >600ms snapshot gap, `RemoteBallSmoother` clears old visual poses and **snaps** immediately. Prior `LastBlendSeconds=duration` nevertheless reported a nonzero blend even though zero interpolation occurred. A34 changed its read-only telemetry value to `LastBlendSeconds=snap?0f:duration`, preserving all visual positions and actual physics/transport. Added three C# regression cases: new action, frame rollback/long gap, stale duplicate revision plus Reset().
+
+### Receiver gap distribution, bounded and reason-specific
+
+The existing aggregate had only `maxRxGapMs`. At 4Hz the selected A41 update interval is 250ms; one long stall cannot be distinguished from normal 4Hz delivery by max alone. W13 adds:
+- `rxGapP95ms`: P95 of last **up to 256 accepted P2 snapshot receipt intervals** in the 5s window, or **`NA`** if fewer than two snapshots (never fake zero).
+- `rxGapSamples` (bounded 256) and `rxGaps` (total actual intervals observed in the window), to disclose retention limits.
+- `rxGapsOver300ms`: count of intervals **strictly above** 300ms (longer than normal 4Hz 250ms), indicating scheduling/jitter only; **not proof of packet loss**.
+- `postBlendWaitFrames`: number of sampled P2 Moving frames for which the most recent visual interpolation interval had elapsed, complements the original estimated `postBlendWaitMs`.
+
+The producer uses two additional preallocated 256-float arrays (~2KiB), one O(1) update per accepted snapshot, and one `Array.Sort` of <=256 floats **only once per 5-second report**. Existing frame P95 ring remains 512 floats. No network payload logs, IP, session IDs, host telemetry writes, P2 physics, ability changes or Protocol149 edits.
+
+### Regression suite and actual evidence boundary
+
+**C# source:** existing seven W12 telemetry definitions extended by **five** W13 cases → **12 telemetry test definitions**. Existing 23 smoother cases extended by **three** W13 cases → **26 smoother test definitions**. Total eight new W13 managed test cases **AUTHORED / NOT_EXECUTED**.
+
+**Actually executed:** **51/51** source-backed V8 predicates and numerical policy fixtures on exact readback GitHub blobs for new telemetry, app wiring, smoother, registered tests and .csproj. These are not .NET9 C# compiled tests or Unity PC1↔PC2 results.
+
+**Selected source Git blob identities:**
+- `RemoteVisualPacingTelemetry.cs`: `605f0ac1b3e9cfacf57cf3f8c06d22a139cd31dc`;
+- `RemoteVisualPacingTelemetryTests.cs`: `05160597c93aa35f71fc459a1d56178b50b276b6`;
+- `RemoteBallSmoother.cs`: `a2dbaee6c4562b1efd1c8308766c56660dc09949`;
+- `RemoteBallSmootherTests.cs`: `856d2f823fcb473fc8f05f1e4c33d81252f31a03`.
+Those are exact GitHub-content SHA-1 Git blobs, **not** Windows EXE/DLL SHA256.
+
+**Real compiler and native blocker:** this A34 environment has Node22.16.0 and git, but **no** `dotnet`/.NET9 SDK, Mono/C# compiler, Unity 6000.4.0f1, Windows Player build support or two physical PCs. No native managed test, Windows x64 build, frame metric or PC1–PC2 G3 validation was executed by A34. Native A72/A60 work requires authorized Windows machine with Unity license/Build Support/.NET9 and original pinned Player SHA256 inventory.
+
+**Required routing:** A70 keeps freeze immutable; A72 must build frozen W11 exact SHA before physical QA; A60/A31 test W11 freeze independently (which does NOT include this W12/W13 telemetry). Only after formal W11 close may A70 select W12/W13 PR #233 into an isolated new exact-source candidate for a fresh native build/QA run.
+
+**W13 state:** IMPLEMENTED IN OWN ISOLATED BRANCH / 51/51 SOURCE+NUMERIC / 8 NEW C# TESTS WRITTEN / MANAGED NOT_RUN / WINDOWS NOT_RUN / NATIVE 2PC NOT_RUN / INTEGRATION HOLD / RELEASE STOP.
