@@ -36,6 +36,18 @@ namespace CoreClash.Presentation
 
         public static string ForTurn(GameSimulation simulation,string selected)=>
             simulation!=null&&CanSelect(simulation,simulation.State.turn,selected)?selected:"normal";
+
+        // A83 W12: do not validate the local player's preselected card against
+        // the OPPONENT's current stock merely because a remote turn starts.
+        // Selection remains read-only while action permission is absent; it is
+        // revalidated by the unchanged ForTurn authority rule once aiming resumes.
+        public static string ForLocalView(GameSimulation simulation,string selected,bool canChoose)
+        {
+            if(simulation==null||simulation.State==null||simulation.Catalog==null||
+                string.IsNullOrEmpty(selected)||simulation.Catalog.Ball(selected)==null)
+                return "normal";
+            return canChoose?ForTurn(simulation,selected):selected;
+        }
     }
 
     // W10 selected from A20: relative wording is derived from the connected local seat,

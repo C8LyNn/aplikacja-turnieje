@@ -9,11 +9,15 @@ namespace CoreClash.Presentation
     {
         void RenderMatch()
         {
-            var state=Simulation.State;if(state.phase==MatchPhase.Aiming)selected=BallSelection.ForTurn(Simulation,selected);
+            var state=Simulation.State;
+            selected=BallSelection.ForLocalView(Simulation,selected,CanChoose);
             int displayOwner=LocalDeckContent.DisplayOwner(state.turn,NetworkLink==null?(int?)null:NetworkLink.LocalOwner);
             int visualOwner=displayOwner>=0?displayOwner:state.turn;
             var remoteVisual=NetworkLink!=null&&!NetworkLink.IsAuthority&&NetworkLink.IsConnected?remoteBallSmoother:null;
-            BoardView.Render(board,Simulation,gesture,Catalog.Ball(selected),feedback,remoteVisual,ViewOwner);
+            bool canPreviewSelected=LocalSeatVisuals.ShowSelectedPreview(NetworkLink!=null,
+                NetworkLink==null||NetworkLink.IsConnected,NetworkLink==null?-1:NetworkLink.LocalOwner,
+                state.turn,CanChoose);
+            BoardView.Render(board,Simulation,gesture,canPreviewSelected?Catalog.Ball(selected):null,feedback,remoteVisual,ViewOwner);
             if(layout.CompactLandscape){RenderCompactLandscape();return;}
             if(layout.Portrait){Hud(new Rect(12,68,UiWidth-24,48),true);Draw.Text(new Rect(12,118,UiWidth-24,17),TurnText(),11,Draw.Owner(state.turn),TextAnchor.MiddleCenter,true);}
             if(layout.Portrait&&UiViewport.Profile==DeviceProfile.Phone){RenderPhoneTray();return;}
@@ -64,7 +68,7 @@ namespace CoreClash.Presentation
                 float x=hud.x+i*(cellW+4);
                 Draw.Surface(new Rect(x,hud.y,cellW,44),Draw.PanelLight,i==owner?Draw.Owner(i):Draw.Edge);
                 int hp=state.players[i].hp;
-                string compactPlayer="P"+(i+1)+(NetworkLink!=null&&i==ViewOwner?" · YOU":"");
+                string compactPlayer="P"+(i+1)+(ShowLocalSeatMarker(i)?" · YOU":"");
                 Draw.Text(new Rect(x+4,hud.y+4,cellW-8,26),compactPlayer+"  "+hp+"/20",14,Color.white,TextAnchor.MiddleCenter,true);
                 Draw.Round(new Rect(x+8,hud.y+35,cellW-16,5),Draw.Edge);
                 if(hp>0)Draw.Round(new Rect(x+8,hud.y+35,(cellW-16)*Mathf.Clamp01(hp/20f),5),Draw.Owner(i));
@@ -158,6 +162,8 @@ namespace CoreClash.Presentation
         }
         string TurnText()=>LocalTurnPresentation.Status(Simulation.State,NetworkLink==null?-1:NetworkLink.LocalOwner,
             NetworkLink!=null,NetworkLink==null||NetworkLink.IsConnected);
+        bool ShowLocalSeatMarker(int seat)=>LocalSeatVisuals.ShowLocalMarker(NetworkLink!=null,
+            NetworkLink!=null&&NetworkLink.IsConnected,NetworkLink==null?-1:NetworkLink.LocalOwner,seat);
         void Hud(Rect r,bool compact)
         {
             float gap=10,w=(r.width-gap)/2;
@@ -165,7 +171,7 @@ namespace CoreClash.Presentation
                 var cell=new Rect(r.x+owner*(w+gap),r.y,w,r.height);Color team=Draw.Owner(owner);int hp=Simulation.State.players[owner].hp;
                 Draw.Surface(cell,Draw.PanelLight,Simulation.State.turn==owner?Color.Lerp(Draw.Edge,team,.65f):Draw.Edge);
                 bool stacked=!compact&&w<175;
-                Draw.Text(new Rect(cell.x+12,cell.y+7,w-24,18),"PLAYER "+(owner+1)+(NetworkLink!=null&&NetworkLink.LocalOwner==owner?" (YOU)":""),compact?10:12,team,TextAnchor.MiddleLeft,true);
+                Draw.Text(new Rect(cell.x+12,cell.y+7,w-24,18),"PLAYER "+(owner+1)+(ShowLocalSeatMarker(owner)?" (YOU)":""),compact?10:12,team,TextAnchor.MiddleLeft,true);
                 if(stacked)Draw.Text(new Rect(cell.x+12,cell.y+25,w-24,25),hp+" / 20",21,Color.white,TextAnchor.MiddleLeft,true);
                 else Draw.Text(new Rect(cell.x+w*.43f,cell.y+5,w*.57f-12,compact?20:30),hp+" / 20",compact?16:w<205?19:24,Color.white,TextAnchor.MiddleRight,true);
                 Draw.Round(new Rect(cell.x+12,cell.yMax-16,w-24,8),new Color(.035f,.06f,.09f));if(hp>0)Draw.Round(new Rect(cell.x+12,cell.yMax-16,(w-24)*Mathf.Clamp01(hp/20f),8),team);
