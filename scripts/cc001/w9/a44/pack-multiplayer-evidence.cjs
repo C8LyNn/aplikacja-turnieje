@@ -11,7 +11,9 @@ const SHA64 = /^[a-f0-9]{64}$/;
 function sha(bytes) { return crypto.createHash('sha256').update(bytes).digest('hex'); }
 function redact(text) {
   return text
-    .replace(/https?:\/\/[^\s"'<>]+/gi, '[URL_REDACTED]')
+    .replace(/(?:https?|wss?):\/\/[^\s"'<>]+/gi, '[URL_REDACTED]')
+    // Windows UNC hostname, share and optional nested path are private LAN evidence.
+    .replace(/\\\\[A-Za-z0-9][A-Za-z0-9._-]*\\[^\s"'<>]+/gi, '[UNC_REDACTED]')
     .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, '[EMAIL_REDACTED]')
     .replace(/\b(?:\d{1,3}\.){3}\d{1,3}\b/g, '[IP_REDACTED]')
     .replace(/\b(?:[a-f0-9]{1,4}:){2,7}[a-f0-9]{1,4}\b/gi, '[IPV6_REDACTED]')

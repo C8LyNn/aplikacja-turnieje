@@ -71,3 +71,29 @@ test('each classified issue becomes a separate route and unique issue ID',()=>fi
  fs.writeFileSync(o.observations,JSON.stringify(o.obs));const d=create(o);
  assert.equal(d.issues.length,2);assert.equal(d.issues[0].routeTo,'A31');assert.equal(d.issues[1].routeTo,'A20');assert.notEqual(d.issues[0].issueId,d.issues[1].issueId);
 }));
+
+test('W14: persisted W10 session notes and issue fields scrub websocket and UNC LAN data',()=>fixture(o=>{
+ o.obs.scenarios[1].note=String.raw`P2 ws://secret-lan.local:7777/session and \\PRIVATE-ROUTER\logs\alice.txt`;
+ o.obs.issues[0].expected='smooth marker CC_NET_STATE_APPLIED rev=8';
+ o.obs.issues[0].actual=String.raw`wss://private-match.example/ws?token=secret and \\NAS-P1\private-share\db.bin`;
+ o.obs.issues[0].reproduce=String.raw`follow ws://private-repro.internal/trace \\PC2-HOST\share\capture.pcap`;
+ fs.writeFileSync(o.observations,JSON.stringify(o.obs));
+ const result=create(o),saved=fs.readFileSync(o.out,'utf8');
+ for(const leak of ['secret-lan.local','PRIVATE-ROUTER','alice.txt','private-match.example','NAS-P1','private-share','private-repro.internal','PC2-HOST','capture.pcap']){
+   assert.equal(saved.includes(leak),false,leak);
+ }
+ assert.match(result.issues[0].expected,/CC_NET_STATE_APPLIED rev=8/);
+ assert.match(result.scenarios[1].note,/\[URL_REDACTED\]/);
+ assert.match(result.issues[0].actual,/\[UNC_REDACTED\]/);
+ assert.equal(result.qaDisposition,'PENDING_INDEPENDENT_A60_PHYSICAL_QA');
+ assert.equal(result.defectFixClaims,'NONE');
+}));
+
+test('W14: websocket and UNC submitted descriptions do not leak via clean()',()=>{
+ const note=String.raw`CC_NET_STATE_APPLIED rev=4 wss://secret-private.local/a \\LAN-P1\secret-share\name.txt`;
+ const result=clean(note);
+ assert.match(result,/CC_NET_STATE_APPLIED rev=4/);
+ assert.ok(!result.includes('secret-private.local'));
+ assert.ok(!result.includes('LAN-P1'));
+ assert.ok(!result.includes('secret-share'));
+});
