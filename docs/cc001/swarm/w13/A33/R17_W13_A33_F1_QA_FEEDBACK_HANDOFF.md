@@ -19,7 +19,7 @@ Reuses the W12 operator-click F1 clipboard feature already authored in the same 
 ## Current exact code blobs
 
 - `unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/DetailsView.cs` — `3440ed1a6a4a4de7fbf04c7c70c24383a01d7479`.
-- `scripts/cc001/w12/a33/check-f1-clipboard.cjs` — `32ff905036ea11de62c4ffbe073195a141703608`.
+- `scripts/cc001/w12/a33/check-f1-clipboard.cjs` — `32a78e3cb8628963c7c88e3e287ccd7f7ef4191f`.
 - Historical original W12-only hashes are superseded in the W12 handoff by this W13 amendment.
 - W11 freeze's original `DetailsView.cs` stays `ee6683ec3ae4ae10ce194a7c8bd9691d5a90754e`. All new source is **dev-only** in the isolated PR; it is **NOT** present in the Windows Player source currently selected for W11 QA.
 
