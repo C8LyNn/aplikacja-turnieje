@@ -217,14 +217,14 @@ public static partial class Program
             True(System.Math.Abs(NetworkSnapshotRate.Interval(MatchPhase.Moving,8*1024)-1f/12f)<0.00001f);
             True(System.Math.Abs(NetworkSnapshotRate.Interval(MatchPhase.Moving,16*1024-1)-1f/12f)<0.00001f);
             True(System.Math.Abs(NetworkSnapshotRate.Interval(MatchPhase.Moving,16*1024)-.125f)<0.00001f);
-            True(System.Math.Abs(NetworkSnapshotRate.Interval(MatchPhase.Moving,64*1024-1)-.125f)<0.00001f);
+            True(System.Math.Abs(NetworkSnapshotRate.Interval(MatchPhase.Moving,64*1024-1)-(64*1024-1)/(256f*1024))<0.00001f);
             True(System.Math.Abs(NetworkSnapshotRate.Interval(MatchPhase.Moving,64*1024)-.25f)<0.00001f);
-            True(System.Math.Abs(NetworkSnapshotRate.Interval(MatchPhase.Moving,256*1024)-.25f)<0.00001f);
+            True(System.Math.Abs(NetworkSnapshotRate.Interval(MatchPhase.Moving,256*1024)-1f)<0.00001f);
         });
         Test("R17 W9 idle turn and match-over snapshots stay on bounded refresh",()=>{
             True(System.Math.Abs(NetworkSnapshotRate.Interval(MatchPhase.Aiming,900)-.25f)<0.00001f);
             True(System.Math.Abs(NetworkSnapshotRate.Interval(MatchPhase.Over,900)-.25f)<0.00001f);
-            True(System.Math.Abs(NetworkSnapshotRate.Interval(MatchPhase.Aiming,256*1024)-.25f)<0.00001f);
+            True(System.Math.Abs(NetworkSnapshotRate.Interval(MatchPhase.Aiming,256*1024)-1f)<0.00001f);
             True(NetworkSnapshotRate.Interval(MatchPhase.Moving,900)<NetworkSnapshotRate.Interval(MatchPhase.Aiming,900));
         });
         Test("R17 W9 result must match current pending P2 intent",()=>{
@@ -258,6 +258,36 @@ public static partial class Program
             False(NetworkSnapshotTrace.Due(float.PositiveInfinity,0f));
             False(NetworkSnapshotTrace.Due(1f,float.NaN));
             False(NetworkSnapshotTrace.Due(1f,float.PositiveInfinity));
+        });
+        Test("R17 W12 moving snapshots respect 256 KiB/s periodic compressed byte budget",()=>{
+            Eq(256*1024,NetworkSnapshotRate.PeriodicBytesPerSecond);
+            True(System.Math.Abs(NetworkSnapshotRate.Interval(MatchPhase.Moving,24*1024)-.125f)<.00001f);
+            True(System.Math.Abs(NetworkSnapshotRate.Interval(MatchPhase.Moving,48*1024)-.1875f)<.00001f);
+            True(System.Math.Abs(NetworkSnapshotRate.Interval(MatchPhase.Moving,63*1024)-63f/256)<.00001f);
+            True(System.Math.Abs(NetworkSnapshotRate.Interval(MatchPhase.Moving,128*1024)-.5f)<.00001f);
+            True(System.Math.Abs(NetworkSnapshotRate.Interval(MatchPhase.Moving,256*1024)-1f)<.00001f);
+        });
+        Test("R17 W12 every legal compressed snapshot has a bounded nominal byte rate",()=>{
+            foreach(var phase in new[]{MatchPhase.Aiming,MatchPhase.Moving,MatchPhase.Over})
+                for(int bytes=1;bytes<=256*1024;bytes+=1024)
+                {
+                    float interval=NetworkSnapshotRate.Interval(phase,bytes);
+                    True(interval>0);
+                    True(bytes/interval<=NetworkSnapshotRate.PeriodicBytesPerSecond+1f);
+                }
+        });
+        Test("R17 W12 small moving packets retain up to 20Hz responsiveness",()=>{
+            True(System.Math.Abs(NetworkSnapshotRate.Interval(MatchPhase.Moving,1)-.05f)<.00001f);
+            True(System.Math.Abs(NetworkSnapshotRate.Interval(MatchPhase.Moving,4*1024)-.05f)<.00001f);
+            True(System.Math.Abs(NetworkSnapshotRate.Interval(MatchPhase.Moving,8*1024)-1f/12f)<.00001f);
+            True(System.Math.Abs(NetworkSnapshotRate.Interval(MatchPhase.Moving,16*1024)-.125f)<.00001f);
+        });
+        Test("R17 W12 fail-slow invalid lengths and idle 4Hz small-state refresh",()=>{
+            True(System.Math.Abs(NetworkSnapshotRate.Interval(MatchPhase.Moving,-1)-.25f)<.00001f);
+            True(System.Math.Abs(NetworkSnapshotRate.Interval(MatchPhase.Aiming,-1)-.25f)<.00001f);
+            True(System.Math.Abs(NetworkSnapshotRate.Interval(MatchPhase.Moving,0)-.05f)<.00001f);
+            True(System.Math.Abs(NetworkSnapshotRate.Interval(MatchPhase.Aiming,16*1024)-.25f)<.00001f);
+            True(System.Math.Abs(NetworkSnapshotRate.Interval(MatchPhase.Over,256*1024)-1f)<.00001f);
         });
     }
 }

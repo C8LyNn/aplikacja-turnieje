@@ -24,18 +24,29 @@ namespace CoreClash.Networking
     // Keep expensive full-state snapshots slower as compressed payloads grow.
     public static class NetworkSnapshotRate
     {
-        // 20-Hz NGO simulation tick is the maximum broadcast rate. Large reliable
-        // full-state packets throttle before their queue competes with shot intents.
+        // Source-only W12 alternative: limit periodic compressed full-state byte
+        // production as well as packets/sec. The host continues physics at 120 Hz.
+        // Queue occupancy is not observable here; this is NOT a measured backlog fix.
         public const float IdleSeconds=0.25f;
         public const float MovingSeconds=0.05f;
+        public const int PeriodicBytesPerSecond=256*1024;
         public static float Interval(MatchPhase phase,int compressedBytes)
         {
-            if(phase!=MatchPhase.Moving)return IdleSeconds;
-            if(compressedBytes<0)return 0.25f; // invalid size: fail to slow cadence
-            if(compressedBytes>=64*1024)return 0.25f; // 4 Hz
-            if(compressedBytes>=16*1024)return 0.125f; // 8 Hz
-            if(compressedBytes>=8*1024)return 1f/12f; // 12 Hz
-            return MovingSeconds; // 20 Hz when compressed packet is small
+            float interval=IdleSeconds;
+            if(phase==MatchPhase.Moving && compressedBytes>=0)
+            {
+                if(compressedBytes>=64*1024)interval=0.25f; // at most 4 Hz
+                else if(compressedBytes>=16*1024)interval=0.125f; // at most 8 Hz
+                else if(compressedBytes>=8*1024)interval=1f/12f; // at most 12 Hz
+                else interval=MovingSeconds; // at most 20 Hz
+            }
+            // At 63 KiB, fixed 8 Hz would enqueue roughly 504 KiB/s.
+            // At 256 KiB, fixed 4 Hz would enqueue 1 MiB/s.
+            // This applies to periodic snapshots; intentionally forced immediate
+            // broadcasts (turn/peer events) are not counted in this estimate.
+            if(compressedBytes>0)
+                interval=Math.Max(interval,compressedBytes/(float)PeriodicBytesPerSecond);
+            return interval;
         }
     }
     // Deterministic 1-Hz privacy-safe log rate-limit for host/client state traces.
