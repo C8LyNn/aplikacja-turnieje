@@ -7,7 +7,7 @@
 - Frozen RC1: `10f64e4d213f17a352ed8fa83bc75884a39549f0`
 - Current A70 base #181: `3d377767e72473cebd90e49293a0cd5dada70464`
 - A30 addon #189: `3a6fb11f70cbdd354ca319b6c48e5c080a1ae193`
-- Expected delta: **18 paths** (13 modified, 5 added), including two added `.cs.meta` paired with new `.cs` files, and tests wiring.
+- Expected delta: **18 paths** (12 modified, 6 added), including two added `.cs.meta` paired with new `.cs` files, and tests wiring.
 - Retention: seven pinned blobs from the A70 base, including V148, Protocol149 implementation, R16 source manifest and original A33 diagnostics.
 
 The JSON pins were independently obtained by A73 using GitHub exact ref + `compare_commits` + 18 `fetch_file` Git SHA-1 reads and seven before/after blob readbacks. A manifest is **evidence input**, not proof of gameplay correctness or owner authorization to merge.
