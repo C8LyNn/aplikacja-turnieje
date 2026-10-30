@@ -8,14 +8,22 @@ public static partial class Program
 {
     static void LocalDeckContentTests()
     {
-        Test("A32 W9 offline deck follows active owner but LAN client pins local owner",()=>{
+        Test("A32 W10 offline deck follows active owner but LAN client pins local owner",()=>{
             Eq(0,LocalDeckContent.DisplayOwner(0,null));
             Eq(1,LocalDeckContent.DisplayOwner(1,null));
             Eq(0,LocalDeckContent.DisplayOwner(1,0));
             Eq(1,LocalDeckContent.DisplayOwner(0,1));
-            Eq(1,LocalDeckContent.DisplayOwner(1,2)); // invalid owner falls back
+            Eq(-1,LocalDeckContent.DisplayOwner(1,2)); // invalid network owner fails closed
         });
-        Test("A32 W9 P2 nine-special roster stays P2 during P1 turn",()=>{
+        Test("A32 W10 invalid network seat cannot display opponent inventory or activate cards",()=>{
+            var sim=new GameSimulation(catalog,catalog.Featured[0],catalog.Featured[1]);
+            int owner=LocalDeckContent.DisplayOwner(sim.State.turn,7);
+            Eq(-1,owner);
+            Eq(0,LocalDeckContent.StockIds(sim.State,owner).Length);
+            False(LocalDeckContent.VisibleAsAvailable(sim,owner,sim.State.players[0].stock[0].id));
+            False(LocalDeckContent.CanActivate(sim,owner,sim.State.players[0].stock[0].id,true));
+        });
+        Test("A32 W10 P2 nine-special roster stays P2 during P1 turn",()=>{
             var sim=new GameSimulation(catalog,catalog.Featured[0],catalog.Featured[1]);
             sim.State.turn=0;
             int owner=LocalDeckContent.DisplayOwner(sim.State.turn,1);
@@ -26,7 +34,7 @@ public static partial class Program
             True(ids.SequenceEqual(catalog.Featured[1].balls));
             False(ids.SequenceEqual(catalog.Featured[0].balls));
         });
-        Test("A32 W9 P2 stock remains visible on P1 turn but never selectable",()=>{
+        Test("A32 W10 P2 stock remains visible on P1 turn but never selectable",()=>{
             var sim=new GameSimulation(catalog,catalog.Featured[0],catalog.Featured[1]);
             sim.State.turn=0;
             string id=sim.State.players[1].stock[0].id;
@@ -37,7 +45,7 @@ public static partial class Program
             False(LocalDeckContent.CanActivate(sim,1,id,true));
             False(LocalDeckContent.CanActivate(sim,0,id,false));
         });
-        Test("A32 W9 P2 input is eligible only on the authoritative P2 turn",()=>{
+        Test("A32 W10 P2 input is eligible only on the authoritative P2 turn",()=>{
             var sim=new GameSimulation(catalog,catalog.Featured[0],catalog.Featured[1]);
             string id=sim.State.players[1].stock[0].id;
             sim.State.turn=1;
@@ -49,7 +57,7 @@ public static partial class Program
             Eq("EMPTY",LocalDeckContent.StockLabel(sim,1,id));
             False(LocalDeckContent.CanActivate(sim,1,id,true));
         });
-        Test("A32 W9 local deck queries cannot mutate stock, turn, revision or serial",()=>{
+        Test("A32 W10 local deck queries cannot mutate stock, turn, revision or serial",()=>{
             var sim=new GameSimulation(catalog,catalog.Featured[0],catalog.Featured[1]);
             var a=sim.State.players[0].stock.Select(x=>x.remaining).ToArray();
             var b=sim.State.players[1].stock.Select(x=>x.remaining).ToArray();
