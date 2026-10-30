@@ -6,7 +6,7 @@
 
 ```sh
 node unity/cc001-r16/CoreClash-V149-Unity/Tools/qa/cc001-w9-two-pc-gate.cjs --self-test
-node unity/cc001-r16/CoreClash-V149-Unity/Tools/qa/cc001-w9-two-pc-gate.cjs /private/path/PC1.json /private/path/PC2.json
+node unity/cc001-r16/CoreClash-V149-Unity/Tools/qa/cc001-w9-two-pc-gate.cjs /private/path/PC1.json /private/path/PC2.json 173273122c11cbf738e8b954e32506a6196fe8ec
 ```
 
 Node 22 (built-in modules only). Exit: **0 PASS**, **1 FAIL** for a proven regression, **2 HOLD** for incomplete evidence, **64 invalid usage/input**. The self-test has 12 deterministic assertions including intentional negative cases. A passing self-test proves the gate implementation, **not a real PC1–PC2 game fix**. Always pair the actual live trace with both original Windows Player logs and real gameplay screenshots/video when evaluating visual smoothness.
@@ -63,3 +63,21 @@ PC1 uses `peer="PC1"`, `localOwner=0`, same source SHA and run/session ID. PC1 s
 - **Candidate under source review only:** preintegration exact snapshot `d5c26acd2403b0d0264849b40f2d2aa98c750f62`; this is not a native Windows build nor A70 merged release candidate. Verify ref again before actual PC1/PC2 test.
 - Automated offline gate accepts only **trusted original device-sourced measurements** and cannot independently prove screenshot/Player.log identity from JSON fields alone. Preserve original logs and screenshots privately with SHA receipts; interpret a PASS solely within verified provenance and measured scope. Current physical PC1/PC2 post-fix original traces **NOT PROVIDED** to A60; G3 and full G4 HOLD.
 - No dotnet/Unity compiler present on A60 host; **do not claim C# tests, Unity compilation or physical Windows execution** from Node-only self-tests.
+
+## W11 finalization — hard binary and selected-SHA gate (2026-10-30)
+
+**Official A70 PR #207:** `173273122c11cbf738e8b954e32506a6196fe8ec`. Each original physical PC1/PC2 JSON must include the exact `sourceSha` (40 hex characters) **and** these *on-device* raw-byte-verified 64-hex SHA256 values:
+
+```json
+{
+  "sourceSha":"173273122c11cbf738e8b954e32506a6196fe8ec",
+  "playerExeSha256":"<64-hex obtained from original PC EXE bytes>",
+  "assemblyCSharpSha256":"<64-hex obtained from original PC DLL bytes>",
+  "playerManifestSha256":"<64-hex obtained from verified canonical original full-Player file manifest>"
+}
+```
+
+- **CLI now requires the expected 40-char commit as positional argument 3.** Equal PC1/PC2 source hashes that differ from the frozen selected A70 SHA => `TARGET_SHA_PIN=FAIL` / exit1.
+- Both machines must match EXE, `Assembly-CSharp.dll` and full canonical Player-manifest SHA256. Missing all/partial fingerprints => `BINARY_IDENTITY=HOLD` / exit2 even if gameplay snapshots appear equal. Invalid or mismatched complete SHA256 => `FAIL` / exit1.
+- This verifies **claims in device-produced JSON**; A60 still must independently hash **the original raw Windows files** from BOTH PCs and their actual manifest before accepting `BINARY_IDENTITY` as independent evidence. JSON self-assertions are not independently corroborated binaries. Do not use RC1/W10 binary manifests for #207.
+- Targeted 26/26 Node22 self-test assertions run on exact committed original 15,766-byte script, local SHA256 `4133568e2b9e4990d3dce018c593e3573d1cdb7dc41f79a1b4675143cc6f6408`, Git blob `849a7474f8fe860045686b5b601e3bec41e29cdf`. Additional native CLI synthetic controls: selected #207 with missing binary fingerprints => HOLD; deliberately wrong source pin => FAIL; partial binary fingerprints => HOLD. **No physical PC1-PC2 game run, Windows compiler or Unity launch from A60.**
