@@ -14,14 +14,18 @@ const valid=p=>typeof p==='string'&&p.length>0&&!p.startsWith('/')&&!p.includes(
 const unityMeta=p=>p.startsWith('unity/cc001-r16/')&&p.endsWith('.meta');
 const protectedPath=p=>protectedFiles.includes(p)||protectedFolders.some(d=>p.startsWith(d))||unityMeta(p)||p==='csc.rsp'||p.endsWith('/csc.rsp');
 const addableMeta=(p,base)=>p.startsWith(U+'Assets/')&&p.endsWith('.cs.meta')&&!base.has(p);
+// W11 / #207 narrow exception: exactly two verified additions to the old test
+// runner. No general ability to change frozen R16 test harness is granted.
+const programRegistration={path:U+'Tests/Program.cs',base:'12b8fcca30731f007a01a81ac45572671c99f1dc',head:'49d9860cec074e7d1612babacf01f8d63ed238b4'};
+const approvedProgramChange=(p,base,head)=>p===programRegistration.path&&base.get(p)?.sha===programRegistration.base&&head.get(p)?.sha===programRegistration.head&&base.get(p)?.mode==='100644'&&head.get(p)?.mode==='100644';
 function index(entries){const m=new Map();for(const e of entries){if(!valid(e.path)||!/^100(644|755)$/.test(e.mode)||!/^[0-9a-f]{40}$/.test(e.sha)||m.has(e.path))throw Error('Invalid Git entry '+e.path);m.set(e.path,e)}return m;}
 function check(baseEntries,headEntries,allowedPaths,content){
  const base=index(baseEntries),head=index(headEntries),allow=new Set(allowedPaths),errors=[],changed=[];
  if(!Array.isArray(allowedPaths)||allow.size!==allowedPaths.length)throw Error('Bad allowlist');
- for(const p of allow)if(!valid(p)||(protectedPath(p)&&!addableMeta(p,base)))throw Error('Invalid or protected allowlist path: '+p);
+ for(const p of allow)if(!valid(p)||(protectedPath(p)&&!addableMeta(p,base)&&!approvedProgramChange(p,base,head)))throw Error('Invalid or protected allowlist path: '+p);
  for(const p of protectedFiles)if(!base.has(p))throw Error('Missing frozen protected path: '+p);
  const lower=new Set();for(const p of head.keys()){const l=p.toLowerCase();if(lower.has(l))throw Error('Case-fold collision: '+p);lower.add(l);}
- for(const [p,v] of base){const q=head.get(p);if(!q)errors.push('Removed: '+p);else if(q.sha!==v.sha||q.mode!==v.mode){if(protectedPath(p))errors.push('Protected: '+p);else if(!allow.has(p))errors.push('Unapproved: '+p);else if(q.mode!==v.mode)errors.push('Mode changed: '+p);else changed.push(p);}}
+ for(const [p,v] of base){const q=head.get(p);if(!q)errors.push('Removed: '+p);else if(q.sha!==v.sha||q.mode!==v.mode){if(protectedPath(p)&&!approvedProgramChange(p,base,head))errors.push('Protected: '+p);else if(!allow.has(p))errors.push('Unapproved: '+p);else if(q.mode!==v.mode)errors.push('Mode changed: '+p);else changed.push(p);}}
  for(const [p,v] of head)if(!base.has(p)){
   if(unityMeta(p)){
    const asset=p.slice(0,-5);
