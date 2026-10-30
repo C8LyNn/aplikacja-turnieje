@@ -123,6 +123,21 @@ public static partial class Program
             Eq("DRAG TO BUILD POWER",AimUiStatus.Hint(true,float.NaN,40));
         });
 
+        Test("NET-UX-12 P2 waiting on P1 cannot see drag or launch action hint",()=>{
+            var s=Sim();s.State.turn=0;s.State.phase=MatchPhase.Aiming;
+            Eq("WAITING FOR PLAYER 1",LocalTurnPresentation.ActionHint(s.State,1,true,true,false,0,0,"DRAG FROM LAUNCHER"));
+            Eq("WAITING FOR PLAYER 1",LocalTurnPresentation.ActionHint(s.State,1,true,true,true,30,0,"SELECT A BALL AND DRAG TO AIM"));
+        });
+        Test("NET-UX-13 disconnected P2 cannot see interactive action cue",()=>{
+            var s=Sim();s.State.turn=1;s.State.phase=MatchPhase.Aiming;
+            Eq("WAITING FOR CONNECTION",LocalTurnPresentation.ActionHint(s.State,1,true,false,true,50,0,"DRAG FROM LAUNCHER"));
+        });
+        Test("NET-UX-14 current P2 aim and insufficient drag use unchanged threshold",()=>{
+            var s=Sim();s.State.turn=1;s.State.phase=MatchPhase.Aiming;
+            Eq("DRAG TO BUILD POWER",LocalTurnPresentation.ActionHint(s.State,1,true,true,true,17,0,"DRAG FROM LAUNCHER"));
+            Eq("RELEASE TO LAUNCH",LocalTurnPresentation.ActionHint(s.State,1,true,true,true,18,0,"DRAG FROM LAUNCHER"));
+        });
+
         // R17-W6 / A20: Phoenix-hand selection parity with core TryCommand.
         Test("PHX-UI-01 ready Phoenix hand with exhausted stock can be selected",()=>{
             var s=PhoenixUiFixture();PhoenixUiHand(s);
