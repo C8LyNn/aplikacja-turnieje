@@ -1,0 +1,145 @@
+{
+  "spec": "CC001_R17_W11_A71_QA_FREEZE_EXACT_SOURCE_V1",
+  "baseline": "10f64e4d213f17a352ed8fa83bc75884a39549f0",
+  "baselineTree": "304f7f2811900c0b2b7771ec567170365f709c50",
+  "qaRef": "integration/cc001-r17-w11-qa-freeze-20261030",
+  "qaSha": "3f972cdbaea6289a7e33ce608f5d3256cfdab0a3",
+  "qaTree": "7fb8a89143f77aa22488d92af32efa35cd323332",
+  "projectSubtreePath": "unity/cc001-r16/CoreClash-V149-Unity",
+  "qaProjectTree": "226ff427fadd0408a8e09cc1e7fcbe71f30c6c36",
+  "immutableOriginalUnityMeta": 88,
+  "expectedDelta": [
+    {
+      "path": "docs/cc001/swarm/w9/A33/R17_W9_A33_NETWORK_PRESENTATION_OVERLAY_HANDOFF.md",
+      "sha": "ec61ba70c949124de9ec72c1d786508b0f7a3440",
+      "mode": "100644",
+      "kind": "added"
+    },
+    {
+      "path": "scripts/cc001/w9/a33/verify-network-overlay.cjs",
+      "sha": "43765cc5252f15c4138b6f88b5ee09b1cb3c3365",
+      "mode": "100644",
+      "kind": "added"
+    },
+    {
+      "path": "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Networking/NetworkGameSession.cs",
+      "sha": "5a833e1821218d820e8f6e92b08ccbcd6cebfed0",
+      "mode": "100644",
+      "kind": "modified"
+    },
+    {
+      "path": "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Networking/NgoGameSession.cs",
+      "sha": "2e64b8d0bac82b58fc33e84f701f2331ac2feef0",
+      "mode": "100644",
+      "kind": "modified"
+    },
+    {
+      "path": "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/BallSelection.cs",
+      "sha": "58c8e4e89e536785e4f05d02e415d9fd2dc87d70",
+      "mode": "100644",
+      "kind": "modified"
+    },
+    {
+      "path": "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/BallView.cs",
+      "sha": "db05d1053c5f2d8869eba44314fdccdaf1f9ee79",
+      "mode": "100644",
+      "kind": "modified"
+    },
+    {
+      "path": "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/BoardView.cs",
+      "sha": "48927f49b541db51bf5ff2df0ef73fdbb5377433",
+      "mode": "100644",
+      "kind": "modified"
+    },
+    {
+      "path": "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/CoreClashApp.cs",
+      "sha": "4d55efccbf7ab0cf362515b01d8e604268fc00b0",
+      "mode": "100644",
+      "kind": "modified"
+    },
+    {
+      "path": "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/DetailsView.cs",
+      "sha": "ee6683ec3ae4ae10ce194a7c8bd9691d5a90754e",
+      "mode": "100644",
+      "kind": "modified"
+    },
+    {
+      "path": "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/LocalDeckContent.cs",
+      "sha": "1d50601a66d985d3998b94bde982ce7da530cc98",
+      "mode": "100644",
+      "kind": "added"
+    },
+    {
+      "path": "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/LocalDeckContent.cs.meta",
+      "sha": "ea471fd92648ba7b05ffdc11e51136b04c348094",
+      "mode": "100644",
+      "kind": "added"
+    },
+    {
+      "path": "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/MatchLayout.cs",
+      "sha": "c17c24bc23bda08a08bef6877d390a497882bc30",
+      "mode": "100644",
+      "kind": "modified"
+    },
+    {
+      "path": "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/MatchView.cs",
+      "sha": "86c5d160fa52190a1ce213f1f784969289a4fffd",
+      "mode": "100644",
+      "kind": "modified"
+    },
+    {
+      "path": "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/RemoteBallSmoother.cs",
+      "sha": "fe248d39c95562e9225f2cb9d41646de815a3a15",
+      "mode": "100644",
+      "kind": "added"
+    },
+    {
+      "path": "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/RemoteBallSmoother.cs.meta",
+      "sha": "ce9f5ecfea9d53b84fa709586b08d6643a848587",
+      "mode": "100644",
+      "kind": "added"
+    },
+    {
+      "path": "unity/cc001-r16/CoreClash-V149-Unity/Tests/AbilityTests.cs",
+      "sha": "93202589e0a80f43935b7cfed96c5a7666980e67",
+      "mode": "100644",
+      "kind": "modified"
+    },
+    {
+      "path": "unity/cc001-r16/CoreClash-V149-Unity/Tests/CoreClash.Tests.csproj",
+      "sha": "54c37db09a9cf543b17d49d641929b39e0b3d69d",
+      "mode": "100644",
+      "kind": "modified"
+    },
+    {
+      "path": "unity/cc001-r16/CoreClash-V149-Unity/Tests/LocalDeckContentTests.cs",
+      "sha": "f8f4e6f07e2ed9a9bc3ac6564ad8ce5bda5d7069",
+      "mode": "100644",
+      "kind": "added"
+    },
+    {
+      "path": "unity/cc001-r16/CoreClash-V149-Unity/Tests/NetworkSeatTests.cs",
+      "sha": "5263c696fd8fa65a202fb885311af20792bf0e34",
+      "mode": "100644",
+      "kind": "modified"
+    },
+    {
+      "path": "unity/cc001-r16/CoreClash-V149-Unity/Tests/PresentationTests.cs",
+      "sha": "72838ca36903fc4811ff73db1bea7cad8e0a7f5f",
+      "mode": "100644",
+      "kind": "modified"
+    },
+    {
+      "path": "unity/cc001-r16/CoreClash-V149-Unity/Tests/Program.cs",
+      "sha": "49d9860cec074e7d1612babacf01f8d63ed238b4",
+      "mode": "100644",
+      "kind": "modified"
+    },
+    {
+      "path": "unity/cc001-r16/CoreClash-V149-Unity/Tests/RemoteBallSmootherTests.cs",
+      "sha": "a4741ad97861255b93d2c327920f45837b37033f",
+      "mode": "100644",
+      "kind": "added"
+    }
+  ]
+}

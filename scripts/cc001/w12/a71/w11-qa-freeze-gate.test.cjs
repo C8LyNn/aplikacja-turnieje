@@ -1,0 +1,42 @@
+'use strict';
+const t=require('node:test'),a=require('node:assert/strict'),fs=require('node:fs');
+const path=require('node:path'),os=require('node:os'),cp=require('node:child_process');
+const g=require('./w11-qa-freeze-gate.cjs');
+const m=g.readManifest(fs.readFileSync(path.join(__dirname,'w11-qa-freeze-manifest.json')));
+const U='unity/cc001-r16/';
+function fixtures(){
+ const b=[],ZERO='0'.repeat(40);
+ for(let i=0;i<88;i++)b.push({path:U+'CoreClash-V149-Unity/Assets/ZZZ/Legacy'+String(i).padStart(3,'0')+'.meta',mode:'100644',sha:ZERO});
+ for(const x of m.expectedDelta.filter(x=>x.kind==='modified'))b.push({path:x.path,sha:ZERO,mode:'100644'});
+ for(let i=b.length;i<1750;i++)b.push({path:'fixtures/old_'+String(i).padStart(5,'0')+'.txt',sha:ZERO,mode:'100644'});
+ const h=b.map(x=>({...x}));
+ for(const x of m.expectedDelta){const n=h.findIndex(z=>z.path===x.path);if(n<0)h.push({path:x.path,sha:x.sha,mode:x.mode});else h[n]={path:x.path,sha:x.sha,mode:x.mode};}
+ return {base:b,head:h};
+}
+const sample=fixtures();
+t('manifest Git blob matches independently observed immutable GitHub object',()=>a.equal(g.blobHash(fs.readFileSync(path.join(__dirname,'w11-qa-freeze-manifest.json'))),'b7bed4fa2eea89146f089ee70cbb7258e2230dab'));
+t('manifest exact candidate/RC1 SHA, refs and 22 source-path pins',()=>{a.equal(m.qaSha,g.QA);a.equal(m.baseline,g.RC1);a.equal(m.qaRef,g.QA_REF);a.equal(m.expectedDelta.length,22);});
+t('baseline has exactly 1750 and frozen candidate 1758 synthetic entries',()=>{a.equal(sample.base.length,1750);a.equal(sample.head.length,1758);});
+t('exact frozen 22 pinned blob changes and 88 protected meta pass on independent synthetic tree',()=>{const z=g.checkTrees(sample.base,sample.head,m);a.equal(z.ok,true);a.equal(z.changes,22);a.equal(z.originalMeta,undefined);a.equal(z.immutableMeta,88);a.equal(z.newMeta,2);});
+t('later competing network implementation under an approved path is rejected',()=>{const h=sample.head.map(x=>x.path===m.expectedDelta[2].path?{...x,sha:'c'.repeat(40)}:x);a.match(g.checkTrees(sample.base,h,m).errors.join(' '),/UNAPPROVED_EDIT/);});
+t('later unapproved added path cannot enter frozen QA',()=>{const h=[...sample.head,{path:'unity/cc001-r16/CoreClash-V149-Unity/Assets/Injected.cs',sha:'c'.repeat(40),mode:'100644'}];a.match(g.checkTrees(sample.base,h,m).errors.join(' '),/UNAPPROVED_ADDITION/);});
+t('baseline deletion blocked',()=>{const h=sample.head.slice(1);a.match(g.checkTrees(sample.base,h,m).errors.join(' '),/DELETED_BASELINE/);});
+t('old 88 Unity meta are immutable',()=>{const h=sample.head.map(x=>x.path.endsWith('Legacy000.meta')?{...x,sha:'a'.repeat(40)}:x);a.match(g.checkTrees(sample.base,h,m).errors.join(' '),/MUTATED_META/);});
+t('new Unity CS must have paired new .meta',()=>{const h=sample.head.filter(x=>!x.path.endsWith('/RemoteBallSmoother.cs'));a.match(g.checkTrees(sample.base,h,m).errors.join(' '),/UNPAIRED_NEW_META/);});
+t('changed Git executable bit is rejected even if blob matches',()=>{const h=sample.head.map(x=>x.path===m.expectedDelta[2].path?{...x,mode:'100755'}:x);a.match(g.checkTrees(sample.base,h,m).errors.join(' '),/UNAPPROVED_EDIT/);});
+t('casefold collision is forbidden',()=>{const h=[...sample.head,{...sample.head[0],path:sample.head[0].path.toUpperCase()}];a.throws(()=>g.checkTrees(sample.base,h,m),/INVALID_OR_COLLIDING_TREE/);});
+t('stale original W11 commit refused',()=>a.throws(()=>g.parseArgs(['--ref','173273122c11cbf738e8b954e32506a6196fe8ec']),/QA_SHA_MISMATCH/));
+t('later PR207 moving head refused',()=>a.throws(()=>g.parseArgs(['--ref','87b718432f4ce3906c907a7f4a1e2b4fb2a95f9c']),/QA_SHA_MISMATCH/));
+t('frozen source commit and fixed ref admitted',()=>a.equal(g.parseArgs(['--ref',g.QA]).ref,g.QA));
+t('moving development branch is rejected even when named',()=>a.throws(()=>g.parseArgs(['--ref','integration/cc001-r17-w11-multiplayer-qa-candidate-20261030']),/QA_SHA_MISMATCH/));
+t('unknown CLI option denied',()=>a.throws(()=>g.parseArgs(['--disable-pin']),/INVALID_ARGUMENT/));
+t('frozen Git branch readback exact pin accepted',()=>a.equal(g.requireFrozenRef(s=>s.includes('refs/remotes/origin/')?g.QA:null),g.QA));
+t('ref moved, including local tampering, denied',()=>a.throws(()=>g.requireFrozenRef(s=>s.includes('refs/heads')?'1'.repeat(40):g.QA),/QA_FREEZE_REF_UNAVAILABLE_OR_MOVED/));
+t('missing frozen Git ref denied',()=>a.throws(()=>g.requireFrozenRef(()=>null),/QA_FREEZE_REF_UNAVAILABLE_OR_MOVED/));
+t('original/new unique Unity GUIDs valid',()=>{const paths=['a.meta','b.meta'];a.equal(g.uniqueUnityGuids(paths,p=>'guid: '+(p==='a.meta'?'a'.repeat(32):'b'.repeat(32))+'\n'),2);});
+t('duplicate Unity GUID rejected',()=>a.throws(()=>g.uniqueUnityGuids(['a.meta','b.meta'],()=> 'guid: '+'a'.repeat(32)+'\n'),/DUPLICATE_UNITY_GUID/));
+t('malformed Unity GUID rejected',()=>a.throws(()=>g.uniqueUnityGuids(['a.meta'],()=> 'guid: garbage\n'),/INVALID_UNITY_GUID/));
+t('tree parser rejects symlinks/submodules and malformed paths',()=>a.throws(()=>g.parseLsTree(Buffer.from('120000 blob '+'0'.repeat(40)+'\tbad\0')),/UNSUPPORTED_GIT_ENTRY/));
+t('tree parser accepts null-delimited Git tree entries',()=>{const line='100644 blob '+'0'.repeat(40)+'\tgood/file.txt\0';a.equal(g.parseLsTree(Buffer.from(line))[0].path,'good/file.txt');});
+t('tampered manifest bytes fail locked object identity',()=>{const raw=fs.readFileSync(path.join(__dirname,'w11-qa-freeze-manifest.json'));a.throws(()=>g.readManifest(Buffer.concat([raw,Buffer.from(' ')])),/MANIFEST_BLOB_MISMATCH/);});
+t('candidate execution without frozen Git objects returns HOLD exit2 (not false PASS)',()=>{const temp=fs.mkdtempSync(path.join(os.tmpdir(),'cc001-a71-freeze-'));try{cp.execFileSync('git',['init','-q',temp]);const res=cp.spawnSync(process.execPath,[path.join(__dirname,'w11-qa-freeze-gate.cjs'),'--root',temp],{encoding:'utf8'});a.equal(res.status,2);a.match(res.stderr,/A71_W12_SOURCE_HOLD/);a.doesNotMatch(res.stdout,/PASS_EXACT_SOURCE_ONLY/);}finally{fs.rmSync(temp,{recursive:true,force:true});}});
