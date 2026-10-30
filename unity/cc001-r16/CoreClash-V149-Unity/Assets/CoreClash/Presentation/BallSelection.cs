@@ -56,6 +56,19 @@ namespace CoreClash.Presentation
             return turn+(state.bonusPending?" / BONUS SHOT":multiplayer?" / YOUR SHOT":" / AIMING");
         }
 
+        // Only the connected active local seat may see aim/launch instructions.
+        // This is presentation-only: CoreClashApp.CanChoose remains authoritative.
+        public static string ActionHint(GameState state,int localOwner,bool multiplayer,bool connected,
+            bool dragging,float dx,float dy,string idleHint)
+        {
+            if(state==null)return "WAITING FOR MATCH";
+            if(state.phase==MatchPhase.Over)return "MATCH COMPLETE";
+            if(state.phase==MatchPhase.Moving)return "SHOT RESOLVING";
+            if(multiplayer&&!connected)return "WAITING FOR CONNECTION";
+            if(multiplayer&&state.turn!=localOwner)return "WAITING FOR PLAYER "+(state.turn+1);
+            return dragging?AimUiStatus.Hint(true,dx,dy):idleHint;
+        }
+
         public static string CompactStatus(GameState state,int localOwner,bool multiplayer,bool connected)
         {
             if(state==null)return "WAIT";
