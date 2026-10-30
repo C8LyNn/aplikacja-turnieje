@@ -35,7 +35,6 @@ function exercise(verifier,expectedBlob){
  } finally{fs.rmSync(tmp,{recursive:true,force:true})}
 }
 function argsMap(args){const o={};for(const a of args){const m=/^--(verifier|sha|out)=(.+)$/.exec(a);if(!m||o[m[1]])throw Error('INVALID_ARGUMENT');o[m[1]]=m[2]}if(!o.verifier||!o.sha)throw Error('MISSING_REQUIRED_ARGUMENT');return o}
-function main(argv){const a=argsMap(argv),r=exercise(a.verifier,a.sha),output=JSON.stringify(r,null,2)+'
-';if(a.out)fs.writeFileSync(a.out,output,{flag:'wx'});else process.stdout.write(output);return r.verdict==='A72_VERIFIER_FIXTURE_CONTRACT_ACCEPTED'?0:2}
+function main(argv){const a=argsMap(argv),r=exercise(a.verifier,a.sha),output=JSON.stringify(r,null,2)+'\n';if(a.out)fs.writeFileSync(a.out,output,{flag:'wx'});else process.stdout.write(output);return r.verdict==='A72_VERIFIER_FIXTURE_CONTRACT_ACCEPTED'?0:2}
 if(require.main===module){try{process.exitCode=main(process.argv.slice(2))}catch(e){console.error('A42_W14_STOP '+e.message);process.exitCode=3}}
 module.exports={FREEZE,gitBlob,fixture,exercise,argsMap,main};
