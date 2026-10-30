@@ -49,11 +49,14 @@ namespace CoreClash.Presentation
         float lastPacket;
         bool hasPacket;
         public int TrackedCount=>poses.Count;
+        // Last admitted Moving snapshot's interpolation interval (read-only diagnostic).
+        public float LastBlendSeconds {get;private set;}
 
         public void Reset()
         {
             poses.Clear();active.Clear();stale.Clear();
             hasPacket=false;action=lastFrame=0;lastPacket=0;lastSnapshotRevision=-1;
+            LastBlendSeconds=0f;
         }
         static bool Finite(float v)=>!float.IsNaN(v)&&!float.IsInfinity(v);
         static void Position(Pose p,float now,out float x,out float y)
@@ -115,6 +118,7 @@ namespace CoreClash.Presentation
             foreach(var id in stale)poses.Remove(id);
             action=state.actionSerial;lastFrame=state.frame;
             lastPacket=now;hasPacket=true;
+            LastBlendSeconds=duration;
             if(snapshotRevision>=0)lastSnapshotRevision=snapshotRevision;
         }
         public bool TryGetPosition(int id,float now,out float x,out float y)
