@@ -83,7 +83,7 @@ namespace CoreClash.Presentation
                 s.turn,s.revision,ngo==null?0:ngo.ReceivedSnapshots,ngo==null?0:ngo.LastAppliedRevision,
                 ngo==null?0:ngo.AcceptedLocalIntents,ngo==null?0:ngo.RejectedLocalIntents,
                 ngo==null?0:ngo.AcceptedRemoteIntents,ngo==null?0:ngo.RejectedRemoteIntents);
-            string technical="BALL: "+id+"\nUNITY STATUS: "+AbilitySupport.Status(id)+"\n\nV148 DESIGN REFERENCE\n"+string.Join(" + ",a.events)+"\n"+a.role+"\n"+string.Join(" / ",a.conditions)+"\n\n"+"TURN "+s.turnNumber+" / REVISION "+s.revision+" / FRAME "+s.frame+"\n"+"BALLS "+s.balls.Count+" / ZONES "+s.zones.Count(z=>!z.dead)+"\n"+"CANONICAL DECKS "+Catalog.Data.decks.Length+" / ROSTER "+Catalog.Data.balls.Length+"\n\n"+networkNotice+"\n\nNative primary support is separate from the imported reference metadata. Full roster abilities are not all implemented.";
+            string technical="BALL: "+id+"\nUNITY STATUS: "+AbilitySupport.Status(id)+"\n\nV148 DESIGN REFERENCE\n"+string.Join(" + ",a.events)+"\n"+a.role+"\n"+string.Join(" / ",a.conditions)+"\n\n"+"TURN "+s.turnNumber+" / REVISION "+s.revision+" / FRAME "+s.frame+"\n"+"BALLS "+s.balls.Count+" / ZONES "+s.zones.Count(z=>!z.dead)+"\n"+"CANONICAL DECKS "+Catalog.Data.decks.Length+" / ROSTER "+Catalog.Data.balls.Length+"\n\n"+"R17-W9 / PC1-PC2 NETWORK DIAGNOSTICS\n"+networkDebug+"\n\n"+networkNotice+"\n\nNative primary support is separate from the imported reference metadata. Full roster abilities are not all implemented.";
             var content=new Rect(x+12,y+55,w-24,h-70);
             w9DeveloperScroll=Draw.ScrollView(content,w9DeveloperScroll,new Rect(0,0,content.width-22,840));
             Draw.Text(new Rect(5,0,content.width-32,830),technical,13,Draw.Muted);
