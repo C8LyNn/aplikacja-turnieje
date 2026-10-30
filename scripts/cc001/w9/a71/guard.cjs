@@ -49,11 +49,44 @@ function check(baseEntries,headEntries,allowedPaths,content){
  for(const p of changed)if(p.endsWith('.cs')){if(typeof content!=='function')throw Error('Missing C# content provider');const text=content(p);if(typeof text!=='string')throw Error('Missing C# bytes: '+p);if(/CC001_PHOENIX_DIAGNOSTIC|PhoenixDiagnostic/.test(text))errors.push('Diagnostic define: '+p);}
  return {ok:errors.length===0,changed,errors,baselineFiles:base.size,candidateFiles:head.size};
 }
+// W11: exact Git object admission. A path-only allowlist is insufficient:
+// every changed source/test/meta/document blob must equal a preapproved Git SHA-1.
+function checkPinned(baseEntries,headEntries,expectedBlobs,content){
+ if(!expectedBlobs||typeof expectedBlobs!=='object'||Array.isArray(expectedBlobs))throw Error('Missing expected blob manifest');
+ const paths=Object.keys(expectedBlobs);
+ if(!paths.length)throw Error('Empty expected blob manifest');
+ for(const p of paths)if(!valid(p)||!/^[0-9a-f]{40}$/.test(expectedBlobs[p]))throw Error('Invalid expected Git blob: '+p);
+ const out=check(baseEntries,headEntries,paths,content);
+ const head=index(headEntries);
+ const selected=new Set(out.changed);
+ for(const p of paths){
+  if(!selected.has(p))out.errors.push('Expected blob path not changed: '+p);
+  else if(head.get(p)?.sha!==expectedBlobs[p])out.errors.push('Unexpected blob SHA: '+p);
+ }
+ if(out.changed.length!==paths.length)out.errors.push('Changed/expected path count mismatch');
+ out.ok=out.errors.length===0;
+ out.expectedBlobs=paths.length;
+ return out;
+}
 function parseLsTree(data){return data.toString('utf8').split('\0').filter(Boolean).map(s=>{const m=/^(100644|100755) blob ([0-9a-f]{40})\t(.+)$/.exec(s);if(!m)throw Error('Invalid Git tree record: '+s.slice(0,60));return {mode:m[1],sha:m[2],path:m[3]};});}
 function cli(argv){
- let ref='',root=process.cwd(),allow=[];
- for(let i=0;i<argv.length;i++){if(argv[i]==='--ref')ref=argv[++i];else if(argv[i]==='--allow')allow.push(argv[++i]);else if(argv[i]==='--root')root=argv[++i];else throw Error('Unknown arg: '+argv[i]);}
- if(!ref)throw Error('Usage: node guard.cjs --ref <W9-SHA> --allow <exact-changed-path> [--allow ...]');
+ let ref='',root=process.cwd(),expected=Object.create(null);
+ for(let i=0;i<argv.length;i++){
+  if(argv[i]==='--ref')ref=argv[++i];
+  else if(argv[i]==='--expect'){
+   const item=argv[++i];
+   if(typeof item!=='string')throw Error('Missing --expect path=GitBlobSHA');
+   const delim=item.lastIndexOf('=');
+   if(delim<1)throw Error('Malformed --expect path=GitBlobSHA');
+   const path=item.slice(0,delim),blob=item.slice(delim+1);
+   if(!valid(path)||!/^[0-9a-f]{40}$/.test(blob)||Object.hasOwn(expected,path))throw Error('Invalid/duplicate --expect blob: '+path);
+   expected[path]=blob;
+  }
+  else if(argv[i]==='--root')root=argv[++i];
+  else throw Error('Unknown argument (use --expect path=GitBlobSHA): '+argv[i]);
+ }
+ if(!/^[0-9a-f]{40}$/.test(ref))throw Error('Exact 40-hex --ref commit SHA required');
+ if(!Object.keys(expected).length)throw Error('At least one --expect path=GitBlobSHA is required');
  const git=(args,utf8=false)=>execFileSync('git',args,{cwd:root,encoding:utf8?'utf8':null,maxBuffer:32*1024*1024});
  root=git(['rev-parse','--show-toplevel'],true).trim();
  if(git(['rev-parse','--verify',RC1+'^{commit}'],true).trim()!==RC1)throw Error('Frozen RC1 unavailable');
@@ -61,9 +94,9 @@ function cli(argv){
  git(['merge-base','--is-ancestor',RC1,sha]);
  const base=parseLsTree(git(['ls-tree','-rz','--full-tree',RC1]));
  const head=parseLsTree(git(['ls-tree','-rz','--full-tree',sha]));
- const output=check(base,head,allow,p=>git(['show',sha+':'+p]).toString('utf8'));
+ const output=checkPinned(base,head,expected,p=>git(['show',sha+':'+p]).toString('utf8'));
  console.log(JSON.stringify({baseline:RC1,candidate:sha,gate:'A71_W9',...output},null,2));
  if(!output.ok)process.exitCode=2;
 }
 if(require.main===module){try{cli(process.argv.slice(2));}catch(e){console.error('A71_W9_HOLD: '+e.message);process.exitCode=2;}}
-module.exports={RC1,U,protectedFiles,protectedPath,check,parseLsTree};
+module.exports={RC1,U,protectedFiles,protectedPath,check,checkPinned,parseLsTree};
