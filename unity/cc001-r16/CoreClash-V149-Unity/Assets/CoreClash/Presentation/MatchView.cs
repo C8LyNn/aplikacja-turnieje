@@ -121,7 +121,7 @@ namespace CoreClash.Presentation
         {
             int owner=LocalDeckContent.DisplayOwner(Simulation.State.turn,NetworkLink==null?(int?)null:NetworkLink.LocalOwner);
             int stock=LocalDeckContent.Remaining(Simulation,owner,id);
-            var source=LocalDeckContent.ActiveSource(Simulation,owner,id);
+            var source=LocalDeckContent.DisplaySource(Simulation,owner,id);
             bool available=LocalDeckContent.VisibleAsAvailable(Simulation,owner,id);
             bool canClick=LocalDeckContent.CanActivate(Simulation,owner,id,CanChoose),picked=canClick&&id==selected;
             var tint=Draw.Owner(owner);
@@ -175,7 +175,7 @@ namespace CoreClash.Presentation
         void BallCard(Rect r,string id)
         {
             var d=Catalog.Ball(id);int owner=LocalDeckContent.DisplayOwner(Simulation.State.turn,NetworkLink==null?(int?)null:NetworkLink.LocalOwner),stock=LocalDeckContent.Remaining(Simulation,owner,id);
-            var source=LocalDeckContent.ActiveSource(Simulation,owner,id);
+            var source=LocalDeckContent.DisplaySource(Simulation,owner,id);
             bool available=LocalDeckContent.VisibleAsAvailable(Simulation,owner,id),handReady=source==BallSelectionSource.Hand;
             bool canClick=LocalDeckContent.CanActivate(Simulation,owner,id,CanChoose),picked=canClick&&id==selected,compact=r.height<=80;
             Color team=Draw.Owner(owner);Draw.Surface(r,picked?Color.Lerp(Draw.PanelLight,team,.13f):Draw.PanelLight,picked?team:Draw.Edge);

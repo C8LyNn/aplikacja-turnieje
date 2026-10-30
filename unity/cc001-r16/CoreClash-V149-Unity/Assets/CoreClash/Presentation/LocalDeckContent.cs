@@ -23,6 +23,27 @@ namespace CoreClash.Presentation
                 owner<0||owner>=simulation.State.players.Length||simulation.State.players[owner]==null||
                 string.IsNullOrEmpty(id)?0:simulation.Stock(owner,id);
         }
+
+        // W12: observational source for the LOCAL deck, also while the opponent aims.
+        // This never authorizes actions. BallSelection.Source remains the turn-gated
+        // command contract; do not expose DisplaySource to input or GameSimulation.
+        public static BallSelectionSource DisplaySource(GameSimulation simulation,int owner,string id)
+        {
+            if(simulation==null||simulation.State==null||simulation.State.players==null||
+                owner<0||owner>1||owner>=simulation.State.players.Length||
+                simulation.State.players[owner]==null||string.IsNullOrEmpty(id))
+                return BallSelectionSource.None;
+            if(simulation.State.turn==owner)return BallSelection.Source(simulation,owner,id);
+            if(simulation.Stock(owner,id)>0)return BallSelectionSource.Stock;
+            if(id!="phoenix"||simulation.State.phoenixHand==null)return BallSelectionSource.None;
+            int ownerTurns=simulation.State.players[owner].ownerTurns;
+            foreach(var hand in simulation.State.phoenixHand)
+                if(hand!=null&&hand.owner==owner&&hand.ready&&
+                    hand.createdOwnerTurns<ownerTurns&&hand.lastProcessedOwnerTurns>=ownerTurns)
+                    return BallSelectionSource.Hand;
+            return BallSelectionSource.None;
+        }
+
         public static BallSelectionSource ActiveSource(GameSimulation simulation,int owner,string id)
         {
             return simulation==null||simulation.State==null||simulation.State.turn!=owner
@@ -30,7 +51,7 @@ namespace CoreClash.Presentation
         }
         public static bool VisibleAsAvailable(GameSimulation simulation,int owner,string id)
         {
-            return Remaining(simulation,owner,id)>0||ActiveSource(simulation,owner,id)==BallSelectionSource.Hand;
+            return DisplaySource(simulation,owner,id)!=BallSelectionSource.None;
         }
         public static bool CanActivate(GameSimulation simulation,int owner,string id,bool localInputEnabled)
         {
@@ -59,9 +80,9 @@ namespace CoreClash.Presentation
         }
         public static string StockLabel(GameSimulation simulation,int owner,string id)
         {
-            int remaining=Remaining(simulation,owner,id);
-            if(remaining>0)return "x"+remaining;
-            return ActiveSource(simulation,owner,id)==BallSelectionSource.Hand?"HAND READY":"EMPTY";
+            var source=DisplaySource(simulation,owner,id);
+            if(source==BallSelectionSource.Stock)return "x"+Remaining(simulation,owner,id);
+            return source==BallSelectionSource.Hand?"HAND READY":"EMPTY";
         }
     }
 
