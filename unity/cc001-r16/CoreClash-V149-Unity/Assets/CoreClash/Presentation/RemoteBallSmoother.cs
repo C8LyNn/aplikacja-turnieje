@@ -15,7 +15,16 @@ namespace CoreClash.Presentation
             foreach(var e in state.events){
                 if(e==null||e.id<=afterEventId)continue;
                 latestEventId=Math.Max(latestEventId,e.id);
-                if(e.kind=="PORTAL"&&e.ballId>0)ids.Add(e.ballId);
+                // These authoritative events relocate positions without physical travel.
+                // SWAP moves two balls; smoothing either one creates a false transit path.
+                // All other effects retain ordinary interpolation.
+                if(e.kind=="PORTAL"||e.kind=="TELEPORT"){
+                    if(e.ballId>0)ids.Add(e.ballId);
+                }
+                else if(e.kind=="SWAP"){
+                    if(e.ballId>0)ids.Add(e.ballId);
+                    if(e.otherId>0)ids.Add(e.otherId);
+                }
             }
             return ids;
         }
