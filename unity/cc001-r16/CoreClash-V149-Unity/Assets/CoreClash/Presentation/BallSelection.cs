@@ -48,8 +48,9 @@ namespace CoreClash.Presentation
             if(state.phase==MatchPhase.Over)
                 return state.winner<0?"MATCH COMPLETE / DRAW":"PLAYER "+(state.winner+1)+" WINS";
             string turn="TURN "+state.turnNumber+" / 50     PLAYER "+(state.turn+1);
-            if(state.phase==MatchPhase.Moving)return turn+" / RESOLVING";
+            // A disconnected client must not look like a healthy resolving match.
             if(multiplayer&&!connected)return turn+" / WAITING FOR CONNECTION";
+            if(state.phase==MatchPhase.Moving)return turn+" / RESOLVING";
             if(multiplayer&&state.turn!=localOwner)return turn+" / WAITING FOR PLAYER "+(state.turn+1);
             if(multiplayer)return turn+(state.bonusPending?" / YOUR BONUS SHOT":" / YOUR SHOT");
             return turn+(state.bonusPending?" / BONUS SHOT":" / AIMING");
@@ -60,18 +61,31 @@ namespace CoreClash.Presentation
         {
             if(state==null)return "WAITING FOR MATCH";
             if(state.phase==MatchPhase.Over)return "MATCH COMPLETE";
-            if(state.phase==MatchPhase.Moving)return "SHOT RESOLVING";
             if(multiplayer&&!connected)return "WAITING FOR CONNECTION";
+            if(state.phase==MatchPhase.Moving)return "SHOT RESOLVING";
             if(multiplayer&&state.turn!=localOwner)return "WAITING FOR PLAYER "+(state.turn+1);
             return dragging?AimUiStatus.Hint(true,dx,dy):idleHint;
+        }
+
+        // A stale failed-intent notice from a previous own turn must not override
+        // connection or opponent-turn cues on either PC. Only an active local seat
+        // may see its own action notice. No gameplay/authority change.
+        public static string ActionMessage(GameState state,int localOwner,bool multiplayer,bool connected,
+            bool dragging,float dx,float dy,string idleHint,string notice)
+        {
+            if(state!=null&&state.phase==MatchPhase.Aiming&&
+                (!multiplayer||(connected&&(localOwner==0||localOwner==1)&&state.turn==localOwner))&&
+                !System.String.IsNullOrEmpty(notice))
+                return notice;
+            return ActionHint(state,localOwner,multiplayer,connected,dragging,dx,dy,idleHint);
         }
 
         public static string CompactStatus(GameState state,int localOwner,bool multiplayer,bool connected)
         {
             if(state==null)return "WAIT";
             if(state.phase==MatchPhase.Over)return state.winner<0?"DRAW":"P"+(state.winner+1)+" WINS";
-            if(state.phase==MatchPhase.Moving)return "MOVING";
             if(multiplayer&&!connected)return "OFFLINE";
+            if(state.phase==MatchPhase.Moving)return "MOVING";
             if(multiplayer&&state.turn!=localOwner)return "WAIT P"+(state.turn+1);
             if(multiplayer)return state.bonusPending?"YOUR BONUS":"YOUR SHOT";
             return "P"+(state.turn+1)+(state.bonusPending?" BONUS":" AIM");
