@@ -7,6 +7,9 @@ namespace CoreClash.Presentation
     // W10 A30 integration: only fresh displacement events bypass interpolation.
     public static class RemoteSnapshotEvents
     {
+        // A30 W11: Protocol149 transport revisions are positive and strictly monotonic.
+        public static bool IsFreshRevision(int previous,int incoming)
+            => incoming>0&&incoming>previous;
         public static ISet<int> InstantBallIds(GameState state,int afterEventId,out int latestEventId)
         {
             latestEventId=afterEventId;
@@ -15,9 +18,9 @@ namespace CoreClash.Presentation
             foreach(var e in state.events){
                 if(e==null||e.id<=afterEventId)continue;
                 latestEventId=Math.Max(latestEventId,e.id);
-                // Authoritative instantaneous displacement events:
-                // PORTAL / TELEPORT relocate one ball; SWAP relocates both.
-                // Never turn legitimate STOP/START motion chains into forced snaps.
+                // Existing gameplay emits PORTAL and TELEPORT (one-ball displacement)
+                // and SWAP (both ballId and otherId exchange positions).
+                // Consume each new event only once, preserving ordinary motion.
                 if(e.kind=="PORTAL"||e.kind=="TELEPORT"||e.kind=="SWAP")
                 {
                     if(e.ballId>0)ids.Add(e.ballId);
@@ -31,9 +34,7 @@ namespace CoreClash.Presentation
     // R17-W9 A34: presentation-only smoothing; the authoritative GameState is never mutated.
     public sealed class RemoteBallSmoother
     {
-        // A41 adaptive Moving cadence permits 4Hz at >=64KiB compressed.
-        // 250ms prevents the 50ms dead plateau of the old 200ms cap.
-        // Samples still clamp to the last authoritative pose: no extrapolation.
+        // A34 W11: 4-Hz A41 fallback requires a 250ms visual span; no extrapolation.
         const float MaxGap=0.6f,MaxDuration=0.25f,MaxDistance=220f;
         sealed class Pose
         {

@@ -113,36 +113,45 @@ public static partial class Program
             var old=RemoteSnapshotEvents.InstantBallIds(next,latest,out int same);
             Eq(7,same);False(old.Contains(12));
         });
-        Test("A34 W11 4Hz dense snapshot animates through final 50ms without prediction",()=>{
+        Test("A30 W11 application rejects duplicate, zero and reversed revisions",()=>{
+            True(RemoteSnapshotEvents.IsFreshRevision(0,1));
+            True(RemoteSnapshotEvents.IsFreshRevision(1,2));
+            True(RemoteSnapshotEvents.IsFreshRevision(2,4)); // gaps allowed
+            False(RemoteSnapshotEvents.IsFreshRevision(4,4));
+            False(RemoteSnapshotEvents.IsFreshRevision(4,3));
+            False(RemoteSnapshotEvents.IsFreshRevision(4,0));
+            False(RemoteSnapshotEvents.IsFreshRevision(4,-1));
+            True(RemoteSnapshotEvents.IsFreshRevision(0,1)); // fresh session
+        });
+        Test("A34 W11 4Hz dense snapshot still moves before the next packet",()=>{
             var p=new RemoteBallSmoother();
             p.Observe(A34Snapshot(1,10,100,100),1f);
             p.Observe(A34Snapshot(1,40,200,100),1.25f);
             True(p.TryGetPosition(12,1.45f,out var x,out _));
             Near(189.6f,x,.15f);
-            True(x<200f,"4Hz pose reached target before next 250ms packet");
-            True(p.TryGetPosition(12,1.50f,out x,out _));Near(200f,x,.01f);
-            True(p.TryGetPosition(12,99f,out x,out _));Near(200f,x,.01f);
+            True(x<200,"dense 4Hz smoothing plateaued 50ms early");
+            True(p.TryGetPosition(12,1.50f,out x,out _));Near(200,x,.01f);
         });
-        Test("A34 W11 8Hz cadence preserves midpoint and exact authoritative endpoint",()=>{
+        Test("A34 W11 8Hz moving cadence preserves midpoint and canonical endpoint",()=>{
             var p=new RemoteBallSmoother();
             p.Observe(A34Snapshot(1,10,100,100),1f);
             p.Observe(A34Snapshot(1,25,200,100),1.125f);
-            True(p.TryGetPosition(12,1.1875f,out var x,out _));Near(150f,x,.1f);
-            True(p.TryGetPosition(12,1.25f,out x,out _));Near(200f,x,.01f);
+            True(p.TryGetPosition(12,1.1875f,out var x,out _));Near(150,x,.1f);
+            True(p.TryGetPosition(12,1.25f,out x,out _));Near(200,x,.01f);
         });
-        Test("A34 W11 fresh short TELEPORT event snaps affected ball",()=>{
+        Test("A34 W11 fresh short TELEPORT event snaps one ball once",()=>{
             var p=new RemoteBallSmoother();
             p.Observe(A34Snapshot(1,10,100,100),1f,null,10);
             var next=A34Snapshot(1,20,130,100);
             next.events.Add(new GameEvent{id=9,ballId=12,kind="TELEPORT"});
-            var instant=RemoteSnapshotEvents.InstantBallIds(next,0,out int cursor);
-            Eq(9,cursor);True(instant.Contains(12));
-            p.Observe(next,1.05f,instant,11);
+            var ids=RemoteSnapshotEvents.InstantBallIds(next,0,out int cursor);
+            Eq(9,cursor);True(ids.Contains(12));
+            p.Observe(next,1.05f,ids,11);
             True(p.TryGetPosition(12,1.05f,out var x,out _));Near(130f,x,.01f);
-            var stale=RemoteSnapshotEvents.InstantBallIds(next,cursor,out int same);
-            Eq(cursor,same);False(stale.Contains(12));
+            var oldIds=RemoteSnapshotEvents.InstantBallIds(next,cursor,out int same);
+            Eq(cursor,same);Eq(0,oldIds.Count);
         });
-        Test("A34 W11 SWAP event snaps BOTH transferred ball ids",()=>{
+        Test("A34 W11 SWAP event snaps BOTH participant ball ids",()=>{
             var p=new RemoteBallSmoother();
             var first=A34Snapshot(1,10,100,100);
             first.balls.Add(new BallRuntime{id=13,x=180,y=100,type="normal"});
@@ -150,30 +159,30 @@ public static partial class Program
             var swapped=A34Snapshot(1,20,180,100);
             swapped.balls.Add(new BallRuntime{id=13,x=100,y=100,type="normal"});
             swapped.events.Add(new GameEvent{id=21,ballId=12,otherId=13,kind="SWAP"});
-            var instant=RemoteSnapshotEvents.InstantBallIds(swapped,0,out int cursor);
-            Eq(21,cursor);True(instant.Contains(12));True(instant.Contains(13));
-            p.Observe(swapped,1.05f,instant,11);
+            var ids=RemoteSnapshotEvents.InstantBallIds(swapped,0,out int cursor);
+            Eq(21,cursor);True(ids.Contains(12));True(ids.Contains(13));
+            p.Observe(swapped,1.05f,ids,11);
             True(p.TryGetPosition(12,1.05f,out var x,out _));Near(180f,x,.01f);
             True(p.TryGetPosition(13,1.05f,out x,out _));Near(100f,x,.01f);
         });
-        Test("A34 W11 invalid partner and irrelevant events cannot snap other balls",()=>{
-            var events=A34Snapshot(1,20,120,100);
-            events.events.Add(new GameEvent{id=4,ballId=12,kind="DAMAGE"});
-            events.events.Add(new GameEvent{id=5,ballId=12,otherId=0,kind="SWAP"});
-            events.events.Add(new GameEvent{id=6,ballId=0,otherId=-3,kind="SWAP"});
-            var instant=RemoteSnapshotEvents.InstantBallIds(events,0,out int cursor);
-            Eq(6,cursor);True(instant.Contains(12));Eq(1,instant.Count);
-            var stale=RemoteSnapshotEvents.InstantBallIds(events,6,out int latest);
-            Eq(6,latest);Eq(0,stale.Count);
+        Test("A34 W11 irrelevant, malformed and stale events never add false instant ids",()=>{
+            var state=A34Snapshot(1,20,120,100);
+            state.events.Add(new GameEvent{id=4,ballId=12,kind="DAMAGE"});
+            state.events.Add(new GameEvent{id=5,ballId=12,otherId=0,kind="SWAP"});
+            state.events.Add(new GameEvent{id=6,ballId=0,otherId=-3,kind="SWAP"});
+            var ids=RemoteSnapshotEvents.InstantBallIds(state,0,out int cursor);
+            Eq(6,cursor);Eq(1,ids.Count);True(ids.Contains(12));
+            ids=RemoteSnapshotEvents.InstantBallIds(state,cursor,out int same);
+            Eq(cursor,same);Eq(0,ids.Count);
         });
-        Test("A34 W11 ordinary non-displacement events retain interpolation",()=>{
+        Test("A34 W11 ordinary DAMAGE event retains bounded pose smoothing",()=>{
             var p=new RemoteBallSmoother();
             p.Observe(A34Snapshot(1,10,100,100),1f,null,10);
             var next=A34Snapshot(1,20,160,100);
             next.events.Add(new GameEvent{id=3,ballId=12,kind="DAMAGE"});
-            var instant=RemoteSnapshotEvents.InstantBallIds(next,0,out int _cursor);
-            Eq(0,instant.Count);
-            p.Observe(next,1.1f,instant,11);
+            var ids=RemoteSnapshotEvents.InstantBallIds(next,0,out int cursor);
+            Eq(3,cursor);Eq(0,ids.Count);
+            p.Observe(next,1.1f,ids,11);
             True(p.TryGetPosition(12,1.15f,out var x,out _));Near(130f,x,.1f);
             True(p.TryGetPosition(12,1.25f,out x,out _));Near(160f,x,.01f);
         });

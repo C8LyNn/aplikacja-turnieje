@@ -157,6 +157,37 @@ public static partial class Program
             Near(47f,MatchPerspective.ViewY(853f,1),.001f);
         });
 
+        // R17-W11 A20: stale notices must never mask disconnection/remote turn.
+        Test("NET-UX-15 disconnected P2 during moving shows offline priority",()=>{
+            var s=Sim();s.State.turn=1;s.State.phase=MatchPhase.Moving;
+            True(LocalTurnPresentation.Status(s.State,1,true,false).Contains("WAITING FOR CONNECTION"));
+            Eq("OFFLINE",LocalTurnPresentation.CompactStatus(s.State,1,true,false));
+            Eq("WAITING FOR CONNECTION",LocalTurnPresentation.ActionMessage(s.State,1,true,false,false,0,0,"DRAG FROM LAUNCHER","Old failed shot"));
+        });
+        Test("NET-UX-16 P2 waiting on P1 masks old failed shot notice",()=>{
+            var s=Sim();s.State.turn=0;s.State.phase=MatchPhase.Aiming;
+            Eq("WAITING FOR PLAYER 1",LocalTurnPresentation.ActionMessage(s.State,1,true,true,true,40,0,"DRAG FROM LAUNCHER","This shot could not be played"));
+        });
+        Test("NET-UX-17 disconnected active P2 masks old failed shot notice",()=>{
+            var s=Sim();s.State.turn=1;s.State.phase=MatchPhase.Aiming;
+            Eq("WAITING FOR CONNECTION",LocalTurnPresentation.ActionMessage(s.State,1,true,false,true,40,0,"DRAG FROM LAUNCHER","Old failed shot"));
+        });
+        Test("NET-UX-18 connected P2 own aim may display its own rejection notice",()=>{
+            var s=Sim();s.State.turn=1;s.State.phase=MatchPhase.Aiming;
+            Eq("Try again",LocalTurnPresentation.ActionMessage(s.State,1,true,true,true,40,0,"DRAG FROM LAUNCHER","Try again"));
+            Eq("RELEASE TO LAUNCH",LocalTurnPresentation.ActionMessage(s.State,1,true,true,true,40,0,"DRAG FROM LAUNCHER",""));
+        });
+        Test("NET-UX-19 moving or game over cannot surface old action notice",()=>{
+            var s=Sim();s.State.turn=0;s.State.phase=MatchPhase.Moving;
+            Eq("SHOT RESOLVING",LocalTurnPresentation.ActionMessage(s.State,0,true,true,true,30,0,"DRAG FROM LAUNCHER","Try again"));
+            s.State.phase=MatchPhase.Over;
+            Eq("MATCH COMPLETE",LocalTurnPresentation.ActionMessage(s.State,0,true,true,true,30,0,"DRAG FROM LAUNCHER","Try again"));
+        });
+        Test("NET-UX-20 invalid local seat never shows old action notice",()=>{
+            var s=Sim();s.State.turn=0;s.State.phase=MatchPhase.Aiming;
+            Eq("WAITING FOR PLAYER 1",LocalTurnPresentation.ActionMessage(s.State,-1,true,true,true,30,0,"DRAG FROM LAUNCHER","Try again"));
+        });
+
         // R17-W6 / A20: Phoenix-hand selection parity with core TryCommand.
         Test("PHX-UI-01 ready Phoenix hand with exhausted stock can be selected",()=>{
             var s=PhoenixUiFixture();PhoenixUiHand(s);
