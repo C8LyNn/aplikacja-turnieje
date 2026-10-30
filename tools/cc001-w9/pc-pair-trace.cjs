@@ -16,6 +16,7 @@ function parseLog(input, side) {
   let malformed = 0, ignored = 0;
   const a31Snapshots = [];
   const acceptedP2 = [];
+  const w10Samples = [];
   for (const line of input.split(/\r?\n/)) {
     if (line.includes('CC_NET_HOST_READY')) legacy.host_ready++;
     if (line.includes('CC_NET_PEER_CONNECTED')) legacy.peer_connected++;
@@ -42,6 +43,36 @@ function parseLog(input, side) {
       else a31Snapshots.push({type:native[1]==='TX'?'snapshot_sent':'snapshot_applied',
         revision,actionSerial,monotonicMs,turn,source:'A31_NATIVE',side});
     }
+    // A41 W10 optional ~1Hz operational samples; NOT per-snapshot TX/RX receipts.
+    // Strict named tokens avoid interpreting quoted or similarly-prefixed messages.
+    const w10 = /(?:^|\s)CC_W10_NET_(HOST|CLIENT)\s+/.exec(line);
+    if (w10) {
+      const tail=line.slice(w10.index+w10[0].length);
+      const fields=Object.create(null); let valid=true;
+      for (const token of tail.trim().split(/\s+/)) {
+        if (!token)continue;
+        const match=/^([A-Za-z]+)=([A-Za-z0-9]+)$/.exec(token);
+        if(!match || Object.hasOwn(fields,match[1])) {valid=false;break;}
+        fields[match[1]]=match[2];
+      }
+      const numeric=(key,required=true)=>{
+        if(!Object.hasOwn(fields,key))return required?NaN:null;
+        return /^\d+$/.test(fields[key])?Number(fields[key]):NaN;
+      };
+      const type=w10[1], allowed=type==='HOST'
+        ? ['revision','action','turn','phase','balls','packedBytes','chunks','periodMs']
+        : ['revision','action','turn','phase','balls','received','skippedRevisions'];
+      const exact=Object.keys(fields).length===allowed.length && allowed.every(k=>Object.hasOwn(fields,k));
+      const values={};
+      for(const key of allowed){if(key!=='phase')values[key]=numeric(key);}
+      if(!valid || !exact || !allowed.every(k=>k==='phase'||finiteInt(values[k])) ||
+         ![0,1].includes(values.turn)||values.revision===0||
+         !['Aiming','Moving','Over'].includes(fields.phase) ||
+         (type==='HOST' && (values.packedBytes===0||values.chunks===0||values.periodMs===0)) ||
+         (type==='CLIENT' && values.received===0)) malformed++;
+      else if(w10Samples.length>=MAX_EVENTS)malformed++;
+      else w10Samples.push({type:type.toLowerCase(),...values,phase:fields.phase});
+    }
     const i = line.indexOf(PREFIX);
     if (i < 0) continue;
     try {
@@ -61,7 +92,7 @@ function parseLog(input, side) {
       events.push({ ...e, side });
     } catch (_) { malformed++; }
   }
-  return { events, legacy, malformed, ignored, a31Snapshots, acceptedP2 };
+  return { events, legacy, malformed, ignored, a31Snapshots, acceptedP2, w10Samples };
 }
 
 function summarize(hostText, clientText, opts = {}) {
@@ -73,6 +104,49 @@ function summarize(hostText, clientText, opts = {}) {
     // If both producer formats exist, prefer structured and avoid duplicate revision samples.
     return structured.length?structured:side.a31Snapshots.filter(e=>e.type===type);
   }
+  // Sampled W10 diagnostics are kept separate: sparse 1Hz logging cannot prove
+  // that the receiver got every snapshot or that the real client rendered smoothly.
+  const hostOps=host.w10Samples.filter(e=>e.type==='host');
+  const clientOps=client.w10Samples.filter(e=>e.type==='client');
+  const hostCadenceMismatches=[];
+  function expectedPeriod(phase,bytes){
+    if(phase!=='Moving')return 250;
+    if(bytes>=65536)return 250;
+    if(bytes>=16384)return 125;
+    if(bytes>=8192)return 83;
+    return 50;
+  }
+  for(const sample of hostOps){
+    const expected=expectedPeriod(sample.phase,sample.packedBytes);
+    if(sample.periodMs!==expected) hostCadenceMismatches.push({revision:sample.revision,
+      observed_period_ms:sample.periodMs,expected_period_ms:expected});
+  }
+  if(hostCadenceMismatches.length)anomalies.push({code:'W10_REPORTED_CADENCE_POLICY_MISMATCH',count:hostCadenceMismatches.length});
+  function regressionsInSamples(samples,field){
+    let count=0;for(let i=1;i<samples.length;i++)if(samples[i][field]<samples[i-1][field])count++;
+    return count;
+  }
+  const multipleSessions=host.legacy.host_ready>1 || host.legacy.peer_connected>1 || client.legacy.first_snapshot_applied>1;
+  // In a multi-session logfile, revision reset is expected; never join the sessions.
+  const hostOpRegressions=multipleSessions?null:regressionsInSamples(hostOps,'revision');
+  const clientOpRegressions=multipleSessions?null:regressionsInSamples(clientOps,'revision');
+  const clientSkippedRegressions=multipleSessions?null:regressionsInSamples(clientOps,'skippedRevisions');
+  if(hostOpRegressions)anomalies.push({code:'W10_HOST_SAMPLED_REVISION_REGRESSION',count:hostOpRegressions});
+  if(clientOpRegressions)anomalies.push({code:'W10_CLIENT_SAMPLED_REVISION_REGRESSION',count:clientOpRegressions});
+  if(clientSkippedRegressions)anomalies.push({code:'W10_CLIENT_SKIPPED_COUNTER_REGRESSION',count:clientSkippedRegressions});
+  const hostOpByRev=new Map(hostOps.map(e=>[e.revision,e]));
+  let w10Aligned=0;const w10Mismatches=[];
+  // Even matching sparse samples are observations only, not a full parity gate.
+  if(!multipleSessions)for(const rx of clientOps){
+    const tx=hostOpByRev.get(rx.revision);
+    if(!tx)continue;
+    w10Aligned++;
+    if(tx.action!==rx.action||tx.turn!==rx.turn||tx.phase!==rx.phase||tx.balls!==rx.balls)
+      w10Mismatches.push({revision:rx.revision,
+        host:{action:tx.action,turn:tx.turn,phase:tx.phase,balls:tx.balls},
+        client:{action:rx.action,turn:rx.turn,phase:rx.phase,balls:rx.balls}});
+  }
+  if(w10Mismatches.length)anomalies.push({code:'W10_SAMPLED_AUTHORITATIVE_CONTENT_MISMATCH',count:w10Mismatches.length});
   const hostSends = chooseSnapshots(host,'snapshot_sent');
   const clientApplies = chooseSnapshots(client,'snapshot_applied');
   const regressions = []; let last = -1;
@@ -172,6 +246,7 @@ function summarize(hostText, clientText, opts = {}) {
       gaps.push(b.monotonicMs-a.monotonicMs);
   }
   const missing = [];
+  if(multipleSessions)missing.push('multiple_sessions_require_separate_input_files');
   if (hostSends.length<2 || clientApplies.length<2 || [...appliedRevs].filter(x=>sentRevs.has(x)).length<2) missing.push('continuous_snapshot_trace');
   if (!by(host.events,'turn_state').length || !by(client.events,'turn_state').length) missing.push('authoritative_turn_and_local_banner_both_peers');
   if (!paired) missing.push('revision_aligned_simulation_ball_samples');
@@ -191,11 +266,24 @@ function summarize(hostText, clientText, opts = {}) {
     note:'Unmatched host/client samples do not alone establish packet loss: logging may be incomplete.',
     aligned_authoritative_turn_samples:alignedTurns
   };
+  const periodCounts=new Map();
+  for(const e of hostOps)periodCounts.set(e.periodMs,(periodCounts.get(e.periodMs)||0)+1);
   return {
-    schema:'CC001_R17_W10_A43_DIAGNOSTIC_REPORT_002',
+    schema:'CC001_R17_W11_A43_DIAGNOSTIC_REPORT_003',
     verdict:anomalies.length?'OBSERVED_CONTRADICTION':missing.length?'INSUFFICIENT_EVIDENCE':'OBSERVATIONS_AVAILABLE_NOT_QA_PASS',
     host:{ legacy:host.legacy, trace_events:host.events.length, native_trace_events:host.a31Snapshots.length, malformed:host.malformed, ignored:host.ignored, snapshot_sent:hostSends.length },
     client:{ legacy:client.legacy, trace_events:client.events.length, native_trace_events:client.a31Snapshots.length, malformed:client.malformed, ignored:client.ignored, snapshot_applied:clientApplies.length, last_applied_revision:clientApplies.at(-1)?.revision??null, sample_intervals_ms:gaps },
+    w10_operational_samples:{
+      host_count:hostOps.length,client_count:clientOps.length,
+      same_revision_pairs:w10Aligned,content_mismatches:w10Mismatches,
+      host_reported_period_policy_mismatches:hostCadenceMismatches,
+      host_reported_period_histogram_ms:Object.fromEntries([...periodCounts.entries()].sort((a,b)=>a[0]-b[0]).map(([k,v])=>[String(k),v])),
+      client_last_skipped_revisions:clientOps.at(-1)?.skippedRevisions??null,
+      host_revision_regressions:hostOpRegressions,client_revision_regressions:clientOpRegressions,
+      client_skipped_counter_regressions:clientSkippedRegressions,
+      multiple_sessions_detected:multipleSessions,
+      note:'W10 rate-limited ~1Hz operational observations; NOT a per-packet stream, packet-loss proof, measured network latency, client FPS or physical QA.'
+    },
     p2_intent_host_accepted_count:p2AcceptCount,
     p2_accept_trace_duplicate_sequences:duplicateP2Sequences,
     coverage,
@@ -209,6 +297,8 @@ function summarize(hostText, clientText, opts = {}) {
     distance_threshold_world_units:threshold,
     anomalies,missing_observations:missing,
     caveats:['No real two-PC verification is implied by parsing logs.',
+      'CC_W10_NET_HOST/CLIENT entries are approximately 1Hz samples; reported periodMs is a configured interval, not measured throughput.',
+      'Host/client W10 entries may sample different revisions; unmatched samples do not imply packet loss.',
       'Native CC_NET_TRACE_TX/RX markers are optional and not present in the pinned RC1 by assumption.',
       'Cross-PC event latency cannot be calculated by subtracting unsynchronized timestamps.',
       'Render poses at identical snapshot revisions may differ due to independent frame clocks and interpolation; they are never compared as authoritative state.',

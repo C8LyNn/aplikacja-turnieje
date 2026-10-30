@@ -71,3 +71,18 @@ node tools/cc001-w9/pc-pair-trace.cjs --host PC1_Player.log --client PC2_Player.
 ```
 
 The W10 CLI is intentionally **read-only** with respect to source logs. No transport, gameplay, certified HTML, R16, V148, Protocol149 or RC1 edits are made. A60 must independently verify a new A70-integrated/A72-built exact SHA on two physical PCs before anyone claims runtime synchronization is fixed.
+
+## W11 — source-aligned A41 operational telemetry (optional)
+
+W11 adds source-validated consumption of A41 W10 1Hz diagnostic markers **without adding any new game hooks**:
+
+```text
+CC_W10_NET_HOST revision=15 action=2 turn=1 phase=Moving balls=20 packedBytes=10000 chunks=3 periodMs=83
+CC_W10_NET_CLIENT revision=15 action=2 turn=1 phase=Moving balls=20 received=15 skippedRevisions=1
+```
+
+The fields and case-sensitive enum values are taken from A41 draft PR #180 (`NgoGameSession.cs`, source SHA `58fac359a0bd027d8e148f66c5cca090d92035bb`). These markers are expected only **if A70 chooses this version of network instrumentation and A72 builds that exact source**; they are *not* a promise about frozen W8 RC1, A30's fixed-20Hz branch, or any other candidate. Missing W10 markers are optional and do not change legacy tool behavior.
+
+Operational observations are **never synthesized into** `snapshot_sent` or `snapshot_applied`: at ~1Hz they are deliberately sparse, non-corresponding revisions may be normal, and reported `periodMs` is the chosen sending interval, **not measured network latency or frame rate**. A43 validates reported `periodMs` against A41's bounded policy only (Moving: below 8KiB = 50ms; 8–16KiB = 83ms; 16–64KiB = 125ms; 64KiB and above = 250ms; non-Moving = 250ms). On equal revision only, compare `action`, `turn`, `phase`, and `balls`; emit a contradiction on disagreement, not on unmatched revisions. Local `skippedRevisions` is a receiver counter, not an independently proven packet loss count. When multiple game sessions are detected in a log, W10 cross-peer matching is disabled; split into exact one-session PC1/PC2 input files for the operator.
+
+`node --test tools/cc001-w9/pc-pair-trace.test.cjs` executes **33 deterministic tests** including 8 W11 additions. This is Node tooling evidence only. Actual Windows game builds, two real physical PC logs, player-visible stutter metrics and A60 QA are separate gates. A31/A81 may remain the chosen base network log gate; A43 rate-window analysis is *complementary*, not a request to merge two competing network cadence or smoothing implementations. A70 selects the integration path. No game bytes, RC1/R16/V148/Protocol149 or release artifacts are modified.

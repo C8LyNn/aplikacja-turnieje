@@ -232,3 +232,92 @@ test('W10 no actual gameplay or QA PASS verdict even when all known events appea
   assert.equal(r.verdict,'OBSERVATIONS_AVAILABLE_NOT_QA_PASS');
   assert.equal(r.coverage.p2_accepted_action_seen_in_aligned_client_snapshot,true);
 });
+
+// W11: A41's actual ~1Hz operational telemetry is NOT an exact snapshot trace.
+const w10Host=(revision,action,turn,phase,balls,packedBytes,chunks,periodMs)=>
+  `CC_W10_NET_HOST revision=${revision} action=${action} turn=${turn} phase=${phase} balls=${balls} packedBytes=${packedBytes} chunks=${chunks} periodMs=${periodMs}`;
+const w10Client=(revision,action,turn,phase,balls,received,skippedRevisions)=>
+  `CC_W10_NET_CLIENT revision=${revision} action=${action} turn=${turn} phase=${phase} balls=${balls} received=${received} skippedRevisions=${skippedRevisions}`;
+
+test('W11 parses actual A41 source-formatted 1Hz host/client logs and checks same-revision observed state',()=>{
+  const h=[w10Host(4,2,1,'Moving',20,2100,1,50),w10Host(15,2,1,'Moving',20,10000,3,83)].join('\n');
+  const c=[w10Client(4,2,1,'Moving',20,4,0),w10Client(15,2,1,'Moving',20,15,1)].join('\n');
+  const r=summarize(h,c);
+  assert.equal(r.w10_operational_samples.host_count,2);
+  assert.equal(r.w10_operational_samples.client_count,2);
+  assert.equal(r.w10_operational_samples.same_revision_pairs,2);
+  assert.equal(r.w10_operational_samples.host_reported_period_policy_mismatches.length,0);
+  assert.deepEqual(r.w10_operational_samples.host_reported_period_histogram_ms,{'50':1,'83':1});
+  assert.equal(r.w10_operational_samples.client_last_skipped_revisions,1);
+  assert.equal(r.verdict,'INSUFFICIENT_EVIDENCE');
+});
+
+test('W11 W10 mismatched same-revision state is contradiction, but different revisions are not',()=>{
+  const same=summarize(w10Host(15,8,0,'Moving',18,21000,6,125),w10Client(15,7,0,'Moving',18,11,0));
+  assert.equal(same.w10_operational_samples.content_mismatches.length,1);
+  assert.ok(same.anomalies.some(x=>x.code==='W10_SAMPLED_AUTHORITATIVE_CONTENT_MISMATCH'));
+  const different=summarize(w10Host(14,8,0,'Moving',18,21000,6,125),w10Client(15,7,0,'Moving',18,11,0));
+  assert.equal(different.w10_operational_samples.same_revision_pairs,0);
+  assert.equal(different.w10_operational_samples.content_mismatches.length,0);
+});
+
+test('W11 validates A41 reported bounded cadence across 8KiB,16KiB,64KiB and idle',()=>{
+  const valid=[w10Host(1,0,0,'Moving',1,8191,1,50),w10Host(2,0,0,'Moving',1,8192,3,83),
+    w10Host(3,0,0,'Moving',1,16384,5,125),w10Host(4,0,0,'Moving',1,65536,17,250),
+    w10Host(5,0,0,'Aiming',1,100,1,250)].join('\n');
+  const good=summarize(valid,'');
+  assert.equal(good.w10_operational_samples.host_reported_period_policy_mismatches.length,0);
+  const wrong=summarize(w10Host(5,0,0,'Moving',1,70000,18,50),'');
+  assert.equal(wrong.w10_operational_samples.host_reported_period_policy_mismatches.length,1);
+  assert.ok(wrong.anomalies.some(x=>x.code==='W10_REPORTED_CADENCE_POLICY_MISMATCH'));
+});
+
+test('W11 invalid operational telemetry cannot become an apparently valid sample',()=>{
+  const lines=[w10Host(0,0,0,'Moving',1,100,1,50),
+    w10Host(1,0,0,'Moving',1,100,1,0),
+    w10Host(1,0,0,'Moving',1,100,1,50)+' token=foo',
+    w10Client(1,0,1,'Moving',1,0,0),
+    w10Client(1,0,1,'BadPhase',1,1,0),
+    w10Host(1,0,0,'Moving',1,100,1,50).replace('packedBytes=100','packedBytes=-1')].join('\n');
+  const p=parseLog(lines,'host');
+  assert.equal(p.malformed,6);
+  assert.equal(p.w10Samples.length,0);
+});
+
+test('W11 client skippedRevisions and sampled revision regression flagged with monotonic counters',()=>{
+  const c=[w10Client(100,3,1,'Moving',4,100,7),w10Client(99,3,1,'Moving',4,101,6)].join('\n');
+  const r=summarize('',c);
+  assert.equal(r.w10_operational_samples.client_revision_regressions,1);
+  assert.equal(r.w10_operational_samples.client_skipped_counter_regressions,1);
+  assert.ok(r.anomalies.some(x=>x.code==='W10_CLIENT_SAMPLED_REVISION_REGRESSION'));
+});
+
+test('W11 multiple sessions in one file refuse misleading cross-session sampled pairing',()=>{
+  const h=['CC_NET_HOST_READY port=7777',w10Host(1,0,0,'Moving',2,100,1,50),
+    'CC_NET_HOST_READY port=7777',w10Host(1,2,1,'Moving',2,100,1,50)].join('\n');
+  const c=[w10Client(1,0,0,'Moving',2,1,0),w10Client(1,2,1,'Moving',2,1,0)].join('\n');
+  const r=summarize(h,c);
+  assert.equal(r.w10_operational_samples.multiple_sessions_detected,true);
+  assert.equal(r.w10_operational_samples.same_revision_pairs,0);
+  assert.equal(r.w10_operational_samples.client_revision_regressions,null);
+  assert.ok(r.missing_observations.includes('multiple_sessions_require_separate_input_files'));
+});
+
+test('W11 new operational report excludes raw connection IDs and arbitrary free-text',()=>{
+  const h='CC_W10_NET_HOST revision=1 action=3 turn=1 phase=Moving balls=9 packedBytes=8192 chunks=3 periodMs=83\n'+
+    'CC_NET_PEER_CONNECTED id=777 secret=token-never-export';
+  const c=w10Client(1,3,1,'Moving',9,1,0)+'\nPlayer IP 10.0.0.78 joinCode=secretABC';
+  const report=JSON.stringify(summarize(h,c));
+  for(const value of ['777','token-never-export','10.0.0.78','secretABC'])assert.equal(report.includes(value),false);
+});
+
+test('W11 W10 ~1Hz operational counters never masquerade as continuous TX/RX or QA PASS',()=>{
+  const h=[w10Host(1,0,0,'Moving',1,100,1,50),w10Host(20,1,1,'Moving',1,100,1,50)].join('\n');
+  const c=[w10Client(1,0,0,'Moving',1,1,0),w10Client(20,1,1,'Moving',1,20,0)].join('\n');
+  const r=summarize(h,c);
+  assert.equal(r.host.snapshot_sent,0);
+  assert.equal(r.client.snapshot_applied,0);
+  assert.equal(r.coverage.comparable_authoritative_snapshots,0);
+  assert.ok(r.missing_observations.includes('continuous_snapshot_trace'));
+  assert.equal(r.verdict,'INSUFFICIENT_EVIDENCE');
+});
