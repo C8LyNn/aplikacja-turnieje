@@ -38,7 +38,7 @@ try {
  $p=Start-Process -FilePath $exe -WorkingDirectory $folder -ArgumentList ('-logFile "'+$log+'"') -PassThru
  $start=Get-Date
  # The sampled fields intentionally do not include raw private IPv4 addresses.
- [IO.File]::WriteAllText($csv,"utc,processId,workingSetBytes,processorSeconds,tcpEstablished\r\n",(New-Object System.Text.UTF8Encoding($false)))
+ [IO.File]::WriteAllText($csv,"utc,processId,workingSetBytes,processorSeconds,tcpEstablished`r`n",(New-Object System.Text.UTF8Encoding($false)))
  $n=0
  while(((Get-Date)-$start).TotalSeconds -lt $Seconds){
   $p.Refresh();if($p.HasExited){break}
@@ -47,7 +47,7 @@ try {
   $tcp=-1
   try {$tcp=@(Get-NetTCPConnection -OwningProcess $p.Id -State Established -ErrorAction Stop).Count}
   catch {$tcp=-1}
-  $line=[DateTime]::UtcNow.ToString('o')+','+$p.Id+','+[long]$current.WorkingSet64+','+$current.CPU.ToString('F3',[Globalization.CultureInfo]::InvariantCulture)+','+$tcp+"\r\n"
+  $line=[DateTime]::UtcNow.ToString('o')+','+$p.Id+','+[long]$current.WorkingSet64+','+$current.CPU.ToString('F3',[Globalization.CultureInfo]::InvariantCulture)+','+$tcp+"`r`n"
   [IO.File]::AppendAllText($csv,$line,(New-Object System.Text.UTF8Encoding($false)))
   $n++;Start-Sleep -Milliseconds 500
  }
