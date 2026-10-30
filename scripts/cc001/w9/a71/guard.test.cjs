@@ -74,3 +74,35 @@ t('W11 protected Protocol149 cannot be admitted even with matching hash',()=>{
  const p=U+'Assets/CoreClash/Networking/NgoWireProtocol.cs';
  a.throws(()=>g.checkPinned(baseline,change(p),{[p]:o},()=> ''),/protected/);
 });
+
+ 
+// W11 #207 exact test-runner registration: frozen harness + precisely two new suites.
+t('W11 #207 exact original runner to verified two-suite addition passes with full SHA pin',()=>{
+ const p=U+'Tests/Program.cs',old='12b8fcca30731f007a01a81ac45572671c99f1dc',now='49d9860cec074e7d1612babacf01f8d63ed238b4';
+ const b=baseline.map(x=>x.path===p?{...x,sha:old}:x);
+ const h=b.map(x=>x.path===p?{...x,sha:now}:x);
+ a.equal(g.checkPinned(b,h,{[p]:now},()=> 'safe').ok,true);
+});
+t('W11 #207 test runner change without an exact permit remains blocked',()=>{
+ const p=U+'Tests/Program.cs',old='12b8fcca30731f007a01a81ac45572671c99f1dc',now='49d9860cec074e7d1612babacf01f8d63ed238b4';
+ const b=baseline.map(x=>x.path===p?{...x,sha:old}:x);
+ const h=b.map(x=>x.path===p?{...x,sha:now}:x);
+ a.equal(g.checkPinned(b,h,{[net]:o},()=> 'safe').ok,false);
+});
+t('W11 #207 any alternative runner implementation is prohibited',()=>{
+ const p=U+'Tests/Program.cs',old='12b8fcca30731f007a01a81ac45572671c99f1dc';
+ const b=baseline.map(x=>x.path===p?{...x,sha:old}:x);
+ const h=b.map(x=>x.path===p?{...x,sha:'f'.repeat(40)}:x);
+ a.throws(()=>g.checkPinned(b,h,{[p]:'f'.repeat(40)},()=> 'safe'),/protected/);
+});
+t('W11 #207 changed frozen test-runner baseline is prohibited',()=>{
+ const p=U+'Tests/Program.cs',now='49d9860cec074e7d1612babacf01f8d63ed238b4';
+ const h=baseline.map(x=>x.path===p?{...x,sha:now}:x);
+ a.throws(()=>g.checkPinned(baseline,h,{[p]:now},()=> 'safe'),/protected/);
+});
+t('W11 #207 exact candidate runner hash mismatch fails even when original to final known',()=>{
+ const p=U+'Tests/Program.cs',old='12b8fcca30731f007a01a81ac45572671c99f1dc',now='49d9860cec074e7d1612babacf01f8d63ed238b4';
+ const b=baseline.map(x=>x.path===p?{...x,sha:old}:x),h=b.map(x=>x.path===p?{...x,sha:now}:x);
+ const out=g.checkPinned(b,h,{[p]:'a'.repeat(40)},()=> 'safe');
+ a.equal(out.ok,false);a.match(out.errors.join(' '),/protected|Unexpected/);
+});
