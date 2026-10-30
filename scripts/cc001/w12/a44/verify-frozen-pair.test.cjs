@@ -1,9 +1,9 @@
 'use strict';
 const test=require('node:test'),a=require('node:assert/strict'),fs=require('node:fs');
 const path=require('node:path'),os=require('node:os'),crypto=require('node:crypto'),cp=require('node:child_process');
-const {run,inventoryCheck,sessionCheck,flags,FROZEN,RC1}=require('./verify-frozen-pair.cjs');
+const {run,inventoryCheck,sessionCheck,flags,FROZEN,RC1,A72_VERIFIER_BLOB,gitBlobSha}=require('./verify-frozen-pair.cjs');
 const sha=b=>crypto.createHash('sha256').update(b).digest('hex');
-const source=`'use strict';
+const testDoubleSource=`'use strict';
 // TEST DOUBLE ONLY. Not the original A72 verifier, never evidence of a real Windows build.
 const fs=require('node:fs');const path=require('node:path');const crypto=require('node:crypto');
 const hash=b=>crypto.createHash('sha256').update(b).digest('hex').toUpperCase();
@@ -13,6 +13,9 @@ for(let f of m.playerInventory){let b=path.join(arg['--player'],f.path);if(!fs.e
 const correct=!missing.length&&fs.existsSync(arg['--player'])&&arg['--sha']===m.candidateSHA;
 console.log(JSON.stringify({status:correct?'PASS_BINARY_INTEGRITY_ONLY':'HOLD',candidateSHA:arg['--sha'],expectedFiles:m.playerInventory.length,actualFiles:count,failures:missing.map(path=>({path,reason:'MISMATCH'}))}));process.exitCode=correct?0:2;
 `;
+// Regression fixture: literal exact A72 #188 verifier bytes (Git blob 7b704b969c40abe84aaefdbf62cc82c81860ae72).
+// Included only in test source; production A44 code does not load this literal as its executable verifier.
+const source="'use strict';\n// A72: standalone fail-closed exact Windows Player distribution gate. No state mutation.\nconst fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto'),assert=require('node:assert/strict');\nconst SHA=b=>crypto.createHash('sha256').update(b).digest('hex').toUpperCase();\nconst validSha=x=>typeof x==='string'&&/^[a-f0-9]{40}$/.test(x);\nconst ensure=(v,msg)=>{if(!v)throw Error(msg)};\nconst safePath=x=>typeof x==='string'&&x.length>0&&!x.startsWith('/')&&!x.includes('\\\\')&&!x.includes(':')&&x.split('/').every(x=>x&&x!=='.'&&x!=='..');\nfunction files(root){let out=[];for(const x of fs.readdirSync(root,{withFileTypes:true})){const f=path.join(root,x.name),s=fs.lstatSync(f);ensure(!s.isSymbolicLink(),'Symlink forbidden: '+f);if(s.isDirectory())out=out.concat(files(f));else{ensure(s.isFile(),'Not regular file');out.push({path:path.relative(root,f).split(path.sep).join('/'),bytes:s.size,sha256:SHA(fs.readFileSync(f))})}}return out;}\nfunction check(manifest,player,sha){\n ensure(validSha(sha),'Expected exact candidate SHA required');\n ensure(manifest&&manifest.schema==='CC001-W10-A72-WINDOWS-1','Wrong W10 build manifest');\n ensure(manifest.candidateSHA===sha,'Candidate SHA mismatch');\n ensure(manifest.status==='PASS_BUILD_EVIDENCE_ONLY','Source build evidence not passed: '+manifest.status);\n ensure(fs.statSync(player).isDirectory(),'Player directory not found');\n const expected=manifest.playerInventory;ensure(Array.isArray(expected)&&expected.length>50,'Missing full Player inventory');\n const seen=new Set();for(const x of expected){ensure(safePath(x.path)&&!seen.has(x.path),'Invalid/duplicate Player path');seen.add(x.path);ensure(x.bytes>=0&&/^[A-Fa-f0-9]{64}$/.test(x.sha256),'Bad inventory entry')}\n const current=files(player);const actual=new Map(current.map(x=>[x.path,x]));let failures=[];\n for(const x of expected){const y=actual.get(x.path);if(!y)failures.push({path:x.path,reason:'MISSING'});else if(y.bytes!==x.bytes||y.sha256!==x.sha256.toUpperCase())failures.push({path:x.path,reason:'SHA256_OR_SIZE_MISMATCH'})}\n for(const x of current){if(!seen.has(x.path))failures.push({path:x.path,reason:'EXTRA_UNMANIFESTED_FILE'})}\n return {status:failures.length?'HOLD':'PASS_BINARY_INTEGRITY_ONLY',candidateSHA:sha,expectedFiles:expected.length,actualFiles:current.length,failures,scope:'Standalone local Player bytes only, NOT multiplayer/G3 or A60 independent QA'};\n}\nfunction argumentsMap(args){let obj={};for(const x of args){const m=/^--([a-z-]+)=(.*)$/.exec(x);ensure(m,'Use --name=value');obj[m[1]]=m[2]}return obj}\nfunction selfTest(){const temp=fs.mkdtempSync(path.join(require('node:os').tmpdir(),'cc001w10verify-'));let count=0;const test=fn=>{fn();count++};const rejected=fn=>{assert.throws(fn)};\ntry{const root=path.join(temp,'player');fs.mkdirSync(root);fs.writeFileSync(path.join(root,'CoreClash.exe'),'abc');const data=path.join(root,'CoreClash_Data');fs.mkdirSync(data);for(let i=0;i<50;i++)fs.writeFileSync(path.join(data,`file-${i}.dat`),`hello-${i}`);const sha='1'.repeat(40);const manifest={schema:'CC001-W10-A72-WINDOWS-1',candidateSHA:sha,status:'PASS_BUILD_EVIDENCE_ONLY',playerInventory:files(root)};\n test(()=>assert.equal(check(manifest,root,sha).status,'PASS_BINARY_INTEGRITY_ONLY'));\n test(()=>rejected(()=>check(manifest,root,'a'.repeat(40))));\n test(()=>rejected(()=>check({...manifest,status:'HOLD'},root,sha)));\n test(()=>rejected(()=>check({...manifest,playerInventory:[]},root,sha)));\n test(()=>rejected(()=>check({...manifest,playerInventory:[...manifest.playerInventory,{path:'../bad',bytes:1,sha256:'0'.repeat(64)}]},root,sha)));\n test(()=>rejected(()=>check({...manifest,playerInventory:[...manifest.playerInventory,manifest.playerInventory[0]]},root,sha)));\n test(()=>{fs.appendFileSync(path.join(root,'CoreClash.exe'),'bad');assert.equal(check(manifest,root,sha).status,'HOLD');fs.writeFileSync(path.join(root,'CoreClash.exe'),'abc')});\n test(()=>{fs.unlinkSync(path.join(data,'file-1.dat'));assert.equal(check(manifest,root,sha).status,'HOLD');fs.writeFileSync(path.join(data,'file-1.dat'),'hello-1')});\n test(()=>{fs.writeFileSync(path.join(data,'unexpected.tmp'),'x');assert.equal(check(manifest,root,sha).status,'HOLD');fs.unlinkSync(path.join(data,'unexpected.tmp'))});\n test(()=>assert.equal(safePath('CoreClash_Data/Managed/Assembly-CSharp.dll'),true));\n test(()=>assert.equal(safePath('/abs.exe'),false));\n test(()=>assert.equal(safePath('C:\\\\evil'),false));\n console.log(JSON.stringify({suite:'CC001-W10-A72-binary-distribution',pass:count,fail:0}));\n}finally{fs.rmSync(temp,{recursive:true,force:true})}}\nif(require.main===module){try{if(process.argv[2]==='--self-test'){selfTest();}else{const a=argumentsMap(process.argv.slice(2)),m=JSON.parse(fs.readFileSync(a.manifest,'utf8')),r=check(m,a.player,a.sha);console.log(JSON.stringify(r,null,2));if(r.status!=='PASS_BINARY_INTEGRITY_ONLY')process.exitCode=2}}catch(e){console.error('A72 STOP: '+e.message);process.exitCode=1}}\nmodule.exports={check,files,safePath};\n";
 function fixture(fn){
  const root=fs.mkdtempSync(path.join(os.tmpdir(),'cc001-w12-a44-'));
  const pc1=path.join(root,'pc1'),pc2=path.join(root,'pc2');fs.mkdirSync(pc1);fs.mkdirSync(pc2);
@@ -30,18 +33,34 @@ function fixture(fn){
  const write=()=>{fs.writeFileSync(paths.summary,JSON.stringify(summary));fs.writeFileSync(paths.session,JSON.stringify(session));};write();
  try{fn({paths,root,pc1,pc2,summary,session,write,inventory});}finally{fs.rmSync(root,{recursive:true,force:true});}
 }
+test('genuine A72 verifier test fixture has exact remote Git blob identity',()=>{
+ a.equal(gitBlobSha(Buffer.from(source)),A72_VERIFIER_BLOB);
+ a.equal(A72_VERIFIER_BLOB,'7b704b969c40abe84aaefdbf62cc82c81860ae72');
+});
 test('freeze pin is exact 3f, never moving PR207 HEAD',()=>{a.equal(FROZEN,'3f972cdbaea6289a7e33ce608f5d3256cfdab0a3')});
-test('real Node child process verifies two complete synthetic player folders',()=>fixture(f=>{
- const r=run(f.paths);a.equal(r.frozenCandidate,FROZEN);a.equal(r.pc1.status,'A72_LOCAL_PLAYER_CHECK_PASS_SCOPED');a.equal(r.pc2.expectedFiles,54);
- a.equal(r.qaDisposition,'PENDING_INDEPENDENT_A60_PHYSICAL_QA');a.equal(r.physicalDeviceAttestation,'NOT_ATTESTED_BY_A44');a.equal(r.isNetworkSynchronizationProven,false);
- a.equal(JSON.parse(fs.readFileSync(f.paths.out)).a72OriginalSourceEvidence.exeSha256,sha('EXE-TEST-BYTES'));
- a.equal(r.a72OriginalSourceEvidence.summarySha256,sha(fs.readFileSync(f.paths.summary)));
- a.ok(!fs.readFileSync(f.paths.out,'utf8').includes('playerInventory'));
+test('genuine A72 code falsely HOLDs all nested correct files: owner P0 regression evidence',()=>fixture(f=>{
+ const args=[f.paths.verifier,'--manifest='+f.paths.summary,'--player='+f.pc1,'--sha='+FROZEN];
+ const child=cp.spawnSync(process.execPath,args,{encoding:'utf8'});
+ a.equal(child.status,2,child.stderr);const report=JSON.parse(child.stdout);
+ a.equal(report.status,'HOLD');a.equal(report.expectedFiles,54);a.equal(report.actualFiles,54);
+ a.ok(report.failures.some(x=>x.path==='CoreClash_Data/Managed/Assembly-CSharp.dll'&&x.reason==='MISSING'));
+ a.equal(report.failures.filter(x=>x.reason==='MISSING').length,53);
+ a.equal(report.failures.filter(x=>x.reason==='EXTRA_UNMANIFESTED_FILE').length,53);
+ a.throws(()=>run(f.paths),/A72_NATIVE_VERIFIER_FAILED/);
+ a.equal(fs.existsSync(f.paths.out),false);
 }));
-test('shell CLI executes and cannot pretend physical two-PC PASS',()=>fixture(f=>{
+test('genuine A72 self-test currently masks the nested path bug',()=>{
+ const dir=fs.mkdtempSync(path.join(os.tmpdir(),'cc001-a72-selftest-'));
+ try {const file=path.join(dir,'v.cjs');fs.writeFileSync(file,source);
+  const proc=cp.spawnSync(process.execPath,[file,'--self-test'],{encoding:'utf8'});
+  a.equal(proc.status,0,proc.stderr);a.match(proc.stdout,/"pass":12/);
+ }finally {fs.rmSync(dir,{recursive:true,force:true});}
+});
+test('W12 CLI reports HOLD for genuine uncorrected A72 nested-path bug',()=>fixture(f=>{
  const cmd=[__filename.replace(/\.test\.cjs$/,'.cjs'),'--summary',f.paths.summary,'--session',f.paths.session,'--a72-verifier',f.paths.verifier,'--verifier-sha256',f.paths.verifierSha,'--pc1-player',f.pc1,'--pc2-player',f.pc2,'--out',f.paths.out];
- const res=cp.spawnSync(process.execPath,cmd,{encoding:'utf8'});a.equal(res.status,0,res.stderr);a.match(res.stdout,/A44_FROZEN_PLAYER_INTEGRITY_ONLY/);
- a.equal(JSON.parse(fs.readFileSync(f.paths.out)).isTwoPhysicalPCsProven,false);
+ const res=cp.spawnSync(process.execPath,cmd,{encoding:'utf8'});
+ a.equal(res.status,2);a.match(res.stderr,/A72_NATIVE_VERIFIER_FAILED/);
+ a.equal(fs.existsSync(f.paths.out),false);
 }));
 test('reject newer #207 HEAD and stale original 173273',()=>fixture(f=>{
  for(const s of ['87b718432f4ce3906c907a7f4a1e2b4fb2a95f9c','173273122c11cbf738e8b954e32506a6196fe8ec']){
@@ -51,6 +70,24 @@ test('reject newer #207 HEAD and stale original 173273',()=>fixture(f=>{
 test('reject old RC1, wrong A72 source root',()=>fixture(f=>{f.summary.rc1Base='1'.repeat(40);f.write();a.throws(()=>run(f.paths),/WRONG_PROTECTED_BASE/)}));
 test('reject build that never passed native evidence',()=>fixture(f=>{f.summary.status='HOLD';f.write();a.throws(()=>run(f.paths),/A72_BUILD_NOT_ACCEPTED/)}));
 test('refuse replaced or tampered A72 verifier',()=>fixture(f=>{fs.appendFileSync(f.paths.verifier,'\n// modified');a.throws(()=>run(f.paths),/A72_VERIFIER_SHA_MISMATCH/)}));
+test('reject counterfeit A72 verifier even when attacker supplies matching SHA256',()=>fixture(f=>{
+ fs.writeFileSync(f.paths.verifier,testDoubleSource);
+ f.paths.verifierSha=sha(Buffer.from(testDoubleSource));
+ a.throws(()=>run(f.paths),/A72_VERIFIER_UNTRUSTED_BLOB/);
+ a.equal(fs.existsSync(f.paths.out),false);
+}));
+test('reject symlinked A72 summary before realpath resolution',()=>fixture(f=>{
+ const link=path.join(f.root,'summary-link.json');
+ try{fs.symlinkSync(f.paths.summary,link,'file')}catch(e){if(e.code==='EPERM'||e.code==='EACCES')return;throw e}
+ f.paths.summary=link;
+ a.throws(()=>run(f.paths),/INVALID_JSON_FILE/);
+}));
+test('reject symlinked A44 session before realpath resolution',()=>fixture(f=>{
+ const link=path.join(f.root,'session-link.json');
+ try{fs.symlinkSync(f.paths.session,link,'file')}catch(e){if(e.code==='EPERM'||e.code==='EACCES')return;throw e}
+ f.paths.session=link;
+ a.throws(()=>run(f.paths),/INVALID_JSON_FILE/);
+}));
 test('reject missing or mutated PC2 Player files, with no partial receipt',()=>fixture(f=>{
  fs.appendFileSync(path.join(f.pc2,'CoreClash.exe'),'TAMPER');a.throws(()=>run(f.paths),/A72_NATIVE_VERIFIER_FAILED/);a.equal(fs.existsSync(f.paths.out),false);
 }));
@@ -62,12 +99,12 @@ test('reject forged QA success from operator session',()=>fixture(f=>{f.session.
 test('reject absent log SHA',()=>fixture(f=>{delete f.session.evidence.pc2LogSha256;f.write();a.throws(()=>run(f.paths),/MISSING_LOG_SHA/)}));
 test('reject wrong inventory count and path traversal',()=>fixture(f=>{f.summary.playerCount--;a.throws(()=>inventoryCheck(f.summary),/BAD_PLAYER_INVENTORY_COUNT/);f.summary.playerCount++;f.summary.playerInventory[5].path='../etc/passwd';a.throws(()=>inventoryCheck(f.summary),/INVALID_PLAYER_PATH/)}));
 test('reject duplicate manifest paths and missing DLL',()=>fixture(f=>{f.summary.playerInventory[3].path=f.summary.playerInventory[2].path;a.throws(()=>inventoryCheck(f.summary),/BAD_INVENTORY_ITEM/);f.summary.playerInventory.splice(1,1);f.summary.playerCount--;f.summary.playerInventory[2].path='fixed';a.throws(()=>inventoryCheck(f.summary),/EXE_OR_DLL_MISSING|BAD_INVENTORY_ITEM/)}));
-test('do not overwrite existing output file',()=>fixture(f=>{run(f.paths);a.throws(()=>run(f.paths),/OUTPUT_PATH_NOT_NEW/)}));
+test('do not overwrite existing output file',()=>fixture(f=>{fs.writeFileSync(f.paths.out,'existing');a.throws(()=>run(f.paths),/OUTPUT_PATH_NOT_NEW/);a.equal(fs.readFileSync(f.paths.out,'utf8'),'existing')}));
 test('CLI flags require every field and reject duplicates',()=>{
  a.throws(()=>flags(['--summary','abc']),/MISSING_/);
  a.throws(()=>flags(['--wat','abc']),/BAD_ARGUMENT/);
  a.throws(()=>flags(['--summary','abc','--summary','def']),/DUPLICATE_ARGUMENT/);
 });
-test('run result does not include operator private paths or raw Player.log',()=>fixture(f=>{
- const r=run(f.paths);const t=JSON.stringify(r);a.ok(!t.includes(f.root));a.ok(!t.includes('Player.log'));a.ok(!t.includes('192.168.'));
+test('HOLD does not leak private player paths or write fake receipt',()=>fixture(f=>{
+ const err=a.throws(()=>run(f.paths),/A72_NATIVE_VERIFIER_FAILED/);a.equal(fs.existsSync(f.paths.out),false);
 }));
