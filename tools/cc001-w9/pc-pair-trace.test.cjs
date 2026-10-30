@@ -391,3 +391,86 @@ test('W11 final single-session A41 host and client semantics still accepted',()=
   assert.equal(r.w10_operational_samples.content_mismatches.length,0);
   assert.equal(r.verdict,'INSUFFICIENT_EVIDENCE');
 });
+
+
+// W12: ambiguous same-revision evidence must never produce last-wins peer parity.
+test('W12 duplicate A41 host revision is withheld, not replaced by convenient last row',()=>{
+ const h=[w10Host(8,1,0,'Moving',4,2048,1,50),w10Host(8,9,1,'Moving',4,2048,1,50)].join('\n');
+ const r=summarize(h,w10Client(8,9,1,'Moving',4,8,0));
+ assert.equal(r.w10_operational_samples.duplicate_host_revisions,1);
+ assert.equal(r.w10_operational_samples.same_revision_pairs,0);
+ assert.ok(r.missing_observations.includes('ambiguous_w10_operational_revision_samples'));
+ assert.equal(r.verdict,'INSUFFICIENT_EVIDENCE');
+});
+test('W12 duplicate A41 client revision cannot inflate matched sample count',()=>{
+ const c=[w10Client(8,1,0,'Moving',4,8,0),w10Client(8,1,0,'Moving',4,8,0)].join('\n');
+ const r=summarize(w10Host(8,1,0,'Moving',4,2048,1,50),c);
+ assert.equal(r.w10_operational_samples.duplicate_client_revisions,1);
+ assert.equal(r.w10_operational_samples.same_revision_pairs,0);
+});
+test('W12 three copies remain one ambiguous key',()=>{
+ const row=w10Host(8,1,0,'Moving',4,2048,1,50);
+ const r=summarize([row,row,row].join('\n'),w10Client(8,1,0,'Moving',4,8,0));
+ assert.equal(r.w10_operational_samples.duplicate_host_revisions,1);
+ assert.equal(r.w10_operational_samples.same_revision_pairs,0);
+});
+test('W12 duplicate A41 excludes only affected revision, preserves unique neighbor',()=>{
+ const h=[w10Host(8,1,0,'Moving',4,2048,1,50),w10Host(8,2,0,'Moving',4,2048,1,50),
+  w10Host(12,3,1,'Moving',4,2048,1,50)].join('\n');
+ const c=[w10Client(8,2,0,'Moving',4,8,0),w10Client(12,3,1,'Moving',4,12,0)].join('\n');
+ const r=summarize(h,c);
+ assert.equal(r.w10_operational_samples.same_revision_pairs,1);
+ assert.equal(r.w10_operational_samples.content_mismatches.length,0);
+ assert.equal(r.w10_operational_samples.duplicate_host_revisions,1);
+});
+test('W12 duplicate A31 HOST TX cannot disguise conflicting authority',()=>{
+ const h=['CC_NET_TRACE_TX rev=8 serial=1 tms=100 turn=0',
+  'CC_NET_TRACE_TX rev=8 serial=2 tms=120 turn=1'].join('\n');
+ const r=summarize(h,'CC_NET_TRACE_RX rev=8 serial=2 tms=220 turn=1');
+ assert.equal(r.coverage.duplicate_host_snapshot_revisions,1);
+ assert.equal(r.coverage.matched_snapshot_revisions,0);
+ assert.equal(r.coverage.comparable_authoritative_snapshots,0);
+ assert.equal(r.snapshot_authority_mismatches.length,0);
+});
+test('W12 duplicate A31 CLIENT RX cannot masquerade as paired evidence',()=>{
+ const h='CC_NET_TRACE_TX rev=8 serial=2 tms=100 turn=1';
+ const row='CC_NET_TRACE_RX rev=8 serial=2 tms=120 turn=1';
+ const r=summarize(h,[row,row].join('\n'));
+ assert.equal(r.coverage.duplicate_client_snapshot_revisions,1);
+ assert.equal(r.coverage.matched_snapshot_revisions,0);
+ assert.ok(r.missing_observations.includes('ambiguous_snapshot_revision_samples'));
+});
+test('W12 structured duplicated HOST revision cannot falsely confirm P2 propagation',()=>{
+ const h=[trace({type:'snapshot_sent',revision:9,actionSerial:1,turn:0}),
+  trace({type:'snapshot_sent',revision:9,actionSerial:5,turn:1}),
+  'CC_NET_INTENT_ACCEPT owner=1 seq=1 action=5'].join('\n');
+ const r=summarize(h,trace({type:'snapshot_applied',revision:9,actionSerial:5,turn:1}));
+ assert.equal(r.coverage.duplicate_host_snapshot_revisions,1);
+ assert.equal(r.coverage.p2_accepted_action_seen_in_aligned_client_snapshot,false);
+ assert.ok(r.missing_observations.includes('p2_accepted_action_not_observed_on_client'));
+});
+test('W12 structured duplicated CLIENT revision cannot confirm P2 action',()=>{
+ const h=['CC_NET_INTENT_ACCEPT owner=1 seq=1 action=5',
+  trace({type:'snapshot_sent',revision:9,actionSerial:5,turn:1})].join('\n');
+ const rx=trace({type:'snapshot_applied',revision:9,actionSerial:5,turn:1});
+ const r=summarize(h,[rx,rx].join('\n'));
+ assert.equal(r.coverage.duplicate_client_snapshot_revisions,1);
+ assert.equal(r.coverage.p2_accepted_action_seen_in_aligned_client_snapshot,false);
+});
+test('W12 unique A31 snapshot revisions still yield two valid observations',()=>{
+ const h=['CC_NET_TRACE_TX rev=8 serial=2 tms=100 turn=0',
+  'CC_NET_TRACE_TX rev=9 serial=3 tms=160 turn=1'].join('\n');
+ const c=['CC_NET_TRACE_RX rev=8 serial=2 tms=130 turn=0',
+  'CC_NET_TRACE_RX rev=9 serial=3 tms=200 turn=1'].join('\n');
+ const r=summarize(h,c);
+ assert.equal(r.coverage.matched_snapshot_revisions,2);
+ assert.equal(r.coverage.comparable_authoritative_snapshots,2);
+ assert.equal(r.coverage.duplicate_host_snapshot_revisions,0);
+});
+test('W12 report schema still fails closed for duplicate operational rows',()=>{
+ const row=w10Host(8,1,0,'Moving',4,2048,1,50);
+ const r=summarize([row,row].join('\n'),w10Client(8,1,0,'Moving',4,8,0));
+ assert.equal(r.schema,'CC001_R17_W12_A43_DIAGNOSTIC_REPORT_004');
+ assert.equal(r.verdict,'INSUFFICIENT_EVIDENCE');
+ assert.ok(r.caveats.some(x=>x.includes('Repeated revision')));
+});

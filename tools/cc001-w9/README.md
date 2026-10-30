@@ -95,3 +95,16 @@ Operational observations are **never synthesized into** `snapshot_sent` or `snap
 - **Security / evidence integrity correction:** wrong-side producer markers (`HOST` on the purported PC2 log or `CLIENT` on the purported PC1 log; A31 TX/RX mismatch; opposite-side structured snapshots) are discarded and counted as `wrong_side`, with an explicit missing-evidence blocker. Copying PC1 logs cannot fabricate paired matches.
 - **Multi-session correction:** if a `Player.log` contains multiple connection sessions (repeated host-ready/peer-bind or first-state markers), all per-revision cross-PC snapshot/turn/ball/action comparisons are suppressed, even for structured and A31 native trace. Export a single separately identified physical run per log; A43 does not invent a session ID.
 - No ability, HP, Mitosis, Furnace, runtime physics, build, R16, V148, Protocol149, protected ref or release code modified. These source changes do not satisfy the A60 real 2-PC G3 acceptance gate.
+
+## R17-W12 — frozen candidate and duplicate-revision evidence protection
+
+A70's separate QA freeze ref `integration/cc001-r17-w11-qa-freeze-20261030` is pinned to Git source SHA `3f972cdbaea6289a7e33ce608f5d3256cfdab0a3` (verified via GitHub on 2026-10-30). This is **not** an EXE/DLL SHA. The independently advancing #207 PR was at `87b718432f4ce3906c907a7f4a1e2b4fb2a95f9c` at verification and is **not the QA build source**.
+
+Source-bound diagnostic coverage for the frozen SHA: actual `NgoGameSession.cs` emits sparse A41 `CC_W10_NET_HOST` and `CC_W10_NET_CLIENT`, but does not emit A31 `CC_NET_TRACE_TX` or post-freeze A41 `CC_W11_STATE_TX` digest markers. Their absence in logs from this exact candidate is therefore expected and **must not be reported as packet loss**. Continuous revision/state parity, transport latency, Windows build, FPS and physical teleport smoothness remain unverified without independent A72/A60/A31 evidence.
+
+**Implemented A43 W12 fix:** a duplicate revision sample anywhere on either peer cannot participate in cross-PC matching. Former last-wins `Map` semantics could conceal a contradictory first sample and incorrectly report parity with the last. The analyzer now:
+- withholds duplicate `CC_W10_NET_*` samples from same-revision matching and reports `duplicate_host_revisions`/`duplicate_client_revisions`, missing `ambiguous_w10_operational_revision_samples`;
+- withholds duplicate structured/A31 TX-RX revisions from matching, authoritative-content comparisons and P2 accepted-intent propagation; reports duplicate counts plus missing `ambiguous_snapshot_revision_samples`;
+- preserves independent unique-revision matches; treats duplicated log observations as **ambiguous evidence**, not proof of gameplay failure.
+
+Run `node --test tools/cc001-w9/pc-pair-trace.test.cjs` (49 actual Node tests, 39 existing + 10 W12). Report schema is `CC001_R17_W12_A43_DIAGNOSTIC_REPORT_004`. This is a diagnostic-consumer-only change. A70 selects code; A72 owns *real* Windows build from exact freeze SHA; A60/A31 own independent physical PC1–PC2 QA. Do not merge this draft into protected RC1/main or release. Mitosis V148 semantics, Furnace FIRE-zone periodic tick, and R16 HP remain untouched.

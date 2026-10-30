@@ -10,6 +10,19 @@ const MAX_EVENTS = 200000;
 const TYPES = new Set(['snapshot_sent','snapshot_applied','intent_accepted','turn_state','ball_state','client_error']);
 
 function finiteInt(n) { return Number.isSafeInteger(n) && n >= 0; }
+// Never select an arbitrary last copy when a revision was logged repeatedly.
+// A duplicate may be replayed logging or a real anomaly; either way the
+// revision cannot be safely correlated as unique peer evidence.
+function unambiguousRevisionIndex(samples) {
+  const unique=new Map(), ambiguous=new Set();
+  for(const sample of samples){
+    const revision=sample.revision;
+    if(ambiguous.has(revision))continue;
+    if(unique.has(revision)){unique.delete(revision);ambiguous.add(revision);}
+    else unique.set(revision,sample);
+  }
+  return {unique,ambiguous};
+}
 function parseLog(input, side) {
   const events = [], legacy = { host_ready:0, peer_connected:0, accepted_local:0,
     accepted_p2:0, rejected:0, first_snapshot_applied:0, snapshot_error:0, connection_failed:0 };
@@ -140,11 +153,13 @@ function summarize(hostText, clientText, opts = {}) {
   if(hostOpRegressions)anomalies.push({code:'W10_HOST_SAMPLED_REVISION_REGRESSION',count:hostOpRegressions});
   if(clientOpRegressions)anomalies.push({code:'W10_CLIENT_SAMPLED_REVISION_REGRESSION',count:clientOpRegressions});
   if(clientSkippedRegressions)anomalies.push({code:'W10_CLIENT_SKIPPED_COUNTER_REGRESSION',count:clientSkippedRegressions});
-  const hostOpByRev=new Map(hostOps.map(e=>[e.revision,e]));
+  const hostOpIndex=unambiguousRevisionIndex(hostOps);
+  const clientOpIndex=unambiguousRevisionIndex(clientOps);
+  const duplicateOperationalRevisions=hostOpIndex.ambiguous.size+clientOpIndex.ambiguous.size;
   let w10Aligned=0;const w10Mismatches=[];
-  // Even matching sparse samples are observations only, not a full parity gate.
-  if(!multipleSessions)for(const rx of clientOps){
-    const tx=hostOpByRev.get(rx.revision);
+  // Duplicates are ambiguous, not proof of loss or valid same-revision parity.
+  if(!multipleSessions)for(const rx of clientOpIndex.unique.values()){
+    const tx=hostOpIndex.unique.get(rx.revision);
     if(!tx)continue;
     w10Aligned++;
     if(tx.action!==rx.action||tx.turn!==rx.turn||tx.phase!==rx.phase||tx.balls!==rx.balls)
@@ -156,6 +171,9 @@ function summarize(hostText, clientText, opts = {}) {
   const rawHostSends=chooseSnapshots(host,'snapshot_sent'),rawClientApplies=chooseSnapshots(client,'snapshot_applied');
   const hostSends=multipleSessions?[]:rawHostSends;
   const clientApplies=multipleSessions?[]:rawClientApplies;
+  const hostSnapshotIndex=unambiguousRevisionIndex(hostSends);
+  const clientSnapshotIndex=unambiguousRevisionIndex(clientApplies);
+  const duplicateSnapshotRevisions=hostSnapshotIndex.ambiguous.size+clientSnapshotIndex.ambiguous.size;
   const regressions = []; let last = -1;
   for (const e of clientApplies) { if (e.revision <= last) regressions.push(e.revision); last = e.revision; }
   if (regressions.length) anomalies.push({ code:'CLIENT_REVISION_NONMONOTONIC', count:regressions.length });
@@ -175,8 +193,8 @@ function summarize(hostText, clientText, opts = {}) {
     }
   }
   if (serialRegressions.length) anomalies.push({code:'CLIENT_ACTION_SERIAL_REGRESSION',count:serialRegressions.length});
-  const sentRevs = new Set(hostSends.map(e => e.revision));
-  const appliedRevs = new Set(clientApplies.map(e => e.revision));
+  const sentRevs = new Set(hostSnapshotIndex.unique.keys());
+  const appliedRevs = new Set(clientSnapshotIndex.unique.keys());
   const turnMismatches = [];
   for (const e of multipleSessions?[]:by(all, 'turn_state')) {
     if (e.side === 'host' && e.localOwner !== 0 || e.side === 'client' && e.localOwner !== 1) {
@@ -218,9 +236,9 @@ function summarize(hostText, clientText, opts = {}) {
   if (threshold !== null && (!Number.isFinite(threshold) || threshold < 0)) throw new Error('Invalid drift threshold');
   const above = threshold === null ? null : drift.filter(x=>x.distance>threshold).length;
   if (above > 0) anomalies.push({ code:'PAIRED_BALL_DISTANCE_ABOVE_THRESHOLD', count:above });
-  const hostByRev=new Map(hostSends.map(e=>[e.revision,e]));
+  const hostByRev=hostSnapshotIndex.unique;
   const snapshotDifferences=[];let comparable=0;
-  for(const rx of clientApplies) {
+  for(const rx of clientSnapshotIndex.unique.values()) {
     const tx=hostByRev.get(rx.revision);
     if(!tx)continue;
     if(!finiteInt(tx.actionSerial)||!finiteInt(rx.actionSerial)||![0,1].includes(tx.turn)||![0,1].includes(rx.turn))continue;
@@ -244,7 +262,7 @@ function summarize(hostText, clientText, opts = {}) {
   }
   if(acceptedSequenceErrors.length)anomalies.push({code:'P2_ACCEPT_SEQUENCE_OR_ACTION_NONMONOTONIC',count:acceptedSequenceErrors.length});
   const lastAcceptedAction=multipleSessions?null:(host.acceptedP2.at(-1)?.actionSerial??null);
-  const p2ActionObserved=lastAcceptedAction===null?null:clientApplies.some(e=>finiteInt(e.actionSerial)&&e.actionSerial>=lastAcceptedAction&&
+  const p2ActionObserved=lastAcceptedAction===null?null:[...clientSnapshotIndex.unique.values()].some(e=>finiteInt(e.actionSerial)&&e.actionSerial>=lastAcceptedAction&&
     hostByRev.has(e.revision)&&hostByRev.get(e.revision).actionSerial===e.actionSerial&&hostByRev.get(e.revision).turn===e.turn);
   const gaps = [];
   for(let i=1;i<clientApplies.length;i++){
@@ -255,6 +273,8 @@ function summarize(hostText, clientText, opts = {}) {
   const missing = [];
   if(multipleSessions)missing.push('multiple_sessions_require_separate_input_files');
   if(host.wrongSide||client.wrongSide)missing.push('wrong_side_telemetry_markers');
+  if(duplicateOperationalRevisions)missing.push('ambiguous_w10_operational_revision_samples');
+  if(duplicateSnapshotRevisions)missing.push('ambiguous_snapshot_revision_samples');
   if (hostSends.length<2 || clientApplies.length<2 || [...appliedRevs].filter(x=>sentRevs.has(x)).length<2) missing.push('continuous_snapshot_trace');
   if (!by(host.events,'turn_state').length || !by(client.events,'turn_state').length) missing.push('authoritative_turn_and_local_banner_both_peers');
   if (!paired) missing.push('revision_aligned_simulation_ball_samples');
@@ -266,6 +286,8 @@ function summarize(hostText, clientText, opts = {}) {
     matched_snapshot_revisions: [...appliedRevs].filter(x=>sentRevs.has(x)).length,
     client_applied_without_matching_host_sample: [...appliedRevs].filter(x=>!sentRevs.has(x)).length,
     comparable_authoritative_snapshots: comparable,
+    duplicate_host_snapshot_revisions:hostSnapshotIndex.ambiguous.size,
+    duplicate_client_snapshot_revisions:clientSnapshotIndex.ambiguous.size,
     authoritative_content_mismatches: snapshotDifferences.length,
     structured_or_native_source_host:hostSends.length?(hostSends[0].source||'CC_W9_TRACE'):'NONE',
     structured_or_native_source_client:clientApplies.length?(clientApplies[0].source||'CC_W9_TRACE'):'NONE',
@@ -277,12 +299,14 @@ function summarize(hostText, clientText, opts = {}) {
   const periodCounts=new Map();
   for(const e of hostOps)periodCounts.set(e.periodMs,(periodCounts.get(e.periodMs)||0)+1);
   return {
-    schema:'CC001_R17_W11_A43_DIAGNOSTIC_REPORT_003',
+    schema:'CC001_R17_W12_A43_DIAGNOSTIC_REPORT_004',
     verdict:anomalies.length?'OBSERVED_CONTRADICTION':missing.length?'INSUFFICIENT_EVIDENCE':'OBSERVATIONS_AVAILABLE_NOT_QA_PASS',
     host:{ legacy:host.legacy, trace_events:host.events.length, native_trace_events:host.a31Snapshots.length, malformed:host.malformed, ignored:host.ignored, wrong_side:host.wrongSide, snapshot_sent:hostSends.length },
     client:{ legacy:client.legacy, trace_events:client.events.length, native_trace_events:client.a31Snapshots.length, malformed:client.malformed, ignored:client.ignored, wrong_side:client.wrongSide, snapshot_applied:clientApplies.length, last_applied_revision:clientApplies.at(-1)?.revision??null, sample_intervals_ms:gaps },
     w10_operational_samples:{
       host_count:hostOps.length,client_count:clientOps.length,
+      duplicate_host_revisions:hostOpIndex.ambiguous.size,
+      duplicate_client_revisions:clientOpIndex.ambiguous.size,
       same_revision_pairs:w10Aligned,content_mismatches:w10Mismatches,
       host_reported_period_policy_mismatches:hostCadenceMismatches,
       host_reported_period_histogram_ms:Object.fromEntries([...periodCounts.entries()].sort((a,b)=>a[0]-b[0]).map(([k,v])=>[String(k),v])),
@@ -310,6 +334,7 @@ function summarize(hostText, clientText, opts = {}) {
       'Wrong-side host/client producer markers are excluded and reported as missing evidence, never accepted as a valid peer trace.',
       'CC_W10_NET_HOST/CLIENT entries are approximately 1Hz samples; reported periodMs is a configured interval, not measured throughput.',
       'Host/client W10 entries may sample different revisions; unmatched samples do not imply packet loss.',
+      'Repeated revision samples on either PC are ambiguous; matching is withheld for that revision rather than applying last-write-wins.',
       'Native CC_NET_TRACE_TX/RX markers are optional and not present in the pinned RC1 by assumption.',
       'Cross-PC event latency cannot be calculated by subtracting unsynchronized timestamps.',
       'Render poses at identical snapshot revisions may differ due to independent frame clocks and interpolation; they are never compared as authoritative state.',
