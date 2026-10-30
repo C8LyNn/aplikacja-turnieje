@@ -1,6 +1,7 @@
 'use strict';
 // CC-001 / R17-W10 / A72 - guarded Windows candidate build, no merge/deploy.
 const fs=require('node:fs'),path=require('node:path'),cp=require('node:child_process'),crypto=require('node:crypto');
+const {inspect,inspectDirectory}=require('./w11-source-readiness.cjs');
 const ROOT='unity/cc001-r16/CoreClash-V149-Unity';
 const RC1='10f64e4d213f17a352ed8fa83bc75884a39549f0';
 const UNITY_VERSION='6000.4.0f1';
@@ -145,6 +146,8 @@ async function build(a){
   ensure(gitText(repo,['rev-parse',`HEAD:${ROOT}/Assets/CoreClash/Networking/NgoWireProtocol.cs`])==='4a611ee8bdcd929b577f515768fa10dcef8410fc','Protocol149 changed');
   ensure(gitText(repo,['rev-parse',`HEAD:${ROOT}/ProjectSettings/ProjectSettings.asset`])==='8a0952f873139d850d1a4cc3d51774038b498ac5','Project settings changed');
   const config=noDiagPre(project);json(path.join(evidence,'preflight.json'),{ref:a.ref,sha:a.sha,rc1:RC1,unityVersion:UNITY_VERSION,unityExecutableSHA256:shaFile(a.unity),sourceTree:gitText(repo,['rev-parse',`HEAD:${ROOT}`]),commitTree:gitText(repo,['rev-parse','HEAD^{tree}']),changedPaths:scope,config});
+  const sourceGate=inspectDirectory(project,a.sha);json(path.join(evidence,'w11-source-readiness.json'),sourceGate);
+  ensure(sourceGate.status==='GO_SOURCE_SHAPE_ONLY','W11 P0/P1 source readiness HOLD: '+sourceGate.gates.filter(g=>g.status==='HOLD').map(g=>g.id).join(','));
   pre=sourceSnapshot(repo,'BEFORE');json(path.join(evidence,'source-before.json'),pre);ensure(!pre.failures.length,'Initial Git source raw bytes differ beyond historical CRLF→LF');
   // Exactly ONE original Windows build from selected A70 SHA; Unity may normalize scene EOL.
   unity=await spawnLog(a.unity,['-batchmode','-nographics','-quit','-buildTarget','StandaloneWindows64','-projectPath',project,'-executeMethod','CoreClash.Editor.BuildTools.BuildWindows','-logFile',path.join(evidence,'logs','unity-editor.log')],project,path.join(evidence,'logs','unity-console.log'));
@@ -202,7 +205,10 @@ function selfTest(){const assert=require('node:assert/strict');let passed=0;cons
  test(()=>assert.equal(compareSource({ledger:[{path:'f',blob:'abc',workSHA256:'A'}]},{ledger:[{path:'f',blob:'abc',workSHA256:'A',classification:'IDENTICAL_BYTES'}]}).length,0));
  test(()=>assert.equal(compareSource({ledger:[{path:'f',blob:'abc',workSHA256:'A'}]},{ledger:[{path:'f',blob:'abc',workSHA256:'B',classification:'CRLF_TO_LF_ONLY'}]}).length,1));
  test(()=>assert.deepEqual(boolGates({a:true,b:false}),['b']));
- console.log(JSON.stringify({suite:'CC001-W10-A72-offline',pass:passed,fail:0}));
+ const gatePass={ngo:'adapter.Apply(packet,decode,out reason); LastAppliedRevision=revision;',app:'RemoteBallSmoother x; remoteBallSmoother.Observe(state,now); Simulation.State=state;',board:'remoteVisual.TryGetPosition(ballId,now,out x,out y);',match:'Draw.Text("OK");'};
+ test(()=>assert.equal(inspect(gatePass,'a'.repeat(40)).status,'GO_SOURCE_SHAPE_ONLY'));
+ test(()=>assert.equal(inspect({...gatePass,match:'Draw.Round(new Rect(0,y,w*lastPower,5),color);'},'a'.repeat(40)).status,'HOLD_SOURCE_BLOCKER'));
+ console.log(JSON.stringify({suite:'CC001-W11-A72-offline',pass:passed,fail:0}));
 }
 if(require.main===module){const argv=process.argv.slice(2);if(argv.length===1&&argv[0]==='--self-test'){selfTest();}else{try{build(argsParse(argv)).catch(e=>{console.error(e);process.exitCode=2})}catch(e){console.error('A72 STOP: '+e.message);process.exitCode=1}}}
 module.exports={allowedEOL,parseStatus,compareSource,scopeCheck,safeRef,goodSha,ROOT,RC1};
