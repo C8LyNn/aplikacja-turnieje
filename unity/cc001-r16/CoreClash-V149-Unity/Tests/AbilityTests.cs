@@ -377,6 +377,46 @@ public static partial class Program
             Eq(1,peer.owner);Eq(returned.hp,peer.hp);
             Eq(returned.shield,peer.shield);
         });
+        // R17-W11 A40: network seat-gated replay and post-settle snapshot on the
+        // actually selected A70 source candidate; no NGO or UI ownership changed.
+        Test("W11 A40 P2 network Replay snapshot preserves owner and single-use budget",()=>{
+            var s=Sim();True(s.TryCommand(Shot(s,0),out _));Settle(s);
+            Eq(1,s.State.turn);Eq(MatchPhase.Aiming,s.State.phase);
+            var ball=s.Spawn(1,"normal",270,90);True(s.CanReplay(ball));
+            var authority=new CoreClash.Networking.NetworkGameSession(s);
+            var invalid=Shot(s,0);invalid.kind=CommandKind.Replay;invalid.ballId=ball.id;invalid.sequence=1;
+            int action=s.State.actionSerial,events=s.State.eventSerial;
+            False(authority.Submit(1,invalid,out _));
+            Eq(action,s.State.actionSerial);Eq(events,s.State.eventSerial);
+            var cmd=Shot(s,1);cmd.kind=CommandKind.Replay;cmd.ballId=ball.id;cmd.sequence=1;cmd.power=60;
+            True(authority.Submit(1,cmd,out _));
+            Eq(action+1,s.State.actionSerial);True(s.State.replayedIds.Contains(ball.id));
+            Eq(1,s.State.turn);Eq(MatchPhase.Moving,s.State.phase);
+            var options=new System.Text.Json.JsonSerializerOptions{IncludeFields=true};
+            System.Func<string,GameState> decode=raw=>System.Text.Json.JsonSerializer.Deserialize<GameState>(raw,options);
+            var receiver=new CoreClash.Networking.NetworkGameStateAdapter();
+            var first=authority.Capture(x=>System.Text.Json.JsonSerializer.Serialize(x,options));
+            True(receiver.Apply(first,decode,out _));
+            Eq(1,receiver.State.turn);Eq(s.State.turnNumber,receiver.State.turnNumber);
+            Eq(s.State.actionSerial,receiver.State.actionSerial);
+            True(receiver.State.replayedIds.Contains(ball.id));
+            var remote=receiver.State.balls.Single(x=>x.id==ball.id);
+            Eq(1,remote.owner);Near(ball.x,remote.x);Near(ball.y,remote.y);
+            Settle(s);
+            Eq(1,s.State.turn);Eq(MatchPhase.Aiming,s.State.phase);
+            var second=authority.Capture(x=>System.Text.Json.JsonSerializer.Serialize(x,options));
+            True(second.revision>first.revision);
+            True(receiver.Apply(second,decode,out _));
+            Eq(1,receiver.State.turn);Eq(MatchPhase.Aiming,receiver.State.phase);
+            True(receiver.State.replayedIds.Contains(ball.id));
+            False(receiver.Apply(first,decode,out _));
+            action=s.State.actionSerial;events=s.State.eventSerial;
+            False(authority.Submit(1,cmd,out _));
+            var duplicate=Shot(s,1);duplicate.kind=CommandKind.Replay;duplicate.ballId=ball.id;duplicate.sequence=2;
+            False(authority.Submit(1,duplicate,out _));
+            Eq(action,s.State.actionSerial);Eq(events,s.State.eventSerial);
+            Eq(1,s.State.turn);
+        });
         RealityTests();SpatialTests();
         Test("Wildfire leaves a three-tick fire field after death",()=>{var s=Sim();var w=s.Spawn(0,"wildfire",200,450);var t=s.Spawn(1,"normal",260,450);s.Kill(w);Eq(1,s.State.zones.Count(z=>z.kind=="fire"&&!z.dead));s.Abilities.OnTurnEnd(0);Eq(1,t.fireStacks);});
         Test("Soulburst copied effect grows with missing HP",()=>{var s=Sim();var a=s.Spawn(0,"agony",170,450);var soul=s.Spawn(0,"soulburst",220,450);soul.hp=5;var enemy=s.Spawn(1,"normal",280,450);s.Abilities.OnContact(a,soul,false,true,40);Eq(20,enemy.hp);False(soul.dead);});
