@@ -51,6 +51,7 @@ function readJsonl(file){
         unique.add(b.id);
       }
     }
+    if(event.runId!==undefined&&(typeof event.runId!=='string'||!/^[A-Za-z0-9_.-]{8,96}$/.test(event.runId)))throw new Error('Invalid runId at line '+(i+1));
     if(event.stateHash!==undefined&&!/^[0-9a-f]{64}$/i.test(event.stateHash))throw new Error('Invalid stateHash at line '+(i+1));
     if(event.utcMs!==undefined&&!finite(event.utcMs))throw new Error('Invalid utcMs at line '+(i+1));
     if(event.localOwner!==undefined&&![0,1].includes(event.localOwner))throw new Error('Invalid localOwner at line '+(i+1));
@@ -82,15 +83,52 @@ function analyze({pc1=null,pc2=null,structured=null,jumpThreshold=80}){
       applied=Math.max(applied,e.revision);
     }
   }
-  const hostByRevision=new Map(),clientByRevision=new Map();
-  for(const e of events){
-    if(e.kind==='SNAPSHOT_SENT'&&e.peer==='PC1'&&e.stateHash)hostByRevision.set(e.revision,e);
-    if(e.kind==='SNAPSHOT_APPLIED'&&e.peer==='PC2'&&e.stateHash)clientByRevision.set(e.revision,e);
+  // Fail closed: a duplicated revision or cross-run collision must never be hidden
+  // by Map.set() last-write-wins. This diagnostic does NOT alter network admission.
+  let lastSent=-1;
+  for(const e of byPeer.PC1.filter(e=>e.kind==='SNAPSHOT_SENT')){
+    if(e.revision<=lastSent)add('SENT_REVISION_NON_MONOTONIC','ERROR',{peer:'PC1',revision:e.revision,previousRevision:lastSent});
+    lastSent=Math.max(lastSent,e.revision);
   }
-  let comparedHashes=0;
-  for(const [revision,host] of hostByRevision){const client=clientByRevision.get(revision);if(!client)continue;comparedHashes++;
+  const hostByRevision=new Map(),clientByRevision=new Map();
+  const duplicates=[];
+  for(const e of events){
+    const map=e.peer==='PC1'&&e.kind==='SNAPSHOT_SENT'?hostByRevision:
+      e.peer==='PC2'&&e.kind==='SNAPSHOT_APPLIED'?clientByRevision:null;
+    if(!map)continue;
+    if(map.has(e.revision)){
+      const prior=map.get(e.revision);
+      const conflict=prior.stateHash!==e.stateHash||prior.runId!==e.runId;
+      const detail={peer:e.peer,kind:e.kind,revision:e.revision,previousSequence:prior.sequence,sequence:e.sequence,conflict};
+      duplicates.push(detail);add('DUPLICATE_SNAPSHOT_REVISION','ERROR',detail);
+      // Retain earliest evidence. Never silently replace it with a later record.
+      continue;
+    }
+    map.set(e.revision,e);
+  }
+  let comparedHashes=0,unpairedHost=0,unpairedClient=0,runAmbiguous=0;
+  const matchingRevisions=[];
+  for(const [revision,host] of hostByRevision){
+    const client=clientByRevision.get(revision);
+    if(!client){unpairedHost++;continue;}
+    if(host.runId!==undefined&&client.runId!==undefined&&host.runId!==client.runId){
+      add('CROSS_RUN_REVISION_COLLISION','ERROR',{revision,hostRunId:host.runId,clientRunId:client.runId});
+      continue;
+    }
+    if(host.runId===undefined||client.runId===undefined)runAmbiguous++;
+    if(!host.stateHash||!client.stateHash)continue;
+    comparedHashes++;matchingRevisions.push(revision);
     if(host.stateHash!==client.stateHash)add('AUTHORITATIVE_STATE_MISMATCH','ERROR',{revision,hostHash:host.stateHash,clientHash:client.stateHash});
   }
+  for(const revision of clientByRevision.keys())if(!hostByRevision.has(revision))unpairedClient++;
+  for(const peer of ['PC1','PC2'])for(const e of byPeer[peer].filter(e=>e.kind==='LOCAL_TURN_DISPLAYED')){
+    const expected=peer==='PC1'?0:1;
+    if(e.localOwner!==undefined&&e.localOwner!==expected)
+      add('LOCAL_OWNER_PEER_MISMATCH','ERROR',{peer,sequence:e.sequence,expectedOwner:expected,reportedOwner:e.localOwner});
+  }
+  if(runAmbiguous>0)warnings.push('Some paired revision hashes have no matching explicit runId on both endpoints; cross-session identity is NOT VERIFIED.');
+  if(duplicates.length>0)warnings.push('Duplicate snapshot revisions found; last-write-wins comparison prohibited. Parity is not qualified.');
+  if(unpairedHost||unpairedClient)warnings.push('Snapshot sends/applies are not fully paired: missing observation is NOT equivalent to packet loss.');
   const jumpObservations=[];
   for(const peer of ['PC1','PC2']){
     const lastPositions=new Map();
@@ -122,7 +160,7 @@ function analyze({pc1=null,pc2=null,structured=null,jumpThreshold=80}){
   if(comparedHashes===0)warnings.push('No paired same-revision host/client authoritative state hashes: SNAPSHOT_PARITY=NOT_PROVEN.');
   if(!events.some(e=>e.kind==='FRAME_PRESENTED'))warnings.push('No frame-level position traces: visual stutter/teleport cannot be quantified.');
   warnings.push('Cross-PC one-way latency is intentionally NOT COMPUTED: wall-clock timestamps and CLOCK_SYNC markers alone do not establish calibrated clock offset/error bounds.');
-  return {schema:'CC001_R17_W9_A51_ANALYSIS_V1',pinnedSourceSha:SOURCE_SHA,mode:phase,inputs:{pc1:pc1?.source??null,pc2:pc2?.source??null,structured:structured?.source??null},observations:{hostP2AcceptedIntentCount:acceptedSource.length,hostP2AcceptedIntentSequences:acceptedSource.map(e=>e.intentSequence??e.sequence).filter(integer),firstClientAppliedRevision:rawLogs.find(e=>e.peer==='PC2'&&e.kind==='FIRST_STATE_APPLIED')?.revision??null,legacySnapshotErrorCount:count(rawLogs,e=>e.kind==='SNAPSHOT_ERROR_LOG'),structuredEvents:events.length,pairedStateHashesCompared:comparedHashes,frameDelta:numericalStats(jumpObservations),crossPcOneWayLatencyMs:null},findings,warnings,qualification:{transportPeerEvidence:rawLogs.some(e=>e.kind==='PEER_CONNECTED')?'HOST_LOG_PEER_CONNECTED':'NOT_PROVEN_BY_INPUT',clientReceivedAuthoritativeState:rawLogs.some(e=>e.peer==='PC2'&&e.kind==='FIRST_STATE_APPLIED')||byPeer.PC2.some(e=>e.kind==='SNAPSHOT_APPLIED')?'OBSERVED':'NOT_PROVEN',snapshotParity:comparedHashes?'COMPARED_PAIRWISE':'NOT_PROVEN',G3:'NOT_CERTIFIED_BY_ANALYZER',runtimeEvidenceKind:structured?'USER_SUPPLIED_STRUCTURED_TRACE':'PLAYER_LOG_SPARSE'}};
+  return {schema:'CC001_R17_W9_A51_ANALYSIS_V1',pinnedSourceSha:SOURCE_SHA,mode:phase,inputs:{pc1:pc1?.source??null,pc2:pc2?.source??null,structured:structured?.source??null},observations:{hostP2AcceptedIntentCount:acceptedSource.length,hostP2AcceptedIntentSequences:acceptedSource.map(e=>e.intentSequence??e.sequence).filter(integer),firstClientAppliedRevision:rawLogs.find(e=>e.peer==='PC2'&&e.kind==='FIRST_STATE_APPLIED')?.revision??null,legacySnapshotErrorCount:count(rawLogs,e=>e.kind==='SNAPSHOT_ERROR_LOG'),structuredEvents:events.length,pairedStateHashesCompared:comparedHashes,matchingRevisions,duplicateSnapshotRevisions:duplicates.length,unpairedHostRevisions:unpairedHost,unpairedClientRevisions:unpairedClient,unboundRunPairs:runAmbiguous,frameDelta:numericalStats(jumpObservations),crossPcOneWayLatencyMs:null},findings,warnings,qualification:{transportPeerEvidence:rawLogs.some(e=>e.kind==='PEER_CONNECTED')?'HOST_LOG_PEER_CONNECTED':'NOT_PROVEN_BY_INPUT',clientReceivedAuthoritativeState:rawLogs.some(e=>e.peer==='PC2'&&e.kind==='FIRST_STATE_APPLIED')||byPeer.PC2.some(e=>e.kind==='SNAPSHOT_APPLIED')?'OBSERVED':'NOT_PROVEN',snapshotParity:duplicates.length?'INVALID_DUPLICATE_REVISION':findings.some(f=>f.code==='CROSS_RUN_REVISION_COLLISION')?'INVALID_RUN_COLLISION':comparedHashes?'COMPARED_PAIRWISE':'NOT_PROVEN',snapshotParityScope:comparedHashes?(runAmbiguous?'RUN_ID_MISSING':'SAME_RUN_ID'):'NOT_PROVEN',G3:'NOT_CERTIFIED_BY_ANALYZER',runtimeEvidenceKind:structured?'USER_SUPPLIED_STRUCTURED_TRACE':'PLAYER_LOG_SPARSE'}};
 }
 function parseArgs(argv){const out={};for(let i=0;i<argv.length;i++){
   let key=argv[i];if(!/^--(pc1|pc2|events|out|jump-threshold)$/.test(key))throw Error('Unknown flag '+key);

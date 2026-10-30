@@ -102,6 +102,62 @@ try{
    const existing=file('out.json','KEEP');const r=cp.spawnSync(process.execPath,[path.join(__dirname,'pc-pair-trace.cjs'),'--pc1',pc1,'--out',existing],{encoding:'utf8'});
    assert.equal(r.status,2);assert.equal(fs.readFileSync(existing,'utf8'),'KEEP');
  });
+ run('W10 duplicate host revision cannot overwrite earlier conflicting hash',()=>{
+   const data=[ev('PC1',1,'SNAPSHOT_SENT',{revision:40,stateHash:hash('A')}),ev('PC1',2,'SNAPSHOT_SENT',{revision:40,stateHash:hash('B')}),ev('PC2',1,'SNAPSHOT_APPLIED',{revision:40,stateHash:hash('B')})];
+   const report=mod.analyze({structured:mod.readJsonl(jsonl('duplicate-host.jsonl',data))});
+   assert.equal(report.observations.duplicateSnapshotRevisions,1);
+   assert.equal(report.qualification.snapshotParity,'INVALID_DUPLICATE_REVISION');
+   assert.ok(report.findings.some(x=>x.code==='AUTHORITATIVE_STATE_MISMATCH'));
+   assert.ok(report.findings.some(x=>x.code==='SENT_REVISION_NON_MONOTONIC'));
+ });
+ run('W10 duplicate client revision cannot masquerade as two valid applies',()=>{
+   const data=[ev('PC1',1,'SNAPSHOT_SENT',{revision:4,stateHash:hash('ok')}),ev('PC2',1,'SNAPSHOT_APPLIED',{revision:4,stateHash:hash('ok')}),ev('PC2',2,'SNAPSHOT_APPLIED',{revision:4,stateHash:hash('ok')})];
+   const report=mod.analyze({structured:mod.readJsonl(jsonl('duplicate-client.jsonl',data))});
+   assert.equal(report.observations.duplicateSnapshotRevisions,1);
+   assert.equal(report.qualification.snapshotParity,'INVALID_DUPLICATE_REVISION');
+ });
+ run('W10 same revision different runIds cannot be claimed as parity',()=>{
+   const data=[ev('PC1',1,'SNAPSHOT_SENT',{revision:1,runId:'RUN-0001',stateHash:hash('ok')}),ev('PC2',1,'SNAPSHOT_APPLIED',{revision:1,runId:'RUN-0002',stateHash:hash('ok')})];
+   const report=mod.analyze({structured:mod.readJsonl(jsonl('cross-run.jsonl',data))});
+   assert.equal(report.observations.pairedStateHashesCompared,0);
+   assert.equal(report.qualification.snapshotParity,'INVALID_RUN_COLLISION');
+   assert.ok(report.findings.some(x=>x.code==='CROSS_RUN_REVISION_COLLISION'));
+ });
+ run('W10 exact same runId is eligible for scoped payload comparison',()=>{
+   const data=[ev('PC1',1,'SNAPSHOT_SENT',{revision:3,runId:'RUN-0003',stateHash:hash('yes')}),ev('PC2',1,'SNAPSHOT_APPLIED',{revision:3,runId:'RUN-0003',stateHash:hash('yes')})];
+   const report=mod.analyze({structured:mod.readJsonl(jsonl('same-run.jsonl',data))});
+   assert.equal(report.observations.pairedStateHashesCompared,1);
+   assert.equal(report.qualification.snapshotParity,'COMPARED_PAIRWISE');
+   assert.equal(report.qualification.snapshotParityScope,'SAME_RUN_ID');
+   assert.equal(report.qualification.G3,'NOT_CERTIFIED_BY_ANALYZER');
+ });
+ run('W10 omitted runId is flagged ambiguous rather than fabricated proof',()=>{
+   const data=[ev('PC1',1,'SNAPSHOT_SENT',{revision:3,stateHash:hash('yes')}),ev('PC2',1,'SNAPSHOT_APPLIED',{revision:3,stateHash:hash('yes')})];
+   const report=mod.analyze({structured:mod.readJsonl(jsonl('missing-run.jsonl',data))});
+   assert.equal(report.qualification.snapshotParityScope,'RUN_ID_MISSING');
+   assert.equal(report.observations.unboundRunPairs,1);
+   assert.ok(report.warnings.some(x=>x.includes('cross-session identity')));
+ });
+ run('W10 invalid runId fails input validation',()=>{
+   const bad=jsonl('bad-run.jsonl',[ev('PC1',1,'SNAPSHOT_SENT',{revision:1,runId:'!',stateHash:hash('A')})]);
+   assert.throws(()=>mod.readJsonl(bad),/Invalid runId/);
+ });
+ run('W10 missing matched revision is NOT mislabeled confirmed loss',()=>{
+   const data=[ev('PC1',1,'SNAPSHOT_SENT',{revision:3,stateHash:hash('A')}),ev('PC1',2,'SNAPSHOT_SENT',{revision:4,stateHash:hash('B')}),ev('PC2',1,'SNAPSHOT_APPLIED',{revision:3,stateHash:hash('A')})];
+   const report=mod.analyze({structured:mod.readJsonl(jsonl('missing-pair.jsonl',data))});
+   assert.equal(report.observations.unpairedHostRevisions,1);
+   assert.ok(report.warnings.some(x=>x.includes('NOT equivalent to packet loss')));
+ });
+ run('W10 PC2 claiming localOwner 0 is flagged regardless of honest label',()=>{
+   const data=[ev('PC2',1,'LOCAL_TURN_DISPLAYED',{localOwner:0,turnOwner:0,isAiming:true,label:'YOUR SHOT'})];
+   const report=mod.analyze({structured:mod.readJsonl(jsonl('wrong-peer-seat.jsonl',data))});
+   assert.ok(report.findings.some(x=>x.code==='LOCAL_OWNER_PEER_MISMATCH'));
+ });
+ run('W10 cross-run contradiction produces identical deterministic reports',()=>{
+   const data=[ev('PC1',1,'SNAPSHOT_SENT',{revision:3,runId:'RUN-0100',stateHash:hash('A')}),ev('PC2',1,'SNAPSHOT_APPLIED',{revision:3,runId:'RUN-0200',stateHash:hash('B')})];
+   const parsed=mod.readJsonl(jsonl('deterministic-contradiction.jsonl',data));
+   assert.deepEqual(mod.analyze({structured:parsed}),mod.analyze({structured:parsed}));
+ });
  run('same evidence generates byte-identical reports',()=>{
    const inp=mod.readJsonl(jsonl('deterministic.jsonl',sample));
    assert.equal(JSON.stringify(mod.analyze({structured:inp})),JSON.stringify(mod.analyze({structured:inp})));
