@@ -50,6 +50,18 @@ public static partial class Program
             s.Abilities.OnTurnStart(1); // Enemy's own turn is the existing FIRE DOT tick.
             Eq(originalHp-5,enemy.hp);
         });
+        Test("A30 W11 R16 all 227 catalog HP values match frozen RC1",()=>{
+            // FNV-1a 64 over sorted ASCII id:HP rows from frozen RC1 catalog blob
+            // 65874e0078949a21219af056b5e26d296ba65d76.
+            Eq(227,catalog.Data.balls.Length);
+            var payload=string.Join("\n",catalog.Data.balls
+                .OrderBy(b=>b.id,StringComparer.Ordinal)
+                .Select(b=>b.id+":"+b.hp));
+            ulong hash=14695981039346656037UL;
+            foreach(byte value in System.Text.Encoding.UTF8.GetBytes(payload))
+                hash=unchecked((hash^value)*1099511628211UL);
+            Eq(0x9A374EFDD08C0CAAUL,hash);
+        });
         Test("A30 W11 R16 HP representative values are not retuned to V148",()=>{
             foreach(var item in new[]{("normal",30),("fire",35),("mitosis",35),
                                       ("furnace",35),("ward",25),("phoenix",20)})
