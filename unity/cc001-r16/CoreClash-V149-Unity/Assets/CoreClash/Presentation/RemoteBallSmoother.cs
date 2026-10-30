@@ -11,6 +11,8 @@ namespace CoreClash.Presentation
         sealed class Pose
         {
             public float fromX,fromY,toX,toY,start,duration;
+            public int owner;
+            public string type;
         }
         readonly Dictionary<int,Pose> poses=new Dictionary<int,Pose>();
         readonly HashSet<int> active=new HashSet<int>();
@@ -48,8 +50,17 @@ namespace CoreClash.Presentation
                 active.Add(ball.id);
                 if(!poses.TryGetValue(ball.id,out var pose))
                 {
-                    pose=new Pose{fromX=ball.x,fromY=ball.y,toX=ball.x,toY=ball.y,start=now};
+                    pose=new Pose{fromX=ball.x,fromY=ball.y,toX=ball.x,toY=ball.y,start=now,owner=ball.owner,type=ball.type};
                     poses.Add(ball.id,pose);continue;
+                }
+                if(pose.owner!=ball.owner||!string.Equals(pose.type,ball.type,StringComparison.Ordinal))
+                {
+                    // Stable transport id is not proof of the same playable identity.
+                    // Owner/type conversion must not animate the prior entity into the next.
+                    pose.fromX=pose.toX=ball.x;pose.fromY=pose.toY=ball.y;
+                    pose.owner=ball.owner;pose.type=ball.type;
+                    pose.start=now;pose.duration=0;
+                    continue;
                 }
                 Position(pose,now,out var x,out var y);
                 float dx=ball.x-x,dy=ball.y-y;
