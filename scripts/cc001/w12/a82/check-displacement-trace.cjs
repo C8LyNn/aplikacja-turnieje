@@ -6,6 +6,10 @@ const fs=require('node:fs');
 const SHA=/^[0-9a-f]{40}$/i;
 const LIMIT=2000;
 const KINDS=['PORTAL','TELEPORT','SWAP'];
+// Exact GameState.MatchPhase source enum: Aiming, Moving, Over.
+// STOP emits relocation while Moving; TurnSystem may ResolveAction to Aiming
+// (or victory Over) before PC2 observes the accepted revision.
+const PHASES=new Set(['Aiming','Moving','Over']);
 const EXIT={PASS:0,FAIL:1,HOLD:2,USAGE:64};
 const PROFILES=Object.freeze({
   '3f972cdbaea6289a7e33ce608f5d3256cfdab0a3':Object.freeze({
@@ -48,7 +52,7 @@ function analyze(trace,expectedSha,{tolerance=0.5}={}){
   let missingSpan=false;
   for(let i=0;i<trace.samples.length;i++){
     const s=trace.samples[i],where=`samples[${i}]`;
-    if(!s||s.device!=='PC2'||s.observation!=='POST_APPLY_POST_OBSERVE'||s.phase!=='Moving'||
+    if(!s||s.device!=='PC2'||s.observation!=='POST_APPLY_POST_OBSERVE'||!PHASES.has(s.phase)||
       !integer(s.revision)||s.revision<=revision||!integer(s.actionSerial)||s.actionSerial<actionSerial||
       !integer(s.cursorBefore)||s.cursorBefore<0||!integer(s.cursorAfter)||s.cursorAfter<s.cursorBefore||
       !Array.isArray(s.events)||!Array.isArray(s.hostBalls)||!Array.isArray(s.renderedBalls)){
@@ -123,4 +127,4 @@ function main(args=process.argv.slice(2)){
   return res.status==='PASS_SCOPED'?EXIT.PASS:res.status==='FAIL'?EXIT.FAIL:EXIT.HOLD;
 }
 if(require.main===module)process.exitCode=main();
-module.exports={analyze,main,PROFILES,EXIT};
+module.exports={analyze,main,PROFILES,PHASES,EXIT};
