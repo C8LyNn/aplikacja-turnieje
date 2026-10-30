@@ -138,6 +138,25 @@ public static partial class Program
             Eq("RELEASE TO LAUNCH",LocalTurnPresentation.ActionHint(s.State,1,true,true,true,18,0,"DRAG FROM LAUNCHER"));
         });
 
+        // R17-W10 A30: A10-approved P2 view is a true 180-degree view-only rotation.
+        Test("NET-W10-01 P2 view rotates both axes and keeps P1 canonical",()=>{
+            Near(440f,MatchPerspective.ViewX(100f,1),.001f);
+            Near(800f,MatchPerspective.ViewY(100f,1),.001f);
+            Near(100f,MatchPerspective.ViewX(100f,0),.001f);
+            Near(100f,MatchPerspective.ViewY(100f,0),.001f);
+        });
+        Test("NET-W10-02 P2 screen-to-world transform round-trips launcher and arbitrary point",()=>{
+            Near(270f,MatchPerspective.SimulationX(MatchPerspective.ViewX(270f,1),1),.001f);
+            Near(47f,MatchPerspective.SimulationY(MatchPerspective.ViewY(47f,1),1),.001f);
+            float x=123.5f,y=678.25f;
+            Near(x,MatchPerspective.SimulationX(MatchPerspective.ViewX(x,1),1),.001f);
+            Near(y,MatchPerspective.SimulationY(MatchPerspective.ViewY(y,1),1),.001f);
+        });
+        Test("NET-W10-03 P2 own top-world launcher appears at bottom in local view",()=>{
+            Near(853f,MatchPerspective.ViewY(47f,1),.001f);
+            Near(47f,MatchPerspective.ViewY(853f,1),.001f);
+        });
+
         // R17-W6 / A20: Phoenix-hand selection parity with core TryCommand.
         Test("PHX-UI-01 ready Phoenix hand with exhausted stock can be selected",()=>{
             var s=PhoenixUiFixture();PhoenixUiHand(s);
