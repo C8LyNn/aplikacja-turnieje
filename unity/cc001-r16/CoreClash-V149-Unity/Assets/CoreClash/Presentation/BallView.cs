@@ -15,12 +15,15 @@ namespace CoreClash.Presentation
         public static void SetIdentity(BallIdentity value){identity=value;}
         static string Mark(BallDefinition definition)=>definition==null?"?":identity?.Mark(definition.id)??"?";
 
-        public static void Render(Rect board, BallRuntime ball, BallDefinition definition, bool replay,int localOwner=0)
+        public static void Render(Rect board, BallRuntime ball, BallDefinition definition, bool replay)
+            => Render(board,ball,definition,replay,ball.x,ball.y,0);
+
+        public static void Render(Rect board, BallRuntime ball, BallDefinition definition, bool replay,float x,float y,int localOwner=0)
         {
             float scale = board.width / 540f;
             float radius = ball.radius * scale;
-            float viewY=MatchPerspective.ViewY(ball.y,localOwner);
-            var point = new Vector2(board.x + ball.x * scale, board.y + viewY * scale);
+            float viewX=MatchPerspective.ViewX(x,localOwner),viewY=MatchPerspective.ViewY(y,localOwner);
+            var point = new Vector2(board.x + viewX * scale, board.y + viewY * scale);
             var body = new Rect(point.x - radius, point.y - radius, radius * 2, radius * 2);
             Color team = Draw.Owner(ball.owner);
             Color color = definition == null ? Color.white : Draw.Hex(definition.color);
@@ -130,7 +133,7 @@ namespace CoreClash.Presentation
 
         static void DrawWake(Vector2 point, BallRuntime ball, Color color, float scale,int localOwner)
         {
-            var velocity = new Vector2(ball.vx, localOwner==1?-ball.vy:ball.vy);
+            var velocity = localOwner==1?new Vector2(ball.vx,-ball.vy):new Vector2(ball.vx,ball.vy);
             if (!ball.moving || velocity.sqrMagnitude < 8100) return;
             float length = Mathf.Min(42, velocity.magnitude * .075f) * scale;
             Vector2 direction = velocity.normalized;

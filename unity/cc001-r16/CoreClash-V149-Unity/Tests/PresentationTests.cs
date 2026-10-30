@@ -5,20 +5,6 @@ public static partial class Program
 {
     static void PresentationTests()
     {
-        Test("R17-W9 network turn text is relative to the local player",()=>{
-            var s=Sim();s.State.turn=0;s.State.phase=MatchPhase.Aiming;s.State.bonusPending=false;
-            Eq("TURN 1 / 50     PLAYER 1  /  OPPONENT SHOT",MatchPerspective.TurnText(s.State,1,true));
-            s.State.turn=1;Eq("TURN 1 / 50     PLAYER 2  /  YOUR SHOT",MatchPerspective.TurnText(s.State,1,true));
-            s.State.bonusPending=true;Eq("TURN 1 / 50     PLAYER 2  /  YOUR BONUS SHOT",MatchPerspective.TurnText(s.State,1,true));
-            Eq("PLAYER 2 · YOU",MatchPerspective.PlayerLabel(1,1,true));
-            Eq("PLAYER 1",MatchPerspective.PlayerLabel(0,1,true));
-        });
-        Test("R17-W9 P2 perspective puts the local launcher at the bottom and round-trips input",()=>{
-            Near(853f,MatchPerspective.ViewY(47f,1),.001f);
-            Near(47f,MatchPerspective.SimulationY(853f,1),.001f);
-            Near(47f,MatchPerspective.ViewY(47f,0),.001f);
-            Near(853f,MatchPerspective.SimulationY(853f,0),.001f);
-        });
         Test("new active player cannot inherit a ball outside their deck",()=>{var s=new GameSimulation(catalog,catalog.Featured[0],catalog.Featured[1]);s.State.turn=1;Eq("normal",BallSelection.ForTurn(s,"agony"));});
         Test("exhausted selection falls back to unlimited Standard",()=>{var s=new GameSimulation(catalog,catalog.Featured[0],catalog.Featured[1]);Eq("agony",BallSelection.ForTurn(s,"agony"));s.State.players[0].stock.First(x=>x.id=="agony").remaining=0;Eq("normal",BallSelection.ForTurn(s,"agony"));});
         foreach(var size in new[]{(1280,900),(960,600),(1920,1080),(390,844),(844,390)}){
@@ -71,6 +57,104 @@ public static partial class Program
         Test("A20 compact eligibility refuses too-short height or narrow panel",()=>{
             False(MatchLayout.For(600,250,DeviceProfile.Phone).CompactLandscape);
             False(MatchLayout.For(400,330,DeviceProfile.Phone).CompactLandscape);
+        });
+
+        // R17-W9 A20: local turn messaging must use the actual LAN seat, never the active player alone.
+        Test("NET-UX-01 P2 client never sees YOUR SHOT during P1 aiming",()=>{
+            var s=Sim();s.State.turn=0;s.State.phase=MatchPhase.Aiming;
+            string line=LocalTurnPresentation.Status(s.State,1,true,true);
+            True(line.Contains("PLAYER 1"));True(line.Contains("WAITING"));False(line.Contains("YOUR SHOT"));
+            Eq("WAIT P1",LocalTurnPresentation.CompactStatus(s.State,1,true,true));
+        });
+        Test("NET-UX-02 P2 client sees YOUR SHOT only in own aiming phase",()=>{
+            var s=Sim();s.State.turn=1;s.State.phase=MatchPhase.Aiming;
+            True(LocalTurnPresentation.Status(s.State,1,true,true).Contains("YOUR SHOT"));
+            Eq("YOUR SHOT",LocalTurnPresentation.CompactStatus(s.State,1,true,true));
+        });
+        Test("NET-UX-03 P1 host and P2 client have opposite relative status",()=>{
+            var s=Sim();s.State.turn=0;s.State.phase=MatchPhase.Aiming;
+            True(LocalTurnPresentation.Status(s.State,0,true,true).Contains("YOUR SHOT"));
+            False(LocalTurnPresentation.Status(s.State,1,true,true).Contains("YOUR SHOT"));
+        });
+        Test("NET-UX-04 moving is never YOUR SHOT for either LAN seat",()=>{
+            var s=Sim();s.State.turn=1;s.State.phase=MatchPhase.Moving;
+            False(LocalTurnPresentation.Status(s.State,1,true,true).Contains("YOUR SHOT"));
+            Eq("MOVING",LocalTurnPresentation.CompactStatus(s.State,1,true,true));
+        });
+        Test("NET-UX-05 disconnected P2 does not imply input permission",()=>{
+            var s=Sim();s.State.turn=1;s.State.phase=MatchPhase.Aiming;
+            True(LocalTurnPresentation.Status(s.State,1,true,false).Contains("WAITING FOR CONNECTION"));
+            Eq("OFFLINE",LocalTurnPresentation.CompactStatus(s.State,1,true,false));
+        });
+        Test("NET-UX-06 local hotseat announces active owner without remote YOU claim",()=>{
+            var s=Sim();s.State.turn=0;s.State.phase=MatchPhase.Aiming;
+            string line=LocalTurnPresentation.Status(s.State,0,false,true);
+            True(line.Contains("PLAYER 1"));False(line.Contains("YOUR SHOT"));
+            Eq("P1 AIM",LocalTurnPresentation.CompactStatus(s.State,0,false,true));
+        });
+        Test("NET-UX-07 game-over winner remains absolute owner",()=>{
+            var s=Sim();s.State.phase=MatchPhase.Over;s.State.winner=0;
+            True(LocalTurnPresentation.Status(s.State,1,true,true).Contains("PLAYER 1 WINS"));
+            Eq("P1 WINS",LocalTurnPresentation.CompactStatus(s.State,1,true,true));
+        });
+        Test("NET-UX-08 P2 aim guide trace stays within world wall bounds",()=>{
+            // Red P2's launcher is at world y=47 and shoots towards increasing y.
+            var points=AimGuide.Trace(270,47,0,1,17,250);
+            True(points.Length>=2);
+            True(points[points.Length-1].y>points[0].y);
+            foreach(var p in points)True(p.x>=24.3f&&p.x<=515.7f&&p.y>=16f&&p.y<=884f);
+        });
+
+        // R17-W10 / A20: A10-approved no-meter aim interaction contract.
+        Test("NET-UX-09 invalid aim drag below 18 has no release cue",()=>{
+            Eq("DRAG FROM LAUNCHER",AimUiStatus.Hint(false,0,0));
+            False(AimUiStatus.Ready(true,17.99f,0));
+            Eq("DRAG TO BUILD POWER",AimUiStatus.Hint(true,17.99f,0));
+        });
+        Test("NET-UX-10 threshold 18 and longer aim show release with same core rules",()=>{
+            True(AimUiStatus.Ready(true,18,0));
+            Eq("RELEASE TO LAUNCH",AimUiStatus.Hint(true,18,0));
+            True(AimUiStatus.Ready(true,0,-120));
+            Eq("RELEASE TO LAUNCH",AimUiStatus.Hint(true,0,-120));
+        });
+        Test("NET-UX-11 invalid aim floats cannot show release",()=>{
+            False(AimUiStatus.Ready(true,float.NaN,20));
+            False(AimUiStatus.Ready(true,float.PositiveInfinity,20));
+            Eq("DRAG TO BUILD POWER",AimUiStatus.Hint(true,float.NaN,40));
+        });
+
+        Test("NET-UX-12 P2 waiting on P1 cannot see drag or launch action hint",()=>{
+            var s=Sim();s.State.turn=0;s.State.phase=MatchPhase.Aiming;
+            Eq("WAITING FOR PLAYER 1",LocalTurnPresentation.ActionHint(s.State,1,true,true,false,0,0,"DRAG FROM LAUNCHER"));
+            Eq("WAITING FOR PLAYER 1",LocalTurnPresentation.ActionHint(s.State,1,true,true,true,30,0,"SELECT A BALL AND DRAG TO AIM"));
+        });
+        Test("NET-UX-13 disconnected P2 cannot see interactive action cue",()=>{
+            var s=Sim();s.State.turn=1;s.State.phase=MatchPhase.Aiming;
+            Eq("WAITING FOR CONNECTION",LocalTurnPresentation.ActionHint(s.State,1,true,false,true,50,0,"DRAG FROM LAUNCHER"));
+        });
+        Test("NET-UX-14 current P2 aim and insufficient drag use unchanged threshold",()=>{
+            var s=Sim();s.State.turn=1;s.State.phase=MatchPhase.Aiming;
+            Eq("DRAG TO BUILD POWER",LocalTurnPresentation.ActionHint(s.State,1,true,true,true,17,0,"DRAG FROM LAUNCHER"));
+            Eq("RELEASE TO LAUNCH",LocalTurnPresentation.ActionHint(s.State,1,true,true,true,18,0,"DRAG FROM LAUNCHER"));
+        });
+
+        // R17-W10 A30: A10-approved provisional P2 own-bottom view is vertical-only.
+        Test("NET-W10-01 P2 view keeps X canonical and flips Y only",()=>{
+            Near(100f,MatchPerspective.ViewX(100f,1),.001f);
+            Near(800f,MatchPerspective.ViewY(100f,1),.001f);
+            Near(100f,MatchPerspective.ViewX(100f,0),.001f);
+            Near(100f,MatchPerspective.ViewY(100f,0),.001f);
+        });
+        Test("NET-W10-02 P2 screen-to-world transform round-trips launcher and arbitrary point",()=>{
+            Near(270f,MatchPerspective.SimulationX(MatchPerspective.ViewX(270f,1),1),.001f);
+            Near(47f,MatchPerspective.SimulationY(MatchPerspective.ViewY(47f,1),1),.001f);
+            float x=123.5f,y=678.25f;
+            Near(x,MatchPerspective.SimulationX(MatchPerspective.ViewX(x,1),1),.001f);
+            Near(y,MatchPerspective.SimulationY(MatchPerspective.ViewY(y,1),1),.001f);
+        });
+        Test("NET-W10-03 P2 own top-world launcher appears at bottom in local view",()=>{
+            Near(853f,MatchPerspective.ViewY(47f,1),.001f);
+            Near(47f,MatchPerspective.ViewY(853f,1),.001f);
         });
 
         // R17-W6 / A20: Phoenix-hand selection parity with core TryCommand.
