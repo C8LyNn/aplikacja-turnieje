@@ -59,6 +59,52 @@ public static partial class Program
             False(MatchLayout.For(400,330,DeviceProfile.Phone).CompactLandscape);
         });
 
+        // R17-W9 A20: local turn messaging must use the actual LAN seat, never the active player alone.
+        Test("NET-UX-01 P2 client never sees YOUR SHOT during P1 aiming",()=>{
+            var s=Sim();s.State.turn=0;s.State.phase=MatchPhase.Aiming;
+            string line=LocalTurnPresentation.Status(s.State,1,true,true);
+            True(line.Contains("PLAYER 1"));True(line.Contains("WAITING"));False(line.Contains("YOUR SHOT"));
+            Eq("WAIT P1",LocalTurnPresentation.CompactStatus(s.State,1,true,true));
+        });
+        Test("NET-UX-02 P2 client sees YOUR SHOT only in own aiming phase",()=>{
+            var s=Sim();s.State.turn=1;s.State.phase=MatchPhase.Aiming;
+            True(LocalTurnPresentation.Status(s.State,1,true,true).Contains("YOUR SHOT"));
+            Eq("YOUR SHOT",LocalTurnPresentation.CompactStatus(s.State,1,true,true));
+        });
+        Test("NET-UX-03 P1 host and P2 client have opposite relative status",()=>{
+            var s=Sim();s.State.turn=0;s.State.phase=MatchPhase.Aiming;
+            True(LocalTurnPresentation.Status(s.State,0,true,true).Contains("YOUR SHOT"));
+            False(LocalTurnPresentation.Status(s.State,1,true,true).Contains("YOUR SHOT"));
+        });
+        Test("NET-UX-04 moving is never YOUR SHOT for either LAN seat",()=>{
+            var s=Sim();s.State.turn=1;s.State.phase=MatchPhase.Moving;
+            False(LocalTurnPresentation.Status(s.State,1,true,true).Contains("YOUR SHOT"));
+            Eq("MOVING",LocalTurnPresentation.CompactStatus(s.State,1,true,true));
+        });
+        Test("NET-UX-05 disconnected P2 does not imply input permission",()=>{
+            var s=Sim();s.State.turn=1;s.State.phase=MatchPhase.Aiming;
+            True(LocalTurnPresentation.Status(s.State,1,true,false).Contains("WAITING FOR CONNECTION"));
+            Eq("OFFLINE",LocalTurnPresentation.CompactStatus(s.State,1,true,false));
+        });
+        Test("NET-UX-06 local hotseat announces active owner without remote YOU claim",()=>{
+            var s=Sim();s.State.turn=0;s.State.phase=MatchPhase.Aiming;
+            string line=LocalTurnPresentation.Status(s.State,0,false,true);
+            True(line.Contains("PLAYER 1"));False(line.Contains("YOUR SHOT"));
+            Eq("P1 AIM",LocalTurnPresentation.CompactStatus(s.State,0,false,true));
+        });
+        Test("NET-UX-07 game-over winner remains absolute owner",()=>{
+            var s=Sim();s.State.phase=MatchPhase.Over;s.State.winner=0;
+            True(LocalTurnPresentation.Status(s.State,1,true,true).Contains("PLAYER 1 WINS"));
+            Eq("P1 WINS",LocalTurnPresentation.CompactStatus(s.State,1,true,true));
+        });
+        Test("NET-UX-08 P2 aim guide trace stays within world wall bounds",()=>{
+            // Red P2's launcher is at world y=47 and shoots towards increasing y.
+            var points=AimGuide.Trace(270,47,0,1,17,250);
+            True(points.Length>=2);
+            True(points[points.Length-1].y>points[0].y);
+            foreach(var p in points)True(p.x>=24.3f&&p.x<=515.7f&&p.y>=16f&&p.y<=884f);
+        });
+
         // R17-W6 / A20: Phoenix-hand selection parity with core TryCommand.
         Test("PHX-UI-01 ready Phoenix hand with exhausted stock can be selected",()=>{
             var s=PhoenixUiFixture();PhoenixUiHand(s);
