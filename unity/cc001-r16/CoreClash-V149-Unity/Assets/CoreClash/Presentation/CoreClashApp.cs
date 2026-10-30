@@ -41,7 +41,9 @@ namespace CoreClash.Presentation
         List<string> custom=new List<string>();
         DeckDefinition[] decks;
         int ViewOwner=>NetworkLink!=null?NetworkLink.LocalOwner:0;
-        bool CanChoose=>Simulation.State.phase==MatchPhase.Aiming&&(NetworkLink==null||(NetworkLink.IsConnected&&Simulation.State.turn==NetworkLink.LocalOwner));
+        bool CanChoose=>LocalAimOwnership.CanAim(Simulation?.State,
+            NetworkLink==null?(int?)null:NetworkLink.LocalOwner,
+            NetworkLink==null||NetworkLink.IsConnected);
         void Awake(){Initialize();}
         public void Initialize()
         {
@@ -79,6 +81,7 @@ namespace CoreClash.Presentation
             if(NetworkLink==null||NetworkLink.IsAuthority){accumulator=Math.Min(accumulator+Time.unscaledDeltaTime,.1f);while(accumulator>=1f/120){Simulation.Step(1f/120);accumulator-=1f/120;}}
             feedback.Observe(Simulation.State,Time.unscaledTime);
             ClearStaleActionNotice();
+            RevokeStaleAim();
             if(Simulation.State.phase==MatchPhase.Aiming)selected=BallSelection.ForTurn(Simulation,selected);
             if(inspect.Length>0||DeveloperOverlay||externalModal){gesture.Active=false;return;}
             if(CanChoose){
@@ -109,6 +112,12 @@ namespace CoreClash.Presentation
                 if(!accepted){noticeOriginOwner=command.owner;noticeOriginTurn=command.turnNumber;Debug.LogWarning("Intent rejected: "+notice);notice="This shot could not be played. Try again.";}
                 else{notice="";Debug.Log("CORE_CLASH_LAUNCH owner="+command.owner+" type="+command.ballType);}
             }
+        }
+        void RevokeStaleAim()
+        {
+            LocalAimOwnership.Revoke(gesture,Simulation?.State,
+                NetworkLink==null?(int?)null:NetworkLink.LocalOwner,
+                NetworkLink==null||NetworkLink.IsConnected);
         }
         void ClearStaleActionNotice()
         {
@@ -148,6 +157,7 @@ namespace CoreClash.Presentation
                 remoteBallSmoother.Observe(state,Time.unscaledTime,instantBallIds,snapshotRevision);
                 Simulation.State=state;setup=false;
                 ClearStaleActionNotice();
+                RevokeStaleAim();
                 if(!receivedRemoteState){feedback=new FeedbackTimeline();feedback.Observe(state,Time.unscaledTime);receivedRemoteState=true;}
             }
         }

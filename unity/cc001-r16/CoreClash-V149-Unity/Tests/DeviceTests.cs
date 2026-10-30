@@ -98,6 +98,71 @@ public static partial class Program
             Near(commands[0].dx,commands[1].dx);Near(commands[0].dy,commands[1].dy);Near(commands[0].power,commands[1].power);
             Eq(commands[0].kind,commands[1].kind);Eq(commands[0].owner,commands[1].owner);
         });
+
+        // A20 W14: active trajectories must disappear as soon as ownership is
+        // revoked, even when no new mouse/touch event arrives on that frame.
+        Test("A20-W14-01 own P1 aiming gesture remains active",()=>{
+            var s=Sim();s.State.turn=0;s.State.phase=MatchPhase.Aiming;
+            var g=new LaunchGesture();g.Begin(101,270,853);g.Move(101,270,700);
+            LocalAimOwnership.Revoke(g,s.State,0,true);True(g.Active);
+        });
+        Test("A20-W14-02 own P2 aiming gesture remains active",()=>{
+            var s=Sim();s.State.turn=1;s.State.phase=MatchPhase.Aiming;
+            var g=new LaunchGesture();g.Begin(102,270,47);g.Move(102,270,190);
+            LocalAimOwnership.Revoke(g,s.State,1,true);True(g.Active);
+        });
+        Test("A20-W14-03 opponent turn revokes active P2 trajectory and release",()=>{
+            var s=Sim();s.State.turn=1;s.State.phase=MatchPhase.Aiming;
+            var g=new LaunchGesture();g.Begin(103,270,47);g.Move(103,270,250);
+            s.State.turn=0;
+            LocalAimOwnership.Revoke(g,s.State,1,true);False(g.Active);
+            False(g.Release(103,1,s.State.turnNumber,"normal",0,out _));
+        });
+        Test("A20-W14-04 connection drop revokes active P1 trajectory without pointer event",()=>{
+            var s=Sim();s.State.turn=0;s.State.phase=MatchPhase.Aiming;
+            var g=new LaunchGesture();g.Begin(104,270,853);g.Move(104,270,600);
+            LocalAimOwnership.Revoke(g,s.State,0,false);False(g.Active);
+        });
+        Test("A20-W14-05 moving and game-over phases revoke previous gesture",()=>{
+            var s=Sim();s.State.turn=0;
+            foreach(var phase in new[]{MatchPhase.Moving,MatchPhase.Over}){
+                var g=new LaunchGesture();g.Begin(105,270,853);g.Move(105,270,500);
+                s.State.phase=phase;
+                LocalAimOwnership.Revoke(g,s.State,0,true);False(g.Active);
+            }
+        });
+        Test("A20-W14-06 invalid or unassigned network seat fails closed",()=>{
+            var s=Sim();s.State.turn=0;s.State.phase=MatchPhase.Aiming;
+            foreach(int seat in new[]{-1,2}){
+                var g=new LaunchGesture();g.Begin(106,270,853);
+                LocalAimOwnership.Revoke(g,s.State,seat,true);False(g.Active);
+                False(LocalAimOwnership.CanAim(s.State,seat,true));
+            }
+        });
+        Test("A20-W14-07 hotseat aim remains active without LAN",()=>{
+            var s=Sim();s.State.phase=MatchPhase.Aiming;
+            var g=new LaunchGesture();g.Begin(107,270,853);
+            LocalAimOwnership.Revoke(g,s.State,null,false);True(g.Active);
+            True(LocalAimOwnership.CanAim(s.State,null,false));
+        });
+        Test("A20-W14-08 missing authoritative state revokes a gesture safely",()=>{
+            var g=new LaunchGesture();g.Begin(108,270,853);
+            LocalAimOwnership.Revoke(g,null,0,true);False(g.Active);
+            LocalAimOwnership.Revoke(null,null,0,false);
+        });
+        Test("A20-W14-09 stale touch cannot re-enter launch after revoked turn",()=>{
+            var s=Sim();s.State.turn=1;s.State.phase=MatchPhase.Aiming;
+            var g=new LaunchGesture();g.Begin(109,270,47);g.Move(109,270,350);
+            s.State.turn=0;LocalAimOwnership.Revoke(g,s.State,1,true);
+            g.Move(109,270,500);
+            False(g.Release(109,1,s.State.turnNumber,"normal",0,out _));
+        });
+        Test("A20-W14-10 no-op revocation does not change an already idle gesture",()=>{
+            var s=Sim();s.State.turn=1;s.State.phase=MatchPhase.Aiming;
+            var g=new LaunchGesture();
+            LocalAimOwnership.Revoke(g,s.State,0,true);False(g.Active);
+            LocalAimOwnership.Revoke(g,s.State,1,true);False(g.Active);
+        });
     }
     static TouchContact Contact(int id,ContactPhase phase)=>new TouchContact{id=id,x=100,y=200,phase=phase};
 }
