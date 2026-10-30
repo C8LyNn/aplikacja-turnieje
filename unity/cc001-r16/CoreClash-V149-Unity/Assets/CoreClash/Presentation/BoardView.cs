@@ -317,7 +317,7 @@ namespace CoreClash.Presentation
             Vector2 delta=end-start;
             float length=delta.magnitude;
             if(!GameSimulation.Finite(length)||length<.01f||width<=0)return;
-            int samples=Mathf.Clamp(Mathf.CeilToInt(length/Mathf.Max(.85f,width*.55f)),1,512);
+            int samples=Mathf.Clamp(Mathf.CeilToInt(length/Mathf.Max(2f,width*.8f)),1,256);
             float period=dash+gap;
             for(int i=0;i<=samples;i++){
                 float t=i/(float)samples,along=length*t;
