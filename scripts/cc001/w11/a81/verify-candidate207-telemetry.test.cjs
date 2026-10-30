@@ -39,3 +39,38 @@ test('missing both logs is insufficient',()=>a.equal(analyze('','').verdict,'INS
 test('missing client logs is insufficient',()=>a.equal(analyze(h(),'').verdict,'INSUFFICIENT_SELECTED_LOGS'));
 test('arbitrary P1/PC2 local times not estimated',()=>a.equal('oneWayLatencyMs' in analyze(h(),c()),false));
 test('schema anchor never masquerades as runtime binary proof',()=>{const r=analyze(h(),c());a.equal(r.schemaAnchorSha,PIN);a.equal(r.runtimeBinarySourceSha,'NOT_VERIFIED');a.equal('candidateSha' in r,false);});
+
+test('W12 freeze ref independently pinned; no automatic moving-head admission',()=>{
+ const m=require('./verify-candidate207-telemetry.cjs');a.equal(m.QA_FREEZE,'3f972cdbaea6289a7e33ce608f5d3256cfdab0a3');
+ const r=analyze(h(),c());a.equal(r.qaFreezeSourceSha,m.QA_FREEZE);a.equal(r.runtimeBinarySourceSha,'NOT_VERIFIED');
+});
+test('W12 no intersecting sparse samples MUST HOLD, not exit-zero readiness',()=>{
+ const r=analyze(h(1),c(2));a.equal(r.verdict,'INSUFFICIENT_SELECTED_LOGS');
+ a.equal(r.matchingRevisionSamples,0);a.equal(r.errors.length,0);
+});
+test('W12 two host matches in one log MUST HOLD, not false network fault',()=>{
+ const r=analyze('CC_NET_HOST_READY port=7777\n'+h(1)+'\nCC_NET_HOST_READY port=7777\n'+h(1),c(1));
+ a.equal(r.verdict,'INSUFFICIENT_SELECTED_LOGS');a.equal(r.errors.length,0);
+ a.ok(r.notices.includes('MULTIPLE_SESSIONS_CROP_ORIGINAL_LOGS_TO_ONE_MATCH'));
+});
+test('W12 two client match boundaries MUST HOLD',()=>{
+ const r=analyze(h(1),'CC_NET_STATE_APPLIED revision=1 owner=1\n'+c(1)+'\nCC_NET_STATE_APPLIED revision=1 owner=1\n'+c(1));
+ a.equal(r.verdict,'INSUFFICIENT_SELECTED_LOGS');a.equal(r.errors.length,0);
+});
+test('W12 one host/client session marker still allows bounded comparison',()=>{
+ const r=analyze('CC_NET_HOST_READY port=7777\n'+h(1),'CC_NET_STATE_APPLIED revision=1 owner=1\n'+c(1));
+ a.equal(r.verdict,'SAMPLED_DIAGNOSTIC_ONLY');
+});
+test('W12 newer A41 wire digest marker is not compatible with frozen QA input',()=>{
+ const r=analyze(h(1)+'\nCC_W11_STATE_TX rev=1',c(1));
+ a.equal(r.verdict,'ANOMALY_IN_SUPPLIED_LOGS');
+ a.ok(r.errors.some(e=>e.code==='POST_FREEZE_TELEMETRY_PRESENT'));
+});
+test('W12 newer client digest marker is rejected even if sampled metadata matches',()=>{
+ const r=analyze(h(1),c(1)+'\nCC_W11_STATE_RX rev=1');
+ a.ok(r.errors.some(e=>e.code==='POST_FREEZE_TELEMETRY_PRESENT'));
+});
+test('W12 unrelated event prefix never triggers foreign marker',()=>{
+ const r=analyze(h(1)+'\nXCC_W11_STATE_TX rev=1',c(1));
+ a.equal(r.verdict,'SAMPLED_DIAGNOSTIC_ONLY');
+});
