@@ -159,11 +159,65 @@ public static partial class Program
             Eq(count,s.State.phoenixHand.Count);Eq(stock,s.State.players[1].stock.Last().remaining);
             Eq(handOwner,hand.owner);Eq(handTurn,hand.lastProcessedOwnerTurns);
         });
+
+        Test("A32 W13 null P2 stock waits fail-closed even with a ready Phoenix Hand",()=>{
+            var s=A32ReadyPhoenixDeck();
+            s.State.players[1].stock=null;
+            Eq(0,LocalDeckContent.StockIds(s.State,1).Length);
+            Eq(0,LocalDeckContent.Remaining(s,1,"phoenix"));
+            Eq(BallSelectionSource.None,LocalDeckContent.DisplaySource(s,1,"phoenix"));
+            Eq(BallSelectionSource.None,LocalDeckContent.ActiveSource(s,1,"phoenix"));
+            False(LocalDeckContent.VisibleAsAvailable(s,1,"phoenix"));
+            Eq("EMPTY",LocalDeckContent.StockLabel(s,1,"phoenix"));
+            False(LocalDeckContent.CanActivate(s,1,"phoenix",true));
+        });
+        Test("A32 W13 null P2 stock on own turn cannot reach command-source lookup",()=>{
+            var s=A32ReadyPhoenixDeck();s.State.turn=1;
+            s.State.players[1].stock=null;
+            Eq(BallSelectionSource.None,LocalDeckContent.ActiveSource(s,1,"phoenix"));
+            Eq(BallSelectionSource.None,LocalDeckContent.DisplaySource(s,1,"phoenix"));
+            Eq(0,LocalDeckContent.Remaining(s,1,"phoenix"));
+            False(LocalDeckContent.CanActivate(s,1,"phoenix",true));
+            Eq("EMPTY",LocalDeckContent.StockLabel(s,1,"phoenix"));
+        });
+        Test("A32 W13 missing local player on own turn is never actionable",()=>{
+            var s=A32ReadyPhoenixDeck();s.State.turn=1;
+            s.State.players[1]=null;
+            Eq(0,LocalDeckContent.StockIds(s.State,1).Length);
+            Eq(BallSelectionSource.None,LocalDeckContent.ActiveSource(s,1,"phoenix"));
+            Eq(BallSelectionSource.None,LocalDeckContent.DisplaySource(s,1,"phoenix"));
+            False(LocalDeckContent.CanActivate(s,1,"phoenix",true));
+            Eq("EMPTY",LocalDeckContent.StockLabel(s,1,"phoenix"));
+        });
+        Test("A32 W13 null player roster fails closed for both owners",()=>{
+            var s=A32ReadyPhoenixDeck();s.State.players=null;
+            foreach(int owner in new[]{0,1}){
+                Eq(0,LocalDeckContent.StockIds(s.State,owner).Length);
+                Eq(0,LocalDeckContent.Remaining(s,owner,"phoenix"));
+                Eq(BallSelectionSource.None,LocalDeckContent.DisplaySource(s,owner,"phoenix"));
+                Eq(BallSelectionSource.None,LocalDeckContent.ActiveSource(s,owner,"phoenix"));
+                False(LocalDeckContent.VisibleAsAvailable(s,owner,"phoenix"));
+                False(LocalDeckContent.CanActivate(s,owner,"phoenix",true));
+                Eq("EMPTY",LocalDeckContent.StockLabel(s,owner,"phoenix"));
+            }
+        });
+        Test("A32 W13 Phoenix hand fixture preserves nine local slots and existing permission",()=>{
+            var s=A32ReadyPhoenixDeck();
+            Eq(9,LocalDeckContent.StockIds(s.State,1).Length);
+            Eq(0,LocalDeckContent.Remaining(s,1,"phoenix"));
+            Eq(BallSelectionSource.Hand,LocalDeckContent.DisplaySource(s,1,"phoenix"));
+            False(LocalDeckContent.CanActivate(s,1,"phoenix",true));
+            s.State.turn=1;
+            Eq(BallSelectionSource.Hand,LocalDeckContent.ActiveSource(s,1,"phoenix"));
+            True(LocalDeckContent.CanActivate(s,1,"phoenix",true));
+        });
     }
     static GameSimulation A32ReadyPhoenixDeck()
     {
         var s=Sim(); // Existing nine-special test deck; local read-only Phoenix is an extra fixture entry.
-        s.State.players[1].stock.Add(new StockEntry{id="phoenix",remaining=0});
+        // Keep an actual nine-slot source roster; the hand adds NO tenth stock slot.
+        var slots=s.State.players[1].stock;
+        slots[slots.Count-1]=new StockEntry{id="phoenix",remaining=0};
         s.State.players[1].ownerTurns=3;
         s.State.phoenixHand.Add(new PhoenixHandEntry{
             owner=1,ready=true,createdOwnerTurns=2,lastProcessedOwnerTurns=3,
