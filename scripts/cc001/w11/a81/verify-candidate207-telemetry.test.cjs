@@ -38,3 +38,4 @@ test('unpaired sparse 1Hz sample is NOT network failure',()=>{const r=analyze(h(
 test('missing both logs is insufficient',()=>a.equal(analyze('','').verdict,'INSUFFICIENT_SELECTED_LOGS'));
 test('missing client logs is insufficient',()=>a.equal(analyze(h(),'').verdict,'INSUFFICIENT_SELECTED_LOGS'));
 test('arbitrary P1/PC2 local times not estimated',()=>a.equal('oneWayLatencyMs' in analyze(h(),c()),false));
+test('schema anchor never masquerades as runtime binary proof',()=>{const r=analyze(h(),c());a.equal(r.schemaAnchorSha,PIN);a.equal(r.runtimeBinarySourceSha,'NOT_VERIFIED');a.equal('candidateSha' in r,false);});
