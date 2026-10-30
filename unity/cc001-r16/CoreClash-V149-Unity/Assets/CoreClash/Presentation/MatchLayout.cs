@@ -9,13 +9,13 @@ namespace CoreClash.Presentation
         public float Bottom=>y+height;
     }
     // View-only multiplayer transform. Simulation/world coordinates remain canonical.
-    // P2 uses a 180-degree board rotation: both X and Y are inverted.
+    // P2 uses a view-only vertical inversion so the local launcher appears at the bottom.
     public static class MatchPerspective
     {
         public const float WorldWidth=540f,WorldHeight=900f;
-        public static float ViewX(float simulationX,int localOwner)=>localOwner==1?WorldWidth-simulationX:simulationX;
+        public static float ViewX(float simulationX,int localOwner)=>simulationX;
         public static float ViewY(float simulationY,int localOwner)=>localOwner==1?WorldHeight-simulationY:simulationY;
-        public static float SimulationX(float viewX,int localOwner)=>localOwner==1?WorldWidth-viewX:viewX;
+        public static float SimulationX(float viewX,int localOwner)=>viewX;
         public static float SimulationY(float viewY,int localOwner)=>localOwner==1?WorldHeight-viewY:viewY;
     }
 
