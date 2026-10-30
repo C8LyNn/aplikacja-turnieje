@@ -174,7 +174,7 @@ public static partial class Program
         });
         Test("NET-UX-18 connected P2 own aim may display its own rejection notice",()=>{
             var s=Sim();s.State.turn=1;s.State.phase=MatchPhase.Aiming;
-            Eq("Try again",LocalTurnPresentation.ActionMessage(s.State,1,true,true,true,40,0,"DRAG FROM LAUNCHER","Try again"));
+            Eq("Try again",LocalTurnPresentation.ActionMessage(s.State,1,true,true,false,0,0,"DRAG FROM LAUNCHER","Try again"));
             Eq("RELEASE TO LAUNCH",LocalTurnPresentation.ActionMessage(s.State,1,true,true,true,40,0,"DRAG FROM LAUNCHER",""));
         });
         Test("NET-UX-19 moving or game over cannot surface old action notice",()=>{
@@ -186,6 +186,41 @@ public static partial class Program
         Test("NET-UX-20 invalid local seat never shows old action notice",()=>{
             var s=Sim();s.State.turn=0;s.State.phase=MatchPhase.Aiming;
             Eq("WAITING FOR PLAYER 1",LocalTurnPresentation.ActionMessage(s.State,-1,true,true,true,30,0,"DRAG FROM LAUNCHER","Try again"));
+        });
+
+
+        // R17-W12 / A20: after a rejected shot, new drag input must regain
+        // immediate threshold feedback instead of leaving an obsolete notice on-screen.
+        Test("NET-UX-21 current P2 new valid drag supersedes old rejection notice",()=>{
+            var s=Sim();s.State.turn=1;s.State.phase=MatchPhase.Aiming;
+            Eq("RELEASE TO LAUNCH",LocalTurnPresentation.ActionMessage(s.State,1,true,true,true,30,0,"DRAG FROM LAUNCHER","Old rejected shot"));
+        });
+        Test("NET-UX-22 short current drag restores build-power feedback despite notice",()=>{
+            var s=Sim();s.State.turn=0;s.State.phase=MatchPhase.Aiming;
+            Eq("DRAG TO BUILD POWER",LocalTurnPresentation.ActionMessage(s.State,0,true,true,true,17,0,"DRAG FROM LAUNCHER","Old rejected shot"));
+            Eq("RELEASE TO LAUNCH",LocalTurnPresentation.ActionMessage(s.State,0,true,true,true,18,0,"DRAG FROM LAUNCHER","Old rejected shot"));
+        });
+        Test("NET-UX-23 idle current P1 and P2 preserve a valid action rejection",()=>{
+            var s=Sim();s.State.phase=MatchPhase.Aiming;
+            for(int owner=0;owner<2;owner++){
+                s.State.turn=owner;
+                Eq("Action rejected",LocalTurnPresentation.ActionMessage(s.State,owner,true,true,false,0,0,"DRAG FROM LAUNCHER","Action rejected"));
+            }
+        });
+        Test("NET-UX-24 stale drag notice never overrules offline or other player turn",()=>{
+            var s=Sim();s.State.phase=MatchPhase.Aiming;s.State.turn=0;
+            Eq("WAITING FOR CONNECTION",LocalTurnPresentation.ActionMessage(s.State,0,true,false,true,40,0,"DRAG FROM LAUNCHER","Old rejected shot"));
+            Eq("WAITING FOR PLAYER 1",LocalTurnPresentation.ActionMessage(s.State,1,true,true,true,40,0,"DRAG FROM LAUNCHER","Old rejected shot"));
+        });
+        Test("NET-UX-25 resolving and result screens keep their priority over old notice",()=>{
+            var s=Sim();s.State.turn=1;s.State.phase=MatchPhase.Moving;
+            Eq("SHOT RESOLVING",LocalTurnPresentation.ActionMessage(s.State,1,true,true,true,40,0,"DRAG FROM LAUNCHER","Old rejected shot"));
+            s.State.phase=MatchPhase.Over;
+            Eq("MATCH COMPLETE",LocalTurnPresentation.ActionMessage(s.State,1,true,true,true,40,0,"DRAG FROM LAUNCHER","Old rejected shot"));
+        });
+        Test("NET-UX-26 invalid drag values cannot fake ready-to-launch even with old notice",()=>{
+            var s=Sim();s.State.turn=1;s.State.phase=MatchPhase.Aiming;
+            Eq("DRAG TO BUILD POWER",LocalTurnPresentation.ActionMessage(s.State,1,true,true,true,float.NaN,40,"DRAG FROM LAUNCHER","Old rejected shot"));
         });
 
         // R17-W6 / A20: Phoenix-hand selection parity with core TryCommand.
