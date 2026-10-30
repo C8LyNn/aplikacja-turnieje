@@ -72,6 +72,18 @@ test('duplicate numeric keys cannot be used to spoof the ledger',()=>{
 test('unsafe integers cannot turn into rounded counters',()=>{
   assert.throws(()=>lineFields(row(16,{submitBytesTotal:'9007199254740992'})),/UNSAFE_submitBytesTotal/);
 });
+test('suffix lookalike cannot masquerade as a host marker',()=>{
+  const fake=pair().replaceAll('CC_W10_NET_HOST','CC_W10_NET_HOST_SUFFIX');
+  assert.equal(analyze(fake).status,'HOLD_NO_HOST_MARKERS');
+});
+test('embedded host marker substring is ignored',()=>{
+  const fake=pair().replaceAll('CC_W10_NET_HOST','prefixCC_W10_NET_HOST');
+  assert.equal(analyze(fake).status,'HOLD_NO_HOST_MARKERS');
+});
+test('direct parser refuses lookalike marker but accepts normal Unity line',()=>{
+  assert.throws(()=>lineFields(row(16).replace('CC_W10_NET_HOST','CC_W10_NET_HOST_FAKE')),/INVALID_HOST_MARKER/);
+  assert.equal(lineFields(row(16)).revision,16);
+});
 test('client-only log does not impersonate a host',()=>{
   assert.equal(analyze(pair().replaceAll('CC_W10_NET_HOST','CC_W10_NET_CLIENT')).status,'HOLD_NO_HOST_MARKERS');
 });

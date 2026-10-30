@@ -4,9 +4,12 @@ const required=['revision','action','turn','phase','balls','packedBytes','chunks
   'periodMs','submitBytesTotal','submitChunksTotal','submitSnapshotsTotal','hostMs'];
 const integers=required.filter(k=>k!=='phase');
 const marker='CC_W10_NET_HOST';
+const hostMarkerPattern=/(?:^|\s)CC_W10_NET_HOST(?=\s)/;
 const maxBytes=256*1024,chunkBytes=900,budget=256*1024;
 function lineFields(line){
-  const words=line.slice(line.indexOf(marker)+marker.length).trim().split(/\s+/);
+  const match=hostMarkerPattern.exec(line);
+  if(!match)throw Error('INVALID_HOST_MARKER');
+  const words=line.slice(match.index+match[0].length).trim().split(/\s+/);
   const data=Object.create(null);
   for(const word of words){
     const i=word.indexOf('=');
@@ -38,7 +41,7 @@ function analyze(raw){
   const startCount=lines.filter(x=>x.includes('CC_NET_HOST_READY ')||
     x.includes('CC_NET_RELAY_STARTED role=host')).length;
   if(startCount>1)return {status:'HOLD_MULTIPLE_SESSIONS',runtimeGate:'NOT_ASSESSED'};
-  const hostLines=lines.filter(x=>x.includes(marker));
+  const hostLines=lines.filter(x=>hostMarkerPattern.test(x));
   if(hostLines.length===0)return {status:'HOLD_NO_HOST_MARKERS',runtimeGate:'NOT_ASSESSED'};
   const rows=hostLines.map(lineFields);
   if(rows.some(x=>x===null))return {status:'HOLD_W13_LEDGER_MISSING',runtimeGate:'NOT_ASSESSED'};
