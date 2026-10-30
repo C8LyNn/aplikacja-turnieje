@@ -377,6 +377,93 @@ public static partial class Program
             Eq(1,peer.owner);Eq(returned.hp,peer.hp);
             Eq(returned.shield,peer.shield);
         });
+        // R17-W12 A40: one authoritative P2 turn with both a finite Phoenix
+        // copy and a ready hand. Stock is spent first; P2 opening bonus can
+        // consume the retained hand without creating a second RETURN/stock.
+        Test("W12 A40 P2 stock-first Phoenix bonus consumes ready hand second only",()=>{
+            var s=Sim();
+            s.Spawn(1,"packheart",100,450);
+            var dead=s.Spawn(1,"phoenix",270,440);
+            s.Kill(dead);
+            Eq(1,s.State.phoenixHand.Count);
+            var held=s.State.phoenixHand.Single();
+            Eq(5,held.shield);False(held.ready);
+            s.State.players[1].stock.Add(new StockEntry{id="phoenix",remaining=1});
+            True(s.TryCommand(Shot(s,0),out _));Settle(s);
+            Eq(1,s.State.turn);Eq(2,s.State.turnNumber);
+            True(held.ready);Eq(10,held.hp);
+            var host=new CoreClash.Networking.NetworkGameSession(s);
+            int eventBefore=s.State.eventSerial;
+            var stockShot=Shot(s,1,"phoenix");stockShot.sequence=1;
+            True(host.Submit(1,stockShot,out _));
+            var first=s.State.balls.Last();
+            Eq(1,first.owner);Eq("phoenix",first.type);
+            Eq(s.Catalog.Ball("phoenix").hp,first.hp);
+            Eq(0,s.Stock(1,"phoenix"));Eq(1,s.State.phoenixHand.Count);
+            True(object.ReferenceEquals(held,s.State.phoenixHand.Single()));
+            // End the accepted first action through the real TurnSystem:
+            // the special opening bonus belongs to the same P2 owner turn.
+            s.Turns.ResolveAction();
+            Eq(1,s.State.turn);Eq(2,s.State.turnNumber);
+            True(s.State.bonusPending);False(s.State.bonusUsed);
+            var handShot=Shot(s,1,"phoenix");handShot.sequence=2;
+            True(host.Submit(1,handShot,out _));
+            var second=s.State.balls.Last();
+            Eq(1,second.owner);Eq("phoenix",second.type);
+            Eq(10,second.hp);Eq(5,second.shield);
+            Eq(0,s.Stock(1,"phoenix"));Eq(0,s.State.phoenixHand.Count);
+            False(s.State.bonusPending);True(s.State.bonusUsed);
+            Eq(2,s.State.events.Count(e=>e.id>eventBefore&&e.kind=="SPAWN"&&
+                (e.ballId==first.id||e.ballId==second.id)));
+            Eq(0,s.State.events.Count(e=>e.id>eventBefore&&e.kind=="RETURN"));
+            int action=s.State.actionSerial,serial=s.State.eventSerial;
+            False(host.Submit(1,handShot,out _));
+            Eq(action,s.State.actionSerial);Eq(serial,s.State.eventSerial);
+        });
+        Test("W12 A40 ready P2 Phoenix snapshot survives invalid intents before legal use",()=>{
+            var s=Sim();
+            var dead=s.Spawn(1,"phoenix",270,440);s.Kill(dead);
+            Eq(1,s.State.phoenixHand.Count);
+            True(s.TryCommand(Shot(s,0),out _));Settle(s);
+            Eq(1,s.State.turn);Eq(2,s.State.turnNumber);
+            var held=s.State.phoenixHand.Single();
+            True(held.ready);Eq(10,held.hp);
+            var host=new CoreClash.Networking.NetworkGameSession(s);
+            int action=s.State.actionSerial,serial=s.State.eventSerial;
+            var good=Shot(s,1,"phoenix");good.sequence=1;
+            False(host.Submit(0,good,out _)); // forged P2 owner on P1 connection
+            var stale=Shot(s,1,"phoenix");stale.turnNumber--;stale.sequence=1;
+            False(host.Submit(1,stale,out _));
+            var invalid=Shot(s,1,"phoenix");invalid.sequence=1;invalid.power=float.NaN;
+            False(host.Submit(1,invalid,out _));
+            Eq(action,s.State.actionSerial);Eq(serial,s.State.eventSerial);
+            Eq(1,s.State.phoenixHand.Count);
+            Eq(0,s.Stock(1,"phoenix"));
+            var options=new System.Text.Json.JsonSerializerOptions{IncludeFields=true};
+            System.Func<string,GameState> decode=raw=>
+                System.Text.Json.JsonSerializer.Deserialize<GameState>(raw,options);
+            var receiver=new CoreClash.Networking.NetworkGameStateAdapter();
+            var before=host.Capture(state=>System.Text.Json.JsonSerializer.Serialize(state,options));
+            True(receiver.Apply(before,decode,out _));
+            var remoteHand=receiver.State.phoenixHand.Single();
+            Eq(1,remoteHand.owner);True(remoteHand.ready);
+            Eq(held.hp,remoteHand.hp);
+            Eq(held.shield,remoteHand.shield);
+            Eq(held.createdOwnerTurns,remoteHand.createdOwnerTurns);
+            Eq(held.lastProcessedOwnerTurns,remoteHand.lastProcessedOwnerTurns);
+            True(host.Submit(1,good,out _));
+            var born=s.State.balls.Last();
+            Eq(1,born.owner);Eq(10,born.hp);
+            Eq(0,s.State.phoenixHand.Count);Eq(0,s.Stock(1,"phoenix"));
+            var after=host.Capture(state=>System.Text.Json.JsonSerializer.Serialize(state,options));
+            True(receiver.Apply(after,decode,out _));
+            Eq(0,receiver.State.phoenixHand.Count);
+            Eq(s.State.actionSerial,receiver.State.actionSerial);
+            Eq(s.State.eventSerial,receiver.State.eventSerial);
+            Eq(1,receiver.State.balls.Single(x=>x.id==born.id).owner);
+            False(receiver.Apply(before,decode,out _));
+            False(host.Submit(1,good,out _));
+        });
         RealityTests();SpatialTests();
         Test("Wildfire leaves a three-tick fire field after death",()=>{var s=Sim();var w=s.Spawn(0,"wildfire",200,450);var t=s.Spawn(1,"normal",260,450);s.Kill(w);Eq(1,s.State.zones.Count(z=>z.kind=="fire"&&!z.dead));s.Abilities.OnTurnEnd(0);Eq(1,t.fireStacks);});
         Test("Soulburst copied effect grows with missing HP",()=>{var s=Sim();var a=s.Spawn(0,"agony",170,450);var soul=s.Spawn(0,"soulburst",220,450);soul.hp=5;var enemy=s.Spawn(1,"normal",280,450);s.Abilities.OnContact(a,soul,false,true,40);Eq(20,enemy.hp);False(soul.dead);});
