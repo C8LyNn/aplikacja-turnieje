@@ -4,7 +4,7 @@
 
 ## Implementation
 
-This PR adds the **version-controlled independent complete Player distribution verifier** `verify-w10-player.cjs`, with 12 deterministic self-test cases. The companion **full one-shot Unity 6000.4.0f1 Windows builder/PowerShell launcher and source integrity oracle** is supplied as a downloadable operator ZIP in the A72 conversation, *not stored in the repository by this PR*. The ZIP should be preserved unchanged until a separately approved source intake; do not imply it was merged or executed by A70.
+This PR adds the **version-controlled independent complete Player distribution verifier** `verify-w10-player.cjs`, with 12 deterministic self-test cases. The **full one-shot Unity 6000.4.0f1 Windows builder, PowerShell launcher, and source integrity oracle** are NOW also committed byte-for-byte under `scripts/cc001/w10/a72/` on this **isolated A72 draft branch**. The identical four-file operator ZIP is supplied for Windows 11. This does NOT mean the PR was merged, the game built, or A70/A60 accepted a W10 candidate.
 
 **Operator kit exact name:** `CC001_R17_W10_A72_WINDOWS_BUILD_OPERATOR_KIT.zip`; bytes **13,291**, SHA256 **`BC723EDDC9112D88FA7E242BC12BC1E75F27038D0640D0468500B1B7F7861DFA`**. Four ZIP members verified 4/4 CRC + original bytes:
 - `build-w10-rc1.cjs` (17,803 bytes, SHA256 `8C8D528C5787332A078F424B8CE30F3805252A15E576710CAE3FDCDB04D042DD`);
