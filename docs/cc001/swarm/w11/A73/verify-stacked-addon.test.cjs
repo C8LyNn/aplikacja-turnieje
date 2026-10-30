@@ -39,6 +39,28 @@ try{
   const x={schemaVersion:2,immutableRc1:rc,baseRef:'a70',baseSha:base,addonRef:'bad',addonSha:bad,expectedChanges:{[root+'Assets/CoreClash/Networking/NgoWireProtocol.cs']:{status:'M',blob:run('rev-parse','bad:'+root+'Assets/CoreClash/Networking/NgoWireProtocol.cs')}},retainedBlobs:{[retained]:run('rev-parse','a70:'+retained)}};assert.equal(inspect(x,dir).verdict,'HOLD');
  });
  test('git NUL status parser and safe path input',()=>{assert.deepEqual(parseNames('M\0x\0A\0y\0'),[{status:'M',path:'x'},{status:'A',path:'y'}]);assert.equal(safe('../danger'),false);assert.equal(safe('a\\b'),false);});
+ test('symlink substituted for C# is HOLD even with matching blob SHA',()=>{
+  run('switch','-c','symlink',base);
+  const target=root+'Assets/CoreClash/Presentation/DetailsView.cs';
+  fs.unlinkSync(path.join(dir,target));fs.symlinkSync('HiddenElsewhere.cs',path.join(dir,target));
+  const at=commit('replace source with symlink');
+  const m={schemaVersion:2,immutableRc1:rc,baseRef:'a70',baseSha:base,addonRef:'symlink',addonSha:at,expectedChanges:{[target]:{status:'M',blob:run('rev-parse','symlink:'+target)}},retainedBlobs:{[root+'Assets/CoreClash/Networking/NgoWireProtocol.cs']:run('rev-parse','a70:'+root+'Assets/CoreClash/Networking/NgoWireProtocol.cs')}};
+  const result=inspect(m,dir);assert.equal(result.verdict,'HOLD');assert.ok(result.issues.some(x=>x.startsWith('STATUS_MISMATCH')||x.startsWith('UNSAFE_GIT_OBJECT_MODE')));
+ });
+ test('executable bit in C# tracked Git object is HOLD',()=>{
+  run('switch','-c','executable',base);
+  const target=root+'Assets/CoreClash/Presentation/DetailsView.cs';
+  put(target,'edited');fs.chmodSync(path.join(dir,target),0o755);const at=commit('executable mode');
+  const m={schemaVersion:2,immutableRc1:rc,baseRef:'a70',baseSha:base,addonRef:'executable',addonSha:at,expectedChanges:{[target]:{status:'M',blob:run('rev-parse','executable:'+target)}},retainedBlobs:{[root+'Assets/CoreClash/Networking/NgoWireProtocol.cs']:run('rev-parse','a70:'+root+'Assets/CoreClash/Networking/NgoWireProtocol.cs')}};
+  const result=inspect(m,dir);assert.equal(result.verdict,'HOLD');assert.ok(result.issues.some(x=>x.startsWith('UNSAFE_GIT_OBJECT_MODE')));
+ });
+ test('new Assets C# without sibling .meta is HOLD',()=>{
+  run('switch','-c','nometa',base);
+  const target=root+'Assets/CoreClash/Presentation/NewFeature.cs';
+  put(target,'class NewFeature {}');const at=commit('new asset missing meta');
+  const m={schemaVersion:2,immutableRc1:rc,baseRef:'a70',baseSha:base,addonRef:'nometa',addonSha:at,expectedChanges:{[target]:{status:'A',blob:run('rev-parse','nometa:'+target)}},retainedBlobs:{[root+'Assets/CoreClash/Networking/NgoWireProtocol.cs']:run('rev-parse','a70:'+root+'Assets/CoreClash/Networking/NgoWireProtocol.cs')}};
+  const result=inspect(m,dir);assert.equal(result.verdict,'HOLD');assert.ok(result.issues.some(x=>x.startsWith('NEW_ASSET_META_MISSING')));
+ });
  test('all refs were not mutated by checker',()=>{assert.equal(run('rev-parse','main'),rc);assert.equal(run('rev-parse','a70'),base);assert.equal(run('rev-parse','a30'),addon);});
  console.log('TOTAL',successes,'PASS');
 }finally{fs.rmSync(dir,{recursive:true,force:true});}

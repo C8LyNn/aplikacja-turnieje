@@ -11,6 +11,12 @@ function safe(p){return typeof p==='string' && p.length>0 && !p.startsWith('/') 
 function command(args,cwd){const r=cp.spawnSync('git',args,{cwd,encoding:'utf8',maxBuffer:16000000});if(r.error)throw Error(r.error.message);return{code:r.status,stdout:r.stdout||'',stderr:r.stderr||''};}
 function git(args,cwd){const r=command(args,cwd);if(r.code!==0)throw Error('git '+args[0]+' exit '+r.code+': '+r.stderr.trim().slice(0,200));return r.stdout.trim();}
 function objectSha(ref,p,cwd){return git(['rev-parse','--verify',ref+':'+p],cwd);}
+function treeEntry(ref,p,cwd){
+  const raw=git(['ls-tree','-z',ref,'--',p],cwd);
+  const m=/^(\d{6}) (blob|commit) ([a-f0-9]{40})\t([^\0]+)\0$/.exec(raw);
+  if(!m || m[4]!==p)throw Error('missing or ambiguous Git tree entry: '+p);
+  return {mode:m[1],type:m[2],sha:m[3]};
+}
 function parseNames(raw){const xs=raw.split('\0');if(xs.at(-1)==='')xs.pop();if(xs.length%2)throw Error('malformed NUL-separated name-status output');const out=[];for(let i=0;i<xs.length;i+=2)out.push({status:xs[i],path:xs[i+1]});return out;}
 function inspect(m,cwd=process.cwd()){
   if(!m||m.schemaVersion!==2||!SHA.test(m.baseSha||'')||!SHA.test(m.addonSha||'')||!SHA.test(m.immutableRc1||'')||m.immutableRc1!==RC1||!m.baseRef||!m.addonRef||!m.expectedChanges||typeof m.expectedChanges!=='object'||Array.isArray(m.expectedChanges)||!m.retainedBlobs||typeof m.retainedBlobs!=='object'||Array.isArray(m.retainedBlobs))throw Error('invalid pinned manifest schema');
@@ -38,9 +44,12 @@ function inspect(m,cwd=process.cwd()){
     const e=expected.get(item.path);
     if(!e){issues.push('UNLISTED_PATH '+item.path);continue;}
     if(item.status!==e.status){issues.push('STATUS_MISMATCH '+item.path);continue;}
-    const blob=objectSha(addon,item.path,cwd);
-    details.push({path:item.path,status:item.status,blob,match:blob===e.blob});
+    const entry=treeEntry(addon,item.path,cwd);
+    const blob=entry.sha;
+    details.push({path:item.path,status:item.status,blob,mode:entry.mode,type:entry.type,match:blob===e.blob&&entry.mode==='100644'&&entry.type==='blob'});
     if(blob!==e.blob)issues.push('BLOB_MISMATCH '+item.path);
+    if(entry.mode!=='100644'||entry.type!=='blob')issues.push('UNSAFE_GIT_OBJECT_MODE '+item.path+' '+entry.mode+'/'+entry.type);
+    if(item.status==='A'&&item.path.startsWith(PROJECT+'Assets/')&&item.path.endsWith('.cs')&&(!expected.has(item.path+'.meta')||expected.get(item.path+'.meta').status!=='A'))issues.push('NEW_ASSET_META_MISSING '+item.path);
     if(/\.meta$/i.test(item.path)){
       const companion=item.path.slice(0,-5);
       if(item.status!=='A'||!expected.has(companion)||expected.get(companion).status!=='A')issues.push('META_UNPAIRED_OR_MODIFIED '+item.path);
@@ -60,4 +69,4 @@ function inspect(m,cwd=process.cwd()){
 }
 function cli(argv){if(argv.length!==2||argv[0]!=='--manifest')throw Error('Usage: node verify-stacked-addon.cjs --manifest pinned.json');const m=JSON.parse(fs.readFileSync(path.resolve(argv[1]),'utf8'));return inspect(m);}
 if(require.main===module){try{const r=cli(process.argv.slice(2));process.stdout.write(JSON.stringify(r,null,2)+'\n');process.exitCode=r.issues.length?1:0;}catch(e){console.error('HOLD: '+e.message);process.exitCode=2;}}
-module.exports={inspect,parseNames,safe,RC1};
+module.exports={inspect,parseNames,safe,treeEntry,RC1};
