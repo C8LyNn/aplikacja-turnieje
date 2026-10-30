@@ -9,7 +9,7 @@ namespace CoreClash.Presentation
     {
         void RenderMatch()
         {
-            var state=Simulation.State;if(state.phase==MatchPhase.Aiming)selected=BallSelection.ForTurn(Simulation,selected);BoardView.Render(board,Simulation,gesture,Catalog.Ball(selected),feedback);
+            var state=Simulation.State;if(state.phase==MatchPhase.Aiming)selected=BallSelection.ForTurn(Simulation,selected);BoardView.Render(board,Simulation,gesture,Catalog.Ball(selected),feedback,ViewOwner);
             if(layout.CompactLandscape){RenderCompactLandscape();return;}
             if(layout.Portrait){Hud(new Rect(12,68,UiWidth-24,48),true);Draw.Text(new Rect(12,118,UiWidth-24,17),TurnText(),11,Draw.Owner(state.turn),TextAnchor.MiddleCenter,true);}
             if(layout.Portrait&&UiViewport.Profile==DeviceProfile.Phone){RenderPhoneTray();return;}
@@ -21,7 +21,8 @@ namespace CoreClash.Presentation
             Draw.Surface(new Rect(0,y,w,stripH),Draw.PanelLight);BallView.Preview(new Rect(12,y+(stripH-orb)/2,orb,orb),d,state.turn,true);
             Draw.Text(new Rect(orb+26,y+9,w-orb-40,24),d.name,layout.Portrait?16:21,Color.white,TextAnchor.MiddleLeft,true);
             if(!layout.Portrait)Draw.Text(new Rect(orb+26,y+39,w-orb-40,24),Cue(selected),13,Draw.Muted);y+=stripH+10;
-            Draw.Text(new Rect(0,y,w,18),"YOUR DECK  /  NINE SPECIALS",10,Draw.Muted,TextAnchor.MiddleLeft,true);y+=24;
+            string deckHeading=NetworkLink==null||state.turn==ViewOwner?"YOUR DECK  /  NINE SPECIALS":"OPPONENT DECK  /  NINE SPECIALS";
+            Draw.Text(new Rect(0,y,w,18),deckHeading,10,Draw.Muted,TextAnchor.MiddleLeft,true);y+=24;
             var ids=state.players[state.turn].stock.Select(s=>s.id).ToArray();float cw=(w-16)/3;
             for(int i=0;i<ids.Length;i++)BallCard(new Rect((i%3)*(cw+8),y+(i/3)*(cardH+8),cw,cardH),ids[i]);
             y+=3*(cardH+8)+4;
@@ -57,7 +58,8 @@ namespace CoreClash.Presentation
                 float x=hud.x+i*(cellW+4);
                 Draw.Surface(new Rect(x,hud.y,cellW,44),Draw.PanelLight,i==owner?Draw.Owner(i):Draw.Edge);
                 int hp=state.players[i].hp;
-                Draw.Text(new Rect(x+4,hud.y+4,cellW-8,26),"P"+(i+1)+"  "+hp+"/20",14,Color.white,TextAnchor.MiddleCenter,true);
+                string compactPlayer="P"+(i+1)+(NetworkLink!=null&&i==ViewOwner?" · YOU":"");
+                Draw.Text(new Rect(x+4,hud.y+4,cellW-8,26),compactPlayer+"  "+hp+"/20",14,Color.white,TextAnchor.MiddleCenter,true);
                 Draw.Round(new Rect(x+8,hud.y+35,cellW-16,5),Draw.Edge);
                 if(hp>0)Draw.Round(new Rect(x+8,hud.y+35,(cellW-16)*Mathf.Clamp01(hp/20f),5),Draw.Owner(i));
             }
@@ -139,11 +141,7 @@ namespace CoreClash.Presentation
             if(Draw.Button(new Rect(inner.x+(actionW+6)*2,y,actionW,44),"SETUP",size:12))ReturnToSetup();
             if(shortTray)GUI.EndScrollView();
         }
-        string TurnText()
-        {
-            var s=Simulation.State;if(s.phase==MatchPhase.Over)return s.winner<0?"MATCH COMPLETE / DRAW":"PLAYER "+(s.winner+1)+" WINS";
-            return "TURN "+s.turnNumber+" / 50     PLAYER "+(s.turn+1)+(s.phase==MatchPhase.Moving?"  /  MOVING":s.bonusPending?"  /  BONUS SHOT":"  /  YOUR SHOT");
-        }
+        string TurnText()=>MatchPerspective.TurnText(Simulation.State,ViewOwner,NetworkLink!=null);
         void Hud(Rect r,bool compact)
         {
             float gap=10,w=(r.width-gap)/2;
@@ -151,7 +149,7 @@ namespace CoreClash.Presentation
                 var cell=new Rect(r.x+owner*(w+gap),r.y,w,r.height);Color team=Draw.Owner(owner);int hp=Simulation.State.players[owner].hp;
                 Draw.Surface(cell,Draw.PanelLight,Simulation.State.turn==owner?Color.Lerp(Draw.Edge,team,.65f):Draw.Edge);
                 bool stacked=!compact&&w<175;
-                Draw.Text(new Rect(cell.x+12,cell.y+7,w-24,18),"PLAYER "+(owner+1),compact?10:12,team,TextAnchor.MiddleLeft,true);
+                Draw.Text(new Rect(cell.x+12,cell.y+7,w-24,18),MatchPerspective.PlayerLabel(owner,ViewOwner,NetworkLink!=null),compact?10:12,team,TextAnchor.MiddleLeft,true);
                 if(stacked)Draw.Text(new Rect(cell.x+12,cell.y+25,w-24,25),hp+" / 20",21,Color.white,TextAnchor.MiddleLeft,true);
                 else Draw.Text(new Rect(cell.x+w*.43f,cell.y+5,w*.57f-12,compact?20:30),hp+" / 20",compact?16:w<205?19:24,Color.white,TextAnchor.MiddleRight,true);
                 Draw.Round(new Rect(cell.x+12,cell.yMax-16,w-24,8),new Color(.035f,.06f,.09f));if(hp>0)Draw.Round(new Rect(cell.x+12,cell.yMax-16,(w-24)*Mathf.Clamp01(hp/20f),8),team);
