@@ -1,46 +1,38 @@
-# CC-001 / R17-W11 / A42 — source + Windows evidence gates
+# CC-001 R17-W11 FINALIZATION — A42 source/build handoff gates
 
-**Owner:** A42 CI/CD. **Decisions/merges:** A70. **Build:** A72. **Independent QA:** A60. **No release.**
+**Role:** A42 CI/CD. A70 owns integration, A72 Windows build, A60/A31 independent QA. No merge/release by A42.
 
-## Actual target state (2026-10-30)
+## Official selected W11 candidate (2026-10-30)
 
-Frozen RC1: `10f64e4d213f17a352ed8fa83bc75884a39549f0`. A70 integration branch is `integration/cc001-r17-w10-multiplayer-dev-candidate-20261030`; its **currently selected head** is `3d377767e72473cebd90e49293a0cd5dada70464` (draft PR #181). It has source-confirmed P0 visual smoothing and P1 power-HUD gaps recorded by A60 #139.
+- A70 draft PR #207: https://github.com/C8LyNn/aplikacja-turnieje/pull/207
+- Official ref: integration/cc001-r17-w11-multiplayer-qa-candidate-20261030
+- **Only authorized final source SHA:** 173273122c11cbf738e8b954e32506a6196fe8ec
+- Frozen RC1: 10f64e4d213f17a352ed8fa83bc75884a39549f0.
+- Verified GitHub comparison: ahead15/behind0 vs exact RC1 ancestor, 22 changed paths, zero removed. Two new paired .cs.meta. No change to core game mechanics or catalog HP. Preserve V148 Mitosis behavior, FIRE-zone/tick-only Furnace, R16 HP; no broad source patch is allowed by this A42 tool.
+- Old W10 PR #181 is ALT_HOLD. A30 #189 is selected ancestor of official PR207, not its release/build SHA. Old W10 Windows kit is obsolete for PR207 and must not be relabeled.
 
-The more complete competing addon A30 **draft PR #189** SHA `3a6fb11f70cbdd354ca319b6c48e5c080a1ae193`, based on A70 #181, is **ALT_HOLD / NOT ADMITTED BY A70**. It includes A41 size-budgeted cadence + stale ACK, one A34 wired smoother with PORTAL snap, local-owner hints/deck, P2 view and removal of last residual strength bar. This package does NOT select or integrate #189: until A70 explicitly publishes a reviewed integration ref at its SHA, all candidate build/QA gates must HOLD.
+## Executable code
 
-The old A42 W10 PR #182 pins A30 W9 `e6470...`, 9 paths, and is **SUPERSEDED as a W11 candidate admission tool**. Keep its history for audit; do not apply it to a later composite candidate.
+1. w11-source-gate.cjs: read-only Git remote A70 ref check; hard-pins PR207 exact SHA; RC1 ancestry, clean worktree, strict changed-file ownership and .meta pairing. Source-semantic checks for A41 adaptive 20/12/8/4Hz + ACK; A34 visual-only P2 smoothing with PORTAL snap; local turn/deck/aim; no residual post-shot strength bar; NGO-to-App-to-smoother exact revision forwarding; stale/duplicate revision refusal, reset, and authored A70/A40 P2/Phoenix regression definitions and registration. Protects R16 evidence, V148 behavior inputs, catalog HP, Protocol149, core/scene/package/project settings. Source gate is NOT a build or G3 pass.
+2. w11-build-chain.cjs: reads A42 source JSON, original A72 summary.json + receipt.json, original per-PC A72 full Player verifier JSON on PC1/PC2, independently reads actual W11 A70 remote SHA, requires same SHA and unbroken provenance, build exit/result/gates, complete EXE/DLL manifest and valid distinct path/size/SHA256 entries, both devices' file counts. Outputs SHA256/size of original evidence inputs. It never says physical gameplay PASS.
+3. w11-source-gate.test.cjs and w11-build-chain.test.cjs: 38+37 deterministic tests. Both source files were read back at their committed Git blob SHA.
 
-## Files
+## Operator commands (Node22, clean authenticated full Git checkout; output OUTSIDE checkout)
 
-- `w11-source-gate.cjs`: read-only Git + exact source contract check. Performs remote Git `ls-remote` against the real A70 branch and refuses a moved/unadmitted SHA, non-descendant of RC1, any changed paths outside tightly scoped Networking/Presentation C# and Tests C#/.csproj + A33 diagnostics, including protected Package/Settings/Protocol149/R16 evidence and core simulation, dirty worktree, invalid .meta pairing or malformed input. Requires A41 adaptive 20/12/8/4Hz, matched P2 intent ACK, A34 presentation-only smoothing/PORTAL one-shot snap/reset, local-owner turn/action/deck, bounded `AimStroke`, and absence of residual `lastPower/releasedAt`. This is **source evidence only**, never a network fix or build.
-- `w11-source-gate.test.cjs`: 30 positive/negative assertions.
-- `w11-build-chain.cjs`: independent SHA handoff check. Reads A72 original `summary.json` and `receipt.json`, A72 `verify-w10-player.cjs` result JSON from **each physical PC**, and A42 source-gate JSON. Resolves the CURRENT A70 remote ref from Git (not a typed trust assertion); requires same exact SHA, all A72 provenance gates, Unity exit0/BuildPipeline success, complete Player manifest incl EXE/DLL, and both file-integrity reports. Records SHA256 + byte sizes of all input evidence. **Never passes actual G3**.
-- `w11-build-chain.test.cjs`: 25 positive/negative assertions.
-
-## Commands — only after A70 authorizes the exact SHA
-
-Use an authenticated **clean full private Git checkout** with both frozen RC1 and selected candidate objects locally present; Node 22. Place evidence files and `--out` outside that clone so its working tree remains clean.
-
-```powershell
 node --test scripts/cc001/w11/a42/w11-source-gate.test.cjs
 node --test scripts/cc001/w11/a42/w11-build-chain.test.cjs
-node scripts/cc001/w11/a42/w11-source-gate.cjs --repo=C:\Path\To\aplikacja-turnieje --sha=EXACT_A70_APPROVED_40_HEX_SHA --out=C:\Temp\source-gate.json
-```
+node scripts/cc001/w11/a42/w11-source-gate.cjs --repo=C:\repo\aplikacja-turnieje --sha=173273122c11cbf738e8b954e32506a6196fe8ec --out=C:\evidence\a42-w11-source.json
 
-Only **after A72 real Windows build** and `verify-w10-player.cjs` on BOTH PC1 and PC2:
+After A72 ACTUAL W11 Unity6000.4.0f1 Win64 build (not yet created) and original A72 binary verifier on BOTH devices:
 
-```powershell
-node scripts/cc001/w11/a42/w11-build-chain.cjs --repo=C:\Path\To\aplikacja-turnieje --selected-sha=EXACT_A70_APPROVED_40_HEX_SHA --source-gate=C:\Temp\source-gate.json --build=C:\Temp\evidence\summary.json --receipt=C:\Temp\evidence\receipt.json --pc1=C:\Temp\pc1-binary-check.json --pc2=C:\Temp\pc2-binary-check.json --out=C:\Temp\handoff-result.json
-```
+node scripts/cc001/w11/a42/w11-build-chain.cjs --repo=C:\repo\aplikacja-turnieje --selected-sha=173273122c11cbf738e8b954e32506a6196fe8ec --source-gate=C:\evidence\a42-w11-source.json --build=C:\evidence\summary.json --receipt=C:\evidence\receipt.json --pc1=C:\evidence\pc1-binary.json --pc2=C:\evidence\pc2-binary.json --out=C:\evidence\a42-handoff.json
 
-Source gate outputs `SOURCE_CONTRACT_READY_FOR_A70_A72_REVIEW` or `HOLD`, exit 0 or 2; operational Git/CLI failure exit 3. This **does not authorize deployment or claim A70 approved #189** merely from a branch ref. Build-chain outputs `READY_FOR_A60_INDEPENDENT_QA_REVIEW_ONLY` or `HOLD`, exit 0 or 2, operational errors exit 3. Gate success means only evidence consistency, NOT physical test success, complete input-file authenticity, or authority to merge. A60 must independently obtain/rehash original raw WindowsPlayer, logs and recorded session evidence.
+Exit 0 = scoped source/evidence readiness ONLY; 2=HOLD; 3=operational error. No merge, Unity execution, deploy or release.
 
-## Actual source verification and limits
+## Exact test evidence and exclusions
 
-- Fetched A42 committed JS code and test bodies back from GitHub; executed **30/30 source assertions** and **25/25 evidence-chain assertions** in an isolated V8 test harness. **55/55 PASS (mocked Node built-ins)**; NOT a native Node CLI or full Git checkout test.
-- Compared live RC1→#189 GitHub: exact RC1 merge-base, **21 changed source/test paths**; fetched 8 genuine C# files at exact #189 SHA and ran source contracts: **zero source-contract failures under simulated clean Git preflight**. Live A70 head remained old `3d377...`, so correct result for addon was **HOLD / A70_REF_NOT_AT_EXACT_SHA**. If A70 selects addon ref, source-contract evaluation gives source-ready only, contingent on actual clean local Git/remote proof.
-- Frozen official #181 fails W11 source contract for unintegrated smoother, local action/deck cues and after-shot meter.
-- **Not run:** genuine Node22 checkout test, dotnet9 managed suite, Unity 6000.4.0f1 Windows build, native PowerShell, fresh Player, PC1↔PC2 physical gameplay/latency, A60 independent QA. A72 #188 already owns actual build; this code does not duplicate/rebuild or publish any binaries.
-- No main/RC1/R16/V148/Protocol149 modification, merge, GitHub Actions activation, staging deployment or public release.
-
-**Routing:** A70 #137 must first accept/reject #189 or another candidate and issue exact new integration SHA; A72 #113 must regenerate its pinned kit if the current #181 SHA moves; A60 #139 independently verifies new build and real two-PC playtest with screenshot/video/Player.logs for P2 physics, movement, turns, view, aim, power HUD. Until then `G3/G4=HOLD`.
+- A42 exact committed GitHub code and test callbacks executed in isolated V8 with mocked Node built-ins: 38/38 source + 37/37 build-chain = **75/75 PASS**, not native Node22 CLI.
+- Fetched 11 exact actual W11 C# files/tests from PR207 SHA, checked source semantics with committed A42 engine: **zero source-contract failures**, when clean local checkout and diff --check are simulated as true. Actual Git remote exact PR207 head and RC1 ancestry independently verified via connected GitHub, but full local Git diff --check/working-tree admission NOT RUN.
+- Native dotnet9 C# tests, Unity Windows Player build and EXE/DLL, real PC1/PC2 logs/screenshots, A60 independent G3/G4 QA: **NOT RUN**.
+- Owner handoffs: A72 #113 repin/run new W11 Windows kit; A60 #139 verify same original binary on both physical PCs then test P2 command accepted-once, host/client revision/state parity, ball smoothness/portal and network backlog, local UI/aim/HP/Furnace/Mitosis; A70 #137 final integration/release authority.
+- Protected RC1/R16/V148/Protocol149/main unchanged. No W12 before W11 formal closure. **G3/G4=HOLD / RELEASE=STOP**.
