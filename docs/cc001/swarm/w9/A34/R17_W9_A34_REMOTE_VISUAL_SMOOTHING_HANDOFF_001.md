@@ -33,8 +33,8 @@ This does **not** correct an actual network desync, packet loss/reordering, aim/
 
 ## R17-W10 extension — integration and collision-routing (2026-10-30)
 
-A34 has added **three tests** to the original eight, plus type/owner snap guards:
-`RemoteBallSmoother.cs` should never interpolate an object that changes owner or ball type while retaining its ID. The independent 20Hz fixture verifies 50ms packet cadence and bounded final pose. Current A34 total **11 authored C# regression tests, NOT EXECUTED**. Eight additional GitHub-fetched source-bound V8 contract checks PASS (not C# compilation).
+A34 has added **five tests** to the original eight, plus type/owner snap guards and malformed/duplicate ID hardening:
+`RemoteBallSmoother.cs` should never interpolate an object that changes owner or ball type while retaining its ID. The independent 20Hz fixture specifies 50ms packet cadence and bounded final pose (not yet executed in C#). Two further fixtures cover null/invalid/duplicate remote IDs. Current A34 total **13 authored C# regression tests, NOT EXECUTED**. Eight additional GitHub-fetched source-bound V8 contract checks PASS (not C# compilation).
 
 **One implementation decision:** use **A34 `RemoteBallSmoother` + A34 visual wiring** as the sole client interpolation implementation, not a second concurrent `RemoteBallPoseSmoother` (A50 PR #169). A50's identity/revision guards were reviewed; A34's active-action reset/phase reset and wired draw path remain essential. The two smoothing classes must not both process the same P2 draw. A70 approves the final selection.
 
@@ -45,6 +45,11 @@ A34 has added **three tests** to the original eight, plus type/owner snap guards
 - **Networking cadence conflict PR #175 A30 vs PR #163 A41:** A30 sends fixed 20Hz snapshots regardless of size, while A41 uses **size-aware 12/8/4Hz** moving (compressed payload). A34 performance recommends **A41 adaptive transport budget** as conservative default for dense-board CPU/queue safety, *conditional on A60 measured throughput/latency*. Keep A41 stale ACK handling. Do not merge both schedulers or assume either cadence is proven to eliminate stutter.
 - **No W9 PR is automatically a G3 PASS.** A72 owns the Windows build, A60 independent PC1–PC2 quality gate, A70 integration.
 
-**Source-static checks on A34 current branch:** 20/20 source/changed-path contracts after correcting one false-positive comment match; separate 8/8 source-bound readback checks PASS; 11 C# cases **only authored**, managed suite NOT_RUN, Windows native NOT_RUN, 2-PC NOT_RUN. No Protocol149, gameplay, RC1, R16 or V148 changes.
+**Source-static checks on A34 current branch:** 20/20 source/changed-path contracts after correcting one false-positive comment match; separate 8/8 source-bound readback checks PASS; 13 C# cases **only authored**, managed suite NOT_RUN, Windows native NOT_RUN, 2-PC NOT_RUN. No Protocol149, gameplay, RC1, R16 or V148 changes.
 
 **W10 acceptance matrix:** host PC1 and client PC2 at representative HIGH ball density; measure actual compressed bytes, snapshot revisions/arrivals, render frame pacing p50/p95/p99, upstream packet gaps, client CPU+GC, observed ball displacement across normal collisions vs legal portal warp, direction/perspective and owner label; guard against disconnected P2 or action switch leaving stale visual poses. **A60** performs independent G3, **A72** builds, **A70** stages one integrated candidate.
+
+
+### A34 W10 executable-environment verification
+
+Actual available commands: `node --version` = v22.16.0, `git --version` = 2.47.3. `dotnet`, `mono`, `csc`, `mcs`, `msbuild`, and Unity binaries: **UNAVAILABLE**, so the managed/Unity/native tasks were **not executed**. On exact GitHub HEAD before this documentation-only update, a **24/24 source-static** contract suite executed via the GitHub connector (read back 8 actual source/test files); checks included no authority/physics mutation, no extrapolation, stale action/gap/frame guards, owner/type snaps, null/duplicate ball handling, P2-only rendering, source wiring, test registration and test-case count. These are **not** 24 managed tests and do not certify live PC1–PC2. Exact source Git blobs: smoother `bbf1dc828158af7a2bf6e1c110f9cacdd6228e5a`, 13-case regression file `bf81e6b192b6cdd55f4d0788aae00a508d4bc235`.
