@@ -36,5 +36,72 @@ try{
  test('CLI refuses output overwrite',()=>{const a=path.join(tmp,'pc1.log'),o=path.join(tmp,'occupied');fs.writeFileSync(a,tx(3));fs.writeFileSync(o,'KEEP');const r=cp.spawnSync(process.execPath,[path.join(__dirname,'native-snapshot-trace.cjs'),'--pc1',a,'--out',o],{encoding:'utf8'});assert.equal(r.status,2);assert.equal(fs.readFileSync(o,'utf8'),'KEEP');});
  test('CLI with no inputs exits 2',()=>{const r=cp.spawnSync(process.execPath,[path.join(__dirname,'native-snapshot-trace.cjs')],{encoding:'utf8'});assert.equal(r.status,2);});
  test('reports deterministic for identical inputs',()=>{const a=pc1(tx(4)),b=pc2(rx(4));assert.equal(JSON.stringify(mod.analyze(a,b)),JSON.stringify(mod.analyze(a,b)));});
+
+ // W11 FINALIZATION — exact candidate #207 adaptive policy, parsed-log-only evidence.
+ test('source SHA pins exact #207 candidate policy not Player binary',()=>{
+   assert.equal(mod.CANDIDATE_SHA,'173273122c11cbf738e8b954e32506a6196fe8ec');
+   const a=mod.analyze(pc1(host(1)),pc2(client(1)));
+   assert.equal(a.candidateSourceSha,mod.CANDIDATE_SHA);
+   assert.match(a.warnings.join(' '),/not a proof of the Unity Player binary/);
+ });
+ test('candidate moving policy 20Hz below 8KiB',()=>{
+   assert.equal(mod.expectedPeriodMs('Moving',8191),50);
+   assert.equal(mod.analyze(pc1(host(1).replace('8901','8191').replace('periodMs=83','periodMs=50')),pc2(client(1))).observations.hostCadencePolicyViolations,0);
+ });
+ test('candidate moving policy 12Hz at 8KiB inclusive',()=>{
+   assert.equal(mod.expectedPeriodMs('Moving',8192),83);
+   assert.equal(mod.analyze(pc1(host(1).replace('8901','8192')),pc2(client(1))).observations.hostCadencePolicyViolations,0);
+ });
+ test('candidate moving policy 8Hz at 16KiB inclusive',()=>{
+   assert.equal(mod.expectedPeriodMs('Moving',16384),125);
+   assert.equal(mod.analyze(pc1(host(1).replace('8901','16384').replace('periodMs=83','periodMs=125')),pc2(client(1))).observations.hostCadencePolicyViolations,0);
+ });
+ test('candidate moving policy 4Hz at 64KiB inclusive',()=>{
+   assert.equal(mod.expectedPeriodMs('Moving',65536),250);
+   assert.equal(mod.analyze(pc1(host(1).replace('8901','65536').replace('periodMs=83','periodMs=250')),pc2(client(1))).observations.hostCadencePolicyViolations,0);
+ });
+ test('candidate aiming and over phases always report 250ms',()=>{
+   const a=host(1).replace('phase=Moving','phase=Aiming').replace('periodMs=83','periodMs=250');
+   const b=host(3).replace('phase=Moving','phase=Over').replace('periodMs=83','periodMs=250');
+   assert.equal(mod.analyze(pc1(a+b),null).observations.hostCadencePolicyViolations,0);
+ });
+ test('reported 20Hz for 9KiB payload is flagged as candidate policy mismatch',()=>{
+   const a=mod.analyze(pc1(host(1).replace('periodMs=83','periodMs=50')),pc2(client(1)));
+   assert.equal(a.observations.hostCadencePolicyChecks,1);
+   assert.equal(a.observations.hostCadencePolicyViolations,1);
+   assert.ok(a.findings.some(f=>f.code==='REPORTED_CADENCE_POLICY_MISMATCH'&&f.expectedMs===83));
+   assert.equal(a.qualification.sameRevisionMetadata,'HOLD_ERRORS');
+ });
+ test('single host actionSerial rewind may indicate mixed sessions and is not labelled packet loss',()=>{
+   const a=mod.analyze(pc1(host(1)+host(2).replace('action=8','action=7')),pc2(client(1)+client(2)));
+   assert.ok(a.findings.some(f=>f.code==='ACTION_SERIAL_REWIND_OR_MIXED_SESSIONS'));
+   assert.ok(!a.findings.some(f=>/PACKET_LOSS/.test(f.code)));
+ });
+ test('valid increasing actionSerial with sparse revision gap is not a rewind',()=>{
+   const a=mod.analyze(pc1(host(1)+host(20).replace('action=8','action=9')),pc2(client(1)+client(20).replace('action=8','action=9')));
+   assert.ok(!a.findings.some(f=>f.code==='ACTION_SERIAL_REWIND_OR_MIXED_SESSIONS'));
+ });
+ test('zero revision not a valid admitted snapshot',()=>{
+   const a=mod.analyze(pc1(host(0)),pc2(client(0)));
+   assert.ok(a.findings.filter(f=>f.code==='INVALID_TRACE_DOMAIN').length>=2);
+   assert.equal(a.qualification.authoritativeStateParity,'NOT_PROVEN_NO_PAYLOAD_HASH');
+ });
+ test('zero chunks in host sample rejected before pairing',()=>{
+   const a=mod.analyze(pc1(host(1).replace('chunks=2','chunks=0')),pc2(client(1)));
+   assert.ok(a.findings.some(f=>f.code==='INVALID_TRACE_DOMAIN'));
+ });
+ test('zero compressed packet size rejected before cadence admission',()=>{
+   const a=mod.analyze(pc1(host(1).replace('8901','0')),pc2(client(1)));
+   assert.ok(a.findings.some(f=>f.code==='INVALID_TRACE_DOMAIN'));
+ });
+ test('zero client received counter rejected as impossible accepted sample',()=>{
+   const a=mod.analyze(pc1(host(1)),pc2(client(1).replace('received=12','received=0')));
+   assert.ok(a.findings.some(f=>f.code==='INVALID_TRACE_DOMAIN'));
+ });
+ test('old A31 TX/RX format remains independent of A41 cadence policy',()=>{
+   const a=mod.analyze(pc1(tx(9)),pc2(rx(9)));
+   assert.equal(a.observations.hostCadencePolicyChecks,0);
+   assert.equal(a.observations.hostCadencePolicyViolations,0);
+ });
  console.log(`RESULT: ${count}/${count} PASS, 0 FAIL`);
 }finally{fs.rmSync(tmp,{recursive:true,force:true});}

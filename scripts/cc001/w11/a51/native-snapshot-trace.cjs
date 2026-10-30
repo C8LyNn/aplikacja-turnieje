@@ -16,6 +16,17 @@ const TAGS = [
 const FIELD_RE = /\b([a-zA-Z][a-zA-Z0-9]*)=([^\s]+)/g;
 const WHOLE = /^(?:0|[1-9][0-9]*)$/;
 const sha256 = bytes => crypto.createHash('sha256').update(bytes).digest('hex');
+// Exact candidate #207 / NetworkSnapshotRate.Interval. Validated against the
+// C# source at 173273122c11cbf738e8b954e32506a6196fe8ec.
+// This is a *reported cadence policy* check, NOT a wall-clock/net-jitter test.
+const CANDIDATE_SHA = '173273122c11cbf738e8b954e32506a6196fe8ec';
+function expectedPeriodMs(phase, compressedBytes) {
+  if (phase !== 'Moving') return 250;
+  if (compressedBytes < 8192) return 50;
+  if (compressedBytes < 16384) return 83; // int((1f/12f)*1000f)
+  if (compressedBytes < 65536) return 125;
+  return 250;
+}
 function parseLogBuffer(bytes, peer) {
   if (!['PC1','PC2'].includes(peer)) throw Error('peer must be PC1 or PC2');
   if (!Buffer.isBuffer(bytes)) throw Error('input must be a Buffer');
@@ -39,6 +50,13 @@ function parseLogBuffer(bytes, peer) {
       fields[key]=Number(fields[key]);
     }
     if (invalid) { errors.push({code:invalid,peer,line:index+1,kind}); continue; }
+    // Reserved zero revision / empty chunk sets cannot describe an accepted snapshot.
+    if (fields.rev === 0 || fields.revision === 0 || fields.chunks === 0 ||
+        (kind === 'HOST_SAMPLE' && fields.packedBytes === 0) ||
+        (kind === 'TX' && fields.bytes === 0) ||
+        (kind === 'CLIENT_SAMPLE' && fields.received === 0)) {
+      errors.push({code:'INVALID_TRACE_DOMAIN',peer,line:index+1,kind}); continue;
+    }
     // No raw original text, local addresses, connection IDs or free-form messages in output.
     rows.push({peer,line:index+1,producer,kind,revision:fields.rev??fields.revision,
       actionSerial:fields.serial??fields.action,turn:fields.turn,phase:fields.phase,
@@ -64,6 +82,8 @@ function analyze(pc1,pc2){
   const mixed=producers.length>1;
   if(mixed)flag('MIXED_TRACE_PRODUCERS','ERROR',{producers});
   const producer=mixed?'MIXED':producers[0]??'NONE';
+  let hostCadencePolicyChecks=0, hostCadencePolicyViolations=0;
+
   for (const source of sources) {
     const grouped=new Map();
     for (const e of source.rows){
@@ -71,12 +91,25 @@ function analyze(pc1,pc2){
       grouped.get(e.kind).push(e);
     }
     for(const [kind,stream] of grouped){
-      let last=-1,lastTms=-1,lastReceived=-1,lastSkipped=-1;
+      let last=-1,lastAction=-1,lastTms=-1,lastReceived=-1,lastSkipped=-1;
       const seenRevisions=new Set();
       for(const e of stream){
         if(e.revision<=last)flag('NON_MONOTONIC_REVISION','ERROR',{peer:e.peer,kind,revision:e.revision,previous:last,line:e.line});
         if(seenRevisions.has(e.revision))flag('DUPLICATE_REVISION','ERROR',{peer:e.peer,kind,revision:e.revision,line:e.line});
         seenRevisions.add(e.revision); last=Math.max(last,e.revision);
+        // An actionSerial rewind can be a splice of two different sessions;
+        // do not classify it as a proven transport defect without runId.
+        if(e.actionSerial<lastAction)flag('ACTION_SERIAL_REWIND_OR_MIXED_SESSIONS','ERROR',
+          {peer:e.peer,kind,revision:e.revision,line:e.line});
+        lastAction=Math.max(lastAction,e.actionSerial);
+        if(kind==='HOST_SAMPLE'){
+          hostCadencePolicyChecks++;
+          const expected=expectedPeriodMs(e.phase,e.bytes);
+          if(e.periodMs!==expected){hostCadencePolicyViolations++;
+            flag('REPORTED_CADENCE_POLICY_MISMATCH','ERROR',
+              {peer:e.peer,kind,revision:e.revision,line:e.line,reportedMs:e.periodMs,expectedMs:expected,compressedBytes:e.bytes});
+          }
+        }
         if(e.tms!==null){if(e.tms<lastTms)flag('LOCAL_MONOTONIC_CLOCK_REGRESSION','ERROR',{peer:e.peer,kind,line:e.line});lastTms=Math.max(lastTms,e.tms);}
         if(e.received!==null){if(e.received<lastReceived)flag('CLIENT_RECEIVED_COUNTER_REWIND','ERROR',{peer:e.peer,line:e.line});lastReceived=e.received;}
         if(e.skippedRevisions!==null){if(e.skippedRevisions<lastSkipped)flag('CLIENT_SKIPPED_COUNTER_REWIND','ERROR',{peer:e.peer,line:e.line});lastSkipped=e.skippedRevisions;}
@@ -106,12 +139,14 @@ function analyze(pc1,pc2){
   warnings.push('No per-snapshot payload hash or runId in either native producer: even matching revision fields do NOT prove authoritative state-byte parity or same-run identity.');
   warnings.push('Local monotonic tms values are process-specific; do NOT subtract PC1 and PC2 tms to calculate one-way latency.');
   warnings.push('No frame coordinates/timestamps in these sources; neither smooth rendering nor genuine teleports can be certified.');
+  warnings.push('Candidate source SHA is a parser policy pin, not a proof of the Unity Player binary SHA or session identity.');
   const hardErrors=findings.filter(f=>f.severity==='ERROR').length;
   const traceCoverage=producer==='NONE'?'NO_TRACE_ROWS':mixed?'MIXED_HOLD':!pc1||!pc2?'ONE_SIDED_HOLD':producer==='A31'?'OPT_IN_A31_PER_SNAPSHOT':'SPARSE_A41_SAMPLED';
-  return {schema:'CC001_R17_W11_A51_NATIVE_TRACE_V1',evidence:'NATIVE_LOG_FORMAT_PARSER',traceCoverage,
+  return {schema:'CC001_R17_W11_A51_NATIVE_TRACE_V2',candidateSourceSha:CANDIDATE_SHA,evidence:'NATIVE_LOG_FORMAT_PARSER',traceCoverage,
     sources:{pc1:pc1?.source??null,pc2:pc2?.source??null},producer,
     observations:{hostRows:host.length,clientRows:client.length,pairedRevisionRows:paired,unpairedHostRows:unpairedHost,unpairedClientRows:unpairedClient,
       hostIntervalSamples:host.map(e=>e.periodMs).filter(x=>x!==null),
+      hostCadencePolicyChecks,hostCadencePolicyViolations,
       maxReportedSkippedClientRevisions:client.map(e=>e.skippedRevisions).filter(x=>x!==null).reduce((a,b)=>Math.max(a,b),0),
       localOneWayLatencyMs:null,payloadHashPairs:0,frameCoordinates:0},
     findings,warnings,
@@ -120,4 +155,4 @@ function analyze(pc1,pc2){
 function argsParse(argv){const a={};for(let i=0;i<argv.length;i++){const key=argv[i];if(!['--pc1','--pc2','--out'].includes(key))throw Error('Unknown argument '+key);if(key in a)throw Error('Duplicate argument '+key);const val=argv[++i];if(!val)throw Error('Missing '+key);a[key.slice(2)]=val;}if(!a.pc1&&!a.pc2)throw Error('Supply --pc1 and/or --pc2');return a;}
 function cli(argv){const args=argsParse(argv);const result=analyze(args.pc1?readLog(args.pc1,'PC1'):null,args.pc2?readLog(args.pc2,'PC2'):null);const body=JSON.stringify(result,null,2)+'\n';if(args.out)fs.writeFileSync(args.out,body,{flag:'wx'});else process.stdout.write(body);}
 if(require.main===module){try{cli(process.argv.slice(2));}catch(e){process.stderr.write('A51_W11_TRACE_INPUT_ERROR: '+e.message+'\n');process.exitCode=2;}}
-module.exports={parseLogBuffer,readLog,analyze,argsParse};
+module.exports={parseLogBuffer,readLog,analyze,argsParse,expectedPeriodMs,CANDIDATE_SHA};
