@@ -12,12 +12,22 @@ namespace CoreClash.Presentation
         const float Left = 24.3f, Right = 515.7f, Top = 16, Bottom = 884;
         static readonly Color Floor = new Color(.039f, .078f, .122f);
         static readonly Dictionary<int, Texture2D> RingSprites = new Dictionary<int, Texture2D>();
+        static int viewOwner;
 
-        static Vector2 Point(Rect board, float x, float y) => new Vector2(board.x + x * board.width / 540, board.y + y * board.width / 540);
-        static Rect Box(Rect board, float x, float y, float width, float height) => new Rect(board.x + x * board.width / 540, board.y + y * board.width / 540, width * board.width / 540, height * board.width / 540);
-
-        public static void Render(Rect rect, GameSimulation simulation, LaunchGesture aim, BallDefinition selected = null,FeedbackTimeline feedback=null)
+        static Vector2 Point(Rect board, float x, float y)
         {
+            y=MatchPerspective.ViewY(y,viewOwner);
+            return new Vector2(board.x + x * board.width / 540, board.y + y * board.width / 540);
+        }
+        static Rect Box(Rect board, float x, float y, float width, float height)
+        {
+            if(viewOwner==1)y=MatchPerspective.WorldHeight-y-height;
+            return new Rect(board.x + x * board.width / 540, board.y + y * board.width / 540, width * board.width / 540, height * board.width / 540);
+        }
+
+        public static void Render(Rect rect, GameSimulation simulation, LaunchGesture aim, BallDefinition selected = null,FeedbackTimeline feedback=null,int localOwner=0)
+        {
+            int previousViewOwner=viewOwner;viewOwner=localOwner==1?1:0;
             var state = simulation.State;
             GUI.BeginGroup(rect);
             var board = new Rect(0, 0, rect.width, rect.height);
@@ -36,7 +46,7 @@ namespace CoreClash.Presentation
                 {
                     if(ball.mineArmed)Ring(Point(clippedBoard,ball.x,ball.y),(ball.radius+11)*board.width/540,new Color(.79f,.31f,1,.82f),Mathf.Max(1,board.width/540));
                     if(ball.timeBombArmed)Ring(Point(clippedBoard,ball.x,ball.y),(ball.radius+9)*board.width/540,new Color(1,.65f,.25f,.85f),Mathf.Max(1.5f,2*board.width/540));
-                    BallView.Render(clippedBoard, ball, simulation.Catalog.Ball(ball.type), state.phase == MatchPhase.Aiming && simulation.CanReplay(ball));
+                    BallView.Render(clippedBoard, ball, simulation.Catalog.Ball(ball.type), state.phase == MatchPhase.Aiming && simulation.CanReplay(ball),viewOwner);
                 }
             RenderEvents(clippedBoard,feedback);
             if (state.phase == MatchPhase.Aiming && aim != null && aim.Active) RenderAim(clippedBoard, state, aim,selected);
@@ -44,6 +54,7 @@ namespace CoreClash.Presentation
 
             RenderFrame(board, state);
             GUI.EndGroup();
+            viewOwner=previousViewOwner;
         }
 
         static void RenderArena(Rect board)
@@ -203,7 +214,8 @@ namespace CoreClash.Presentation
         {
             float scale = board.width / 540;
             Vector2 origin = Point(board, aim.OriginX, aim.OriginY);
-            Vector2 finger = Point(board, aim.AimX, aim.AimY);
+            float visualAimX=Mathf.Clamp(aim.AimX,Left,Right),visualAimY=Mathf.Clamp(aim.AimY,Top,Bottom);
+            Vector2 finger = Point(board, visualAimX, visualAimY);
             var drag = new Vector2(aim.AimX - aim.OriginX, aim.AimY - aim.OriginY);
             float distance = drag.magnitude;
             if (!GameSimulation.Finite(distance)) return;
@@ -247,7 +259,8 @@ namespace CoreClash.Presentation
 
             float labelWidth=Mathf.Clamp(192*scale,124,192),labelHeight=Mathf.Clamp(56*scale,39,56);
             var labelPoint=Point(board,270,state.turn==0?738:118);
-            float labelY=state.turn==0?Mathf.Min(labelPoint.y,origin.y-labelHeight-28):Mathf.Max(labelPoint.y,origin.y+28);
+            bool activeAtBottom=state.turn==(viewOwner==1?1:0);
+            float labelY=activeAtBottom?Mathf.Min(labelPoint.y,origin.y-labelHeight-28):Mathf.Max(labelPoint.y,origin.y+28);
             var label=new Rect(labelPoint.x-labelWidth/2,labelY,labelWidth,labelHeight);
             Draw.Surface(label,new Color(.025f,.06f,.095f,.96f),Alpha(team,.4f));
             Draw.Text(new Rect(label.x+6,label.y+4,label.width-12,16),ready?"RELEASE TO LAUNCH":"DRAG TO BUILD POWER",9,ready?new Color(.88f,.97f,1):Draw.Muted,TextAnchor.MiddleCenter,true);
