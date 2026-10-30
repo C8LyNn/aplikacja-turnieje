@@ -7,7 +7,7 @@ const crypto=require('node:crypto');
 const cp=require('node:child_process');
 const FROZEN='3f972cdbaea6289a7e33ce608f5d3256cfdab0a3';
 // Immutable author-authenticated A72-owned Git blob at PR #188, not an operator-supplied digest.
-const A72_VERIFIER_BLOB='677100ff45e50c2fecb1d2b7fbc25851f4722db7';
+const A72_VERIFIER_BLOB='b8181229bcf8a6fdb51a0d89be1c4f547fd9407f';
 const RC1='10f64e4d213f17a352ed8fa83bc75884a39549f0';
 const HEX64=/^[a-f0-9]{64}$/i;
 const sha=b=>crypto.createHash('sha256').update(b).digest('hex');
