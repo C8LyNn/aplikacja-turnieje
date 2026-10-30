@@ -1,58 +1,85 @@
 #!/usr/bin/env node
 'use strict';
-// CC-001 W12 A33. Static source-contract validation, never a Unity/PC QA verdict.
+// CC001 W12/W13 A33: source-contract and fail-closed mutation gate.
+// No source inspection or synthetic test is a Unity compile, PC1/PC2 QA, or G3 signoff.
 const fs=require('node:fs');
-const assert=require('node:assert/strict');
 const path=require('node:path');
-function inspect(source){
-  const issues=[];
-  const require=(label,condition)=>{if(!condition)issues.push(label);};
-  const helperStart=source.indexOf('static string W12QaClipboardText(');
-  const renderStart=source.indexOf('void RenderDeveloper()');
-  const helper=helperStart>=0&&renderStart>helperStart?source.slice(helperStart,renderStart):'';
-  const ui=renderStart>=0?source.slice(renderStart):'';
-  require('HELPER_MISSING',!!helper);
-  require('COPY_BUTTON_MISSING',ui.includes('Draw.Button(new Rect(x+w-152,y+8,84,44),"COPY QA",Draw.Gold,size:11)'));
-  require('CLIPBOARD_NOT_BUTTON_GATED',/if\(Draw\.Button\(new Rect\(x\+w-152,y\+8,84,44\),"COPY QA",Draw\.Gold,size:11\)\)\s*GUIUtility\.systemCopyBuffer=W12QaClipboardText\(/.test(ui));
-  require('CLIPBOARD_WRITES_NOT_SINGLE', (source.match(/GUIUtility\.systemCopyBuffer\s*=/g)||[]).length===1);
-  require('UTC_MISSING',helper.includes('capturedUtc.ToUniversalTime().ToString("O")'));
-  for(const name of ['CC001_W12_F1_QA_CAPTURE','SOURCE_SHA=UNVERIFIED','CLOCK_SYNC=UNVERIFIED','G3_STATUS=NOT_ATTESTED'])
-    require('DECLARATION_'+name,helper.includes(name));
-  for(const name of ['TURN=','REVISION=','FRAME=','ACTION_SERIAL='])require('STATE_FIELD_'+name,helper.includes(name));
-  require('NETWORK_DIAGNOSTICS_ABSENT',helper.includes('networkDiagnostics??"NETWORK DIAGNOSTICS UNAVAILABLE"'));
-  require('NETWORK_DEBUG_MISSING',/W12QaClipboardText\(networkDebug,s\.turnNumber,s\.revision,\s*s\.frame,s\.actionSerial,DateTime\.UtcNow\)/.test(ui));
-  require('POTENTIAL_SECRET_LEAK',!/networkNotice|technical|invite|password|token|endpoint/i.test(helper));
-  require('SCROLL_REMOVED',ui.includes('w9DeveloperScroll=Draw.ScrollView')&&ui.includes('GUI.EndScrollView()'));
-  require('HEAD_BUTTON_OVERLAP',ui.includes('new Rect(x+w-60,y+8,44,44)')&&ui.includes('new Rect(x+w-152,y+8,84,44)'));
-  require('TITLE_SPACE_MISSING',ui.includes('Mathf.Max(80,w-188)'));
-  require('SIMULATION_NETWORK_MUTATION',!/NetworkLink\.Submit\(|Simulation\.Step\(|Simulation\.State\s*=/.test(source));
+const assert=require('node:assert/strict');
+const ROOT=path.resolve(__dirname,'../../../..');
+const CSHARP=path.join(ROOT,'unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/DetailsView.cs');
+function inspect(src){
+  const issues=[],need=(key,condition)=>{if(!condition)issues.push(key);};
+  const helperStart=src.indexOf('static string W12QaClipboardText(');
+  const renderStart=src.indexOf('void RenderDeveloper()',helperStart);
+  const helper=helperStart>=0&&renderStart>helperStart?src.slice(helperStart,renderStart):'';
+  const ui=renderStart>=0?src.slice(renderStart):'';
+  const copyStart=ui.indexOf('string w13CopyLabel=');
+  const copyEnd=ui.indexOf('string technical=',copyStart);
+  const copy=copyStart>=0&&copyEnd>copyStart?ui.slice(copyStart,copyEnd):'';
+  need('HELPER_MISSING',!!helper);
+  need('CLIPBOARD_SIGNATURE',/DateTime capturedUtc,int captureSequence\)/.test(helper));
+  need('UTC_TIMESTAMP',helper.includes('capturedUtc.ToUniversalTime().ToString("O")'));
+  for(const label of ['CC001_W12_F1_QA_CAPTURE','SOURCE_SHA=UNVERIFIED','CLOCK_SYNC=UNVERIFIED','G3_STATUS=NOT_ATTESTED','TURN=','REVISION=','FRAME=','ACTION_SERIAL=','CAPTURE_SEQ='])
+    need('FIELD_'+label,helper.includes(label));
+  need('CAPTURE_SEQUENCE_IS_LOCAL',src.includes('int w13QaCaptureSequence;'));
+  need('SEQUENCE_INCREMENT_ONCE',copy.includes('w13QaCaptureSequence=w13QaCaptureSequence==int.MaxValue?1:w13QaCaptureSequence+1;'));
+  need('SHOW_TEMPORARY_COPY_FEEDBACK',copy.includes('Time.unscaledTime<w13QaCopiedUntil?"COPIED":"COPY QA"'));
+  need('FEEDBACK_DURATION',copy.includes('w13QaCopiedUntil=Time.unscaledTime+2.5f;'));
+  need('COPY_LABEL_BUTTON',copy.includes('Draw.Button(new Rect(x+w-152,y+8,84,44),w13CopyLabel,Draw.Gold,size:11)'));
+  need('COPY_CLICK_GATED',/if\(Draw\.Button\(new Rect\(x\+w-152,y\+8,84,44\),w13CopyLabel,Draw\.Gold,size:11\)\)\s*\{[\s\S]*?GUIUtility\.systemCopyBuffer=W12QaClipboardText/.test(copy));
+  need('COPY_GATED_SCOPE',copy.includes('GUIUtility.systemCopyBuffer')&&copy.lastIndexOf('}')>copy.indexOf('GUIUtility.systemCopyBuffer'));
+  need('COPY_HAS_CAPTURE_SEQ',/W12QaClipboardText\(networkDebug,s\.turnNumber,s\.revision,\s*s\.frame,s\.actionSerial,DateTime\.UtcNow,w13QaCaptureSequence\)/.test(copy));
+  need('SEQUENCE_BEFORE_CLIPBOARD',copy.indexOf('w13QaCaptureSequence=w13QaCaptureSequence')>=0&&copy.indexOf('w13QaCaptureSequence=w13QaCaptureSequence')<copy.indexOf('GUIUtility.systemCopyBuffer'));
+  need('FEEDBACK_AFTER_CLIPBOARD',copy.indexOf('GUIUtility.systemCopyBuffer')>=0&&copy.indexOf('GUIUtility.systemCopyBuffer')<copy.indexOf('w13QaCopiedUntil=Time.unscaledTime+2.5f'));
+  need('ONE_CLIPBOARD_WRITE',(src.match(/GUIUtility\.systemCopyBuffer\s*=/g)||[]).length===1);
+  need('DIAGNOSTICS_ONLY',(helper.includes('networkDiagnostics??"NETWORK DIAGNOSTICS UNAVAILABLE"'))&&!/networkNotice|technical|invite|password|token|endpoint/i.test(helper+copy));
+  need('NO_GAMEPLAY_MUTATION',!/NetworkLink\.Submit\(|Simulation\.Step\(|Simulation\.State\s*=/.test(src));
+  need('OVERLAY_SCROLL',ui.includes('w9DeveloperScroll=Draw.ScrollView')&&ui.includes('GUI.EndScrollView()'));
+  need('F1_CONTROLS',ui.includes('new Rect(x+w-60,y+8,44,44)')&&copy.includes('new Rect(x+w-152,y+8,84,44)')&&ui.includes('Mathf.Max(80,w-188)'));
   return issues;
 }
+function replaceOne(src,from,to){
+  assert.ok(src.includes(from),'mutation anchor absent: '+from);
+  return src.replace(from,to);
+}
+function selfTest(src){
+  const negative=[
+    ['no_copy_button',s=>replaceOne(s,'w13CopyLabel,Draw.Gold,size:11','"NO BUTTON",Draw.Gold,size:11')],
+    ['removed_click_gate',s=>replaceOne(s,'if(Draw.Button(new Rect(x+w-152','while(Draw.Button(new Rect(x+w-152')],
+    ['no_clipboard_write',s=>replaceOne(s,'GUIUtility.systemCopyBuffer=W12QaClipboardText','var unused=W12QaClipboardText')],
+    ['duplicate_clipboard_write',s=>s+'GUIUtility.systemCopyBuffer="unsafe";'],
+    ['false_source_claim',s=>replaceOne(s,'SOURCE_SHA=UNVERIFIED','SOURCE_SHA=VERIFIED')],
+    ['false_clock_claim',s=>replaceOne(s,'CLOCK_SYNC=UNVERIFIED','CLOCK_SYNC=VERIFIED')],
+    ['false_g3_claim',s=>replaceOne(s,'G3_STATUS=NOT_ATTESTED','G3_STATUS=PASS')],
+    ['leak_free_text',s=>replaceOne(s,'W12QaClipboardText(networkDebug,','W12QaClipboardText(networkNotice,')],
+    ['removed_utc',s=>replaceOne(s,'capturedUtc.ToUniversalTime()','capturedUtc.ToLocalTime()')],
+    ['no_sequence',s=>replaceOne(s,'"\nCAPTURE_SEQ="+captureSequence+','"\nSEQ_UNKNOWN="+captureSequence+')],
+    ['no_sequence_argument',s=>replaceOne(s,'DateTime.UtcNow,w13QaCaptureSequence','DateTime.UtcNow,0')],
+    ['counter_increments_outside_click',s=>replaceOne(s,'w13QaCaptureSequence=w13QaCaptureSequence==int.MaxValue?1:w13QaCaptureSequence+1;','w13QaCaptureSequence++;')],
+    ['no_copy_feedback',s=>replaceOne(s,'?"COPIED":"COPY QA"','?"COPY QA":"COPY QA"')],
+    ['no_feedback_timeout',s=>replaceOne(s,'w13QaCopiedUntil=Time.unscaledTime+2.5f;','w13QaCopiedUntil=float.MaxValue;')],
+    ['wrong_feedback_order',s=>replaceOne(s,'w13QaCopiedUntil=Time.unscaledTime+2.5f;','GUIUtility.systemCopyBuffer="copied";')],
+    ['no_scroll',s=>replaceOne(s,'GUI.EndScrollView();','')],
+    ['unauthorized_submit',s=>s+'NetworkLink.Submit(command,out reason);'],
+    ['duplicate_w13_helper',s=>replaceOne(s,'int w13QaCaptureSequence;','int w13QaCaptureSequenceX;')]
+  ];
+  const originalIssues=inspect(src);
+  assert.deepEqual(originalIssues,[],'original source failed: '+originalIssues.join(','));
+  for(const [name,mutate] of negative){
+    const problems=inspect(mutate(src));
+    assert.ok(problems.length>0,'mutation undetected: '+name);
+  }
+  return {passed:negative.length+1,negative:negative.length};
+}
 if(require.main===module){
+  const source=fs.readFileSync(CSHARP,'utf8');
   if(process.argv.includes('--self-test')){
-    const fixture=`static string W12QaClipboardText(string networkDiagnostics,int turn,int revision,int frame,int actionSerial,DateTime capturedUtc){return "CC001_W12_F1_QA_CAPTURE"+"SOURCE_SHA=UNVERIFIED"+"CLOCK_SYNC=UNVERIFIED"+"G3_STATUS=NOT_ATTESTED"+"TURN="+turn+"REVISION="+revision+"FRAME="+frame+"ACTION_SERIAL="+actionSerial+capturedUtc.ToUniversalTime().ToString("O")+(networkDiagnostics??"NETWORK DIAGNOSTICS UNAVAILABLE");}void RenderDeveloper(){Draw.Text(new Rect(1,2,Mathf.Max(80,w-188),26),"F1");if(Draw.Button(new Rect(x+w-60,y+8,44,44),"X")){} if(Draw.Button(new Rect(x+w-152,y+8,84,44),"COPY QA",Draw.Gold,size:11))GUIUtility.systemCopyBuffer=W12QaClipboardText(networkDebug,s.turnNumber,s.revision,s.frame,s.actionSerial,DateTime.UtcNow);w9DeveloperScroll=Draw.ScrollView(content,w9DeveloperScroll,view);GUI.EndScrollView();}`;
-    const mutations=[
-      ['positive',fixture,true],
-      ['removed button',fixture.replace('"COPY QA"','"COPY"'),false],
-      ['no clipboard gate',fixture.replace('if(Draw.Button(new Rect(x+w-152','while(Draw.Button(new Rect(x+w-152'),false],
-      ['duplicate copy',fixture+'GUIUtility.systemCopyBuffer="x";',false],
-      ['no utc',fixture.replace('ToUniversalTime()','ToLocalTime()'),false],
-      ['source sha false claim',fixture.replace('SOURCE_SHA=UNVERIFIED','SOURCE_SHA=CONFIRMED'),false],
-      ['clock sync false claim',fixture.replace('CLOCK_SYNC=UNVERIFIED','CLOCK_SYNC=PASS'),false],
-      ['G3 false claim',fixture.replace('G3_STATUS=NOT_ATTESTED','G3_STATUS=PASS'),false],
-      ['missing action serial',fixture.replace('"ACTION_SERIAL="','"SERIAL="'),false],
-      ['leak notice',fixture.replace('(networkDiagnostics??','networkNotice+(networkDiagnostics??'),false],
-      ['no scroll',fixture.replace('GUI.EndScrollView();',''),false],
-      ['missing source helper',fixture.replace('W12QaClipboardText(string','W12Clipboard(string'),false],
-      ['unauthorized submit',fixture+'NetworkLink.Submit(command,out reason);',false]
-    ];
-    let passed=0;for(const [name,input,expected] of mutations){const errs=inspect(input);const actual=errs.length===0;assert.equal(actual,expected,`${name}: ${errs.join(',')}`);passed++;}
-    console.log(`W12_A33_F1_STATIC_SELFTEST PASS ${passed}/${mutations.length} (synthetic fixtures only)`);
+    const result=selfTest(source);
+    console.log('CC001_W13_A33_F1_MUTATIONS_PASS '+result.passed+'/'+result.passed+' (source-contract, NOT Unity/2PC)');
   }else{
-    const file=process.argv[2];if(!file){console.error('Usage: node check-f1-clipboard.cjs <DetailsView.cs> OR --self-test');process.exit(64);}
-    const result=inspect(fs.readFileSync(path.resolve(file),'utf8'));
-    if(result.length){console.error('W12_A33_F1_SOURCE_FAIL '+result.join(','));process.exit(1);}
-    console.log('W12_A33_F1_SOURCE_PASS (static-only, not Windows/Unity/2PC)');
+    const problems=inspect(source);
+    if(problems.length){console.error('CC001_W13_A33_F1_SOURCE_FAIL '+problems.join(','));process.exitCode=1;}
+    else console.log('CC001_W13_A33_F1_SOURCE_PASS static-only');
   }
 }
-module.exports={inspect};
+module.exports={inspect,selfTest};
