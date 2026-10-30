@@ -196,6 +196,13 @@ namespace CoreClash.Networking
                 if(LastAppliedRevision>0&&revision>LastAppliedRevision+1)
                     skippedSnapshotRevisions+=(long)revision-LastAppliedRevision-1;
                 ReceivedSnapshots++;LastAppliedRevision=revision;LastReceivedEvents=adapter.State.events?.Count??0;app.ReceiveNetworkState(adapter.State);
+                // Log the original accepted wire JSON, never a reserialized/interpolated view.
+                // Sampling on deterministic revision numbers makes independent PC logs comparable.
+                if(NetworkStateDigest.ShouldSample(revision)){
+                    Debug.Log("CC_W11_STATE_RX revision="+revision+
+                        " sha256="+NetworkStateDigest.Compute(packet.stateJson)+
+                        " action="+adapter.State.actionSerial+" turn="+adapter.State.turn);
+                }
                 if(NetworkSnapshotTrace.Due(Time.unscaledTime,lastClientTraceAt)){
                     lastClientTraceAt=Time.unscaledTime;
                     Debug.Log("CC_W10_NET_CLIENT revision="+revision+" action="+adapter.State.actionSerial+
@@ -217,6 +224,14 @@ namespace CoreClash.Networking
                 var packed=NgoWireProtocol.Encode(JsonUtility.ToJson(packet));
                 var chunks=NgoWireProtocol.Split(packed);
                 for(int i=0;i<chunks.Length;i++)bridge.SnapshotChunkRpc(packet.revision,i,chunks.Length,chunks[i]);
+                // Hash the exact outgoing stateJson, with the revision that names it.
+                // Never log the raw state, connection identifiers or join credentials.
+                if(NetworkStateDigest.ShouldSample(packet.revision)){
+                    var sentState=app.Simulation.State;
+                    Debug.Log("CC_W11_STATE_TX revision="+packet.revision+
+                        " sha256="+NetworkStateDigest.Compute(packet.stateJson)+
+                        " action="+sentState.actionSerial+" turn="+sentState.turn);
+                }
                 // 20/12/8/4 Hz when moving, chosen by the ACTUAL compressed size;
                 // at rest 4 Hz. Host state is the sole gameplay source of truth.
                 float interval=NetworkSnapshotRate.Interval(app.Simulation.State.phase,packed.Length);
