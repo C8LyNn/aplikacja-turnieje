@@ -15,7 +15,7 @@ function sample() {
    noDiagnostic:true,buildMarker:true}};
  const receipt={schema:'CC001-W10-A72-RECEIPT-1',candidateSHA:SHA,rc1:RC1,status:'PASS_BUILD_EVIDENCE_ONLY'};
  const pc={status:'PASS_BINARY_INTEGRITY_ONLY',candidateSHA:SHA,expectedFiles:inv.length,actualFiles:inv.length,failures:[]};
- return {selectedSHA:SHA,a70RefSHA:SHA,build,receipt,pc1:{...pc},pc2:{...pc}};
+ return {selectedSHA:SHA,a70RefSHA:SHA,sourceGate:{schema:'CC001-W11-A42-SOURCE-1',status:'SOURCE_CONTRACT_READY_FOR_A70_A72_REVIEW',candidateSHA:SHA},build,receipt,pc1:{...pc},pc2:{...pc}};
 }
 function hold(code,x){const r=evaluate(x);assert.equal(r.status,'HOLD');assert(r.reasonCodes.includes(code),r.reasonCodes.join(','));}
 test('matched source, build and two PC hashes only permits A60 review',()=>{const x=evaluate(sample());
@@ -42,3 +42,6 @@ test('PC2 tamper failures reject',()=>{const s=sample();s.pc2.failures=['HASH_MI
 test('empty missing inventory rejects',()=>{const s=sample();s.build.playerInventory=[];hold('INCOMPLETE_PLAYER_INVENTORY',s)});
 test('missing A72 build report rejects',()=>{const s=sample();delete s.build.buildReport;hold('BUILD_REPORT_NOT_SUCCEEDED',s)});
 test('no PC2 QA claim is made even on apparent positive input',()=>{const r=evaluate(sample());assert.equal(r.scope.physicalSynchronization,'NOT_ATTESTED')});
+test('source gate mismatched SHA blocks',()=>{const s=sample();s.sourceGate.candidateSHA='0'.repeat(40);hold('SOURCE_GATE_NOT_APPROVED',s)});
+test('source gate held blocks',()=>{const s=sample();s.sourceGate.status='HOLD';hold('SOURCE_GATE_NOT_APPROVED',s)});
+test('source gate absent blocks despite apparent clean binary reports',()=>{const s=sample();delete s.sourceGate;hold('SOURCE_GATE_NOT_APPROVED',s)});
