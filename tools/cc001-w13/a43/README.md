@@ -34,3 +34,14 @@ The analyzer computes sample-interval p50/p95/p99 only if frames are contiguous 
 **A60 physical acceptance remains separate.** Operator-declared `sourceSha` is not proof of installed Player build identity. A72 must first provide real Win64 Unity 6000.4.0f1 Player and .NET9 outputs from precisely `3f972cdbaea6289a7e33ce608f5d3256cfdab0a3`, with complete unmodified PC1 and PC2 file hash receipts. A60/A31 must then independently observe real P2 action acceptance, turn/aim, snapshot/ball state parity and frame smoothness. Frozen source is protected; no merge to RC1/main, no release. Mitosis V148, Furnace FIRE zone/ticks, and HP R16 remain unchanged.
 
 **W13 code/test:** two additive `tools/cc001-w13/a43/` CJS files, Node22 `--test` **16/16 PASS** executed on byte-identical source; physical Windows build/PC1–PC2 **NOT_RUN** by A43.
+
+## W14 — accepted-capture consistency and original evidence hardening (2026-10-30)
+
+**No new frame producer is introduced.** This is an offline Node.js parser for independently obtained, operator-claimed P2 frame observations; it does not provide actual Windows Unity native QA.
+
+- **Real code fix:** rows from multiple balls in one frame must carry identical authoritative `revision`, `actionSerial`, and `phase`. Otherwise CLI exit3; reject global revision/action rollback even when ball IDs rotate. Invalid/mixed session evidence cannot masquerade as coherent gameplay.
+- **Real code fix:** if accepted revision numbers skip during adjacent visual frames, suppress continuous visual-pose hold inference and mark `INTERVENING_SNAPSHOT_REVISIONS_UNOBSERVED` / `INSUFFICIENT` (exit2). A short unchanged pose with missing intermediate revisions is NOT a transport/teleport failure.
+- **Hardened intake:** original input must be a regular file, not symlink; UTF-8 must be valid (fatal decoder). Reject surplus ignored CLI arguments; output remains exclusive-create and never overwrites input or prior report.
+- **Actual local execution:** `node --check` both scripts exit0; `node --test tools/cc001-w13/a43/frame-evidence.test.cjs` Node v22.16.0 **27/27 PASS**, original W13 16 cases retained (one revised to match stricter capture chronology), 11 new W14 cases. GitHub test/script committed hashes must match the local tested exact byte versions, not mere source similarities.
+- **Physical scope:** frozen A70 SHA `3f972cdbaea6289a7e33ce608f5d3256cfdab0a3` unchanged. Moving dev PR #207 is separate. Frozen source supports PORTAL snap only; no claim for newer TELEPORT/SWAP source. Full original PC1/PC2 frame captures and A72 Windows Unity6000.4.0f1 + .NET9 build remain **NOT_RUN / G3 HOLD** here.
+- All current statuses from this CLI are **diagnostic only**. A60/A31 own physical device pair QA, A72 owns Windows build and managed tests, A70 owns source integration. Mitosis V148, Furnace FIRE-only periodic ticks, R16 HP and Protocol149 unchanged.
