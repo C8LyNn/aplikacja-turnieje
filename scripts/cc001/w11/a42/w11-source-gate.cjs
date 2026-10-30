@@ -55,10 +55,14 @@ const expectedPatterns={
   ['boardTry',/remoteVisual\.TryGetPosition\s*\(/],
   ['boardDraw',/BallView\.Render\s*\(/]],
  REVISION_GUARD:[
-  ['appSignature',/ReceiveNetworkState\s*\(\s*GameState\s+state\s*,\s*int\s+snapshotRevision\s*=\s*-1\s*\)/],
+  ['appSignature',/ReceiveNetworkState\s*\(\s*GameState\s+state\s*,\s*int\s+snapshotRevision(?:\s*=\s*-1)?\s*\)/],
   ['appForward',/remoteBallSmoother\.Observe\s*\(\s*state\s*,\s*Time\.unscaledTime\s*,\s*instantBallIds\s*,\s*snapshotRevision\s*\)/],
   ['smootherSignature',/void\s+Observe\s*\(\s*GameState\s+state\s*,\s*float\s+now\s*,\s*ISet<int>\s+instantBallIds\s*=\s*null\s*,\s*int\s+snapshotRevision\s*=\s*-1\s*\)/],
   ['staleRefusal',/snapshotRevision\s*<=\s*lastSnapshotRevision\s*\)\s*return/],
+  ['applicationGuard',/RemoteSnapshotEvents\.IsFreshRevision\s*\(\s*remoteLastRevision\s*,\s*snapshotRevision\s*\)\s*\)\s*return/],
+  ['sessionCursorReset',/remoteLastEventId\s*=\s*remoteLastRevision\s*=\s*0/],
+  ['4HzDuration',/MaxDuration\s*=\s*0?\.25f/],
+  ['clientGuardRegressionTest',/A30 W11 application rejects duplicate, zero and reversed revisions/],
   ['lastAccepted',/lastSnapshotRevision\s*=\s*snapshotRevision/],
   ['sessionReset',/void\s+Reset\s*\(\s*\)\s*\{[^}]*lastSnapshotRevision\s*=\s*-1/],
   ['revisionRegressionTests',/A70 W11 repeated and older snapshot revisions cannot overwrite client visual pose/],
@@ -90,6 +94,11 @@ function contracts(s) {
  if(/CC001_PHOENIX_DIAGNOSTIC/.test(Object.values(files).join('\n')))faults.push('PROTECTED/DIAGNOSTIC_MARKER');
  if(!/RemoteSnapshotEvents\.InstantBallIds/.test(files.app))faults.push('VISUAL_INTERPOLATION/PORTAL_INSTANT');
  if(!/remoteBallSmoother\.Reset\s*\(/.test(files.app))faults.push('VISUAL_INTERPOLATION/SESSION_RESET');
+ const ui=files.app.slice(files.app.indexOf('ReceiveNetworkState('));
+ const guard=ui.indexOf('RemoteSnapshotEvents.IsFreshRevision');
+ const stateWrite=ui.indexOf('Simulation.State=state');
+ const cursorWrite=ui.indexOf('remoteLastEventId=latestEventId');
+ if(guard<0||stateWrite<0||guard>=stateWrite||(cursorWrite>=0&&guard>=cursorWrite))faults.push('REVISION_GUARD/BEFORE_STATE_AND_EVENT_CURSOR');
  return [...new Set(faults)];
 }
 const sha=x=>typeof x==='string'&&/^[0-9a-f]{40}$/.test(x);
