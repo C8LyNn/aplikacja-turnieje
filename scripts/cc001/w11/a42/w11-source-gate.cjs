@@ -4,7 +4,8 @@ const cp=require('node:child_process');
 const fs=require('node:fs');
 const path=require('node:path');
 const RC1='10f64e4d213f17a352ed8fa83bc75884a39549f0';
-const A70_REF='integration/cc001-r17-w10-multiplayer-dev-candidate-20261030';
+const A70_REF='integration/cc001-r17-w11-multiplayer-qa-candidate-20261030';
+const PINNED='173273122c11cbf738e8b954e32506a6196fe8ec';
 const UNITY='unity/cc001-r16/CoreClash-V149-Unity/';
 const unit={
  network:'Assets/CoreClash/Networking/NetworkGameSession.cs',
@@ -15,7 +16,10 @@ const unit={
  ball:'Assets/CoreClash/Presentation/BallView.cs',
  match:'Assets/CoreClash/Presentation/MatchView.cs',
  selection:'Assets/CoreClash/Presentation/BallSelection.cs',
- protocol:'Assets/CoreClash/Networking/NgoWireProtocol.cs'
+ protocol:'Assets/CoreClash/Networking/NgoWireProtocol.cs',
+ revisionTests:'Tests/RemoteBallSmootherTests.cs',
+ authorityTests:'Tests/AbilityTests.cs',
+ testsProgram:'Tests/Program.cs'
 };
 const protectedPrefixes=['unity/cc001-r16/CoreClash-V149-Unity/Assets/Resources/Data/',
  'unity/cc001-r16/CoreClash-V149-Unity/ProjectSettings/',
@@ -40,7 +44,7 @@ const expectedPatterns={
   ['rate',/NetworkSnapshotRate\.Interval\s*\(/],
   ['compressedSize',/\.Interval\s*\(\s*app\.Simulation\.State\.phase\s*,\s*packed\.Length\s*\)/],
   ['adapter',/adapter\.Apply\s*\(/],
-  ['receive',/app\.ReceiveNetworkState\s*\(\s*adapter\.State\s*\)/]],
+  ['receive',/app\.ReceiveNetworkState\s*\(\s*adapter\.State\s*,\s*revision\s*\)/]],
  VISUAL_INTERPOLATION:[
   ['class',/class RemoteBallSmoother/],
   ['observe',/\bObserve\s*\(\s*GameState/],
@@ -50,6 +54,18 @@ const expectedPatterns={
   ['appState',/Simulation\.State\s*=\s*state/],
   ['boardTry',/remoteVisual\.TryGetPosition\s*\(/],
   ['boardDraw',/BallView\.Render\s*\(/]],
+ REVISION_GUARD:[
+  ['appSignature',/ReceiveNetworkState\s*\(\s*GameState\s+state\s*,\s*int\s+snapshotRevision\s*=\s*-1\s*\)/],
+  ['appForward',/remoteBallSmoother\.Observe\s*\(\s*state\s*,\s*Time\.unscaledTime\s*,\s*instantBallIds\s*,\s*snapshotRevision\s*\)/],
+  ['smootherSignature',/void\s+Observe\s*\(\s*GameState\s+state\s*,\s*float\s+now\s*,\s*ISet<int>\s+instantBallIds\s*=\s*null\s*,\s*int\s+snapshotRevision\s*=\s*-1\s*\)/],
+  ['staleRefusal',/snapshotRevision\s*<=\s*lastSnapshotRevision\s*\)\s*return/],
+  ['lastAccepted',/lastSnapshotRevision\s*=\s*snapshotRevision/],
+  ['sessionReset',/lastSnapshotRevision\s*=\s*-1/],
+  ['revisionRegressionTests',/A70 W11 repeated and older snapshot revisions cannot overwrite client visual pose/],
+  ['resetRegressionTests',/A70 W11 new session reset allows low snapshot revision again/],
+  ['p2AuthorityTests',/W10 A40 P2 authoritative snapshot preserves moving ball owner position and action/],
+  ['phoenixAuthorTests',/W10 A40 P2 ready Phoenix hand is consumed exactly once by authoritative remote intent/],
+  ['registeredTests',/RemoteBallSmootherTests\s*\(\s*\)/]],
  PLAYER_UI:[
   ['localOwner',/LocalTurnPresentation\.ActionHint\s*\(/],
   ['localDeck',/LocalDeckContent\.DisplayOwner\s*\(/],
@@ -63,6 +79,7 @@ function contracts(s) {
   ACK_SEQUENCE:files.network+'\n'+files.ngo,
   SNAPSHOT_WIRING:files.ngo,
   VISUAL_INTERPOLATION:files.smoother+'\n'+files.app+'\n'+files.board,
+  REVISION_GUARD:files.app+'\n'+files.smoother+'\n'+files.revisionTests+'\n'+files.authorityTests+'\n'+files.testsProgram,
   PLAYER_UI:files.selection+'\n'+files.match+'\n'+files.board
  };
  let faults=[];
@@ -87,6 +104,7 @@ function assess(input) {
  const failures=[];
  if(input.ref!==A70_REF) failures.push('UNAPPROVED_A70_BRANCH');
  if(!sha(input.head)||input.head===RC1) failures.push('INVALID_NEW_SHA');
+ if(input.head!==PINNED) failures.push('NOT_PINNED_W11_PR207_SHA');
  if(input.ownerRemoteSha!==input.head) failures.push('A70_REF_NOT_AT_EXACT_SHA');
  if(input.mergeBase!==RC1) failures.push('NOT_DESCENDANT_OF_FROZEN_RC1');
  if(input.dirty) failures.push('WORKTREE_NOT_CLEAN');
@@ -161,4 +179,4 @@ if(require.main===module){
   process.exitCode=report.status==='HOLD'?2:0;
  }catch(e){process.stderr.write('A42_W11_HOLD '+e.message+'\n');process.exitCode=3;}
 }
-module.exports={RC1,A70_REF,UNITY,unit,contracts,assess,assessRepository};
+module.exports={RC1,A70_REF,PINNED,UNITY,unit,contracts,assess,assessRepository};
