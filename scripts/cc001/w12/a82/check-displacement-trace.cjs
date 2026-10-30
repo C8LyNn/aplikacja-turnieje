@@ -10,6 +10,7 @@ const KINDS=['PORTAL','TELEPORT','SWAP'];
 // STOP emits relocation while Moving; TurnSystem may ResolveAction to Aiming
 // (or victory Over) before PC2 observes the accepted revision.
 const PHASES=new Set(['Aiming','Moving','Over']);
+const SMOOTHER_ACTIVE_PHASE='Moving';
 const EXIT={PASS:0,FAIL:1,HOLD:2,USAGE:64};
 const PROFILES=Object.freeze({
   '3f972cdbaea6289a7e33ce608f5d3256cfdab0a3':Object.freeze({
@@ -23,8 +24,8 @@ const PROFILES=Object.freeze({
 });
 
 function analyze(trace,expectedSha,{tolerance=0.5}={}){
-  const faults=[],missing=[],unsupportedObserved=[];
-  const metrics={samples:0,snapBallChecks:0,newEvents:0,perKind:{PORTAL:0,TELEPORT:0,SWAP:0}};
+  const faults=[],missing=[],unsupportedObserved=[],unobservable=[];
+  const metrics={samples:0,snapBallChecks:0,newEvents:0,nonMovingSamples:0,unobservableDisplacements:0,perKind:{PORTAL:0,TELEPORT:0,SWAP:0}};
   const expected=typeof expectedSha==='string'?expectedSha.toLowerCase():'';
   const profile=PROFILES[expected];
   const observed=new Set();
@@ -33,7 +34,7 @@ function analyze(trace,expectedSha,{tolerance=0.5}={}){
     sourceProfile:profile?.name??null,
     supportedKinds:profile?.supported??[],excludedKinds:profile?.excluded??[],
     fullDisplacementCapability:profile?.supported.length===KINDS.length,
-    metrics,faults,missing,unsupportedObserved,
+    metrics,faults,missing,unsupportedObserved,unobservable,
     physicalG3Status:'NOT_ASSESSED'
   });
   if(!SHA.test(expectedSha||''))return report('HOLD','Missing/invalid expected SHA');
@@ -64,6 +65,8 @@ function analyze(trace,expectedSha,{tolerance=0.5}={}){
     }
     revision=s.revision;actionSerial=s.actionSerial;eventCursor=s.cursorAfter;
     metrics.samples++;
+    const smootherActive=s.phase===SMOOTHER_ACTIVE_PHASE;
+    if(!smootherActive)metrics.nonMovingSamples++;
     const hosts=new Map(),renders=new Map();
     for(const ball of s.hostBalls){
       if(!validBall(ball)||hosts.has(ball.id))faults.push(`${where}: invalid or duplicate authoritative ball`);
@@ -89,11 +92,19 @@ function analyze(trace,expectedSha,{tolerance=0.5}={}){
         unsupportedObserved.push(`${where}: ${e.kind} is NOT explicit-snap-capable at this source SHA`);
         continue;
       }
-      observed.add(e.kind);
       if(e.ballId<=0||e.kind==='SWAP'&&(e.otherId<=0||e.otherId===e.ballId)){
         faults.push(`${where}: ${e.kind} missing distinct valid displacement participant IDs`);
         continue;
       }
+      if(!smootherActive){
+        // Production RemoteBallSmoother.Observe resets for Aiming/Over.
+        // No TryGetPosition visual sample exists for these accepted phases.
+        // Do not invent a pose, fail an absent pose, or credit a successful snap.
+        metrics.unobservableDisplacements++;
+        unobservable.push(`${where}: ${e.kind} in ${s.phase}; smoother inactive after Observe`);
+        continue;
+      }
+      observed.add(e.kind);
       snap.add(e.ballId);
       if(e.kind==='SWAP')snap.add(e.otherId);
     }
@@ -109,6 +120,7 @@ function analyze(trace,expectedSha,{tolerance=0.5}={}){
   if(faults.length)return report('FAIL','Source-semantic pose or trace-integrity violation');
   if(unsupportedObserved.length)return report('HOLD','Observed events not covered by explicit-snap source capability');
   if(missingSpan)return report('HOLD','Event cursor discontinuity: missing accepted observation span');
+  if(metrics.nonMovingSamples>0)return report('HOLD','NON_MOVING_SMOOTHER_INACTIVE: accepted Aiming/Over samples cannot prove moving-phase visual poses');
   for(const kind of profile.supported)if(!observed.has(kind))missing.push(kind);
   if(missing.length||metrics.snapBallChecks<profile.supported.length)
     return report('HOLD','Insufficient event and per-participant pose coverage for this SHA');
@@ -127,4 +139,4 @@ function main(args=process.argv.slice(2)){
   return res.status==='PASS_SCOPED'?EXIT.PASS:res.status==='FAIL'?EXIT.FAIL:EXIT.HOLD;
 }
 if(require.main===module)process.exitCode=main();
-module.exports={analyze,main,PROFILES,PHASES,EXIT};
+module.exports={analyze,main,PROFILES,PHASES,SMOOTHER_ACTIVE_PHASE,EXIT};
