@@ -73,11 +73,14 @@ namespace CoreClash.Presentation
                 "\nCOUNTERS ARE NOT PROOF OF TWO-PC STATE PARITY";
         }
         // W12/A33: operator-initiated, read-only clipboard snapshot; not proof of PC parity.
+        int w13QaCaptureSequence;
+        float w13QaCopiedUntil;
         static string W12QaClipboardText(string networkDiagnostics,int turn,int revision,
-            int frame,int actionSerial,DateTime capturedUtc)
+            int frame,int actionSerial,DateTime capturedUtc,int captureSequence)
         {
             return "CC001_W12_F1_QA_CAPTURE"+
                 "\nUTC="+capturedUtc.ToUniversalTime().ToString("O")+
+                "\nCAPTURE_SEQ="+captureSequence+
                 "\nSOURCE_SHA=UNVERIFIED"+
                 "\nCLOCK_SYNC=UNVERIFIED"+
                 "\nTURN="+turn+" REVISION="+revision+" FRAME="+frame+" ACTION_SERIAL="+actionSerial+
@@ -98,9 +101,16 @@ namespace CoreClash.Presentation
                 ngo==null?0:ngo.AcceptedRemoteIntents,ngo==null?0:ngo.RejectedRemoteIntents);
             // Copy only the numeric/seat diagnostic block, never networkNotice
             // (which can contain hostnames, invite codes or IP addresses).
-            if(Draw.Button(new Rect(x+w-152,y+8,84,44),"COPY QA",Draw.Gold,size:11))
+            string w13CopyLabel=Time.unscaledTime<w13QaCopiedUntil?"COPIED":"COPY QA";
+            if(Draw.Button(new Rect(x+w-152,y+8,84,44),w13CopyLabel,Draw.Gold,size:11))
+            {
+                // Increment only on deliberate click; this number is local to this
+                // process, not a network sequence or claim of cross-device parity.
+                w13QaCaptureSequence=w13QaCaptureSequence==int.MaxValue?1:w13QaCaptureSequence+1;
                 GUIUtility.systemCopyBuffer=W12QaClipboardText(networkDebug,s.turnNumber,s.revision,
-                    s.frame,s.actionSerial,DateTime.UtcNow);
+                    s.frame,s.actionSerial,DateTime.UtcNow,w13QaCaptureSequence);
+                w13QaCopiedUntil=Time.unscaledTime+2.5f;
+            }
             string technical="BALL: "+id+"\nUNITY STATUS: "+AbilitySupport.Status(id)+"\n\nV148 DESIGN REFERENCE\n"+string.Join(" + ",a.events)+"\n"+a.role+"\n"+string.Join(" / ",a.conditions)+"\n\n"+"TURN "+s.turnNumber+" / REVISION "+s.revision+" / FRAME "+s.frame+"\n"+"BALLS "+s.balls.Count+" / ZONES "+s.zones.Count(z=>!z.dead)+"\n"+"CANONICAL DECKS "+Catalog.Data.decks.Length+" / ROSTER "+Catalog.Data.balls.Length+"\n\n"+"R17-W9 / PC1-PC2 NETWORK DIAGNOSTICS\n"+networkDebug+"\n\n"+networkNotice+"\n\nNative primary support is separate from the imported reference metadata. Full roster abilities are not all implemented.";
             var content=new Rect(x+12,y+55,w-24,h-70);
             w9DeveloperScroll=Draw.ScrollView(content,w9DeveloperScroll,new Rect(0,0,content.width-22,840));
