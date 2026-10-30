@@ -24,7 +24,10 @@ namespace CoreClash.Presentation
     // R17-W9 A34: presentation-only smoothing; the authoritative GameState is never mutated.
     public sealed class RemoteBallSmoother
     {
-        const float MaxGap=0.6f,MaxDuration=0.2f,MaxDistance=220f;
+        // A41's dense-board fallback is 4Hz (250ms). A 200ms cap created a
+        // 50ms visual hold per accepted snapshot; 250ms covers that cadence
+        // without extrapolating past the latest authoritative position.
+        const float MaxGap=0.6f,MaxDuration=0.25f,MaxDistance=220f;
         sealed class Pose
         {
             public float fromX,fromY,toX,toY,start,duration;
