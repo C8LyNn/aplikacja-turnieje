@@ -49,3 +49,25 @@ Host/client samples are compared **only** with identical `(revision,actionSerial
 ## Integration boundaries
 
 A43 owns this offline diagnostics and schema. A31 owns authoritative network updates/interpolation; A20 owns P2 perspective, aim UI, header semantics; A10 owns design approval for strength meter; A60 owns independent QA and A70 candidate integration. Frozen `integration/cc001-r17-w8-phoenix-rc1`/RC1, R16, V148, Protocol149 and main remain unchanged; **PR review only, no merge/release**.
+
+## R17-W10 additive diagnostics (A43)
+
+The same CLI can also consume A31-compatible, opt-in native markers:
+
+```text
+CC_NET_TRACE_TX rev=42 serial=7 tms=1000 turn=0
+CC_NET_TRACE_RX rev=42 serial=7 tms=2310 turn=0
+```
+
+These lines are **not assumed to exist in RC1**. A31 owns any future producer; A43 only reads supplied logs and does not change Unity. If a source includes both `CC_W9_TRACE` and native `CC_NET_TRACE_*` snapshot samples, the structured samples take precedence per side to avoid duplicate revision false positives. W10 report schema: `CC001_R17_W10_A43_DIAGNOSTIC_REPORT_002`.
+
+The analyzer compares `revision + actionSerial + turn` only for identical authoritative revisions. It now reports `SNAPSHOT_AUTHORITY_MISMATCH`, client revision/time/action regressions, observed P2 accepted intent sequence anomalies, and whether an accepted P2 `actionSerial` appears in a matched host/client state. If no matching sample exists, the result is **missing evidence**, not packet loss or a proven desync. Rendering samples must be evaluated separately and cannot be treated as simulation state.
+
+The report includes only input file SHA256 and byte size for chain-of-custody. Original logs stay on the operator's machine. `--out` creates a *new* report and refuses to overwrite an existing report or either log. CLI exit codes: `0` = observations parsed (NOT QA PASS), `1` = detected contradiction, `2` = insufficient evidence, `3` = invalid input/output operation. `0` is never a physical G3 PASS.
+
+```bash
+node --test tools/cc001-w9/pc-pair-trace.test.cjs
+node tools/cc001-w9/pc-pair-trace.cjs --host PC1_Player.log --client PC2_Player.log --out W10-pair-evidence.json
+```
+
+The W10 CLI is intentionally **read-only** with respect to source logs. No transport, gameplay, certified HTML, R16, V148, Protocol149 or RC1 edits are made. A60 must independently verify a new A70-integrated/A72-built exact SHA on two physical PCs before anyone claims runtime synchronization is fixed.

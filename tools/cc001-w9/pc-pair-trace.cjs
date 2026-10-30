@@ -2,6 +2,7 @@
 // CC-001 A43: standalone, opt-in evidence analyzer; never instruments certified game bytes.
 const fs = require('node:fs');
 const path = require('node:path');
+const crypto = require('node:crypto');
 
 const PREFIX = 'CC_W9_TRACE ';
 const MAX_BYTES = 16 * 1024 * 1024;
@@ -13,15 +14,34 @@ function parseLog(input, side) {
   const events = [], legacy = { host_ready:0, peer_connected:0, accepted_local:0,
     accepted_p2:0, rejected:0, first_snapshot_applied:0, snapshot_error:0, connection_failed:0 };
   let malformed = 0, ignored = 0;
+  const a31Snapshots = [];
+  const acceptedP2 = [];
   for (const line of input.split(/\r?\n/)) {
     if (line.includes('CC_NET_HOST_READY')) legacy.host_ready++;
     if (line.includes('CC_NET_PEER_CONNECTED')) legacy.peer_connected++;
     if (/CC_NET_INTENT_ACCEPT\s+owner=0\b/.test(line)) legacy.accepted_local++;
-    if (/CC_NET_INTENT_ACCEPT\s+owner=1\b/.test(line)) legacy.accepted_p2++;
+    if (/CC_NET_INTENT_ACCEPT\s+owner=1\b/.test(line)) {
+      legacy.accepted_p2++;
+      const seq = /\bseq=(\d+)\b/.exec(line), action = /\baction=(\d+)\b/.exec(line);
+      if (seq && action && finiteInt(Number(seq[1])) && finiteInt(Number(action[1]))) {
+        acceptedP2.push({sequence:Number(seq[1]),actionSerial:Number(action[1])});
+      }
+    }
     if (line.includes('CC_NET_INTENT_REJECT')) legacy.rejected++;
     if (line.includes('CC_NET_STATE_APPLIED')) legacy.first_snapshot_applied++;
     if (line.includes('CC_NET_SNAPSHOT_ERROR')) legacy.snapshot_error++;
     if (line.includes('CC_LAN_CONNECTION_FAILED')) legacy.connection_failed++;
+    // A31 native optional network trace, emitted by a separately reviewed producer.
+    // Never assume these markers exist in the pinned RC1 Windows Player build.
+    const native = /CC_NET_TRACE_(TX|RX)\s+/.exec(line);
+    if (native) {
+      const tail=line.slice(native.index+native[0].length);
+      const get=k=>{const m=new RegExp('(?:^|\\s)'+k+'=(-?\\d+)(?=\\s|$)').exec(tail);return m?Number(m[1]):null;};
+      const revision=get('rev'),actionSerial=get('serial'),monotonicMs=get('tms'),turn=get('turn');
+      if (!finiteInt(revision)||revision===0||!finiteInt(actionSerial)||!finiteInt(monotonicMs)||![0,1].includes(turn)) malformed++;
+      else a31Snapshots.push({type:native[1]==='TX'?'snapshot_sent':'snapshot_applied',
+        revision,actionSerial,monotonicMs,turn,source:'A31_NATIVE',side});
+    }
     const i = line.indexOf(PREFIX);
     if (i < 0) continue;
     try {
@@ -29,6 +49,9 @@ function parseLog(input, side) {
       if (!e || Array.isArray(e) || typeof e !== 'object' || !TYPES.has(e.type)) { ignored++; continue; }
       if (e.revision !== undefined && !finiteInt(e.revision)) { malformed++; continue; }
       if (e.actionSerial !== undefined && !finiteInt(e.actionSerial)) { malformed++; continue; }
+      if (e.monotonicMs !== undefined && (!Number.isFinite(e.monotonicMs) || e.monotonicMs < 0)) { malformed++; continue; }
+      if ((e.type === 'snapshot_sent' || e.type === 'snapshot_applied') && !finiteInt(e.revision)) { malformed++; continue; }
+      if (e.type === 'intent_accepted' && (![0,1].includes(e.owner) || !finiteInt(e.sequence))) { malformed++; continue; }
       if (e.type === 'ball_state' && (!finiteInt(e.revision) || !finiteInt(e.actionSerial) || !finiteInt(e.ballId) ||
           (e.layer !== 'simulation' && e.layer !== 'render') || !Number.isFinite(e.x) || !Number.isFinite(e.y))) { malformed++; continue; }
       if (e.type === 'turn_state' && (!finiteInt(e.revision) || ![0,1].includes(e.turn) ||
@@ -38,18 +61,39 @@ function parseLog(input, side) {
       events.push({ ...e, side });
     } catch (_) { malformed++; }
   }
-  return { events, legacy, malformed, ignored };
+  return { events, legacy, malformed, ignored, a31Snapshots, acceptedP2 };
 }
 
 function summarize(hostText, clientText, opts = {}) {
   const host = parseLog(hostText, 'host'), client = parseLog(clientText, 'client');
   const all = host.events.concat(client.events), anomalies = [];
   const by = (events, type) => events.filter(e => e.type === type);
-  const hostSends = by(host.events, 'snapshot_sent').filter(e => finiteInt(e.revision));
-  const clientApplies = by(client.events, 'snapshot_applied').filter(e => finiteInt(e.revision));
+  function chooseSnapshots(side,type) {
+    const structured=by(side.events,type).filter(e=>finiteInt(e.revision));
+    // If both producer formats exist, prefer structured and avoid duplicate revision samples.
+    return structured.length?structured:side.a31Snapshots.filter(e=>e.type===type);
+  }
+  const hostSends = chooseSnapshots(host,'snapshot_sent');
+  const clientApplies = chooseSnapshots(client,'snapshot_applied');
   const regressions = []; let last = -1;
   for (const e of clientApplies) { if (e.revision <= last) regressions.push(e.revision); last = e.revision; }
   if (regressions.length) anomalies.push({ code:'CLIENT_REVISION_NONMONOTONIC', count:regressions.length });
+  const timeRegressions=[];
+  for(let i=1;i<clientApplies.length;i++) {
+    const a=clientApplies[i-1],b=clientApplies[i];
+    if(Number.isFinite(a.monotonicMs)&&Number.isFinite(b.monotonicMs)&&b.monotonicMs<a.monotonicMs)
+      timeRegressions.push(b.revision);
+  }
+  if(timeRegressions.length) anomalies.push({code:'CLIENT_LOCAL_TIME_NONMONOTONIC',count:timeRegressions.length});
+  const serialRegressions=[];
+  let lastAction=-1;
+  for (const e of clientApplies) {
+    if (finiteInt(e.actionSerial)) {
+      if (e.actionSerial < lastAction) serialRegressions.push(e.revision);
+      lastAction=Math.max(lastAction,e.actionSerial);
+    }
+  }
+  if (serialRegressions.length) anomalies.push({code:'CLIENT_ACTION_SERIAL_REGRESSION',count:serialRegressions.length});
   const sentRevs = new Set(hostSends.map(e => e.revision));
   const appliedRevs = new Set(clientApplies.map(e => e.revision));
   const turnMismatches = [];
@@ -61,11 +105,28 @@ function summarize(hostText, clientText, opts = {}) {
     if (e.banner !== expected) turnMismatches.push({ side:e.side, revision:e.revision, code:'TURN_BANNER_MISMATCH', expected, actual:e.banner });
   }
   if (turnMismatches.length) anomalies.push({ code:'TURN_UI_CONTRADICTION', count:turnMismatches.length });
+  // Only same authoritative revision/serial may be compared. Different revisions are unknown, not desync.
+  // The local owner is intentionally NOT part of the canonical turn key: host=0, client=1.
+  const hostTurns=new Map();
+  for (const e of by(host.events,'turn_state')) {
+    if (finiteInt(e.actionSerial)) hostTurns.set(`${e.revision}:${e.actionSerial}`,e);
+  }
+  let alignedTurns=0, turnContradictions=0;
+  for (const e of by(client.events,'turn_state')) {
+    const h=finiteInt(e.actionSerial)?hostTurns.get(`${e.revision}:${e.actionSerial}`):null;
+    if (!h) continue;
+    alignedTurns++;
+    if (h.turn!==e.turn || h.phase!==e.phase) turnContradictions++;
+  }
+  if(turnContradictions) anomalies.push({code:'PAIRED_AUTHORITATIVE_TURN_MISMATCH',count:turnContradictions});
+  // Render-layer poses can differ legitimately across PCs at the same snapshot revision:
+  // remote smoothing and frame sampling use independent clocks. Never compare them as authoritative state.
   const hostBalls = new Map();
-  for (const e of by(host.events, 'ball_state')) hostBalls.set(`${e.revision}:${e.actionSerial}:${e.layer}:${e.ballId}`,e);
+  for (const e of by(host.events, 'ball_state').filter(e=>e.layer==='simulation'))
+    hostBalls.set(`${e.revision}:${e.actionSerial}:${e.ballId}`,e);
   const drift = []; let paired = 0;
-  for (const e of by(client.events, 'ball_state')) {
-    const h = hostBalls.get(`${e.revision}:${e.actionSerial}:${e.layer}:${e.ballId}`);
+  for (const e of by(client.events, 'ball_state').filter(e=>e.layer==='simulation')) {
+    const h = hostBalls.get(`${e.revision}:${e.actionSerial}:${e.ballId}`);
     if (!h) continue;
     const distance = Math.hypot(e.x-h.x,e.y-h.y);
     paired++;
@@ -76,8 +137,34 @@ function summarize(hostText, clientText, opts = {}) {
   if (threshold !== null && (!Number.isFinite(threshold) || threshold < 0)) throw new Error('Invalid drift threshold');
   const above = threshold === null ? null : drift.filter(x=>x.distance>threshold).length;
   if (above > 0) anomalies.push({ code:'PAIRED_BALL_DISTANCE_ABOVE_THRESHOLD', count:above });
+  const hostByRev=new Map(hostSends.map(e=>[e.revision,e]));
+  const snapshotDifferences=[];let comparable=0;
+  for(const rx of clientApplies) {
+    const tx=hostByRev.get(rx.revision);
+    if(!tx)continue;
+    if(!finiteInt(tx.actionSerial)||!finiteInt(rx.actionSerial)||![0,1].includes(tx.turn)||![0,1].includes(rx.turn))continue;
+    comparable++;
+    if(tx.actionSerial!==rx.actionSerial||tx.turn!==rx.turn)
+      snapshotDifferences.push({revision:rx.revision,actionSerialHost:tx.actionSerial,
+        actionSerialClient:rx.actionSerial,turnHost:tx.turn,turnClient:rx.turn});
+  }
+  if(snapshotDifferences.length)anomalies.push({code:'SNAPSHOT_AUTHORITY_MISMATCH',count:snapshotDifferences.length});
   const hostP2 = by(host.events, 'intent_accepted').filter(e=>e.owner===1);
   const p2AcceptCount = Math.max(hostP2.length,host.legacy.accepted_p2);
+  const hostP2Sequences=hostP2.map(e=>e.sequence);
+  const duplicateP2Sequences=hostP2Sequences.length-new Set(hostP2Sequences).size;
+  // Repeated ACK lines or resets after reconnect are NOT proof that the game applied twice.
+  // Report only an evidence anomaly; do not infer exactly-once from uncorrelated log counters.
+  if (duplicateP2Sequences) anomalies.push({code:'DUPLICATE_P2_ACCEPT_TRACE_SEQUENCE',count:duplicateP2Sequences});
+  const acceptedSequenceErrors=[];
+  for(let i=1;i<host.acceptedP2.length;i++){
+    const a=host.acceptedP2[i-1],b=host.acceptedP2[i];
+    if(b.sequence<=a.sequence||b.actionSerial<=a.actionSerial)acceptedSequenceErrors.push(i);
+  }
+  if(acceptedSequenceErrors.length)anomalies.push({code:'P2_ACCEPT_SEQUENCE_OR_ACTION_NONMONOTONIC',count:acceptedSequenceErrors.length});
+  const lastAcceptedAction=host.acceptedP2.at(-1)?.actionSerial??null;
+  const p2ActionObserved=lastAcceptedAction===null?null:clientApplies.some(e=>finiteInt(e.actionSerial)&&e.actionSerial>=lastAcceptedAction&&
+    hostByRev.has(e.revision)&&hostByRev.get(e.revision).actionSerial===e.actionSerial&&hostByRev.get(e.revision).turn===e.turn);
   const gaps = [];
   for(let i=1;i<clientApplies.length;i++){
     const a=clientApplies[i-1],b=clientApplies[i];
@@ -85,31 +172,48 @@ function summarize(hostText, clientText, opts = {}) {
       gaps.push(b.monotonicMs-a.monotonicMs);
   }
   const missing = [];
-  if (!hostSends.length || !clientApplies.length) missing.push('continuous_snapshot_trace');
-  if (!by(all,'turn_state').length) missing.push('authoritative_turn_and_local_banner');
-  if (!paired) missing.push('revision_aligned_ball_state_samples');
+  if (hostSends.length<2 || clientApplies.length<2 || [...appliedRevs].filter(x=>sentRevs.has(x)).length<2) missing.push('continuous_snapshot_trace');
+  if (!by(host.events,'turn_state').length || !by(client.events,'turn_state').length) missing.push('authoritative_turn_and_local_banner_both_peers');
+  if (!paired) missing.push('revision_aligned_simulation_ball_samples');
   if (!p2AcceptCount) missing.push('confirmed_host_p2_intent_acceptance');
+  if (p2AcceptCount && !host.acceptedP2.length) missing.push('p2_accepted_action_serial_missing');
+  if (lastAcceptedAction!==null && !p2ActionObserved) missing.push('p2_accepted_action_not_observed_on_client');
+  if (host.malformed||client.malformed)missing.push('malformed_telemetry_records');
   const coverage = {
     matched_snapshot_revisions: [...appliedRevs].filter(x=>sentRevs.has(x)).length,
     client_applied_without_matching_host_sample: [...appliedRevs].filter(x=>!sentRevs.has(x)).length,
-    note:'Unmatched host/client samples do not alone establish packet loss: logging may be incomplete.'
+    comparable_authoritative_snapshots: comparable,
+    authoritative_content_mismatches: snapshotDifferences.length,
+    structured_or_native_source_host:hostSends.length?(hostSends[0].source||'CC_W9_TRACE'):'NONE',
+    structured_or_native_source_client:clientApplies.length?(clientApplies[0].source||'CC_W9_TRACE'):'NONE',
+    accepted_p2_action_serial:lastAcceptedAction,
+    p2_accepted_action_seen_in_aligned_client_snapshot:p2ActionObserved,
+    note:'Unmatched host/client samples do not alone establish packet loss: logging may be incomplete.',
+    aligned_authoritative_turn_samples:alignedTurns
   };
   return {
-    schema:'CC001_R17_W9_A43_DIAGNOSTIC_REPORT_001',
+    schema:'CC001_R17_W10_A43_DIAGNOSTIC_REPORT_002',
     verdict:anomalies.length?'OBSERVED_CONTRADICTION':missing.length?'INSUFFICIENT_EVIDENCE':'OBSERVATIONS_AVAILABLE_NOT_QA_PASS',
-    host:{ legacy:host.legacy, trace_events:host.events.length, malformed:host.malformed, ignored:host.ignored, snapshot_sent:hostSends.length },
-    client:{ legacy:client.legacy, trace_events:client.events.length, malformed:client.malformed, ignored:client.ignored, snapshot_applied:clientApplies.length, last_applied_revision:clientApplies.at(-1)?.revision??null, sample_intervals_ms:gaps },
+    host:{ legacy:host.legacy, trace_events:host.events.length, native_trace_events:host.a31Snapshots.length, malformed:host.malformed, ignored:host.ignored, snapshot_sent:hostSends.length },
+    client:{ legacy:client.legacy, trace_events:client.events.length, native_trace_events:client.a31Snapshots.length, malformed:client.malformed, ignored:client.ignored, snapshot_applied:clientApplies.length, last_applied_revision:clientApplies.at(-1)?.revision??null, sample_intervals_ms:gaps },
     p2_intent_host_accepted_count:p2AcceptCount,
+    p2_accept_trace_duplicate_sequences:duplicateP2Sequences,
     coverage,
     turn_mismatches:turnMismatches,
+    paired_authoritative_turn_contradictions:turnContradictions,
+    snapshot_authority_mismatches:snapshotDifferences,
     paired_ball_samples:paired,
+    ignored_unaligned_render_pose_samples:by(all,'ball_state').filter(e=>e.layer==='render').length,
     worst_ball_distance:drift[0]||null,
     above_threshold_samples:above,
     distance_threshold_world_units:threshold,
     anomalies,missing_observations:missing,
     caveats:['No real two-PC verification is implied by parsing logs.',
+      'Native CC_NET_TRACE_TX/RX markers are optional and not present in the pinned RC1 by assumption.',
       'Cross-PC event latency cannot be calculated by subtracting unsynchronized timestamps.',
-      'No visual teleportation verdict from simulation coordinates alone; render samples must be independently instrumented.',
+      'Render poses at identical snapshot revisions may differ due to independent frame clocks and interpolation; they are never compared as authoritative state.',
+      'No visual teleportation verdict from simulation coordinates alone; render jump and frame-timing checks require independently captured frame series.',
+      'Duplicate accept trace sequences can indicate logging/reconnect repetition and do not by themselves prove duplicate game actions.',
       'No raw IP addresses, client IDs, names or source log lines are copied to the report.']
   };
 }
@@ -117,14 +221,25 @@ function summarize(hostText, clientText, opts = {}) {
 function main(argv) {
   const args={};for(let i=0;i<argv.length;i++){
     if(!['--host','--client','--out','--drift-threshold'].includes(argv[i]) || !argv[i+1]) throw new Error('Usage: node pc-pair-trace.cjs --host PC1.log --client PC2.log [--out report.json] [--drift-threshold 0.25]');
-    args[argv[i].slice(2)]=argv[++i];
+    const key=argv[i].slice(2);if(Object.hasOwn(args,key))throw new Error('Duplicate option: '+key);
+    args[key]=argv[++i];
   }
   if(!args.host||!args.client) throw new Error('Both --host and --client are required');
-  function safeRead(file){if(fs.statSync(file).size>MAX_BYTES)throw new Error('Log exceeds 16 MiB limit');return fs.readFileSync(file,'utf8');}
-  const out=summarize(safeRead(args.host),safeRead(args.client),{driftThreshold:args['drift-threshold']===undefined?undefined:Number(args['drift-threshold'])});
+  if(path.resolve(args.host)===path.resolve(args.client))throw new Error('PC1 and PC2 must be separate files');
+  if(args.out&&[args.host,args.client].some(p=>path.resolve(p)===path.resolve(args.out)))throw new Error('Output must differ from input logs');
+  const hostBytes=fs.readFileSync(args.host),clientBytes=fs.readFileSync(args.client);
+  if(hostBytes.length>MAX_BYTES||clientBytes.length>MAX_BYTES)throw new Error('Log exceeds 16 MiB limit');
+  const out=summarize(hostBytes.toString('utf8'),clientBytes.toString('utf8'),
+    {driftThreshold:args['drift-threshold']===undefined?undefined:Number(args['drift-threshold'])});
+  out.input_fingerprints={host_sha256:crypto.createHash('sha256').update(hostBytes).digest('hex'),
+    client_sha256:crypto.createHash('sha256').update(clientBytes).digest('hex'),
+    host_size_bytes:hostBytes.length,client_size_bytes:clientBytes.length};
   const data=JSON.stringify(out,null,2)+'\n';
-  if(args.out){fs.mkdirSync(path.dirname(args.out),{recursive:true});fs.writeFileSync(args.out,data,'utf8');} else process.stdout.write(data);
+  if(args.out){fs.mkdirSync(path.dirname(args.out),{recursive:true});fs.writeFileSync(args.out,data,{encoding:'utf8',flag:'wx'});} else process.stdout.write(data);
   return out;
 }
-if (require.main===module) {try{main(process.argv.slice(2));}catch(e){process.stderr.write(e.message+'\n');process.exitCode=2;}}
+if (require.main===module) {try{
+  const result=main(process.argv.slice(2));
+  process.exitCode=result.verdict==='OBSERVED_CONTRADICTION'?1:result.verdict==='INSUFFICIENT_EVIDENCE'?2:0;
+}catch(e){process.stderr.write(e.message+'\n');process.exitCode=3;}}
 module.exports={parseLog,summarize,main};
