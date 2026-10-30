@@ -1,6 +1,6 @@
 # CC-001 R17-W12 / A33 — F1 QA Clipboard Capture (Isolated Development)
 
-> **W13 UPDATE — CURRENT BRANCH READ THIS FIRST (2026-10-30).** The original W12 source hashes and 13-case test tally below are **historical before W13 amendment**, not current PR #235 tip. Current `DetailsView.cs` blob is `3440ed1a6a4a4de7fbf04c7c70c24383a01d7479`; current `scripts/cc001/w12/a33/check-f1-clipboard.cjs` blob is `32ff905036ea11de62c4ffbe073195a141703608`. W13 adds per-process `CAPTURE_SEQ`, transient `COPIED` feedback for 2.5s, and fail-closed 19-case V8 source/mutation tests. **19/19 V8 PASS is NOT native Node CLI/.NET/Unity/PC1–PC2 QA**. See `docs/cc001/swarm/w13/A33/R17_W13_A33_F1_QA_FEEDBACK_HANDOFF.md`. No QA-freeze or RC1 changes.
+> **W13 UPDATE — CURRENT BRANCH READ THIS FIRST (2026-10-30).** The original W12 source hashes and 13-case test tally below are **historical before W13 amendment**, not current PR #235 tip. Current `DetailsView.cs` blob is `3440ed1a6a4a4de7fbf04c7c70c24383a01d7479`; current `scripts/cc001/w12/a33/check-f1-clipboard.cjs` blob is `32a78e3cb8628963c7c88e3e287ccd7f7ef4191f`. W13 adds per-process `CAPTURE_SEQ`, transient `COPIED` feedback for 2.5s, and fail-closed 19-case V8 source/mutation tests. **19/19 V8 PASS is NOT native Node CLI/.NET/Unity/PC1–PC2 QA**. See `docs/cc001/swarm/w13/A33/R17_W13_A33_F1_QA_FEEDBACK_HANDOFF.md`. No QA-freeze or RC1 changes.
 
 
 **Owner:** A33 — Presentation/UI Implementation
