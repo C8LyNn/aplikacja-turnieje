@@ -148,6 +148,10 @@ function freshManagedResult(resultPath,startMs,endMs){
  return {parsed,bytes,sha256:hash(bytes)};
 }
 // Preserve old tracked source bytes as evidence, then require Unity to create new reports.
+function requiredPlayerPayload(binary){
+ const names=['CoreClash.exe','CoreClash_Data/Managed/Assembly-CSharp.dll'];
+ return Array.isArray(binary)&&names.every(name=>binary.some(x=>x.path===name&&Number.isSafeInteger(x.bytes)&&x.bytes>0&&/^[A-F0-9]{64}$/.test(x.sha256)));
+}
 function archiveOldUnityReport(file,evidenceDir,archiveName){
  ensure(/^[a-zA-Z0-9_.-]+\.json$/.test(archiveName),'Unsafe Unity archive name');
  if(!fs.existsSync(file))return {oldResultPresent:false,oldResultSha256:null,archivedPath:null};
@@ -260,7 +264,7 @@ async function build(a){
    sourceNotMutated:unexpectedSourceChanges(sourceChanges).length===0,unityExitZero:unity.exitCode===0,
    freshUnityReports:!!unityGenerated.build&&!!unityGenerated.smoke&&buildReport?.target==='StandaloneWindows64'&&smokeReport?.editor===UNITY_VERSION&&smokeReport?.launchSettledToPlayer2===true,
    buildSucceeded:buildReport?.result==='Succeeded'&&buildReport?.errors===0,
-   playerComplete:binary.length>50&&binary.some(f=>f.path==='CoreClash.exe')&&binary.some(f=>f.path==='CoreClash_Data/Managed/Assembly-CSharp.dll'),
+   playerComplete:binary.length>50&&requiredPlayerPayload(binary),
    compilerResponseCaptured:playerRsp.length>=1,playerDefineCorrect:playerRsp.some(x=>x.hasWindows&&!x.hasEditor&&!x.hasDiagnostic&&!x.hasNested),
    noDiagnostic:!responses.some(x=>x.hasDiagnostic)&&!diagDll&&!logBody.includes(DIAG),
    buildMarker:logBody.includes('CORE_CLASH_BUILD_PASS StandaloneWindows64')};
@@ -328,6 +332,11 @@ function selfTest(){const assert=require('node:assert/strict');let passed=0;cons
   test(()=>assert.equal(freshUnityReport(old,t-500,t+500).parsed.result,'Succeeded'));
   test(()=>{fs.writeFileSync(old,'{broken');assert.throws(()=>freshUnityReport(old,t-500,t+500),/NEW_UNITY_REPORT_INVALID_JSON/)});
  }finally{fs.rmSync(unityTest,{recursive:true,force:true})}
+ const requiredSample=[{path:'CoreClash.exe',bytes:3,sha256:'A'.repeat(64)},{path:'CoreClash_Data/Managed/Assembly-CSharp.dll',bytes:8,sha256:'B'.repeat(64)}];
+ test(()=>assert.equal(requiredPlayerPayload(requiredSample),true));
+ test(()=>assert.equal(requiredPlayerPayload(requiredSample.map(x=>x.path==='CoreClash.exe'?{...x,bytes:0}:x)),false));
+ test(()=>assert.equal(requiredPlayerPayload(requiredSample.map(x=>x.path==='CoreClash_Data/Managed/Assembly-CSharp.dll'?{...x,bytes:0}:x)),false));
+ test(()=>assert.equal(requiredPlayerPayload(requiredSample.filter(x=>x.path!=='CoreClash.exe')),false));
  const gatePass={ngo:'adapter.Apply(packet,decode,out reason); LastAppliedRevision=revision; app.ReceiveNetworkState(adapter.State,revision);',app:'RemoteBallSmoother x; void ReceiveNetworkState(GameState state,int snapshotRevision=-1) { remoteBallSmoother.Observe(state,Time.unscaledTime,instantBallIds,snapshotRevision); Simulation.State=state; remoteBallSmoother.Reset(); }',board:'remoteVisual.TryGetPosition(ballId,now,out x,out y);',match:'Draw.Text("OK");',smoother:'if(snapshotRevision>=0&&lastSnapshotRevision>=0&&snapshotRevision<=lastSnapshotRevision)return; void Reset() { lastSnapshotRevision=-1; }'};
  test(()=>assert.equal(inspect(gatePass,'a'.repeat(40)).status,'GO_SOURCE_SHAPE_ONLY'));
  test(()=>assert.equal(inspect({...gatePass,match:'Draw.Round(new Rect(0,y,w*lastPower,5),color);'},'a'.repeat(40)).status,'HOLD_SOURCE_BLOCKER'));
