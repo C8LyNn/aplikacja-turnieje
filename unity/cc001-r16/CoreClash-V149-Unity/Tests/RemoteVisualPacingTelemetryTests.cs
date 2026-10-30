@@ -71,6 +71,60 @@ public static partial class Program
             True(p.SampleFrame(7.01f,.016f,true,out var line));
             True(line.Contains("snapshots=0"));
         });
+        Test("A34 W13 regular 4Hz receiver gaps are legal, not long-gap alerts",()=>{
+            var p=new RemoteVisualPacingTelemetry();
+            p.AcceptSnapshot(1f,0f);
+            p.AcceptSnapshot(1.25f,.25f);
+            p.AcceptSnapshot(1.5f,.25f);
+            p.AcceptSnapshot(1.75f,.25f);
+            p.AcceptSnapshot(2f,.25f);
+            False(p.SampleFrame(1f,.016f,true,out _));
+            True(p.SampleFrame(6.01f,.016f,true,out var line));
+            True(line.Contains("rxGapP95ms=250"));
+            True(line.Contains("rxGapSamples=4"));
+            True(line.Contains("rxGaps=4"));
+            True(line.Contains("rxGapsOver300ms=0"));
+        });
+        Test("A34 W13 380ms receiver jitter recorded without claiming packet loss",()=>{
+            var p=new RemoteVisualPacingTelemetry();
+            p.AcceptSnapshot(1f,0f);
+            p.AcceptSnapshot(1.25f,.25f);
+            p.AcceptSnapshot(1.63f,.25f);
+            p.AcceptSnapshot(1.9f,.25f);
+            False(p.SampleFrame(1f,.016f,true,out _));
+            True(p.SampleFrame(6.01f,.016f,true,out var line));
+            True(line.Contains("rxGapP95ms=380"));
+            True(line.Contains("rxGapsOver300ms=1"));
+            True(line.Contains("rxGaps=3"));
+        });
+        Test("A34 W13 RX ring holds only last 256 gaps and retains full interval count",()=>{
+            var p=new RemoteVisualPacingTelemetry();
+            for(int i=0;i<300;i++)p.AcceptSnapshot(1f+i*.01f,.01f);
+            False(p.SampleFrame(1f,.016f,true,out _));
+            True(p.SampleFrame(6.01f,.016f,true,out var line));
+            True(line.Contains("rxGapSamples=256"));
+            True(line.Contains("rxGaps=299"));
+            True(line.Contains("snapshots=300"));
+        });
+        Test("A34 W13 insufficient gap evidence reports NA, never fabricated zero",()=>{
+            var p=new RemoteVisualPacingTelemetry();
+            p.AcceptSnapshot(1f,0f);
+            False(p.SampleFrame(1f,.016f,true,out _));
+            True(p.SampleFrame(6.01f,.016f,true,out var line));
+            True(line.Contains("rxGapP95ms=NA"));
+            True(line.Contains("rxGapSamples=0"));
+            True(line.Contains("rxGapsOver300ms=0"));
+        });
+        Test("A34 W13 end moving resets RX gap baseline between turns",()=>{
+            var p=new RemoteVisualPacingTelemetry();
+            p.AcceptSnapshot(1f,.05f);
+            p.EndMoving();
+            p.AcceptSnapshot(3f,0f);
+            False(p.SampleFrame(3f,.016f,true,out _));
+            True(p.SampleFrame(8.01f,.016f,true,out var line));
+            True(line.Contains("rxGapSamples=0"));
+            True(line.Contains("maxRxGapMs=0"));
+        });
         Test("A34 W12 one summary per window and no network/private fields",()=>{
             var p=new RemoteVisualPacingTelemetry();
             p.AcceptSnapshot(1f,.05f);
