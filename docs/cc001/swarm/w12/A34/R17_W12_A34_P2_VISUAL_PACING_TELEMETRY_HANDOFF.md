@@ -98,3 +98,15 @@ After the additional rapid-action transition guard, independently re-fetched sou
 - `CoreClashApp.cs` = `431d36ca44bbecbdfdd9ce4b6b35f7c06e34c8d7`.
 
 **Native status unchanged:** `.NET9` managed tests NOT_RUN, Unity 6000.4.0f1 Windows64 Player NOT_BUILT, 2-PC native frame profile NOT_RUN, independent G3/G4 HOLD. GitHub source V8 checks do **not** certify managed tests or actual network performance.
+
+## R17-W14 — Actual-blend semantics correction (2026-10-30)
+
+**Real production defect:** `RemoteBallSmoother.LastBlendSeconds` previously reported a positive `duration` whenever the current snapshot had the same action/monotonic frame, **even if no ball was actually visually interpolated** (all new/spawned/stationary or short-range instant `PORTAL`/`TELEPORT`/`SWAP` participants, or large warp). This can create false P2 pacing readings after legal instantaneous repositioning. A first correction to set `LastBlendSeconds=0` would itself have falsely counted all later frames as `postBlendWaitMs` in `RemoteVisualPacingTelemetry.SampleFrame`, because the old wait gate was only `lastSnapshot>=0`.
+
+**Implemented atomic owner-scoped fix (both consumer and producer):**
+1. `RemoteBallSmoother`: a local boolean `anyVisualBlend` is set only after a tracked ball enters normal interpolation with positive duration **and nonzero displacement**. Event snaps, owner/type conversions, distance snaps, fresh spawns and stationary poses do not set it. The read-only diagnostic property is `LastBlendSeconds=anyVisualBlend?duration:0f`. **Rendering trajectories/physics/network never change.**
+2. `RemoteVisualPacingTelemetry`: count `postBlendWaitMs` and `postBlendWaitFrames` only when `lastSnapshot>=0&&blendSeconds>0f`, so hard snaps cannot fabricate a wait window. Existing nonzero-blend/late-frame accounting is retained.
+
+**Seven new W14 C# managed regression DEFINITIONS:** five in existing smoother suite (stationary no blend, short TELEPORT snap, both SWAP participants, mixed warp+ordinary ball correctly nonzero blend, large displacement snap) and two in telemetry suite (all-instant snapshots: zero wait; transition from ordinary moving to instant snap stops wait accrual). Prior W12+W13 tests remain registered. New totals: **31 smoother + 15 telemetry = 46 authored C# regression definitions**, including 7 W14 additions.
+
+**Evidence restrictions:** These are production C# source updates and registered C# regression test code. Source-bound structural / numeric review is **NOT** managed test execution; .NET9, Windows Unity6000.4.0f1 and physical PC1/PC2 performance still **NOT_RUN**. W11 QA freeze remains exact `3f972cdbaea6289a7e33ce608f5d3256cfdab0a3` and is **not** modified, so it does not contain W14 additions. No changes to Mitosis V148, Furnace FIRE-only zone/ticks, R16 HP, Protocol149, authoritative GameState, network send cadence, RC1 or main. Draft PR #233 remains **DEV ONLY / QUALITY-GATED** until A70 admits it into a new post-freeze candidate after W11 G3.
