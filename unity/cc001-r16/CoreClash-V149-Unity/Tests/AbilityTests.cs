@@ -575,6 +575,70 @@ public static partial class Program
             False(client.Apply(before,decode,out _));
             Eq(2,client.State.phoenixHand.Count);
         });
+        // R17-W15 A40: A41 admission explicitly allows zero-HP hand values.
+        // A valid owner hand must stay consumable, without minting stock or a
+        // second RETURN. This uses the selected #266 adapter and real commands.
+        Test("W15 A40 valid zero-HP Phoenix hand survives snapshot and spawns at one HP",()=>{
+            var s=Sim();var gone=s.Spawn(1,"phoenix",270,200);
+            s.Kill(gone);
+            Eq(1,s.State.phoenixHand.Count);
+            var hand=s.State.phoenixHand.Single();
+            s.State.players[1].ownerTurns++;
+            s.Abilities.OnTurnStart(1);
+            True(hand.ready);
+            hand.hp=0; // admitted by A41 validator; spawn is clamped to at least 1
+            s.State.turn=1;s.State.turnNumber=2;
+            Eq(0,s.Stock(1,"phoenix"));
+            var options=new System.Text.Json.JsonSerializerOptions{IncludeFields=true};
+            System.Func<string,GameState> decode=raw=>
+                System.Text.Json.JsonSerializer.Deserialize<GameState>(raw,options);
+            var host=new CoreClash.Networking.NetworkGameSession(s);
+            var client=new CoreClash.Networking.NetworkGameStateAdapter();
+            True(client.Apply(host.Capture(x=>System.Text.Json.JsonSerializer.Serialize(x,options)),decode,out _));
+            Eq(0,client.State.phoenixHand.Single().hp);
+            True(client.State.phoenixHand.Single().ready);
+            int returns=s.State.events.Count(e=>e.kind=="RETURN");
+            var shot=Shot(s,1,"phoenix");shot.sequence=1;
+            True(host.Submit(1,shot,out _));
+            var born=s.State.balls.Last();
+            Eq(1,born.owner);Eq("phoenix",born.type);
+            Eq(1,born.hp);
+            Eq(0,s.State.phoenixHand.Count);Eq(0,s.Stock(1,"phoenix"));
+            Eq(returns,s.State.events.Count(e=>e.kind=="RETURN"));
+            True(client.Apply(host.Capture(x=>System.Text.Json.JsonSerializer.Serialize(x,options)),decode,out _));
+            Eq(0,client.State.phoenixHand.Count);
+            Eq(1,client.State.balls.Single(b=>b.id==born.id).hp);
+        });
+        // EXPECTED RED on selected #266: A41 currently validates each individual
+        // hand but does not enforce the V148 one-hand-slot-per-owner invariant.
+        // A41/A31 should implement the admission guard on a separate DEV patch.
+        Test("W15 A40 malformed duplicate-owner Phoenix hand snapshot rejects atomically",()=>{
+            var s=Sim();s.Kill(s.Spawn(1,"phoenix",270,200));
+            var host=new CoreClash.Networking.NetworkGameSession(s);
+            var options=new System.Text.Json.JsonSerializerOptions{IncludeFields=true};
+            System.Func<string,GameState> decode=raw=>
+                System.Text.Json.JsonSerializer.Deserialize<GameState>(raw,options);
+            var client=new CoreClash.Networking.NetworkGameStateAdapter();
+            var first=host.Capture(x=>System.Text.Json.JsonSerializer.Serialize(x,options));
+            True(client.Apply(first,decode,out _));
+            var accepted=client.State;
+            var hand=s.State.phoenixHand.Single();
+            s.State.phoenixHand.Add(new PhoenixHandEntry{
+                owner=hand.owner,sourceBallId=hand.sourceBallId,
+                lineageId=hand.lineageId,hp=hand.hp,maxHp=hand.maxHp,
+                shield=hand.shield,createdOwnerTurns=hand.createdOwnerTurns,
+                lastProcessedOwnerTurns=hand.lastProcessedOwnerTurns,ready=hand.ready});
+            Eq(2,s.State.phoenixHand.Count);
+            var malformed=host.Capture(x=>System.Text.Json.JsonSerializer.Serialize(x,options));
+            False(client.Apply(malformed,decode,out _));
+            True(object.ReferenceEquals(accepted,client.State));
+            s.State.phoenixHand.RemoveAt(1);
+            var repaired=host.Capture(x=>System.Text.Json.JsonSerializer.Serialize(x,options));
+            True(client.Apply(repaired,decode,out _));
+            Eq(1,client.State.phoenixHand.Count);
+            Eq(1,client.State.phoenixHand.Single().owner);
+            False(client.Apply(malformed,decode,out _));
+        });
         RealityTests();SpatialTests();
         Test("Wildfire leaves a three-tick fire field after death",()=>{var s=Sim();var w=s.Spawn(0,"wildfire",200,450);var t=s.Spawn(1,"normal",260,450);s.Kill(w);Eq(1,s.State.zones.Count(z=>z.kind=="fire"&&!z.dead));s.Abilities.OnTurnEnd(0);Eq(1,t.fireStacks);});
         Test("Soulburst copied effect grows with missing HP",()=>{var s=Sim();var a=s.Spawn(0,"agony",170,450);var soul=s.Spawn(0,"soulburst",220,450);soul.hp=5;var enemy=s.Spawn(1,"normal",280,450);s.Abilities.OnContact(a,soul,false,true,40);Eq(20,enemy.hp);False(soul.dead);});
