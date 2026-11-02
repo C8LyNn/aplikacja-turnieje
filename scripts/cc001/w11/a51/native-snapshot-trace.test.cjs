@@ -135,5 +135,21 @@ try{
    const a=mod.analyze(pc1('CC_W11_STATE_BROKEN revision=1\n'),pc2(client(1)));
    assert.ok(a.findings.some(f=>f.code==='UNRECOGNIZED_OR_AMBIGUOUS_W11_DIGEST_MARKER'));
  });
+
+ test('W12 valid A41 pair with no client chunks has zero false findings',()=>{
+   const a=mod.analyze(pc1(host(16)),pc2(client(16)));
+   assert.deepEqual(a.findings,[]);
+   assert.equal(a.qualification.sameRevisionMetadata,'MATCHED_METADATA_ONLY');
+   assert.equal(a.qualification.G3,'NOT_CERTIFIED_BY_ANALYZER');
+ });
+ test('W12 A41 ball-count mismatch still reported, not chunks',()=>{
+   const a=mod.analyze(pc1(host(16)),pc2(client(16).replace('balls=14','balls=15')));
+   assert.ok(a.findings.some(f=>f.field==='balls'));
+   assert.ok(!a.findings.some(f=>f.field==='chunks'));
+ });
+ test('W12 A31 both-known chunks mismatch still reported',()=>{
+   const a=mod.analyze(pc1(tx(16)),pc2(rx(16).replace('chunks=2','chunks=3')));
+   assert.ok(a.findings.some(f=>f.field==='chunks'));
+ });
  console.log(`RESULT: ${count}/${count} PASS, 0 FAIL`);
 }finally{fs.rmSync(tmp,{recursive:true,force:true});}
