@@ -3,56 +3,81 @@ using CoreClash.Physics;
 
 namespace CoreClash.Presentation
 {
-    // A21/W12: beginner-facing coaching only. No turn ownership, commands or simulation writes.
-    // The A20 action hint handles launch readiness and current intent errors independently.
+    // A21: secondary, read-only beginner coaching; never submits moves or changes match rules.
     public static class SecondaryMatchHelp
     {
-        // Exact existing GameSimulation.CanReplay is the eligibility oracle.
-        // The helper must NOT infer replay rights merely from ball position/appearance.
-        public static bool ReplayReady(GameSimulation simulation)
+        // A single pass selects one actual legal Replay or a truthful reason that no
+        // home ball can Replay. Existing GameSimulation.CanReplay is always authoritative.
+        // Used once by ForLocal during HUD rendering; also supports isolated tests.
+        static void EvaluateReplay(GameSimulation simulation, out bool ready, out string blocked)
         {
+            ready = false;
+            blocked = null;
             var state = simulation?.State;
             if (state == null || state.phase != MatchPhase.Aiming ||
                 state.bonusPending || (state.turn != 0 && state.turn != 1) ||
-                state.balls == null || state.replayedIds == null) return false;
-            foreach (var ball in state.balls)
-                if (simulation.CanReplay(ball)) return true;
-            return false;
-        }
-
-        // This is an explanatory cue, NOT a second source of Replay rules.
-        // Only explain a known blocker when no actual CanReplay-eligible ball exists.
-        public static string ReplayBlockedReason(GameSimulation simulation)
-        {
-            var state = simulation?.State;
-            if (state == null || state.phase != MatchPhase.Aiming ||
-                state.bonusPending || (state.turn != 0 && state.turn != 1) ||
-                state.balls == null || state.replayedIds == null ||
-                ReplayReady(simulation)) return null;
+                state.balls == null || state.replayedIds == null) return;
 
             foreach (var ball in state.balls)
             {
-                if (ball == null || ball.owner != state.turn || ball.dead ||
-                    ball.banished || !ZoneResolver.TouchesOwnZone(ball)) continue;
+                if (simulation.CanReplay(ball))
+                {
+                    ready = true;
+                    blocked = null; // A legal alternative always outranks blocked balls.
+                    return;
+                }
 
-                if (ball.rooted) return "Replay blocked: a home ball is rooted.";
-                if (ball.frozen > 0) return "Replay blocked: a home ball is frozen.";
-                if (ball.type == "titan") return "Replay blocked: Titan cannot Replay.";
-                if (state.replayedIds.Contains(ball.id))
-                    return "Replay used: a home ball already replayed this turn.";
+                // Only offer a blocker for an owned, living ball touching its own
+                // home zone. Other balls are not relevant to the local instruction.
+                if (blocked != null || ball == null || ball.owner != state.turn ||
+                    ball.dead || ball.banished || !ZoneResolver.TouchesOwnZone(ball))
+                    continue;
+
+                if (ball.rooted) blocked = "Replay blocked: a home ball is rooted.";
+                else if (ball.frozen > 0) blocked = "Replay blocked: a home ball is frozen.";
+                else if (ball.type == "titan") blocked = "Replay blocked: Titan cannot Replay.";
+                else if (state.replayedIds.Contains(ball.id))
+                    blocked = "Replay used: a home ball already replayed this turn.";
             }
-            return null; // No qualifying home ball: neutral first-launch instruction.
         }
 
-        public static string Text(GameState state, int localOwner, bool multiplayer, bool connected, bool replayReady = false, string replayBlockedReason = null)
+        public static bool ReplayReady(GameSimulation simulation)
+        {
+            EvaluateReplay(simulation, out var ready, out _);
+            return ready;
+        }
+
+        public static string ReplayBlockedReason(GameSimulation simulation)
+        {
+            EvaluateReplay(simulation, out _, out var blocked);
+            return blocked;
+        }
+
+        // Single entrypoint for live local HUD: at most one board scan per render.
+        // Remote turns, disconnection, Moving, bonus and game-over skip the scan.
+        public static string ForLocal(GameSimulation simulation, int localOwner,
+            bool multiplayer, bool connected)
+        {
+            var state = simulation?.State;
+            if (state == null || state.phase != MatchPhase.Aiming ||
+                state.bonusPending ||
+                (multiplayer && (!connected || (localOwner != 0 && localOwner != 1) ||
+                                 state.turn != localOwner)))
+                return Text(state, localOwner, multiplayer, connected);
+
+            EvaluateReplay(simulation, out var ready, out var blocked);
+            return Text(state, localOwner, multiplayer, connected, ready, blocked);
+        }
+
+        // The exact active turn/connection precedence is also used in unit tests.
+        public static string Text(GameState state, int localOwner, bool multiplayer,
+            bool connected, bool replayReady = false, string replayBlockedReason = null)
         {
             if (state == null) return "Waiting for match.";
             if (state.phase == MatchPhase.Over)
                 return !string.IsNullOrWhiteSpace(state.resultReason)
                     ? state.resultReason : "Match complete.";
 
-            // Check connection and assigned seat before phase or turn.
-            // Never advise a disconnected or unassigned client to shoot/replay.
             if (multiplayer && !connected) return "Connection lost. Waiting to reconnect.";
             if (multiplayer && localOwner != 0 && localOwner != 1)
                 return "Waiting for your player seat.";
