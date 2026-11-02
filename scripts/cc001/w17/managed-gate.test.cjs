@@ -22,13 +22,15 @@ if(a[0]==='--list-runtimes'){console.log('Microsoft.NETCore.App 9.0.99 [C:/fake]
 if(a[0]!=='run'){console.error('fake dotnet: unsupported '+a.join(' '));process.exit(9);}
 const root=a[a.indexOf('--')+1];
 const program=fs.readFileSync(path.join(root,'Tests/Program.cs'),'utf8');
-// Behave like the historical driver: write Evidence under the root argument.
+// Behave like the historical driver: it writes into an EXISTING Evidence/ mid-run.
+if(process.env.FAKE_NEEDS_EVIDENCE_DIR&&!fs.existsSync(path.join(root,'Evidence'))){console.error('Unhandled exception. System.IO.DirectoryNotFoundException');process.exit(1);}
 fs.mkdirSync(path.join(root,'Evidence'),{recursive:true});
 fs.writeFileSync(path.join(root,'Evidence/unity-tests.json'),'{"fake":true}');
 if(process.env.FAKE_MUTATE_SOURCE)fs.writeFileSync(process.env.FAKE_MUTATE_SOURCE,'mutated by fake dotnet');
 let names=['new match has source bases and distinct owners','second test','third test'];
 if(process.env.FAKE_NONDET_COUNTER){const f=process.env.FAKE_NONDET_COUNTER;const n=fs.existsSync(f)?Number(fs.readFileSync(f,'utf8')):0;fs.writeFileSync(f,String(n+1));if(n>0)names.push('extra test');}
 if(process.env.FAKE_NO_RESULT){console.log('PASS only');process.exit(0);}
+if(process.env.FAKE_CRASH){console.log('PASS before crash');console.error('Unhandled exception. System.Exception: boom');process.exit(134);}
 if(process.env.FAKE_COMPILE_ERROR){console.log('C:/w/Tests/AbilityTests.cs(324,13): error CS0819: Implicitly-typed variables cannot have multiple declarators [C:/w/Tests/CoreClash.Tests.csproj]');console.error('Build failed.');process.exit(1);}
 if(process.env.FAKE_NO_RUNTIME){console.error("You must install or update .NET to run this application. Framework: 'Microsoft.NETCore.App', version '9.0.0' (x64)");process.exit(150);}
 if(process.env.FAKE_EXPECT_ROLL&&process.env.DOTNET_ROLL_FORWARD!=='Major'){console.error('roll forward not set');process.exit(7);}
@@ -172,6 +174,21 @@ test('--roll-forward sets DOTNET_ROLL_FORWARD=Major and is reported', () => {
   const r = runGate(['--repo', f.root, '--dotnet', f.fake, '--out', outDir(), '--roll-forward'], { FAKE_EXPECT_ROLL: '1' });
   assert.equal(r.status, 0, r.stdout);
   assert.equal(r.summary.host.rollForward, true);
+});
+
+test('the temporary copy provides Evidence/ for mid-run writes of the historical driver', () => {
+  const f = fixture();
+  const r = runGate(['--repo', f.root, '--dotnet', f.fake, '--out', outDir()], { FAKE_NEEDS_EVIDENCE_DIR: '1' });
+  assert.equal(r.status, 0, r.stdout + JSON.stringify(r.summary && r.summary.runs));
+});
+
+test('a crash before RESULT (unhandled exception) is RED with the stderr tail, not a pass', () => {
+  const f = fixture();
+  const r = runGate(['--repo', f.root, '--dotnet', f.fake, '--out', outDir()], { FAKE_CRASH: '1' });
+  assert.equal(r.status, 1, r.stdout);
+  assert.equal(r.summary.status, 'RED');
+  assert.equal(r.summary.crash.testsBeforeCrash, 1);
+  assert.match(r.summary.crash.stderrTail.join(' '), /Unhandled exception/);
 });
 
 test('missing dotnet is BLOCKED_OPERATOR (exit 2), never PASS', () => {
