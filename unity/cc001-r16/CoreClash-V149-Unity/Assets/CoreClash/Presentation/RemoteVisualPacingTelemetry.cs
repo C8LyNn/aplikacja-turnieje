@@ -43,13 +43,19 @@ namespace CoreClash.Presentation
             if(lastSnapshot>=0)
             {
                 float interval=now-lastSnapshot;
-                if(interval<0){Reset();return;}
+                // Unity's clock can rewind on lifecycle changes. The snapshot is
+                // already admitted by the caller; rebaseline and COUNT it, rather
+                // than silently losing this valid receiver observation.
+                if(interval<0)Reset();
+                else
+                {
                 if(interval>maxGap)maxGap=interval;
                 rxGaps[gapCursor]=interval;
                 gapCursor=(gapCursor+1)%GapCapacity;
                 if(gapSamples<GapCapacity)gapSamples++;
                 gapCount++;
                 if(interval>LongRxGapSeconds)longRxGaps++;
+                }
             }
             lastSnapshot=now;blendSeconds=chosenBlendSeconds;
             if(actionSerial!=int.MinValue)lastActionSerial=actionSerial;
@@ -58,7 +64,10 @@ namespace CoreClash.Presentation
         public bool SampleFrame(float now,float deltaSeconds,bool moving,out string evidence)
         {
             evidence=null;
-            if(!Finite(now)||now<0||!Finite(deltaSeconds)||deltaSeconds<=0||deltaSeconds>1)return false;
+            // Long frames are exactly the stutters this instrument must capture.
+            // Reject invalid clocks, never valid >1s stalls (which previously
+            // disappeared from P95/FPS and could mask severe PC2 freezes).
+            if(!Finite(now)||now<0||!Finite(deltaSeconds)||deltaSeconds<=0)return false;
             if(windowStart<0)windowStart=now;
             if(now<windowStart){Reset();windowStart=now;}
             if(moving)
