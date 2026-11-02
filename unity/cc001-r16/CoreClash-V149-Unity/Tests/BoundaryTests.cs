@@ -8,6 +8,7 @@ public static partial class Program
     {
         AbilityTests();
         PresentationTests();
+        W17AimGeometryTests();
         SetupLayoutTests();
         IdentityPresentationTests();
         FeedbackTests();
