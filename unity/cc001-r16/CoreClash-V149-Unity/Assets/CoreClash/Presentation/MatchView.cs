@@ -35,7 +35,7 @@ namespace CoreClash.Presentation
             float actionW=(w-20)/3;
             if(Draw.Button(new Rect(0,y,actionW,actionH),"BALL DETAILS",size:touch?12:10))ShowBallDetails(selected);
             if(Draw.Button(new Rect(actionW+10,y,actionW,actionH),boardInspection?"CANCEL INSPECT":"INSPECT BOARD",selected:boardInspection,size:touch?12:10))SetBoardInspection(!boardInspection);
-            if(Draw.Button(new Rect((actionW+10)*2,y,actionW,actionH),"MATCH SETUP",size:touch?12:10))ReturnToSetup();y+=actionH+11;
+            if(Draw.Button(new Rect((actionW+10)*2,y,actionW,actionH),"MATCH SETUP",size:touch?12:10))RequestLeaveMatch();y+=actionH+11;
             string hint=boardInspection?"TAP A BALL TO INSPECT":state.phase==MatchPhase.Over?(state.winner<0?"DRAW":("PLAYER "+(state.winner+1)+" WINS")):
                 LocalTurnPresentation.ActionHint(state,NetworkLink==null?-1:NetworkLink.LocalOwner,
                     NetworkLink!=null,NetworkLink==null||NetworkLink.IsConnected,gesture.Active,
@@ -107,7 +107,7 @@ namespace CoreClash.Presentation
             float actionW=(actions.width-8)/3;
             if(Draw.Button(new Rect(actions.x,actions.y,actionW,44),"DETAILS",size:12))ShowBallDetails(selected);
             if(Draw.Button(new Rect(actions.x+actionW+4,actions.y,actionW,44),boardInspection?"CANCEL":"INSPECT",selected:boardInspection,size:12))SetBoardInspection(!boardInspection);
-            if(Draw.Button(new Rect(actions.x+2*(actionW+4),actions.y,actionW,44),"SETUP",size:12))ReturnToSetup();
+            if(Draw.Button(new Rect(actions.x+2*(actionW+4),actions.y,actionW,44),"SETUP",size:12))RequestLeaveMatch();
             if(feedbackRow.height>=20){
                 string message=state.phase==MatchPhase.Over?TurnText():
                     boardInspection?"CANCEL INSPECT TO AIM":
@@ -153,7 +153,7 @@ namespace CoreClash.Presentation
             float actionW=(w-12)/3;
             if(Draw.Button(new Rect(inner.x,y,actionW,44),"DETAILS",size:12))ShowBallDetails(selected);
             if(Draw.Button(new Rect(inner.x+actionW+6,y,actionW,44),boardInspection?"CANCEL":"INSPECT",selected:boardInspection,size:12))SetBoardInspection(!boardInspection);
-            if(Draw.Button(new Rect(inner.x+(actionW+6)*2,y,actionW,44),"SETUP",size:12))ReturnToSetup();
+            if(Draw.Button(new Rect(inner.x+(actionW+6)*2,y,actionW,44),"SETUP",size:12))RequestLeaveMatch();
             if(shortTray)GUI.EndScrollView();
         }
         string TurnText()=>LocalTurnPresentation.Status(Simulation.State,NetworkLink==null?-1:NetworkLink.LocalOwner,
