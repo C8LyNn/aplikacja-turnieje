@@ -113,7 +113,7 @@ namespace CoreClash.SelfPlay
         public string Name=>"heuristic";
         public PlayerCommand Choose(GameSimulation sim,int owner,SelfPlayRng rng)
         {
-            float f=SelfPlayAim.Forward(owner),ly=SelfPlayAim.LauncherY(owner);
+            float ly=SelfPlayAim.LauncherY(owner);
             var threats=sim.State.balls.Where(x=>!x.dead&&!x.banished&&x.owner!=owner&&(owner==0?x.y>450:x.y<450)).ToList();
             var options=SelfPlayAim.SpawnOptions(sim,owner);
             double noise=rng.Range(-3,3);
@@ -251,7 +251,7 @@ namespace CoreClash.SelfPlay
             catch(Exception e)
             {
                 r.status="FAILED";
-                r.failure=e is SelfPlayFailure f?f.Code+": "+f.Message:"EXCEPTION: "+e.GetType().Name+": "+e.Message+" @ "+(e.TargetSite?.DeclaringType?.Name+"."+e.TargetSite?.Name);
+                r.failure=(e is SelfPlayFailure f)?f.Code+": "+f.Message:"EXCEPTION: "+e.GetType().Name+": "+e.Message+" @ "+(e.TargetSite?.DeclaringType?.Name+"."+e.TargetSite?.Name);
                 r.endClass="FAILED";
             }
             finally
