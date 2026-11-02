@@ -42,3 +42,12 @@ A60/A31 then must run exactly the same attested binary on **two distinct PCs**, 
 **Immutable source:** `integration/cc001-r17-w11-qa-freeze-20261030` = `3f972cdbaea6289a7e33ce608f5d3256cfdab0a3`; untouched. Mitosis exact V148, Furnace only FIRE area+periodic damage, HP R16, Protocol149, RC1/main/release untouched. **No merge or release.**
 
 **Five-axis:** DESIGNED YES / IMPLEMENTED YES / TESTED native Node14 PASS + scoped V8 8 PASS; W15 native full/Windows/.NET9/PC1+PC2 NOT_RUN / INTEGRATED NO (stacked Draft) / RELEASED NO.
+
+
+## W15 supplemental native Node execution — exact byte-verified boundary regressions
+
+The original restored A51 shared-field helper and its 14 original tests were copied to the execution host and **verified with local `git hash-object` identical to the original GitHub blobs** `9baf6a2c8e3faa93fde317e0d033f1b8882e7d97` / `0242e3cd6bd109740aae59279d478608b3a20540`. An additional **14 new deterministic native `node:test` cases** were added in `scripts/cc001/w15/a51/native-shared-field-boundaries.test.cjs` (exact tested-and-committed blob `70d3ffa96c7eeb860723b05e0e601a4071d8bc49`), covering A41 missing optional chunks/balls, A31 actual known chunk divergence, null/undefined symmetric handling, zero as an observed value, required common-field mismatches, all five field ordering, bad revision types, null rows, and immutable inputs.
+
+**Executed locally on Linux Node v22.16.0:** `node --check` PASS on tested scripts, `node --test scripts/cc001/w12/a51/native-metadata-shared-fields.test.cjs scripts/cc001/w15/a51/native-shared-field-boundaries.test.cjs` -> **28/28 native Node test cases PASS, 0 FAIL, exit 0** (14 original + 14 new). Exact raw test stdout SHA256 `c1d02ae1192e187b28c23953b7e081134b7119ac4c07d67d449893f854a89468`. The manifest now includes this additional source blob and command/evidence. These are **actual OS Node tests**, not V8 mocks; the **existing 9 W15 parser-to-gate CLI tests and full W11/W12/W13/W14 parser stack have NOT been executed natively in this additional pass**.
+
+**Scope:** no duplicate implementation, no production networking/Unity/Protocol149 changes, no Windows Player/.NET9 execution, no real PC1-PC2 inputs; **G3/G4 remain HOLD**. The W14 A51 original-log byte binder [draft #257](https://github.com/C8LyNn/aplikacja-turnieje/pull/257) is a **sibling W14 branch, not included automatically in this #255→#272 stack**. A70 must select it independently if required, without unapproved merger or rewriting the W11 freeze.
