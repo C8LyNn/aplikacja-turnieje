@@ -1,0 +1,61 @@
+{
+  "schema": "CC001_R17_W15_A43_DELIVERY_MANIFEST_001",
+  "owner": "A43 Telemetry / Web Analytics",
+  "immutableW11QaSource": "3f972cdbaea6289a7e33ce608f5d3256cfdab0a3",
+  "immutableW11QaBranch": "integration/cc001-r17-w11-qa-freeze-20261030",
+  "protectedRc1": "10f64e4d213f17a352ed8fa83bc75884a39549f0",
+  "independentDevDependency": {
+    "pr": 263,
+    "codeSha": "69ad4e278a8c3f61bc3fe79b61f38b3130a5ddb7",
+    "A33F1PoseCopyNotInFrozenW11": true,
+    "sourceAttestation": "UNVERIFIED"
+  },
+  "existingDraftPr": 171,
+  "ownAdditions": [
+    {
+      "path": "tools/cc001-w15/a43/qa-f1-pose.cjs",
+      "gitBlob": "f80f02e85223e1b2c92fa686a1cc119c4ec133e7",
+      "sha256": "f126fe2e47d2a5f9876b25984fbf39e72fd13274f64865a04ae0583ad1196f75"
+    },
+    {
+      "path": "tools/cc001-w15/a43/qa-f1-pose.test.cjs",
+      "gitBlob": "078dd035c9ee3ef09c94cd49ef031ddc981fd6e9",
+      "sha256": "02787f93faa7192496ad8c2d1074d4a51cf008848205b60defa028024cf132b9"
+    },
+    {
+      "path": "tools/cc001-w15/a43/README.md",
+      "gitBlob": "c02ee7057f6fe7e4f235a0eae9a6958b294e6d79",
+      "sha256": "8cbc20dc3849be06322682593c5056d3b75b0f5addd6e9986371cfaf5e28af87"
+    }
+  ],
+  "tests": {
+    "runtime": "Node.js v22.16.0 Linux",
+    "commands": [
+      "node --check tools/cc001-w15/a43/qa-f1-pose.cjs",
+      "node --check tools/cc001-w15/a43/qa-f1-pose.test.cjs",
+      "node --test tools/cc001-w15/a43/qa-f1-pose.test.cjs tools/cc001-w13/a43/frame-evidence.test.cjs"
+    ],
+    "W15New": 25,
+    "W14Retained": 27,
+    "totalPassed": 52,
+    "failed": 0,
+    "exitCode": 0,
+    "originalTestLogSha256": "e0c87a28c39e636f3cc13f79834744caaa345759508bbd419a3414040e7cd6f7",
+    "fixtureEvidence": "SYNTHETIC"
+  },
+  "evidenceTruth": {
+    "frozenWindowsPlayerBuilt": "NOT_ATTESTED",
+    "dotnet9ManagedExecuted": "NOT_RUN_A43",
+    "independentPhysicalPC1PC2": "NOT_ATTESTED",
+    "g3": "HOLD",
+    "g4": "HOLD",
+    "sourceCandidateIntegrated": "NO",
+    "release": "STOP"
+  },
+  "ownerDecisions": {
+    "mitosis": "EXACT_V148_UNCHANGED",
+    "furnace": "FIRE_ZONE_PERIODIC_ONLY",
+    "hp": "R16_ORIGINAL"
+  },
+  "futureIntegration": "A70 owner must separately select A33 dev source and arrange A72 matching Windows build before A60/A31 can collect actual P2 COPY QA; not available in W11 frozen player."
+}
