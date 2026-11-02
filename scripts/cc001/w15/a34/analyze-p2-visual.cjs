@@ -52,7 +52,7 @@ function summarize(text, fullBytes) {
   if(!matched.length)return {exit:2,result:{status:'HOLD_NO_P2_VISUAL_MARKERS',g3:'NOT_ATTESTED',logSha256:crypto.createHash('sha256').update(fullBytes).digest('hex'),rows:0}};
   // Bound stack use for large Player.log files: never spread arbitrary marker rows.
   const max=(key)=>matched.reduce((v,x)=>Math.max(v,x[key]),0);
-  const gapValues=matched.map(x=>x.rxGapP95ms).filter(x=>typeof x==='number');
+  const gapMax=matched.reduce((v,x)=>typeof x.rxGapP95ms==='number' ? Math.max(v,x.rxGapP95ms) : v,-1);
   const res={status:'P2_VISUAL_METADATA_ONLY',g3:'NOT_ATTESTED',
     origin:'single_local_P2_log_only',binaryShaVerified:false,
     logSha256:crypto.createHash('sha256').update(fullBytes).digest('hex'),
@@ -60,7 +60,7 @@ function summarize(text, fullBytes) {
     framesObserved:matched.reduce((n,x)=>n+x.frames,0),
     snapshotsObserved:matched.reduce((n,x)=>n+x.snapshots,0),
     frameP95MaxMs:max('frameP95ms'),maxRxGapMs:max('maxRxGapMs'),
-    rxGapP95MaxMs:gapValues.length?Math.max(...gapValues):null,
+    rxGapP95MaxMs:gapMax>=0?gapMax:null,
     windowsWithRxGapOver300ms:matched.filter(x=>x.rxGapsOver300ms>0).length,
     windowsWithFrameP95Over1000ms:matched.filter(x=>x.frameP95ms>1000).length,
     noPacketLossInference:true};
