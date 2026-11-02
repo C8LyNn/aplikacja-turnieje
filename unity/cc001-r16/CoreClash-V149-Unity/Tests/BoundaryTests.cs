@@ -9,6 +9,7 @@ public static partial class Program
         AbilityTests();
         PresentationTests();
         SetupLayoutTests();
+        W19ReadinessTests();
         IdentityPresentationTests();
         FeedbackTests();
         LanDiscoveryTests();

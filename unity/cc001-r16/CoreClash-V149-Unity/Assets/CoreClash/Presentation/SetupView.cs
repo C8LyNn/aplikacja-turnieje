@@ -67,26 +67,43 @@ namespace CoreClash.Presentation
             }GUI.EndScrollView();if(Draw.Button(new Rect(left,UiHeight-65,width,44),"START LOCAL MATCH",Draw.Cyan,true))StartLocalMatch();
         }
         static Rect SetupRect(UiBox box,float y)=>new Rect(box.x,box.y+y,box.width,box.height);
+        static readonly RosterReadinessFilter[] RosterFilters={RosterReadinessFilter.All,RosterReadinessFilter.ReadyOnly,RosterReadinessFilter.ReadyOrPartial};
+        RosterReadinessFilter rosterFilter=RosterReadinessFilter.All;
+        static Color ReadinessColor(ReadinessLevel level)=>level==ReadinessLevel.Ready?new Color(.42f,.86f,.55f):level==ReadinessLevel.Partial?Draw.Gold:Draw.Muted;
+        static void ReadinessChip(Rect r,ReadinessBadge badge)
+        {
+            Color c=ReadinessColor(badge.Level);
+            Draw.Round(r,new Color(c.r,c.g,c.b,.16f));
+            Draw.Text(r,badge.Label,Mathf.Max(8,Mathf.RoundToInt(r.height*.62f)),c,TextAnchor.MiddleCenter,true);
+        }
         void RenderBuilder()
         {
             bool shortView=UiHeight<440;float left=24,width=UiWidth-48;Color team=Draw.Owner(builderOwner);string title="PLAYER "+(builderOwner+1)+" / DECK BUILDER";int titleSize=width<500?16:24;
             float titleH=Math.Max(32,Draw.TextHeight(title,width-120,titleSize,true));Draw.Text(new Rect(left,77,width-120,titleH),title,titleSize,team,TextAnchor.MiddleLeft,true);
             if(Draw.Button(new Rect(UiWidth-120,76,96,UiViewport.TargetSize),"BACK"))builder=false;
             const string helper="Choose nine different special balls. Standard is always available separately.";
-            float helperY=Math.Max(124,77+titleH+7),helperH=Math.Max(24,Draw.TextHeight(helper,width,13)),searchY=Math.Max(153,helperY+helperH+13),selectedY=searchY+UiViewport.TargetSize+9,rosterY=selectedY+35;
-            if(shortView){searchY=124;selectedY=134;rosterY=174;}else Draw.Text(new Rect(left,helperY,width,helperH),helper,13,Draw.Muted);
+            float helperY=Math.Max(124,77+titleH+7),helperH=Math.Max(24,Draw.TextHeight(helper,width,13)),searchY=Math.Max(153,helperY+helperH+13),selectedY=searchY+UiViewport.TargetSize+9,filterY=selectedY+31,rosterY=filterY+UiViewport.TargetSize+8;
+            if(shortView){searchY=124;selectedY=134;filterY=174;rosterY=filterY+UiViewport.TargetSize+6;}else Draw.Text(new Rect(left,helperY,width,helperH),helper,13,Draw.Muted);
             float searchW=shortView?width*.62f:width;
-            search=GUI.TextField(new Rect(left,searchY,searchW,UiViewport.TargetSize),search);Draw.Text(new Rect(shortView?left+searchW+12:left,selectedY,shortView?width-searchW-12:width,23),custom.Count+" / 9 SELECTED",14,team,TextAnchor.MiddleLeft,true);
+            search=GUI.TextField(new Rect(left,searchY,searchW,UiViewport.TargetSize),search);
+            // W19-01 (#289): optional readiness filter (ALL by default); it only changes visible tiles.
+            var roster=RosterReadiness.Visible(Catalog,search,rosterFilter);
+            int hiddenPicked=custom.Count(id=>!roster.Any(b=>b.id==id));
+            Draw.Text(new Rect(shortView?left+searchW+12:left,selectedY,shortView?width-searchW-12:width,23),custom.Count+" / 9 SELECTED"+(hiddenPicked>0&&rosterFilter!=RosterReadinessFilter.All?"  ("+hiddenPicked+" hidden by filter)":""),14,team,TextAnchor.MiddleLeft,true);
             float selectedStep=Math.Min(29,(width-144)/9);
             if(!shortView)for(int i=0;i<custom.Count;i++)BallView.Preview(new Rect(left+144+i*selectedStep,selectedY-1,Math.Min(22,selectedStep-1),Math.Min(22,selectedStep-1)),Catalog.Ball(custom[i]),builderOwner);
-            var roster=Catalog.Data.balls.Where(b=>!b.hidden&&b.id!="normal"&&(b.name.IndexOf(search,StringComparison.OrdinalIgnoreCase)>=0||b.archetype.IndexOf(search,StringComparison.OrdinalIgnoreCase)>=0)).ToArray();
+            var counts=RosterReadiness.Counts(Catalog,search);var filterBoxes=RosterReadinessLayout.FilterButtons(left,filterY,width,UiViewport.TargetSize);
+            for(int f=0;f<RosterFilters.Length;f++)if(Draw.Button(RectOf(filterBoxes[f]),RosterReadiness.FilterLabel(RosterFilters[f],counts[RosterFilters[f]]),team,rosterFilter==RosterFilters[f],true,width<420?10:12)){rosterFilter=RosterFilters[f];rosterScroll=Vector2.zero;}
             int columns=UiWidth>950?3:UiWidth>600?2:1;float cardW=(width-24-(columns-1)*10)/columns,cardH=shortView?78:86,content=(float)Math.Ceiling(roster.Length/(float)columns)*(cardH+10);
-            rosterScroll=Draw.ScrollView(new Rect(left,rosterY,width,Math.Max(32,UiHeight-rosterY-(shortView?68:80))),rosterScroll,new Rect(0,0,width-22,content));
+            rosterScroll=Draw.ScrollView(new Rect(left,rosterY,width,Math.Max(32,UiHeight-rosterY-(shortView?68:80))),rosterScroll,new Rect(0,0,width-22,Math.Max(content,40)));
+            if(roster.Length==0)Draw.Text(new Rect(4,8,width-30,24),"No balls match this search and filter.",13,Draw.Muted);
             for(int i=0;i<roster.Length;i++){
                 var d=roster[i];bool picked=custom.Contains(d.id);var r=new Rect((i%columns)*(cardW+10),(i/columns)*(cardH+10),cardW,cardH);Draw.Surface(r,Draw.Panel,picked?team:Draw.Edge);
                 if(GUI.Button(new Rect(r.x,r.y,r.width-62,r.height),GUIContent.none,GUIStyle.none)){if(picked)custom.Remove(d.id);else if(custom.Count<9)custom.Add(d.id);}
-                BallView.Preview(new Rect(r.x+12,r.y+(shortView?15:18),48,48),d,builderOwner,picked);Draw.Text(new Rect(r.x+72,r.y+(shortView?8:10),r.width-140,shortView?30:42),d.name,14,Color.white,TextAnchor.MiddleLeft,true);Draw.Text(new Rect(r.x+72,r.y+(shortView?44:54),r.width-140,23),d.hp+" HP  /  "+d.size,11,Draw.Muted);
-                if(Draw.Button(new Rect(r.xMax-54,r.y+(shortView?17:21),44,44),"i",size:15))ShowBallDetails(d.id);
+                var cl=RosterReadinessLayout.Card(new UiBox(r.x,r.y,r.width,r.height),shortView);
+                BallView.Preview(RectOf(cl.Preview),d,builderOwner,picked);Draw.Text(RectOf(cl.Name),d.name,14,Color.white,TextAnchor.MiddleLeft,true);Draw.Text(RectOf(cl.Stats),d.hp+" HP  /  "+d.size,11,Draw.Muted);
+                ReadinessChip(RectOf(cl.Badge),RosterReadiness.Badge(Catalog,d.id));
+                if(Draw.Button(RectOf(cl.Info),"i",size:15))ShowBallDetails(d.id);
             }GUI.EndScrollView();
             if(Draw.Button(new Rect(left,UiHeight-64,width,44),"USE THIS DECK",team,true,custom.Count==9,14)){chosen[builderOwner]=new DeckDefinition{id="custom_"+builderOwner,name="Custom Deck / Player "+(builderOwner+1),balls=custom.ToArray(),description="A deck you created."};builder=false;}
         }
