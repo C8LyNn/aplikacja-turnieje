@@ -1,0 +1,47 @@
+{
+  "actualExecution": {
+    "a44ProducerToA74Gate": {
+      "category": "JSON_CREDENTIAL_FIELD",
+      "cliExitCode": 3,
+      "gateGitBlob": "b057e10aec9dbefd38c6e07e561ff3c2ed59844c",
+      "input": "two distinct synthetic raw host/client log files",
+      "outputSha256": "7ce576b9b6db0d2c19a2a13eda910cf9fcc8e0e788d4e4c7735e015061db2eaf",
+      "privateValuePrinted": false,
+      "producerGitBlob": "8453b2fe55d1d1ddb5da1acfa35ced92b1e8f63f",
+      "rawInputsUnchanged": true,
+      "result": "FAIL_SENSITIVE_PATTERN",
+      "runtime": "native Node22.16.0"
+    },
+    "command": "node --test docs/cc001/swarm/w11/A74/evidence-gate.w15-json-credentials.test.cjs",
+    "environment": "Linux Node v22.16.0",
+    "exitCode": 0,
+    "failed": 0,
+    "passed": 22,
+    "tapSha256": "6f4a83eef119fd36d3a26eb24e024ddef643fc08ade1693bb3a28721b6dbf513",
+    "tests": 22
+  },
+  "agent": "A74",
+  "baseRC1": "10f64e4d213f17a352ed8fa83bc75884a39549f0",
+  "component": "A44-redacted-PC1-PC2-evidence-admission",
+  "dependency": {
+    "A44PackerHead": "457d2bf2c3ccb0c6768aa0d2abab05392c56e0f5",
+    "A44PackerSourceBlob": "8453b2fe55d1d1ddb5da1acfa35ced92b1e8f63f",
+    "A72KitSha": "aa6e047cd7661961978fedcc91ff14dfc29a02f4"
+  },
+  "frozenQaSourceSha": "3f972cdbaea6289a7e33ce608f5d3256cfdab0a3",
+  "integration": "DRAFT_NOT_MERGED",
+  "notAttested": [
+    "Older A74 suites not rerun on W15 source",
+    "Real A44 Windows host/client logs",
+    "Unity Windows 6000.4.0f1 Player",
+    "dotnet9 managed",
+    "A60/A31 two physical PCs"
+  ],
+  "project": "CC-001",
+  "release": "NOT_RELEASED",
+  "runtimeGate": "G3_G4_HOLD",
+  "schema": "CC001-A74-W15-CANDIDATE-V1",
+  "sourceGitBlob": "b057e10aec9dbefd38c6e07e561ff3c2ed59844c",
+  "testGitBlob": "1fbdc9bd7883e1ea4bc7107c5516ab92732f3814",
+  "wave": "R17-W15"
+}
