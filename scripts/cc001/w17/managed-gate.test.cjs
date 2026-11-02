@@ -28,6 +28,9 @@ if(process.env.FAKE_MUTATE_SOURCE)fs.writeFileSync(process.env.FAKE_MUTATE_SOURC
 let names=['new match has source bases and distinct owners','second test','third test'];
 if(process.env.FAKE_NONDET_COUNTER){const f=process.env.FAKE_NONDET_COUNTER;const n=fs.existsSync(f)?Number(fs.readFileSync(f,'utf8')):0;fs.writeFileSync(f,String(n+1));if(n>0)names.push('extra test');}
 if(process.env.FAKE_NO_RESULT){console.log('PASS only');process.exit(0);}
+if(process.env.FAKE_COMPILE_ERROR){console.log('C:/w/Tests/AbilityTests.cs(324,13): error CS0819: Implicitly-typed variables cannot have multiple declarators [C:/w/Tests/CoreClash.Tests.csproj]');console.error('Build failed.');process.exit(1);}
+if(process.env.FAKE_NO_RUNTIME){console.error("You must install or update .NET to run this application. Framework: 'Microsoft.NETCore.App', version '9.0.0' (x64)");process.exit(150);}
+if(process.env.FAKE_EXPECT_ROLL&&process.env.DOTNET_ROLL_FORWARD!=='Major'){console.error('roll forward not set');process.exit(7);}
 let failed=0;
 for(const n of names){if(n===names[0]&&program.includes('Eq(21,s.State.players[0].hp)')){console.log('FAIL '+n+': expected 21, got 20');failed++;}else console.log('PASS '+n);}
 console.log('RESULT: '+(names.length-failed)+' passed, '+failed+' failed');
@@ -139,6 +142,34 @@ test('missing RESULT line is a gate error, not a pass', () => {
   const f = fixture();
   const r = runGate(['--repo', f.root, '--dotnet', f.fake, '--out', outDir()], { FAKE_NO_RESULT: '1' });
   assert.equal(r.status, 3);
+});
+
+test('compile error is RED (exit 1) with the compiler diagnostics, not a parse error', () => {
+  const f = fixture();
+  const r = runGate(['--repo', f.root, '--dotnet', f.fake, '--out', outDir()], { FAKE_COMPILE_ERROR: '1' });
+  assert.equal(r.status, 1, r.stdout);
+  assert.equal(r.summary.status, 'RED');
+  assert.deepEqual(r.summary.build.errors.map(e => [e.file, e.line, e.code]), [['AbilityTests.cs', 324, 'CS0819']]);
+});
+
+test('compile error during --red is a gate error (probe would prove nothing)', () => {
+  const f = fixture();
+  const r = runGate(['--repo', f.root, '--dotnet', f.fake, '--out', outDir(), '--red'], { FAKE_COMPILE_ERROR: '1' });
+  assert.equal(r.status, 3);
+});
+
+test('missing .NET 9 runtime is BLOCKED_OPERATOR with an install hint', () => {
+  const f = fixture();
+  const r = runGate(['--repo', f.root, '--dotnet', f.fake, '--out', outDir()], { FAKE_NO_RUNTIME: '1' });
+  assert.equal(r.status, 2);
+  assert.match(r.summary.reasons.join(' '), /roll-forward/);
+});
+
+test('--roll-forward sets DOTNET_ROLL_FORWARD=Major and is reported', () => {
+  const f = fixture();
+  const r = runGate(['--repo', f.root, '--dotnet', f.fake, '--out', outDir(), '--roll-forward'], { FAKE_EXPECT_ROLL: '1' });
+  assert.equal(r.status, 0, r.stdout);
+  assert.equal(r.summary.host.rollForward, true);
 });
 
 test('missing dotnet is BLOCKED_OPERATOR (exit 2), never PASS', () => {
