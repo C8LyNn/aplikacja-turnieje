@@ -15,7 +15,8 @@ namespace CoreClash.Presentation
         public GameSimulation Simulation {get;private set;}
         public IUnityNetworkLink NetworkLink {get;private set;}
         public bool IsSetup=>setup;
-        public bool IsModalOpen=>inspect.Length>0||builder;
+        public bool IsModalOpen=>inspect.Length>0||builder||exitGuard.Open;
+        public bool IsExitConfirmOpen=>exitGuard.Open;
         public bool DeveloperOverlay {get;private set;}
         public bool IsBoardInspection=>boardInspection;
         public Rect ArenaRect=>UiViewport.ToScreen(board);
@@ -27,6 +28,7 @@ namespace CoreClash.Presentation
         readonly RemoteBallSmoother remoteBallSmoother=new RemoteBallSmoother();
         bool receivedRemoteState;
         readonly LaunchGesture gesture=new LaunchGesture();
+        readonly MatchExitGuard exitGuard=new MatchExitGuard();
         readonly DeckDefinition[] chosen=new DeckDefinition[2];
         readonly Dictionary<string,BallCopy> ballCopy=new Dictionary<string,BallCopy>();
         readonly Dictionary<string,DeckCopy> deckCopy=new Dictionary<string,DeckCopy>();
@@ -73,12 +75,15 @@ namespace CoreClash.Presentation
         {
             if(Catalog==null)return;if(UiViewport.Refresh()){CancelPointer();Layout();}
             if(UnityEngine.Input.GetKeyDown(KeyCode.F1))SetDeveloperOverlay(!DeveloperOverlay);
-            if(UnityEngine.Input.GetKeyDown(KeyCode.Escape)&&!externalModal){if(inspect.Length>0)CloseBallDetails();else if(DeveloperOverlay)SetDeveloperOverlay(false);else if(boardInspection)SetBoardInspection(false);else if(builder)builder=false;else if(library)library=false;else if(!setup)ReturnToSetup();}
+            if(exitGuard.Open&&!externalModal&&(UnityEngine.Input.GetKeyDown(KeyCode.Return)||UnityEngine.Input.GetKeyDown(KeyCode.KeypadEnter)||UnityEngine.Input.GetKeyDown(KeyCode.JoystickButton0)))ConfirmLeaveMatch();
+            else if(exitGuard.Open&&!externalModal&&(UnityEngine.Input.GetKeyDown(KeyCode.Escape)||UnityEngine.Input.GetKeyDown(KeyCode.JoystickButton1)))CancelLeaveMatch();
+            else if(UnityEngine.Input.GetKeyDown(KeyCode.Escape)&&!externalModal){if(inspect.Length>0)CloseBallDetails();else if(DeveloperOverlay)SetDeveloperOverlay(false);else if(boardInspection)SetBoardInspection(false);else if(builder)builder=false;else if(library)library=false;else if(!setup)RequestLeaveMatch();}
             if(setup)return;
-            if(NetworkLink==null||NetworkLink.IsAuthority){accumulator=Math.Min(accumulator+Time.unscaledDeltaTime,.1f);while(accumulator>=1f/120){Simulation.Step(1f/120);accumulator-=1f/120;}}
+            if(MatchExitGuard.PausesSimulation(exitGuard.Open,NetworkLink!=null))accumulator=0;
+            else if(NetworkLink==null||NetworkLink.IsAuthority){accumulator=Math.Min(accumulator+Time.unscaledDeltaTime,.1f);while(accumulator>=1f/120){Simulation.Step(1f/120);accumulator-=1f/120;}}
             feedback.Observe(Simulation.State,Time.unscaledTime);
             if(Simulation.State.phase==MatchPhase.Aiming)selected=BallSelection.ForTurn(Simulation,selected);
-            if(inspect.Length>0||DeveloperOverlay||externalModal){gesture.Active=false;return;}
+            if(inspect.Length>0||DeveloperOverlay||externalModal||exitGuard.Open){gesture.Active=false;return;}
             if(CanChoose){
                 if(UnityEngine.Input.GetKeyDown(KeyCode.Alpha0)||UnityEngine.Input.GetKeyDown(KeyCode.Keypad0))SelectBall("normal");
                 for(int i=0;i<Simulation.State.players[Simulation.State.turn].stock.Count&&i<9;i++)if(UnityEngine.Input.GetKeyDown((KeyCode)((int)KeyCode.Alpha1+i))||UnityEngine.Input.GetKeyDown((KeyCode)((int)KeyCode.Keypad1+i)))SelectBall(Simulation.State.players[Simulation.State.turn].stock[i].id);
@@ -110,7 +115,7 @@ namespace CoreClash.Presentation
         }
         public void SelectDeck(int owner,string id){if(owner<0||owner>1)return;var deck=Catalog.Deck(id);if(deck!=null)chosen[owner]=deck;}
         public void StartLocalMatch(){NetworkLink?.Disconnect();GetComponent<NgoGameSession>()?.Disconnect();StartMatchState();}
-        void StartMatchState(){remoteBallSmoother.Reset();remoteLastEventId=remoteLastRevision=0;NetworkLink=null;Simulation=new GameSimulation(Catalog,chosen[0],chosen[1]);session=new NetworkGameSession(Simulation);feedback=new FeedbackTimeline();feedback.Observe(Simulation.State,Time.unscaledTime);receivedRemoteState=false;sequence=0;setup=false;builder=library=boardInspection=false;inspectBallId=0;selected="normal";CancelPointer();notice="";trayScroll=matchScroll=Vector2.zero;Debug.Log("CORE_CLASH_MATCH_START "+chosen[0].id+" vs "+chosen[1].id);}
+        void StartMatchState(){remoteBallSmoother.Reset();remoteLastEventId=remoteLastRevision=0;NetworkLink=null;Simulation=new GameSimulation(Catalog,chosen[0],chosen[1]);session=new NetworkGameSession(Simulation);feedback=new FeedbackTimeline();feedback.Observe(Simulation.State,Time.unscaledTime);receivedRemoteState=false;sequence=0;setup=false;exitGuard.Reset();builder=library=boardInspection=false;inspectBallId=0;selected="normal";CancelPointer();notice="";trayScroll=matchScroll=Vector2.zero;Debug.Log("CORE_CLASH_MATCH_START "+chosen[0].id+" vs "+chosen[1].id);}
         public void SelectBall(string id){if(CanChoose&&Catalog.Ball(id)!=null&&BallSelection.CanSelect(Simulation,Simulation.State.turn,id)){selected=id;gesture.Active=false;Debug.Log("CORE_CLASH_SELECT "+id);}}
         public void ShowBallDetails(string id){if(Catalog.Ball(id)!=null){inspect=id;inspectBallId=0;boardInspection=false;infoScroll=Vector2.zero;gesture.Active=false;Debug.Log("CORE_CLASH_DETAILS "+id+" developer="+DeveloperOverlay);}}
         public void ShowRuntimeBallDetails(int id){var current=BallInspection.Read(Simulation?.State,id);if(current!=null&&Catalog.Ball(current.Type)!=null){ShowBallDetails(current.Type);inspectBallId=id;boardInspection=false;}}
@@ -125,7 +130,16 @@ namespace CoreClash.Presentation
         }
         public void SetDeveloperOverlay(bool value){DeveloperOverlay=value;gesture.Active=false;Debug.Log("CORE_CLASH_DEVELOPER_OVERLAY "+value);}
         public void SetExternalModal(bool value){externalModal=value;if(value)gesture.Active=false;}
-        public void ReturnToSetup(){remoteBallSmoother.Reset();NetworkLink?.Disconnect();GetComponent<NgoGameSession>()?.Disconnect();NetworkLink=null;setup=true;builder=library=boardInspection=false;CancelPointer();CloseBallDetails();DeveloperOverlay=false;}
+        // W17-03 (#285): every in-match exit control goes through the confirmation guard.
+        public void RequestLeaveMatch()
+        {
+            var decision=exitGuard.Request(setup,Simulation.State.phase,NetworkLink!=null,NetworkLink==null||NetworkLink.IsConnected);
+            if(decision==MatchExitDecision.LeaveNow)ReturnToSetup();
+            else if(decision==MatchExitDecision.AskConfirm){CancelPointer();Debug.Log("CORE_CLASH_LEAVE_CONFIRM_OPEN phase="+Simulation.State.phase);}
+        }
+        public void ConfirmLeaveMatch(){if(exitGuard.Confirm()){Debug.Log("CORE_CLASH_LEAVE_CONFIRMED");ReturnToSetup();}}
+        public void CancelLeaveMatch(){if(exitGuard.Open){exitGuard.Cancel();CancelPointer();Debug.Log("CORE_CLASH_LEAVE_CANCELED");}}
+        public void ReturnToSetup(){exitGuard.Reset();remoteBallSmoother.Reset();NetworkLink?.Disconnect();GetComponent<NgoGameSession>()?.Disconnect();NetworkLink=null;setup=true;builder=library=boardInspection=false;CancelPointer();CloseBallDetails();DeveloperOverlay=false;}
         public void BeginNetworkGame(IUnityNetworkLink link){StartMatchState();NetworkLink=link;networkNotice=link.Status;}
         public void ReceiveNetworkState(GameState state,int snapshotRevision)
         {
@@ -155,7 +169,9 @@ namespace CoreClash.Presentation
             Draw.Text(new Rect(UiWidth<500?16:24,11,UiWidth<360?130:UiWidth<500?190:310,28),"CORE CLASH",UiWidth<360?16:UiWidth<500?23:25,Color.white,TextAnchor.MiddleLeft,true);if(UiWidth>700)Draw.Text(new Rect(228,16,170,23),"CLASS DEMO  /  V149",11,Draw.Gold,TextAnchor.MiddleLeft,true);
             if(fatal.Length>0){Draw.Text(new Rect(30,100,UiWidth-60,200),fatal,18,Draw.Pink);return;}if(Catalog==null)return;
             bool prior=GUI.enabled;GUI.enabled=!externalModal&&inspect.Length==0&&!DeveloperOverlay;
+            GUI.enabled=GUI.enabled&&!exitGuard.Open;
             if(setup){if(builder)RenderBuilder();else if(library)RenderLibrary();else RenderSetup();}else RenderMatch();GUI.enabled=prior;
+            if(exitGuard.Open&&!setup)RenderExitConfirm();
             if(inspect.Length>0)RenderInfo();if(DeveloperOverlay)RenderDeveloper();
             GetComponent<NgoLanLobby>()?.Render();
         }
