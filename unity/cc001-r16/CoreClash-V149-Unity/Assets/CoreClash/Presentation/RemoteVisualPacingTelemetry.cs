@@ -49,12 +49,12 @@ namespace CoreClash.Presentation
                 if(interval<0)Reset();
                 else
                 {
-                if(interval>maxGap)maxGap=interval;
-                rxGaps[gapCursor]=interval;
-                gapCursor=(gapCursor+1)%GapCapacity;
-                if(gapSamples<GapCapacity)gapSamples++;
-                gapCount++;
-                if(interval>LongRxGapSeconds)longRxGaps++;
+                    if(interval>maxGap)maxGap=interval;
+                    rxGaps[gapCursor]=interval;
+                    gapCursor=(gapCursor+1)%GapCapacity;
+                    if(gapSamples<GapCapacity)gapSamples++;
+                    gapCount++;
+                    if(interval>LongRxGapSeconds)longRxGaps++;
                 }
             }
             lastSnapshot=now;blendSeconds=chosenBlendSeconds;
