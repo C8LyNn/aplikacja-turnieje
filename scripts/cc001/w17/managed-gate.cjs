@@ -51,6 +51,7 @@ function usage() {
     '  --dotnet <path>       dotnet executable (default: dotnet on PATH; .js/.cjs runs with node)',
     '  --red                 RED probe: break one assertion in the temporary copy; expect exit 1',
     '  --keep                keep the temporary copy for inspection',
+    '  --roll-forward        allow running the net9.0 tests on a newer runtime (DOTNET_ROLL_FORWARD=Major); reported in summary',
     '  --help'
   ].join('\n');
 }
@@ -71,6 +72,7 @@ function parseArgs(argv) {
     else if (a === '--dotnet') opts.dotnet = next();
     else if (a === '--red') opts.red = true;
     else if (a === '--keep') opts.keep = true;
+    else if (a === '--roll-forward') opts.rollForward = true;
     else if (a === '--help' || a === '-h') opts.help = true;
     else throw new Error(`unknown argument: ${a}`);
   }
@@ -173,6 +175,19 @@ function parseManagedOutput(stdout) {
   return { tests, result };
 }
 
+// Compiler diagnostics (MSBuild format) and missing-runtime messages, so a
+// broken build is reported as RED / BLOCKED_OPERATOR instead of a parse error.
+function buildDiagnostics(text) {
+  const errors = [];
+  for (const line of text.split(/\r?\n/)) {
+    const m = /([^\\/(]+\.cs)\((\d+),(\d+)\): error (CS\d+): ([^\[]*)/.exec(line);
+    if (m && !errors.some(e => e.file === m[1] && e.line === Number(m[2]) && e.code === m[4]))
+      errors.push({ file: m[1], line: Number(m[2]), column: Number(m[3]), code: m[4], message: m[5].trim() });
+  }
+  const missingRuntime = /You must install or update \.NET|framework 'Microsoft\.NETCore\.App', version '[0-9.]+' \(x64\) was not found|The framework 'Microsoft\.NETCore\.App'/i.test(text);
+  return { errors, missingRuntime };
+}
+
 function stamp() { return new Date().toISOString().replace(/[:.]/g, '-'); }
 
 function main(argv) {
@@ -223,6 +238,7 @@ function main(argv) {
       `dotnet SDK not runnable (${ver.error || ver.stderr.trim() || 'exit ' + ver.status}); install .NET SDK 9 (winget install Microsoft.DotNet.SDK.9) and re-run`);
   }
   summary.host.dotnet = ver.stdout.trim();
+  summary.host.rollForward = !!opts.rollForward;
 
   const before = sourceFingerprint(repo, gitOk);
   const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'cc001-w17-work-'));
@@ -235,8 +251,10 @@ function main(argv) {
       try { copy = prepareCopy(repo, work, opts.red); }
       catch (e) { return finish(e.gateExit || 3, e.gateExit === 2 ? 'BLOCKED_OPERATOR' : 'GATE_ERROR', e.message); }
       const project = path.join(copy.unityDst, 'Tests', 'CoreClash.Tests.csproj');
+      const env = { ...process.env, DOTNET_CLI_TELEMETRY_OPTOUT: '1', DOTNET_NOLOGO: '1' };
+      if (opts.rollForward) env.DOTNET_ROLL_FORWARD = 'Major';
       const r = run(dotnet, ['run', '--project', project, '-c', opts.configuration, '--', copy.unityDst],
-        { cwd: copy.unityDst, env: { ...process.env, DOTNET_CLI_TELEMETRY_OPTOUT: '1', DOTNET_NOLOGO: '1' } });
+        { cwd: copy.unityDst, env });
       const log = path.join(out, `managed-run-${i + 1}.log`);
       fs.writeFileSync(log, `$ dotnet run --project <copy>/Tests/CoreClash.Tests.csproj -c ${opts.configuration} -- <copy>\n--- stdout ---\n${r.stdout}\n--- stderr ---\n${r.stderr}\n--- exit ${r.status} signal ${r.signal} error ${r.error} ---\n`);
       const parsed = parseManagedOutput(r.stdout);
@@ -245,7 +263,8 @@ function main(argv) {
         redPatched: copy.redPatched, result: parsed.result, parsedTests: parsed.tests.length,
         failures: parsed.tests.filter(t => !t.pass).map(t => ({ name: t.name, error: t.error })),
         namesSha256: crypto.createHash('sha256').update(parsed.tests.map(t => t.name).join('\n')).digest('hex'),
-        stderrTail: r.stderr.split(/\r?\n/).filter(Boolean).slice(-5)
+        stderrTail: r.stderr.split(/\r?\n/).filter(Boolean).slice(-5),
+        diagnostics: buildDiagnostics(r.stdout + '\n' + r.stderr)
       };
       summary.runs.push(entry);
       if (i === 0) {
@@ -262,6 +281,14 @@ function main(argv) {
   summary.source = { before, after, unchanged: JSON.stringify(before) === JSON.stringify(after) };
   if (!summary.source.unchanged) return finish(3, 'GATE_ERROR', 'source worktree or Evidence/ changed during the gate');
 
+  const runtime = summary.runs.find(r => !r.result && r.diagnostics.missingRuntime);
+  if (runtime) return finish(2, 'BLOCKED_OPERATOR', `run ${runtime.run}: .NET 9 runtime not available for the net9.0 test project; install it (winget install Microsoft.DotNet.Runtime.9) or re-run with --roll-forward`);
+  const broken = summary.runs.find(r => !r.result && r.exitCode !== 0 && r.diagnostics.errors.length > 0);
+  if (broken) {
+    summary.build = { failed: true, errors: broken.diagnostics.errors };
+    if (opts.red) return finish(3, 'GATE_ERROR', 'RED probe is meaningless: the managed project does not compile');
+    return finish(1, 'RED', `managed project does not compile: ${broken.diagnostics.errors.map(e => `${e.file}(${e.line}) ${e.code}`).join(', ')}`);
+  }
   const unparsed = summary.runs.find(r => !r.result || r.parsedTests !== r.result.passed + r.result.failed);
   if (unparsed) return finish(3, 'GATE_ERROR', `run ${unparsed.run}: missing RESULT line or PASS/FAIL count mismatch (exit ${unparsed.exitCode})`);
   const drift = summary.runs.find(r => r.result.passed !== first.result.passed || r.result.failed !== first.result.failed || r.namesSha256 !== first.namesSha256);
@@ -282,4 +309,4 @@ function main(argv) {
 }
 
 if (require.main === module) process.exitCode = main(process.argv.slice(2));
-module.exports = { main, parseArgs, parseManagedOutput, prepareCopy, treeHash, RED_ANCHOR, RED_TEST_NAME, UNITY_REL };
+module.exports = { main, parseArgs, parseManagedOutput, buildDiagnostics, prepareCopy, treeHash, RED_ANCHOR, RED_TEST_NAME, UNITY_REL };
