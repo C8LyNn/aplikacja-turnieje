@@ -321,7 +321,7 @@ public static partial class Program
             Eq(s.State.turnNumber,replica.State.turnNumber);
             Eq(s.State.actionSerial,replica.State.actionSerial);
             Eq(s.State.eventSerial,replica.State.eventSerial);
-            var hostBall=s.State.balls.Last(),clientBall=replica.State.balls.Single(x=>x.id==hostBall.id);
+            var hostBall=s.State.balls.Last();var clientBall=replica.State.balls.Single(x=>x.id==hostBall.id);
             Eq(1,clientBall.owner);Eq("fire",clientBall.type);
             Near(hostBall.x,clientBall.x);Near(hostBall.y,clientBall.y);
             Near(hostBall.vx,clientBall.vx);Near(hostBall.vy,clientBall.vy);
