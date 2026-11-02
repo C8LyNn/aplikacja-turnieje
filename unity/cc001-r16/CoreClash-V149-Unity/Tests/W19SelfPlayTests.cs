@@ -90,7 +90,7 @@ public static partial class Program
             True(SelfPlayRunner.Csv(new[]{crash,ok,hung}).Split('\n').Count(l=>l.Contains(",FAILED,"))==2,"failed rows missing from CSV");
         });
         Test("W19-03 summary math: winrates, nearest-rank median/P90, tiebreak share, deck matrix and ball usage",()=>{
-            Eq(3,SelfPlayRunner.Percentile(new[]{5,1,3,2,4},.5));Eq(5,SelfPlayRunner.Percentile(new[]{5,1,3,2,4},.9));Eq(10,SelfPlayRunner.Percentile(Enumerable.Range(1,10).ToList(),.9));Eq(0,SelfPlayRunner.Percentile(new int[0],.5));
+            Eq(3,SelfPlayRunner.Percentile(new[]{5,1,3,2,4},.5));Eq(5,SelfPlayRunner.Percentile(new[]{5,1,3,2,4},.9));Eq(9,SelfPlayRunner.Percentile(Enumerable.Range(1,10).ToList(),.9));Eq(10,SelfPlayRunner.Percentile(Enumerable.Range(1,10).ToList(),.91));Eq(0,SelfPlayRunner.Percentile(new int[0],.5));
             MatchRecord R(int cell,int winner,string reason,int turns,string ball)=>new MatchRecord{cell=cell,strategyP1="random",strategyP2="random",deckP1="featured_a",deckP2=cell==0?"featured_a":"featured_b",winner=winner,endReason=reason,endClass=SelfPlayRunner.Classify(reason),turns=turns,ballsP1=new SortedDictionary<string,int>(StringComparer.Ordinal){{ball,2}}};
             var s=SelfPlaySummary.From(new List<MatchRecord>{R(0,0,"Base destroyed",20,"agony"),R(0,1,"Base destroyed",30,"agony"),R(1,-1,"50 turns: identical score",50,"web"),R(1,0,"50 turns: base HP",50,"web")});
             Eq(4,s.completed);Eq(2,s.p1Wins);Eq(1,s.p2Wins);Eq(1,s.draws);Near(.5f,(float)s.p1WinRate);Near(.5f,(float)s.tiebreakShare);
