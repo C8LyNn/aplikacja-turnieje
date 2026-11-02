@@ -11,6 +11,10 @@ const MAX_LOG = 32 * 1024 * 1024;
 const MAX_MANIFEST = 128 * 1024;
 const EXPECTED = Object.freeze(['PC1_Player.redacted.log', 'PC2_Player.redacted.log']);
 const HEX = /^[0-9a-f]{64}$/i;
+// JSON-style diagnostics use quoted keys ("token":"value"), not token=value.
+// Never export captured values: only append a generic category in scan().
+const JSON_CREDENTIAL = /["'](?:access[_-]?token|id[_-]?token|refresh[_-]?token|session[_-]?token|auth(?:orization)?|api[_-]?key|password|passwd|secret|join[_-]?code|invite[_-]?code|bearer|token)["']\s*:\s*(?:"((?:\\.|[^"\\])*)"|'((?:\\.|[^'\\])*)'|([^\s,}\]]+))/gi;
+const REDACTED_VALUE = /^\[(?:REDACTED|TOKEN_REDACTED|SECRET_REDACTED)\]$/;
 const categories = Object.freeze([
  ['CREDENTIAL_ASSIGNMENT', /\b(?:access[_-]?token|id[_-]?token|refresh[_-]?token|session[_-]?token|auth(?:orization)?|api[_-]?key|password|passwd|secret|join[_-]?code|invite[_-]?code|bearer|token)\s*[:=]\s*(?!\[(?:REDACTED|TOKEN_REDACTED|SECRET_REDACTED)\](?=$|[\s,;]))(?:["']?)([^\s,;"']+)/i],
  ['BEARER_AUTH', /\bBearer\s+(?!\[REDACTED\](?=$|[\s,;]))(?:\[REDACTED\][^\s,;]+|[A-Za-z0-9._~+\/-]{10,})/i],
@@ -44,6 +48,14 @@ function scan(text) {
   for(let i=0;i<lines.length;i++){
     const line=lines[i];
     const classes=categories.filter(([,re])=>re.test(line)).map(([name])=>name);
+    // JSON credential keys bypass assignment regex because the quote separates key and ':' .
+    for(const match of line.matchAll(JSON_CREDENTIAL)) {
+      const value = match[1] ?? match[2] ?? match[3] ?? '';
+      if (value !== '' && !(match[3] === 'null') && !REDACTED_VALUE.test(value)) {
+        if (!classes.includes('JSON_CREDENTIAL_FIELD')) classes.push('JSON_CREDENTIAL_FIELD');
+        break;
+      }
+    }
     // IPv6: only report when token is a validated IPv6 address (avoid HH:MM:SS timestamps).
     for(const candidate of line.match(/\[?[0-9A-Fa-f:]{3,}(?:%[0-9a-z]+)?\]?/g)||[]){
       const cleaned=candidate.replace(/^\[|\]$/g,'').split('%')[0];
