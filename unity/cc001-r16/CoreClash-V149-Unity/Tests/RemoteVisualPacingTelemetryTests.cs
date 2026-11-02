@@ -57,12 +57,41 @@ public static partial class Program
             True(p.SampleFrame(6.1f,.01f,true,out var line));
             True(line.Contains("postBlendWaitMs=30"));
         });
+        Test("A34 W15 2.5-second frame freeze is counted and raises frame P95",()=>{
+            var p=new RemoteVisualPacingTelemetry();
+            False(p.SampleFrame(1f,.016f,true,out _));
+            False(p.SampleFrame(3.5f,2.5f,true,out _));
+            True(p.SampleFrame(6.1f,.016f,true,out var line));
+            True(line.Contains("frames=3"));
+            True(line.Contains("frameP95ms=2500"));
+            True(line.Contains("frameSamples=3"));
+        });
+        Test("A34 W15 >1s frame stall remains visible at low sample count",()=>{
+            var p=new RemoteVisualPacingTelemetry();
+            False(p.SampleFrame(1f,1.25f,true,out _));
+            True(p.SampleFrame(6.01f,.016f,true,out var line));
+            True(line.Contains("frames=2"));
+            True(line.Contains("frameP95ms=1250"));
+        });
+        Test("A34 W15 receiver clock rollback keeps the newly accepted snapshot",()=>{
+            var p=new RemoteVisualPacingTelemetry();
+            p.AcceptSnapshot(4f,.05f,8);
+            p.AcceptSnapshot(3f,.05f,8); // actual accepted packet at rewound clock
+            Eq(1,p.SnapshotCount);
+            p.AcceptSnapshot(3.25f,.25f,8);
+            Eq(2,p.SnapshotCount);
+            False(p.SampleFrame(3.25f,.016f,true,out _));
+            True(p.SampleFrame(8.26f,.016f,true,out var line));
+            True(line.Contains("snapshots=2"));
+            True(line.Contains("rxGaps=1"));
+            True(line.Contains("maxRxGapMs=250"));
+        });
         Test("A34 W12 invalid clocks cannot poison a valid pacing window",()=>{
             var p=new RemoteVisualPacingTelemetry();
             False(p.SampleFrame(float.NaN,.01f,true,out _));
             False(p.SampleFrame(1f,float.PositiveInfinity,true,out _));
             False(p.SampleFrame(1f,-.2f,true,out _));
-            False(p.SampleFrame(1f,5f,true,out _));
+            False(p.SampleFrame(1f,float.NaN,true,out _));
             p.AcceptSnapshot(float.NaN,.05f);
             p.AcceptSnapshot(1f,float.NaN);
             False(p.SampleFrame(1f,.016f,true,out _));
