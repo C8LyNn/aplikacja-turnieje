@@ -1,0 +1,68 @@
+{
+  "schema": "CC001_A34_W15_MANIFEST_V1",
+  "project": "CC-001",
+  "wave": "R17-W15",
+  "agent": "A34 — Performance / Technical Systems",
+  "source_provenance": {
+    "repository": "C8LyNn/aplikacja-turnieje",
+    "draft_pr": 233,
+    "post_freeze_base": "87b718432f4ce3906c907a7f4a1e2b4fb2a95f9c",
+    "w15_source_commit_before_manifest": "ec1723eb68f2721d38c2c9ef9cf60471e6a36c92",
+    "w11_immutable_qa_sha": "3f972cdbaea6289a7e33ce608f5d3256cfdab0a3",
+    "qa_freeze_modified": false
+  },
+  "source_blobs": {
+    "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/RemoteVisualPacingTelemetry.cs": "f0072dd9761c6020e91e5a45a60f3a30dd9895b0",
+    "unity/cc001-r16/CoreClash-V149-Unity/Tests/RemoteVisualPacingTelemetryTests.cs": "28c37dc75983a6456dfbf113aaee0ae85be2e853",
+    "scripts/cc001/w15/a34/analyze-p2-visual.cjs": "7b10e7c4f61ff0bdd0ac55d24106e83245ddf6c0",
+    "scripts/cc001/w15/a34/analyze-p2-visual.test.cjs": "c2edb9ab51fc5452b854c4524bb61e55a936ca57"
+  },
+  "tested_native_node": {
+    "environment": "Linux Node.js v22.16.0, Git v2.47.3",
+    "command": "node --test scripts/cc001/w15/a34/analyze-p2-visual.test.cjs",
+    "syntax_check": "node --check both .cjs => exit0",
+    "executed": true,
+    "passed": 20,
+    "failed": 0,
+    "exit_code": 0,
+    "test_input": "temporary synthetic Player.log fixtures plus 140000-record stress input; no original two-PC Player.log",
+    "script_sha256": "cdca7b9ae4ca3f9f405cd7fcd912bd794b7b28a64815d9a74275b33ef7956b6c",
+    "tests_sha256": "ae27beb4cd8c23e63a075da5eab0770a4f7f515689068c3e38a4705f665880bb",
+    "raw_tap_sha256": "d6e30670521195314c9d90203b1e000b6081f113aaf901def0359c2b4f648478",
+    "local_git_blobs_equal_committed": true
+  },
+  "managed_csharp": {
+    "new_w15_test_definitions": 3,
+    "telemetry_test_definitions": 18,
+    "smoother_test_definitions": 31,
+    "combined_49_test_definitions": true,
+    "executed": false,
+    "result": "NOT_RUN"
+  },
+  "windows_unity": {
+    "unity_version": "6000.4.0f1",
+    "windows_player_built_by_a34": false,
+    "native_g3": "HOLD",
+    "pc1_pc2_tested_by_a34": false
+  },
+  "scope": {
+    "visual_only": true,
+    "telemetry_only": true,
+    "changes_network_protocol": false,
+    "changes_host_state": false,
+    "changes_rc1_r16_v148": false,
+    "changes_mitosis_furnace_hp": false,
+    "main_merge": false,
+    "release": false
+  },
+  "dependencies": [
+    "A70 approval of post-freeze W15 addon after W11 closure",
+    "A72 actual dotnet9 C# test/build and Unity 6000.4.0f1 Windows Player on PC1",
+    "A60/A31 physical PC1-PC2 with exact source and binary SHA256"
+  ],
+  "limitations": [
+    "Node tests execute actual analyzer but with synthetic log bytes; no live Player.log attached",
+    "C# definition count does not establish managed runtime pass",
+    "Single-P2 telemetry does not establish canonical host/client state parity or packet loss"
+  ]
+}
