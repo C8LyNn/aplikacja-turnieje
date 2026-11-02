@@ -129,10 +129,12 @@ namespace CoreClash.Networking
             foreach(var e in s.events)
                 if(e==null||string.IsNullOrEmpty(e.kind)||!Finite(e.x,e.y,e.atTime))return false;
             // Phoenix entries are authoritative inventory, not untrusted optional UI.
-            // Reject the entire newer snapshot before replacing last-known-good state.
+            // V148 one-hand-slot policy: each owner can have at most one live hand.
+            // Reject duplicate-owner input before replacing last-known-good state/revision.
+            var phoenixOwners=new HashSet<int>();
             foreach(var hand in s.phoenixHand)
-                if(hand==null||hand.owner<0||hand.owner>1||hand.maxHp<=0||
-                    hand.hp<0||hand.hp>hand.maxHp||hand.shield<0)return false;
+                if(hand==null||hand.owner<0||hand.owner>1||!phoenixOwners.Add(hand.owner)||
+                    hand.maxHp<=0||hand.hp<0||hand.hp>hand.maxHp||hand.shield<0)return false;
             foreach(var g in s.graveyard)
                 if(g==null||g.owner<0||g.owner>1||string.IsNullOrEmpty(g.type)||!Finite(g.x,g.y))return false;
             foreach(var lineage in s.lineages)if(lineage==null)return false;
