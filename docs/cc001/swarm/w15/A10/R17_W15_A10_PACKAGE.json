@@ -38,11 +38,16 @@
     }
   },
   "validation": {
-    "githubSourceAndDiff": "PENDING_READBACK",
-    "dotnet9": "NOT_RUN",
-    "unityWin64": "NOT_RUN",
+    "githubSourceAndDiff": "PASS_SCOPED_13_OF_13",
+    "dotnet9": "NOT_RUN_NO_SDK",
+    "unityWin64": "NOT_RUN_NO_WINDOWS_UNITY",
     "physicalTwoPC": "NOT_RUN",
-    "integration": "NOT_MERGED"
+    "integration": "DRAFT_PR_275_NOT_MERGED",
+    "checkedSourceBlobs": {
+      "gameSimulation": "25f5a18de4df3942626f0245c9b1be77eee73106",
+      "networkGameSession": "5a833e1821218d820e8f6e92b08ccbcd6cebfed0"
+    },
+    "actualExecutableEvidence": "NONE_DOTNET9_AND_WINDOWS_UNAVAILABLE"
   },
   "protectedDecisions": {
     "mitosis": "V148 EXACT",
