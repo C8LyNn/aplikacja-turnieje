@@ -55,7 +55,12 @@ namespace CoreClash.Presentation
         {
             if(Mathf.Abs(a.x-b.x)<.01f){Rect(new Rect(a.x-width/2,Mathf.Min(a.y,b.y),width,Mathf.Abs(b.y-a.y)),color);return;}
             if(Mathf.Abs(a.y-b.y)<.01f){Rect(new Rect(Mathf.Min(a.x,b.x),a.y-width/2,Mathf.Abs(b.x-a.x),width),color);return;}
-            var matrix=GUI.matrix;Vector2 d=b-a;float angle=Mathf.Atan2(d.y,d.x)*Mathf.Rad2Deg;GUIUtility.RotateAroundPivot(angle,a);Rect(new Rect(a.x,a.y-width/2,d.magnitude,width),color);GUI.matrix=matrix;
+            // W17-02 (#284): no GUIUtility.RotateAroundPivot here. Under the scaled
+            // UiViewport.GuiMatrix (and nested groups) its pivot is misplaced, which on
+            // RC1 drew diagonal strokes in the arena corner or outside the board.
+            // Stamping discs along the segment uses the same transform as balls.
+            foreach(var p in AimGuide.StrokeStamps(new AimPoint(a.x,a.y),new AimPoint(b.x,b.y),width,0,0,Mathf.Max(.5f,width*.5f),512))
+                Circle(new Rect(p.x-width*.5f,p.y-width*.5f,width,width),color);
         }
         static GUIStyle LabelStyle(int size,TextAnchor align,bool bold)
         {
