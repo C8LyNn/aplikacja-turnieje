@@ -12,7 +12,8 @@
   "baseRC1": "10f64e4d213f17a352ed8fa83bc75884a39549f0",
   "component": "A44-redacted-PC1-PC2-evidence-admission",
   "dependency": {
-    "A44PackerSourceBlob": "14e9f01c281227ef7ab0052ba755b32b91e3a289",
+    "A44PackerHead": "457d2bf2c3ccb0c6768aa0d2abab05392c56e0f5",
+    "A44PackerSourceBlob": "8453b2fe55d1d1ddb5da1acfa35ced92b1e8f63f",
     "A72KitSha": "aa6e047cd7661961978fedcc91ff14dfc29a02f4"
   },
   "frozenQaSourceSha": "3f972cdbaea6289a7e33ce608f5d3256cfdab0a3",
