@@ -18,6 +18,7 @@ const FAKE_DOTNET = `'use strict';
 const fs=require('node:fs'),path=require('node:path');
 const a=process.argv.slice(2);
 if(a[0]==='--version'){console.log('9.0.999-fake');process.exit(0);}
+if(a[0]==='--list-runtimes'){console.log('Microsoft.NETCore.App 9.0.99 [C:/fake]');process.exit(0);}
 if(a[0]!=='run'){console.error('fake dotnet: unsupported '+a.join(' '));process.exit(9);}
 const root=a[a.indexOf('--')+1];
 const program=fs.readFileSync(path.join(root,'Tests/Program.cs'),'utf8');
@@ -85,6 +86,7 @@ test('GREEN: exit 0, counts parsed, Evidence and git status untouched', () => {
   assert.deepEqual(gate.treeHash(path.join(f.unity, 'Evidence')), evidenceBefore);
   assert.equal(git(f.root, 'status', '--porcelain'), '');
   assert.equal(r.summary.repo.head, f.head);
+  assert.equal(r.summary.host.net9RuntimePresent, true);
 });
 
 test('RED probe: deliberately broken assertion gives non-zero exit and is attributed', () => {

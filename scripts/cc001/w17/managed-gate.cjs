@@ -239,6 +239,9 @@ function main(argv) {
   }
   summary.host.dotnet = ver.stdout.trim();
   summary.host.rollForward = !!opts.rollForward;
+  const runtimes = run(dotnet, ['--list-runtimes']);
+  summary.host.runtimes = runtimes.status === 0 ? runtimes.stdout.split(/\r?\n/).filter(l => /^Microsoft\.NETCore\.App /.test(l)).map(l => l.split(' ').slice(0, 2).join(' ')) : [];
+  summary.host.net9RuntimePresent = summary.host.runtimes.some(r => /^Microsoft\.NETCore\.App 9\./.test(r));
 
   const before = sourceFingerprint(repo, gitOk);
   const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'cc001-w17-work-'));
