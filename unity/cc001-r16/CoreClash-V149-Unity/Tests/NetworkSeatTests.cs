@@ -361,5 +361,52 @@ public static partial class Program
             Eq(1,adapter.State.phoenixHand.Count);Eq(1,adapter.State.phoenixHand[0].owner);
             Eq(0,adapter.State.phoenixHand[0].hp);
         });
+        Test("R17 W15 A41 rejected duplicate Phoenix does not consume a reusable revision",()=>{
+            var sim=Sim();var authority=new NetworkGameSession(sim);
+            var options=new System.Text.Json.JsonSerializerOptions{IncludeFields=true};
+            System.Func<string,GameState> decode=raw=>System.Text.Json.JsonSerializer.Deserialize<GameState>(raw,options);
+            var peer=new NetworkGameStateAdapter();
+            var first=authority.Capture(s=>System.Text.Json.JsonSerializer.Serialize(s,options));
+            True(peer.Apply(first,decode,out _));var lastGood=peer.State;
+            sim.State.phoenixHand.Add(new PhoenixHandEntry{owner=0,maxHp=30,hp=5,shield=0,ready=false});
+            sim.State.phoenixHand.Add(new PhoenixHandEntry{owner=0,maxHp=30,hp=10,shield=0,ready=true});
+            var malformed=authority.Capture(s=>System.Text.Json.JsonSerializer.Serialize(s,options));
+            False(peer.Apply(malformed,decode,out _));
+            True(object.ReferenceEquals(lastGood,peer.State));
+            sim.State.phoenixHand.RemoveAt(1);
+            // Reuse the rejected revision in a repaired payload. This must be accepted
+            // because failed admission may not commit a revision or replace State.
+            var repaired=new SessionSnapshot{protocol=149,revision=malformed.revision,
+                stateJson=System.Text.Json.JsonSerializer.Serialize(sim.State,options)};
+            True(peer.Apply(repaired,decode,out _));
+            Eq(1,peer.State.phoenixHand.Count);
+            Eq(0,peer.State.phoenixHand[0].owner);
+            False(peer.Apply(malformed,decode,out _));
+            False(peer.Apply(first,decode,out _));
+        });
+        Test("R17 W15 A41 Phoenix duplicate owner is rejected even when entries are interleaved",()=>{
+            var sim=Sim();var authority=new NetworkGameSession(sim);
+            var options=new System.Text.Json.JsonSerializerOptions{IncludeFields=true};
+            System.Func<string,GameState> decode=raw=>System.Text.Json.JsonSerializer.Deserialize<GameState>(raw,options);
+            var peer=new NetworkGameStateAdapter();
+            True(peer.Apply(authority.Capture(s=>System.Text.Json.JsonSerializer.Serialize(s,options)),decode,out _));
+            foreach(var owners in new[]{new[]{0,1,0},new[]{1,0,1}})
+            {
+                var lastGood=peer.State;
+                sim.State.phoenixHand.Clear();
+                foreach(int owner in owners)
+                    sim.State.phoenixHand.Add(new PhoenixHandEntry{owner=owner,maxHp=30,hp=5,
+                        shield=0,ready=owner==1});
+                False(peer.Apply(authority.Capture(s=>System.Text.Json.JsonSerializer.Serialize(s,options)),decode,out _));
+                True(object.ReferenceEquals(lastGood,peer.State));
+                sim.State.phoenixHand.Clear();
+                sim.State.phoenixHand.Add(new PhoenixHandEntry{owner=0,maxHp=30,hp=0,shield=0});
+                sim.State.phoenixHand.Add(new PhoenixHandEntry{owner=1,maxHp=30,hp=5,shield=0,ready=true});
+                True(peer.Apply(authority.Capture(s=>System.Text.Json.JsonSerializer.Serialize(s,options)),decode,out _));
+                Eq(2,peer.State.phoenixHand.Count);
+                Eq(0,peer.State.phoenixHand[0].hp);
+                Eq(1,peer.State.phoenixHand[1].owner);
+            }
+        });
     }
 }
