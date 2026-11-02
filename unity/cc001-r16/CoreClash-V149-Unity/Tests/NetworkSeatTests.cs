@@ -326,5 +326,40 @@ public static partial class Program
             good.revision=9;
             True(adapter.Apply(good,decode,out _));
         });
+        Test("R17 W15 A70 Phoenix rejects duplicate owner0 without replacing valid dual-owner client state",()=>{
+            var sim=Sim();var host=new NetworkGameSession(sim);
+            var options=new System.Text.Json.JsonSerializerOptions{IncludeFields=true};
+            System.Func<string,GameState> decode=raw=>System.Text.Json.JsonSerializer.Deserialize<GameState>(raw,options);
+            var adapter=new NetworkGameStateAdapter();
+            sim.State.phoenixHand.Add(new PhoenixHandEntry{owner=0,maxHp=30,hp=5,shield=0});
+            sim.State.phoenixHand.Add(new PhoenixHandEntry{owner=1,maxHp=30,hp=0,shield=0});
+            True(adapter.Apply(host.Capture(s=>System.Text.Json.JsonSerializer.Serialize(s,options)),decode,out _));
+            Eq(2,adapter.State.phoenixHand.Count);
+            var lastGood=adapter.State;
+            sim.State.phoenixHand.Add(new PhoenixHandEntry{owner=0,maxHp=30,hp=10,shield=0});
+            False(adapter.Apply(host.Capture(s=>System.Text.Json.JsonSerializer.Serialize(s,options)),decode,out _));
+            True(object.ReferenceEquals(lastGood,adapter.State));
+            Eq(2,adapter.State.phoenixHand.Count);
+            sim.State.phoenixHand.RemoveAt(2);
+            True(adapter.Apply(host.Capture(s=>System.Text.Json.JsonSerializer.Serialize(s,options)),decode,out _));
+            Eq(2,adapter.State.phoenixHand.Count);
+            Eq(0,adapter.State.phoenixHand[0].owner);Eq(1,adapter.State.phoenixHand[1].owner);
+        });
+        Test("R17 W15 A70 Phoenix owner1 duplicate cannot consume revision and later repaired snapshot applies",()=>{
+            var sim=Sim();var host=new NetworkGameSession(sim);
+            var options=new System.Text.Json.JsonSerializerOptions{IncludeFields=true};
+            System.Func<string,GameState> decode=raw=>System.Text.Json.JsonSerializer.Deserialize<GameState>(raw,options);
+            var adapter=new NetworkGameStateAdapter();
+            True(adapter.Apply(host.Capture(s=>System.Text.Json.JsonSerializer.Serialize(s,options)),decode,out _));
+            var lastGood=adapter.State;
+            sim.State.phoenixHand.Add(new PhoenixHandEntry{owner=1,maxHp=30,hp=0,shield=0});
+            sim.State.phoenixHand.Add(new PhoenixHandEntry{owner=1,maxHp=30,hp=5,shield=0});
+            False(adapter.Apply(host.Capture(s=>System.Text.Json.JsonSerializer.Serialize(s,options)),decode,out _));
+            True(object.ReferenceEquals(lastGood,adapter.State));Eq(0,adapter.State.phoenixHand.Count);
+            sim.State.phoenixHand.RemoveAt(1);
+            True(adapter.Apply(host.Capture(s=>System.Text.Json.JsonSerializer.Serialize(s,options)),decode,out _));
+            Eq(1,adapter.State.phoenixHand.Count);Eq(1,adapter.State.phoenixHand[0].owner);
+            Eq(0,adapter.State.phoenixHand[0].hp);
+        });
     }
 }
