@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 2,
+  "gate": "A73_W13_GITHUB_TREE_UNION_REPINNED_A83",
+  "sourceType": "GitHub Git Data API, full recursive tree readback",
+  "frozenQaRef": "integration/cc001-r17-w11-qa-freeze-20261030",
+  "frozenQaSha": "3f972cdbaea6289a7e33ce608f5d3256cfdab0a3",
+  "frozenQaTree": "7fb8a89143f77aa22488d92af32efa35cd323332",
+  "inputBranches": [
+    {
+      "pr": 228,
+      "owner": "A41",
+      "sha": "72e57524ec4fe32e7a5e50141cc8204afb89c49f",
+      "tree": "a9074c486cbc6cc7a886ed53c4bae2dffca0b505"
+    },
+    {
+      "pr": 229,
+      "owner": "A83",
+      "sha": "cce672566b57e22402ba6793e038b076c178f3aa",
+      "tree": "156c0f177320522266fd5b272d2f2f72d84e9616"
+    }
+  ],
+  "unreferencedResultingTreeSha": "58c0404b092289fba9918472df347b577437ab7a",
+  "verifiedChangedBlobs": 11,
+  "verifiedChangedModes": "11/11 Git regular blob 100644",
+  "verifiedUnchangedBaseFileBlobs": 1751,
+  "baseFiles": 1758,
+  "resultFiles": 1762,
+  "unexpectedFiles": 0,
+  "missingOrMismatchedFiles": 0,
+  "gitMergeTreeOnActualPrivateClone": "NOT_RUN",
+  "nativeManagedDotnet": "NOT_RUN",
+  "unityWindowsBuild": "NOT_RUN",
+  "independentPhysicalPc1Pc2": "NOT_RUN",
+  "a70Selection": "NOT_GRANTED",
+  "authorization": "SOURCE_ONLY_PREVIEW",
+  "branchOrCommitIntegration": "NONE",
+  "finalW13Integration": "HOLD_W11",
+  "note": "PREVIOUS preview 8f2571... is stale following A83 #229 owner consolidation. This GitHub API union is a new unreferenced tree with exact eleven changed Git blobs and 1751 untouched frozen Git blobs, NOT Git merge-tree applied to private commit history, C# compilation or gameplay/network QA.",
+  "supersededPreviousPreview": {
+    "sha": "8f2571b1c7860d81ee3df035c06327d9e0e313ef",
+    "a83OldSha": "69d20ca863aa7f195a9b0a506032025a477ba68b",
+    "status": "STALE_SUPERSEDED_DO_NOT_INTEGRATE"
+  },
+  "newUnityAssetMeta": {
+    "path": "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/LocalSeatVisuals.cs.meta",
+    "guid": "8549b23cf7614e1381964eafb0ae0327",
+    "format": "fileFormatVersion: 2",
+    "companionAdded": true
+  },
+  "nativeNodeGitFixtureTests": "20/20 PASS, exit 0",
+  "managedCSharpTests": "AUTHORED_IN_OWNER_PR_NOT_RUN"
+}
