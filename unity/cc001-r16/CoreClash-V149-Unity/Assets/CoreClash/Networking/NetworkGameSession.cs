@@ -91,7 +91,7 @@ namespace CoreClash.Networking
                 !GameSimulation.Finite(s.actionDeadline)||!GameSimulation.Finite(s.settledTime)||
                 s.players==null||s.players.Length!=2||s.balls==null||s.structures==null||
                 s.zones==null||s.events==null||s.replayedIds==null||s.graveyard==null||
-                s.lineages==null||s.virulence==null)return false;
+                s.phoenixHand==null||s.lineages==null||s.virulence==null)return false;
             for(int i=0;i<2;i++)
             {
                 var p=s.players[i];
@@ -128,6 +128,13 @@ namespace CoreClash.Networking
                     z.radius<=0||z.inside==null)return false;
             foreach(var e in s.events)
                 if(e==null||string.IsNullOrEmpty(e.kind)||!Finite(e.x,e.y,e.atTime))return false;
+            // Phoenix entries are authoritative inventory, not untrusted optional UI.
+            // V148 one-hand-slot policy: each owner can have at most one live hand.
+            // Reject duplicate-owner input before replacing last-known-good state/revision.
+            var phoenixOwners=new HashSet<int>();
+            foreach(var hand in s.phoenixHand)
+                if(hand==null||hand.owner<0||hand.owner>1||!phoenixOwners.Add(hand.owner)||
+                    hand.maxHp<=0||hand.hp<0||hand.hp>hand.maxHp||hand.shield<0)return false;
             foreach(var g in s.graveyard)
                 if(g==null||g.owner<0||g.owner>1||string.IsNullOrEmpty(g.type)||!Finite(g.x,g.y))return false;
             foreach(var lineage in s.lineages)if(lineage==null)return false;

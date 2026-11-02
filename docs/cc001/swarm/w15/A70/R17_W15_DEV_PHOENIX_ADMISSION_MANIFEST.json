@@ -1,0 +1,69 @@
+{
+  "schema": "CC001-A70-W15-PHOENIX-ADMISSION-1",
+  "project": "CC-001 Core Clash",
+  "wave": "R17-W15",
+  "role": "A70 Integration/Release",
+  "status": "ISOLATED_DEV_CODE_TESTS_AUTHORED_NOT_COMPILED",
+  "protected": {
+    "w11QaFreeze": "3f972cdbaea6289a7e33ce608f5d3256cfdab0a3",
+    "w11Ref": "integration/cc001-r17-w11-qa-freeze-20261030",
+    "rc1": "10f64e4d213f17a352ed8fa83bc75884a39549f0",
+    "inW11Build": false
+  },
+  "dependency": {
+    "selectedDevPr": 266,
+    "selectedDevParent": "8b3d62ac2a2cacfa62d44b6888ac9b046e8788c1",
+    "devTestStagePr": 239,
+    "devTestStageSha": "9f6b217a7b52e8415ec907772577f95598cbc6b3",
+    "historicalDevPr": 207,
+    "originalAuthorPr": 258,
+    "a72BuildPr": 188,
+    "a72BuildHead": "aa6e047cd7661961978fedcc91ff14dfc29a02f4",
+    "a72GeneratedReportFixPr": 262
+  },
+  "codeCommit": "61bd969cf9b659c60920e37df133982350f0be35",
+  "files": [
+    {
+      "path": "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Networking/NetworkGameSession.cs",
+      "gitBlob": "ef08da80c7b86277146d0906fc112e904141a000",
+      "change": "one-hand-per-owner snapshot admission guard, reject before revision state write"
+    },
+    {
+      "path": "unity/cc001-r16/CoreClash-V149-Unity/Tests/NetworkSeatTests.cs",
+      "gitBlob": "a814bb445bd197e9b1b2c489f4b6540eb0b34d3f",
+      "change": "two C# regression tests: reject duplicate owner0/owner1, accept healthy dual-owner and repaired snapshot"
+    }
+  ],
+  "evidence": {
+    "sourceGitCompare": {
+      "ahead": 2,
+      "behind": 0,
+      "changedPaths": 2,
+      "allExpected": true
+    },
+    "sourcePredicates": {
+      "checked": 8,
+      "passed": 8,
+      "nature": "GitHub source-readback structural checks only"
+    },
+    "csharpNewTestDefinitions": 2,
+    "csharpTestRun": "NOT_RUN",
+    "dotnet9": "NOT_RUN",
+    "unityWindowsPlayer": "NOT_BUILT",
+    "physicalPc1Pc2": "NOT_RUN",
+    "g3": "HOLD",
+    "g4": "HOLD",
+    "finalIntegration": "BLOCKED_UNTIL_W11_CLOSED"
+  },
+  "buildCommands": [
+    "dotnet run --project unity/cc001-r16/CoreClash-V149-Unity/Tests/CoreClash.Tests.csproj --configuration Release -- unity/cc001-r16/CoreClash-V149-Unity"
+  ],
+  "ownerDecisions": {
+    "mitosis": "V148 exact",
+    "furnace": "FIRE zone with periodic damage only",
+    "hp": "unchanged R16"
+  },
+  "noMergeToMain": true,
+  "noRelease": true,
+  "noProtectedSourceMutations": true
+}
