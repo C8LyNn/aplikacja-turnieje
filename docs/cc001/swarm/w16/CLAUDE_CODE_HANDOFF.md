@@ -1,77 +1,99 @@
-# CC-001 — W16 / PRZEKAZANIE PROGRAMOWANIA DO CLAUDE CODE
+# CC-001 / W16 — CLAUDE CODE: OCENA CORE CLASH PRZED PROGRAMOWANIEM
 
-**Data:** 2026-11-02. **Zadanie GitHub:** [#280](https://github.com/C8LyNn/aplikacja-turnieje/issues/280). **HQ:** [#97](https://github.com/C8LyNn/aplikacja-turnieje/issues/97).
-**Status:** INSTRUCTIONS READY; Claude has **not** been launched by this document; no native build or QA result is implied.
+**Data:** 2026-11-02. **Źródło dyspozycji:** właściciel Core Clash chce najpierw zobaczyć **niezależną, rzetelną ocenę gry przez Claude**, zanim zleci mu implementację.
 
-## 1. Czego dotyczy projekt
+**Nadrzędne zadanie:** [GitHub #280 — REVIEW FIRST](https://github.com/C8LyNn/aplikacja-turnieje/issues/280). **HQ:** [#97](https://github.com/C8LyNn/aplikacja-turnieje/issues/97). **Instrukcja Claude:** [CLAUDE.md](../../../CLAUDE.md).
 
-**Gra:** Core Clash — fizyczna, turowa gra o wystrzeliwaniu kulek, mechanikach specjalnych, talii i zdobywaniu przewagi nad bazą przeciwnika. Unity 6 URP, rozgrywka lokalna i multiplayer PC1(host)/PC2(klient). Główne zaobserwowane problemy wcześniejszego testu: opóźnione/skaczące kulki P2, błędny komunikat tury, perspektywa P2, celowanie i zbędne paski siły. Kod poprawiono w gałęziach rozwojowych; **nie ma jeszcze potwierdzonego natywnego G3 PASS na dwóch fizycznych komputerach.**
+**Status:** PHASE 1 NOT EXECUTED. Przygotowanie dokumentu **nie oznacza**, że Claude zagrał, przeprowadził audyt lub uruchomił testy.
 
-Repozytorium `https://github.com/C8LyNn/aplikacja-turnieje` zawiera również **INNY projekt — aplikację turniejową**. Nie dotykaj jej. Pracuj wyłącznie w:
-- `unity/cc001-r16/CoreClash-V149-Unity/` — gra i testy;
-- `scripts/cc001/` i `docs/cc001/` — narzędzia/raporty tego projektu.
+## A. Gra i kontekst
 
-Architektura: `Assets/CoreClash/Core` — gameplay/stan, `Physics` — kolizje, `Networking` — replikacja/komendy, `Presentation` — UI/kamera/renderer, `Tests` — managed .NET9. Czytaj kod źródłowy przed zmianą. Historyczne README R16 nie certyfikuje W11–W15.
+**Core Clash** to fizyczna turowa gra arenowa: gracze konstruują/wybierają talie 9 specjalnych kulek plus zwykłą kulkę Standard, wystrzeliwują kulki, wykorzystują kolizje/umiejętności, statusy i Replay, rywalizują o bazy. Istnieją lokalny i sieciowy tryb gry (PC1 host, PC2 klient); port do Unity nie jest równoważny ukończonej pełnej grze.
 
-## 2. Stan źródeł i role (traktuj dokładne SHA jako klucz)
+**Repo:** `C8LyNn/aplikacja-turnieje`, UWAGA: repo zawiera też aplikację turniejową, **całkowicie poza zadaniem Claude**.
+**Właściwy projekt:** `unity/cc001-r16/CoreClash-V149-Unity/`. **Unity:** 6000.4.0f1, URP.
+**Źródła kodu:** `Assets/CoreClash/` (Core / Physics / Networking / Presentation), `Tests/`; dane katalogu `Assets/Resources/Data/`, skrypty pomocnicze `scripts/cc001/`.
 
-| Element | Dokładna podstawa | Uprawnienia |
+**Koniecznie sprawdź:**
+- `README.md`, `HANDOFF_R16_README.md`, `MIGRATION_STATUS.md`, `FEATURED_DECK_PORT_STATUS.md`, `NETWORKING_STATUS.md`;
+- `docs/R16_REPORT_PL.md`, `docs/R16_QA_PL.md`, rejestry `Evidence/R16/`, katalog i faktyczne implementacje zdolności;
+- aktualne issue/PR A10 (game design), A20/A21 (UX/tutorial), A30/A31/A41 (network), A34 (render), A40/A50 (gameplay), A60 (QA), A70 (integracja), A72 (build);
+- źródła i diffs w nowych rozwojowych [PR #207](https://github.com/C8LyNn/aplikacja-turnieje/pull/207) i [PR #266](https://github.com/C8LyNn/aplikacja-turnieje/pull/266), **bez utożsamiania ich z QA freeze**.
+
+## B. Jakie wersje oceniasz?
+
+| Stan | Źródło | Wnioski |
 |---|---|---|
-| **QA freeze W11** | `integration/cc001-r17-w11-qa-freeze-20261030` = `3f972cdbaea6289a7e33ce608f5d3256cfdab0a3` | READ/BUILD only; NIE commituj |
-| **Bazowy A72 build kit** | [Draft PR #188](https://github.com/C8LyNn/aplikacja-turnieje/pull/188) = `aa6e047cd7661961978fedcc91ff14dfc29a02f4` przy przygotowaniu handoff | Własne gałęzie Claude; A72 wybiera poprawki |
-| **Claude onboarding** | `feat/cc001-r17-w16-claude-handoff-20261102` utworzona Z #188 | Dokumentacja i punkt startowy; brak merge |
-| **Rozwój po-frozen** | [#207](https://github.com/C8LyNn/aplikacja-turnieje/pull/207), [#266](https://github.com/C8LyNn/aplikacja-turnieje/pull/266), późniejsze W15 | Oddzielne DEV; ich SHA może się zmieniać. NIE używać jako W11 build |
-| **Oryginały** | RC1 `10f64e4d213f17a352ed8fa83bc75884a39549f0`, V148, R16, Protocol149 | CHRONIONE |
+| R16 / podstawowa migracja | dokumenty R16 + kod | Historyczne wyniki; nie udowadniają W11 |
+| Oficjalny zamrożony QA W11 | `integration/cc001-r17-w11-qa-freeze-20261030` SHA **`3f972cdbaea6289a7e33ce608f5d3256cfdab0a3`** | Pinned source, nie wolno modyfikować |
+| Rozwój po-freeze | osobne Draft PR #207, #266 i W12–W15 | Nowsze opcjonalne zmiany; mogą nie być zintegrowane, nie można im przypisać G3 na podstawie starego builda |
 
-**Decyzje twórcy:** Mitosis = oryginalna semantyka V148 (nie rozdzielać na ścianie); Furnace = wyłącznie strefa FIRE + okresowe obrażenia, bez oddzielnego natychmiastowego pakietu obrażeń; HP = wartości R16. Nie zmieniaj balansu ani chronionego katalogu.
+Każda obserwacja i wskazany bug ma podawać wersję/commit, aby odróżnić defekt obecnego źródła od już naprawionego problemu starszej wersji.
 
-**Integracja/recenzja:** A70 [#137](https://github.com/C8LyNn/aplikacja-turnieje/issues/137); budowanie: A72 [#113](https://github.com/C8LyNn/aplikacja-turnieje/issues/113); niezależny QA: A60 [#139](https://github.com/C8LyNn/aplikacja-turnieje/issues/139) + A31 [#94](https://github.com/C8LyNn/aplikacja-turnieje/issues/94). Claude nie zastępuje roli release owner i nie może sam sobie zatwierdzić G3.
+**Odnotowane wcześniej problemy dwóch PC:** ruch kulek P2 skacze/teleportuje, komunikaty tur nie są lokalne, P2 celowanie i perspektywa, zbędny pasek siły. **Nie przyjmuj automatycznie, że wszystkie problemy nadal są obecne albo zostały naprawione.** Potwierdź w kodzie, a obserwacje wymagające runtime oznacz `NOT_YET_OBSERVED`.
 
-## 3. Pierwsze zadanie Claude — P0 / Windows native build, a nie kolejny audyt
+## C. Oceniaj grę w 7 wymiarach
 
-### Bezpieczny start na PC1 (Windows PowerShell, użytkownik wykonuje raz, Claude dalej steruje w swoim repo)
+1. **Gameplay i pomysł:** czy gra oferuje rozpoznawalną, ciekawą pętlę; znaczenie strategii vs przypadek, emocje związane z kolizjami i ustawieniem kulek; czy decyzje są czytelne.
+2. **Mechaniki, talie i balans:** rzeczywiste możliwości kul specjalnych; 9-slotowa talia, Standard i Replay; statusy, kontrola planszy, kontrgry, snowball, tempo do końca meczu; uczciwie oddziel implementowane efekty od `UNITY_READY/PARTIAL/DATA_ONLY/NOT_PORTED`.
+3. **Sterowanie, fizyka i game feel:** czy trajektoria/siła/odbicia są przewidywalne, feedback czytelny, kamera adekwatna; przy fizycznym uruchomieniu oceń też pacing, opóźnienia, animacje.
+4. **UX / onboarding / accessibility:** pierwszy mecz, opis umiejętności, tryb buildowania talii, tura, kolory/oznaczenia obu graczy, wykrywanie legalnych działań, czytelność na desktopie i telefonie, prowadzenie w tutorialu.
+5. **Multiplayer:** własność tury P1/P2, autorytet hosta, przyjmowanie komend, repikacja/stale snapshots, render smoothing, realny teleport vs skok animacji, reconnect; rozdziel kod i wynik QA.
+6. **Jakość techniczna:** architektura, granice systemów, obszary ryzyka, rozsądne zarządzanie stanem, testy, utrzymanie, prawdziwy build Windows i bezpieczeństwo integracji; zaznacz braki dowodów.
+7. **Potencjał projektu / MVP:** odbiorca docelowy, wyróżniki, co musi działać w grywalnym demo, co warto odłożyć; jak zwiększyć jakość dla gracza najmniejszym realnym nakładem.
 
-```powershell
-git clone --branch feat/cc001-r17-w16-claude-handoff-20261102 https://github.com/C8LyNn/aplikacja-turnieje.git
-cd aplikacja-turnieje
-git switch -c claude/cc001-w16-pc1-build
-git status --short
-git rev-parse HEAD
-claude
-```
+Zbierz **3–5 mocnych stron** i **5–10 najważniejszych problemów**. Każdy problem powinien zawierać **wpływ na gracza** (nie tylko programistę), dowód, ocenę pilności P0/P1/P2, trudność S/M/L, krótką propozycję naprawy lub testu, warunki akceptacji i znane zależności.
 
-Jeśli repo już sklonowano: `git fetch origin`, utwórz **osobny worktree/branch** z handoff, nie resetuj zmian roboczych. Nie uruchamiaj Claude na `main` lub na frozen QA. Claude Code może czytać repo w całości, ale uprawnienia do modyfikacji ogranicz do CC-001.
+## D. Rzeczywisty playtest, jeśli wykonalny
 
-### Środowisko do rzeczywistego uruchomienia
-- Windows 11; Unity **6000.4.0f1** z Windows Standalone Build Support i aktywną licencją;
-- .NET SDK **9**, Node.js **22**, Git + uprawniony dostęp do repo;
-- sprawdź, czy Unity Editor nie jest już używany przez inny proces / rój; nie wykonuj dwóch konkurencyjnych buildów z tego samego projektu.
+Możesz obejrzeć działający Player / Unity Editor, **jeśli bezpiecznie jest dostępny bez modyfikowania chronionych źródeł, automatycznego instalowania zależności czy nieautoryzowanego nadpisania builda**. Minimum:
+1. Rozpoczęcie lokalnego meczu i wybranie talii P1/P2.
+2. Zwykła kulka Standard, wycelowanie, strzał, kontakt z inną kulką/ścianą i tura.
+3. Replay + kilka specjalnych umiejętności o różnych skutkach.
+4. Inspekcja kulek, komunikaty statusów, feedback HP i warunków zwycięstwa.
+5. Ocenę multiplayera PC1–PC2 wykonuj **osobno** tylko na autentycznym binarnym zestawie o jawnej wersji/SHA; brak takiego Playera to `NOT_RUN`, nie `PASS`.
 
-**Claude:** najpierw odczytaj `scripts/cc001/w10/a72/README_W11.md` i `README_W11_PR207.md`; sprawdź istniejące skrypty i ich parametry `--check`/ `--self-test`; potem uruchom je zgodnie z dokumentacją; następnie:
+**Nie ma obowiązku przygotowania nowego Windows builda w tej fazie.** Jeśli runtime niedostępny, zakończ pełną ocenę source + dokumentacji, wyraźnie oznacz jej ograniczenia i podaj krótki plan właściwego przyszłego playtestu.
 
-```cmd
-scripts\cc001\w10\a72\URUCHOM_W11_PR207.cmd
-```
+## E. Jak dokumentować dowody
 
-**Uwaga:** nazwa pliku zawiera `PR207` historycznie, ale aktualny kit ma wymagać **frozen SHA `3f972...`**, nie aktualnego HEAD #207. Skontroluj pin przed uruchomieniem. Nie omijaj fail-closed walidacji branch/SHA.
+Używaj etykiet:
+- `OBSERVED_RUNTIME` — własne rzeczywiste działanie na uruchomionej grze, z dokładną wersją.
+- `VERIFIED_SOURCE` — konkretny kod/funkcja/file SHA, ale nie uruchomienie.
+- `HISTORICAL_REPORT` — wcześniejszy raport innego agenta, nie własne potwierdzenie.
+- `HYPOTHESIS` — prawdopodobny problem, wymagający eksperymentu.
+- `NOT_RUN / NOT_VERIFIED` — brak dowodu.
 
-### Defekty, które już naprawiano i których nie należy implementować drugi raz
-- Zagnieżdżone ścieżki Windows Playera, w tym `CoreClash_Data/Managed/Assembly-CSharp.dll`, wymagają manifestu względem **jednego katalogu głównego Playera**.
-- Test .NET9 musi **wytworzyć świeży** raport; historyczny `Evidence/unity-tests.json`/R16 nie jest nowym PASS.
-- Unity może legalnie wygenerować dwa śledzone JSON-y `Evidence/R16/Unity/build-StandaloneWindows64.json` i `Evidence/R16/Unity/unity-smoke.json`; #262 wprowadzono do kanonicznego #188, nie pozwalaj na arbitralne zmiany innych ścieżek.
-- Pakiet Windows musi zawierać **niepuste EXE i DLL** oraz cały katalog Playera i komplet SHA256.
+Raportuj konkretny path/funkcję/warunek, nie ogólnikowe „podobno”. Wyróżnij ryzyka wynikające z braku native QA, ale **nie zastępuj recenzji gry recenzją procesu GitHub**.
 
-**Pierwsza czynność:** spróbuj rzeczywistego builda. Jeśli środowisko blokuje, zwróć dokładnie brakujący prerekwizyt i realny `stderr/exit`; nie pisz zastępczych narzędzi bez uzasadnionego błędu. Jeśli istnieje błąd w kit: jedno minimalne naprawienie + realny test RED→GREEN + Draft PR do A72, bez naruszania frozen source.
+## F. Co oddajesz?
 
-## 4. Odbiór A60/A31 (osobny fizyczny G3, nie zadanie do automatycznego uznania przez Claude)
-- Przekaż **prywatnie** oryginalne Player/ZIP i testy, pełny manifest `ścieżka, rozmiar, SHA256`, EXE i Assembly-CSharp.dll, Unity/.NET exit+logi, `testedAt`, manifest ZIP+SHA.
-- Na PC1 i PC2 niezależnie sprawdź SHA **wszystkich plików**; połącz się przez prywatny LAN.
-- Przetestuj legalny ruch P2 dokładnie jeden raz po stronie hosta, sekwencję tur, własność talii, celowanie, akcję i `actionSerial`, zgodność stanów i rewizji, płynny zwykły ruch, **PORTAL**.
-- Frozen W11 nie zawiera późniejszego telemetrycznego `CC_W11_STATE_TX/RX` ani po-frozen specyficznego snapa `TELEPORT/SWAP`; ich nieobecność oznacz `NOT_IN_SOURCE / HOLD_UNINSTRUMENTED`, nie sztuczne PASS/FAIL.
-- G3/G4 pozostają HOLD dopóki A60 nie dostarczy fizycznych dowodów i A70 nie zamknie bramki.
+**Raport po polsku** opublikowany jako komentarz do [Issue #280](https://github.com/C8LyNn/aplikacja-turnieje/issues/280), z krótkim podsumowaniem i linkiem do HQ #97. W raporcie:
 
-## 5. Kiedy Claude zaczyna programować dalsze mechaniki?
+- **1. Executive summary:** na ile gra jest interesująca, grywalna i gotowa do testów; uzasadnij z poziomem pewności.
+- **2. Mocne strony:** 3–5 rzeczy do zachowania.
+- **3. Słabe strony:** realne lub prawdopodobne, z dowodem i wpływem na gracza.
+- **4. Mechaniki i balans:** co działa, co tylko istnieje jako dane, co wymaga decyzji projektowej.
+- **5. UX / sterowanie / tutorial.**
+- **6. Multiplayer i techniczna gotowość.**
+- **7. Tablica priorytetów:** `P0/P1/P2 | problem | dowód | efekt dla gracza | rozwiązanie | S/M/L | AC`.
+- **8. 3 pierwsze zadania programistyczne dla Claude:** proponowane, NIE uruchamiane automatycznie.
+- **9. Pytania do właściciela:** tylko kwestie game designu, w których decyzja rzeczywiście zmienia kierunek.
+- **10. Zakres wykonanej oceny:** dokładne SHAs, lista odczytanych kluczowych źródeł, co zaobserwowano w grze vs czego nie uruchomiono.
 
-**Po P0 native** A70 wskazuje konkretne odrębne DEV SHA i problem. Kandydat: walidacja Phoenix w nowszym [PR #266](https://github.com/C8LyNn/aplikacja-turnieje/pull/266) oraz testy dwóch graczy; to *nie* część frozen W11. Pozostałe W12–W15 PR-y mają wiele nakładających się implementacji; wybierz jedną wraz z A70. Stosuj małe PR-y, ownership per plik i testy odtwarzające błąd. Bez implementowania niezatwierdzonych zmian projektowych.
+Po przekazaniu raportu **STOP** i oczekuj na decyzję właściciela, co implementować. Nie zmieniaj gry w tej fazie.
 
-**Raport do HQ i #280** po każdej paczce: rola, dokładny SHA, bazowy SHA, PR, zmienione pliki, komendy i realne exit/logi, `DESIGNED / IMPLEMENTED / TESTED / QA_ACCEPTED / READY_FOR_INTEGRATOR / INTEGRATED / RELEASED`, co realnie blokuje kolejną czynność. Nie publikuj prywatnych artefaktów do publicznego repozytorium.
+## G. Ograniczenia, które nadal obowiązują
+
+- **Mitosis:** dokładna semantyka V148, bez nieautoryzowanego dzielenia od ścian/przeszkód.
+- **Furnace:** jedna strefa ognia i okresowe FIRE DoT, **bez nowego bezpośredniego pakietu obrażeń**.
+- **HP:** wartości katalogu R16 bez zmian.
+- Źródła V148, R16, RC1 `10f64e4d213f17a352ed8fa83bc75884a39549f0`, Protocol149, frozen QA, `main` i release są chronione.
+- Nie dotykaj innego projektu w repozytorium. Repo jest publiczne: nie publikuj prywatnych logów, IP, kont, tokenów ani surowych EXE/DLL.
+- Role roju: A70 integruje, A72 buduje, A60/A31 niezależnie testują. Claude może zostać wykonawcą programistycznym w FAZIE 2, po akceptacji priorytetów. Nie używaj `git reset --hard`, force-push ani merge bez wyraźnej zgody.
+
+## H. FAZA 2 — poprzedni plan odłożony, nie anulowany
+
+Po otrzymaniu oceny właściciel może zaakceptować zadania. Jednym z istotnych otwartych problemów nadal jest natywny Windows QA z kanonicznego zestawu A72 [#188](https://github.com/C8LyNn/aplikacja-turnieje/pull/188), źródło frozen `3f972...`, na Windows 11 z Unity **6000.4.0f1**, Windows Build Support/licencją, Node22 i .NET9. Historyczny launcher to `scripts/cc001/w10/a72/URUCHOM_W11_PR207.cmd` (mimo nazwy buduje frozen, nie moving PR #207). Testy A60/A31 na dwóch prawdziwych komputerach pozostają oddzielną bramką. Nie wykonuj tego automatycznie w FAZIE 1.
+
+**Stan startowy:** `W16_REVIEW_NOT_YET_RUN`; `NATIVE_W11_BUILD_NOT_ATTESTED`; `PHYSICAL_PC1_PC2_QA_HOLD`. Dokument nie jest certyfikatem funkcjonalności gry.
