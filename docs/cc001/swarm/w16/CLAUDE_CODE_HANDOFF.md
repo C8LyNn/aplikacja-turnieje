@@ -2,7 +2,7 @@
 
 **Data:** 2026-11-02. **Źródło dyspozycji:** właściciel Core Clash chce najpierw zobaczyć **niezależną, rzetelną ocenę gry przez Claude**, zanim zleci mu implementację.
 
-**Nadrzędne zadanie:** [GitHub #280 — REVIEW FIRST](https://github.com/C8LyNn/aplikacja-turnieje/issues/280). **HQ:** [#97](https://github.com/C8LyNn/aplikacja-turnieje/issues/97). **Instrukcja Claude:** [CLAUDE.md](../../../CLAUDE.md).
+**Nadrzędne zadanie:** [GitHub #280 — REVIEW FIRST](https://github.com/C8LyNn/aplikacja-turnieje/issues/280). **HQ:** [#97](https://github.com/C8LyNn/aplikacja-turnieje/issues/97). **Instrukcja Claude:** [CLAUDE.md](../../../../CLAUDE.md).
 
 **Status:** PHASE 1 NOT EXECUTED. Przygotowanie dokumentu **nie oznacza**, że Claude zagrał, przeprowadził audyt lub uruchomił testy.
 
