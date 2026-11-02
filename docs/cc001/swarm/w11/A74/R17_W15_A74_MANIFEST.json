@@ -1,5 +1,17 @@
 {
   "actualExecution": {
+    "a44ProducerToA74Gate": {
+      "category": "JSON_CREDENTIAL_FIELD",
+      "cliExitCode": 3,
+      "gateGitBlob": "b057e10aec9dbefd38c6e07e561ff3c2ed59844c",
+      "input": "two distinct synthetic raw host/client log files",
+      "outputSha256": "7ce576b9b6db0d2c19a2a13eda910cf9fcc8e0e788d4e4c7735e015061db2eaf",
+      "privateValuePrinted": false,
+      "producerGitBlob": "8453b2fe55d1d1ddb5da1acfa35ced92b1e8f63f",
+      "rawInputsUnchanged": true,
+      "result": "FAIL_SENSITIVE_PATTERN",
+      "runtime": "native Node22.16.0"
+    },
     "command": "node --test docs/cc001/swarm/w11/A74/evidence-gate.w15-json-credentials.test.cjs",
     "environment": "Linux Node v22.16.0",
     "exitCode": 0,
