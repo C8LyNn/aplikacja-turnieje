@@ -44,11 +44,9 @@ namespace CoreClash.Presentation
             if(state.phase==MatchPhase.Over)Draw.Text(new Rect(0,y+27,w,40),state.resultReason,12,Draw.Muted);
             else if(boardInspection)Draw.Text(new Rect(0,y+27,w,38),"Inspect either player's ball. Cancel to resume aiming.",12,Draw.Muted);
             else if(notice.Length>0&&CanChoose)Draw.Text(new Rect(0,y+27,w,35),notice,12,Draw.Muted);
-            else Draw.Text(new Rect(0,y+27,w,38),SecondaryMatchHelp.Text(state,
+            else Draw.Text(new Rect(0,y+27,w,38),SecondaryMatchHelp.ForLocal(Simulation,
                 NetworkLink==null?-1:NetworkLink.LocalOwner,NetworkLink!=null,
-                NetworkLink==null||NetworkLink.IsConnected,
-                CanChoose&&SecondaryMatchHelp.ReplayReady(Simulation),
-                CanChoose?SecondaryMatchHelp.ReplayBlockedReason(Simulation):null),12,Draw.Muted);
+                NetworkLink==null||NetworkLink.IsConnected),12,Draw.Muted);
             GUI.EndScrollView();
         }
         // Compact phone landscape does not use the 810-unit desktop scroll view.
