@@ -16,8 +16,8 @@ namespace CoreClash.Presentation
 
         static Vector2 Point(Rect board,float x,float y)
         {
-            x=MatchPerspective.ViewX(x,viewOwner);y=MatchPerspective.ViewY(y,viewOwner);
-            return new Vector2(board.x+x*board.width/540,board.y+y*board.width/540);
+            var p=BoardSpace.ToView(x,y,viewOwner,board.x,board.y,board.width);
+            return new Vector2(p.x,p.y);
         }
         static Rect Box(Rect board,float x,float y,float width,float height)
         {
@@ -219,37 +219,28 @@ namespace CoreClash.Presentation
             Vector2 origin=Point(board,aim.OriginX,aim.OriginY);
             float clampedAimX=Mathf.Clamp(aim.AimX,Left,Right),clampedAimY=Mathf.Clamp(aim.AimY,Top,Bottom);
             Vector2 finger=Point(board,clampedAimX,clampedAimY);
-            var drag = new Vector2(aim.AimX - aim.OriginX, aim.AimY - aim.OriginY);
-            float distance = drag.magnitude;
-            if (!GameSimulation.Finite(distance)) return;
-            bool ready = distance >= 18;
+            // W17-02 (#284): one pure world-space preview (AimGuide.Preview) shared
+            // with the managed tests; it starts at the authoritative launcher or
+            // Replay origin and uses the same direction rules as TryCommand.
+            bool fromLauncher=AimGuide.IsLauncherOrigin(aim.OriginX,aim.OriginY,state.turn);
+            var replay=fromLauncher?null:state.balls.FirstOrDefault(b=>!b.dead&&Mathf.Abs(b.x-aim.OriginX)<.1f&&Mathf.Abs(b.y-aim.OriginY)<.1f);
+            var preview=AimGuide.Preview(aim.OriginX,aim.OriginY,aim.AimX,aim.AimY,state.turn,fromLauncher?(selected?.radius??17):(replay?.radius??17));
+            if (!GameSimulation.Finite(preview.Distance)) return;
             Color team = Draw.Owner(state.turn);
-            Color vector = ready ? Color.Lerp(team, Color.white, .36f) : Alpha(team, .42f);
+            Color vector = preview.Ready ? Color.Lerp(team, Color.white, .36f) : Alpha(team, .42f);
             Ring(origin, 30 * scale, Alpha(team, .7f), Mathf.Max(1, 1.7f * scale));
 
-            if (distance > 1)
+            if (preview.Distance > 1)
             {
-                Vector2 direction = drag / distance;
-                float launcherY = state.turn == 0 ? 853 : 47;
-                bool fromLauncher = Mathf.Abs(aim.OriginX - 270) < .1f && Mathf.Abs(aim.OriginY - launcherY) < .1f;
-                if (fromLauncher)
-                {
-                    // Match the existing spawn command's forward-facing angle limit.
-                    float angle = Mathf.Atan2(drag.x, state.turn == 0 ? -drag.y : drag.y);
-                    angle = Mathf.Clamp(angle, -1.53589f, 1.53589f);
-                    direction = new Vector2(Mathf.Sin(angle), Mathf.Cos(angle) * (state.turn == 0 ? -1 : 1));
-                }
-                float previewLength = 38 + Mathf.Min(distance, 590 / 3.38f) * 1.28f;
-                var replay=state.balls.FirstOrDefault(b=>!b.dead&&Mathf.Abs(b.x-aim.OriginX)<.1f&&Mathf.Abs(b.y-aim.OriginY)<.1f);
-                var path=AimGuide.Trace(aim.OriginX,aim.OriginY,direction.x,direction.y,fromLauncher?(selected?.radius??17):(replay?.radius??17),previewLength);
-                if(path.Length<2)return;
+                var path=preview.Path;
+                if(!preview.Valid)return;
                 for(int i=1;i<path.Length;i++){
                     var from=Point(board,path[i-1].x,path[i-1].y);var to=Point(board,path[i].x,path[i].y);
                     AimStroke(from,to,Alpha(team,i==1?.13f:.07f),Mathf.Max(2,7*scale),7*scale,1*scale);
                     AimStroke(from,to,i==1?vector:Alpha(vector,.5f),Mathf.Max(1,2*scale),i==1?7*scale:4*scale,7*scale);
                     if(i==1&&path.Length>2)Ring(to,6*scale,Alpha(vector,.8f),Mathf.Max(1,scale));
                 }
-                Vector2 tip=Point(board,path[path.Length-1].x,path[path.Length-1].y),last=Point(board,path[path.Length-2].x,path[path.Length-2].y);direction=(tip-last).normalized;
+                Vector2 tip=Point(board,path[path.Length-1].x,path[path.Length-1].y),last=Point(board,path[path.Length-2].x,path[path.Length-2].y);Vector2 direction=(tip-last).normalized;
                 Vector2 wing = new Vector2(-direction.y, direction.x);
                 AimStroke(tip-direction*11*scale+wing*6*scale,tip,vector,Mathf.Max(1,2.2f*scale));
                 AimStroke(tip-direction*11*scale-wing*6*scale,tip,vector,Mathf.Max(1,2.2f*scale));
@@ -318,16 +309,8 @@ namespace CoreClash.Presentation
         // Aim-only stroke: field-local coordinates, no GUI.matrix rotation.
         static void AimStroke(Vector2 start,Vector2 end,Color color,float width,float dash=0,float gap=0)
         {
-            Vector2 delta=end-start;float length=delta.magnitude;
-            if(!GameSimulation.Finite(length)||length<.01f||width<=0)return;
-            int samples=Mathf.Clamp(Mathf.CeilToInt(length/Mathf.Max(2f,width*.8f)),1,256);
-            float period=dash+gap;
-            for(int i=0;i<=samples;i++){
-                float t=i/(float)samples,along=length*t;
-                if(dash>0&&period>0&&along%period>dash)continue;
-                Vector2 p=start+delta*t;
+            foreach(var p in AimGuide.StrokeStamps(new AimPoint(start.x,start.y),new AimPoint(end.x,end.y),width,dash,gap))
                 Draw.Circle(new Rect(p.x-width*.5f,p.y-width*.5f,width,width),color);
-            }
         }
 
         static void DashedLine(Vector2 start, Vector2 end, Color color, float width, float dash, float gap)
