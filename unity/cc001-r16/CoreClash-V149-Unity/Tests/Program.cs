@@ -34,6 +34,7 @@ public static partial class Program
         ExtraTests();
         LocalDeckContentTests();
         RemoteBallSmootherTests();
+        RemoteVisualPacingTelemetryTests();
         NetworkSeatTests();
         OnlineSessionTests();
         DeviceTests();

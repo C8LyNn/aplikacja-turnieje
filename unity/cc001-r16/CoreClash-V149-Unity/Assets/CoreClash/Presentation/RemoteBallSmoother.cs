@@ -49,11 +49,14 @@ namespace CoreClash.Presentation
         float lastPacket;
         bool hasPacket;
         public int TrackedCount=>poses.Count;
+        // Last admitted Moving snapshot's interpolation interval (read-only diagnostic).
+        public float LastBlendSeconds {get;private set;}
 
         public void Reset()
         {
             poses.Clear();active.Clear();stale.Clear();
             hasPacket=false;action=lastFrame=0;lastPacket=0;lastSnapshotRevision=-1;
+            LastBlendSeconds=0f;
         }
         static bool Finite(float v)=>!float.IsNaN(v)&&!float.IsInfinity(v);
         static void Position(Pose p,float now,out float x,out float y)
@@ -75,6 +78,9 @@ namespace CoreClash.Presentation
             float duration=hasPacket?Math.Max(.05f,Math.Min(MaxDuration,now-lastPacket)):0;
             if(snap)poses.Clear();
             active.Clear();
+            // A34 W14: a received snapshot may have only stationary/spawned/
+            // instantly teleported balls, i.e. no active visual interpolation.
+            bool anyVisualBlend=false;
             foreach(var ball in state.balls)
             {
                 if(ball==null||ball.id<=0||ball.dead||ball.banished||!Finite(ball.x)||!Finite(ball.y))continue;
@@ -106,7 +112,11 @@ namespace CoreClash.Presentation
                     // Warp, teleport, packet gap: never smooth through unrelated geometry.
                     x=ball.x;y=ball.y;pose.duration=0;
                 }
-                else pose.duration=duration;
+                else
+                {
+                    pose.duration=duration;
+                    if(duration>0f&&(dx!=0f||dy!=0f))anyVisualBlend=true;
+                }
                 pose.fromX=x;pose.fromY=y;
                 pose.toX=ball.x;pose.toY=ball.y;pose.start=now;
             }
@@ -115,6 +125,10 @@ namespace CoreClash.Presentation
             foreach(var id in stale)poses.Remove(id);
             action=state.actionSerial;lastFrame=state.frame;
             lastPacket=now;hasPacket=true;
+            // Report actual interpolating tracks only: normal movement may blend,
+            // but fresh PORTAL/TELEPORT/SWAP, identity changes, zero displacement
+            // and fresh-spawn tracks must not fabricate time spent animating.
+            LastBlendSeconds=anyVisualBlend?duration:0f;
             if(snapshotRevision>=0)lastSnapshotRevision=snapshotRevision;
         }
         public bool TryGetPosition(int id,float now,out float x,out float y)
