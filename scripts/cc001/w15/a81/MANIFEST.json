@@ -1,0 +1,47 @@
+{
+  "identity": "CC001-R17-W15-A81-BOUNDED-TRACE-001",
+  "owner": "A81",
+  "qaSourceFreeze": "3f972cdbaea6289a7e33ce608f5d3256cfdab0a3",
+  "parentPR": 259,
+  "parentHead": "d6a041a171462ba02abc729197fb5d37c87c5cc9",
+  "mode": "OFFLINE_SOURCE_AND_SYNTHETIC_VALIDATION_ONLY",
+  "changedBlobs": {
+    "scripts/cc001/w11/a81/verify-candidate207-telemetry.cjs": "19968a21cd848a6ff0d905627fc42879bec07979",
+    "scripts/cc001/w15/a81/bounded-trace.cjs": "6b792ec4ae07c1d4946e24c52fb83c4712f756f4",
+    "scripts/cc001/w15/a81/bounded-trace.test.cjs": "b29de71754e8e668063b2cd925d65b739d103324",
+    "scripts/cc001/w15/a81/bounded-parser-integration.test.cjs": "645fde6a7517735fd1b35fca1f6e1e8f75e39269"
+  },
+  "tests": {
+    "nativeNode22": {
+      "tests": 10,
+      "pass": 10,
+      "fail": 0,
+      "sourceAndTestBlobsVerified": true,
+      "transcriptSha256": "aaf2dade7327b69c0ba1521e27c8288c981c1883e49c101b21dae822d059249c"
+    },
+    "sourceBoundV8": {
+      "tests": 15,
+      "pass": 15,
+      "fail": 0,
+      "includesIntegrationFixtures": 5,
+      "nativeNodeIntegration": false
+    },
+    "windowsUnity": "NOT_RUN",
+    "dotnet9Managed": "NOT_RUN",
+    "physicalPC1PC2": "NOT_RUN",
+    "G3": "NOT_ATTESTED"
+  },
+  "protection": {
+    "mainMerge": false,
+    "release": false,
+    "qaFreezeModified": false,
+    "protectedGameplayModified": false
+  },
+  "dependencies": {
+    "review": "A70",
+    "windowsBuild": "A72",
+    "twoPcQA": "A60/A31",
+    "selection": "AFTER_W11_CLOSE"
+  },
+  "severity": "P1_OFFLINE_EVIDENCE_FALSE_GREEN_OR_UNBOUNDED_REPORT_RISK"
+}

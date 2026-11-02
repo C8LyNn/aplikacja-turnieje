@@ -2,6 +2,7 @@
 'use strict';
 /** RC1-protected CC-001 W11/#207 sampled diagnostic, NOT real PC1/PC2 QA. */
 const fs=require('node:fs'), crypto=require('node:crypto');
+const {BoundedTrace}=require('../../w15/a81/bounded-trace.cjs');
 const PIN='173273122c11cbf738e8b954e32506a6196fe8ec';
 const QA_FREEZE='3f972cdbaea6289a7e33ce608f5d3256cfdab0a3';
 const SCHEMA='CC001_A81_W11_CANDIDATE207_SAMPLED_V1';
@@ -11,12 +12,14 @@ const FROZEN_MATCH_PHASES=new Set(['Aiming','Moving','Over']); // GameState.cs M
 const validNumber=x=>/^(?:0|[1-9][0-9]*)$/.test(x)&&Number.isSafeInteger(Number(x))?Number(x):null;
 function parse(text,side){
   if(!specs[side])throw Error('Invalid role');
-  const records=[],errors=[];let found=0;
+  const capped=new BoundedTrace();
+  const records=capped.records,errors=capped.errors;let found=0;
   for(const [index,line] of String(text).split(/\r?\n/).entries()){
     const m=/(?:^|\s)CC_W10_NET_(HOST|CLIENT)(?=\s|$)/.exec(line);
     if(!m)continue;
     found++;
-    if(m[1]!==side){errors.push({code:'WRONG_ENDPOINT',line:index+1});continue;}
+    if(!capped.admit(index+1))continue;
+    if(m[1]!==side){capped.error({code:'WRONG_ENDPOINT',line:index+1});continue;}
     const rest=line.slice(m.index+m[0].length).trim().split(/\s+/);
     const fields=Object.create(null);let bad=false;
     for(const part of rest){const kv=/^([A-Za-z]+)=(\S+)$/.exec(part);
@@ -32,9 +35,9 @@ function parse(text,side){
     if(!bad&&(record.turn>1||!FROZEN_MATCH_PHASES.has(record.phase)||
       record.balls<1||(side==='HOST'&&(record.packedBytes<1||record.chunks<1))||
       (side==='CLIENT'&&record.received<1)))bad=true;
-    if(bad)errors.push({code:'MALFORMED_'+side,line:index+1});else records.push(record);
+    if(bad)capped.error({code:'MALFORMED_'+side,line:index+1});else capped.record(record);
   }
-  return {found,records,errors};
+  return {found,records,errors,...capped.summary()};
 }
 function expectedMs(phase,bytes){if(phase!=='Moving')return 250;
   if(bytes>=65536)return 250;if(bytes>=16384)return 125;if(bytes>=8192)return 83;return 50;}
@@ -65,6 +68,8 @@ function analyze(hostText,clientText){
   if(!multiSession)for(const h of host.records){const c=clientRevs.get(h.revision);if(!c)continue;overlapping++;
     for(const field of ['action','turn','phase','balls'])if(h[field]!==c[field])mark('MATCHED_REVISION_METADATA_MISMATCH',{revision:h.revision,field});
   }
+  if(host.omittedErrors||client.omittedErrors)notices.push('TRACE_ERRORS_CAPPED_OMITTED_COUNTS_RETAINED');
+  if(host.omittedMarkers||client.omittedMarkers)notices.push('TRACE_MARKER_LIMIT_EXCEEDED_CROP_TO_ONE_MATCH');
   if(!host.records.length||!client.records.length)notices.push('MISSING_SELECTED_CANDIDATE_TELEMETRY');
   if(!overlapping)notices.push('NO_COMMON_REVISION_IN_SPARSE_1HZ_SAMPLE');
   notices.push('UNPAIRED_1HZ_SAMPLES_DO_NOT_PROVE_PACKET_LOSS');
@@ -74,7 +79,10 @@ function analyze(hostText,clientText){
     (!host.records.length||!client.records.length||!overlapping||multiSession?'INSUFFICIENT_SELECTED_LOGS':'SAMPLED_DIAGNOSTIC_ONLY');
   return {schema:SCHEMA,schemaAnchorSha:PIN,qaFreezeSourceSha:QA_FREEZE,runtimeBinarySourceSha:'NOT_VERIFIED',verdict,gameplayGate:'NOT_ATTESTED',physicalPc1Pc2Qa:'NOT_ATTESTED',
     telemetryMode:'W10_1HZ_SAMPLED',hostMarkers:host.found,clientMarkers:client.found,
-    validHost:host.records.length,validClient:client.records.length,matchingRevisionSamples:overlapping,errors,notices};
+    validHost:host.records.length,validClient:client.records.length,matchingRevisionSamples:overlapping,
+    omittedHostMarkers:host.omittedMarkers,omittedClientMarkers:client.omittedMarkers,
+    omittedHostErrorDetails:host.omittedErrors,omittedClientErrorDetails:client.omittedErrors,
+    errors,notices};
 }
 function run(argv){
   const args={};if(argv.length%2)throw Error('Usage: --host PC1.log --client PC2.log [--out report.json]');

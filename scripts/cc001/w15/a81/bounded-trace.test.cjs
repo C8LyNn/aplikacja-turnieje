@@ -1,0 +1,14 @@
+'use strict';
+const {test}=require('node:test');
+const assert=require('node:assert/strict');
+const {BoundedTrace,MAX_MARKERS,MAX_ERRORS}=require('./bounded-trace.cjs');
+test('limits documented',()=>{assert.equal(MAX_MARKERS,20000);assert.equal(MAX_ERRORS,100)});
+test('empty diagnostics are valid',()=>assert.deepEqual(new BoundedTrace().summary(),{omittedMarkers:0,omittedErrors:0}));
+test('last accepted event remains a retained record',()=>{const x=new BoundedTrace(2,3);for(let i=0;i<2;i++){assert.equal(x.admit(i+1),true);x.record({rev:i});}assert.equal(x.records.length,2);assert.equal(x.admit(3),false);assert.equal(x.records.length,2);});
+test('marker limit adds explicit anomaly rather than success',()=>{const x=new BoundedTrace(2,3);x.admit(1);x.admit(2);x.admit(3);assert.equal(x.omittedMarkers,1);assert.deepEqual(x.errors,[{code:'TRACE_MARKER_LIMIT_EXCEEDED',line:3}]);});
+test('more excess markers increment count but not error array',()=>{const x=new BoundedTrace(1,3);x.admit(1);for(let i=2;i<=300;i++)assert.equal(x.admit(i),false);assert.equal(x.omittedMarkers,299);assert.equal(x.errors.length,1);});
+test('100 valid errors retained, excess errors counted without unbounded memory',()=>{const x=new BoundedTrace();for(let i=0;i<1501;i++)x.error({code:'MALFORMED_HOST',line:i+1});assert.equal(x.errors.length,100);assert.equal(x.omittedErrors,1401);assert.equal(x.errors.at(-1).line,100);});
+test('when errors full marker overflow still recorded via counters',()=>{const x=new BoundedTrace(1,1);x.error({code:'MALFORMED_HOST',line:1});x.admit(1);x.admit(2);assert.equal(x.omittedMarkers,1);assert.equal(x.omittedErrors,1);assert.equal(x.errors.length,1);});
+test('exactly-at-limit is permitted',()=>{const x=new BoundedTrace(2,2);assert.equal(x.admit(1),true);assert.equal(x.admit(2),true);assert.equal(x.omittedMarkers,0);});
+test('bounds must be positive safe integers',()=>{for(const arg of [[0,1],[1,0],[-1,2],[1,NaN],[Infinity,2],[1,2.1]])assert.throws(()=>new BoundedTrace(...arg));});
+test('record payload preserved without identity invention',()=>{const x=new BoundedTrace(2,2);const row={revision:8,phase:'Moving'};x.admit(1);x.record(row);assert.equal(x.records[0],row);});
