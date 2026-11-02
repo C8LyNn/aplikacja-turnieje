@@ -1,0 +1,65 @@
+{
+  "schema": "CC001-R17-W15-A21-ISOLATED-1",
+  "project": "CC-001",
+  "agent": "A21 Tutorial / New Player Experience",
+  "wave": "R17-W15",
+  "branch": "feat/cc001-r17-w15-a21-single-pass-coaching-20261102",
+  "parentPr": 256,
+  "parentSha": "e495737e794da6453567dbada2aea42331d4d13e",
+  "parentDependencies": [
+    220,
+    249,
+    256
+  ],
+  "frozenQa": {
+    "branch": "integration/cc001-r17-w11-qa-freeze-20261030",
+    "sha": "3f972cdbaea6289a7e33ce608f5d3256cfdab0a3",
+    "modified": false
+  },
+  "exactChangedFileBlobs": [
+    {
+      "path": "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/SecondaryMatchHelp.cs",
+      "gitBlobSha1": "aa1f12987bbe0cb7849b9bebf0a961510e5175ee"
+    },
+    {
+      "path": "unity/cc001-r16/CoreClash-V149-Unity/Assets/CoreClash/Presentation/MatchView.cs",
+      "gitBlobSha1": "ca2b3cb1ba5a0423614a5927722721be5e09a38d"
+    },
+    {
+      "path": "unity/cc001-r16/CoreClash-V149-Unity/Tests/A21W15SinglePassCoachingTests.cs",
+      "gitBlobSha1": "de84584d1f1ba716d3e8ab783ec658d60479904c"
+    },
+    {
+      "path": "unity/cc001-r16/CoreClash-V149-Unity/Tests/Program.cs",
+      "gitBlobSha1": "1a9767ae35798a52283b47ec57d1b287bf80443f"
+    }
+  ],
+  "noGameplayChanges": true,
+  "noMainOrReleaseMerge": true,
+  "behaviors": [
+    "HUD at most one Replay state scan per update",
+    "skip scan for opponent, disconnected, invalid seat, moving, bonus, game-over",
+    "actual GameSimulation.CanReplay determines Replay readiness",
+    "legal Replay overrides blocked hints",
+    "unchanged gameplay and presentation Text API"
+  ],
+  "validation": {
+    "exactGithubBlobSourceContracts": {
+      "passed": 26,
+      "total": 26,
+      "status": "PASS_SCOPED_SOURCE_ONLY"
+    },
+    "managedNewTestDefinitions": 17,
+    "managedDotnet9": "NOT_RUN_NO_DOTNET",
+    "unityWindows6000_4_0f1": "NOT_BUILT_NO_WINDOWS_UNITY",
+    "physicalPc1Pc2": "NOT_RUN_NO_PHYSICAL_HOST_ACCESS",
+    "g3": "HOLD",
+    "g4": "HOLD"
+  },
+  "designDecisions": {
+    "mitosis": "exact V148",
+    "furnace": "FIRE zone+periodic damage only",
+    "hp": "R16 catalog"
+  },
+  "integration": "DRAFT_ALT_HOLD_A70_OWNER_AFTER_W11_CLOSURE"
+}
