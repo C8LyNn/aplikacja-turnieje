@@ -1,0 +1,59 @@
+{
+  "schema": "CC001-R17-W15-A41-PHOENIX-TEST-1",
+  "identity": "CC-001/A41/Backend-Multiplayer/W15",
+  "owner": "A41",
+  "hq": "https://github.com/C8LyNn/aplikacja-turnieje/issues/97",
+  "prStatus": "DRAFT_ALT_HOLD",
+  "parent": {
+    "repo": "C8LyNn/aplikacja-turnieje",
+    "selectedDevPr": "https://github.com/C8LyNn/aplikacja-turnieje/pull/266",
+    "selectedDevSha": "c3777f3f2d989fdc9e00457c6a5aa8870715b2a8",
+    "frozenW11Sha": "3f972cdbaea6289a7e33ce608f5d3256cfdab0a3",
+    "selectedValidatorBlob": "ef08da80c7b86277146d0906fc112e904141a000",
+    "selectedNetworkSeatTestsBlob": "a814bb445bd197e9b1b2c489f4b6540eb0b34d3f",
+    "selectedLifecycleBlob": "65d48932a4b547a5673888d7d0e228fda68f3b58"
+  },
+  "changes": [
+    {
+      "path": "unity/cc001-r16/CoreClash-V149-Unity/Tests/NetworkSeatTests.cs",
+      "status": "MODIFIED_TEST_ONLY",
+      "blob": "288f0d49b374efa4849b0001c49ad0ab2303bf2a",
+      "preexistingDefinitions": 38,
+      "definitionsAdded": 2,
+      "definitionsTotal": 40,
+      "newCases": [
+        "R17 W15 A41 rejected duplicate Phoenix does not consume a reusable revision",
+        "R17 W15 A41 Phoenix duplicate owner is rejected even when entries are interleaved"
+      ]
+    }
+  ],
+  "evidence": {
+    "githubSourceReadbackChecks": {
+      "passed": 15,
+      "total": 15,
+      "scope": "SOURCE_ONLY_NO_COMPILER"
+    },
+    "net9ManagedTests": "NOT_RUN",
+    "unityWindows6000_4_0f1": "NOT_BUILT",
+    "physicalPC1PC2": "NOT_RUN",
+    "githubActionsRuntime": "NOT_ATTESTED",
+    "passScope": "NO_NATIVE_OR_GAMEPLAY_PASS"
+  },
+  "dependencies": {
+    "integrator": "A70 selects exactly one Phoenix implementation in #266",
+    "builder": "A72 single selected canonical PR #188 with #262 adopted",
+    "nativeGate": "Authorized PC1 Win11 .NET9 Unity6000.4.0f1 Standalone Windows Build Support and license",
+    "independentQA": "A60/A31 genuine PC1/PC2 same-build source and binary SHA",
+    "closure": "Formal W11 G3/G4 native PASS required before downstream integration"
+  },
+  "invariants": {
+    "frozenW11Protected": true,
+    "gameplayModified": false,
+    "protocol149Modified": false,
+    "mitosis": "V148 EXACT",
+    "furnace": "FIRE ZONE AND PERIODIC DAMAGE ONLY",
+    "hp": "R16",
+    "mergeToMain": false,
+    "release": false
+  }
+}
