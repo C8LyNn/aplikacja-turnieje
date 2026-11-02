@@ -187,6 +187,28 @@ public static partial class Program
             });
         }
 
+        // W15 EXPECTED-RED on frozen W11 presentation: malformed same-value
+        // authoritative and local seats must NEVER unlock launch instructions.
+        // Network admission rejects invalid turn already; this is an extra UI
+        // fail-closed regression for corrupt/mid-initialization states, not a
+        // claim of remotely exploitable behavior.
+        foreach(int invalid in new[]{-1,2})
+        {
+            Test($"A84 W15 malformed turn cannot grant YOUR SHOT or RELEASE (turn={invalid})",()=>{
+                var sim=Sim();var s=sim.State;s.turn=invalid;s.phase=MatchPhase.Aiming;
+                int serial=s.actionSerial,revision=s.revision;
+                var title=LocalTurnPresentation.Status(s,invalid,true,true);
+                var compact=LocalTurnPresentation.CompactStatus(s,invalid,true,true);
+                var hint=LocalTurnPresentation.ActionHint(s,invalid,true,true,true,30,0,"DRAG FROM LAUNCHER");
+                var message=LocalTurnPresentation.ActionMessage(s,invalid,true,true,true,30,0,"DRAG FROM LAUNCHER","");
+                False(title.Contains("YOUR"),"invalid authoritative turn advertised as yours");
+                False(compact.Contains("YOUR"),"invalid compact turn advertised as yours");
+                False(hint.Contains("RELEASE")||hint.Contains("DRAG"),"invalid turn has launch affordance");
+                False(message.Contains("RELEASE")||message.Contains("DRAG"),"invalid turn has actionable message");
+                Eq(revision,s.revision);Eq(serial,s.actionSerial);
+            });
+        }
+
         Test("A84 W12 no match state is never actionable",()=>{
             Eq("WAITING FOR MATCH",LocalTurnPresentation.Status(null,1,true,false));
             Eq("WAIT",LocalTurnPresentation.CompactStatus(null,1,true,false));
