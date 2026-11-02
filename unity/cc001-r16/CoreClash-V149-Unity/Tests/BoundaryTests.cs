@@ -8,6 +8,7 @@ public static partial class Program
     {
         AbilityTests();
         PresentationTests();
+        A84SeatCueMatrixTests();
         SetupLayoutTests();
         IdentityPresentationTests();
         FeedbackTests();

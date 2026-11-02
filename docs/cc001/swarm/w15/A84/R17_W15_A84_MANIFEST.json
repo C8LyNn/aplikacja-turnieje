@@ -1,0 +1,99 @@
+{
+  "schema": "CC001-R17-W15-A84-TESTONLY-1",
+  "project": "CC-001",
+  "role": "A84 — Market / Community / Failure-Mode Research",
+  "wave": "R17-W15",
+  "status": "DRAFT_EXPECTED_RED_NOT_NATIVE_TESTED",
+  "provenance": {
+    "qa_frozen_sha": "3f972cdbaea6289a7e33ce608f5d3256cfdab0a3",
+    "qa_frozen_ref": "integration/cc001-r17-w11-qa-freeze-20261030",
+    "review_base": "review/cc001-r17-w14-a84-test-only-freeze-base",
+    "source_code_commit": "3f3c96ac2253e485b1e1dfbf0db35337af77a435",
+    "production_files_changed": false,
+    "protected_sources_modified": false
+  },
+  "changes": [
+    {
+      "path": "unity/cc001-r16/CoreClash-V149-Unity/Tests/A84SeatCueMatrixTests.cs",
+      "git_blob_sha": "3738a50b768b0252c937c4b9618c3208a26b48de",
+      "change": "ADD",
+      "managed_cases_authored": 136
+    },
+    {
+      "path": "unity/cc001-r16/CoreClash-V149-Unity/Tests/BoundaryTests.cs",
+      "git_blob_sha": "157ac847bb62b0f32d975c903946f0ab9d229f4b",
+      "change": "MODIFY",
+      "description": "one A84SeatCueMatrixTests() registration"
+    }
+  ],
+  "case_groups": [
+    {
+      "name": "W12 P1-P2 local identity, moving, winner, null and read-only",
+      "count": 66,
+      "execution": "NOT_RUN"
+    },
+    {
+      "name": "W13 hotseat and draw",
+      "count": 20,
+      "execution": "NOT_RUN"
+    },
+    {
+      "name": "W14 aim status finite/threshold + seats",
+      "count": 48,
+      "execution": "NOT_RUN"
+    },
+    {
+      "name": "W15 invalid authoritative seat fail-closed",
+      "count": 2,
+      "execution": "EXPECTED_RED_NOT_RUN"
+    }
+  ],
+  "expected_red": [
+    {
+      "scenario": "state.turn=-1 and localOwner=-1 while multiplayer connected + Aiming",
+      "expected": "no YOUR SHOT / RELEASE TO LAUNCH",
+      "source_logic": "equality branch alone can grant action copy",
+      "risk": "DEFENSE_IN_DEPTH_ONLY; NetworkGameStateAdapter.IsValidState already rejects invalid turn"
+    },
+    {
+      "scenario": "state.turn=2 and localOwner=2 while multiplayer connected + Aiming",
+      "expected": "no YOUR SHOT / RELEASE TO LAUNCH",
+      "source_logic": "equality branch alone can grant action copy",
+      "risk": "DEFENSE_IN_DEPTH_ONLY; NetworkGameStateAdapter.IsValidState already rejects invalid turn"
+    }
+  ],
+  "evidence": {
+    "source_structure_checks": "7/7 PASS; authenticated Github source/ref/allowlist checks",
+    "native_node": "NOT_RUN",
+    "dotnet_sdk9": "UNAVAILABLE_IN_A84_ENVIRONMENT",
+    "dotnet_managed_cases": "NOT_RUN",
+    "unity_editor": "UNAVAILABLE_IN_A84_ENVIRONMENT",
+    "windows_player": "NOT_BUILT_BY_A84",
+    "physical_pc1_pc2": "NOT_RUN_BY_A84"
+  },
+  "integration": {
+    "owner": "A70",
+    "presentation_owner": "A20",
+    "builder_owner": "A72",
+    "independent_qa_owner": "A60/A31",
+    "target": "ISOLATED_POST_W11_ONLY",
+    "dependencies": [
+      "W11 frozen SHA build and independent QA closure",
+      "A20 review of two expected-red fail-closed cases"
+    ],
+    "blocked_actions": [
+      "merge_to_frozen_qa",
+      "merge_to_main",
+      "release",
+      "claim_G3_G4_PASS"
+    ],
+    "design_invariants": [
+      "Mitosis exact V148",
+      "Furnace FIRE zone + periodic damage only",
+      "HP exactly R16",
+      "Protocol149 unchanged"
+    ]
+  },
+  "run_command": "dotnet run --project unity/cc001-r16/CoreClash-V149-Unity/Tests/CoreClash.Tests.csproj -- unity/cc001-r16/CoreClash-V149-Unity",
+  "notes": "Test-run on an isolated full checkout of this package HEAD; EXPECTED_RED remains until A20 accepts any narrowly scoped UI fail-closed fix. Original frozen QA SHA is not a new A84 build candidate."
+}
