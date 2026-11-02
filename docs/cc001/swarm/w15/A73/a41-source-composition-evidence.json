@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "evidenceType": "CC001_R17_W15_A73_A41_AUDITED_UNREFERENCED_TREE",
+  "evidenceDate": "2026-11-02",
+  "qaFreeze": {
+    "ref": "integration/cc001-r17-w11-qa-freeze-20261030",
+    "sha": "3f972cdbaea6289a7e33ce608f5d3256cfdab0a3",
+    "sourceAdmitted": false
+  },
+  "ownerSources": [
+    {
+      "owner": "A41",
+      "pr": 241,
+      "head": "a4f1bcdef958dcbc5e00700010002e5c249ebde2",
+      "sinceSharedBase": {
+        "ahead": 1,
+        "files": [
+          "docs/cc001/swarm/w13/A41/R17_W13_A41_HOST_RPC_BYTE_LEDGER_HANDOFF.md"
+        ]
+      }
+    },
+    {
+      "owner": "A41",
+      "pr": 250,
+      "head": "d4875397d99ffd99a704865d61db212c59d8ced9",
+      "sinceSharedBase": {
+        "ahead": 2,
+        "files": [
+          "scripts/cc001/w13/a41/analyze-host-traffic.cjs",
+          "scripts/cc001/w13/a41/analyze-host-traffic.test.cjs"
+        ]
+      }
+    }
+  ],
+  "sharedBaseCommit": "8583505823a42994d6be9533d234bb933e4f32c6",
+  "oldW14Finding": {
+    "claim": "newest #241 upstream commit is a source fix absent from #250",
+    "disposition": "RETRACTED",
+    "corrected": "newest #241 commit is documentation-only; #250 code/test incorporates previous #241 source/test unchanged"
+  },
+  "sourceOnlyPreview": {
+    "baseCommit": "d4875397d99ffd99a704865d61db212c59d8ced9",
+    "baseTree": "86c674af60d2788d812fbb34456d2e9b3b02aa77",
+    "unreferencedGitTree": "ff184e2ca403fdaee3e0907adc362c4230aa4ba3",
+    "ownerDocBlob": "0b514f764aa35a04104f2ca17e4d3b9a7c0791c0",
+    "changedPaths": [
+      "docs/cc001/swarm/w13/A41/R17_W13_A41_HOST_RPC_BYTE_LEDGER_HANDOFF.md"
+    ],
+    "unchangedBlobsAndModes": 1761,
+    "totalFiles": 1762,
+    "nontruncatedRecursiveTrees": true,
+    "addedFiles": 0,
+    "removedFiles": 0,
+    "selectedSourceBlobs": {
+      "scripts/cc001/w13/a41/analyze-host-traffic.cjs": "141a50d288b7e89e45187a5fbc1f73e4543507bc",
+      "scripts/cc001/w13/a41/analyze-host-traffic.test.cjs": "0e59f73d4836b01d6cbe296c709618b5c9fbf11d",
+      "docs/cc001/swarm/w13/A41/R17_W13_A41_HOST_RPC_BYTE_LEDGER_HANDOFF.md": "0b514f764aa35a04104f2ca17e4d3b9a7c0791c0"
+    },
+    "noCommitCreated": true,
+    "noRefUpdated": true,
+    "noMergePerformed": true
+  },
+  "gates": {
+    "nativeNodeOnComposite": "NOT_RUN",
+    "dotnet9Managed": "NOT_RUN",
+    "unityWindowsPlayer": "NOT_BUILT",
+    "physicalPc1Pc2": "NOT_RUN",
+    "w11G3": "HOLD",
+    "w11G4": "HOLD",
+    "mainMerge": "STOP",
+    "release": "STOP",
+    "sourceDisposition": "REVIEW_ONLY_REQUIRES_A41_A70_SELECTION"
+  },
+  "ownerInvariants": [
+    "MITOSIS_EXACT_V148",
+    "FURNACE_FIRE_ZONE_PERIODIC_DOT_ONLY",
+    "HP_R16_UNCHANGED"
+  ]
+}
