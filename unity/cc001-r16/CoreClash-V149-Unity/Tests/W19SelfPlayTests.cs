@@ -103,7 +103,7 @@ public static partial class Program
         });
         Test("W19-03 self-play acts only through TryCommand/Step and leaves catalog and decks unchanged",()=>{
             Eq(catalogBefore,JsonSerializer.Serialize(catalog.Data,json)+JsonSerializer.Serialize(catalog.Featured,json));
-            string src=File.ReadAllText(Path.Combine(projectRoot,"Tools/SelfPlay/SelfPlayRunner.cs"));
+            string src=File.ReadAllText(Path.Combine(projectRoot,"Tests/SelfPlay/SelfPlayRunner.cs"));
             Eq(0,Regex.Matches(src,@"sim\.(Spawn|Damage|Kill|Heal|Shield)\(").Count);
             Eq(0,Regex.Matches(src,@"\.State\.[A-Za-z0-9_\[\]\.]+\s*(\+|-)?=[^=]").Count);
             Eq(0,Regex.Matches(src,@"\b(Physics|Collisions|Rules|Turns|Abilities|Structures)\.").Count);
