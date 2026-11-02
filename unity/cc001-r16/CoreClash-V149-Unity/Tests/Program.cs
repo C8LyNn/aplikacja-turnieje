@@ -40,6 +40,7 @@ public static partial class Program
         A21W12SecondaryHelpTests();
         A21W13ReplayCoachingTests();
         A21W14ReplayExplanationTests();
+        A21W15SinglePassCoachingTests();
         MomentumTests();
         ExplosiveTests();
         ConstructionTests();
