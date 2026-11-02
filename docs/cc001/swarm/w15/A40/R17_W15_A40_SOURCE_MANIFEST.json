@@ -1,0 +1,50 @@
+{
+  "schema": "CC001-R17-W15-A40-SOURCE-MANIFEST-1",
+  "owner": "A40",
+  "role": "Gameplay / Lifecycle + RETURN",
+  "issue": 92,
+  "base_candidate_pr": 266,
+  "original_dev_parent_sha": "8b3d62ac2a2cacfa62d44b6888ac9b046e8788c1",
+  "frozen_w11_qa_sha": "3f972cdbaea6289a7e33ce608f5d3256cfdab0a3",
+  "package_source_commit_sha": "62e2bc55582f95edf18084ab0bcdbd576cd881ce",
+  "files": [
+    {
+      "path": "unity/cc001-r16/CoreClash-V149-Unity/Tests/AbilityTests.cs",
+      "git_blob_sha": "31840f1dcc7f0ca6002a09c7ab770207c06de1da",
+      "added_test_definitions": 2,
+      "addition_lines": 64,
+      "deletion_lines": 0
+    }
+  ],
+  "selected_upstream_unique_owner_guard_sha": "ef08da80c7b86277146d0906fc112e904141a000",
+  "tests": [
+    {
+      "name": "W15 A40 valid zero-HP Phoenix hand survives snapshot and spawns at one HP",
+      "execution": "NOT_RUN",
+      "expected": "PASS_ON_SELECTED_DEV"
+    },
+    {
+      "name": "W15 A40 malformed duplicate-owner Phoenix hand snapshot rejects atomically",
+      "execution": "NOT_RUN",
+      "expected": "PASS_ON_SELECTED_DEV_WITH_A70_UNIQUE_OWNER_FIX"
+    }
+  ],
+  "static_validation": "SOURCE_STRUCTURE_ONLY",
+  "dependencies": [
+    "A70 #266 selected A41 Phoenix validator with !phoenixOwners.Add(hand.owner)",
+    "A72 #188 builds frozen SHA only; no W15 source in W11",
+    "A60/A31 independent two-PC QA after an authorized exact build"
+  ],
+  "native_dotnet9": "NOT_RUN",
+  "native_unity_windows": "NOT_BUILT",
+  "physical_pc1_pc2": "NOT_RUN",
+  "integration": "DRAFT_UNMERGED_A70_DECIDES",
+  "release": "STOP",
+  "protections": {
+    "mitosis": "V148_EXACT_UNCHANGED",
+    "furnace": "FIRE_ZONE_AND_PERIODIC_ONLY_UNCHANGED",
+    "hp": "R16_UNCHANGED",
+    "protocol149": "UNCHANGED",
+    "w11_freeze": "UNCHANGED"
+  }
+}
