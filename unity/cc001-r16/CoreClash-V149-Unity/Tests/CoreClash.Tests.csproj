@@ -6,5 +6,6 @@
   <ItemGroup><Compile Include="../Assets/CoreClash/Presentation/BallIdentity.cs" /><Compile Include="../Assets/CoreClash/Presentation/BallInspection.cs" /></ItemGroup>
   <ItemGroup><Compile Include="../Assets/CoreClash/Presentation/SetupLayout.cs" /></ItemGroup>
   <ItemGroup><Compile Include="../Assets/CoreClash/Presentation/MatchExitGuard.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="../Assets/CoreClash/Presentation/RosterReadiness.cs" /></ItemGroup>
   <ItemGroup><Compile Include="../Assets/CoreClash/Presentation/DeviceViewport.cs" /><Compile Include="../Assets/CoreClash/Input/PrimaryPointer.cs" /></ItemGroup>
 </Project>
