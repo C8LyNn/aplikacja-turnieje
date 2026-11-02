@@ -146,6 +146,10 @@ function prepareCopy(repo, work, red) {
     fs.mkdirSync(path.dirname(path.join(unityDst, rel)), { recursive: true });
     fs.copyFileSync(s, path.join(unityDst, rel));
   }
+  // The historical driver writes Evidence/*.json during the run (e.g.
+  // MatchSmokeTests) and only creates the directory at the very end; give the
+  // copy an empty Evidence/ so those writes land in the copy, never the repo.
+  fs.mkdirSync(path.join(unityDst, 'Evidence'), { recursive: true });
   const ref = path.join(repo, REFERENCE_REL);
   if (fs.existsSync(ref)) {
     fs.mkdirSync(path.dirname(path.join(work, REFERENCE_REL)), { recursive: true });
@@ -291,6 +295,12 @@ function main(argv) {
     summary.build = { failed: true, errors: broken.diagnostics.errors };
     if (opts.red) return finish(3, 'GATE_ERROR', 'RED probe is meaningless: the managed project does not compile');
     return finish(1, 'RED', `managed project does not compile: ${broken.diagnostics.errors.map(e => `${e.file}(${e.line}) ${e.code}`).join(', ')}`);
+  }
+  const crashed = summary.runs.find(r => !r.result && r.exitCode !== 0);
+  if (crashed) {
+    summary.crash = { run: crashed.run, exitCode: crashed.exitCode, testsBeforeCrash: crashed.parsedTests, stderrTail: crashed.stderrTail };
+    if (opts.red) return finish(3, 'GATE_ERROR', 'RED probe is meaningless: the managed run crashed before RESULT');
+    return finish(1, 'RED', `managed run ${crashed.run} aborted before RESULT (exit ${crashed.exitCode}) after ${crashed.parsedTests} tests: ${crashed.stderrTail.slice(0, 1).join(' ')}`);
   }
   const unparsed = summary.runs.find(r => !r.result || r.parsedTests !== r.result.passed + r.result.failed);
   if (unparsed) return finish(3, 'GATE_ERROR', `run ${unparsed.run}: missing RESULT line or PASS/FAIL count mismatch (exit ${unparsed.exitCode})`);
