@@ -6,9 +6,9 @@ Deterministic AI-vs-AI matches on the **real** `GameSimulation`: every action is
 inputs; nothing in `Assets/` is changed or compiled differently.
 
 ```
-dotnet run -c Release --project Tools/SelfPlay -- --out <dir outside the repo> [--seed 20261102] [--per-cell 21]
+dotnet run -c Release --project Tests/SelfPlay -- --out <dir outside the repo> [--seed 20261102] [--per-cell 21]
     [--strategies random,fixed,heuristic] [--decks id,id,...] [--threads N] [--min-matches 1000] [--root <Unity project>]
-dotnet run -c Release --project Tools/SelfPlay -- --compare <runDirA> <runDirB>
+dotnet run -c Release --project Tests/SelfPlay -- --compare <runDirA> <runDirB>
 ```
 
 Default run: 3 strategies (same strategy on both sides) × 16 ordered pairs of the 4 featured
@@ -42,3 +42,6 @@ Standard launch (built-in strategies are expected to produce 0).
 
 The bots are deliberately simple; the numbers are raw material for owner decisions Q3–Q7,
 not balance verdicts.
+
+The runner lives under `Tests/SelfPlay/` so the W17-01 managed gate (which copies `Tests/`)
+compiles `SelfPlayRunner.cs` together with the managed tests (`Tests/W19SelfPlayTests.cs`).

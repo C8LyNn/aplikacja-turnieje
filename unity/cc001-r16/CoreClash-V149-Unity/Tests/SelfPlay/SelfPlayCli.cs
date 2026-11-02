@@ -10,9 +10,9 @@ using CoreClash.Data;
 
 namespace CoreClash.SelfPlay
 {
-    // dotnet run -c Release --project Tools/SelfPlay -- --out <dir outside repo> [--seed N] [--per-cell N]
+    // dotnet run -c Release --project Tests/SelfPlay -- --out <dir outside repo> [--seed N] [--per-cell N]
     //     [--strategies random,fixed,heuristic] [--decks id,id,...] [--threads N] [--root <unity project>]
-    // dotnet run -c Release --project Tools/SelfPlay -- --compare <runDirA> <runDirB>
+    // dotnet run -c Release --project Tests/SelfPlay -- --compare <runDirA> <runDirB>
     // Exit: 0 all matches completed (and >= --min-matches), 1 a match failed / runs differ / data changed, 2 usage error.
     public static class SelfPlayCli
     {
