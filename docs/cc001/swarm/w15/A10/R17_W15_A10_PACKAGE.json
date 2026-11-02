@@ -1,0 +1,63 @@
+{
+  "schema": "CC001-A10-W15-TEST-PACKAGE-1",
+  "project": "CC-001",
+  "owner": "A10 Lead Game Design",
+  "wave": "R17-W15",
+  "baseline": {
+    "w11QaFrozenSha": "3f972cdbaea6289a7e33ce608f5d3256cfdab0a3",
+    "w11QaRef": "integration/cc001-r17-w11-qa-freeze-20261030",
+    "w11Touched": false,
+    "isolatedParentPr": 253,
+    "isolatedParentCommit": "8e0456afca5f450dd9506ba48e4d69505d3c9efe"
+  },
+  "delta": [
+    {
+      "path": "unity/cc001-r16/CoreClash-V149-Unity/Tests/R17W13A10/A10SpawnPhysicsContract.cs",
+      "status": "modified",
+      "gitBlob": "bb0f255aa005a982a83385aad99a1d7169a69d51"
+    }
+  ],
+  "intent": "Separate owner-decision expected-RED tests from a usable positive managed regression gate without changing gameplay",
+  "managed": {
+    "testProject": "unity/cc001-r16/CoreClash-V149-Unity/Tests/R17W13A10/R17W13A10.csproj",
+    "baseline": {
+      "command": "dotnet run --project unity/cc001-r16/CoreClash-V149-Unity/Tests/R17W13A10/R17W13A10.csproj --configuration Release",
+      "testCaseCount": 14,
+      "expectedExit": 0,
+      "execution": "NOT_RUN"
+    },
+    "red": {
+      "command": "dotnet run --project unity/cc001-r16/CoreClash-V149-Unity/Tests/R17W13A10/R17W13A10.csproj --configuration Release -- --expected-red",
+      "testCaseCount": 18,
+      "intentionallyExpectedToFail": 4,
+      "execution": "NOT_RUN"
+    },
+    "invalidFlags": {
+      "expectedExit": 2,
+      "execution": "NOT_RUN"
+    }
+  },
+  "validation": {
+    "githubSourceAndDiff": "PASS_SCOPED_13_OF_13",
+    "dotnet9": "NOT_RUN_NO_SDK",
+    "unityWin64": "NOT_RUN_NO_WINDOWS_UNITY",
+    "physicalTwoPC": "NOT_RUN",
+    "integration": "DRAFT_PR_275_NOT_MERGED",
+    "checkedSourceBlobs": {
+      "gameSimulation": "25f5a18de4df3942626f0245c9b1be77eee73106",
+      "networkGameSession": "5a833e1821218d820e8f6e92b08ccbcd6cebfed0"
+    },
+    "actualExecutableEvidence": "NONE_DOTNET9_AND_WINDOWS_UNAVAILABLE"
+  },
+  "protectedDecisions": {
+    "mitosis": "V148 EXACT",
+    "furnace": "FIRE ZONE + PERIODIC DAMAGE ONLY",
+    "hp": "R16"
+  },
+  "dependencies": [
+    "A70 selection after W11 formal QA closure",
+    "A72 native managed execution from isolated DEV SHA, not frozen W11",
+    "A60/A31 independent real PC1 and PC2"
+  ],
+  "release": "HOLD"
+}
