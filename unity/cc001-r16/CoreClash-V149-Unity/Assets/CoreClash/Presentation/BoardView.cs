@@ -49,10 +49,12 @@ namespace CoreClash.Presentation
                     if(state.phase==MatchPhase.Moving&&remoteVisual!=null&&remoteVisual.TryGetPosition(ball.id,Time.unscaledTime,out var px,out var py)){renderX=px;renderY=py;}
                     if(ball.mineArmed)Ring(Point(clippedBoard,renderX,renderY),(ball.radius+11)*board.width/540,new Color(.79f,.31f,1,.82f),Mathf.Max(1,board.width/540));
                     if(ball.timeBombArmed)Ring(Point(clippedBoard,renderX,renderY),(ball.radius+9)*board.width/540,new Color(1,.65f,.25f,.85f),Mathf.Max(1.5f,2*board.width/540));
-                    BallView.Render(clippedBoard,ball,simulation.Catalog.Ball(ball.type),state.phase==MatchPhase.Aiming&&simulation.CanReplay(ball),renderX,renderY,viewOwner);
+                    BallView.Render(clippedBoard,ball,simulation.Catalog.Ball(ball.type),ReplayAffordance.Advertise(simulation,ball),renderX,renderY,viewOwner);
                 }
             RenderEvents(clippedBoard,feedback);
-            if (state.phase == MatchPhase.Aiming && aim != null && aim.Active) RenderAim(clippedBoard, state, aim,selected);
+            RenderReplayCounter(clippedBoard,simulation);
+            RenderBaseReport(clippedBoard,simulation);
+            if (state.phase == MatchPhase.Aiming && aim != null && aim.Active) RenderAim(clippedBoard, state, aim,selected,simulation.Catalog);
             GUI.EndGroup();
 
             RenderFrame(board,state);
@@ -213,7 +215,7 @@ namespace CoreClash.Presentation
             }
         }
 
-        static void RenderAim(Rect board, GameState state, LaunchGesture aim,BallDefinition selected)
+        static void RenderAim(Rect board, GameState state, LaunchGesture aim,BallDefinition selected,Catalog catalog)
         {
             float scale = board.width / 540;
             Vector2 origin=Point(board,aim.OriginX,aim.OriginY);
@@ -246,12 +248,79 @@ namespace CoreClash.Presentation
                 AimStroke(tip-direction*11*scale-wing*6*scale,tip,vector,Mathf.Max(1,2.2f*scale));
                 Draw.Circle(new Rect(tip.x-2.5f*scale,tip.y-2.5f*scale,5*scale,5*scale),vector);
                 AimStroke(origin,finger,Alpha(team,.14f),Mathf.Max(.7f,scale));
+                if(preview.Ready)RenderStopEstimate(board,state,aim,selected,replay,catalog,vector,scale);
             }
             Ring(finger, 10 * scale, Alpha(team, .65f), Mathf.Max(1, 1.5f * scale));
             Draw.Circle(new Rect(finger.x - 2.5f * scale, finger.y - 2.5f * scale, 5 * scale, 5 * scale), new Color(.89f, .98f, 1, .9f));
 
             // A10-approved W10 presentation: trajectory length/tint is the only board power cue.
             // Readiness wording lives in MatchView so the board remains unobscured.
+        }
+
+        // W18-03 (#288): why each base lost HP last turn (BaseDamageTracker reads
+        // only authoritative events). Shown from the turn end until the next launch.
+        static BaseDamageTracker baseReport;
+        static GameSimulation baseReportSimulation;
+        static void RenderBaseReport(Rect board,GameSimulation simulation)
+        {
+            if(!ReferenceEquals(simulation,baseReportSimulation)){baseReport=new BaseDamageTracker();baseReportSimulation=simulation;}
+            var state=simulation.State;baseReport.Observe(state);
+            if(!baseReport.Visible||state.phase==MatchPhase.Moving)return;
+            float scale=board.width/540;int font=Mathf.Max(9,Mathf.RoundToInt(11*scale));float h=font+7;
+            for(int owner=0;owner<2;owner++)
+            {
+                var lines=BaseDamageTracker.Lines(baseReport.Latest,owner,type=>simulation.Catalog.Ball(type)?.name??type);if(lines.Length==0)continue;
+                Vector2 anchor=Point(board,270,owner==0?760:140);
+                float w=Mathf.Min(board.width-16,Mathf.Max(lines[0].Length,lines[1].Length)*font*.58f+16);
+                var rect=new Rect(Mathf.Clamp(anchor.x-w/2,board.x+8,board.xMax-w-8),anchor.y-h,w,h*2+4);
+                Draw.Round(rect,new Color(.018f,.035f,.055f,.8f));
+                Draw.Text(new Rect(rect.x,rect.y+2,w,h),lines[0],font,Draw.Pink,TextAnchor.MiddleCenter,true);
+                Draw.Text(new Rect(rect.x,rect.y+h+2,w,h),lines[1],Mathf.Max(8,font-1),Color.white,TextAnchor.MiddleCenter,false);
+            }
+        }
+
+        // W18-02 (#287): how many own balls the acting player may Replay now
+        // (canonical CanReplay only), next to that player's launcher.
+        static void RenderReplayCounter(Rect board,GameSimulation simulation)
+        {
+            var state=simulation.State;if(state.phase!=MatchPhase.Aiming)return;
+            string label=ReplayAffordance.CounterLabel(state.turn,ReplayAffordance.Eligible(simulation).Count);if(label.Length==0)return;
+            float scale=board.width/540;int font=Mathf.Max(9,Mathf.RoundToInt(11*scale));
+            Vector2 anchor=Point(board,Left+8,state.turn==0?Bottom-26:Top+26);
+            float w=Mathf.Min(board.width*.5f,label.Length*font*.58f+14),h=font+8;
+            var rect=new Rect(anchor.x,anchor.y-h/2,w,h);
+            Draw.Round(rect,new Color(.018f,.035f,.055f,.78f));
+            Draw.Text(rect,label,font,Draw.Gold,TextAnchor.MiddleCenter,true);
+        }
+
+        // W18-01 (#286): estimated free-roll STOP on an empty arena (StopPredictor).
+        // A discreet ring + "EST. STOP" label; when anything lies on the path the
+        // label says the estimate only holds if the path is clear. Never a hit claim.
+        static StopEstimate stopCache;
+        static string stopCacheKey;
+        static void RenderStopEstimate(Rect board,GameState state,LaunchGesture aim,BallDefinition selected,BallRuntime replay,Catalog catalog,Color vector,float scale)
+        {
+            float dx=aim.AimX-aim.OriginX,dy=aim.AimY-aim.OriginY;
+            if(!StopPredictor.GesturePower(dx,dy,out float power))return;
+            if(replay==null&&selected==null)return;
+            string key=state.turn+"|"+state.revision+"|"+aim.OriginX+"|"+aim.OriginY+"|"+aim.AimX+"|"+aim.AimY+"|"+(replay!=null?"r"+replay.id:selected.id);
+            if(key!=stopCacheKey)
+            {
+                var body=replay!=null?StopPredictor.Replay(replay,catalog?.Ball(replay.type)?.archetype,dx,dy,power):StopPredictor.Spawn(selected,state.turn,dx,dy,power);
+                stopCache=StopPredictor.Predict(body,StopPredictor.Obstacles(state,replay?.id??-1));stopCacheKey=key;
+            }
+            var e=stopCache;if(e==null||!e.Valid)return;
+            Color mark=Alpha(vector,e.Obstructed?.38f:.72f);
+            for(int i=1;i<e.Path.Count;i++)AimStroke(Point(board,e.Path[i-1].x,e.Path[i-1].y),Point(board,e.Path[i].x,e.Path[i].y),Alpha(vector,.16f),Mathf.Max(1,1.2f*scale),3*scale,6*scale);
+            Vector2 stop=Point(board,e.StopX,e.StopY);float r=e.Start.Radius*scale;
+            Ring(stop,r,mark,Mathf.Max(1,1.6f*scale));
+            AimStroke(stop-new Vector2(r*.45f,0),stop+new Vector2(r*.45f,0),mark,Mathf.Max(1,1.2f*scale));
+            AimStroke(stop-new Vector2(0,r*.45f),stop+new Vector2(0,r*.45f),mark,Mathf.Max(1,1.2f*scale));
+            string label=StopPredictor.Label(e);int font=Mathf.Max(9,Mathf.RoundToInt(11*scale));
+            float w=Mathf.Min(board.width-8,label.Length*font*.6f+12),h=font+8;
+            float lx=Mathf.Clamp(stop.x-w/2,board.x+4,board.xMax-w-4),ly=stop.y+r+4;if(ly+h>board.yMax-4)ly=stop.y-r-4-h;
+            var rect=new Rect(lx,ly,w,h);
+            Draw.Round(rect,new Color(.018f,.035f,.055f,.62f));Draw.Text(rect,label,font,mark,TextAnchor.MiddleCenter,true);
         }
 
         static void RenderFrame(Rect board, GameState state)

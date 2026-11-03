@@ -32,9 +32,10 @@ namespace CoreClash.Presentation
             Draw.Circle(Expand(body, 5 * scale), Alpha(team, replay ? .17f : .07f));
             if (replay)
             {
+                // W18-02 (#287): Replay uses its own gold pulse, not the team colour.
                 float pulse = (5 + Mathf.Sin(Time.unscaledTime * 4 + ball.id) * 1.2f) * scale;
-                Ring(point, radius + pulse, Alpha(team, .66f), Mathf.Max(1, 1.5f * scale));
-                Ring(point, radius + pulse + 4 * scale, Alpha(team, .13f), Mathf.Max(1, scale));
+                Ring(point, radius + pulse, Alpha(ReplayColor, .85f), Mathf.Max(1.5f, 2.2f * scale));
+                Ring(point, radius + pulse + 4 * scale, Alpha(ReplayColor, .22f), Mathf.Max(1, scale));
             }
 
             Draw.Circle(new Rect(body.x + scale, body.y + 3 * scale, body.width, body.height), new Color(0, 0, 0, .5f));
@@ -64,8 +65,10 @@ namespace CoreClash.Presentation
             }
             if (replay)
             {
-                float dotY = point.y + radius + rows*rowH + 7*scale;
-                Draw.Circle(new Rect(point.x - 2.5f * scale, dotY, 5 * scale, 5 * scale), new Color(.85f, .98f, 1));
+                float chip = Mathf.Max(12, 14 * scale);
+                var chipBox = new Rect(point.x - radius * .3f - chip, point.y - radius - chip * .55f, chip, chip);
+                Draw.Circle(chipBox, ReplayColor);
+                Label(chipBox, ReplayAffordance.BallChip, Mathf.Max(7, Mathf.RoundToInt(9 * scale)), new Color(.02f, .04f, .06f));
             }
         }
 
@@ -183,6 +186,7 @@ namespace CoreClash.Presentation
         }
 
         static Rect Expand(Rect rect, float amount) => new Rect(rect.x - amount, rect.y - amount, rect.width + amount * 2, rect.height + amount * 2);
+        static readonly Color ReplayColor = Draw.Gold;
         static Color Alpha(Color color, float alpha) => new Color(color.r, color.g, color.b, alpha);
     }
 }
