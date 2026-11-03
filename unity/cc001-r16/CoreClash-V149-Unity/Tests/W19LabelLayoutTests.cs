@@ -28,7 +28,8 @@ public static partial class Program
         Test("W19-04 BoardView clamps every board label to the visible field",()=>{
             string board=File.ReadAllText(Path.Combine(projectRoot,"Assets/CoreClash/Presentation/BoardView.cs"));
             True(board.Contains("static UiBox VisibleField(Rect board)"),"no visible-field helper");
-            True(System.Text.RegularExpressions.Regex.Matches(board,@"BoardLabelLayout\.Fit\(VisibleField\(board\)").Count==3,"not all three labels use the visible field");
+            // W19-05: STOP label uses Fit; banner and counter are planned inside VisibleField by BoardOverlayPlanner.
+            True(System.Text.RegularExpressions.Regex.Matches(board,@"BoardLabelLayout\.Fit\(VisibleField\(board\)").Count>=1&&System.Text.RegularExpressions.Regex.Matches(board,@"VisibleField\(board\)").Count>=3,"labels do not use the visible field");
             False(board.Contains("board.xMax-w"));
         });
     }
