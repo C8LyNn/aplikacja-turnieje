@@ -49,9 +49,10 @@ namespace CoreClash.Presentation
                     if(state.phase==MatchPhase.Moving&&remoteVisual!=null&&remoteVisual.TryGetPosition(ball.id,Time.unscaledTime,out var px,out var py)){renderX=px;renderY=py;}
                     if(ball.mineArmed)Ring(Point(clippedBoard,renderX,renderY),(ball.radius+11)*board.width/540,new Color(.79f,.31f,1,.82f),Mathf.Max(1,board.width/540));
                     if(ball.timeBombArmed)Ring(Point(clippedBoard,renderX,renderY),(ball.radius+9)*board.width/540,new Color(1,.65f,.25f,.85f),Mathf.Max(1.5f,2*board.width/540));
-                    BallView.Render(clippedBoard,ball,simulation.Catalog.Ball(ball.type),state.phase==MatchPhase.Aiming&&simulation.CanReplay(ball),renderX,renderY,viewOwner);
+                    BallView.Render(clippedBoard,ball,simulation.Catalog.Ball(ball.type),ReplayAffordance.Advertise(simulation,ball),renderX,renderY,viewOwner);
                 }
             RenderEvents(clippedBoard,feedback);
+            RenderReplayCounter(clippedBoard,simulation);
             if (state.phase == MatchPhase.Aiming && aim != null && aim.Active) RenderAim(clippedBoard, state, aim,selected,simulation.Catalog);
             GUI.EndGroup();
 
@@ -253,6 +254,20 @@ namespace CoreClash.Presentation
 
             // A10-approved W10 presentation: trajectory length/tint is the only board power cue.
             // Readiness wording lives in MatchView so the board remains unobscured.
+        }
+
+        // W18-02 (#287): how many own balls the acting player may Replay now
+        // (canonical CanReplay only), next to that player's launcher.
+        static void RenderReplayCounter(Rect board,GameSimulation simulation)
+        {
+            var state=simulation.State;if(state.phase!=MatchPhase.Aiming)return;
+            string label=ReplayAffordance.CounterLabel(state.turn,ReplayAffordance.Eligible(simulation).Count);if(label.Length==0)return;
+            float scale=board.width/540;int font=Mathf.Max(9,Mathf.RoundToInt(11*scale));
+            Vector2 anchor=Point(board,Left+8,state.turn==0?Bottom-26:Top+26);
+            float w=Mathf.Min(board.width*.5f,label.Length*font*.58f+14),h=font+8;
+            var rect=new Rect(anchor.x,anchor.y-h/2,w,h);
+            Draw.Round(rect,new Color(.018f,.035f,.055f,.78f));
+            Draw.Text(rect,label,font,Draw.Gold,TextAnchor.MiddleCenter,true);
         }
 
         // W18-01 (#286): estimated free-roll STOP on an empty arena (StopPredictor).
