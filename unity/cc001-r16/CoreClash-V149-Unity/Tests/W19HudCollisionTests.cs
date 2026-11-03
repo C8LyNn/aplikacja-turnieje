@@ -84,7 +84,7 @@ public static partial class Program
             }
         });
         Test("W19-05 a fully packed board falls back to the outer frame instead of covering balls",()=>{
-            var s=W18Sim();for(float x=40;x<=500;x+=46)for(float y=40;y<=860;y+=46)s.Spawn(x<270?0:1,"normal",x,y);
+            var s=W18Sim();for(float x=40;x<=500;x+=46)for(float y=40;y<=880;y+=46)s.Spawn(x<270?0:1,"normal",x,y);
             float bw=640,scale=bw/540;var field=BoardOverlayPlanner.Field(0,0,0,bw);var avoid=BoardOverlayPlanner.KeepOuts(s.State,0,0,0,bw);
             False(BoardOverlayPlanner.Banner(W19BannerLines,1,0,field,scale,avoid).Placed);False(BoardOverlayPlanner.Counter("P1 · REPLAY ×1",0,0,field,scale,avoid).Placed);
         });
