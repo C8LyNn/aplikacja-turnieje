@@ -158,3 +158,42 @@ Use original unmodified screenshots, source SHA, full Player path/size/SHA inven
 P0: approve exact HP external badge and impossible-density fallback; approve owner non-text encoding; test 24 named/icon pilot; wait for A11 HTML provenance and A10 STOP per-mode defaults; reconcile into **one** canonical HQ PR #314. P1 after owner/A70 dispatch: single-owner coordinated BallView and keep-out update and native A60 regression, no duplicate Claude BoardView rewrite. P2: optional 5-HP ring, adaptive effects, historic mode cards after comparative evidence.
 
 **AGENT=A20 | SOURCE_SHA=7473ceb249086e35942999c093f2c42a91afd415 | EXECUTED=GitHub BallView/BallIdentity/BallInspection/BoardView/MatchView/SetupView + full catalog census, bounded historic HTML review | STATUS=SOURCE_AUDIT_COMPLETE / VISUAL_CONTRACT_PROPOSED / A11+A10_PENDING / PLAYER_NATIVE_HOLD | EVIDENCE=this annex + 227-row CSV | BLOCKERS=owner sign-off, A11 history, A10 mode policy, A60 real images/PC1–PC2 | NEXT=A00 integrate approved A20 material into canonical #314, A70 keep implementation HOLD / RELEASE STOP.**
+
+## 9. W20 A20 verification addendum — clipping, smoothed poses, HTML HP exception (2026-11-03)
+
+**This addendum is source-verified UX contract refinement on the existing A20 Draft PR.** It does not change any C# source. It integrates distinct implementation/evidence risks identified after A20 v0.1 in [A33 review](https://github.com/C8LyNn/aplikacja-turnieje/issues/313#issuecomment-6615872630), [A44 evidence protocol](https://github.com/C8LyNn/aplikacja-turnieje/issues/313#issuecomment-6615876713), and A20 direct GitHub reads at immutable SHA 7473ceb249086e35942999c093f2c42a91afd415.
+
+### P0-01 — external HP must remain visible at the clipped field border
+
+**Source fact:** BoardView.Render computes visible field as Box(board,Left,Top,Right-Left,Bottom-Top), enters GUI.BeginGroup(field), then invokes BallView.Render **inside that clipping group**. Merely translating the existing current-HP label outside the orb may clip it at the top/right/left/bottom boundary. The current code is not a new exterior-HP Player; this is a PRE-IMPLEMENTATION RISK, not a reproduced failure.
+
+**Contract:** one coherent presentation geometry plan takes (ball ID, rendered centre, physics radius, field rect, viewport scale, view owner, eligible Replay, visible state tokens) and returns body bounds, visible external HP box, Replay box, prioritized status boxes, all keep-outs and any leader-line endpoint. The same rectangles must drive drawing and banner/counter collision avoidance; no duplicate independent magic constants in BallView and BoardOverlayPlanner. Prefer to keep the HP label inside the visible field but **outside the sphere**. If impossible at the boundary, propose a visually connected rail/outer pass with explicit field/group-coordinate conversion and zero hit-test interception; A20/A10/owner must choose. Never silently clip/omit exact current HP.
+
+**Source-target checks:** exact ball at each of the four walls and corners, 1/8/22/40 balls, P1 & flipped P2, 390x844/568x270 plus desktop. A rendered HP capsule must not overlap owner, gold R, launcher, STOP, base-damage banner, ball tap area, nor disappear behind the field clipping group. Compare actually rendered bounds, not only pre-layout geometry.
+
+### P0-02 — do not confuse canonical HP state with the visual pose
+
+**Source fact:** BoardView.Render uses remoteVisual.TryGetPosition to interpolate renderX/renderY during Moving and sends them into BallView.Render, whereas BoardOverlayPlanner.KeepOuts currently derives rectangles from canonical b.x/b.y; they may differ on remote clients. MatchPerspective.ViewY returns 900-simulationY for local P2, without changing canonical ball.owner.
+
+**Contract:** current integer HP comes from latest accepted authoritative BallRuntime.hp; its POSITION and reserved overlay rectangle track the **same actual rendered ball pose** as the orb. Use the one projection and render pose across type icon, HP, status, Replay, collision avoidance and eventual leader line. Never animate current HP to mean a value that has not been received. Keep Replay legality tied to authoritative state and displayed P2 ownership tied to real ball.owner, not top/bottom orientation. This is an architectural spec, **not** authorization to change networking or smoothing.
+
+### P0-03 — historical Mirage Ghost is an actual unresolved semantic exception
+
+**Direct original-source evidence:** historical file path contains v122, but its HTML title is **Core Clash — V121 Keyword Semantics**; do not label it an independently verified V122 runtime without A11 provenance confirmation. In its drawBall, a historical ghost with isMirageGhost can copy its parent displayHp/displayMaxHp. The external integer HP label appears only at detail===2; at detail===0 only the cheap ring appears. Therefore historical *placement* is useful, but historical *conditional visibility* violates the owner's new always-numeric HP rule, and a raw-instance HP value might be a **mechanically significant deception reveal** if V148 intentionally hides ghost identity.
+
+**Owner/A10 arbitration needed before a final unqualified HP contract:** confirm exact protected V148 Mirage Ghost state and whether deception requires displaying copied parent HP. If yes, define an explicit approved *displayed HP* projection for ghosts that retains outside numeric visibility without revealing hidden identity; actual HP still remains authoritative in simulation and debug Inspect according to permissions. If not, use BallRuntime.hp. **DO NOT choose by assumption and do not change V148 rules.** A11 owns historical title/version provenance.
+
+### P1-04 — separate HP meaning in match, builder and returned-hand entry
+
+**Source/use distinction (A32's data contract):** live board HP is BallRuntime.hp; a catalog/deck card's BallDefinition.hp describes initial/spawn HP, while a returned Phoenix Hand can carry a separate current hand HP. Card copy should distinguish START HP, RETURN HP and CURRENT HP, all with correct sources; never use one generic HP label with an unrelated authoritative value. A hand-ready indicator must remain readable during the opponent turn without making the card actionable. A20 owns visual grammar; A32/A10 verify semantics and authorizes no change to catalog, hand stock or nine-card constraint.
+
+### P1-05 — avoid contradictory action hint after simplifying Replay
+
+**Source fact from MatchView:** the main status prompt can correctly say opponent's turn/disconnected, while a secondary sentence on desktop says a glowing home ball can Replay before spawning without the same current seat/eligibility guard. Compact/phone display short cues instead and may not teach where to start Replay drag. A21 already documented this discrepancy in [#313](https://github.com/C8LyNn/aplikacja-turnieje/issues/313#issuecomment-6615863058), and its old PR stack is NOT integrated into #309.
+
+**UX contract:** context-aware copy states the **current valid action and its origin**. Display a Replay instruction only for eligible canonical CanReplay and local actionable phase, not when disconnected, opponent turn, Moving, Over or Inspect. On phone/compact, explicitly teach dragging the gold-marked home ball while not hiding basic launcher instructions. Preserve existing input authorization, no text-only attempt to expand privileges. Source risk, no live human comprehension PASS.
+
+### Gate consequences / do-not-implement
+
+These are **ACCEPTANCE REQUIREMENTS, not approved patches**. Before one-owner BallView/BoardLabelLayout/BoardView implementation: A20+A10/owner approve clipping/rail strategy and Mirage disclosure; A11 identifies actual historical source version and matched-original screenshots; A70 preserves single-file ownership. After implementation: A60 original-window screenshots, true replay drag, two physical LAN seats, and P2 swapped view; human comprehension/STOP study separate. Native Player remains NOT_RUN by A20, release STOP. A00 owns canonical PR #314 and may selectively fold these clauses; no competing master document.
+
