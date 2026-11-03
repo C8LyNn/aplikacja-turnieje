@@ -113,7 +113,7 @@ public static partial class Program
             var blocker=s.Spawn(1,"normal",270,450);var aside=s.Spawn(1,"normal",60,300);
             var blocked=StopPredictor.Predict(body,StopPredictor.Obstacles(s.State,-1));True(blocked.Obstructed);
             True(StopPredictor.Label(blocked).EndsWith("· IF PATH CLEAR"));Near(clear.StopX,blocked.StopX);Near(clear.StopY,blocked.StopY);
-            blocker.dead=true;False(StopPredictor.Predict(body,StopPredictor.Obstacles(s.State,-1)).Obstructed,"dead ball still obstructs");
+            blocker.dead=true;True(!StopPredictor.Predict(body,StopPredictor.Obstacles(s.State,-1)).Obstructed,"dead ball still obstructs");
             s.State.zones.Add(new ZoneRuntime{id=99,kind="gravity",x=270,y=500,radius=40});True(StopPredictor.Predict(body,StopPredictor.Obstacles(s.State,-1)).Obstructed,"field ignored");
             s.State.zones.Clear();s.State.structures.Add(new StructureRuntime{id=98,kind="bumper",x=270,y=600,radius=20});True(StopPredictor.Predict(body,StopPredictor.Obstacles(s.State,-1)).Obstructed,"structure ignored");
             s.State.structures.Clear();
