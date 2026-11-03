@@ -271,8 +271,8 @@ namespace CoreClash.Presentation
             {
                 var lines=BaseDamageTracker.Lines(baseReport.Latest,owner,type=>simulation.Catalog.Ball(type)?.name??type);if(lines.Length==0)continue;
                 Vector2 anchor=Point(board,270,owner==0?760:140);
-                float w=Mathf.Min(board.width-16,Mathf.Max(lines[0].Length,lines[1].Length)*font*.58f+16);
-                var rect=new Rect(Mathf.Clamp(anchor.x-w/2,board.x+8,board.xMax-w-8),anchor.y-h,w,h*2+4);
+                float w=Mathf.Max(lines[0].Length,lines[1].Length)*font*.58f+16;
+                var rect=RectOf(BoardLabelLayout.Fit(VisibleField(board),anchor.x,anchor.y-h,anchor.y-h,w,h*2+4,8));w=rect.width;
                 Draw.Round(rect,new Color(.018f,.035f,.055f,.8f));
                 Draw.Text(new Rect(rect.x,rect.y+2,w,h),lines[0],font,Draw.Pink,TextAnchor.MiddleCenter,true);
                 Draw.Text(new Rect(rect.x,rect.y+h+2,w,h),lines[1],Mathf.Max(8,font-1),Color.white,TextAnchor.MiddleCenter,false);
@@ -287,8 +287,8 @@ namespace CoreClash.Presentation
             string label=ReplayAffordance.CounterLabel(state.turn,ReplayAffordance.Eligible(simulation).Count);if(label.Length==0)return;
             float scale=board.width/540;int font=Mathf.Max(9,Mathf.RoundToInt(11*scale));
             Vector2 anchor=Point(board,Left+8,state.turn==0?Bottom-26:Top+26);
-            float w=Mathf.Min(board.width*.5f,label.Length*font*.58f+14),h=font+8;
-            var rect=new Rect(anchor.x,anchor.y-h/2,w,h);
+            float w=label.Length*font*.58f+14,h=font+8;
+            var rect=RectOf(BoardLabelLayout.Fit(VisibleField(board),anchor.x+w/2,anchor.y-h/2,anchor.y-h/2,w,h));
             Draw.Round(rect,new Color(.018f,.035f,.055f,.78f));
             Draw.Text(rect,label,font,Draw.Gold,TextAnchor.MiddleCenter,true);
         }
@@ -317,9 +317,8 @@ namespace CoreClash.Presentation
             AimStroke(stop-new Vector2(r*.45f,0),stop+new Vector2(r*.45f,0),mark,Mathf.Max(1,1.2f*scale));
             AimStroke(stop-new Vector2(0,r*.45f),stop+new Vector2(0,r*.45f),mark,Mathf.Max(1,1.2f*scale));
             string label=StopPredictor.Label(e);int font=Mathf.Max(9,Mathf.RoundToInt(11*scale));
-            float w=Mathf.Min(board.width-8,label.Length*font*.6f+12),h=font+8;
-            float lx=Mathf.Clamp(stop.x-w/2,board.x+4,board.xMax-w-4),ly=stop.y+r+4;if(ly+h>board.yMax-4)ly=stop.y-r-4-h;
-            var rect=new Rect(lx,ly,w,h);
+            float w=label.Length*font*.6f+12,h=font+8;
+            var rect=RectOf(BoardLabelLayout.Fit(VisibleField(board),stop.x,stop.y+r+4,stop.y-r-4-h,w,h));
             Draw.Round(rect,new Color(.018f,.035f,.055f,.62f));Draw.Text(rect,label,font,mark,TextAnchor.MiddleCenter,true);
         }
 
@@ -393,5 +392,8 @@ namespace CoreClash.Presentation
         }
 
         static Color Alpha(Color color, float alpha) => new Color(color.r, color.g, color.b, alpha);
+        // W19-04: the clipped play field in board-view space (labels stay inside it).
+        static UiBox VisibleField(Rect board){Vector2 a=Point(board,Left,Top),b=Point(board,Right,Bottom);return BoardLabelLayout.Field(a.x,a.y,b.x,b.y);}
+        static Rect RectOf(UiBox r)=>new Rect(r.x,r.y,r.width,r.height);
     }
 }
