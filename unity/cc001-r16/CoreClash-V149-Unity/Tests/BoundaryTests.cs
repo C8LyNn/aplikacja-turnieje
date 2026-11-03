@@ -10,6 +10,7 @@ public static partial class Program
         PresentationTests();
         W17AimGeometryTests();
         W18StopPredictionTests();
+        W18ReplayAffordanceTests();
         SetupLayoutTests();
         W19ReadinessTests();
         IdentityPresentationTests();
