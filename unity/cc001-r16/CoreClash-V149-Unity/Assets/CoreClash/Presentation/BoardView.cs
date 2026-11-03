@@ -287,7 +287,7 @@ namespace CoreClash.Presentation
             string label=ReplayAffordance.CounterLabel(state.turn,ReplayAffordance.Eligible(simulation).Count);if(label.Length==0)return;
             float scale=board.width/540;int font=Mathf.Max(9,Mathf.RoundToInt(11*scale));
             Vector2 anchor=Point(board,Left+8,state.turn==0?Bottom-26:Top+26);
-            float w=label.Length*font*.58f+14,h=font+8;
+            float w=label.Length*font*.7f+16,h=font+8; // W19-04: Player showed the counter wrapping at .58
             var rect=RectOf(BoardLabelLayout.Fit(VisibleField(board),anchor.x+w/2,anchor.y-h/2,anchor.y-h/2,w,h));
             Draw.Round(rect,new Color(.018f,.035f,.055f,.78f));
             Draw.Text(rect,label,font,Draw.Gold,TextAnchor.MiddleCenter,true);
