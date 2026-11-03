@@ -53,6 +53,7 @@ namespace CoreClash.Presentation
                 }
             RenderEvents(clippedBoard,feedback);
             RenderReplayCounter(clippedBoard,simulation);
+            RenderBaseReport(clippedBoard,simulation);
             if (state.phase == MatchPhase.Aiming && aim != null && aim.Active) RenderAim(clippedBoard, state, aim,selected,simulation.Catalog);
             GUI.EndGroup();
 
@@ -254,6 +255,28 @@ namespace CoreClash.Presentation
 
             // A10-approved W10 presentation: trajectory length/tint is the only board power cue.
             // Readiness wording lives in MatchView so the board remains unobscured.
+        }
+
+        // W18-03 (#288): why each base lost HP last turn (BaseDamageTracker reads
+        // only authoritative events). Shown from the turn end until the next launch.
+        static BaseDamageTracker baseReport;
+        static GameSimulation baseReportSimulation;
+        static void RenderBaseReport(Rect board,GameSimulation simulation)
+        {
+            if(!ReferenceEquals(simulation,baseReportSimulation)){baseReport=new BaseDamageTracker();baseReportSimulation=simulation;}
+            var state=simulation.State;baseReport.Observe(state);
+            if(!baseReport.Visible||state.phase==MatchPhase.Moving)return;
+            float scale=board.width/540;int font=Mathf.Max(9,Mathf.RoundToInt(11*scale));float h=font+7;
+            for(int owner=0;owner<2;owner++)
+            {
+                var lines=BaseDamageTracker.Lines(baseReport.Latest,owner,type=>simulation.Catalog.Ball(type)?.name??type);if(lines.Length==0)continue;
+                Vector2 anchor=Point(board,270,owner==0?760:140);
+                float w=Mathf.Min(board.width-16,Mathf.Max(lines[0].Length,lines[1].Length)*font*.58f+16);
+                var rect=new Rect(Mathf.Clamp(anchor.x-w/2,board.x+8,board.xMax-w-8),anchor.y-h,w,h*2+4);
+                Draw.Round(rect,new Color(.018f,.035f,.055f,.8f));
+                Draw.Text(new Rect(rect.x,rect.y+2,w,h),lines[0],font,Draw.Pink,TextAnchor.MiddleCenter,true);
+                Draw.Text(new Rect(rect.x,rect.y+h+2,w,h),lines[1],Mathf.Max(8,font-1),Color.white,TextAnchor.MiddleCenter,false);
+            }
         }
 
         // W18-02 (#287): how many own balls the acting player may Replay now
