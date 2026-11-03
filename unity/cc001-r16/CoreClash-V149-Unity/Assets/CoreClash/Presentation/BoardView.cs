@@ -52,12 +52,15 @@ namespace CoreClash.Presentation
                     BallView.Render(clippedBoard,ball,simulation.Catalog.Ball(ball.type),ReplayAffordance.Advertise(simulation,ball),renderX,renderY,viewOwner);
                 }
             RenderEvents(clippedBoard,feedback);
-            RenderReplayCounter(clippedBoard,simulation);
-            RenderBaseReport(clippedBoard,simulation);
+            // W19-05: banner first, then counter; both avoid balls, chips, launchers, structures and each other.
+            marginNotes.Clear();var keepOut=BoardKeepOuts(clippedBoard,state);
+            RenderBaseReport(clippedBoard,simulation,aim,keepOut);
+            RenderReplayCounter(clippedBoard,simulation,aim,keepOut);
             if (state.phase == MatchPhase.Aiming && aim != null && aim.Active) RenderAim(clippedBoard, state, aim,selected,simulation.Catalog);
             GUI.EndGroup();
 
             RenderFrame(board,state);
+            RenderMarginNotes(board);
             GUI.EndGroup();
             viewOwner=previousViewOwner;
         }
@@ -259,38 +262,61 @@ namespace CoreClash.Presentation
 
         // W18-03 (#288): why each base lost HP last turn (BaseDamageTracker reads
         // only authoritative events). Shown from the turn end until the next launch.
+        // W19-05: placed in the first free slot from the damaged base's edge inward
+        // (never over a ball, its chips, a launcher or a structure), hidden while a
+        // drag is active; a one-line form and then the outer frame are fallbacks.
         static BaseDamageTracker baseReport;
         static GameSimulation baseReportSimulation;
-        static void RenderBaseReport(Rect board,GameSimulation simulation)
+        static readonly List<(bool top,string text,Color color)> marginNotes=new List<(bool,string,Color)>();
+        static List<UiBox> BoardKeepOuts(Rect board,GameState state)=>BoardOverlayPlanner.KeepOuts(state,viewOwner,board.x,board.y,board.width);
+        static void RenderBaseReport(Rect board,GameSimulation simulation,LaunchGesture aim,List<UiBox> avoid)
         {
             if(!ReferenceEquals(simulation,baseReportSimulation)){baseReport=new BaseDamageTracker();baseReportSimulation=simulation;}
             var state=simulation.State;baseReport.Observe(state);
-            if(!baseReport.Visible||state.phase==MatchPhase.Moving)return;
-            float scale=board.width/540;int font=Mathf.Max(9,Mathf.RoundToInt(11*scale));float h=font+7;
+            if(!baseReport.Visible||state.phase==MatchPhase.Moving||(aim!=null&&aim.Active))return;
+            float scale=board.width/540;var field=VisibleField(board);
             for(int owner=0;owner<2;owner++)
             {
                 var lines=BaseDamageTracker.Lines(baseReport.Latest,owner,type=>simulation.Catalog.Ball(type)?.name??type);if(lines.Length==0)continue;
-                Vector2 anchor=Point(board,270,owner==0?760:140);
-                float w=Mathf.Max(lines[0].Length,lines[1].Length)*font*.58f+16;
-                var rect=RectOf(BoardLabelLayout.Fit(VisibleField(board),anchor.x,anchor.y-h,anchor.y-h,w,h*2+4,8));w=rect.width;
-                Draw.Round(rect,new Color(.018f,.035f,.055f,.8f));
-                Draw.Text(new Rect(rect.x,rect.y+2,w,h),lines[0],font,Draw.Pink,TextAnchor.MiddleCenter,true);
-                Draw.Text(new Rect(rect.x,rect.y+h+2,w,h),lines[1],Mathf.Max(8,font-1),Color.white,TextAnchor.MiddleCenter,false);
+                var plan=BoardOverlayPlanner.Banner(lines,owner,viewOwner,field,scale,avoid);
+                if(!plan.Placed){marginNotes.Add((plan.Top,lines[0],Draw.Pink));continue;}
+                var rect=RectOf(plan.Box);Draw.Round(rect,new Color(.018f,.035f,.055f,.8f));
+                if(plan.TwoLines)
+                {
+                    Draw.Text(new Rect(rect.x,rect.y+2,rect.width,plan.LineHeight),lines[0],plan.Font,Draw.Pink,TextAnchor.MiddleCenter,true);
+                    Draw.Text(new Rect(rect.x,rect.y+plan.LineHeight+2,rect.width,plan.LineHeight),lines[1],Mathf.Max(8,plan.Font-1),Color.white,TextAnchor.MiddleCenter,false);
+                }
+                else Draw.Text(rect,lines[0],plan.Font,Draw.Pink,TextAnchor.MiddleCenter,true);
             }
         }
 
         // W18-02 (#287): how many own balls the acting player may Replay now
-        // (canonical CanReplay only), next to that player's launcher.
-        static void RenderReplayCounter(Rect board,GameSimulation simulation)
+        // (canonical CanReplay only). W19-05: in the acting player's band but in a
+        // free slot (never on the launcher, a ball or its chips), hidden while dragging.
+        static void RenderReplayCounter(Rect board,GameSimulation simulation,LaunchGesture aim,List<UiBox> avoid)
         {
-            var state=simulation.State;if(state.phase!=MatchPhase.Aiming)return;
+            var state=simulation.State;if(state.phase!=MatchPhase.Aiming||(aim!=null&&aim.Active))return;
             string label=ReplayAffordance.CounterLabel(state.turn,ReplayAffordance.Eligible(simulation).Count);if(label.Length==0)return;
-            float scale=board.width/540;int font=Mathf.Max(9,Mathf.RoundToInt(11*scale));
-            Vector2 anchor=Point(board,Left+8,state.turn==0?Bottom-26:Top+26);
-            float w=label.Length*font*.7f+16,h=font+8; // W19-04: Player showed the counter wrapping at .58
-            var rect=RectOf(BoardLabelLayout.Fit(VisibleField(board),anchor.x+w/2,anchor.y-h/2,anchor.y-h/2,w,h));
+            var plan=BoardOverlayPlanner.Counter(label,state.turn,viewOwner,VisibleField(board),board.width/540,avoid);
+            if(!plan.Placed){marginNotes.Add((plan.Top,label,Draw.Gold));return;}
+            var rect=RectOf(plan.Box);
             Draw.Round(rect,new Color(.018f,.035f,.055f,.78f));
-            Draw.Text(rect,label,font,Draw.Gold,TextAnchor.MiddleCenter,true);
+            Draw.Text(rect,label,plan.Font,Draw.Gold,TextAnchor.MiddleCenter,true);
+        }
+
+        // Last resort when the field is full: a one-line note in the outer frame band.
+        static void RenderMarginNotes(Rect board)
+        {
+            if(marginNotes.Count==0)return;
+            float scale=board.width/540;Vector2 a=Point(board,Left,Top),b=Point(board,Right,Bottom);
+            float fieldTop=Mathf.Min(a.y,b.y),fieldBottom=Mathf.Max(a.y,b.y),band=fieldTop-board.y;if(band<8)return;
+            int font=Mathf.Max(7,Mathf.Min(Mathf.RoundToInt(10*scale),Mathf.FloorToInt(band-3)));
+            for(int i=0;i<marginNotes.Count;i++){
+                var n=marginNotes[i];bool sameSideBefore=false;for(int j=0;j<i;j++)if(marginNotes[j].top==n.top)sameSideBefore=true;
+                float w=Mathf.Min(n.text.Length*font*.66f+12,board.width*.48f),x=sameSideBefore?board.xMax-w-4:board.x+4;
+                var rect=new Rect(x,n.top?board.y+1:fieldBottom+1,w,band-2);
+                Draw.Round(rect,new Color(.018f,.035f,.055f,.9f));Draw.Text(rect,n.text,font,n.color,TextAnchor.MiddleCenter,true);
+            }
         }
 
         // W18-01 (#286): estimated free-roll STOP on an empty arena (StopPredictor).

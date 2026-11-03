@@ -41,7 +41,7 @@ public static partial class Program
             var a=s.Spawn(0,"normal",120,760);var b=s.Spawn(0,"normal",400,770);s.Spawn(0,"normal",270,450);s.Spawn(1,"normal",200,140);var d=s.Spawn(0,"normal",300,800);d.dead=true;
             True(ReplayAffordance.Eligible(s).SequenceEqual(new[]{a.id,b.id}));
             Eq(s.State.balls.Count(x=>s.CanReplay(x)),ReplayAffordance.Eligible(s).Count);
-            Eq("P1 · REPLAY ×2 · DRAG A GLOWING BALL",ReplayAffordance.CounterLabel(0,2));
+            Eq("P1 · REPLAY ×2",ReplayAffordance.CounterLabel(0,2)); // W19-05: short one-line counter
             True(ReplayAffordance.CounterLabel(1,1).StartsWith("P2 · REPLAY ×1"));
             Eq(0,ReplayAffordance.Eligible(null).Count);
         });

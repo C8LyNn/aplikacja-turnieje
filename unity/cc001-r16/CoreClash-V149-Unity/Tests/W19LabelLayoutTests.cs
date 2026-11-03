@@ -28,8 +28,10 @@ public static partial class Program
         Test("W19-04 BoardView clamps every board label to the visible field",()=>{
             string board=File.ReadAllText(Path.Combine(projectRoot,"Assets/CoreClash/Presentation/BoardView.cs"));
             True(board.Contains("static UiBox VisibleField(Rect board)"),"no visible-field helper");
-            True(System.Text.RegularExpressions.Regex.Matches(board,@"BoardLabelLayout\.Fit\(VisibleField\(board\)").Count==3,"not all three labels use the visible field");
-            False(board.Contains("board.xMax-w"));
+            // W19-05: STOP label uses Fit; banner and counter are planned inside VisibleField by BoardOverlayPlanner.
+            True(System.Text.RegularExpressions.Regex.Matches(board,@"BoardLabelLayout\.Fit\(VisibleField\(board\)").Count>=1&&System.Text.RegularExpressions.Regex.Matches(board,@"VisibleField\(board\)").Count>=3,"labels do not use the visible field");
+            // W19-05: the outer-frame fallback legitimately uses board.xMax; guard the old in-field clamps instead.
+            False(board.Contains("Mathf.Clamp(stop.x-w/2,board.x+4,board.xMax-w-4)"));False(board.Contains("Mathf.Clamp(anchor.x-w/2,board.x+8,board.xMax-w-8)"));
         });
     }
 }
