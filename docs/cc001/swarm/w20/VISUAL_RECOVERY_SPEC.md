@@ -1,5 +1,5 @@
 # CC-001 — VISUAL RECOVERY SPEC
-**W20 · draft v0.1 · 2026-11-03 · SPEC FIRST / NO GAMEPLAY OR UI PATCHES**
+**W20 · draft v0.2 · 2026-11-03 · SPEC FIRST / NO GAMEPLAY OR UI PATCHES**
 
 **Decyzja właściciela:** obecne wizualia, nazwy, ikony i czytelność są głównym problemem. Odtworzyć NAJLEPSZE cechy historycznego HTML, nie całą dawną implementację. HP każdej kulki ma być liczbą POZA nią, P1/P2 na każdej kulce ma zniknąć z domyślnego HUD, a STOP preview ma pozostać dostępny ON/OFF we wszystkich trybach.
 
@@ -8,7 +8,8 @@
 ## 0. Pochodzenie / ochrona źródeł
 - W20 Unity DEV selected: 7473ceb249086e35942999c093f2c42a91afd415 (Claude #309; kod gry jak fb5eb505d861a4f8f44a34321020ad71a0ba1710). Izolowane przyjęcie SOURCE_ONLY: [Draft #310](https://github.com/C8LyNn/aplikacja-turnieje/pull/310). Oryginalne #308 i #309 bez ingerencji.
 - Zamrożony HTML V148, referencyjne SHA256: bbc48f8475544d9ef833b5ba76605544f1514418fac42b6bc5c5ef9ca4623e. Źródło w [Reference/V148_reference_original.html](../../../../unity/cc001-r16/Reference/V148_reference_original.html). Nie przepisywać fizyki, zdolności, Protocol149, balansu R16 lub Mitosis/Furnace.
-- Historyczny V122 istnieje jako [archiwum HTML](../../../../artifacts/tournament-manager/public/portfolio/docs/evidence/core-clash-v122-archive.html) — **bezpośrednio przeczytany kod CSS/JS**; to nie jest zamiennik zatwierdzonego V148.
+- Historyczne **archiwum nazwane „V122”**: [kod HTML](../../../../artifacts/tournament-manager/public/portfolio/docs/evidence/core-clash-v122-archive.html), Git blob `8a15a57dab0c51a1a5040f92d5b1ccf4bc706c12`. **Jego wewnętrzny `<title>` to „V121 Keyword Semantics”, a `CC_TEST_VERSION='121'`;** zawiera również komentarze i elementy z etykietą V122. Dopóki A11 nie odtworzy pochodzenia, nazywać go „V121/V122-named archive”, a nie certyfikowaną kompilacją V122. To nie jest zamiennik zatwierdzonego V148.
+- Starszy kod HTML **V92**: [prototyp](../../../../artifacts/tournament-manager/public/prototypes/minigames/core-clash/index.html), Git blob `228d9b0bef83347d0973604a1f9ed6c641e04212`, rzeczywisty title `v92 delayed replay PvP + server lifecycle`. Ranking wizualny wymaga A11.
 - V149 Legacy: [kod](../../../../unity/cc001-r16/CoreClash-V149-Unity/Legacy/core_clash_v149_legacy_presentation.html), [status](../../../../unity/cc001-r16/CoreClash-V149-Unity/docs/LEGACY_PRESENTATION_STATUS.md), [przegląd V149.5](../../../../unity/cc001-r16/CoreClash-V149-Unity/docs/ARCHIVE_HTML_REVIEW.md).
 - Materiały porównawcze: [R2](../../../../unity/cc001-r16/CoreClash-V149-Unity/docs/R2_VISUAL_COMPARISON.md), [R3](../../../../unity/cc001-r16/CoreClash-V149-Unity/docs/R3_VISUAL_COMPARISON.md), [R4](../../../../unity/cc001-r16/CoreClash-V149-Unity/docs/R4_VISUAL_REVIEW.md), [identyfikacja](../../../../unity/cc001-r16/CoreClash-V149-Unity/docs/ARCHIVE_PRESENTATION_REVIEW.md).
 - UWAGA O ZAKRESIE: narzędzie odczytało pełny tekst V122 i dokumentację porównawczą; bardzo duże V148/V149 HTML nie zostały tutaj poddane pełnemu bezpośredniemu przeglądowi wszystkich linii. Wnioski z V148/V149 oparte na wymienionych raportach, nie oznaczać ich jako pełnej archeologii wersji. A11 ma potwierdzić pełną sekwencję historycznych buildów i oryginalne zrzuty.
@@ -32,8 +33,8 @@
 
 | Wersja / dowód | Najlepszy element / gorszy element | Decyzja przeniesienia do Unity |
 | --- | --- | --- |
-| **V122 źródło, drawBall L25912–25945** | Pierścień dzielony na segmenty **po 5 rzeczywistego max HP**, aktualne **liczbowe HP NAD obrysem kulki** w trybie detail=2; przy detail=0 prosty łuk proporcji | **PRZENIEŚĆ ideę zewnętrznej liczby**; segmenty/łuk potraktować jako drugorzędną, opcjonalną wizualizację, bo liczba jest wymogiem nieusuwalnym |
-| **V122 L25949–25956** | Mały geometryczny znacznik ownera pod kulką, dodatkowo drużynowy obrys; bez drukowania P1/P2 na każdej sztuce | **PRZENIEŚĆ zasadę nie-tekstowego kodowania**; docelową geometrię i czytelność na P1/P2 dobrać w QA |
+| **Archiwum V121/V122-named, drawBall L25912–25945** | Zewnętrzna cyfra obecna **tylko przy detail===2**; przy detail===0 jest jedynie pierścień HP. Segmenty odpowiadają **5 HP każdy**. Ponadto Mirage Ghost może wyświetlać HP rodzica zamiast własnej instancji | **PRZENIEŚĆ WYŁĄCZNIE ideę położenia liczby**; docelowe Unity musi zawsze prezentować prawdziwe `BallRuntime.hp` konkretnej kulki, bez warunkowego ukrywania albo historycznego podszywania się HP |
+| **Archiwum V121/V122-named L25949–25956** | Mały geometryczny znacznik ownera pod kulką i drużynowy obrys; bez drukowania P1/P2 na każdej sztuce | **PRZENIEŚĆ zasadę nie-tekstowego kodowania**; docelową geometrię i czytelność na P1/P2 dobrać w QA |
 | **V122 L25573–25599, 25627+** | Aura ma wariant uproszczony na zatłoczonej planszy; zmienne ogień/lód itp. prezentowane jako efekty | **PRZENIEŚĆ hierarchię i adaptację szczegółów**, nie kopiować wszystkich animacji i kosztownych halo |
 | **V122 L14001–14020, CSS L203–215** | Katalogowa kulka: błyszczące tło typu, wyraźny mark, osobny **badge HP** i kontekst nazwy; obecne role/stan dostępne w kartach | **PRZENIEŚĆ rozdzielenie typu/HP/nazwy**; nie utożsamiać katalogowego max HP z HP aktualnej instancji |
 | **V122 L3751–3859** | Osobne wejścia AI, Standard-only, lokalne PvP, online, Sandbox, Simulation Lab, AI vs AI; jasne obietnice funkcji | **ZACHOWAĆ ideę czytelnych kart trybu**, ale NIE kopiować listy jako deklaracji, że Unity już je obsługuje |
@@ -45,12 +46,14 @@
 | **Unity #309 W19** | Collision-aware placement banera i Replay, ukrycie w trakcie drag, zewnętrzny frame fallback | **ZACHOWAĆ jako aktualny punkt wyjścia**, ale po dodaniu HP, usunięciu P1/P2 i testach gęstego pola przeliczyć keep-outy |
 
 ### Ograniczenia porównania
-- Nie istnieje w tym audycie materiał pozwalający rozstrzygnąć, że **całe V122 jest ładniejsze niż całe V148**. Oceniamy **konkretną cechę / klatkę / regułę**, nie numer wygranej wersji.
+- Nie istnieje w tym audycie materiał pozwalający rozstrzygnąć, że **całe archiwum V121/V122-named jest ładniejsze niż całe V148**. Oceniamy **konkretną cechę / klatkę / regułę**, nie numer wygranej wersji.
 - R2/R3 są wcześniejszymi raportami runtime, nie dowodami wizualnej poprawności aktualnego #309.
 - 4 featured talie w V149 Legacy to prezentacja, nie balans; prawdziwe zasady V148 nadal chronione.
 - A11 ma dodać screeny P1/P2 o tej samej scenie i rozmiarze, ocenę reguły pomiaru oraz pełne źródła/wersje. Bez A11 tabela pozostaje **BEST_OF_CANDIDATE**, nie wynik końcowy.
 
 ## 3. Kanoniczny kontrakt wizualny kulki — PROPOZYCJA DO A20+A10
+
+**A20 dowiózł źródłowy audyt i katalog 227/227** w [Draft PR #316](https://github.com/C8LyNn/aplikacja-turnieje/pull/316), HEAD `ff91153798de79f92c9993e68498e4a66740cf5b`. [Pełny aneks A20](https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/cc001-w20-a20-visual-audit-annex-20261103/docs/cc001/swarm/w20/A20/VISUAL_UX_AUDIT_AND_CONTRACT.md) i [CSV 227 nazw/skrótów](https://github.com/C8LyNn/aplikacja-turnieje/blob/docs/cc001-w20-a20-visual-audit-annex-20261103/docs/cc001/swarm/w20/A20/CATALOG_227_NAME_MARK_AUDIT.csv). Dane: 227 unikalnych ID i 227 różnych nazw, 95 dwuznakowych stemów; 59 grup powtarzających stem i **191/227 nazw (84,1%)** w takich grupach. To potwierdza wadę semantycznego rozróżnienia skrótów, **nie** dowodzi błędu w unikatowości nazw ani nieczytelności każdego konkretnego imienia. Testy rozpoznawania grafik i aktualnego Playera pozostają NOT_RUN.
 
 ### 3.1 Priorytety informacji (co widzę bez otwierania Inspect)
 1. Czy kulka istnieje, gdzie jest jej **rzeczywiste fizyczne koło** i jaki jest jej typ — **jedna rozpoznawalna sylwetka/ikona w środku**, bez tekstowego tłoku.
@@ -61,9 +64,9 @@
 6. Pełna nazwa, szczegółowy opis, max HP, shield, dokładne stany, raw ID i debug informacje — w panelu/Inspektorze, nie wewnątrz koła.
 
 ### 3.2 HP — WIĄŻĄCE
-- **Każda żywa kulka** ma w normalnym gameplayu zewnętrzny, zawsze numeryczny licznik aktualnego HP; brak mechanizmu ukrywającego liczbę, gdy pole jest gęste. Nie zastępować liczby procentem, samym kolorem, segmentami ani paskiem.
+- **Każda żywa kulka** ma w normalnym gameplayu zewnętrzny, zawsze numeryczny licznik aktualnego HP; nie wolno świadomie ukrywać liczby tylko z powodu jakości obrazu. **Do decyzji właściciela:** na fizycznie niemożliwie gęstym obrazie (np. 22–40 kulek przy planszy szerokości 248px) wymaganie jednoczesnej, czytelnej, bezkolizyjnej widoczności wszystkich liczb może być niewykonalne. Kontrakt musi przewidzieć skalowanie/zoom/pan lub zewnętrzną listę HP z liniami wskazującymi dokładne kulki; nie może po cichu zastępować HP procentem. Nie zastępować liczby procentem, samym kolorem, segmentami ani paskiem.
 - **Proponowana pierwsza kotwica:** ok. „godzina 1–2” na zewnątrz obrysu (prawa-górna ćwiartka), żeby złoty R mógł pozostać po lewej-górnej stronie; matowy neutralny capsule z bardzo czytelną białą liczbą i jasną obwódką. Nie zakrywać fizycznego obwodu kulki ani hitboxu dotykowego.
-- **Fallback** przy ścianie: stała, deterministyczna kolejność kotwic zewnętrznych (górna prawa → prawa → dolna prawa → górna) i rezerwacja obszaru przed innymi overlayami; zachowanie bez migania i bez przeskoków na każdej klatce. W ekstremalnym tłoku projekt layoutu/leader-line musi **nadal pokazać dokładne HP**, a nie usuwać je.
+- **Fallback** przy ścianie: deterministyczna kolejność kotwic zewnętrznych (górna prawa → prawa → dolna prawa → górna) i rezerwacja obszaru przed innymi overlayami; zachowanie bez migania i bez przeskoków. **Ryzyko implementacji:** `BoardView.GUI.BeginGroup(field)` ucina etykiety wychodzące poza widoczny field; konieczny test czterech narożników lub oddzielny overlay pass. Dla zdalnego P2 renderowana wygładzona pozycja kuli może różnić się od pozycji kanonicznej użytej w starych keep-outach — projektować jedną wspólną geometrię. W ekstremalnym tłoku projekt layoutu/leader-line musi **nadal pokazać dokładne HP**, a nie usuwać je.
 - Numer to **BallRuntime.hp**, źródło autorytatywne, aktualizowane przy snapshotach. HP=23 renderować „23”; max HP i shield oddzielnie w Inspektorze. Nie sumować osłony do HP; nie rozciągać i nie koloryzować liczby tak, aby znikała po obrażeniach. Stan śmierci usuwa/demaskuje etykietę dopiero wraz ze stanem obiektu.
 - Segmentowa obręcz 1 segment = 5 HP z V122 to **opcjonalna warstwa drugorzędna**, domyślnie wyłączona na małym ekranie, chyba że QA wskaże jasną korzyść bez zakłóceń. Nie zmieniać maksymalnych HP.
 
@@ -156,5 +159,24 @@ Rejestrować bez danych wrażliwych: czas od rozpoczęcia drag do zatwierdzenia 
 
 **A70:** zestawić raporty A20 + A11 + A10, uzyskać owner review, zmienić DRAFT → APPROVED_SPEC dopiero wtedy, otworzyć małe rozłączne paczki wdrożeniowe i osobne QA; do tego czasu **INTEGRATION_GATE=HOLD**.
 
-## 9. Status
-AGENT=A00-SPEC-DRAFT | SOURCE_SHA=7473ceb249086e35942999c093f2c42a91afd415 | EXECUTED=authenticated GitHub Unity BallView/BoardView/Identity/MatchView/StopPrediction source read, V122 CSS+drawBall actual JS, V148/V149 curated documentation and past tests | STATUS=SPEC_DRAFT / HISTORICAL_BEST_OF_PARTIAL | EVIDENCE=links above | BLOCKERS=A20 screenshot audit, A11 complete history, A10 design choice and owner acceptance, A60 real W20 Player QA | NEXT=A70 spec gate after three reports | RELEASE=STOP.
+## 9. Stan raportów specjalistycznych i uzupełnienia kontraktu (W20 v0.2)
+
+| Warunek bramki | Stan poparty dowodem | Dalsze wymaganie |
+| --- | --- | --- |
+| A20 — Unity visual audit | **SOURCE_AUDIT_COMPLETE**: [PR #316](https://github.com/C8LyNn/aplikacja-turnieje/pull/316), 2 pliki docs-only; CSV 227/227 | Warianty wizualne i realne zrzuty Playera potrzebne do HUMAN_VISUAL_ACCEPT |
+| A11 — HTML chronology / best-of | **PENDING**: [Issue #315](https://github.com/C8LyNn/aplikacja-turnieje/issues/315), brak końcowej tabeli źródeł i screenshotów | Rozstrzygnąć V121/V122 title mismatch, warianty V92/V148/V149.5, porównać identyczne sceny |
+| A10 — STOP per actual mode / PvP fairness | **PENDING**: dispatch w [#91](https://github.com/C8LyNn/aplikacja-turnieje/issues/91#issuecomment-6615408846) i [#286](https://github.com/C8LyNn/aplikacja-turnieje/issues/286#issuecomment-6615305179), brak podpisanej macierzy trybów | Rozpoznać faktycznie dostępne tryby Unity, wybrać defaulty, politykę lobby/LAN bez naruszenia Protocol149 |
+| A20+A10 — HP / owner / icons | **DRAFT**: zewnętrzne aktualne HP; no P1/P2 domyślnie; kolory+geometria; znaczeniowe ikony | Zatwierdzenie geometrii, fallbacku przy 248px, rozdziału HP i shield, test 24 ikon |
+| A60 / native | **NATIVE_HOLD / LAN_P2_HOLD** | Rzeczywisty Player i odwrócony klient LAN, nie raport autora |
+| A70 / integration | **HOLD** do spec + właścicielskiej akceptacji | Bez nowej fali implementacyjnej, bez merge/release |
+
+### Kontrakty danych i komunikacji, których nie wolno spłaszczać
+
+- **Trzy znaczenia HP:** `catalog BallDefinition.hp` = katalogowy HP startowy w builderze/karcie; `BallRuntime.hp` = bieżące HP żywej kulki (tylko to na zewnętrznej plakietce); `PhoenixHandEntry.hp` = stan zapisany przy powrocie do ręki. Oznaczać w UI odpowiednio **START HP**, **CURRENT HP**, **RETURN HP**. Nie mieszać z osłoną ani nie wyciągać HP z renderowanej grafiki.
+- **Replay/copy:** desktop `MatchView.cs` ma stałą drugorzędną podpowiedź `A glowing home ball can Replay before you spawn.` bez pełnego strażnika aktualnego `CanReplay` / own-turn / connected; compact/phone pokazuje inne instrukcje. Wymaga jednego opartego na autorytatywnym stanie kontraktu komunikatów: disconnected/opponent/moving → bez własnych wskazówek strzału; own Aiming + legal replay → konkretna instrukcja `drag gold-marked home ball`; brak eligible → drag from launcher. **Źródłowy problem copy, nie odtworzony błąd Playera.**
+- **Jedna geometria overlayów:** prawdziwy `hpRect`, `replayRect`, `statusRects`, `ownerCueRect`, `reservedBounds`, pozycja renderowania po ewentualnym smooth. Usunięcie P1/P2 bez aktualizacji `BoardOverlayPlanner.KeepOuts` nie zwalnia realnie miejsca. Potrzeba źródłowo mierzalnych keep-outów, nie niezależnych obliczeń w każdej kontrolce.
+- **Karty/ręka:** pokazywać stan posiadania niezależnie od tego, czy dana osoba ma turę. `HAND READY` i możliwości kliknięcia to osobne fakty. Nie sugerować, że katalogowy `DATA_ONLY` jest dowodem braku/obecności implementacji umiejętności.
+- **Reżim STOP:** kryterium deterministyczności OFF vs ON przy identycznych komendach musi porównywać krok po kroku autorytatywny `GameSimulation` (HP, tury, zdarzenia, kolejność, wynik, RNG). Eksperyment umiejętności z ludźmi jest osobny i nie da się go uznać za zakończony na podstawie symulacji.
+
+## 10. Status
+AGENT=A00-SPEC-DRAFT | SOURCE_SHA=7473ceb249086e35942999c093f2c42a91afd415 | EXECUTED=GitHub selected Unity/V92/V121-V122-archive source verification, actual V121 title and detail-mode HP correction, A20 #316 intake and 227-name CSV, A33/A21/A32 scoped technical findings | STATUS=SPEC_DRAFT_v0.2 / A20_SOURCE_AUDIT_COMPLETE / A11_HTML_RANKING_PENDING / A10_STOP_POLICY_PENDING / NATIVE_PLAYER_HOLD | EVIDENCE=linked issues/PRs and blobs | BLOCKERS=A11 history, A10 signed mode rules, owner approval for extreme-density HP and names, actual native visual QA | NEXT=A70 gate remains HOLD; only documentation refinement | RELEASE=STOP.
