@@ -12,6 +12,7 @@ public static partial class Program
         W18StopPredictionTests();
         W18ReplayAffordanceTests();
         W18BaseDamageReportTests();
+        W19LabelLayoutTests();
         SetupLayoutTests();
         W19ReadinessTests();
         IdentityPresentationTests();
