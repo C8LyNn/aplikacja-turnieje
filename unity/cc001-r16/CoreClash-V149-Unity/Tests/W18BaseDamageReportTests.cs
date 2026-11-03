@@ -75,7 +75,7 @@ public static partial class Program
             True(s.TryCommand(new PlayerCommand{owner=0,turnNumber=1,kind=CommandKind.Spawn,ballType="normal",dx=30,dy=-60,power=150},out _));
             for(int i=0;i<6000&&s.State.turnNumber==1;i++){s.Step(1f/120);t.Observe(s.State);}
             True(t.Visible);var first=t.Latest;
-            True(s.TryCommand(new PlayerCommand{owner=1,turnNumber=2,kind=CommandKind.Spawn,ballType="normal",dx=-20,dy=60,power=150},out string why),why);t.Observe(s.State);False(t.Visible,"report survived the next launch");
+            True(s.TryCommand(new PlayerCommand{owner=1,turnNumber=2,kind=CommandKind.Spawn,ballType="normal",dx=-20,dy=60,power=150},out string why),why);t.Observe(s.State);True(!t.Visible,"report survived the next launch");
             for(int i=0;i<6000&&s.State.phase==MatchPhase.Moving;i++){s.Step(1f/120);t.Observe(s.State);}
             True(ReferenceEquals(first,t.Latest)||t.Latest.Turn>first.Turn,"older report replaced a newer one");
             var reconnect=new GameState();reconnect.eventSerial=3;t.Observe(reconnect);False(t.Visible);True(t.Latest==null);
