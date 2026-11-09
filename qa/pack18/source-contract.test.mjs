@@ -31,3 +31,18 @@ test('CI uses disposable postgres and full integration gate',()=>{
  assert.match(workflow,/node qa\/pack17\/run-gates\.mjs --full/);
  assert.doesNotMatch(workflow,/kubectl|firebase|railway up|vercel deploy/i);
 });
+test('CI exposes isolated PostgreSQL on the same non-default port required by destructive schema tests',()=>{
+ const mapped=workflow.match(/^\s*-\s*["']?(\d+):5432["']?\s*$/m);
+ const database=workflow.match(/^\s*TEST_DATABASE_URL:\s*(\S+)\s*$/m);
+ assert.ok(mapped,'PostgreSQL host-to-container port mapping is required');
+ assert.ok(database,'TEST_DATABASE_URL is required');
+ const url=new URL(database[1]);
+ assert.ok(['postgres:','postgresql:'].includes(url.protocol),'test database must use PostgreSQL');
+ assert.ok(['localhost','127.0.0.1'].includes(url.hostname),'test database must use loopback');
+ assert.doesNotMatch(`${url.hostname}${url.pathname}`,/prod/i,'test database must not be production');
+ assert.notEqual(mapped[1],'5432','schema tests must not target the default PostgreSQL port');
+ assert.equal(url.port,mapped[1],'test URL must use the mapped host port');
+ assert.match(url.pathname,/test/i,'database name must identify a test database');
+ assert.match(workflow,/^\s*TEST_DATABASE_SCHEMA:\s*tm_test_[a-z0-9_]+\s*$/m);
+ assert.match(workflow,/^\s*TEST_DATABASE_RESET:\s*DROP_TM_TEST_SCHEMA\s*$/m);
+});
