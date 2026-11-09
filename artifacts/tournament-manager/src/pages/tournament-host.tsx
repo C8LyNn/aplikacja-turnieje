@@ -1,23 +1,24 @@
-import { useRoute, useSearch, Link } from "wouter";
+import { useSearch, useLocation, Link } from "wouter";
 import { Layout } from "@/components/layout";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import {
   useGetTournament, useListMatches, useUpdateMatch, useCompleteMatch, useRevertMatch,
   useUpdateTournament,
-  useGetTournamentStandings, useGetResultsHistory, useGetTournamentAssistant, useGenerateNextRound,
+  useGetTournamentStandings, useGetResultsHistory, useGenerateNextRound,
   useGetTournamentBracket,
   useGetActionLog, useUndoLastAction,
-  useListTournamentStages, useGetTournamentStageReadiness,
+  useListTournamentStages,
   useGetDoubleEliminationStage,
   useCancelMatch, useRestoreCancelledMatch, useSwapMatchPlayers, useReorderMatches,
   getGetTournamentQueryKey, getListMatchesQueryKey, getGetTournamentBracketQueryKey,
   getGetTournamentStatsQueryKey, getGetTournamentStandingsQueryKey, getGetResultsHistoryQueryKey,
   getGetTournamentAssistantQueryKey, getGetActionLogQueryKey,
-  getListTournamentStagesQueryKey, getGetTournamentStageReadinessQueryKey,
+  getListTournamentStagesQueryKey,
   getGetDoubleEliminationStageQueryKey,
 } from "@workspace/api-client-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -25,9 +26,9 @@ import {
   ArrowLeft, Swords, Play, CheckCircle2, RotateCcw, Monitor, AlertTriangle,
   Star, Minus, Plus, SkipForward, Clock, Undo2, Shield, History,
   Ban, ArrowUp, ArrowDown, ArrowLeftRight,
-  Share2, Lock, Key, Copy, Check, Eye, EyeOff,
+  Share2, Lock, Key, Copy, Check, Eye, EyeOff, Loader2, RefreshCw,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { BracketView } from "@/components/bracket-view";
@@ -42,23 +43,32 @@ import { useAuth } from "@/context/auth-context";
 import { setActiveOrganizerToken, setActiveSupportToken } from "@workspace/api-client-react";
 import { useSyncTournamentAuth } from "@/hooks/use-tournament-auth";
 import { OrganizerLoginModal } from "@/components/organizer-login-modal";
+import { OrganizerRecoveryNotice } from "@/components/organizer-recovery-notice";
 import { SupportLoginModal } from "@/components/support-login-modal";
 import { organizerAreaForHostTab, organizerHostTab, TournamentOrganizerNavigation } from "@/components/tournament-organizer-navigation";
 import { OrganizerNextStep } from "@/components/organizer-next-step";
-import { deriveOrganizerNextStep } from "@/lib/organizer-next-step";
+import { useOrganizerOperation } from "@/hooks/use-organizer-operation";
 import { deriveOrganizerCapabilities, managementRoleForCapabilities } from "@/lib/organizer-capabilities";
 import { invalidateTournamentDependentQueries } from "@/lib/tournament-query-invalidation";
 import { apiUpgradeLegacyOrganizer } from "@/lib/auth";
 import { usePresentationTheme, resolvePresentationSettings } from "@/lib/presentation-theme";
 import { getDeadlockEffectiveStageBans } from "@workspace/game-catalog";
+import { PLAYER_STATUS_LABELS, STAGE_FORMAT_LABELS } from "@/lib/tournament-stages-ui";
+import { useMatchResultDrafts } from "@/hooks/use-match-result-drafts";
+import { matchOperationError, MATCH_STATUS_LABELS } from "@/lib/match-operation-feedback";
+import { tournamentHref, useTournamentRoute } from "@/features/experimental-tournaments/experimental-tournament-routing";
+import { ExperimentalTournamentContextBar } from "@/features/experimental-tournaments/experimental-tournament-context-bar";
+import { ExperimentalHostCommandCenter } from "@/features/experimental-tournaments/experimental-host-command-center";
+import { ExperimentalHostFocusToggle } from "@/features/experimental-tournaments/experimental-host-focus-toggle";
 
-type ScoreEntry = { s1: number; s2: number };
-type ConfirmEntry = { matchId: number; score1: number; score2: number };
+type ScoreEntry = { s1: number; s2: number; baseline?: string };
+const scoreBaseline = (match: { player1Id?: number | null; player2Id?: number | null; score1?: number | null; score2?: number | null; bestOf?: number | null; status: string }) =>
+  JSON.stringify([match.player1Id, match.player2Id, match.score1, match.score2, match.bestOf, match.status === "completed" || match.status === "cancelled" ? match.status : "open"]);
 
 export default function TournamentHost() {
-  const [, params] = useRoute("/tournaments/:id/host");
+  const { id, isExperimental } = useTournamentRoute("host");
   const search = useSearch();
-  const id = params?.id ? parseInt(params.id, 10) : 0;
+  const [, navigate] = useLocation();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const {
@@ -72,6 +82,8 @@ export default function TournamentHost() {
     data: tournament,
     error: tournamentError,
     isLoading: isLoadingTournament,
+    refetch: refetchTournament,
+    isFetching: isFetchingTournament,
   } = useGetTournament(id, {
     query: {
       enabled: !!id && isAuthReady,
@@ -80,9 +92,10 @@ export default function TournamentHost() {
       retry: false,
     },
   });
-  const { data: matches } = useListMatches(id, {
+  const matchesQuery = useListMatches(id, {
     query: { enabled: !!id && isAuthReady && tournament?.status !== "draft", queryKey: getListMatchesQueryKey(id), refetchInterval: 5000 },
   });
+  const { data: matches } = matchesQuery;
   const { data: bracket } = useGetTournamentBracket(id, {
     query: { enabled: !!id && isAuthReady && tournament?.status !== "draft", queryKey: getGetTournamentBracketQueryKey(id) },
   });
@@ -92,16 +105,18 @@ export default function TournamentHost() {
   const { data: history } = useGetResultsHistory(id, {
     query: { enabled: !!id && isAuthReady && tournament?.status !== "draft", queryKey: getGetResultsHistoryQueryKey(id) },
   });
-  const { data: assistant } = useGetTournamentAssistant(id, {
-    query: { enabled: !!id && isAuthReady, queryKey: getGetTournamentAssistantQueryKey(id), refetchInterval: 10000 },
-  });
 
   const { data: actionLog } = useGetActionLog(id, {
     query: { enabled: !!id && isAuthReady && tournament?.status !== "draft", queryKey: getGetActionLogQueryKey(id), refetchInterval: 5000 },
   });
-  const { data: stages } = useListTournamentStages(id, {
-    query: { enabled: !!id, queryKey: getListTournamentStagesQueryKey(id), refetchInterval: 5000 },
+  const stagesQuery = useListTournamentStages(id, {
+    query: { enabled: !!id && isAuthReady, queryKey: getListTournamentStagesQueryKey(id), refetchInterval: 5000 },
   });
+  const { data: stages } = stagesQuery;
+  const activeStage = stages?.find((stage) => stage.status === "active");
+  const operationalMatches = activeStage
+    ? matches?.filter((match) => match.stageId === activeStage.id)
+    : stages?.length === 0 ? matches : [];
   const doubleEliminationStage = stages?.find(
     (stage) => stage.format === "double_elimination" && stage.status !== "planned",
   );
@@ -126,19 +141,7 @@ export default function TournamentHost() {
       },
     },
   );
-  const plannedStage = stages?.find((stage) => stage.status === "planned");
-  const { data: plannedStageReadiness } = useGetTournamentStageReadiness(
-    id,
-    plannedStage?.id ?? 0,
-    {
-      query: {
-        enabled: !!id && !!plannedStage,
-        retry: false,
-        queryKey: getGetTournamentStageReadinessQueryKey(id, plannedStage?.id ?? 0),
-      },
-    },
-  );
-
+  const plannedStage = [...(stages ?? [])].sort((a, b) => a.position - b.position).find(stage => stage.status === "planned");
   const isDeadlock = tournament?.gameConfig?.gameId === "deadlock";
   // Computed before any early returns so React hooks order is stable.
   const rawPs = (tournament as any)?.presentationSettings as Record<string, unknown> | null | undefined;
@@ -148,16 +151,40 @@ export default function TournamentHost() {
   const { data: playerBansData } = usePlayerBans(id, { enabled: isDeadlock && !!id });
   const playerBansMap = new Map((playerBansData ?? []).map((b) => [b.playerId, b.bannedHeroIds]));
 
-  const updateMatch = useUpdateMatch();
-  const updateTournament = useUpdateTournament();
-  const completeMatch = useCompleteMatch();
-  const revertMatch = useRevertMatch();
-  const generateNextRound = useGenerateNextRound();
-  const undoLastAction = useUndoLastAction();
-  const cancelMatch = useCancelMatch();
-  const restoreCancelledMatch = useRestoreCancelledMatch();
-  const swapMatchPlayers = useSwapMatchPlayers();
-  const reorderMatches = useReorderMatches();
+  const [actionError, setActionError] = useState<{ message: string; code?: string } | null>(null);
+  const mutationFeedback = {
+    onMutate: () => setActionError(null),
+    onSuccess: () => invalidateAll(),
+    onError: async (error: unknown) => {
+      const { message, code, conflict } = matchOperationError(error);
+      setActionError({ message, code });
+      toast({ title: "Operacja nie powiodła się", description: message, variant: "destructive" });
+      if (conflict) await invalidateAll();
+    },
+  };
+  const updateMatch = useUpdateMatch({ mutation: mutationFeedback });
+  const updateTournament = useUpdateTournament({ mutation: mutationFeedback });
+  const resultDrafts = useMatchResultDrafts();
+  const completeLock = useRef(false);
+  const completeMatch = useCompleteMatch({ mutation: {
+    ...mutationFeedback, retry: false,
+    onError: async (error, variables) => {
+      if (matchOperationError(error).code === "CONCURRENT_MODIFICATION") resultDrafts.markConflict(variables.id);
+      await mutationFeedback.onError(error);
+    },
+    onSettled: () => { completeLock.current = false; },
+  } });
+  const revertMatch = useRevertMatch({ mutation: mutationFeedback });
+  const generateNextRound = useGenerateNextRound({ mutation: mutationFeedback });
+  const undoLastAction = useUndoLastAction({ mutation: mutationFeedback });
+  const cancelMatch = useCancelMatch({ mutation: mutationFeedback });
+  const restoreCancelledMatch = useRestoreCancelledMatch({ mutation: mutationFeedback });
+  const swapMatchPlayers = useSwapMatchPlayers({ mutation: mutationFeedback });
+  const reorderMatches = useReorderMatches({ mutation: mutationFeedback });
+  const hostPending = [updateMatch, updateTournament, completeMatch, revertMatch, generateNextRound,
+    undoLastAction, cancelMatch, restoreCancelledMatch, swapMatchPlayers, reorderMatches].some((mutation) => mutation.isPending);
+  const dataLoading = stagesQuery.isPending || (tournament?.status !== "draft" && matchesQuery.isPending);
+  const dataError = !!tournamentError || stagesQuery.isError || (tournament?.status !== "draft" && matchesQuery.isError);
 
   const { role, getOrgToken, getSupSession, storeOrgToken, storeSupSession } = useAuth();
   const [showOrgModal, setShowOrgModal] = useState(false);
@@ -188,21 +215,30 @@ export default function TournamentHost() {
     : undefined;
   const managementRole = managementRoleForCapabilities(capabilities, !!orgToken, !!supSession, role);
   const activeHostTab = organizerHostTab(search, capabilities);
-  const nextStep = tournament && managementRole && stages !== undefined
-    ? deriveOrganizerNextStep({
-        tournament,
-        stages,
-        matches: tournament.status === "draft" ? [] : matches,
-        surface: "conducting",
-        capabilities,
-        plannedStageReadiness,
-      })
-    : null;
+  const operation = useOrganizerOperation({ tournament, stages, matches: tournament?.status === "draft" ? [] : matches,
+    capabilities, surface: "conducting", enabled: !!managementRole && isAuthReady });
+  const nextStep = operation.nextStep;
 
   const [scores, setScores] = useState<Record<number, ScoreEntry>>({});
-  const [selectedMatchId, setSelectedMatchId] = useState<number | null>(null);
-  const [confirmComplete, setConfirmComplete] = useState<ConfirmEntry | null>(null);
+  const [selectedMatchId, storeSelectedMatchId] = useState<number | null>(null);
+  const selectionRevision = useRef(0);
+  const [selectionNotice, setSelectionNotice] = useState<string | null>(null);
+  const setSelectedMatchId = (matchId: number | null) => {
+    selectionRevision.current++;
+    storeSelectedMatchId(matchId);
+    setSelectionNotice(null);
+  };
   const [revertConfirm, setRevertConfirm] = useState<number | null>(null);
+  const openCorrection = (matchId: number) => {
+    setSelectedMatchId(matchId);
+    setRevertConfirm(matchId);
+  };
+  const correctionMatch = matches?.find(match => match.id === revertConfirm);
+  const correctionStage = stages?.find(stage => stage.id === correctionMatch?.stageId);
+  const correctionDE = useGetDoubleEliminationStage(id, correctionStage?.id ?? 0, {
+    query: { enabled: isAuthReady && correctionStage?.format === "double_elimination", retry: false,
+      queryKey: getGetDoubleEliminationStageQueryKey(id, correctionStage?.id ?? 0) },
+  });
   const [undoConfirm, setUndoConfirm] = useState(false);
   const [boConfirm, setBoConfirm] = useState<{ matchId: number; bo: number } | null>(null);
   const [cancelConfirm, setCancelConfirm] = useState<number | null>(null);
@@ -210,6 +246,25 @@ export default function TournamentHost() {
   const [walkoverConfirm, setWalkoverConfirm] = useState<number | null>(null);
   const [noContestConfirm, setNoContestConfirm] = useState<number | null>(null);
   const [resultReason, setResultReason] = useState("");
+  const hasDraftScores = Object.keys(scores).length > 0;
+  useEffect(() => {
+    if (!hasDraftScores) return;
+    const protectDraft = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ""; };
+    const protectNavigation = (event: MouseEvent) => {
+      const link = (event.target as Element)?.closest?.("a[href]") as HTMLAnchorElement | null;
+      if (!link || link.target === "_blank" || event.ctrlKey || event.metaKey || event.shiftKey || event.button !== 0) return;
+      if (link.pathname === window.location.pathname) return;
+      if (!window.confirm("Masz niezapisany wynik. Opuścić stronę i utracić wpisane wyniki?")) {
+        event.preventDefault(); event.stopPropagation();
+      }
+    };
+    window.addEventListener("beforeunload", protectDraft);
+    document.addEventListener("click", protectNavigation, true);
+    return () => {
+      window.removeEventListener("beforeunload", protectDraft);
+      document.removeEventListener("click", protectNavigation, true);
+    };
+  }, [hasDraftScores]);
 
   const [showShareDialog, setShowShareDialog] = useState(false);
   const [codeInput, setCodeInput] = useState("");
@@ -221,24 +276,48 @@ export default function TournamentHost() {
 
   // --- Focused match (hoisted before any early return for Rules of Hooks compliance) ---
   const _featuredMatch = tournament?.featuredMatchId
-    ? matches?.find((m) => m.id === tournament.featuredMatchId)
+    ? operationalMatches?.find((m) => m.id === tournament.featuredMatchId && m.status !== "completed" && m.status !== "cancelled")
     : null;
-  const _inProgressMatch = matches?.find((m) => m.status === "in_progress");
+  const _inProgressMatch = operationalMatches?.find((m) => m.status === "in_progress");
   const _autoFocusMatch =
     _featuredMatch ??
     _inProgressMatch ??
-    matches?.find(
+    operationalMatches?.find(
       (m) =>
         (m.status === "in_progress" || m.status === "pending") &&
         !!m.player1Id &&
         !!m.player2Id,
     ) ??
     null;
-  const focusedMatchId = selectedMatchId ?? _autoFocusMatch?.id ?? null;
+  const selectedMatch = matches?.find((match) => match.id === selectedMatchId);
+  const focusedMatchId = selectedMatchId === null ? _autoFocusMatch?.id ?? null : selectedMatch?.id ?? null;
   const focusedMatch = focusedMatchId
     ? matches?.find((m) => m.id === focusedMatchId)
     : null;
   const focusedStage = stages?.find((stage) => stage.id === focusedMatch?.stageId);
+  // Only a successful, settled list can prove that a selected match was removed.
+  useEffect(() => {
+    if (!matchesQuery.isSuccess || matchesQuery.isFetching || hostPending || !matches) return;
+    const missing = (matchId: number | null) => matchId !== null && !matches.some(match => match.id === matchId);
+    if (missing(selectedMatchId) || missing(revertConfirm)) {
+      if (missing(selectedMatchId)) setSelectedMatchId(null);
+      if (missing(revertConfirm)) setRevertConfirm(null);
+      setSelectionNotice("Wybrany mecz nie jest już dostępny. Jego edycja została zamknięta; sprawdź aktualną kolejkę.");
+    }
+    setScores(previous => {
+      const remaining = Object.fromEntries(Object.entries(previous).filter(([matchId]) => !missing(Number(matchId))));
+      return Object.keys(remaining).length === Object.keys(previous).length ? previous : remaining;
+    });
+  }, [matches, matchesQuery.isSuccess, matchesQuery.isFetching, hostPending, selectedMatchId, revertConfirm]);
+
+  const beginMatchOperation = (matchId: number) => {
+    // A completion callback must not steal a later selection or interaction.
+    const revision = selectionRevision.current;
+    const wasFocused = focusedMatchId === matchId;
+    return () => wasFocused && revision === selectionRevision.current &&
+      [getListMatchesQueryKey(id), getGetTournamentQueryKey(id), getListTournamentStagesQueryKey(id)]
+        .every(key => queryClient.getQueryState(key)?.status === "success" && queryClient.getQueryState(key)?.fetchStatus === "idle");
+  };
   const effectiveStageHeroBans = tournament?.gameConfig?.gameId === "deadlock" && focusedStage
     ? getDeadlockEffectiveStageBans(
         tournament.gameConfig.config,
@@ -295,10 +374,10 @@ export default function TournamentHost() {
     }
   };
 
-  const invalidateAll = () => {
-    void invalidateTournamentDependentQueries(queryClient, id);
-    queryClient.invalidateQueries({ queryKey: getGetActionLogQueryKey(id) });
-  };
+  const invalidateAll = () => Promise.all([
+    invalidateTournamentDependentQueries(queryClient, id),
+    queryClient.invalidateQueries({ queryKey: getGetActionLogQueryKey(id) }),
+  ]).then(() => undefined);
 
   // --- Score helpers ---
   const getS = (matchId: number, player: 1 | 2, fallback: number | null | undefined) => {
@@ -309,14 +388,19 @@ export default function TournamentHost() {
 
   const adjustScore = (matchId: number, player: 1 | 2, delta: number, bo: number) => {
     if (!capabilities.canWriteTournamentResults) return;
+    setSelectedMatchId(matchId);
     const max = Math.ceil(bo / 2);
-    const cur = getS(matchId, player, 0);
+    const match = matches?.find((entry) => entry.id === matchId);
+    if (!match || resultDrafts.isStale(match)) return;
+    resultDrafts.capture(match);
+    const cur = getS(matchId, player, player === 1 ? match?.score1 : match?.score2);
     const next = Math.max(0, Math.min(max, cur + delta));
     setScores((prev) => ({
       ...prev,
       [matchId]: {
-        s1: player === 1 ? next : (prev[matchId]?.s1 ?? 0),
-        s2: player === 2 ? next : (prev[matchId]?.s2 ?? 0),
+        baseline: prev[matchId]?.baseline ?? (match ? scoreBaseline(match) : undefined),
+        s1: player === 1 ? next : (prev[matchId]?.s1 ?? match?.score1 ?? 0),
+        s2: player === 2 ? next : (prev[matchId]?.s2 ?? match?.score2 ?? 0),
       },
     }));
   };
@@ -324,20 +408,20 @@ export default function TournamentHost() {
   // --- Match actions ---
   const handleSetInProgress = (matchId: number) => {
     if (!capabilities.canUseLegacyMatchTools) return;
-    updateMatch.mutate({ id: matchId, data: { status: "in_progress" } }, { onSuccess: invalidateAll });
+    updateMatch.mutate({ id: matchId, data: { status: "in_progress" } }, {
+      onSuccess: () => toast({ title: "Mecz rozpoczęty" }),
+    });
   };
 
   const handlePostpone = (matchId: number) => {
     if (!capabilities.canUseLegacyMatchTools) return;
+    const mayAdvance = beginMatchOperation(matchId);
     updateMatch.mutate(
       { id: matchId, data: { status: "postponed" } },
       {
         onSuccess: () => {
-          invalidateAll();
-          setConfirmComplete(null);
           toast({ title: "Mecz przełożony", description: "Możesz go przywrócić z sekcji Przełożone." });
-          const next = actionableMatches.find((m) => m.id !== matchId);
-          setSelectedMatchId(next?.id ?? null);
+          if (mayAdvance()) setSelectedMatchId(null);
         },
       },
     );
@@ -349,7 +433,6 @@ export default function TournamentHost() {
       { id: matchId, data: { status: "pending" } },
       {
         onSuccess: () => {
-          invalidateAll();
           toast({ title: "Mecz przywrócony do kolejki" });
           setSelectedMatchId(matchId);
         },
@@ -372,13 +455,7 @@ export default function TournamentHost() {
     if (!capabilities.canUseLegacyMatchTools) return;
     updateMatch.mutate({ id: matchId, data: { bestOf: bo } }, {
       onSuccess: () => {
-        invalidateAll();
-        setScores((prev) => {
-          const e = prev[matchId];
-          if (!e) return prev;
-          const max = Math.ceil(bo / 2);
-          return { ...prev, [matchId]: { s1: Math.min(e.s1, max), s2: Math.min(e.s2, max) } };
-        });
+        toast({ title: "Format meczu zapisany", description: `Mecz będzie rozgrywany jako BO${bo}.` });
       },
     });
   };
@@ -387,30 +464,33 @@ export default function TournamentHost() {
     if (!capabilities.canUndo || !lastUndoableAction) return;
     undoLastAction.mutate({ id }, {
       onSuccess: (result) => {
-        invalidateAll();
         setUndoConfirm(false);
         toast({ title: "Akcja cofnięta", description: result.message });
-      },
-      onError: () => {
-        setUndoConfirm(false);
-        toast({ title: "Błąd cofania", variant: "destructive" });
       },
     });
   };
 
   const handleCancel = (matchId: number) => {
-    if (capabilities.canUseLegacyMatchTools) setCancelConfirm(matchId);
+    if (!capabilities.canUseLegacyMatchTools) return;
+    const candidate = matches?.find(match => match.id === matchId);
+    if (!candidate || resultDrafts.isStale(candidate)) return;
+    resultDrafts.capture(candidate);
+    setCancelConfirm(matchId);
   };
   const doCancel = (matchId: number) => {
     if (!capabilities.canUseLegacyMatchTools) return;
+    const candidate = matches?.find(match => match.id === matchId);
+    if (!candidate || resultDrafts.isStale(candidate)) {
+      setCancelConfirm(null);
+      toast({ title: "Stan meczu zmienił się", description: "Sprawdź aktualne dane i ponów operację.", variant: "destructive" });
+      return;
+    }
     cancelMatch.mutate({ id: matchId }, {
       onSuccess: () => {
         setCancelConfirm(null);
-        invalidateAll();
         toast({ title: "Mecz anulowany", description: "Możesz go przywrócić z sekcji Anulowane." });
         if (selectedMatchId === matchId) setSelectedMatchId(null);
       },
-      onError: (e: any) => toast({ title: "Błąd anulowania", description: e?.message, variant: "destructive" }),
     });
   };
 
@@ -418,18 +498,18 @@ export default function TournamentHost() {
     if (!capabilities.canUseLegacyMatchTools) return;
     restoreCancelledMatch.mutate({ id: matchId }, {
       onSuccess: () => {
-        invalidateAll();
         toast({ title: "Mecz przywrócony do kolejki" });
         setSelectedMatchId(matchId);
       },
-      onError: (e: any) => toast({ title: "Błąd", description: e?.message, variant: "destructive" }),
     });
   };
 
   const handleWalkover = (matchId: number) => {
     if (!capabilities.canWriteTournamentResults) return;
+    const match = matches?.find(candidate => candidate.id === matchId);
+    if (!match || resultDrafts.isStale(match)) return;
+    resultDrafts.capture(match);
     setWalkoverConfirm(matchId);
-    setConfirmComplete(null);
     setRevertConfirm(null);
     setCancelConfirm(null);
     setSwapConfirm(null);
@@ -439,44 +519,52 @@ export default function TournamentHost() {
 
   const doWalkover = (matchId: number, winner: 1 | 2) => {
     if (!capabilities.canWriteTournamentResults) return;
-    const match = matches?.find((candidate) => candidate.id === matchId);
+    if (completeLock.current) return;
+    const current = matches?.find(candidate => candidate.id === matchId);
+    const match = resultDrafts.drafts[matchId];
+    if (!match || !current || resultDrafts.isStale(current)) return;
     const winnerId = winner === 1 ? match?.player1Id : match?.player2Id;
     if (!winnerId) return;
-    completeMatch.mutate({ id: matchId, data: { resultType: "walkover", winnerId, reason: resultReason.trim() || null } }, {
+    completeLock.current = true;
+    const mayAdvance = beginMatchOperation(matchId);
+    completeMatch.mutate({ id: matchId, data: { resultType: "walkover", expectedRevision: match.revision, winnerId, reason: resultReason.trim() || null } }, {
       onSuccess: () => {
+        resultDrafts.discard(matchId);
         setWalkoverConfirm(null);
         setResultReason("");
         setScores((prev) => { const n = { ...prev }; delete n[matchId]; return n; });
-        invalidateAll();
         toast({ title: "Walkower zapisany (W.O.)", description: `${winner === 1 ? focusedMatch?.player1Name : focusedMatch?.player2Name} wygrywa mecz.` });
-        const next = actionableMatches.find((m) => m.id !== matchId);
-        setSelectedMatchId(next?.id ?? null);
-      },
-      onError: (e: any) => {
-        setWalkoverConfirm(null);
-        toast({ title: "Błąd walkover", description: e?.message, variant: "destructive" });
+        if (mayAdvance()) setSelectedMatchId(null);
       },
     });
   };
 
   const handleNoContest = (matchId: number) => {
     if (!capabilities.canWriteTournamentResults) return;
+    const match = matches?.find(candidate => candidate.id === matchId);
+    if (!match || resultDrafts.isStale(match)) return;
+    resultDrafts.capture(match);
     setNoContestConfirm(matchId);
     setWalkoverConfirm(null);
-    setConfirmComplete(null);
     setResultReason("");
   };
 
   const doNoContest = (matchId: number) => {
     if (!capabilities.canWriteTournamentResults) return;
-    completeMatch.mutate({ id: matchId, data: { resultType: "no_contest", reason: resultReason.trim() || null } }, {
+    const match = matches?.find(candidate => candidate.id === matchId);
+    const draft = resultDrafts.drafts[matchId];
+    if (!match || !draft || resultDrafts.isStale(match) || completeLock.current) return;
+    completeLock.current = true;
+    const mayAdvance = beginMatchOperation(matchId);
+    completeMatch.mutate({ id: matchId, data: { resultType: "no_contest", expectedRevision: draft.revision, reason: resultReason.trim() || null } }, {
       onSuccess: () => {
+        resultDrafts.discard(matchId);
+        setScores(prev => { const next = { ...prev }; delete next[matchId]; return next; });
         setNoContestConfirm(null);
         setResultReason("");
-        invalidateAll();
         toast({ title: "Mecz zakończony jako no contest" });
+        if (mayAdvance()) setSelectedMatchId(null);
       },
-      onError: (e: any) => toast({ title: "Nie udało się zapisać no contest", description: e?.message, variant: "destructive" }),
     });
   };
 
@@ -488,16 +576,14 @@ export default function TournamentHost() {
     swapMatchPlayers.mutate({ id: matchId }, {
       onSuccess: () => {
         setSwapConfirm(null);
-        invalidateAll();
         toast({ title: "Zawodnicy zamienieni stronami" });
       },
-      onError: (e: any) => toast({ title: "Błąd zamiany", description: e?.message, variant: "destructive" }),
     });
   };
 
   const handleMoveInQueue = (matchId: number, direction: "up" | "down") => {
     if (!capabilities.canUseLegacyMatchTools || !matches) return;
-    const queue = [...pendingReady].sort((a, b) => (a.sortOrder ?? a.matchNumber * 10) - (b.sortOrder ?? b.matchNumber * 10));
+    const queue = [...pendingQueue];
     const idx = queue.findIndex((m) => m.id === matchId);
     if (idx < 0) return;
     const swapIdx = direction === "up" ? idx - 1 : idx + 1;
@@ -505,8 +591,7 @@ export default function TournamentHost() {
     const newOrder = [...queue];
     [newOrder[idx], newOrder[swapIdx]] = [newOrder[swapIdx], newOrder[idx]];
     reorderMatches.mutate({ id, data: { matchIds: newOrder.map((m) => m.id) } }, {
-      onSuccess: () => invalidateAll(),
-      onError: (e: any) => toast({ title: "Błąd kolejkowania", description: e?.message, variant: "destructive" }),
+      onSuccess: () => toast({ title: "Kolejność meczów zapisana" }),
     });
   };
 
@@ -526,6 +611,7 @@ export default function TournamentHost() {
 
   const handleTryComplete = (matchId: number, match: any) => {
     if (!capabilities.canWriteTournamentResults) return;
+    if (scores[matchId]?.baseline && scores[matchId].baseline !== scoreBaseline(match)) return;
     const s1 = getS(matchId, 1, match.score1);
     const s2 = getS(matchId, 2, match.score2);
     const winsRequired = Math.floor((match.bestOf ?? 1) / 2) + 1;
@@ -540,21 +626,22 @@ export default function TournamentHost() {
       });
       return;
     }
-    setConfirmComplete({ matchId, score1: s1, score2: s2 });
+    if (resultDrafts.isStale(match)) return;
+    const draft = resultDrafts.capture(match);
+    doComplete(matchId, s1, s2, draft.revision);
   };
 
-  const doComplete = (matchId: number, score1: number, score2: number) => {
-    if (!capabilities.canWriteTournamentResults) return;
-    completeMatch.mutate({ id: matchId, data: { resultType: "played", score1, score2 } }, {
+  const doComplete = (matchId: number, score1: number, score2: number, expectedRevision: number) => {
+    if (!capabilities.canWriteTournamentResults || completeMatch.isPending || completeLock.current) return;
+    completeLock.current = true;
+    const mayAdvance = beginMatchOperation(matchId);
+    completeMatch.mutate({ id: matchId, data: { resultType: "played", expectedRevision, score1, score2 } }, {
       onSuccess: () => {
         setScores((prev) => { const n = { ...prev }; delete n[matchId]; return n; });
-        setConfirmComplete(null);
-        invalidateAll();
+        resultDrafts.discard(matchId);
         toast({ title: "Wynik zapisany!" });
-        const next = actionableMatches.find((m) => m.id !== matchId);
-        setSelectedMatchId(next?.id ?? null);
+        if (mayAdvance()) setSelectedMatchId(null);
       },
-      onError: (e: any) => toast({ title: "Błąd", description: e?.message, variant: "destructive" }),
     });
   };
 
@@ -562,19 +649,20 @@ export default function TournamentHost() {
     if (!capabilities.canWriteTournamentResults) return;
     revertMatch.mutate({ id: matchId }, {
       onSuccess: () => {
+        resultDrafts.discard(matchId);
         setRevertConfirm(null);
-        invalidateAll();
-        toast({ title: "Wynik cofnięty" });
+        setScores((prev) => { const next = { ...prev }; delete next[matchId]; return next; });
+        setSelectedMatchId(matchId);
+        navigate(tournamentHref(id, isExperimental, "/host"));
+        toast({ title: "Wynik cofnięty", description: "Wpisz poprawny wynik wybranego meczu i zapisz go." });
       },
-      onError: (e: any) => toast({ title: "Błąd", description: e?.message, variant: "destructive" }),
     });
   };
 
   const handleGenerateRound = () => {
     if (!capabilities.canGenerateRound) return;
     generateNextRound.mutate({ id }, {
-      onSuccess: () => { invalidateAll(); toast({ title: "Nowa runda wygenerowana!" }); },
-      onError: (e: any) => toast({ title: "Błąd", description: e?.message, variant: "destructive" }),
+      onSuccess: () => toast({ title: "Nowa runda wygenerowana!" }),
     });
   };
 
@@ -583,6 +671,18 @@ export default function TournamentHost() {
     return <Layout><div className="animate-pulse h-64 bg-card rounded-xl" /></Layout>;
   }
   if (!tournament && tournamentError) {
+    const status = (tournamentError as { status?: number }).status;
+    if (status !== 401 && status !== 403) {
+      return <Layout><div role="alert" className="mx-auto max-w-lg space-y-3 rounded-lg border bg-card p-6">
+        <h1 className="text-xl font-semibold">Nie udało się pobrać turnieju</h1>
+        <p className="text-sm text-muted-foreground">{status === 404
+          ? "Nie znaleziono turnieju pod tym adresem. Sprawdź otrzymany link."
+          : "Sprawdź połączenie i spróbuj ponownie. Nie można jeszcze potwierdzić aktualnego stanu turnieju."}</p>
+        <Button variant="outline" disabled={isFetchingTournament} onClick={() => void refetchTournament()}>
+          <RefreshCw className="mr-2 h-4 w-4" /> Spróbuj ponownie
+        </Button>
+      </div></Layout>;
+    }
     return (
       <Layout>
         <div className="min-h-[60vh] flex items-center justify-center">
@@ -599,7 +699,7 @@ export default function TournamentHost() {
               <Key className="w-4 h-4 mr-2" /> Zaloguj jako organizator
             </Button>
             <Button variant="ghost" size="sm" className="w-full text-muted-foreground" asChild>
-              <Link href={`/tournaments/${id}`}><ArrowLeft className="w-4 h-4 mr-1" /> Wróć do turnieju</Link>
+              <Link href={tournamentHref(id, isExperimental)}><ArrowLeft className="w-4 h-4 mr-1" /> Wróć do turnieju</Link>
             </Button>
           </div>
         </div>
@@ -646,7 +746,7 @@ export default function TournamentHost() {
                 </Button>
               )}
               <Button variant="ghost" size="sm" className="w-full text-muted-foreground" asChild>
-                <Link href={`/tournaments/${id}`}><ArrowLeft className="w-4 h-4 mr-1" /> Wróć do turnieju</Link>
+                <Link href={tournamentHref(id, isExperimental)}><ArrowLeft className="w-4 h-4 mr-1" /> Wróć do turnieju</Link>
               </Button>
             </div>
           </div>
@@ -688,7 +788,7 @@ export default function TournamentHost() {
               Ten historyczny turniej nie ma skonfigurowanego hasła organizatora ani kodu prowadzącego. Brak poświadczeń nie daje dostępu do mutacji.
             </p>
             <Button variant="outline" asChild>
-              <Link href={`/tournaments/${id}`}><ArrowLeft className="w-4 h-4 mr-1" /> Wróć do turnieju</Link>
+              <Link href={tournamentHref(id, isExperimental)}><ArrowLeft className="w-4 h-4 mr-1" /> Wróć do turnieju</Link>
             </Button>
           </div>
         </div>
@@ -753,7 +853,7 @@ export default function TournamentHost() {
                 {legacyUpgradePending ? "Aktualizowanie…" : "Ustaw hasło i przejdź do panelu"}
               </Button>
               <Button variant="ghost" size="sm" className="w-full text-muted-foreground" asChild>
-                <Link href={`/tournaments/${id}`}><ArrowLeft className="w-4 h-4 mr-1" /> Wróć do turnieju</Link>
+                <Link href={tournamentHref(id, isExperimental)}><ArrowLeft className="w-4 h-4 mr-1" /> Wróć do turnieju</Link>
               </Button>
             </div>
           </div>
@@ -773,7 +873,7 @@ export default function TournamentHost() {
               Zaloguj się jako organizator albo użyj aktywnej sesji wsparcia.
             </p>
             <Button variant="outline" asChild>
-              <Link href={`/tournaments/${id}`}>
+              <Link href={tournamentHref(id, isExperimental)}>
                 <ArrowLeft className="w-4 h-4 mr-1" /> Wróć do turnieju
               </Link>
             </Button>
@@ -783,65 +883,62 @@ export default function TournamentHost() {
     );
   }
 
-  if (tournament.status === "draft") {
-    return (
-      <Layout>
-        <div className="text-center py-20 bg-card border rounded-lg">
-          <h2 className="text-xl font-bold mb-2">Turniej nie wystartował</h2>
-          <p className="text-muted-foreground mb-4">Wróć do szczegółów i uruchom turniej.</p>
-          <Button asChild><Link href={`/tournaments/${id}`}>Wróć</Link></Button>
-        </div>
-      </Layout>
-    );
-  }
-
   // --- Derived match lists ---
-  const actionableMatches = matches?.filter(
+  const actionableMatches = operationalMatches?.filter(
     (m) => (m.status === "in_progress" || m.status === "pending") && m.player1Id && m.player2Id,
   ) || [];
-  const postponedMatches = matches?.filter((m) => m.status === "postponed") || [];
-  const cancelledMatches = matches?.filter((m) => m.status === "cancelled") || [];
-  const pendingReady = (matches?.filter(
-    (m) => m.status === "pending" && m.player1Id && m.player2Id,
-  ) || []).sort((a, b) => (a.sortOrder ?? a.matchNumber * 10) - (b.sortOrder ?? b.matchNumber * 10));
-  const completedMatches = matches?.filter((m) => m.status === "completed") || [];
-  const allCurrentRoundDone = matches
-    ?.filter((m) => m.round === tournament.currentRound)
-    .every((m) => m.status === "completed") ?? false;
-  const canGenerateRound =
-    tournament.format === "swiss" && allCurrentRoundDone && (tournament.currentRound ?? 0) < (tournament.totalRounds ?? 0);
+  const postponedMatches = operationalMatches?.filter((m) => m.status === "postponed") || [];
+  const cancelledMatches = operationalMatches?.filter((m) => m.status === "cancelled") || [];
+  const queueMatches = [...actionableMatches].sort((a, b) => (a.sortOrder ?? a.matchNumber * 10) - (b.sortOrder ?? b.matchNumber * 10));
+  const pendingQueue = queueMatches.filter((match) => match.status === "pending");
+  const completedMatches = operationalMatches?.filter((m) => m.status === "completed") || [];
+  const showResultsSidebar = queueMatches.length > 0 && completedMatches.length >= 3;
+  const matchStageGroups = Array.from(new Set(matches?.map(match => match.stageId ?? null))).map(stageId => {
+    const stage = stages?.find(entry => entry.id === stageId);
+    return { id: stageId, name: stage?.name ?? (stageId === null ? "Mecze bez przypisanego etapu" : `Etap ${stageId}`), position: stage?.position ?? Number.MAX_SAFE_INTEGER };
+  }).sort((a, b) => a.position - b.position);
+  const canGenerateRound = nextStep?.kind === "swiss_round";
+  const tournamentCompleted = tournament.status === "completed";
+  const winnerMatch = tournament.winnerId == null ? undefined : matches?.find(match =>
+    match.player1Id === tournament.winnerId || match.player2Id === tournament.winnerId);
+  const championName = tournament.winnerId == null ? undefined
+    : standings?.find(standing => standing.playerId === tournament.winnerId)?.playerName
+      ?? (winnerMatch?.player1Id === tournament.winnerId ? winnerMatch?.player1Name : winnerMatch?.player2Name);
 
   const handleNextMatch = () => {
-    const idx = actionableMatches.findIndex((m) => m.id === focusedMatchId);
-    const next = actionableMatches[(idx + 1) % actionableMatches.length];
+    const idx = queueMatches.findIndex((m) => m.id === focusedMatchId);
+    const next = queueMatches[(idx + 1) % queueMatches.length];
     if (next) setSelectedMatchId(next.id);
   };
 
   // --- Active match panel ---
   const renderActiveMatchPanel = () => {
     if (!focusedMatch || focusedMatch.resultType === "bye") {
+      if (tournamentCompleted) return null;
       return (
-        <div className="bg-card border rounded-xl p-12 text-center text-muted-foreground text-lg">
+        <div className="bg-card border rounded-xl p-6 text-center text-muted-foreground">
           {canGenerateRound
             ? "Runda zakończona — wygeneruj kolejną rundę Swiss powyżej."
-            : tournament.status === "completed"
-              ? "🏆 Turniej zakończony!"
-              : "Brak aktywnych meczów."}
+            : activeStage ? "Brak meczów gotowych do rozegrania. Sprawdź stan etapu i oczekujące pary."
+                : "Przygotuj najbliższy etap w zakładce Etapy. Po jego rozpoczęciu pojawi się tutaj kolejka meczów."}
         </div>
       );
     }
 
     const bo = focusedMatch.bestOf ?? 1;
     const maxScore = Math.ceil(bo / 2);
-    const s1 = getS(focusedMatch.id, 1, focusedMatch.score1);
-    const s2 = getS(focusedMatch.id, 2, focusedMatch.score2);
+    const staleDraft = resultDrafts.isStale(focusedMatch) || (!!scores[focusedMatch.id]?.baseline && scores[focusedMatch.id].baseline !== scoreBaseline(focusedMatch));
+    const conflictedDraft = resultDrafts.hasConflict(focusedMatch.id);
+    const originalMatch = resultDrafts.drafts[focusedMatch.id];
+    const editingResult = focusedMatch.status === "in_progress" || !!originalMatch || !!scores[focusedMatch.id];
+    const allowsNoContest = !!focusedStage && ["round_robin", "swiss", "group_stage"].includes(focusedStage.format);
+    const s1 = staleDraft || focusedMatch.status === "completed" ? focusedMatch.score1 ?? 0 : getS(focusedMatch.id, 1, focusedMatch.score1);
+    const s2 = staleDraft || focusedMatch.status === "completed" ? focusedMatch.score2 ?? 0 : getS(focusedMatch.id, 2, focusedMatch.score2);
     const isFeatured = tournament?.featuredMatchId === focusedMatch.id;
     const isLive = focusedMatch.status === "in_progress";
     const isDone = focusedMatch.status === "completed";
     const isPostponed = focusedMatch.status === "postponed";
     const isCancelled = focusedMatch.status === "cancelled";
-    const isShowingConfirm = confirmComplete?.matchId === focusedMatch.id;
-    const isShowingRevert = revertConfirm === focusedMatch.id;
     const isShowingCancel = cancelConfirm === focusedMatch.id;
     const isShowingSwap = swapConfirm === focusedMatch.id;
     const isShowingWalkover = walkoverConfirm === focusedMatch.id;
@@ -856,8 +953,10 @@ export default function TournamentHost() {
         : "N/C";
 
     return (
-      <div className={`rounded-xl border-2 overflow-hidden transition-colors ${
-        isCancelled
+      <div data-exp-match-state={isExperimental ? focusedMatch.status : undefined} onFocusCapture={() => { if (!hostPending && !dataError) setSelectedMatchId(focusedMatch.id); }} onPointerDownCapture={() => { if (!hostPending && !dataError) setSelectedMatchId(focusedMatch.id); }} className={`${isExperimental ? "experimental-host-primary" : ""} rounded-xl border-2 overflow-hidden transition-colors ${
+        conflictedDraft
+          ? "border-orange-500/60"
+          : isCancelled
           ? "border-destructive/30 opacity-80"
           : isLive
             ? "border-secondary/60 shadow-[0_0_40px_rgba(0,200,255,0.07)]"
@@ -868,6 +967,8 @@ export default function TournamentHost() {
         {/* Header row */}
         <div className="bg-muted/20 border-b px-4 py-2.5 flex items-center gap-3 justify-between">
           <div className="flex items-center gap-2 min-w-0">
+            <span className="text-sm font-semibold">Wybrany mecz</span>
+            <span className="text-xs text-muted-foreground">{stages?.find(stage => stage.id === focusedMatch.stageId)?.name}</span>
             <Badge variant="outline" className="text-xs shrink-0">Runda {focusedMatch.round}</Badge>
             <span className="text-xs text-muted-foreground font-mono shrink-0">M{focusedMatch.matchNumber}</span>
             {isLive && (
@@ -876,6 +977,7 @@ export default function TournamentHost() {
             {isDone && (
               <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs shrink-0">✓ Zakończony</Badge>
             )}
+            {!isLive && !isDone && !isPostponed && !isCancelled && <Badge variant="outline">Oczekuje</Badge>}
             {isPostponed && (
               <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30 text-xs shrink-0">⏸ Przełożony</Badge>
             )}
@@ -895,7 +997,7 @@ export default function TournamentHost() {
                 <button
                   key={n}
                   onClick={() => handleChangeBestOf(focusedMatch.id, n)}
-                  disabled={focusedMatch.status !== "pending"}
+                  disabled={focusedMatch.status !== "pending" || conflictedDraft}
                   className={`text-xs px-2.5 py-1 rounded transition-colors font-medium ${
                     bo === n
                       ? "bg-primary text-primary-foreground"
@@ -912,6 +1014,7 @@ export default function TournamentHost() {
               size="sm"
               className={`h-8 w-8 p-0 ${isFeatured ? "text-yellow-400" : "text-muted-foreground hover:text-yellow-400"}`}
               onClick={() => handleSetFeatured(focusedMatch.id)}
+              disabled={conflictedDraft}
               title={isFeatured ? "Usuń z ekranu widzów" : "Pokaż na ekranie widzów"}
             >
               <Star className={`w-4 h-4 ${isFeatured ? "fill-yellow-400" : ""}`} />
@@ -921,9 +1024,28 @@ export default function TournamentHost() {
         </div>
 
         {/* Score area */}
-        <div className="p-5 md:p-8">
+        <div className="p-4 md:p-5">
+          {conflictedDraft && <section aria-label="Konflikt zapisu wyniku" className="organizer-notice mb-5 space-y-3 rounded-lg border border-orange-500/50 bg-orange-500/10 p-4">
+            <h3 className="flex items-center gap-2 font-semibold"><AlertTriangle className="h-5 w-5 shrink-0" /> Wynik nie został zapisany</h3>
+            <p className="text-sm">Twój draft pochodzi ze starej wersji meczu. Przed kolejnym zapisem sprawdź aktualnych zawodników i rozpocznij nową edycję.</p>
+            <div className="rounded-md border bg-background p-3 text-sm">
+              <p className="font-semibold">Aktualny stan meczu</p>
+              <p>{focusedMatch.player1Name ?? "Oczekuje na gracza"} – {focusedMatch.player2Name ?? "Oczekuje na gracza"} · BO{bo} · {MATCH_STATUS_LABELS[focusedMatch.status] ?? "Nieznany"}</p>
+              <p>Aktualny wynik: {isDone ? completedResultLabel : `${focusedMatch.score1 ?? 0}:${focusedMatch.score2 ?? 0}`}</p>
+            </div>
+            <p className="text-sm text-muted-foreground">Nieaktualny draft (niezapisany): {originalMatch?.player1Name} – {originalMatch?.player2Name}. {walkoverConfirm === focusedMatch.id ? "Walkower." : noContestConfirm === focusedMatch.id ? "No contest." : `Twój wynik roboczy: ${scores[focusedMatch.id]?.s1 ?? 0}:${scores[focusedMatch.id]?.s2 ?? 0}.`}</p>
+            <p role="status" className="text-sm">{hostPending || matchesQuery.isFetching ? "Odświeżanie aktualnego meczu…" : "Aktualny mecz został odświeżony. Stary wynik nie zostanie przeniesiony do nowej edycji."}</p>
+            <Button className="h-auto whitespace-normal text-left" disabled={hostPending || matchesQuery.isFetching || !matchesQuery.isSuccess} onClick={() => {
+              if (hostPending || matchesQuery.isFetching || !matchesQuery.isSuccess) return;
+              resultDrafts.discard(focusedMatch.id);
+              resultDrafts.capture(focusedMatch);
+              setWalkoverConfirm(null); setNoContestConfirm(null); setResultReason("");
+              setScores(previous => { const next = { ...previous }; delete next[focusedMatch.id]; return next; });
+              setActionError(previous => previous?.code === "CONCURRENT_MODIFICATION" ? null : previous);
+            }}>Odrzuć stary draft i rozpocznij nową edycję</Button>
+          </section>}
           <p className="mb-4 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">Wygrane gry / mapy</p>
-          <div className="flex items-center justify-center gap-4 md:gap-10">
+          <div className="flex items-center justify-center gap-3 md:gap-6">
             {/* Player 1 */}
             <div className="flex-1 flex flex-col items-center gap-4 min-w-0">
               {isDeadlock && (() => {
@@ -934,7 +1056,7 @@ export default function TournamentHost() {
               })()}
               <div className="text-center w-full px-2">
                 <div
-                  className="text-xl md:text-3xl font-extrabold truncate leading-tight"
+                  className="text-xl md:text-2xl font-extrabold truncate leading-tight"
                   title={focusedMatch.player1Name ?? undefined}
                 >
                   {focusedMatch.player1Name}
@@ -950,12 +1072,14 @@ export default function TournamentHost() {
                   size="icon"
                   className="h-11 w-11 rounded-full text-xl shrink-0"
                   onClick={() => adjustScore(focusedMatch.id, 1, -1, bo)}
-                  disabled={!capabilities.canWriteTournamentResults || s1 <= 0 || isDone}
+                  onFocus={() => resultDrafts.capture(focusedMatch)}
+                  aria-label={`Zmniejsz wynik: ${focusedMatch.player1Name}`}
+                  disabled={!capabilities.canWriteTournamentResults || s1 <= 0 || isDone || staleDraft}
                 >
                   <Minus className="w-5 h-5" />
                 </Button>
                 <div
-                  className={`text-6xl md:text-7xl font-black font-mono w-20 text-center select-none transition-colors ${
+                  className={`text-5xl md:text-6xl font-black font-mono w-20 text-center select-none transition-colors ${
                     s1 > s2 ? "text-primary" : s1 < s2 ? "text-muted-foreground/40" : "text-foreground"
                   }`}
                 >
@@ -966,7 +1090,9 @@ export default function TournamentHost() {
                   size="icon"
                   className="h-11 w-11 rounded-full text-xl shrink-0"
                   onClick={() => adjustScore(focusedMatch.id, 1, 1, bo)}
-                  disabled={!capabilities.canWriteTournamentResults || s1 >= maxScore || isDone}
+                  onFocus={() => resultDrafts.capture(focusedMatch)}
+                  aria-label={`Zwiększ wynik: ${focusedMatch.player1Name}`}
+                  disabled={!capabilities.canWriteTournamentResults || s1 >= maxScore || isDone || staleDraft}
                 >
                   <Plus className="w-5 h-5" />
                 </Button>
@@ -993,7 +1119,7 @@ export default function TournamentHost() {
               })()}
               <div className="text-center w-full px-2">
                 <div
-                  className="text-xl md:text-3xl font-extrabold truncate leading-tight"
+                  className="text-xl md:text-2xl font-extrabold truncate leading-tight"
                   title={focusedMatch.player2Name ?? undefined}
                 >
                   {focusedMatch.player2Name}
@@ -1009,12 +1135,14 @@ export default function TournamentHost() {
                   size="icon"
                   className="h-11 w-11 rounded-full text-xl shrink-0"
                   onClick={() => adjustScore(focusedMatch.id, 2, -1, bo)}
-                  disabled={!capabilities.canWriteTournamentResults || s2 <= 0 || isDone}
+                  onFocus={() => resultDrafts.capture(focusedMatch)}
+                  aria-label={`Zmniejsz wynik: ${focusedMatch.player2Name}`}
+                  disabled={!capabilities.canWriteTournamentResults || s2 <= 0 || isDone || staleDraft}
                 >
                   <Minus className="w-5 h-5" />
                 </Button>
                 <div
-                  className={`text-6xl md:text-7xl font-black font-mono w-20 text-center select-none transition-colors ${
+                  className={`text-5xl md:text-6xl font-black font-mono w-20 text-center select-none transition-colors ${
                     s2 > s1 ? "text-primary" : s2 < s1 ? "text-muted-foreground/40" : "text-foreground"
                   }`}
                 >
@@ -1025,7 +1153,9 @@ export default function TournamentHost() {
                   size="icon"
                   className="h-11 w-11 rounded-full text-xl shrink-0"
                   onClick={() => adjustScore(focusedMatch.id, 2, 1, bo)}
-                  disabled={!capabilities.canWriteTournamentResults || s2 >= maxScore || isDone}
+                  onFocus={() => resultDrafts.capture(focusedMatch)}
+                  aria-label={`Zwiększ wynik: ${focusedMatch.player2Name}`}
+                  disabled={!capabilities.canWriteTournamentResults || s2 >= maxScore || isDone || staleDraft}
                 >
                   <Plus className="w-5 h-5" />
                 </Button>
@@ -1111,55 +1241,8 @@ export default function TournamentHost() {
             </div>
           )}
 
-          {/* Confirmation overlay */}
-          {capabilities.canWriteTournamentResults && isShowingConfirm && confirmComplete && (
-            <div className="mt-5 p-4 bg-yellow-500/10 border border-yellow-500/40 rounded-lg">
-              <p className="font-semibold text-yellow-400 text-sm mb-1 flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4" /> Potwierdzenie zapisu
-              </p>
-              <p className="text-sm text-muted-foreground mb-3">
-                Zapisać wynik{" "}
-                <strong className="text-foreground">
-                  {focusedMatch.player1Name} {confirmComplete.score1}:{confirmComplete.score2} {focusedMatch.player2Name}
-                </strong>
-                ?
-              </p>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => setConfirmComplete(null)}>
-                  Anuluj
-                </Button>
-                <Button
-                  size="sm"
-                  className="bg-primary"
-                  onClick={() => doComplete(confirmComplete.matchId, confirmComplete.score1, confirmComplete.score2)}
-                  disabled={completeMatch.isPending}
-                >
-                  <CheckCircle2 className="w-3.5 h-3.5 mr-1" /> Zapisz wynik
-                </Button>
-              </div>
-            </div>
-          )}
-
-          {/* Revert confirm */}
-          {capabilities.canWriteTournamentResults && isShowingRevert && (
-            <div className="mt-5 p-4 bg-destructive/10 border border-destructive/30 rounded-lg">
-              <p className="font-semibold text-destructive text-sm mb-2">Cofnąć wynik?</p>
-              <p className="text-sm text-muted-foreground mb-3">
-                R{focusedMatch.round} M{focusedMatch.matchNumber}:{" "}
-                <strong>{focusedMatch.player1Name}</strong> {completedResultLabel}{" "}
-                <strong>{focusedMatch.player2Name}</strong>
-              </p>
-              <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => setRevertConfirm(null)}>Anuluj</Button>
-                <Button variant="destructive" size="sm" onClick={() => handleRevert(focusedMatch.id)} disabled={revertMatch.isPending}>
-                  <RotateCcw className="w-3.5 h-3.5 mr-1" /> Cofnij
-                </Button>
-              </div>
-            </div>
-          )}
-
           {/* Cancel confirm */}
-          {capabilities.canUseLegacyMatchTools && isShowingCancel && (
+          {!conflictedDraft && capabilities.canUseLegacyMatchTools && isShowingCancel && (
             <div className="mt-5 p-4 bg-destructive/10 border border-destructive/30 rounded-lg">
               <p className="font-semibold text-destructive text-sm mb-1 flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4" /> Anulować mecz?
@@ -1181,7 +1264,7 @@ export default function TournamentHost() {
           )}
 
           {/* Swap players confirm */}
-          {capabilities.canUseLegacyMatchTools && isShowingSwap && (
+          {!conflictedDraft && capabilities.canUseLegacyMatchTools && isShowingSwap && (
             <div className="mt-5 p-4 bg-orange-500/10 border border-orange-500/30 rounded-lg">
               <p className="font-semibold text-orange-400 text-sm mb-1 flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4" /> Zamienić zawodników stronami?
@@ -1203,10 +1286,10 @@ export default function TournamentHost() {
           )}
 
           {/* Walkover confirm */}
-          {capabilities.canWriteTournamentResults && isShowingWalkover && (
+          {!conflictedDraft && capabilities.canWriteTournamentResults && isShowingWalkover && (
             <div className="mt-5 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
               <p className="font-semibold text-blue-400 text-sm mb-1 flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4" /> Walkover — kto wygrał?
+                <AlertTriangle className="w-4 h-4" /> Walkower — kto wygrał?
               </p>
               <p className="text-sm text-muted-foreground mb-3">
                 Wybierz zawodnika, który <strong>wygrał</strong> (drugi nie pojawił się).
@@ -1224,7 +1307,7 @@ export default function TournamentHost() {
                   size="sm"
                   className="bg-blue-600 hover:bg-blue-700 text-white"
                   onClick={() => doWalkover(focusedMatch.id, 1)}
-                  disabled={completeMatch.isPending}
+                  disabled={completeMatch.isPending || staleDraft}
                 >
                   ✓ {focusedMatch.player1Name ?? "Zawodnik A"} wygrał
                 </Button>
@@ -1232,7 +1315,7 @@ export default function TournamentHost() {
                   size="sm"
                   className="bg-blue-600 hover:bg-blue-700 text-white"
                   onClick={() => doWalkover(focusedMatch.id, 2)}
-                  disabled={completeMatch.isPending}
+                  disabled={completeMatch.isPending || staleDraft}
                 >
                   ✓ {focusedMatch.player2Name ?? "Zawodnik B"} wygrał
                 </Button>
@@ -1240,9 +1323,9 @@ export default function TournamentHost() {
             </div>
           )}
 
-          {capabilities.canWriteTournamentResults && isShowingNoContest && (
+          {!conflictedDraft && capabilities.canWriteTournamentResults && isShowingNoContest && (
             <div className="mt-5 p-4 bg-orange-500/10 border border-orange-500/30 rounded-lg">
-              <p className="font-semibold text-orange-400 text-sm mb-1">No contest — bez zwycięzcy</p>
+              <p className="font-semibold text-orange-400 text-sm mb-1">Brak rozstrzygnięcia — bez zwycięzcy</p>
               <p className="text-sm text-muted-foreground mb-3">
                 Mecz zostanie zakończony bez wpływu na bilans meczów i gier. Ta decyzja nie jest dostępna w eliminacjach.
               </p>
@@ -1254,15 +1337,15 @@ export default function TournamentHost() {
               />
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={() => setNoContestConfirm(null)}>Anuluj</Button>
-                <Button size="sm" className="bg-orange-600 hover:bg-orange-700 text-white" onClick={() => doNoContest(focusedMatch.id)} disabled={completeMatch.isPending}>
-                  Zapisz no contest
+                <Button size="sm" className="bg-orange-600 hover:bg-orange-700 text-white" onClick={() => doNoContest(focusedMatch.id)} disabled={completeMatch.isPending || staleDraft}>
+                  Zapisz brak rozstrzygnięcia
                 </Button>
               </div>
             </div>
           )}
 
           {/* Restore cancelled action */}
-          {capabilities.canUseLegacyMatchTools && isCancelled && (
+          {!conflictedDraft && capabilities.canUseLegacyMatchTools && isCancelled && (
             <div className="mt-5 pt-4 border-t flex items-center justify-between gap-2">
               <p className="text-sm text-destructive/80">Ten mecz jest anulowany.</p>
               <Button
@@ -1276,113 +1359,61 @@ export default function TournamentHost() {
             </div>
           )}
 
-          {/* Action bar */}
-          {!isShowingConfirm && !isShowingRevert && !isShowingCancel && !isShowingSwap && !isShowingWalkover && !isShowingNoContest && !isCancelled && (
+          {/* Action bar: result workflow first; exceptional operations stay in the menu. */}
+          {!isShowingCancel && !isShowingSwap && !isShowingWalkover && !isShowingNoContest && !isCancelled && (
             <div className="mt-5 pt-4 border-t flex flex-wrap items-center justify-between gap-2">
               <div className="flex gap-2 flex-wrap">
-                {/* Start — for pending/postponed */}
-                {capabilities.canUseLegacyMatchTools && !isLive && !isDone && (
-                  <Button
-                    variant="outline"
-                    onClick={() => handleSetInProgress(focusedMatch.id)}
-                    disabled={updateMatch.isPending}
-                  >
-                    <Play className="w-4 h-4 mr-2" /> Rozpocznij
+                {!conflictedDraft && capabilities.canUseLegacyMatchTools && !isLive && !isDone && (
+                  <Button variant={editingResult ? "outline" : "default"} onClick={() => handleSetInProgress(focusedMatch.id)} disabled={updateMatch.isPending}>
+                    <Play className="w-4 h-4 mr-2" /> Rozpocznij mecz
                   </Button>
                 )}
-                {/* Swap players — for non-completed, both players assigned */}
-                {capabilities.canUseLegacyMatchTools && !isDone && focusedMatch.player1Id && focusedMatch.player2Id && (
-                  <Button
-                    variant="outline"
-                    className="text-muted-foreground hover:text-foreground"
-                    onClick={() => handleSwapPlayers(focusedMatch.id)}
-                    disabled={swapMatchPlayers.isPending}
-                    title="Zamień zawodnika A i B stronami"
-                  >
-                    <ArrowLeftRight className="w-4 h-4 mr-2" /> Zamień strony
-                  </Button>
-                )}
-                {/* Postpone — for pending/in_progress (not done, not already postponed) */}
-                {capabilities.canUseLegacyMatchTools && !isDone && !isPostponed && (
-                  <Button
-                    variant="outline"
-                    className="text-muted-foreground hover:text-foreground"
-                    onClick={() => handlePostpone(focusedMatch.id)}
-                    disabled={updateMatch.isPending}
-                  >
-                    <Clock className="w-4 h-4 mr-2" /> Przełóż
-                  </Button>
-                )}
-                {/* Restore — for postponed matches */}
-                {capabilities.canUseLegacyMatchTools && isPostponed && (
-                  <Button
-                    variant="outline"
-                    className="border-orange-500/50 text-orange-400 hover:bg-orange-500/10"
-                    onClick={() => handleRestore(focusedMatch.id)}
-                    disabled={updateMatch.isPending}
-                  >
-                    <SkipForward className="w-4 h-4 mr-2" /> Przywróć
-                  </Button>
-                )}
-                {/* Walkover — for non-completed, non-cancelled, both players present */}
-                {capabilities.canWriteTournamentResults && !isDone && !isPostponed && focusedMatch.player1Id && focusedMatch.player2Id && (
-                  <Button
-                    variant="outline"
-                    className="text-blue-400/70 hover:text-blue-400 hover:border-blue-400/50"
-                    onClick={() => handleWalkover(focusedMatch.id)}
-                    disabled={completeMatch.isPending}
-                    title="Walkover — jeden zawodnik nie pojawił się"
-                  >
-                    W.O.
-                  </Button>
-                )}
-                {capabilities.canWriteTournamentResults && !isDone && !isPostponed && tournament.format !== "single_elimination" && focusedMatch.player1Id && focusedMatch.player2Id && (
-                  <Button
-                    variant="outline"
-                    className="text-orange-400/70 hover:text-orange-400 hover:border-orange-400/50"
-                    onClick={() => handleNoContest(focusedMatch.id)}
-                    disabled={completeMatch.isPending}
-                  >
-                    No contest
-                  </Button>
-                )}
-                {/* Cancel — for non-completed, non-cancelled */}
-                {capabilities.canUseLegacyMatchTools && !isDone && (
-                  <Button
-                    variant="outline"
-                    className="text-destructive/60 hover:text-destructive hover:border-destructive/50"
-                    onClick={() => handleCancel(focusedMatch.id)}
-                    disabled={cancelMatch.isPending}
-                    title="Anuluj ten mecz"
-                  >
-                    <Ban className="w-4 h-4 mr-2" /> Anuluj
-                  </Button>
+                {!conflictedDraft && !isDone && (capabilities.canUseLegacyMatchTools || capabilities.canWriteTournamentResults) && (
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild><Button variant="outline" disabled={hostPending}>Więcej akcji</Button></DropdownMenuTrigger>
+                    <DropdownMenuContent align="start">
+                      {capabilities.canWriteTournamentResults && !isPostponed && focusedMatch.player1Id && focusedMatch.player2Id && <>
+                        <DropdownMenuItem disabled={staleDraft || completeMatch.isPending} onSelect={() => handleWalkover(focusedMatch.id)}>Walkower (W.O.)</DropdownMenuItem>
+                        {allowsNoContest && <DropdownMenuItem disabled={staleDraft || completeMatch.isPending} onSelect={() => handleNoContest(focusedMatch.id)}>Brak rozstrzygnięcia (no contest)</DropdownMenuItem>}
+                      </>}
+                      {capabilities.canUseLegacyMatchTools && <>
+                        {focusedMatch.player1Id && focusedMatch.player2Id && <DropdownMenuItem disabled={swapMatchPlayers.isPending} onSelect={() => handleSwapPlayers(focusedMatch.id)}><ArrowLeftRight /> Zamień strony</DropdownMenuItem>}
+                        {!isPostponed
+                          ? <DropdownMenuItem disabled={updateMatch.isPending} onSelect={() => handlePostpone(focusedMatch.id)}><Clock /> Przełóż</DropdownMenuItem>
+                          : <DropdownMenuItem disabled={updateMatch.isPending} onSelect={() => handleRestore(focusedMatch.id)}><SkipForward /> Przywróć</DropdownMenuItem>}
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" disabled={cancelMatch.isPending} onSelect={() => handleCancel(focusedMatch.id)}><Ban /> Anuluj mecz</DropdownMenuItem>
+                      </>}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 )}
               </div>
-
               <div className="flex gap-2">
-                {capabilities.canWriteTournamentResults && isDone && (
-                  <Button
-                    variant="outline"
-                    className="border-destructive text-destructive hover:bg-destructive/10"
-                    onClick={() => setRevertConfirm(focusedMatch.id)}
-                  >
-                    <RotateCcw className="w-4 h-4 mr-2" /> Cofnij wynik
-                  </Button>
+                {!conflictedDraft && capabilities.canWriteTournamentResults && isDone && (
+                  <Button variant="outline" onClick={() => openCorrection(focusedMatch.id)}><RotateCcw className="w-4 h-4 mr-2" /> Popraw wynik</Button>
                 )}
                 {capabilities.canWriteTournamentResults && !isDone && !isPostponed && (
-                  <Button
-                    size="default"
-                    className="bg-primary hover:bg-primary/90 font-semibold px-6"
-                    onClick={() => handleTryComplete(focusedMatch.id, focusedMatch)}
-                    disabled={completeMatch.isPending || !isCompleteSeries}
-                  >
-                    <CheckCircle2 className="w-4 h-4 mr-2" /> Zakończ rozegrany mecz
+                  <Button variant={editingResult && !conflictedDraft ? "default" : "outline"} className="font-semibold px-6" onClick={() => handleTryComplete(focusedMatch.id, focusedMatch)} disabled={completeMatch.isPending || !isCompleteSeries || staleDraft}>
+                    <CheckCircle2 className="w-4 h-4 mr-2" /> Zapisz wynik
                   </Button>
                 )}
               </div>
             </div>
           )}
+          {!isDone && !isCancelled && !conflictedDraft && (
+            <p className="mt-3 text-sm text-muted-foreground">
+              {scores[focusedMatch.id]
+                ? "Wynik roboczy — nie jest jeszcze zapisany. Zapisz go po zakończeniu meczu."
+                : `Do wygrania meczu potrzeba ${maxScore} ${maxScore === 1 ? "wygranej" : "wygranych"}. Ustaw wynik przyciskami + i −.`}
+            </p>
+          )}
+          {isDone && <p className="mt-3 text-sm text-muted-foreground">Wynik zapisany: {completedResultLabel}. Aby go zmienić, wybierz „Popraw wynik”.</p>}
+          {staleDraft && !conflictedDraft && <p className="mt-3 text-sm text-orange-400">Stan meczu zmienił się od rozpoczęcia edycji. Twój wynik roboczy: {scores[focusedMatch.id]?.s1 ?? 0}:{scores[focusedMatch.id]?.s2 ?? 0}. Aktualny wynik: {focusedMatch.score1 ?? 0}:{focusedMatch.score2 ?? 0}. Odrzuć wynik roboczy i sprawdź mecz przed kolejnym zapisem. Draft dotyczy: {resultDrafts.drafts[focusedMatch.id]?.player1Name} – {resultDrafts.drafts[focusedMatch.id]?.player2Name}.</p>}
+          {!conflictedDraft && (scores[focusedMatch.id] || staleDraft) && <Button variant="ghost" size="sm" className="mt-2" onClick={() => {
+            resultDrafts.discard(focusedMatch.id);
+            setWalkoverConfirm(null); setNoContestConfirm(null); setResultReason("");
+            setScores((prev) => { const next = { ...prev }; delete next[focusedMatch.id]; return next; });
+          }}>Odrzuć wynik roboczy</Button>}
         </div>
       </div>
     );
@@ -1390,33 +1421,42 @@ export default function TournamentHost() {
 
   return (
     <Layout colorPreset={presentationSettings.colorPreset || undefined}>
-      <div className="flex flex-col gap-4 max-w-6xl mx-auto">
+      <div className="organizer-workspace flex flex-col gap-4 mx-auto">
         {/* Top bar */}
-        <div className="flex items-center gap-3 border-b pb-4">
+        <div className="organizer-header flex flex-wrap items-center gap-3 border-b pb-3">
           <Button variant="ghost" size="icon" asChild>
-            <Link href={`/tournaments/${id}`}><ArrowLeft className="w-5 h-5" /></Link>
+            <Link href={tournamentHref(id, isExperimental)} aria-label="Wróć do szczegółów turnieju"><ArrowLeft className="w-5 h-5" /></Link>
           </Button>
           <div className="flex-1 min-w-0">
-            <h1 className="text-xl font-bold flex items-center gap-2 truncate">
+            <h1 className="text-xl font-bold flex items-center gap-2">
               <Swords className="text-primary w-5 h-5 shrink-0" />
-              <span className="truncate">Panel prowadzącego: {tournament.name}</span>
+              <span className="break-words">{tournament.name}</span>
             </h1>
             <p className="text-xs text-muted-foreground">
-              {tournament.format} · Runda {tournament.currentRound ?? "—"}/{tournament.totalRounds ?? "—"}
+              Prowadzenie turnieju
             </p>
             <div className="mt-1">
               <ForcedHeroBadge gameConfig={tournament.gameConfig} compact />
             </div>
           </div>
+          {isExperimental && <ExperimentalHostFocusToggle />}
           {capabilities.canManageSharing && <Button variant="outline" size="sm" className="shrink-0" onClick={() => setShowShareDialog(true)}>
             <Share2 className="w-4 h-4 mr-1" /> Udostępnij
           </Button>}
           <Button variant="outline" size="sm" asChild className="shrink-0">
-            <Link href={`/tournaments/${id}/audience`}>
+            <Link href={tournamentHref(id, isExperimental, "/audience")}>
               <Monitor className="w-4 h-4 mr-1" /> Widok widzów
             </Link>
           </Button>
         </div>
+
+        {isExperimental && (
+          <ExperimentalTournamentContextBar
+            tournamentId={id}
+            tournamentName={tournament.name}
+            currentLabel="Prowadzenie"
+          />
+        )}
 
         {managementRole && (
           <TournamentOrganizerNavigation
@@ -1425,7 +1465,75 @@ export default function TournamentHost() {
             capabilities={capabilities}
           />
         )}
-        {nextStep && (
+        {orgToken && !tournament.hasOrganizerPassword && <OrganizerRecoveryNotice tournamentId={id} />}
+        {isExperimental ? (
+          <ExperimentalHostCommandCenter
+            tournamentId={id}
+            stageName={activeStage?.name ?? plannedStage?.name ?? tournament.name}
+            formatLabel={activeStage ? STAGE_FORMAT_LABELS[activeStage.format] : undefined}
+            roundLabel={operation.summary.roundLabel}
+            liveCount={operationalMatches?.filter((match) => match.status === "in_progress").length ?? 0}
+            readyCount={pendingQueue.length}
+            completedCount={completedMatches.length}
+            otherCount={Math.max(0, (operationalMatches?.length ?? 0) - queueMatches.length - completedMatches.length)}
+            totalCount={operationalMatches?.length ?? 0}
+            nextStepTitle={nextStep?.title}
+            championName={championName}
+            isCompleted={tournamentCompleted}
+            dataLoading={dataLoading}
+            dataError={dataError}
+          />
+        ) : tournamentCompleted ? <section aria-label="Podsumowanie turnieju" className="organizer-stage-detail rounded-xl border border-primary/30 bg-card p-4">
+          <h2 className="text-xl font-semibold">Turniej zakończony</h2>
+          {championName && <p className="mt-2 text-lg font-semibold">Mistrz: {championName}</p>}
+          {!dataLoading && !dataError && !!stages?.length && stages.every(stage => stage.status === "completed") &&
+            <p className="mt-1 text-sm text-muted-foreground">Wszystkie etapy są zakończone.</p>}
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Button variant="outline" size="sm" asChild><Link href={tournamentHref(id, isExperimental, "/host?tab=wyniki")}>Wszystkie mecze i wyniki</Link></Button>
+            <Button variant="outline" size="sm" asChild><Link href={tournamentHref(id, isExperimental, "/audience")}>Widok widzów</Link></Button>
+          </div>
+        </section> : <section aria-label="Stan prowadzenia" className="organizer-stage-detail rounded-xl border border-primary/30 bg-card p-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-primary">
+                {dataLoading ? "Sprawdzanie stanu" : activeStage ? `Aktywny etap · ${activeStage.position} z ${stages?.length}`
+                  : tournament.status === "completed" ? "Turniej zakończony" : "Przygotowanie etapu"}
+              </p>
+              <h2 className="mt-1 text-xl font-semibold">{activeStage?.name ?? plannedStage?.name ?? tournament.name}</h2>
+              {activeStage && <p className="mt-1 text-sm text-muted-foreground">
+                {STAGE_FORMAT_LABELS[activeStage.format]} · {operation.summary.roundLabel}
+              </p>}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" asChild><Link href={tournamentHref(id, isExperimental, "/host?tab=wyniki")}>Wszystkie mecze i wyniki</Link></Button>
+              <Button variant="outline" size="sm" asChild><Link href={tournamentHref(id, isExperimental, "?tab=stages")}>Sprawdź etapy</Link></Button>
+            </div>
+          </div>
+          {!dataLoading && !dataError && activeStage && <dl className="mt-4 grid grid-cols-2 gap-3 border-t pt-3 sm:grid-cols-4">
+            {[
+              ["W trakcie", operationalMatches?.filter((match) => match.status === "in_progress").length ?? 0],
+              ["Gotowe do gry", queueMatches.filter((match) => match.status === "pending").length],
+              ["Zakończone", completedMatches.length],
+              ["Pozostałe", (operationalMatches?.length ?? 0) - queueMatches.length - completedMatches.length],
+            ].map(([label, count]) => <div key={label}><dt className="text-xs text-muted-foreground">{label}</dt><dd className="mt-1 text-xl font-semibold tabular-nums">{count}</dd></div>)}
+          </dl>}
+          {!dataLoading && !dataError && activeStage && (operationalMatches?.length ?? 0) > queueMatches.length + completedMatches.length &&
+            <p className="mt-3 text-xs text-muted-foreground">Pozostałe mecze oczekują na pełną parę, zostały przełożone lub anulowane.</p>}
+        </section>}
+        {dataLoading && !dataError && <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Pobieranie stanu etapu i meczów…</p>}
+        {dataError && <div role="alert" className="organizer-notice organizer-notice--error rounded-lg border border-destructive/40 bg-destructive/5 p-4">
+          <p className="font-semibold">Nie udało się odświeżyć stanu prowadzenia.</p>
+          <p className="mt-1 text-sm text-muted-foreground">Dane mogą być nieaktualne. Operacje są wstrzymane do ponownego pobrania etapu i meczów.</p>
+          <Button variant="outline" size="sm" className="mt-3" disabled={isFetchingTournament || stagesQuery.isFetching || matchesQuery.isFetching} onClick={() => void Promise.all([refetchTournament(), stagesQuery.refetch(), matchesQuery.refetch()])}><RefreshCw className="mr-2 h-4 w-4" /> Spróbuj ponownie</Button>
+        </div>}
+        {actionError && <div role="alert" className="organizer-notice organizer-notice--error rounded-lg border border-destructive/40 bg-destructive/5 p-4">
+          <p className="font-semibold">Operacja nie powiodła się</p><p className="mt-1 text-sm">{actionError.message}</p>
+          {actionError.code && <p className="mt-2 text-xs text-muted-foreground">Kod diagnostyczny: {actionError.code}</p>}
+        </div>}
+        {hostPending && <p role="status" className="organizer-notice organizer-notice--pending flex items-center gap-2 text-sm text-primary"><Loader2 className="h-4 w-4 animate-spin" /> Zapisywanie i odświeżanie stanu…</p>}
+        {selectionNotice && <p role="status" className="rounded-lg border p-3 text-sm">{selectionNotice}</p>}
+        <fieldset disabled={hostPending || dataLoading || dataError} className="contents">
+        {nextStep && !tournamentCompleted && !dataLoading && !dataError && (
           <OrganizerNextStep
             step={nextStep}
             onAction={nextStep.kind === "swiss_round" ? handleGenerateRound : undefined}
@@ -1433,7 +1541,7 @@ export default function TournamentHost() {
           />
         )}
         {capabilities.canUndo && lastUndoableAction && !undoConfirm && (
-          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-yellow-500/30 bg-yellow-500/5 px-3 py-2 text-sm">
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 text-sm">
             <span className="text-muted-foreground">Ostatnia akcja: {lastUndoableAction.description}</span>
             <Button variant="ghost" size="sm" className="h-7 text-yellow-500" onClick={() => setUndoConfirm(true)}>
               <Undo2 className="mr-1 h-3.5 w-3.5" /> Cofnij
@@ -1485,31 +1593,21 @@ export default function TournamentHost() {
         })()}
 
         {/* Assistant bar */}
-        {assistant && (
-          <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 flex items-center gap-3">
-            <div className="w-2 h-2 rounded-full bg-primary animate-pulse shrink-0" />
-            <div className="flex-1 min-w-0">
-              <span className="font-semibold text-sm text-primary">{assistant.stepTitle}</span>
-              <span className="text-muted-foreground text-sm ml-2">— {assistant.nextAction}</span>
-            </div>
-          </div>
-        )}
-
         <Tabs value={activeHostTab} className="w-full">
 
           {/* ═══ PROWADZENIE ═══ */}
           <TabsContent value="prowadzenie" className="pt-4 space-y-4">
             {/* Big active match panel */}
-            {renderActiveMatchPanel()}
+            {!dataLoading && !dataError && renderActiveMatchPanel()}
 
             {/* Queue + recent results */}
-            {(pendingReady.length > 0 || completedMatches.length > 0 || postponedMatches.length > 0) && (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {(queueMatches.length > 0 || completedMatches.length > 0 || postponedMatches.length > 0) && (
+              <div className={`${isExperimental ? "experimental-host-secondary" : ""} grid min-w-0 grid-cols-1 items-start gap-4 ${showResultsSidebar ? "xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]" : ""}`}>
                 {/* Kolejne mecze */}
-                <div>
+                <section aria-label="Mecze bieżącego etapu" className="min-w-0">
                   <div className="flex items-center justify-between mb-2">
-                    <h3 className="text-sm font-semibold text-muted-foreground">
-                      Kolejne mecze ({pendingReady.length})
+                    <h3 className="text-sm font-semibold">
+                      Mecze bieżącego etapu ({queueMatches.length})
                     </h3>
                     {actionableMatches.length > 1 && (
                       <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={handleNextMatch}>
@@ -1517,25 +1615,25 @@ export default function TournamentHost() {
                       </Button>
                     )}
                   </div>
-                  <div className="bg-card border rounded-lg overflow-hidden divide-y divide-border">
-                    {pendingReady.length === 0 ? (
-                      <p className="text-xs text-muted-foreground text-center py-4">Brak oczekujących meczów</p>
-                    ) : (
-                      pendingReady.slice(0, 8).map((m, idx) => (
-                        <div
+                  {queueMatches.length === 0 ? (
+                    <p className="text-xs text-muted-foreground text-center py-4">Brak oczekujących meczów</p>
+                  ) : (
+                    <ol className={`grid grid-cols-1 gap-1.5 ${showResultsSidebar ? "" : "xl:grid-cols-2"}`}>
+                      {queueMatches.map((m) => (
+                        <li
                           key={m.id}
-                          className={`flex items-center gap-1 pr-1 ${
+                          className={`flex min-w-0 items-center gap-1 rounded-lg border border-l-[3px] pr-1 ${
                             m.id === focusedMatchId
-                              ? "bg-primary/10 border-l-[3px] border-primary"
-                              : "border-l-[3px] border-transparent"
+                              ? "bg-primary/10 border-primary"
+                              : "bg-card border-border"
                           }`}
                         >
                           {/* Reorder arrows */}
-                          {capabilities.canUseLegacyMatchTools && <div className="flex flex-col py-1 pl-1 shrink-0">
+                          {capabilities.canUseLegacyMatchTools && m.status === "pending" && <div className="flex flex-col py-1 pl-1 shrink-0">
                             <button
                               className="p-0.5 text-muted-foreground/40 hover:text-muted-foreground disabled:opacity-20 disabled:cursor-not-allowed"
                               onClick={() => handleMoveInQueue(m.id, "up")}
-                              disabled={idx === 0 || reorderMatches.isPending}
+                              disabled={m.id === pendingQueue[0]?.id || reorderMatches.isPending}
                               title="Przesuń wyżej"
                             >
                               <ArrowUp className="w-3 h-3" />
@@ -1543,14 +1641,14 @@ export default function TournamentHost() {
                             <button
                               className="p-0.5 text-muted-foreground/40 hover:text-muted-foreground disabled:opacity-20 disabled:cursor-not-allowed"
                               onClick={() => handleMoveInQueue(m.id, "down")}
-                              disabled={idx === pendingReady.slice(0, 8).length - 1 || reorderMatches.isPending}
+                              disabled={m.id === pendingQueue[pendingQueue.length - 1]?.id || reorderMatches.isPending}
                               title="Przesuń niżej"
                             >
                               <ArrowDown className="w-3 h-3" />
                             </button>
                           </div>}
                           <button
-                            className="flex-1 text-left px-2 py-2.5 flex items-center gap-3 hover:bg-muted/20 transition-colors min-w-0"
+                            className="flex-1 text-left px-2 py-2 flex items-center gap-2 hover:bg-muted/20 transition-colors min-w-0"
                             onClick={() => setSelectedMatchId(m.id)}
                           >
                             <div className="flex flex-col gap-0.5 min-w-0 flex-1">
@@ -1569,51 +1667,48 @@ export default function TournamentHost() {
                                 {m.player2Name}
                               </div>
                             </div>
+                            {m.status === "in_progress" && <span className="text-sm font-mono tabular-nums">{m.score1 ?? 0}:{m.score2 ?? 0}</span>}
+                            {m.status === "pending" && <span className="shrink-0 text-xs text-muted-foreground">Oczekuje</span>}
                             {m.status === "in_progress" && (
                               <Badge className="shrink-0 bg-secondary/20 text-secondary border-secondary/40 text-[10px]">
                                 LIVE
                               </Badge>
                             )}
                             {m.id === focusedMatchId && m.status !== "in_progress" && (
-                              <span className="text-[10px] text-primary shrink-0">▶ aktywny</span>
+                              <span className="text-xs text-primary shrink-0">Wybrany</span>
                             )}
                           </button>
                           {/* Set as current button for non-focused matches */}
                           {capabilities.canUseLegacyMatchTools && m.id !== focusedMatchId && m.status !== "in_progress" && (
                             <Button
-                              variant="ghost"
+                              variant="outline"
                               size="sm"
-                              className="h-7 text-[10px] px-2 shrink-0 text-muted-foreground hover:text-primary"
+                              className="h-7 px-2 shrink-0 text-primary"
                               onClick={() => { setSelectedMatchId(m.id); handleSetInProgress(m.id); }}
                               title="Ustaw jako aktualny i rozpocznij"
                             >
-                              <Play className="w-2.5 h-2.5" />
+                              <Play className="w-3.5 h-3.5" />
                             </Button>
                           )}
-                        </div>
-                      ))
-                    )}
-                    {pendingReady.length > 8 && (
-                      <div className="px-3 py-2 text-xs text-muted-foreground text-center">
-                        + {pendingReady.length - 8} więcej
-                      </div>
-                    )}
-                  </div>
-                </div>
+                        </li>
+                      ))}
+                    </ol>
+                  )}
+                </section>
 
                 {/* Ostatnie wyniki */}
-                <div>
-                  <h3 className="text-sm font-semibold text-muted-foreground mb-2">Ostatnie wyniki</h3>
-                  <div className="bg-card border rounded-lg overflow-hidden divide-y divide-border">
-                    {completedMatches.length === 0 ? (
-                      <p className="text-xs text-muted-foreground text-center py-4">Brak zakończonych meczów</p>
-                    ) : (
-                      completedMatches.slice(-6).reverse().map((m) => (
-                        <div key={m.id} className="px-3 py-2.5">
+                <section aria-label="Ostatnie wyniki" className="min-w-0">
+                  <h3 className="mb-2 text-sm font-semibold text-muted-foreground">Ostatnie wyniki</h3>
+                  {completedMatches.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">Brak zakończonych meczów</p>
+                  ) : (
+                    <div className={`grid grid-cols-1 gap-2 ${showResultsSidebar ? "" : "md:grid-cols-2"}`}>
+                      {completedMatches.slice(-6).reverse().map((m) => (
+                        <div key={m.id} className="min-w-0 bg-card border rounded-lg px-3 py-2.5">
                           {m.resultType === "bye" ? (
-                            <div className="flex items-center gap-2">
+                            <div className="flex min-w-0 items-center gap-2">
                               <Badge variant="outline" className="text-[10px] px-1.5 shrink-0">R{m.round}</Badge>
-                              <span className="text-sm text-muted-foreground">{m.player1Name} — bye</span>
+                              <span className="truncate text-sm text-muted-foreground">{m.player1Name} — bye</span>
                             </div>
                           ) : (
                             <div className="flex items-center gap-2 min-w-0">
@@ -1641,11 +1736,12 @@ export default function TournamentHost() {
                               </span>
                             </div>
                           )}
+                          {capabilities.canWriteTournamentResults && m.resultType !== "bye" && <Button variant="ghost" size="sm" className="mt-1" aria-label={`Popraw wynik: ${m.player1Name} – ${m.player2Name}`} onClick={() => openCorrection(m.id)}>Popraw wynik</Button>}
                         </div>
-                      ))
-                    )}
-                  </div>
-                </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
               </div>
             )}
 
@@ -1725,76 +1821,29 @@ export default function TournamentHost() {
           {/* ═══ WYNIKI ═══ */}
           <TabsContent value="wyniki" className="pt-4">
             <div className="space-y-6">
-              {Array.from(new Set(matches?.map((m) => m.round) || []))
-                .sort((a, b) => a - b)
-                .map((round) => {
-                  const roundMatches = matches?.filter((m) => m.round === round) || [];
-                  return (
-                    <div key={round}>
-                      <h3 className="font-bold text-sm text-muted-foreground mb-2">Runda {round}</h3>
-                      <div className="space-y-2">
-                        {roundMatches.map((m) => (
-                          <div key={m.id} className="flex items-center gap-3 p-3 border rounded bg-card">
-                            <span className="text-xs text-muted-foreground w-6 shrink-0">M{m.matchNumber}</span>
-                            <div
-                              className={`flex-1 text-right text-sm ${
-                                m.winnerId === m.player1Id ? "font-bold text-primary" : ""
-                              }`}
-                            >
-                              {m.player1Name || "TBD"}
-                            </div>
-                            <div className="font-mono bg-muted px-3 py-1 rounded text-sm min-w-[56px] text-center shrink-0">
-                              {m.status === "completed"
-                                ? m.resultType === "played"
-                                  ? `${m.score1}:${m.score2}`
-                                  : m.resultType === "walkover"
-                                    ? "W.O."
-                                    : m.resultType === "bye"
-                                      ? "BYE"
-                                      : "N/C"
-                                : m.status === "in_progress"
-                                  ? "LIVE"
-                                  : "—:—"}
-                            </div>
-                            <div
-                              className={`flex-1 text-sm ${
-                                m.winnerId === m.player2Id ? "font-bold text-primary" : ""
-                              }`}
-                            >
-                              {m.player2Name || "TBD"}
-                            </div>
-                            <Badge
-                              variant="outline"
-                              className={`text-[10px] shrink-0 ${
-                                m.status === "in_progress"
-                                  ? "border-secondary text-secondary"
-                                  : m.status === "completed"
-                                    ? "border-green-500 text-green-400"
-                                    : m.status === "postponed"
-                                        ? "border-orange-500/50 text-orange-400"
-                                        : m.status === "cancelled"
-                                          ? "border-destructive/50 text-destructive/70"
-                                          : ""
-                              }`}
-                            >
-                              {m.status === "pending"
-                                ? "—"
-                                : m.status === "in_progress"
-                                  ? "LIVE"
-                                  : m.status === "completed"
-                                    ? m.resultType === "walkover" ? "WO" : m.resultType === "bye" ? "BYE" : m.resultType === "no_contest" ? "NC" : "OK"
-                                      : m.status === "postponed"
-                                        ? "⏸"
-                                        : m.status === "cancelled"
-                                          ? "✕"
-                                          : m.status}
-                            </Badge>
-                          </div>
-                        ))}
+              {matchStageGroups.map((stage) => {
+                const stageMatches = matches?.filter((match) => match.stageId === stage.id || (stage.id === null && !match.stageId)) ?? [];
+                if (!stageMatches.length) return null;
+                return <section key={stage.id ?? "legacy"} aria-label={`Mecze: ${stage.name}`}>
+                  <h3 className="mb-3 font-semibold">{stage.name}</h3>
+                  <div className="space-y-2">
+                    {[...stageMatches].sort((a, b) => Number(b.status === "in_progress") - Number(a.status === "in_progress") || a.round - b.round || a.matchNumber - b.matchNumber).map((match) => (
+                      <div key={match.id} data-exp-match-state={isExperimental ? match.status : undefined} className={`flex flex-wrap items-center gap-3 rounded-lg border bg-card p-3 ${isExperimental ? "experimental-host-match" : ""} ${match.status === "in_progress" ? "border-secondary/60" : ""}`}>
+                        <span className="text-xs text-muted-foreground">R{match.round} · M{match.matchNumber}</span>
+                        <span className="min-w-0 flex-1 text-sm font-medium">
+                          <span className={match.winnerId && match.winnerId === match.player1Id ? "font-bold text-primary" : ""}>{match.player1Name ?? "Oczekuje na gracza"}</span>
+                          {" – "}<span className={match.winnerId && match.winnerId === match.player2Id ? "font-bold text-primary" : ""}>{match.player2Name ?? "Oczekuje na gracza"}</span>
+                        </span>
+                        <span className="font-mono tabular-nums">{match.resultType === "walkover" ? "W.O." : match.resultType === "bye" ? "BYE" : match.resultType === "no_contest" ? "N/C" : `${match.score1 ?? 0}:${match.score2 ?? 0}`}</span>
+                        <Badge variant="outline" className={match.status === "in_progress" ? "text-secondary border-secondary" : ""}>{MATCH_STATUS_LABELS[match.status] ?? "Nieznany"}</Badge>
+                        {capabilities.canWriteTournamentResults && match.status === "completed" && match.resultType !== "bye" ?
+                          <Button variant="outline" size="sm" aria-label={`Popraw wynik: ${match.player1Name} – ${match.player2Name}`} onClick={() => openCorrection(match.id)}>Popraw wynik</Button>
+                          : <Button variant="ghost" size="sm" onClick={() => { setSelectedMatchId(match.id); navigate(tournamentHref(id, isExperimental, "/host")); }}>Pokaż mecz</Button>}
                       </div>
-                    </div>
-                  );
-                })}
+                    ))}
+                  </div>
+                </section>;
+              })}
             </div>
           </TabsContent>
 
@@ -1815,7 +1864,7 @@ export default function TournamentHost() {
                           <div className="font-semibold">{s.playerName}</div>
                           <div className="text-xs text-muted-foreground">{[s.teamName, s.country].filter(Boolean).join(" · ") || "Uczestnik"}</div>
                         </div>
-                        <Badge variant="outline">{s.status}</Badge>
+                        <Badge variant="outline">{PLAYER_STATUS_LABELS[s.status] ?? "Nieznany"}</Badge>
                       </div>
                       <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs text-muted-foreground">
                         <div><strong className="block text-lg text-foreground">{s.matchWins}-{s.matchLosses}</strong>Mecze</div>
@@ -1946,31 +1995,6 @@ export default function TournamentHost() {
                 </div>
               </div>
 
-              {capabilities.canWriteTournamentResults && revertConfirm && (
-                <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4">
-                  <p className="font-semibold text-destructive mb-2">Potwierdzenie cofnięcia wyniku</p>
-                  {(() => {
-                    const m = matches?.find((x) => x.id === revertConfirm);
-                    if (!m) return null;
-                    return (
-                      <div>
-                        <p className="text-sm mb-3">
-                          Cofnąć wynik meczu R{m.round} M{m.matchNumber}:{" "}
-                          <strong>{m.player1Name}</strong> {m.score1}:{m.score2}{" "}
-                          <strong>{m.player2Name}</strong>?
-                        </p>
-                        <div className="flex gap-2">
-                          <Button variant="destructive" size="sm" onClick={() => handleRevert(revertConfirm)} disabled={revertMatch.isPending}>
-                            <RotateCcw className="w-3 h-3 mr-1" /> Cofnij wynik
-                          </Button>
-                          <Button variant="outline" size="sm" onClick={() => setRevertConfirm(null)}>Anuluj</Button>
-                        </div>
-                      </div>
-                    );
-                  })()}
-                </div>
-              )}
-
               <div>
                 <h3 className="font-bold mb-3 flex items-center gap-2">
                   <History className="w-4 h-4 text-muted-foreground" /> Historia akcji
@@ -2005,22 +2029,19 @@ export default function TournamentHost() {
                           className={`flex items-center justify-between p-2.5 border rounded bg-card gap-3 ${entry.isUndone ? "opacity-40" : ""}`}
                         >
                           <div className="flex items-center gap-2 min-w-0 flex-1">
-                            <span className={`text-xs shrink-0 font-mono ${colorClass}`}>
-                              {entry.actionType.replace(/_/g, " ")}
-                            </span>
-                            <span className="text-xs text-muted-foreground truncate">{entry.description}</span>
+                            <span className={`text-sm ${colorClass}`} title={entry.actionType}>{entry.description}</span>
                             {entry.isUndone && <Badge variant="outline" className="text-xs shrink-0">cofnięta</Badge>}
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
                             <span className="text-xs text-muted-foreground">
                               {new Date(entry.createdAt).toLocaleTimeString("pl", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
                             </span>
-                            {capabilities.canWriteTournamentResults && entry.actionType === "match_result_submitted" && !entry.isUndone && matches?.find((m) => m.id === entry.matchId) && (
+                            {capabilities.canWriteTournamentResults && entry.actionType === "match_result_submitted" && !entry.isUndone && matches?.find((m) => m.id === entry.matchId && m.status === "completed" && m.resultType !== "bye") && (
                               <Button
                                 variant="outline"
                                 size="sm"
                                 className="text-xs border-destructive text-destructive hover:bg-destructive/10"
-                                onClick={() => entry.matchId && setRevertConfirm(entry.matchId)}
+                                onClick={() => entry.matchId && openCorrection(entry.matchId)}
                               >
                                 <RotateCcw className="w-3 h-3 mr-1" /> Cofnij wynik
                               </Button>
@@ -2035,7 +2056,40 @@ export default function TournamentHost() {
             </div>
           </TabsContent>
         </Tabs>
+        </fieldset>
       </div>
+
+      <Dialog open={revertConfirm !== null} onOpenChange={(open) => { if (!open && !hostPending) setRevertConfirm(null); }}>
+        <DialogContent>
+          {(() => {
+            const match = matches?.find((entry) => entry.id === revertConfirm);
+            const downstream = correctionDE.data?.matches.find((entry) => entry.matchId === revertConfirm)?.downstreamResultCount;
+            const needsDEState = correctionStage?.format === "double_elimination";
+            return <>
+              <DialogHeader>
+                <DialogTitle>Cofnąć wynik meczu {match?.player1Name} – {match?.player2Name}?</DialogTitle>
+                <DialogDescription>
+                  Zapisany wynik: {match?.resultType === "played" ? `${match.score1}:${match.score2}` : match?.resultType === "walkover" ? "W.O." : "N/C"}.
+                  {" "}Po cofnięciu wpiszesz i zapiszesz poprawny wynik. Ranking i awans zostaną przeliczone.
+                  {downstream !== undefined && downstream > 0
+                    ? ` Cofnięcie unieważni także ${downstream} późniejszych wyników i powiązane wybory postaci.`
+                    : " Kolejne mecze lub rozpoczęty następny etap mogą zablokować cofnięcie. System sprawdzi te zależności."}
+                </DialogDescription>
+              </DialogHeader>
+              {actionError && <p className="text-sm text-destructive">{actionError.message}</p>}
+              {needsDEState && correctionDE.isPending && <p role="status">Sprawdzanie zależnych wyników…</p>}
+              {needsDEState && correctionDE.isError && <p className="text-sm text-destructive">Nie udało się sprawdzić zależnych wyników. <Button variant="link" onClick={() => void correctionDE.refetch()}>Ponów sprawdzenie</Button></p>}
+              {match?.status !== "completed" && <p className="text-sm">Ten mecz nie ma już zapisanego wyniku do cofnięcia.</p>}
+              <DialogFooter>
+                <Button variant="outline" disabled={hostPending} onClick={() => setRevertConfirm(null)}>Zachowaj wynik</Button>
+                <Button variant="destructive" disabled={hostPending || dataError || !match || match.status !== "completed" || (needsDEState && (correctionDE.isFetching || correctionDE.isError || downstream === undefined))} onClick={() => match && handleRevert(match.id)}>
+                  {revertMatch.isPending ? "Cofanie i odświeżanie…" : "Cofnij wynik i przejdź do wpisywania"}
+                </Button>
+              </DialogFooter>
+            </>;
+          })()}
+        </DialogContent>
+      </Dialog>
 
       {/* Share Links Dialog */}
       <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>
@@ -2054,14 +2108,14 @@ export default function TournamentHost() {
               <div className="flex gap-2">
                 <Input
                   readOnly
-                  value={`${window.location.origin}/tournaments/${id}`}
+                  value={`${window.location.origin}${tournamentHref(id, isExperimental)}`}
                   className="text-xs font-mono bg-muted/40"
                 />
                 <Button
                   variant="outline"
                   size="icon"
                   className="shrink-0"
-                  onClick={() => copyToClipboard(`${window.location.origin}/tournaments/${id}`, "viewer")}
+                  onClick={() => copyToClipboard(`${window.location.origin}${tournamentHref(id, isExperimental)}`, "viewer")}
                 >
                   {copiedKey === "viewer" ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
                 </Button>
@@ -2073,14 +2127,14 @@ export default function TournamentHost() {
               <div className="flex gap-2">
                 <Input
                   readOnly
-                  value={`${window.location.origin}/tournaments/${id}/host`}
+                  value={`${window.location.origin}${tournamentHref(id, isExperimental, "/host")}`}
                   className="text-xs font-mono bg-muted/40"
                 />
                 <Button
                   variant="outline"
                   size="icon"
                   className="shrink-0"
-                  onClick={() => copyToClipboard(`${window.location.origin}/tournaments/${id}/host`, "host")}
+                  onClick={() => copyToClipboard(`${window.location.origin}${tournamentHref(id, isExperimental, "/host")}`, "host")}
                 >
                   {copiedKey === "host" ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
                 </Button>

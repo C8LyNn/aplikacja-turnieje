@@ -1,0 +1,84 @@
+/* Landing-only effects: never animate the card box or its content container. */
+.sf-card .sf-fx__ghost { clip-path: none; }
+.sf-card__scanline, .sf-card__wash, .sf-card__slice {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0;
+}
+.sf-card__scanline {
+  left: 0;
+  right: 0;
+  height: 1px;
+  mix-blend-mode: screen;
+}
+.sf-card__scanline--cyan {
+  top: var(--sf-card-scan-a);
+  background: rgba(34, 229, 238, .5);
+}
+.sf-card__scanline--fuchsia {
+  top: var(--sf-card-scan-b);
+  height: 2px;
+  background: rgba(255, 47, 184, .4);
+}
+.sf-card__wash {
+  inset: 0 -12px;
+  /* Keep the panel dark: fuchsia belongs only to local text/line artifacts. */
+  background: linear-gradient(90deg, transparent 25%, rgba(34, 229, 238, .035) 50%, transparent 75%);
+  transform: translateX(var(--sf-card-wash-x));
+}
+.sf-card__slice {
+  top: var(--sf-card-slice-y);
+  left: 0;
+  right: 0;
+  height: 7px;
+  background: rgba(34, 229, 238, .14);
+  transform: translateX(var(--sf-card-slice-shift));
+  mix-blend-mode: screen;
+}
+.sf-card[data-state="glitch"] .sf-fx__ghost {
+  opacity: .7;
+}
+.sf-card[data-state="glitch"] .sf-fx__ghost--c {
+  transform: translateX(calc(-1 * var(--sf-card-ghost-x)));
+}
+.sf-card[data-state="glitch"] .sf-fx__ghost--m {
+  transform: translateX(var(--sf-card-ghost-x));
+}
+.sf-card[data-state="glitch"] .sf-card__glyph {
+  transform: translateX(var(--sf-card-icon-x)) skewX(var(--sf-card-icon-skew));
+  text-shadow: calc(-1 * var(--sf-card-ghost-x)) 0 0 #22e5ee, var(--sf-card-ghost-x) 0 0 #ff2fb8;
+}
+.sf-card .sf-card__signal .sf-fx__ghost--c {
+  clip-path: inset(var(--sf-card-desc-c-top) 0 var(--sf-card-desc-c-bottom) 0);
+}
+.sf-card .sf-card__signal .sf-fx__ghost--m {
+  clip-path: inset(var(--sf-card-desc-m-top) 0 var(--sf-card-desc-m-bottom) 0);
+}
+.sf-card[data-state="glitch"] .sf-card__scanline,
+.sf-card[data-state="glitch"] .sf-card__wash,
+.sf-card[data-state="glitch"] .sf-card__slice {
+  opacity: 1;
+}
+.sf-card[data-state="glitch"][data-phase="settling"] .sf-fx__ghost,
+.sf-card[data-state="glitch"][data-phase="settling"] .sf-card__scanline,
+.sf-card[data-state="glitch"][data-phase="settling"] .sf-card__wash,
+.sf-card[data-state="glitch"][data-phase="settling"] .sf-card__slice {
+  opacity: 0;
+  transition: opacity 220ms linear;
+}
+.sf-card[data-state="glitch"][data-phase="settling"] .sf-card__glyph {
+  text-shadow: 0 0 0 transparent;
+  transition: text-shadow 220ms linear;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sf-card .sf-fx__ghost,
+  .sf-card__scanline, .sf-card__wash, .sf-card__slice {
+    opacity: 0 !important;
+    transition: none !important;
+  }
+  .sf-card .sf-card__glyph {
+    transform: none !important;
+    text-shadow: none !important;
+    transition: none !important;
+  }
+}

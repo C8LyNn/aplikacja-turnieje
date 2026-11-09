@@ -1,3 +1,4 @@
+import { matchRevision } from "./match-revision-fixture";
 /**
  * Integration tests for single-stage tournament seeding.
  *
@@ -211,6 +212,38 @@ after(async () => {
 });
 
 // ── Trigger semantics: actual < maxPlayers is valid ──────────────────────────
+
+describe("DE ceremony remains readable below capacity", () => {
+  for (const [capacity, actual] of [[32, 24], [16, 14], [8, 7]]) {
+    test(`DE ${capacity}/${actual}: prepare, GET, reveal, GET, startStage`, async () => {
+      const { tournamentId, stageId, headers } = await createTournament({
+        format: "double_elimination",
+        maxPlayers: capacity,
+        entrySeedingMethod: "random",
+        randomRevealOrder: "sequential",
+      });
+      await addPlayers(tournamentId, actual);
+      assert.equal(await stageColumnParticipantCount(stageId), capacity);
+      const endpoint = `/api/tournaments/${tournamentId}/stages/${stageId}`;
+      await request(app).post(`${endpoint}/seeding-ceremony/prepare`).set(headers).expect(200);
+      const prepared = await request(app).get(`${endpoint}/seeding-ceremony`).set(headers).expect(200);
+      assert.ok(prepared.body.ceremony, "GET must preserve the prepared ceremony below capacity");
+      assert.equal(prepared.body.ceremony.draws.length, actual);
+      const signature = prepared.body.ceremony.configurationSignature;
+      await request(app).post(`${endpoint}/seeding-ceremony/reveal-next`).set(headers).expect(200);
+      const revealed = await request(app).get(`${endpoint}/seeding-ceremony`).set(headers).expect(200);
+      assert.equal(revealed.body.ceremony?.revealedCount, 1);
+      assert.equal(revealed.body.ceremony?.configurationSignature, signature);
+      await request(app).post(`${endpoint}/seeding-ceremony/reveal-all`).set(headers).expect(200);
+      await request(app).post(`${endpoint}/start`).set(headers).expect(200);
+      const applied = await request(app).get(`${endpoint}/seeding-ceremony`).set(headers).expect(200);
+      assert.equal(applied.body.ceremony?.status, "applied");
+      assert.equal(applied.body.ceremony?.configurationSignature, signature);
+      assert.deepEqual(applied.body.ceremony?.draws, prepared.body.ceremony.draws);
+      assert.equal(await stageColumnParticipantCount(stageId), actual);
+    });
+  }
+});
 
 describe("maxPlayers is a capacity limit, not a required count", () => {
   test("SE maxPlayers=32, actual=24: trigger sets participant_count=24, start succeeds with BYEs", async () => {
@@ -710,7 +743,7 @@ describe("DE capacity: actual < maxPlayers across all seeding methods", () => {
     const res = await request(app)
       .post(`/api/matches/${matchId}/complete`)
       .set(headers)
-      .send({ resultType: "walkover", winnerId })
+      .send({ expectedRevision: await matchRevision(database, matchId), ...({ resultType: "walkover", winnerId }) })
       .expect(200);
     assert.equal(res.body.status, "completed");
     return { matchId, winnerId, loserId };

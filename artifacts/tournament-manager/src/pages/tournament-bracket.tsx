@@ -1,3 +1,4 @@
+import { ReadQueryState } from "@/components/read-query-state";
 import { useRoute } from "wouter";
 import {
   useGetTournament,
@@ -13,7 +14,7 @@ import {
   useGetDoubleEliminationStage,
   useListTournamentStages,
 } from "@workspace/api-client-react";
-import { BracketView, bracketNaturalSize } from "@/components/bracket-view";
+import { BracketView, layoutBracket } from "@/components/bracket-view";
 import { DoubleEliminationBracket } from "@/components/double-elimination-bracket";
 import { MarvelEliminationStage } from "@/components/marvel-elimination-stage";
 import { ForcedHeroBadge } from "@/components/deadlock-game-config";
@@ -23,6 +24,8 @@ import { Trophy, Maximize2, ZoomIn, ZoomOut, Minimize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { usePresentationTheme, resolvePresentationSettings } from "@/lib/presentation-theme";
+import { selectPublicStage, publicStageBracket, publicStageLabel } from "@/lib/public-stage";
+import { tournamentHref, useTournamentRoute } from "@/features/experimental-tournaments/experimental-tournament-routing";
 
 const FORMAT_LABELS: Record<string, string> = {
   single_elimination: "Drabinka eliminacyjna",
@@ -35,12 +38,12 @@ const ZOOM_MAX = 2.0;
 const ZOOM_STEP = 0.1;
 
 export default function TournamentBracket() {
-  const [, params] = useRoute("/tournaments/:id/bracket");
-  const id = params?.id ? parseInt(params.id, 10) : 0;
+  const { id, isExperimental } = useTournamentRoute("bracket");
 
-  const { data: tournament } = useGetTournament(id, {
-    query: { enabled: !!id, queryKey: getGetTournamentQueryKey(id) },
+  const tournamentQuery = useGetTournament(id, {
+    query: { enabled: !!id, queryKey: getGetTournamentQueryKey(id), refetchInterval: 10000 },
   });
+  const { data: tournament } = tournamentQuery;
 
   // Phase-offset enabling: stagger initial fetches after tournament loads so
   // bracket, standings/history, and stages don't all fire in the same render.
@@ -54,7 +57,7 @@ export default function TournamentBracket() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [!!tournament]);
 
-  const { data: bracket } = useGetTournamentBracket(id, {
+  const bracketQuery = useGetTournamentBracket(id, {
     query: {
       enabled: !!id && fetchPhase >= 1 && tournament?.status !== "draft",
       queryKey: getGetTournamentBracketQueryKey(id),
@@ -64,7 +67,8 @@ export default function TournamentBracket() {
       refetchOnReconnect: false,
     },
   });
-  const { data: stages } = useListTournamentStages(id, {
+  const { data: tournamentBracket } = bracketQuery;
+  const stagesQuery = useListTournamentStages(id, {
     query: {
       enabled: !!id && fetchPhase >= 1,
       queryKey: getListTournamentStagesQueryKey(id),
@@ -74,15 +78,13 @@ export default function TournamentBracket() {
       refetchOnReconnect: false,
     },
   });
-  const doubleEliminationStage = stages?.find(
-    (stage) => stage.format === "double_elimination" && stage.status !== "planned",
-  );
+  const { data: stages } = stagesQuery;
+  const publicStage = selectPublicStage(stages, tournament?.activeStageId);
+  const bracket = useMemo(() => publicStageBracket(tournamentBracket, publicStage), [tournamentBracket, publicStage]);
+  const doubleEliminationStage = publicStage?.format === "double_elimination" ? publicStage : undefined;
   const marvelStage =
     tournament?.gameConfig?.gameId === "marvel"
-      ? stages?.find(
-          (stage) =>
-            stage.format === "group_stage" && stage.status !== "planned",
-        )
+      ? publicStage?.format === "group_stage" ? publicStage : undefined
       : undefined;
   const doubleEliminationQuery = useGetDoubleEliminationStage(
     id,
@@ -107,12 +109,16 @@ export default function TournamentBracket() {
   const clampZoom = (z: number) =>
     Math.round(Math.min(ZOOM_MAX, Math.max(ZOOM_MIN, z)) * 100) / 100;
 
-  const isSwiss = tournament?.format === "swiss";
-  const isRoundRobin = tournament?.format === "round_robin";
+  const isSwiss = publicStage?.format === "swiss";
+  const isRoundRobin = publicStage?.format === "round_robin";
+  const isSingleElimination = publicStage?.format === "single_elimination";
+  useEffect(() => {
+    setZoom(isSingleElimination ? 1 : 0.75);
+  }, [isSingleElimination, publicStage?.id]);
 
   const { data: swissStandings } = useGetTournamentStandings(id, {
     query: {
-      enabled: !!id && isSwiss && tournament?.status !== "draft" && fetchPhase >= 2,
+      enabled: !!id && isSwiss && stages?.length === 1 && tournament?.status !== "draft" && fetchPhase >= 2,
       queryKey: getGetTournamentStandingsQueryKey(id),
       refetchInterval: 13000,
       staleTime: 12500,
@@ -151,22 +157,16 @@ export default function TournamentBracket() {
   }, [history]);
 
   const fitZoom = useCallback(() => {
-    if (!canvasRef.current || !bracket?.rounds?.length || isSwiss || isRoundRobin) return;
-    const r1Matches = bracket.rounds[0]?.matches?.length ?? 1;
-    const { width: natW, height: natH } = bracketNaturalSize(
-      bracket.rounds.length,
-      r1Matches
-    );
+    if (!canvasRef.current || !bracket?.rounds?.length || !isSingleElimination) return;
+    const { width: natW, height: natH } = layoutBracket(bracket);
     const canvas = canvasRef.current;
-    const availW = canvas.clientWidth - 64;
-    const availH = canvas.clientHeight - 64;
-    const z = clampZoom(Math.min(availW / natW, availH / natH));
+    const availW = canvas.clientWidth - 32;
+    const availH = canvas.clientHeight - 32;
+    const z = clampZoom(Math.min(1, availW / natW, availH / natH));
     setZoom(z);
-  }, [bracket, isSwiss]);
-
-  useEffect(() => {
-    if (bracket) fitZoom();
-  }, [bracket, fitZoom]);
+  }, [bracket, isSingleElimination]);
+  // Keep readable 100% cards by default; fit is an explicit action, not a
+  // polling effect that can magnify an auto-height canvas or shrink the text.
 
   const handleWheel = (e: React.WheelEvent) => {
     if (e.ctrlKey || e.metaKey) {
@@ -176,19 +176,17 @@ export default function TournamentBracket() {
   };
 
   if (!tournament) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center animate-pulse">
-        <Trophy className="w-16 h-16 text-muted-foreground opacity-20" />
-      </div>
-    );
+    return <div className="min-h-dvh bg-background text-foreground flex items-center justify-center p-4">
+      <ReadQueryState query={tournamentQuery} loadingMessage="Ładowanie turnieju…" errorMessage={(tournamentQuery.error as { status?: number } | null)?.status === 404 ? "Nie znaleziono turnieju. Sprawdź adres." : "Nie udało się pobrać turnieju."} />
+    </div>;
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col overflow-hidden" data-theme={presentationSettings.colorPreset || undefined}>
+    <div className={`${isSingleElimination ? "h-dvh" : "min-h-screen"} min-w-0 max-w-full bg-background text-foreground flex flex-col overflow-hidden ${isExperimental ? "experimental-tournament-stage-view experimental-bracket-view" : ""}`} data-exp-format={isExperimental ? publicStage?.format ?? "unknown" : undefined} data-exp-tournament-status={isExperimental ? tournament.status : undefined} data-theme={presentationSettings.colorPreset || undefined}>
       {/* Floating navigation stays visible for keyboard and direct-URL users. */}
       <div className="absolute top-0 left-0 w-full p-4 flex justify-between items-start z-50 bg-gradient-to-b from-background/80 to-transparent pointer-events-none">
         <a
-          href={`/tournaments/${id}`}
+          href={tournamentHref(id, isExperimental)}
           className="bg-background border border-border px-3 py-1.5 shadow-sm pointer-events-auto rounded-md text-sm font-medium text-foreground hover:bg-muted transition-colors"
         >
           ← Wróć do turnieju
@@ -259,17 +257,17 @@ export default function TournamentBracket() {
       </div>
 
       {/* Header */}
-      <div className="flex-none py-5 px-8 flex flex-col items-center justify-center bg-card border-b border-border shadow-md z-10 relative">
+      <div className="experimental-bracket-header flex-none py-5 px-8 flex flex-col items-center justify-center bg-card border-b border-border shadow-md z-10 relative">
         <Trophy className="w-12 h-12 text-primary mb-4 absolute top-8 opacity-10 blur-xl scale-150" />
         <h1 className="text-4xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent relative z-10 leading-tight font-deadlock">
           {tournament.name}
         </h1>
         <p className="text-base text-muted-foreground mt-1 font-mono uppercase tracking-widest relative z-10">
-          {tournament.gameConfig?.gameId === "marvel"
+          {publicStageLabel(publicStage)} · {marvelStage
             ? "Marvel — Eliminacyjne grupy"
-            : (FORMAT_LABELS[tournament.format] ?? tournament.format)}
-          {tournament.currentRound && tournament.totalRounds
-            ? ` · Runda ${tournament.currentRound}/${tournament.totalRounds}`
+            : (FORMAT_LABELS[publicStage?.format ?? ""] ?? publicStage?.format)}
+          {publicStage?.currentRound && publicStage.totalRounds
+            ? ` · Runda ${publicStage.currentRound}/${publicStage.totalRounds}`
             : ""}
         </p>
         <div className="relative z-10 mt-2">
@@ -280,7 +278,7 @@ export default function TournamentBracket() {
       {/* Bracket / Swiss canvas */}
       <div
         ref={canvasRef}
-        className="flex-1 overflow-auto"
+        className="experimental-bracket-canvas flex-1 min-h-0 min-w-0 w-full overflow-auto"
         style={{
           backgroundImage:
             "radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px)",
@@ -288,10 +286,14 @@ export default function TournamentBracket() {
         }}
         onWheel={handleWheel}
       >
+        <ReadQueryState query={tournamentQuery} loadingMessage="Ładowanie turnieju…" errorMessage="Nie udało się pobrać turnieju." />
+        <ReadQueryState query={stagesQuery} loadingMessage="Ładowanie etapów…" errorMessage="Nie udało się pobrać etapów.">
         {tournament.status === "draft" ? (
           <div className="flex items-center justify-center h-full text-2xl text-muted-foreground font-mono">
             Turniej jeszcze nie wystartował.
           </div>
+        ) : !publicStage ? (
+          <div className="p-8 text-muted-foreground">{stages ? "Brak rozpoczętego etapu." : "Ładowanie etapów…"}</div>
         ) : marvelStage ? (
           <div className="p-8">
             <MarvelEliminationStage
@@ -299,30 +301,22 @@ export default function TournamentBracket() {
               stageId={marvelStage.id}
             />
           </div>
-        ) : doubleEliminationStage && doubleEliminationQuery.data ? (
-          <div className="p-8">
-            <DoubleEliminationBracket
-              tournamentId={id}
-              stageId={doubleEliminationStage.id}
-              state={doubleEliminationQuery.data}
-              showDropLines={showDropLines}
-            />
-          </div>
-        ) : doubleEliminationStage && doubleEliminationQuery.isPending ? (
-          <div className="flex h-full items-center justify-center p-8 text-muted-foreground">Ładowanie drabinki Double Elimination…</div>
-        ) : doubleEliminationStage && doubleEliminationQuery.error ? (
-          <div className="flex h-full flex-col items-center justify-center gap-3 p-8 text-destructive">
-            <p>Nie udało się pobrać drabinki Double Elimination.</p>
-            <Button type="button" variant="outline" onClick={() => void doubleEliminationQuery.refetch()}>Spróbuj ponownie</Button>
-          </div>
-        ) : bracket ? (
+        ) : doubleEliminationStage ? (
+          <ReadQueryState query={doubleEliminationQuery} loadingMessage="Ładowanie drabinki Double Elimination…" errorMessage="Nie udało się pobrać drabinki Double Elimination.">
+            {doubleEliminationQuery.data && <div className="p-8">
+              <DoubleEliminationBracket tournamentId={id} stageId={doubleEliminationStage.id} state={doubleEliminationQuery.data} showDropLines={showDropLines} />
+            </div>}
+          </ReadQueryState>
+        ) : (
+          <ReadQueryState query={bracketQuery} loadingMessage="Ładowanie drabinki…" errorMessage="Nie udało się pobrać drabinki.">
+          {bracket && (
           isSwiss ? (
             <div className="p-6 md:p-8 min-h-full">
               <SwissRoundsView
                 bracket={bracket}
-                currentRound={tournament.currentRound}
-                totalRounds={tournament.totalRounds}
-                standings={swissStandings}
+                currentRound={publicStage.currentRound}
+                totalRounds={publicStage.totalRounds}
+                standings={stages?.length === 1 ? swissStandings : undefined}
               />
             </div>
           ) : isRoundRobin ? (
@@ -339,17 +333,11 @@ export default function TournamentBracket() {
               </div>
             </div>
           ) : (
-            <div className="p-8 inline-block" style={{ minWidth: "100%", minHeight: "100%" }}>
-              <div
-                style={{
-                  transform: `scale(${zoom})`,
-                  transformOrigin: "top left",
-                  display: "inline-block",
-                }}
-              >
+            <div className="p-4 min-w-0">
                 <BracketView
                   bracket={bracket}
-                  format={tournament.format}
+                  scale={zoom}
+                  format={publicStage.format}
                   forcedHeroId={
                     tournament.gameConfig?.gameId === "deadlock"
                       ? tournament.gameConfig.config.forcedHeroId
@@ -357,14 +345,11 @@ export default function TournamentBracket() {
                   }
                   matchPicksMap={isDeadlock ? matchPicksMap : undefined}
                 />
-              </div>
             </div>
-          )
-        ) : (
-          <div className="flex items-center justify-center h-full text-2xl text-muted-foreground font-mono animate-pulse">
-            Ładowanie drabinki…
-          </div>
+          ))}
+          </ReadQueryState>
         )}
+        </ReadQueryState>
       </div>
     </div>
   );

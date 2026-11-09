@@ -1,0 +1,15 @@
+{
+  "pack": "Animated Effects Pack 09 Mega",
+  "installedAt": "2026-09-28T21:09:41.539Z",
+  "backup": ".ae-pack-backup\\pack-09-mega-2026-09-28_21-09-41-521",
+  "improved": 19,
+  "newEffects": 12,
+  "features": [
+    "effect-specific Character controls",
+    "persistent custom settings",
+    "12 new effects",
+    "19 effect rebuilds",
+    "UI polish",
+    "batch GIF up to 1920x1080 / 30 FPS"
+  ]
+}

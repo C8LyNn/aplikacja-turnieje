@@ -13,8 +13,9 @@ test("recognizes every list/detail/qualification stage key for one tournament", 
   assert.equal(isTournamentStageQuery(["/api/tournaments/8/stages"], 7), false);
 });
 
-test("invalidates stage and tournament-dependent caches without touching another tournament", async () => {
+test("invalidates stage and tournament-dependent caches without touching another tournament", async (t) => {
   const client = new QueryClient();
+  t.after(() => client.clear());
   const ownKeys = [
     ["/api/tournaments/7"],
     ["/api/tournaments/7/players"],
@@ -35,8 +36,9 @@ test("invalidates stage and tournament-dependent caches without touching another
 });
 
 for (const mutation of ["add", "edit", "delete", "merge", "replace", "undo"] as const) {
-  test(`${mutation} roster mutation invalidates tournament, roster, matches and every stage cache`, async () => {
+  test(`${mutation} roster mutation invalidates tournament, roster, matches and every stage cache`, async (t) => {
     const client = new QueryClient();
+    t.after(() => client.clear());
     const keys = [
       ["/api/tournaments/9"],
       ["/api/tournaments/9/players"],

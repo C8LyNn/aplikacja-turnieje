@@ -224,7 +224,7 @@ function CreateTournamentForm() {
           ? Number.parseInt(swissRounds, 10)
           : undefined,
       defaultBestOf: Number.parseInt(defaultBestOf, 10) || 1,
-      organizerPassword: organizerPassword || undefined,
+      organizerPassword,
       supportPassword: supportPassword || undefined,
       viewerPassword:
         visibility === "private_online"
@@ -641,14 +641,14 @@ function CreateTournamentForm() {
                 </div>
                 <PasswordField
                   id="organizer-password"
-                  label="Hasło organizatora (opcjonalne)"
+                  label="Hasło organizatora *"
                   value={organizerPassword}
                   onChange={setOrganizerPassword}
                   visible={showOrgPass}
                   onToggle={() => setShowOrgPass((value) => !value)}
                   inputRef={organizerPasswordInputRef}
                   minLength={ORGANIZER_PASSWORD_MIN_LENGTH}
-                  description="Opcjonalne. Jeśli ustawisz hasło, musi mieć co najmniej 8 znaków."
+                  description="Wymagane, minimum 8 znaków. Zachowaj je: pozwoli wrócić po wylogowaniu, utracie danych przeglądarki lub na drugim urządzeniu. Aplikacja nie pokaże go ponownie; w tej wersji nie ma zmiany ani resetu hasła organizatora."
                   detail={organizerPasswordRemaining(organizerPassword) > 0
                     ? `Brakuje jeszcze ${organizerPasswordRemaining(organizerPassword)} znaków`
                     : undefined}

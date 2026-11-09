@@ -15,11 +15,65 @@ import {
   generateBasketId,
   toggleParticipantInBasket,
 } from "./stage-baskets-panel";
-import type { StageBasket } from "@workspace/api-client-react";
+import type { StageBasket, StageBasketRoute } from "@workspace/api-client-react";
+import { configurationProblemMessage, configurationErrorFeedback } from "@/lib/stage-configuration-feedback";
+import { stageReadinessMessages } from "@/lib/stage-lifecycle-feedback";
+import type { StageStartReadiness } from "@workspace/api-client-react";
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
 const originalFetch = globalThis.fetch;
+
+const validationCases = [
+  { name: "participant count mismatch", code: "STAGE_PARTICIPANTS_INCONSISTENT", message: "Nieprawidłowa liczba uczestników.", context: { stageId: 2, expected: 16, actual: 14 }, pattern: /Finały:.*16.*14.*Sprawdź przypisania/ },
+  { name: "invalid routing", code: "STAGE_BASKET_ROUTE_NOT_FORWARD", message: "Route must point forward.", context: { sourceStageId: 2, targetStageId: 1 }, pattern: /Finały → Eliminacje:.*późniejszych etapów.*Popraw połączenie/ },
+  { name: "missing participant", code: "STAGE_BASKET_PARTICIPANT_NOT_FOUND", message: "Participant not found.", context: { stageId: 2, participantId: 99 }, pattern: /Finały:.*#99.*Sprawdź listę zawodników/ },
+  { name: "quota counts in backend message", code: "STAGE_OUTPUT_BASKET_QUOTA_EXCEEDS_PARTICIPANT_COUNT", message: "Total qualifier quota (16) exceeds stage participant count (14).", context: { stageId: 2 }, pattern: /Finały:.*Popraw liczbę przechodzących.*16.*14/ },
+];
+
+for (const scenario of validationCases) test(`save exposes API validation details for ${scenario.name} and preserves draft`, async () => {
+  const user = userEvent.setup();
+  const base = makeFetch({ "stage-baskets": () => basketsExplicit, "/stages": () => stagesTwoStages, "/players": () => players });
+  renderPanel(async (input, init) => init?.method === "PUT"
+    ? new Response(JSON.stringify({ code: "STAGE_BASKET_CONFIGURATION_INVALID", error: "Konfiguracja nieprawidłowa.", problems: [scenario] }), { status: 422, headers: { "content-type": "application/json" } })
+    : base(input, init));
+  await user.click(await screen.findByTestId("enter-advanced-btn"));
+  await user.click(screen.getByTestId("save-baskets-btn"));
+  const error = await screen.findByTestId("baskets-api-error");
+  assert.match(error.textContent ?? "", scenario.pattern);
+  assert.ok(screen.getByTestId("save-baskets-btn"));
+  assert.equal(screen.queryByText("Nie udało się zapisać konfiguracji koszyków. Spróbuj ponownie."), null);
+  const readiness = { ready: false, reasonCode: "STAGE_BASKET_CONFIGURATION_INVALID", message: "Konfiguracja koszyków etapów jest niespójna.", missingSeeds: [], basketValidation: { valid: false, problems: [scenario] } } as unknown as StageStartReadiness;
+  assert.ok(stageReadinessMessages(readiness, { stages: stagesTwoStages }).includes(configurationProblemMessage(scenario, { stages: stagesTwoStages })));
+});
+
+for (const status of [500, 0]) test(`save uses connection feedback for unexpected server/network error (${status})`, async () => {
+  const user = userEvent.setup();
+  const base = makeFetch({ "stage-baskets": () => basketsExplicit, "/stages": () => stagesTwoStages, "/players": () => players });
+  renderPanel(async (input, init) => {
+    if (init?.method !== "PUT") return base(input, init);
+    if (!status) throw new TypeError("Failed to fetch");
+    return new Response(JSON.stringify({ error: "internal server trace", problems: validationCases }), { status, headers: { "content-type": "application/json" } });
+  });
+  await user.click(await screen.findByTestId("enter-advanced-btn"));
+  await user.click(screen.getByTestId("save-baskets-btn"));
+  assert.match((await screen.findByTestId("baskets-api-error")).textContent ?? "", /Nie udało się połączyć z serwerem. Spróbuj ponownie./);
+  assert.equal(screen.queryByText(/internal server trace/), null);
+});
+
+test("readiness participant mismatch includes server counts and stage name without estimating arrivals", () => {
+  const readiness = { ready: false, reasonCode: "STAGE_PARTICIPANTS_INCONSISTENT", message: "Niespójny skład.", participantCount: 14, requiredParticipantCount: 16, missingSeeds: [], basketValidation: { valid: true, problems: [] } } as unknown as StageStartReadiness;
+  assert.match(stageReadinessMessages(readiness, { stages: stagesTwoStages, stageId: 2 }).join(" "), /Finały:.*16.*14.*Sprawdź przypisania/);
+});
+
+test("validation keeps details objects, expected/actual and unknown backend reasons", () => {
+  const feedback = configurationErrorFeedback({ status: 422, data: { code: "STAGE_PARTICIPANTS_INCONSISTENT", error: "Nieprawidłowa obsada.", details: { stageId: 2, expected: 16, actual: 14 } } });
+  assert.equal(feedback.message, "Nieprawidłowa obsada.");
+  assert.match(configurationProblemMessage(feedback.problems[0], { stages: stagesTwoStages }), /Finały:.*16.*14/);
+  const unknown = { code: "NEW_VALIDATION_CODE", message: "Zmień wskazane ustawienie etapu.", context: { stageId: 2 } };
+  const details = configurationErrorFeedback({ status: 422, data: { details: [unknown] } });
+  assert.match(configurationProblemMessage(details.problems[0], { stages: stagesTwoStages }), /Finały: Zmień wskazane ustawienie etapu/);
+});
 const queryClients = new Set<QueryClient>();
 
 afterEach(() => {
@@ -230,8 +284,8 @@ test("renders stage blocks and basket labels for explicit multi-basket config", 
   assert.ok(within(stageBlock1).getByText("Wyjście B"), "Wyjście B rendered in stage 1");
 
   // Stage names appear in headers
-  assert.ok(screen.getByText("Eliminacje"), "stage 1 name rendered");
-  assert.ok(screen.getByText("Finały"), "stage 2 name rendered");
+  assert.ok(within(stageBlock1).getByText("Eliminacje"), "stage 1 name rendered in its block");
+  assert.ok(within(screen.getByTestId("stage-block-2")).getByText("Finały"), "stage 2 name rendered in its block");
   assert.ok(screen.getByTestId("explicit-basket-authority-banner"));
   assert.match(
     screen.getByTestId("stage-flow-summary-1").textContent ?? "",
@@ -298,6 +352,61 @@ test("renders route connectors between stages", async () => {
   // Both routes should be displayed
   assert.ok(screen.getByTestId("route-r.s1out1.s2in1"), "first route rendered");
   assert.ok(screen.getByTestId("route-r.s1out2.s2in2"), "second route rendered");
+});
+
+for (const count of [0, 1, 4]) {
+  test(`flow map distinguishes ${count} routes with source and target stage labels`, async () => {
+    const baskets: StageBasket[] = [];
+    const routes: StageBasketRoute[] = [];
+    for (let ordinal = 1; ordinal <= count; ordinal++) {
+      const source = `out-${ordinal}`;
+      const target = `in-${ordinal}`;
+      baskets.push(
+        { id: source, stageId: 1, type: "output", ordinal, order: ordinal, colorId: "blue", qualifierCount: 1, participantIds: [] },
+        { id: target, stageId: 2, type: "input", ordinal, order: ordinal, colorId: "green", qualifierCount: null, participantIds: [] },
+      );
+      routes.push({ id: `route-${ordinal}`, sourceBasketId: source, targetBasketId: target });
+    }
+    renderPanel(makeFetch({ "stage-baskets": () => ({ ...basketsExplicit, baskets, routes }), "/stages": () => stagesTwoStages, "/players": () => players }));
+    await screen.findByTestId("baskets-map");
+    if (count === 0) {
+      assert.ok(screen.getByText("Brak połączeń"));
+      assert.equal(screen.queryByRole("list", { name: "Połączenia między etapami" }), null);
+      return;
+    }
+    const list = screen.getByRole("list", { name: "Połączenia między etapami" });
+    const items = within(list).getAllByRole("listitem");
+    assert.equal(items.length, count);
+    items.forEach((item, index) => {
+      const label = ordinalLabel(index + 1);
+      assert.equal(item.getAttribute("aria-label"), `Eliminacje: Wyjście ${label} → Finały: Wejście ${label}`);
+      assert.ok(within(item).getByText("Eliminacje"));
+      assert.ok(within(item).getByText(`Wyjście ${label}`));
+      assert.ok(within(item).getByText("Finały"));
+      assert.ok(within(item).getByText(`Wejście ${label}`));
+      assert.ok(item.querySelector('svg[aria-hidden="true"]'), "direction arrow is decorative; the accessible label preserves direction");
+      assert.equal(within(item).queryByRole("button"), null, "read-only view has no remove control");
+    });
+  });
+}
+
+test("editing route cards still removes and adds the original source-target pair", async () => {
+  renderPanel(makeFetch({ "stage-baskets": () => basketsExplicit, "/stages": () => stagesTwoStages, "/players": () => players }));
+  const user = userEvent.setup();
+  await user.click(await screen.findByTestId("enter-advanced-btn"));
+  const route = screen.getByTestId("route-r.s1out1.s2in1");
+  await user.click(within(route).getByRole("button", { name: "Usuń połączenie Wyjście A → Wejście A" }));
+  assert.equal(screen.queryByTestId("route-r.s1out1.s2in1"), null);
+  assert.ok(screen.getByTestId("route-r.s1out2.s2in2"));
+  await user.click(screen.getByTestId("add-route-btn"));
+  const selectors = screen.getAllByRole("combobox");
+  await user.selectOptions(selectors[0], "s1out1");
+  await user.selectOptions(selectors[1], "s2in1");
+  await user.click(screen.getByRole("button", { name: "Połącz" }));
+  const list = screen.getByRole("list", { name: "Połączenia między etapami" });
+  assert.equal(within(list).getAllByRole("listitem").length, 2);
+  assert.ok(within(list).getByRole("listitem", { name: "Eliminacje: Wyjście A → Finały: Wejście A" }));
+  assert.ok(screen.getByTestId("save-baskets-btn"));
 });
 
 test("shows locked banner and hides edit controls when tournament is not in draft", async () => {

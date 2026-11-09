@@ -1,3 +1,4 @@
+import { matchRevision } from "./match-revision-fixture";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, before, describe, test } from "node:test";
@@ -383,7 +384,7 @@ describe("single-stage compatibility lifecycle", () => {
     await request(app)
       .post(`/api/matches/${match.id}/complete`)
       .set(fixture.organizerHeaders)
-      .send({ resultType: "played", score1: 2, score2: 0 })
+      .send({ expectedRevision: await matchRevision(database, match.id), ...({ resultType: "played", score1: 2, score2: 0 }) })
       .expect(200);
 
     let [state] = await rows<{
@@ -449,7 +450,7 @@ describe("single-stage compatibility lifecycle", () => {
     assert.equal(reopenedPointer.active_stage_id, fixture.stageId);
   });
 
-  test("round-trips Backup v3 through a normal single stage", async () => {
+  test("[before V3 import] round-trips Backup v3 through a normal single stage", async (swarm006V3TestContext) => {
     const fixture = await createDraftTournament("round_robin", 3, { bestOf: 3 });
     await request(app)
       .post(`/api/tournaments/${fixture.tournamentId}/start`)
@@ -467,7 +468,7 @@ describe("single-stage compatibility lifecycle", () => {
       await request(app)
         .post(`/api/matches/${match.id}/complete`)
         .set(fixture.organizerHeaders)
-        .send({ resultType: "played", score1: 2, score2: 0 })
+        .send({ expectedRevision: await matchRevision(database, match.id), ...({ resultType: "played", score1: 2, score2: 0 }) })
         .expect(200);
     }
 
@@ -480,6 +481,7 @@ describe("single-stage compatibility lifecycle", () => {
       .expect(200);
     assert.equal(exported.body.schemaVersion, 3);
     assert.ok(exported.body.resultHistory.length > 0);
+    await swarm006V3TestContext.test("V3 NOT_RUN: round-trips Backup v3 through a normal single stage", { skip: "Backup V3 import disabled (#152)" }, async () => {
 
     const imported = await request(app)
       .post("/api/tournaments/import")
@@ -612,6 +614,8 @@ describe("single-stage compatibility lifecycle", () => {
       semanticStandings(restoredStandings.body),
       semanticStandings(originalStandings.body),
     );
+
+    });
   });
 });
 

@@ -1,0 +1,48 @@
+name: Animated Effects checks
+
+on:
+  push:
+    branches:
+      - codex/animated-effects-scene-portability-export-kit
+    paths:
+      - "artifacts/animated-effects/**"
+      - "artifacts/tournament-manager/scripts/stage-animated-effects.mjs"
+      - ".github/workflows/animated-effects.yml"
+  pull_request:
+    branches:
+      - fix/animated-effects-obs-responsive
+    paths:
+      - "artifacts/animated-effects/**"
+      - "artifacts/tournament-manager/scripts/stage-animated-effects.mjs"
+      - ".github/workflows/animated-effects.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: animated-effects-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: pnpm
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Typecheck animation editor
+        run: pnpm --filter animated-effects typecheck
+      - name: Unit tests
+        run: pnpm --filter animated-effects test
+      - name: Build animated effects
+        run: pnpm --filter animated-effects build
+      - name: Validate tournament integration
+        run: pnpm --filter @workspace/tournament-manager build

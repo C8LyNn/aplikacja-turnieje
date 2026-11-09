@@ -1,0 +1,22 @@
+{
+  "name": "animated-effects",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "typecheck": "tsc --noEmit",
+    "preview": "vite preview",
+    "test": "node --test test/*.test.mjs"
+  },
+  "devDependencies": {
+    "typescript": "~5.9.3",
+    "vite": "catalog:"
+  },
+  "dependencies": {
+    "gifenc": "^1.0.3",
+    "html-to-image": "^1.11.13",
+    "jszip": "^3.10.2"
+  }
+}

@@ -21,12 +21,15 @@ import type {
 
 import type {
   ActionLogEntry,
+  AssessSingleEliminationCorrectionReadiness200,
+  AssessSingleEliminationCorrectionReadinessBody,
   AssistantSnapshot,
   BackupImportError,
   BackupRestoreInput,
   BasketRouteExecution,
   BasketRouteStatus,
   Bracket,
+  CorrectionIntentReceipt,
   CreateTournamentBadRequestError,
   CreateTournamentUnprocessableError,
   CsvImportInput,
@@ -37,6 +40,8 @@ import type {
   DoubleEliminationResetInput,
   DoubleEliminationStageState,
   GameConfigImmutableError,
+  GetSingleEliminationCorrectionSafety200,
+  GetSingleEliminationCorrectionSafetyParams,
   HealthStatus,
   ImportResult,
   LegacyOrganizerUpgradeInput,
@@ -54,9 +59,13 @@ import type {
   Player,
   PlayerInput,
   PlayerUpdate,
+  PrepareControlledCorrectionIntentBody,
+  PreviewTournamentResultCorrectionBody,
   QualificationOutput,
   QualificationProposal,
+  QualificationRoutingPreview,
   ReorderMatchesInput,
+  ResultCorrectionImpactPreview,
   ResultRecord,
   SeedingCeremonyError,
   SeedingCeremonyResponse,
@@ -79,6 +88,9 @@ import type {
   TournamentStage,
   TournamentStageDetails,
   TournamentStats,
+  TournamentTemplateFailure,
+  TournamentTemplatePreview,
+  TournamentTemplateRequest,
   TournamentUpdate,
   UndoLastAction404,
   UndoResult
@@ -320,6 +332,229 @@ export const useCreateTournament = <TError = ErrorType<CreateTournamentBadReques
       > => {
       return useMutation(getCreateTournamentMutationOptions(options));
     }
+
+export const getPreviewTournamentPlanUrl = () => {
+
+
+
+
+  return `/api/tournaments/plan-preview`
+}
+
+/**
+ * Public read-only plan generation. Returned plan must be revalidated at creation.
+ * @summary Preview a validated tournament template without creating anything
+ */
+export const previewTournamentPlan = async (tournamentTemplateRequest: TournamentTemplateRequest, options?: RequestInit): Promise<TournamentTemplatePreview> => {
+
+  return customFetch<TournamentTemplatePreview>(getPreviewTournamentPlanUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      tournamentTemplateRequest,)
+  }
+);}
+
+
+
+
+export const getPreviewTournamentPlanMutationOptions = <TError = ErrorType<TournamentTemplateFailure>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof previewTournamentPlan>>, TError,{data: BodyType<TournamentTemplateRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof previewTournamentPlan>>, TError,{data: BodyType<TournamentTemplateRequest>}, TContext> => {
+
+const mutationKey = ['previewTournamentPlan'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof previewTournamentPlan>>, {data: BodyType<TournamentTemplateRequest>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  previewTournamentPlan(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PreviewTournamentPlanMutationResult = NonNullable<Awaited<ReturnType<typeof previewTournamentPlan>>>
+    export type PreviewTournamentPlanMutationBody = BodyType<TournamentTemplateRequest>
+    export type PreviewTournamentPlanMutationError = ErrorType<TournamentTemplateFailure>
+
+    /**
+ * @summary Preview a validated tournament template without creating anything
+ */
+export const usePreviewTournamentPlan = <TError = ErrorType<TournamentTemplateFailure>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof previewTournamentPlan>>, TError,{data: BodyType<TournamentTemplateRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof previewTournamentPlan>>,
+        TError,
+        {data: BodyType<TournamentTemplateRequest>},
+        TContext
+      > => {
+      return useMutation(getPreviewTournamentPlanMutationOptions(options));
+    }
+
+export const getPreviewTournamentResultCorrectionUrl = (id: number,) => {
+
+
+
+
+  return `/api/tournaments/${id}/operations/result-correction-preview`
+}
+
+/**
+ * Does not modify any matches or authorize a correction. Requires organizer/support. The actual revert and re-complete operations must recheck the database transactionally.
+ * @summary Advisory, read-only score correction impact preview
+ */
+export const previewTournamentResultCorrection = async (id: number,
+    previewTournamentResultCorrectionBody: PreviewTournamentResultCorrectionBody, options?: RequestInit): Promise<ResultCorrectionImpactPreview> => {
+
+  return customFetch<ResultCorrectionImpactPreview>(getPreviewTournamentResultCorrectionUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      previewTournamentResultCorrectionBody,)
+  }
+);}
+
+
+
+
+export const getPreviewTournamentResultCorrectionMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof previewTournamentResultCorrection>>, TError,{id: number;data: BodyType<PreviewTournamentResultCorrectionBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof previewTournamentResultCorrection>>, TError,{id: number;data: BodyType<PreviewTournamentResultCorrectionBody>}, TContext> => {
+
+const mutationKey = ['previewTournamentResultCorrection'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof previewTournamentResultCorrection>>, {id: number;data: BodyType<PreviewTournamentResultCorrectionBody>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  previewTournamentResultCorrection(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PreviewTournamentResultCorrectionMutationResult = NonNullable<Awaited<ReturnType<typeof previewTournamentResultCorrection>>>
+    export type PreviewTournamentResultCorrectionMutationBody = BodyType<PreviewTournamentResultCorrectionBody>
+    export type PreviewTournamentResultCorrectionMutationError = ErrorType<void>
+
+    /**
+ * @summary Advisory, read-only score correction impact preview
+ */
+export const usePreviewTournamentResultCorrection = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof previewTournamentResultCorrection>>, TError,{id: number;data: BodyType<PreviewTournamentResultCorrectionBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof previewTournamentResultCorrection>>,
+        TError,
+        {id: number;data: BodyType<PreviewTournamentResultCorrectionBody>},
+        TContext
+      > => {
+      return useMutation(getPreviewTournamentResultCorrectionMutationOptions(options));
+    }
+
+export const getGetTournamentQualificationRoutingPreviewUrl = (id: number,) => {
+
+
+
+
+  return `/api/tournaments/${id}/operations/qualification-routing-preview`
+}
+
+/**
+ * Advisory snapshot only; it does not approve proposals, execute routes or authorize mutations.
+ * @summary Read-only organizer/support status of qualification proposals and basket routing
+ */
+export const getTournamentQualificationRoutingPreview = async (id: number, options?: RequestInit): Promise<QualificationRoutingPreview> => {
+
+  return customFetch<QualificationRoutingPreview>(getGetTournamentQualificationRoutingPreviewUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetTournamentQualificationRoutingPreviewQueryKey = (id: number,) => {
+    return [
+    `/api/tournaments/${id}/operations/qualification-routing-preview`
+    ] as const;
+    }
+
+
+export const getGetTournamentQualificationRoutingPreviewQueryOptions = <TData = Awaited<ReturnType<typeof getTournamentQualificationRoutingPreview>>, TError = ErrorType<void>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getTournamentQualificationRoutingPreview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetTournamentQualificationRoutingPreviewQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getTournamentQualificationRoutingPreview>>> = ({ signal }) => getTournamentQualificationRoutingPreview(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getTournamentQualificationRoutingPreview>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetTournamentQualificationRoutingPreviewQueryResult = NonNullable<Awaited<ReturnType<typeof getTournamentQualificationRoutingPreview>>>
+export type GetTournamentQualificationRoutingPreviewQueryError = ErrorType<void>
+
+
+/**
+ * @summary Read-only organizer/support status of qualification proposals and basket routing
+ */
+
+export function useGetTournamentQualificationRoutingPreview<TData = Awaited<ReturnType<typeof getTournamentQualificationRoutingPreview>>, TError = ErrorType<void>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getTournamentQualificationRoutingPreview>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetTournamentQualificationRoutingPreviewQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
 
 export const getGetTournamentUrl = (id: number,) => {
 
@@ -3331,7 +3566,7 @@ export const getImportTournamentUrl = () => {
 }
 
 /**
- * @summary Import Backup v2 or v3 as an independent tournament with new credentials
+ * @summary Import Backup v2 as an independent tournament with new credentials (v3 import is disabled)
  */
 export const importTournament = async (backupRestoreInput: BackupRestoreInput, options?: RequestInit): Promise<ImportResult> => {
 
@@ -3380,7 +3615,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type ImportTournamentMutationError = ErrorType<BackupImportError>
 
     /**
- * @summary Import Backup v2 or v3 as an independent tournament with new credentials
+ * @summary Import Backup v2 as an independent tournament with new credentials (v3 import is disabled)
  */
 export const useImportTournament = <TError = ErrorType<BackupImportError>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importTournament>>, TError,{data: BodyType<BackupRestoreInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
@@ -3392,6 +3627,472 @@ export const useImportTournament = <TError = ErrorType<BackupImportError>,
       > => {
       return useMutation(getImportTournamentMutationOptions(options));
     }
+
+export const getPrepareControlledCorrectionIntentUrl = (id: number,) => {
+
+
+
+
+  return `/api/tournaments/${id}/operations/correction-intents`
+}
+
+/**
+ * @summary Persist organizer approval for guarded Round Robin revert (does not mutate match)
+ */
+export const prepareControlledCorrectionIntent = async (id: number,
+    prepareControlledCorrectionIntentBody: PrepareControlledCorrectionIntentBody, options?: RequestInit): Promise<CorrectionIntentReceipt> => {
+
+  return customFetch<CorrectionIntentReceipt>(getPrepareControlledCorrectionIntentUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      prepareControlledCorrectionIntentBody,)
+  }
+);}
+
+
+
+
+export const getPrepareControlledCorrectionIntentMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof prepareControlledCorrectionIntent>>, TError,{id: number;data: BodyType<PrepareControlledCorrectionIntentBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof prepareControlledCorrectionIntent>>, TError,{id: number;data: BodyType<PrepareControlledCorrectionIntentBody>}, TContext> => {
+
+const mutationKey = ['prepareControlledCorrectionIntent'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof prepareControlledCorrectionIntent>>, {id: number;data: BodyType<PrepareControlledCorrectionIntentBody>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  prepareControlledCorrectionIntent(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type PrepareControlledCorrectionIntentMutationResult = NonNullable<Awaited<ReturnType<typeof prepareControlledCorrectionIntent>>>
+    export type PrepareControlledCorrectionIntentMutationBody = BodyType<PrepareControlledCorrectionIntentBody>
+    export type PrepareControlledCorrectionIntentMutationError = ErrorType<void>
+
+    /**
+ * @summary Persist organizer approval for guarded Round Robin revert (does not mutate match)
+ */
+export const usePrepareControlledCorrectionIntent = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof prepareControlledCorrectionIntent>>, TError,{id: number;data: BodyType<PrepareControlledCorrectionIntentBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof prepareControlledCorrectionIntent>>,
+        TError,
+        {id: number;data: BodyType<PrepareControlledCorrectionIntentBody>},
+        TContext
+      > => {
+      return useMutation(getPrepareControlledCorrectionIntentMutationOptions(options));
+    }
+
+export const getGetControlledCorrectionIntentUrl = (id: number,
+    operationId: string,) => {
+
+
+
+
+  return `/api/tournaments/${id}/operations/correction-intents/${operationId}`
+}
+
+/**
+ * @summary Recover the durable approval/execution receipt after connection loss
+ */
+export const getControlledCorrectionIntent = async (id: number,
+    operationId: string, options?: RequestInit): Promise<CorrectionIntentReceipt> => {
+
+  return customFetch<CorrectionIntentReceipt>(getGetControlledCorrectionIntentUrl(id,operationId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetControlledCorrectionIntentQueryKey = (id: number,
+    operationId: string,) => {
+    return [
+    `/api/tournaments/${id}/operations/correction-intents/${operationId}`
+    ] as const;
+    }
+
+
+export const getGetControlledCorrectionIntentQueryOptions = <TData = Awaited<ReturnType<typeof getControlledCorrectionIntent>>, TError = ErrorType<void>>(id: number,
+    operationId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getControlledCorrectionIntent>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetControlledCorrectionIntentQueryKey(id,operationId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getControlledCorrectionIntent>>> = ({ signal }) => getControlledCorrectionIntent(id,operationId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id && operationId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getControlledCorrectionIntent>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetControlledCorrectionIntentQueryResult = NonNullable<Awaited<ReturnType<typeof getControlledCorrectionIntent>>>
+export type GetControlledCorrectionIntentQueryError = ErrorType<void>
+
+
+/**
+ * @summary Recover the durable approval/execution receipt after connection loss
+ */
+
+export function useGetControlledCorrectionIntent<TData = Awaited<ReturnType<typeof getControlledCorrectionIntent>>, TError = ErrorType<void>>(
+ id: number,
+    operationId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getControlledCorrectionIntent>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetControlledCorrectionIntentQueryOptions(id,operationId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getExecuteControlledCorrectionIntentUrl = (id: number,
+    operationId: string,) => {
+
+
+
+
+  return `/api/tournaments/${id}/operations/correction-intents/${operationId}/execute`
+}
+
+/**
+ * @summary Execute the approved, single-match revert with transactional receipt
+ */
+export const executeControlledCorrectionIntent = async (id: number,
+    operationId: string, options?: RequestInit): Promise<CorrectionIntentReceipt> => {
+
+  return customFetch<CorrectionIntentReceipt>(getExecuteControlledCorrectionIntentUrl(id,operationId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getExecuteControlledCorrectionIntentMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof executeControlledCorrectionIntent>>, TError,{id: number;operationId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof executeControlledCorrectionIntent>>, TError,{id: number;operationId: string}, TContext> => {
+
+const mutationKey = ['executeControlledCorrectionIntent'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof executeControlledCorrectionIntent>>, {id: number;operationId: string}> = (props) => {
+          const {id,operationId} = props ?? {};
+
+          return  executeControlledCorrectionIntent(id,operationId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ExecuteControlledCorrectionIntentMutationResult = NonNullable<Awaited<ReturnType<typeof executeControlledCorrectionIntent>>>
+
+    export type ExecuteControlledCorrectionIntentMutationError = ErrorType<void>
+
+    /**
+ * @summary Execute the approved, single-match revert with transactional receipt
+ */
+export const useExecuteControlledCorrectionIntent = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof executeControlledCorrectionIntent>>, TError,{id: number;operationId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof executeControlledCorrectionIntent>>,
+        TError,
+        {id: number;operationId: string},
+        TContext
+      > => {
+      return useMutation(getExecuteControlledCorrectionIntentMutationOptions(options));
+    }
+
+export const getExecuteAtomicCorrectionIntentUrl = (id: number,
+    operationId: string,) => {
+
+
+
+
+  return `/api/tournaments/${id}/operations/correction-intents/${operationId}/execute-atomic`
+}
+
+/**
+ * @summary Atomically revert and replace an approved Round Robin result in one transaction
+ */
+export const executeAtomicCorrectionIntent = async (id: number,
+    operationId: string, options?: RequestInit): Promise<CorrectionIntentReceipt> => {
+
+  return customFetch<CorrectionIntentReceipt>(getExecuteAtomicCorrectionIntentUrl(id,operationId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getExecuteAtomicCorrectionIntentMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof executeAtomicCorrectionIntent>>, TError,{id: number;operationId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof executeAtomicCorrectionIntent>>, TError,{id: number;operationId: string}, TContext> => {
+
+const mutationKey = ['executeAtomicCorrectionIntent'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof executeAtomicCorrectionIntent>>, {id: number;operationId: string}> = (props) => {
+          const {id,operationId} = props ?? {};
+
+          return  executeAtomicCorrectionIntent(id,operationId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ExecuteAtomicCorrectionIntentMutationResult = NonNullable<Awaited<ReturnType<typeof executeAtomicCorrectionIntent>>>
+
+    export type ExecuteAtomicCorrectionIntentMutationError = ErrorType<void>
+
+    /**
+ * @summary Atomically revert and replace an approved Round Robin result in one transaction
+ */
+export const useExecuteAtomicCorrectionIntent = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof executeAtomicCorrectionIntent>>, TError,{id: number;operationId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof executeAtomicCorrectionIntent>>,
+        TError,
+        {id: number;operationId: string},
+        TContext
+      > => {
+      return useMutation(getExecuteAtomicCorrectionIntentMutationOptions(options));
+    }
+
+export const getAssessSingleEliminationCorrectionReadinessUrl = (id: number,
+    matchId: number,) => {
+
+
+
+
+  return `/api/tournaments/${id}/matches/${matchId}/se-correction-readiness`
+}
+
+/**
+ * @summary Snapshot-consistent, read-only SE correction readiness; never permits execution
+ */
+export const assessSingleEliminationCorrectionReadiness = async (id: number,
+    matchId: number,
+    assessSingleEliminationCorrectionReadinessBody: AssessSingleEliminationCorrectionReadinessBody, options?: RequestInit): Promise<AssessSingleEliminationCorrectionReadiness200> => {
+
+  return customFetch<AssessSingleEliminationCorrectionReadiness200>(getAssessSingleEliminationCorrectionReadinessUrl(id,matchId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      assessSingleEliminationCorrectionReadinessBody,)
+  }
+);}
+
+
+
+
+export const getAssessSingleEliminationCorrectionReadinessMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof assessSingleEliminationCorrectionReadiness>>, TError,{id: number;matchId: number;data: BodyType<AssessSingleEliminationCorrectionReadinessBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof assessSingleEliminationCorrectionReadiness>>, TError,{id: number;matchId: number;data: BodyType<AssessSingleEliminationCorrectionReadinessBody>}, TContext> => {
+
+const mutationKey = ['assessSingleEliminationCorrectionReadiness'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof assessSingleEliminationCorrectionReadiness>>, {id: number;matchId: number;data: BodyType<AssessSingleEliminationCorrectionReadinessBody>}> = (props) => {
+          const {id,matchId,data} = props ?? {};
+
+          return  assessSingleEliminationCorrectionReadiness(id,matchId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AssessSingleEliminationCorrectionReadinessMutationResult = NonNullable<Awaited<ReturnType<typeof assessSingleEliminationCorrectionReadiness>>>
+    export type AssessSingleEliminationCorrectionReadinessMutationBody = BodyType<AssessSingleEliminationCorrectionReadinessBody>
+    export type AssessSingleEliminationCorrectionReadinessMutationError = ErrorType<void>
+
+    /**
+ * @summary Snapshot-consistent, read-only SE correction readiness; never permits execution
+ */
+export const useAssessSingleEliminationCorrectionReadiness = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof assessSingleEliminationCorrectionReadiness>>, TError,{id: number;matchId: number;data: BodyType<AssessSingleEliminationCorrectionReadinessBody>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof assessSingleEliminationCorrectionReadiness>>,
+        TError,
+        {id: number;matchId: number;data: BodyType<AssessSingleEliminationCorrectionReadinessBody>},
+        TContext
+      > => {
+      return useMutation(getAssessSingleEliminationCorrectionReadinessMutationOptions(options));
+    }
+
+export const getGetSingleEliminationCorrectionSafetyUrl = (id: number,
+    matchId: number,
+    params: GetSingleEliminationCorrectionSafetyParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/tournaments/${id}/matches/${matchId}/se-correction-preflight?${stringifiedParams}` : `/api/tournaments/${id}/matches/${matchId}/se-correction-preflight`
+}
+
+/**
+ * @summary Read-only Single Elimination correction structural safety (not permission to execute)
+ */
+export const getSingleEliminationCorrectionSafety = async (id: number,
+    matchId: number,
+    params: GetSingleEliminationCorrectionSafetyParams, options?: RequestInit): Promise<GetSingleEliminationCorrectionSafety200> => {
+
+  return customFetch<GetSingleEliminationCorrectionSafety200>(getGetSingleEliminationCorrectionSafetyUrl(id,matchId,params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetSingleEliminationCorrectionSafetyQueryKey = (id: number,
+    matchId: number,
+    params?: GetSingleEliminationCorrectionSafetyParams,) => {
+    return [
+    `/api/tournaments/${id}/matches/${matchId}/se-correction-preflight`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getGetSingleEliminationCorrectionSafetyQueryOptions = <TData = Awaited<ReturnType<typeof getSingleEliminationCorrectionSafety>>, TError = ErrorType<void>>(id: number,
+    matchId: number,
+    params: GetSingleEliminationCorrectionSafetyParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSingleEliminationCorrectionSafety>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetSingleEliminationCorrectionSafetyQueryKey(id,matchId,params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getSingleEliminationCorrectionSafety>>> = ({ signal }) => getSingleEliminationCorrectionSafety(id,matchId,params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id && matchId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getSingleEliminationCorrectionSafety>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetSingleEliminationCorrectionSafetyQueryResult = NonNullable<Awaited<ReturnType<typeof getSingleEliminationCorrectionSafety>>>
+export type GetSingleEliminationCorrectionSafetyQueryError = ErrorType<void>
+
+
+/**
+ * @summary Read-only Single Elimination correction structural safety (not permission to execute)
+ */
+
+export function useGetSingleEliminationCorrectionSafety<TData = Awaited<ReturnType<typeof getSingleEliminationCorrectionSafety>>, TError = ErrorType<void>>(
+ id: number,
+    matchId: number,
+    params: GetSingleEliminationCorrectionSafetyParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getSingleEliminationCorrectionSafety>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetSingleEliminationCorrectionSafetyQueryOptions(id,matchId,params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
 
 export const getGetTournamentAssistantUrl = (id: number,) => {
 

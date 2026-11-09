@@ -1,4 +1,6 @@
-import { createContext, useContext, useState, useCallback, type ReactNode } from "react";
+import { createContext, useContext, useState, useCallback, useEffect, type ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { removeTournamentAuthQueries, subscribeToTournamentAuthDenials } from "@/lib/tournament-query-invalidation";
 import {
   type Role,
   getStoredRole, setStoredRole, clearStoredRole,
@@ -28,6 +30,8 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
+  const queryClient = useQueryClient();
+  useEffect(() => subscribeToTournamentAuthDenials(queryClient), [queryClient]);
   const [role, setRoleState] = useState<Role | null>(() => getStoredRole());
   const [, forceUpdate] = useState(0);
 
@@ -45,37 +49,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const storeOrgToken = useCallback((id: number, token: string) => {
     setOrganizerToken(id, token);
+    removeTournamentAuthQueries(queryClient, id);
     forceUpdate((n) => n + 1);
-  }, []);
+  }, [queryClient]);
 
   const removeOrgToken = useCallback((id: number) => {
     clearOrganizerToken(id);
+    removeTournamentAuthQueries(queryClient, id);
     forceUpdate((n) => n + 1);
-  }, []);
+  }, [queryClient]);
 
   const getSupSession = useCallback((id: number) => getSupportSession(id), []);
 
   const storeSupSession = useCallback((id: number, token: string, nick: string) => {
     setSupportSession(id, token, nick);
+    removeTournamentAuthQueries(queryClient, id);
     forceUpdate((n) => n + 1);
-  }, []);
+  }, [queryClient]);
 
   const removeSupSession = useCallback((id: number) => {
     clearSupportSession(id);
+    removeTournamentAuthQueries(queryClient, id);
     forceUpdate((n) => n + 1);
-  }, []);
+  }, [queryClient]);
 
   const getViewerTok = useCallback((id: number) => getViewerToken(id), []);
 
   const storeViewerToken = useCallback((id: number, token: string) => {
     setViewerToken(id, token);
+    removeTournamentAuthQueries(queryClient, id);
     forceUpdate((n) => n + 1);
-  }, []);
+  }, [queryClient]);
 
   const removeViewerToken = useCallback((id: number) => {
     clearViewerToken(id);
+    removeTournamentAuthQueries(queryClient, id);
     forceUpdate((n) => n + 1);
-  }, []);
+  }, [queryClient]);
 
   const isOrganizer = useCallback((id: number) => !!getOrganizerToken(id), []);
   const isSupport = useCallback((id: number) => !!getSupportSession(id), []);

@@ -1,0 +1,66 @@
+{
+  "name": "Core Clash Delayed Replay PvP Pack 02",
+  "version": "v92",
+  "base": "Core Clash Online PvP Pack 01 / v90",
+  "features": [
+    "2s delayed faithful replay",
+    "30Hz recorded states + smooth playback",
+    "player 2 180-degree perspective + input/HUD mapping",
+    "post-match rematch/deck-change/leave flow",
+    "side swap every next round",
+    "one hosted room per browser",
+    "quick-match stale cleanup"
+  ],
+  "files": [
+    {
+      "path": "README.md",
+      "sha256": "6b52995129e981f9d144ca25279f11ee410f8efe81fe00f91b5a01da98e861e8",
+      "bytes": 4098
+    },
+    {
+      "path": "install.mjs",
+      "sha256": "1baaf14c885913a3ea62d079d7335d9d136a91b9c12f102ee3da40077341cbb4",
+      "bytes": 6708
+    },
+    {
+      "path": "install.ps1",
+      "sha256": "27e1583338ad7dbde65bfd8367112ec4ec1d426c7de1f78ded042d4467addf70",
+      "bytes": 83
+    },
+    {
+      "path": "payload/core-clash-index.html",
+      "sha256": "d34f020855597b662631d860c26b19f510deb72427036224a8a3d93068212596",
+      "bytes": 651462
+    },
+    {
+      "path": "payload/core-clash-multiplayer.test.ts",
+      "sha256": "5137a09bd159f05945144968c2f44835e6b7ff7c926cc39ce58671bcbc693a2f",
+      "bytes": 9382
+    },
+    {
+      "path": "payload/core-clash-multiplayer.ts",
+      "sha256": "6913e310301eae7e5a83c18c4bf9a42e89f2041504d646e433c7f97eeca3cf0b",
+      "bytes": 24564
+    },
+    {
+      "path": "rollback.mjs",
+      "sha256": "8512a71042f6b7341dfb44538e7136a599c36ddbea213b040080b07314880b34",
+      "bytes": 1657
+    },
+    {
+      "path": "rollback.ps1",
+      "sha256": "833591a8e07af39f60de3187642e73391fb986ed979a5377bee1b42e73dd451b",
+      "bytes": 84
+    },
+    {
+      "path": "verify.mjs",
+      "sha256": "c441cf7d114f298fa266843b4c366cf0b7d310cb15168763346d1e244993da35",
+      "bytes": 3083
+    },
+    {
+      "path": "verify.ps1",
+      "sha256": "77f8a1dfb279c5a4e29057efb85a354bf91cebcf9aac0646b1540241508b1283",
+      "bytes": 82
+    }
+  ]
+}

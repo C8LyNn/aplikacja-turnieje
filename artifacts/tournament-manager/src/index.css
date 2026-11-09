@@ -1,15 +1,9 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Rajdhani:wght@400;500;600;700&family=Orbitron:wght@400;500;600;700&family=Exo+2:wght@400;500;600;700&family=Saira:wght@400;500;600;700&family=Play:wght@400;700&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
+@import "./organizer.css";
+@import "./experimental-tournaments.css";
 @plugin "@tailwindcss/typography";
-
-@font-face {
-  font-family: 'Valve Pulp Bold';
-  src: url('/fonts/valvepulp-bold.ttf') format('truetype');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
 
 @custom-variant dark (&:is(.dark *));
 
@@ -53,8 +47,8 @@
   --font-serif: var(--app-font-serif);
   --font-mono: var(--app-font-mono);
 
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: max(0px, calc(var(--radius) - 4px));
+  --radius-md: max(0px, calc(var(--radius) - 2px));
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
 }

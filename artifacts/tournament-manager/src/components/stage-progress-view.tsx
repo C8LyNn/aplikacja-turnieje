@@ -81,6 +81,9 @@ export function StageProgressView({
   );
 
   const selected = stages.find((s) => s.id === selectedStageId);
+  const detailError = detailQuery.error as { status?: number; response?: { status?: number } } | null;
+  const denied = [401, 403].includes(detailError?.status ?? detailError?.response?.status ?? 0);
+  const detail = denied ? undefined : detailQuery.data;
 
   const selectedMatches = useMemo(
     () =>
@@ -92,8 +95,8 @@ export function StageProgressView({
 
   const stageBracket = useMemo(() => {
     const base = buildBracketFromMatches(selectedMatches);
-    if (selected?.status === "completed" && detailQuery.data) {
-      const winner = detailQuery.data.participants.find(
+    if (selected?.status === "completed" && detail) {
+      const winner = detail.participants.find(
         (p) => p.status === "winner",
       );
       if (winner) {
@@ -101,7 +104,7 @@ export function StageProgressView({
       }
     }
     return base;
-  }, [selectedMatches, selected?.status, detailQuery.data]) as unknown as Bracket;
+  }, [selectedMatches, selected?.status, detail]) as unknown as Bracket;
 
   const swissCurrentRound = useMemo(
     () => deriveCurrentRound(selectedMatches),
@@ -149,7 +152,7 @@ export function StageProgressView({
         </div>
       )}
 
-      {selected && detailQuery.data &&
+      {selected && detail &&
         (() => {
           if (selected.status === "planned") {
             return (
@@ -160,7 +163,7 @@ export function StageProgressView({
                 </p>
                 <PlannedStageParticipants
                   stagePosition={selected.position}
-                  participants={detailQuery.data.participants}
+                  participants={detail.participants}
                 />
               </div>
             );
@@ -178,7 +181,7 @@ export function StageProgressView({
           if (selected.format === "group_stage") {
             return (
               <StageGroupTables
-                details={detailQuery.data}
+                details={detail}
                 matches={selectedMatches}
               />
             );
@@ -218,7 +221,7 @@ export function StageProgressView({
             return (
               <div className="space-y-6">
                 <ParticipantTable
-                  participants={detailQuery.data.participants}
+                  participants={detail.participants}
                   matches={selectedMatches}
                   title={
                     selected.status === "completed"
@@ -247,7 +250,7 @@ export function StageProgressView({
             return (
               <div className="space-y-6">
                 <ParticipantTable
-                  participants={detailQuery.data.participants}
+                  participants={detail.participants}
                   matches={selectedMatches}
                   title={
                     selected.status === "completed"

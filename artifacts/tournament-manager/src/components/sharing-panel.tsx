@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { apiChangeVisibility, apiChangeViewerPassword } from "@/lib/auth";
 import { useQueryClient } from "@tanstack/react-query";
 import { getGetTournamentQueryKey } from "@workspace/api-client-react";
+import { useExperimentalTournamentMode } from "@/features/experimental-tournaments/experimental-tournament-routing";
 
 interface TournamentLike {
   id: number;
@@ -80,6 +81,10 @@ function LinkRow({ label, url, icon }: { label: string; url: string; icon: React
 
 export function SharingPanel({ tournament, orgToken }: Props) {
   const queryClient = useQueryClient();
+  const experimental = useExperimentalTournamentMode();
+  const tournamentRoot = experimental
+    ? "/experimental/tournaments"
+    : "/tournaments";
   const currentVisibility = (tournament.visibility ?? "public_online") as Visibility;
 
   const [newVisibility, setNewVisibility] = useState<Visibility>(currentVisibility);
@@ -118,13 +123,13 @@ export function SharingPanel({ tournament, orgToken }: Props) {
     if (obsHideHeader) params.set("hide-header", "1");
     if (!obsShowDrops) params.set("show-drops", "0");
     const qs = params.toString();
-    return `${base}/tournaments/${tid}/projector${qs ? `?${qs}` : ""}`;
+    return `${base}${tournamentRoot}/${tid}/projector${qs ? `?${qs}` : ""}`;
   };
 
   const links = {
-    viewer: `${base}/tournaments/${tid}`,
-    organizer: `${base}/tournaments/${tid}?login=organizer`,
-    support: `${base}/tournaments/${tid}?login=support`,
+    viewer: `${base}${tournamentRoot}/${tid}`,
+    organizer: `${base}${tournamentRoot}/${tid}?login=organizer`,
+    support: `${base}${tournamentRoot}/${tid}?login=support`,
     projector: buildObsUrl(),
   };
 

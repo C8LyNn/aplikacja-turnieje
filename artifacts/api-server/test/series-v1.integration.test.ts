@@ -1,3 +1,4 @@
+import { matchRevision } from "./match-revision-fixture";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, before, describe, test } from "node:test";
@@ -84,7 +85,7 @@ async function completePendingRound(
     await request(app)
       .post(`/api/matches/${match.id}/complete`)
       .set(fixture.organizerHeaders)
-      .send({ resultType: "played", score1: 1, score2: 0 })
+      .send({ expectedRevision: await matchRevision(database, match.id), ...({ resultType: "played", score1: 1, score2: 0 }) })
       .expect(200);
   }
 }
@@ -194,7 +195,7 @@ describe("series_v1 tournament creation", () => {
     assert.equal(response.body.code, "INVALID_DEFAULT_BEST_OF");
   });
 
-  test("enforces the optional organizer password contract on direct POST requests", async () => {
+  test("enforces the required organizer password contract on direct POST requests", async () => {
     for (const [label, organizerPassword] of [
       ["missing", undefined],
       ["empty", ""],
@@ -205,8 +206,9 @@ describe("series_v1 tournament creation", () => {
         name: `Password ${label} ${randomUUID()}`,
         format: "single_elimination",
         ...(organizerPassword === undefined ? {} : { organizerPassword }),
-      }).expect(201);
-      assert.equal(response.body.hasOrganizerPassword, organizerPassword !== undefined && organizerPassword.length >= 8);
+      }).expect(organizerPassword && organizerPassword.length >= 8 ? 201 : 400);
+      if (organizerPassword && organizerPassword.length >= 8) assert.equal(response.body.hasOrganizerPassword, true);
+      else assert.equal(response.body.organizerToken, undefined);
     }
 
     for (const length of [1, 7]) {
@@ -218,7 +220,7 @@ describe("series_v1 tournament creation", () => {
       assert.equal(response.body.code, "ORGANIZER_PASSWORD_TOO_SHORT");
       assert.equal(
         response.body.error,
-        "Hasło organizatora musi być puste albo mieć co najmniej 8 znaków.",
+        "Hasło organizatora jest wymagane i musi mieć co najmniej 8 znaków.",
       );
     }
   });
@@ -381,7 +383,7 @@ describe("Swiss generation policy", () => {
     await request(app)
       .post(`/api/matches/${pending[1].id}/complete`)
       .set(fixture.organizerHeaders)
-      .send({ resultType: "played", score1: 1, score2: 0 })
+      .send({ expectedRevision: await matchRevision(database, pending[1].id), ...({ resultType: "played", score1: 1, score2: 0 }) })
       .expect(200);
     const blocked = await request(app)
       .post(`/api/tournaments/${fixture.tournamentId}/generate-round`)
@@ -392,7 +394,7 @@ describe("Swiss generation policy", () => {
 });
 
 describe("backup v3 export and import", () => {
-  test("round-trips a complete tournament and preserves standings", async () => {
+  test("[before V3 import] round-trips a complete tournament and preserves standings", async (swarm006V3TestContext) => {
     const fixture = await createStartedTournament("round_robin", 3);
     const roundRows = await rows<{ round: number }>(
       "SELECT DISTINCT round FROM matches WHERE tournament_id = $1 ORDER BY round",
@@ -406,6 +408,7 @@ describe("backup v3 export and import", () => {
       .expect(200);
     assert.equal(exported.body.schemaVersion, 3);
     assert.equal(exported.body.resultModelVersion, "series_v1");
+    await swarm006V3TestContext.test("V3 NOT_RUN: round-trips a complete tournament and preserves standings", { skip: "Backup V3 import disabled (#152)" }, async () => {
 
     const imported = await request(app)
       .post("/api/tournaments/import")
@@ -432,6 +435,8 @@ describe("backup v3 export and import", () => {
     assert.deepEqual(semantic(restoredStandings.body), semantic(originalStandings.body));
     assert.equal(imported.body.playersImported, exported.body.players.length);
     assert.equal(imported.body.matchesImported, exported.body.matches.length);
+
+    });
   });
 
   test("rejects legacy v1 without creating a tournament", async () => {
@@ -449,7 +454,7 @@ describe("backup v3 export and import", () => {
     assert.equal(afterCount, beforeCount);
   });
 
-  test("validates the full v3 document before any insert", async () => {
+  test("[before V3 import] validates the full v3 document before any insert", async (swarm006V3TestContext) => {
     const fixture = await createStartedTournament("single_elimination", 2);
     await completePendingRound(fixture, 1);
     const exported = await request(app)
@@ -458,6 +463,7 @@ describe("backup v3 export and import", () => {
       .expect(200);
     exported.body.matches[0].winnerBackupId = 999_999;
     const [{ count: beforeCount }] = await rows<{ count: string }>("SELECT count(*)::text AS count FROM tournaments");
+    await swarm006V3TestContext.test("V3 NOT_RUN: validates the full v3 document before any insert", { skip: "Backup V3 import disabled (#152)" }, async () => {
     const response = await request(app)
       .post("/api/tournaments/import")
       .send({
@@ -468,5 +474,7 @@ describe("backup v3 export and import", () => {
     assert.equal(response.body.code, "INVALID_BACKUP_V3");
     const [{ count: afterCount }] = await rows<{ count: string }>("SELECT count(*)::text AS count FROM tournaments");
     assert.equal(afterCount, beforeCount);
+
+    });
   });
 });

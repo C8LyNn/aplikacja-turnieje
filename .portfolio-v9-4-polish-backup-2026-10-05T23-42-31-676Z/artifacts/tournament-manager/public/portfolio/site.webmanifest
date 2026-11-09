@@ -1,0 +1,15 @@
+{
+  "name": "Jakub Powierski — Game & Systems Design Portfolio",
+  "short_name": "JP Portfolio",
+  "description": "Game Design / Systems Design portfolio: case studies, design decisions, documentation and project evolution.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#090b0f",
+  "theme_color": "#090b0f",
+  "shortcuts": [
+    {"name": "Case Studies", "url": "./projects/index.html"},
+    {"name": "Design Decisions", "url": "./decisions.html"},
+    {"name": "CV", "url": "./resume.html"}
+  ]
+}

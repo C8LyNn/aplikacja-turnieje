@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#090b0f" />
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="../src/styles.css" />
+  <title>Warehouse Coop — Case Study — Jakub Powierski</title>
+  <meta name="description" content="Case study Warehouse Coop: project leadership, systems design, logistics core loop, level design, documentation and testing." />
+</head>
+<body class="case-body">
+  <a class="skip-link" href="#case-content">Przejdź do treści</a>
+  <header class="topbar case-topbar"><a class="brand" href="../index.html">← PORTFOLIO</a><nav><a class="nav-site-home" data-host-home-link href="../../">Strona główna</a><a href="index.html">Case studies</a><a href="../decisions.html">Decyzje</a><a href="../about.html">O mnie</a><a href="../evidence.html">Materiały</a><a class="nav-cv" href="../resume.html">CV</a></nav></header>
+  <main id="case-content">
+    <section class="case-hero shell case-warehouse"><p class="eyebrow">CASE STUDY · 07–12.2025 · PRAKTYKI</p><h1>Warehouse Coop</h1><p class="case-lead">Kooperacyjny symulator magazynu: od odbioru paczek i sortowania po kompletację, wysyłkę oraz rozwój infrastruktury. Pierwszy projekt, w którym łączyłem game design z prowadzeniem większego zespołu.</p><div class="fact-grid"><div><span>Rola</span><b>Project Lead / Game Designer</b></div><div><span>Zespół</span><b>14 osób</b></div><div><span>Okres</span><b>07–12.2025</b></div><div><span>Narzędzia</span><b>Unity · Git/GitKraken · Miro · Notion</b></div></div></section>
+
+    <section class="case-section shell"><div class="case-two-col"><div><p class="eyebrow">PRODUCT PREMISE</p><h2>Logistyka miała generować zarówno współpracę, jak i kontrolowany chaos.</h2></div><div class="case-copy"><p>GDD definiował pięć filarów: kooperację, progresję i rozwój, logistykę i chaos, przystępność dla casuali oraz przestrzeń do optymalizacji dla bardziej zaangażowanych graczy.</p><p>Moja praca obejmowała projektowanie systemów rozgrywki, level/blockout, ekonomię i progresję, UI/HUD, dokumentację, backlog, playtesting i QA, a jednocześnie koordynację pracy zespołu.</p></div></div></section>
+
+    <section class="case-section shell">
+      <p class="eyebrow">CORE LOOP</p><h2 class="case-h2">Cztery kroki, które miały skalować się wraz z rozwojem magazynu.</h2>
+      <div class="loop-steps"><article><span>01</span><h3>Rozładunek</h3><p>Nowe dostawy trafiają do magazynu. Zatory przy tirach tworzą presję operacyjną.</p></article><article><span>02</span><h3>Sortowanie</h3><p>Paczki trzeba zeskanować i odłożyć w odpowiednie miejsce, żeby nie utrudniać dalszej kompletacji.</p></article><article><span>03</span><h3>Kompletacja</h3><p>Gracze zbierają paczki pod zamówienia, tworzą palety i przygotowują wysyłkę.</p></article><article><span>04</span><h3>Rozwój</h3><p>Po zmianie inwestuje się w nowe strefy, bramy, sprzęt i możliwości obsługi większego ruchu.</p></article></div>
+      <div class="case-gallery single-wide evidence-shot"><figure><img loading="lazy" decoding="async" src="../assets/evidence/warehouse-core-loop-04.webp" alt="Slajd GDD Warehouse Coop przedstawiający czterostopniowy core loop"/><figcaption>GDD · core loop</figcaption></figure></div>
+    </section>
+
+    <section class="case-section shell">
+      <p class="eyebrow">SYSTEM CHAIN</p>
+      <h2 class="case-h2">Każdy etap wpływa na obciążenie następnego.</h2>
+      <div class="system-chain warehouse-chain" aria-label="Łańcuch systemów Warehouse Coop">
+        <div><span>INBOUND</span><b>Tiry przyjeżdżają</b><small>częstotliwość · pojemność · presja czasu</small></div><i>→</i>
+        <div><span>PACKAGE STATE</span><b>Skanowanie i sortowanie</b><small>kolor · rozmiar · stan · priorytet</small></div><i>→</i>
+        <div><span>STORAGE</span><b>Magazynowanie</b><small>układ · półki · palety · transport</small></div><i>→</i>
+        <div><span>ORDERS</span><b>Kompletacja</b><small>wyszukiwanie · łączenie · przygotowanie</small></div><i>→</i>
+        <div><span>OUTBOUND</span><b>Załadunek</b><small>czas · poprawność · przepustowość</small></div>
+      </div>
+      <div class="feedback-loop"><b>Wynik zmiany</b><span>→</span><b>ekonomia / rozwój</b><span>→</span><b>większy magazyn i większy ruch</b><span>↺</span></div>
+    </section>
+
+    <section class="case-section shell"><div class="case-two-col"><div><p class="eyebrow">MY CONTRIBUTION</p><h2>Od reguł gry do procesu produkcyjnego.</h2></div><div class="case-copy"><p>Zakres obejmował system paczek i dostaw, mechanikę tirów, transport, ekonomię i progresję, blocking poziomu, UI/HUD, dokumentację, playtesting oraz QA.</p><p>W projekcie istotna była też synchronizacja designu z implementacją: decyzje trafiały do GDD/Miro i backlogu, następnie do Unity, testów i kolejnych iteracji.</p></div></div>
+      <div class="pdr-grid"><article><span>PROBLEM</span><h3>Jak połączyć logistykę i co-op?</h3><p>Każda czynność musiała mieć sens samodzielnie, ale największą wartość generować dopiero we współpracy i pod presją wielu równoległych zadań.</p></article><article><span>DECISION</span><h3>Projektować system jako sieć zależności.</h3><p>Paczki, tiry, transport, układ magazynu i progresja były projektowane jako elementy jednej pętli, a nie oddzielne mechaniki.</p></article><article><span>RESULT</span><h3>Proces zostawił czytelny ślad.</h3><p>Zachowały się GDD, 44 plansze Miro, wireframe’y, historia Git i materiały organizacyjne pokazujące kolejne decyzje.</p></article></div>
+    </section>
+
+    <section class="case-section shell"><p class="eyebrow">SYSTEM SURFACE</p><h2 class="case-h2">Projekt obejmował więcej niż sam magazyn.</h2><div class="scope-grid"><article><b>Paczki</b><p>Kolor, rozmiar, stan, transport, sortowanie i obsługa błędów.</p></article><article><b>Tiry</b><p>Częstotliwość, pojemność, typ zamówienia, czas obsługi i presja kolejek.</p></article><article><b>Transport</b><p>Wózki, paleciaki, taśmociągi, windy i kompromis między szybkością a wydajnością.</p></article><article><b>Progresja</b><p>Rozwój magazynu, wyposażenia, przestrzeni i przepustowości systemu.</p></article><article><b>UI / HUD</b><p>Podgląd sprzętu, tirów, paczek, kamer, ekonomii i statystyk.</p></article><article><b>Level Design</b><p>Blocking, strefy, drogi transportu i rozmieszczenie urządzeń.</p></article></div>
+      <div class="case-gallery two-evidence"><figure><img loading="lazy" decoding="async" src="../assets/evidence/warehouse-ui-12.webp" alt="Slajd GDD Warehouse Coop z przykładami interfejsu i ekranów"/><figcaption>GDD · UI / UX</figcaption></figure><figure><img loading="lazy" decoding="async" src="../assets/evidence/warehouse-meta-17.webp" alt="Slajd GDD Warehouse Coop przedstawiający meta loop i progresję magazynu"/><figcaption>GDD · meta loop / progression</figcaption></figure></div>
+    </section>
+
+    <section class="case-section shell"><p class="eyebrow">PROCESS EVIDENCE</p><h2 class="case-h2">Projektowanie → implementacja → iteracja.</h2><div class="case-gallery warehouse-case-gallery"><figure><img loading="lazy" decoding="async" src="../assets/warehouse-p3.webp" alt="Core mechanics Warehouse Coop"/><figcaption>Core mechanics</figcaption></figure><figure><img loading="lazy" decoding="async" src="../assets/warehouse-p11.webp" alt="Rozwój projektu i drzewko Warehouse Coop"/><figcaption>Rozwój projektu / drzewko</figcaption></figure><figure><img loading="lazy" decoding="async" src="../assets/warehouse-p16.webp" alt="Blocking magazynu Warehouse Coop"/><figcaption>Blocking / magazyn</figcaption></figure><figure><img loading="lazy" decoding="async" src="../assets/warehouse-ui-wireframes.webp" alt="Wireframes systemów UI Warehouse Coop"/><figcaption>UI systems / wireframes</figcaption></figure><figure><img loading="lazy" decoding="async" src="../assets/warehouse-p35.webp" alt="Matematyka ekonomii Warehouse Coop"/><figcaption>Ekonomia / progression</figcaption></figure><figure><img loading="lazy" decoding="async" src="../assets/warehouse-git-history.webp" alt="Git workflow Warehouse Coop"/><figcaption>Git workflow</figcaption></figure></div></section>
+
+    <section class="case-section shell case-resources"><p class="eyebrow">SOURCE MATERIAL</p><h2 class="case-h2">Dokumenty do weryfikacji procesu.</h2><div class="resource-grid"><a href="../docs/evidence/warehouse-coop/warehouse-coop-gdd.pdf" target="_blank" rel="noreferrer"><span>GDD · LOCAL</span><b>Warehouse Coop — Game Design Document</b></a><a href="../docs/warehouse-coop-miro-44-screens.pdf" target="_blank" rel="noreferrer"><span>PDF</span><b>Archiwum 44 plansz Miro</b></a><a href="https://docs.google.com/spreadsheets/d/1YoO5F8eci2BSXZzp0OARQf00okFM843p_vPHytw88Es/edit" target="_blank" rel="noreferrer"><span>SHEET</span><b>Lista zbiorcza projektu</b></a><a href="https://gitlab.com/warehouse_coop/warehouse_coop" target="_blank" rel="noreferrer"><span>REPO</span><b>GitLab projektu</b></a></div></section>
+    <section class="case-section shell case-pagination" aria-label="Nawigacja między case studies"><a class="case-prev" href="index.html"><span>← INDEKS</span><b>Wszystkie case studies</b></a><a class="case-next" href="tournament-manager.html"><span>NASTĘPNY →</span><b>Tournament Manager</b></a></section>
+  </main>
+  <footer class="footer shell"><span>Jakub Powierski · Game Designer / Systems Designer</span><a href="../index.html">← Wróć do portfolio</a></footer>
+</body>
+</html>

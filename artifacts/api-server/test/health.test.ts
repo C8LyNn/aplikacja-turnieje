@@ -21,11 +21,15 @@ describe("database-aware healthcheck", () => {
   });
 
   test("returns a redacted 503 when the database query fails", async () => {
+    // Synthetic fixture only: .invalid is reserved and no connection is made.
+    const syntheticDsn = new URL("postgresql://healthcheck.invalid/fixture");
+    syntheticDsn.username = "synthetic-health-user";
+    syntheticDsn.password = "NOT_A_REAL_CREDENTIAL";
     const logged: Array<Record<string, unknown>> = [];
     const response = await request(
       healthApp({
         databaseCheck: async () => {
-          throw new Error("postgresql://user:password@secret-host/secret-db");
+          throw new Error(syntheticDsn.toString());
         },
         log: { warn: (bindings) => logged.push(bindings) },
       }),
@@ -33,7 +37,11 @@ describe("database-aware healthcheck", () => {
 
     assert.equal(response.status, 503);
     assert.deepEqual(response.body, { status: "error", database: "unavailable" });
-    assert.equal(JSON.stringify(response.body).includes("secret"), false);
+    const responseJson = JSON.stringify(response.body);
+    assert.equal(responseJson.includes("secret"), false);
+    assert.equal(responseJson.includes(syntheticDsn.toString()), false);
+    assert.equal(responseJson.includes(syntheticDsn.password), false);
+    assert.equal(responseJson.includes(syntheticDsn.username), false);
     assert.deepEqual(logged, [{ errorType: "query_failed" }]);
   });
 

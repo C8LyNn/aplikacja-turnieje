@@ -1,3 +1,4 @@
+import { matchRevision } from "./match-revision-fixture";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, before, describe, test } from "node:test";
@@ -120,7 +121,7 @@ async function postComplete(
   payload: Record<string, unknown>,
   headers: Headers = fixture.organizerHeaders,
 ): Promise<Response> {
-  return request(app).post(`/api/matches/${fixture.matchId}/complete`).set(headers).send(payload);
+  return request(app).post(`/api/matches/${fixture.matchId}/complete`).set(headers).send({ expectedRevision: await matchRevision(database, fixture.matchId), ...(payload) });
 }
 
 async function snapshot(fixture: MatchFixture) {
@@ -357,7 +358,7 @@ describe("CompleteMatch atomicity", () => {
     const beforeState = await snapshot(fixture);
     await assert.rejects(
       completeMatchUseCase(
-        { matchId: fixture.matchId, resultType: "played", score1: 2, score2: 0 },
+        { expectedRevision: await matchRevision(database, fixture.matchId), matchId: fixture.matchId, resultType: "played", score1: 2, score2: 0 },
         { afterMatchUpdated: () => { throw new Error("injected rollback"); } },
       ),
       /injected rollback/,

@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/context/auth-context";
 import { useToast } from "@/hooks/use-toast";
+import { isExperimentalTournamentPath, tournamentHref } from "@/features/experimental-tournaments/experimental-tournament-routing";
 import {
   parseTournamentBackupFile,
   type TournamentBackupFile,
@@ -20,7 +21,8 @@ export function BackupRestoreDialog(props: {
   onClose: () => void;
 }) {
   const { open, onClose } = props;
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
+  const experimental = isExperimentalTournamentPath(location);
   const { storeOrgToken } = useAuth();
   const { toast } = useToast();
   const importTournament = useImportTournament();
@@ -96,7 +98,7 @@ export function BackupRestoreDialog(props: {
             description: `Utworzono „${result.tournament.name}” z nowymi poświadczeniami.`,
           });
           resetAndClose();
-          navigate(`/tournaments/${result.tournament.id}`);
+          navigate(tournamentHref(result.tournament.id, experimental));
         },
         onError: (requestError: any) => {
           setError(

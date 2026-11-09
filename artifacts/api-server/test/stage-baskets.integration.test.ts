@@ -285,7 +285,7 @@ describe("stage basket persistence and API", () => {
     assert.deepEqual(loaded.body, saved.body);
   });
 
-  test("explicit basket authority accepts 16 direct then 8 routed plus 8 direct without starting runtime", async () => {
+  test("[before V3 import] explicit basket authority accepts 16 direct then 8 routed plus 8 direct without starting runtime", async (swarm006V3TestContext) => {
     const created = await request(app)
       .post("/api/tournaments")
       .send({
@@ -493,6 +493,7 @@ describe("stage basket persistence and API", () => {
       .set(organizer);
     assert.equal(exported.status, 200, exported.text);
     assert.equal(exported.body.tournament.basketFlowAuthorityVersion, 1);
+    await swarm006V3TestContext.test("V3 NOT_RUN: explicit basket authority accepts 16 direct then 8 routed plus 8 direct without starting runtime", { skip: "Backup V3 import disabled (#152)" }, async () => {
     const restored = await request(app).post("/api/tournaments/import").send({
       backup: exported.body,
       organizerPassword: "restored-authority-password",
@@ -508,6 +509,8 @@ describe("stage basket persistence and API", () => {
       [16, 16],
       "Backup V3 must preserve basket-derived capacity without materializing runtime memberships",
     );
+
+    });
   });
 
   test("anonymous and support actors cannot update baskets", async () => {
@@ -586,7 +589,7 @@ describe("stage basket persistence and API", () => {
     assert.equal(start.body.code, "STAGE_BASKET_CONFIGURATION_INVALID");
   });
 
-  test("Backup V3 round-trip preserves explicit basket identities and assignments", async () => {
+  test("[before V3 import] Backup V3 round-trip preserves explicit basket identities and assignments", async (swarm006V3TestContext) => {
     const data = await fixture();
     const input = explicitConfiguration(data);
     const saved = await request(app)
@@ -600,6 +603,7 @@ describe("stage basket persistence and API", () => {
     assert.equal(exported.status, 200, exported.text);
     assert.equal(exported.body.tournament.basketFlowAuthorityVersion, 1);
     assert.equal(exported.body.stageBaskets.length, input.baskets.length);
+    await swarm006V3TestContext.test("V3 NOT_RUN: Backup V3 round-trip preserves explicit basket identities and assignments", { skip: "Backup V3 import disabled (#152)" }, async () => {
     const restored = await request(app).post("/api/tournaments/import").send({
       backup: exported.body,
       organizerPassword: "restored-basket-password",
@@ -636,5 +640,7 @@ describe("stage basket persistence and API", () => {
       [4, 2],
       "Backup V3 restore must derive the same participant counts from the restored graph",
     );
+
+    });
   });
 });

@@ -13,12 +13,16 @@ import { Link, useLocation } from "wouter";
 import { Calendar, Users, Trophy, PlusCircle, Trash2, AlertTriangle, X, Download, FlaskConical, Lock, FileUp } from "lucide-react";
 import { format } from "date-fns";
 import { pl } from "date-fns/locale";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/context/auth-context";
 import { apiOrganizerLogin } from "@/lib/auth";
 import { BackupRestoreDialog } from "@/components/backup-restore-dialog";
+import { isExperimentalTournamentPath, tournamentHref } from "@/features/experimental-tournaments/experimental-tournament-routing";
+import { ExperimentalDashboardToolbar, type ExperimentalTournamentStatusFilter } from "@/features/experimental-tournaments/experimental-dashboard-toolbar";
+import { ExperimentalDeleteTournamentDialog, ExperimentalTestDataDialog } from "@/features/experimental-tournaments/experimental-dashboard-dialogs";
+import { ExperimentalStatePanel } from "@/features/experimental-tournaments/experimental-ui";
 
 const TEST_SIZES = [4, 8, 16, 32] as const;
 type TestSize = typeof TEST_SIZES[number];
@@ -44,14 +48,41 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export default function Dashboard() {
-  const { data: tournaments, isLoading } = useListTournaments();
+  const { data: tournaments, isLoading, isError, isFetching, refetch } = useListTournaments();
   const deleteTournament = useDeleteTournament();
   const createTournament = useCreateTournament();
   const importPlayers = useImportPlayers();
   const queryClient = useQueryClient();
   const { toast } = useToast();
   const { role, getOrgToken, storeOrgToken } = useAuth();
-  const [, navigate] = useLocation();
+  const [location, navigate] = useLocation();
+  const isExperimental = isExperimentalTournamentPath(location);
+  const [tournamentSearch, setTournamentSearch] = useState("");
+  const [statusFilter, setStatusFilter] = useState<ExperimentalTournamentStatusFilter>("all");
+
+  const tournamentCounts = useMemo(() => {
+    const list = tournaments ?? [];
+    return {
+      all: list.length,
+      draft: list.filter((item) => item.status === "draft").length,
+      active: list.filter((item) => item.status === "active").length,
+      completed: list.filter((item) => item.status === "completed").length,
+    };
+  }, [tournaments]);
+
+  const filteredTournaments = useMemo(() => {
+    const list = tournaments ?? [];
+    if (!isExperimental) return list;
+
+    const needle = tournamentSearch.trim().toLocaleLowerCase("pl-PL");
+    return list.filter((item) => {
+      const matchesStatus =
+        statusFilter === "all" || item.status === statusFilter;
+      const haystack = `${item.name} ${item.description ?? ""}`.toLocaleLowerCase("pl-PL");
+      const matchesSearch = !needle || haystack.includes(needle);
+      return matchesStatus && matchesSearch;
+    });
+  }, [isExperimental, statusFilter, tournamentSearch, tournaments]);
 
   const [confirmDeleteId, setConfirmDeleteId] = useState<number | null>(null);
   const [deletePassword, setDeletePassword] = useState("");
@@ -109,7 +140,7 @@ export default function Dashboard() {
       toast({ title: `Turniej testowy (${testDataSize} graczy) gotowy!`, description: "Możesz teraz go uruchomić i przetestować wszystkie funkcje." });
       setShowTestDataModal(false);
       setTestDataOrganizerPassword("");
-      navigate(`/tournaments/${tournament.id}`);
+      navigate(tournamentHref(tournament.id, isExperimental));
     } catch {
       toast({ title: "Błąd tworzenia danych testowych", variant: "destructive" });
     } finally {
@@ -210,13 +241,13 @@ export default function Dashboard() {
 
   return (
     <Layout>
-      <div className="flex flex-col gap-6">
-        <div className="flex justify-between items-center gap-3 flex-wrap">
+      <div className="organizer-workspace flex flex-col gap-6">
+        <div className="organizer-header flex justify-between items-center gap-3 flex-wrap">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-primary">Turnieje</h1>
-            <p className="text-muted-foreground">Zarządzaj rozgrywkami, drabinkami i wynikami.</p>
+            <h1 className="text-3xl font-bold tracking-tight text-primary">{isExperimental ? "Centrum turniejów" : "Turnieje"}</h1>
+            <p className="text-muted-foreground">{isExperimental ? "Nowy interfejs zarządzania rozgrywkami, etapami i wynikami." : "Zarządzaj rozgrywkami, drabinkami i wynikami."}</p>
           </div>
-          <div className="flex gap-2">
+          <div className="organizer-header-actions flex gap-2">
             <Button
               variant="outline"
               onClick={() => setShowRestoreDialog(true)}
@@ -234,7 +265,7 @@ export default function Dashboard() {
             </Button>
             {role === "organizer" && (
               <Link
-                href="/tournaments/new"
+                href={isExperimental ? "/experimental/tournaments/new" : "/tournaments/create"}
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 gap-2 shadow-md"
               >
                 <PlusCircle className="w-4 h-4" />
@@ -244,13 +275,51 @@ export default function Dashboard() {
           </div>
         </div>
 
+        {isExperimental && (
+          <ExperimentalDashboardToolbar
+            query={tournamentSearch}
+            onQueryChange={setTournamentSearch}
+            status={statusFilter}
+            onStatusChange={setStatusFilter}
+            counts={tournamentCounts}
+          />
+        )}
+
         <BackupRestoreDialog
           open={showRestoreDialog}
           onClose={() => setShowRestoreDialog(false)}
         />
 
-        {/* Test data modal */}
-        {showTestDataModal && (
+        {isExperimental && (
+          <>
+            <ExperimentalTestDataDialog
+              open={showTestDataModal}
+              onOpenChange={(open) => { if (!open && !testDataLoading) setShowTestDataModal(false); }}
+              sizes={TEST_SIZES}
+              selectedSize={testDataSize}
+              onSelectedSizeChange={(size) => setTestDataSize(size as TestSize)}
+              organizerPassword={testDataOrganizerPassword}
+              onOrganizerPasswordChange={setTestDataOrganizerPassword}
+              loading={testDataLoading}
+              onCreate={() => void handleCreateTestData()}
+            />
+            <ExperimentalDeleteTournamentDialog
+              open={!!confirmDeleteId && !!confirmTarget}
+              onOpenChange={(open) => { if (!open) closeDeleteModal(); }}
+              tournamentName={confirmTarget?.name}
+              hasOrganizerPassword={confirmTarget?.hasOrganizerPassword}
+              hasHostCode={confirmTarget?.hasHostCode}
+              password={deletePassword}
+              onPasswordChange={(value) => { setDeletePassword(value); setDeletePasswordError(null); }}
+              passwordError={deletePasswordError}
+              loading={deleteLoading}
+              onDelete={() => void handleDelete()}
+            />
+          </>
+        )}
+
+        {/* Stable keeps the existing custom modal presentation. */}
+        {!isExperimental && showTestDataModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
             <div className="bg-card border rounded-xl shadow-2xl max-w-sm w-full p-6 space-y-4">
               <div className="flex items-start gap-3">
@@ -309,8 +378,8 @@ export default function Dashboard() {
           </div>
         )}
 
-        {/* Delete confirmation overlay */}
-        {confirmDeleteId && confirmTarget && (
+        {/* Delete confirmation overlay — Stable only. */}
+        {!isExperimental && confirmDeleteId && confirmTarget && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
             <div className="bg-card border border-destructive/50 rounded-xl shadow-2xl max-w-md w-full p-6 space-y-4">
               {/* Header */}
@@ -404,6 +473,14 @@ export default function Dashboard() {
               </Card>
             ))}
           </div>
+        ) : isError ? (
+          <div role="alert" className="rounded-lg border p-4">
+            <p>Nie udało się pobrać listy turniejów.</p>
+            <p className="text-sm text-muted-foreground">Sprawdź połączenie z API i spróbuj ponownie.</p>
+            <Button variant="outline" className="mt-3" disabled={isFetching} onClick={() => void refetch()}>
+              Spróbuj ponownie
+            </Button>
+          </div>
         ) : !tournaments || tournaments.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center border rounded-lg bg-card/50">
             <Trophy className="w-12 h-12 text-muted-foreground mb-4 opacity-20" />
@@ -413,25 +490,40 @@ export default function Dashboard() {
             </p>
             {role === "organizer" && (
               <Link
-                href="/tournaments/new"
+                href={isExperimental ? "/experimental/tournaments/new" : "/tournaments/create"}
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
               >
                 Utwórz turniej
               </Link>
             )}
           </div>
+        ) : isExperimental && filteredTournaments.length === 0 ? (
+          <ExperimentalStatePanel
+            title="Brak turniejów pasujących do filtrów"
+            description="Zmień status albo frazę wyszukiwania. Dane turniejów nie zostały usunięte."
+          />
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {tournaments.map((tournament) => (
+            {(isExperimental ? filteredTournaments : tournaments).map((tournament) => (
               <Card
                 key={tournament.id}
-                className="hover:border-primary/50 transition-colors cursor-pointer h-full flex flex-col group"
-                onClick={() => navigate(`/tournaments/${tournament.id}`)}
+                className={`hover:border-primary/50 transition-colors cursor-pointer h-full flex flex-col group ${isExperimental ? `experimental-dashboard-card experimental-dashboard-card--${tournament.status}` : ""}`}
+                onClick={() => navigate(tournamentHref(tournament.id, isExperimental))}
               >
                 <CardHeader className="pb-3 border-b border-border/50 bg-card/50">
                   <div className="flex justify-between items-start gap-3">
                     <CardTitle className="line-clamp-1 group-hover:text-primary transition-colors flex-1 min-w-0">
-                      {tournament.name}
+                      {isExperimental ? (
+                        <Link
+                          href={tournamentHref(tournament.id, true)}
+                          className="experimental-dashboard-card-link"
+                          onClick={(event) => event.stopPropagation()}
+                        >
+                          {tournament.name}
+                        </Link>
+                      ) : (
+                        tournament.name
+                      )}
                     </CardTitle>
                     <div className="flex items-center gap-1.5 shrink-0">
                       <Badge
@@ -456,7 +548,7 @@ export default function Dashboard() {
                       {getOrgToken(tournament.id) && (
                         <button
                           onClick={(e) => handleQuickExport(e, tournament)}
-                          className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-primary/15 text-muted-foreground hover:text-primary"
+                          className={`opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-primary/15 text-muted-foreground hover:text-primary ${isExperimental ? "group-focus-within:opacity-100 focus:opacity-100" : ""}`}
                           title="Pobierz backup"
                           disabled={exportingId === tournament.id}
                         >
@@ -469,7 +561,7 @@ export default function Dashboard() {
                           e.stopPropagation();
                           setConfirmDeleteId(tournament.id);
                         }}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-destructive/15 text-muted-foreground hover:text-destructive"
+                        className={`opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-destructive/15 text-muted-foreground hover:text-destructive ${isExperimental ? "group-focus-within:opacity-100 focus:opacity-100" : ""}`}
                         title="Usuń turniej"
                       >
                         <Trash2 className="w-3.5 h-3.5" />

@@ -34,14 +34,24 @@ describe("Swiss pairing", () => {
     assert.deepEqual(pairings[2], { round: 1, matchNumber: 3, player1Id: 5, player2Id: null, resultType: "bye" });
   });
 
-  test("avoids an immediate rematch when an alternative exists", () => {
+  test("avoids an immediate rematch within equal score groups", () => {
+    const pairings = generateSwissPairings({
+      players: players.slice(0, 4),
+      standings: standings.slice(0, 4).map(standing => ({ ...standing, matchWins: 0 })),
+      previousMatches: [{ status: "completed", player1Id: 1, player2Id: 2, resultType: "played" }],
+      round: 2,
+    });
+    assert.notDeepEqual([pairings[0].player1Id, pairings[0].player2Id], [1, 2]);
+  });
+
+  test("score distance has priority over avoiding a rematch", () => {
     const pairings = generateSwissPairings({
       players: players.slice(0, 4),
       standings: standings.slice(0, 4),
       previousMatches: [{ status: "completed", player1Id: 1, player2Id: 2, resultType: "played" }],
       round: 2,
     });
-    assert.notDeepEqual([pairings[0].player1Id, pairings[0].player2Id], [1, 2]);
+    assert.deepEqual(pairings.map(p => [p.player1Id, p.player2Id]), [[1, 2], [3, 4]]);
   });
 
   test("does not repeat a bye while another eligible player has none", () => {

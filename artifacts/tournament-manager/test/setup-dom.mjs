@@ -17,6 +17,7 @@ Object.defineProperties(globalThis, {
   removeEventListener: { value: dom.window.removeEventListener.bind(dom.window), configurable: true },
   dispatchEvent: { value: dom.window.dispatchEvent.bind(dom.window), configurable: true },
   Node: { value: dom.window.Node, configurable: true },
+  NodeFilter: { value: dom.window.NodeFilter, configurable: true },
   DocumentFragment: { value: dom.window.DocumentFragment, configurable: true },
   Element: { value: dom.window.Element, configurable: true },
   HTMLElement: { value: dom.window.HTMLElement, configurable: true },

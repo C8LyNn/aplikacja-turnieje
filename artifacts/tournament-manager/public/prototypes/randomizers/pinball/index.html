@@ -1,0 +1,3608 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TDS 1.0 — Marble losowanie v24 · 2–128</title>
+<style>
+  :root{
+    --bg:#0f1117;
+    --panel:#171b24;
+    --panel2:#1e2430;
+    --panel3:#252d3b;
+    --text:#eef2ff;
+    --muted:#a7b0c2;
+    --accent:#7c9cff;
+    --accent2:#5e7fe6;
+    --success:#58d68d;
+    --warn:#f4d35e;
+    --danger:#ff6b6b;
+    --border:#313a4a;
+    --shadow:0 16px 36px rgba(0,0,0,.32);
+  }
+
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    font-family:Segoe UI,Tahoma,Geneva,Verdana,sans-serif;
+    background:
+      radial-gradient(circle at 50% -10%, rgba(124,156,255,.18), transparent 30%),
+      var(--bg);
+    color:var(--text);
+    padding:20px;
+  }
+  .page{max-width:1450px;margin:0 auto}
+  .hero{text-align:center;margin-bottom:18px}
+  .hero h1{margin:0;color:var(--accent);font-size:clamp(2rem,4vw,3rem)}
+  .hero p{margin:8px 0 0;color:var(--muted)}
+
+  .layout{
+    display:grid;
+    grid-template-columns:minmax(340px,430px) minmax(540px,1fr);
+    gap:18px;
+    align-items:start;
+  }
+
+  .panel{
+    background:var(--panel);
+    border:1px solid var(--border);
+    border-radius:18px;
+    box-shadow:var(--shadow);
+    padding:18px;
+    min-width:0;
+  }
+
+  h2{margin:0 0 12px;font-size:1.1rem}
+  .sub{color:var(--muted);font-size:.86rem;margin-top:-4px;margin-bottom:12px;line-height:1.4}
+
+  .controls{display:flex;gap:8px;flex-wrap:wrap}
+  button{
+    min-height:42px;
+    border:0;
+    border-radius:10px;
+    padding:10px 14px;
+    font:inherit;
+    font-weight:800;
+    cursor:pointer;
+    color:#fff;
+    background:var(--accent);
+    transition:background .15s ease,transform .15s ease,opacity .15s ease;
+  }
+  button:hover:not(:disabled){background:var(--accent2);transform:translateY(-1px)}
+  button:disabled{opacity:.45;cursor:not-allowed}
+  button.secondary{background:var(--panel3);border:1px solid var(--border)}
+  button.secondary:hover:not(:disabled){background:#313b4b}
+  button.warn{background:#7a6422}
+  button.warn:hover:not(:disabled){background:#8f7629}
+
+  textarea, input[type="text"]{
+    width:100%;
+    border:1px solid var(--border);
+    background:var(--panel2);
+    color:var(--text);
+    border-radius:10px;
+    padding:10px;
+    font:inherit;
+    outline:none;
+  }
+  textarea{min-height:180px;resize:vertical}
+
+  .field{margin-bottom:12px}
+  .label{font-size:.82rem;font-weight:800;margin-bottom:6px;color:var(--muted)}
+  .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  .status{
+    margin-top:12px;
+    padding:12px;
+    background:var(--panel2);
+    border:1px solid var(--border);
+    border-radius:12px;
+    min-height:64px;
+  }
+  .status strong{color:var(--success)}
+  .small{font-size:.82rem;color:var(--muted)}
+  .queue{
+    display:flex;gap:8px;flex-wrap:wrap;margin-top:10px
+  }
+  .chip{
+    padding:6px 10px;
+    border-radius:999px;
+    border:1px solid var(--border);
+    background:var(--panel3);
+    font-size:.8rem;
+  }
+  .chip.current{outline:2px solid var(--accent);background:rgba(124,156,255,.12)}
+  .chip.done{opacity:.5;text-decoration:line-through}
+
+  .board-wrap{
+    padding:10px;
+    background:linear-gradient(180deg,#131822,#10141d);
+    border-radius:18px;
+    border:1px solid var(--border);
+  }
+  canvas{
+    width:100%;
+    height:auto;
+    display:block;
+    border-radius:14px;
+    background:
+      radial-gradient(circle at 50% 0%, rgba(255,255,255,.05), transparent 28%),
+      linear-gradient(180deg,#111723,#0d1119);
+    box-shadow:inset 0 0 0 1px rgba(255,255,255,.04);
+  }
+
+  .bottom-grid{
+    margin-top:14px;
+    display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:10px;
+  }
+  .slot{
+    background:var(--panel2);
+    border:1px solid var(--border);
+    border-radius:12px;
+    padding:10px;
+    min-height:66px;
+  }
+  .slot b{display:block;font-size:.78rem;color:var(--muted);margin-bottom:4px}
+  .slot .empty{color:#7f8796;font-style:italic}
+  .slot.filled{border-color:rgba(88,214,141,.45);background:rgba(88,214,141,.08)}
+  .slot.active{outline:2px solid var(--accent)}
+
+  .draw-order{
+    margin-top:14px;
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+  .result-chip{
+    padding:8px 10px;
+    background:var(--panel2);
+    border:1px solid var(--border);
+    border-radius:999px;
+    font-size:.8rem;
+  }
+
+  .legend{
+    margin-top:12px;
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+    font-size:.78rem;
+    color:var(--muted);
+  }
+  .dot{
+    width:10px;height:10px;border-radius:50%;display:inline-block;vertical-align:middle;margin-right:6px
+  }
+
+
+
+
+  .quick-setup{
+    display:grid;
+    gap:10px;
+    margin-bottom:12px;
+  }
+  .setup-row{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:10px;
+  }
+  .setup-card{
+    border:1px solid var(--border);
+    background:var(--panel2);
+    border-radius:12px;
+    padding:10px;
+  }
+  .setup-card .label{margin-bottom:7px}
+  .setup-card select,
+  .setup-card input[type="number"]{
+    width:100%;
+    min-height:40px;
+    border-radius:9px;
+    border:1px solid var(--border);
+    background:var(--panel3);
+    color:var(--text);
+    padding:8px 10px;
+    font:inherit;
+  }
+  .setup-actions{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+    margin-top:8px;
+  }
+  .setup-actions button{flex:1 1 120px}
+  .setup-option{
+    display:flex;
+    gap:8px;
+    align-items:center;
+    color:var(--muted);
+    font-size:.78rem;
+    margin-top:8px;
+  }
+  .setup-option input{accent-color:var(--accent)}
+  #autoFitDenseHint{min-height:2.2em}
+
+  .results-toolbar{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-top:14px;
+  }
+  .results-toolbar-left,
+  .results-toolbar-right{
+    display:flex;
+    gap:8px;
+    align-items:center;
+    flex-wrap:wrap;
+  }
+  .results-toolbar select{
+    min-height:38px;
+    border-radius:9px;
+    border:1px solid var(--border);
+    background:var(--panel2);
+    color:var(--text);
+    padding:7px 10px;
+  }
+  .results-panel{
+    margin-top:12px;
+    border:1px solid var(--border);
+    border-radius:14px;
+    background:var(--panel2);
+    padding:12px;
+    overflow:hidden;
+    transition:max-height .35s ease,opacity .25s ease,padding .35s ease,margin .35s ease;
+    max-height:1400px;
+    opacity:1;
+  }
+  .results-panel.hidden{
+    max-height:0;
+    opacity:0;
+    padding-top:0;
+    padding-bottom:0;
+    margin-top:0;
+    border-width:0;
+  }
+  .results-title{
+    font-weight:900;
+    margin-bottom:10px;
+  }
+  .results-grid{
+    display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:9px;
+  }
+  .result-hole-card{
+    border:1px solid var(--border);
+    border-radius:11px;
+    background:var(--panel3);
+    min-height:82px;
+    padding:9px;
+    transition:transform .25s ease,border-color .25s ease,box-shadow .25s ease;
+  }
+  .result-hole-card.flash{
+    transform:scale(1.025);
+    border-color:var(--accent);
+    box-shadow:0 0 0 2px rgba(124,156,255,.15),0 0 22px rgba(124,156,255,.18);
+  }
+  .result-hole-card b{
+    display:block;
+    color:var(--muted);
+    font-size:.75rem;
+    margin-bottom:5px;
+  }
+  .result-hole-list{
+    display:grid;
+    gap:3px;
+    font-size:.82rem;
+  }
+  .result-empty{
+    color:#7f8796;
+    font-style:italic;
+    font-size:.8rem;
+  }
+  .results-history{
+    display:flex;
+    flex-wrap:wrap;
+    gap:7px;
+  }
+  .history-chip{
+    border:1px solid var(--border);
+    background:var(--panel3);
+    border-radius:999px;
+    padding:6px 9px;
+    font-size:.78rem;
+  }
+  .result-counter{
+    display:inline-flex;
+    align-items:center;
+    gap:7px;
+  }
+  .result-counter span{
+    min-width:24px;
+    height:24px;
+    padding:0 7px;
+    border-radius:999px;
+    display:inline-grid;
+    place-items:center;
+    background:var(--accent);
+    color:#fff;
+    font-size:.72rem;
+  }
+  @media(max-width:760px){
+    .setup-row,.results-grid{grid-template-columns:1fr 1fr}
+  }
+  @media(max-width:520px){
+    .setup-row,.results-grid{grid-template-columns:1fr}
+  }
+
+
+  
+  .tds-standard-bar{
+    display:flex;justify-content:space-between;gap:10px;align-items:center;
+    border:1px solid var(--border);background:var(--panel2);
+    border-radius:11px;padding:8px 10px;margin-bottom:10px;
+    font-size:.74rem;color:var(--muted)
+  }
+  .tds-standard-bar strong{color:var(--text)}
+  .tds-standard-badge{
+    border:1px solid var(--border);background:var(--panel3);
+    border-radius:999px;padding:4px 8px;font-weight:900;color:var(--accent)
+  }
+
+.scenario-bar{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) auto;
+    gap:8px;
+    align-items:end;
+    margin-bottom:10px;
+  }
+  .scenario-bar select{
+    width:100%;
+    min-height:42px;
+    border:1px solid var(--border);
+    background:var(--panel3);
+    color:var(--text);
+    border-radius:10px;
+    padding:8px 10px;
+    font:inherit;
+  }
+  .config-summary{
+    margin-top:10px;
+    border:1px solid var(--border);
+    border-radius:12px;
+    background:var(--panel2);
+    padding:10px 11px;
+    display:grid;
+    gap:7px;
+  }
+  .summary-line{
+    display:flex;
+    justify-content:space-between;
+    gap:12px;
+    align-items:center;
+    font-size:.79rem;
+  }
+  .summary-line span:first-child{color:var(--muted)}
+  .summary-badge{
+    display:inline-flex;
+    align-items:center;
+    border-radius:999px;
+    padding:3px 8px;
+    font-size:.72rem;
+    font-weight:900;
+    border:1px solid var(--border);
+    background:var(--panel3);
+  }
+  .summary-badge.ok{color:#a7f3c4;border-color:rgba(88,214,141,.35);background:rgba(88,214,141,.08)}
+  .summary-badge.bad{color:#ffb0b0;border-color:rgba(255,107,107,.35);background:rgba(255,107,107,.08)}
+  .summary-badge.dirty{color:#ffe59a;border-color:rgba(244,211,94,.35);background:rgba(244,211,94,.08)}
+  .smart-actions{display:flex;gap:8px;flex-wrap:wrap}
+  .smart-actions button{flex:1 1 150px}
+
+  .progress-panel{
+    margin-bottom:10px;
+    display:grid;
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:8px;
+  }
+  .progress-stat{
+    background:var(--panel2);
+    border:1px solid var(--border);
+    border-radius:11px;
+    padding:8px 9px;
+  }
+  .progress-stat b{display:block;font-size:1rem}
+  .progress-stat span{font-size:.69rem;color:var(--muted)}
+  .progress-track{
+    grid-column:1/-1;
+    height:8px;
+    border-radius:999px;
+    overflow:hidden;
+    background:#0d121a;
+    border:1px solid var(--border);
+  }
+  .progress-fill{
+    height:100%;
+    width:0%;
+    background:linear-gradient(90deg,var(--accent),var(--success));
+    transition:width .22s ease;
+  }
+  .board-toolbar{
+    display:flex;
+    justify-content:space-between;
+    gap:8px;
+    flex-wrap:wrap;
+    margin:0 0 10px;
+  }
+  .board-toolbar-group{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+  .board-toolbar .small{align-self:center}
+  .participant-details{
+    margin-top:14px;
+    border:1px solid var(--border);
+    border-radius:12px;
+    background:var(--panel2);
+    overflow:hidden;
+  }
+  .participant-details summary{
+    cursor:pointer;
+    padding:10px 12px;
+    font-size:.8rem;
+    font-weight:900;
+    color:var(--text);
+  }
+  .participant-details .queue{padding:0 10px 10px;margin-top:0;max-height:220px;overflow:auto}
+  .dirty-note{font-size:.72rem;color:var(--warn);display:none}
+  .dirty-note.visible{display:block}
+  .config-locked{opacity:.67}
+  body.presentation-mode{padding:8px}
+  body.presentation-mode .hero{display:none}
+  body.presentation-mode .layout{grid-template-columns:minmax(0,1fr);max-width:1180px;margin:0 auto}
+  body.presentation-mode .layout > .panel:first-child{display:none}
+  body.presentation-mode .layout > .panel:nth-child(2){padding:12px}
+  body.presentation-mode .board-wrap{padding:6px}
+  @media(max-width:760px){
+    .scenario-bar{grid-template-columns:1fr}
+    .progress-panel{grid-template-columns:repeat(2,minmax(0,1fr))}
+  }
+
+  .lever-panel{
+    margin-top:12px;
+    border:1px solid var(--border);
+    background:linear-gradient(180deg,#202838,#171d28);
+    border-radius:14px;
+    padding:12px;
+  }
+  .lever-title{
+    font-size:.78rem;
+    font-weight:900;
+    color:var(--muted);
+    margin-bottom:8px;
+    text-transform:uppercase;
+    letter-spacing:.06em;
+  }
+  .lever-control{
+    width:100%;min-height:94px;display:flex;align-items:center;gap:16px;
+    padding:10px 14px;border:1px solid #46536b;background:#111722;text-align:left;overflow:hidden;
+  }
+  .lever-control:hover:not(:disabled){background:#151d2a}
+  .lever-track{
+    position:relative;flex:0 0 58px;height:70px;border-radius:999px;background:#0b0f16;
+    border:2px solid #3a465b;box-shadow:inset 0 0 0 4px rgba(255,255,255,.025);
+  }
+  .lever-stick{
+    position:absolute;left:27px;top:15px;width:4px;height:39px;border-radius:4px;background:#c7d2e6;
+    transform-origin:50% 100%;transform:rotate(-24deg);transition:transform .3s cubic-bezier(.2,.8,.2,1);
+  }
+  .lever-knob{
+    position:absolute;width:25px;height:25px;border-radius:50%;left:5px;top:4px;
+    background:radial-gradient(circle at 35% 30%,#fff0b2,#f4d35e 45%,#9b7720);
+    box-shadow:0 5px 12px rgba(0,0,0,.35);transition:transform .3s cubic-bezier(.2,.8,.2,1);
+  }
+  .lever-control.pulled .lever-stick{transform:rotate(24deg)}
+  .lever-control.pulled .lever-knob{transform:translate(23px,38px)}
+  .lever-copy{display:flex;flex-direction:column;gap:3px}
+  .lever-copy strong{font-size:.95rem}
+  .lever-copy small{font-size:.76rem;color:var(--muted);font-weight:600}
+  .lever-control:disabled{opacity:.62}
+  .slot-list{display:grid;gap:2px}
+
+  .custom-panel{
+    margin-top:14px;
+    border:1px solid var(--border);
+    border-radius:12px;
+    background:var(--panel2);
+    overflow:hidden;
+  }
+  .custom-panel summary{
+    cursor:pointer;
+    list-style:none;
+    padding:11px 12px;
+    font-weight:900;
+    color:var(--text);
+    display:flex;
+    justify-content:space-between;
+    gap:8px;
+    align-items:center;
+  }
+  .custom-panel summary::-webkit-details-marker{display:none}
+  .custom-panel summary::after{content:"▾";color:var(--muted)}
+  .custom-panel:not([open]) summary::after{content:"▸"}
+  .custom-body{padding:0 12px 12px}
+  .custom-grid{
+    display:grid;
+    grid-template-columns:repeat(2,minmax(0,1fr));
+    gap:9px 10px;
+  }
+  .custom-item{
+    border:1px solid var(--border);
+    border-radius:9px;
+    padding:8px 9px;
+    background:var(--panel3);
+    min-width:0;
+  }
+  .custom-item label{
+    display:flex;
+    justify-content:space-between;
+    gap:7px;
+    color:var(--muted);
+    font-size:.74rem;
+    font-weight:800;
+    margin-bottom:6px;
+  }
+  .custom-item output{
+    color:var(--text);
+    font-variant-numeric:tabular-nums;
+  }
+  .custom-item input[type="range"]{
+    width:100%;
+    accent-color:var(--accent);
+  }
+  .custom-actions{
+    display:flex;
+    gap:7px;
+    flex-wrap:wrap;
+    margin-top:10px;
+  }
+  .custom-actions button{
+    min-height:36px;
+    padding:7px 10px;
+    font-size:.77rem;
+  }
+  .custom-note{
+    margin-top:8px;
+    color:var(--muted);
+    font-size:.72rem;
+    line-height:1.4;
+  }
+  @media(max-width:620px){
+    .custom-grid{grid-template-columns:1fr}
+  }
+
+  
+  .hint{margin-top:6px;color:var(--muted);font-size:.74rem;line-height:1.35}
+@media(max-width:1100px){
+    .layout{grid-template-columns:1fr}
+  }
+  @media(max-width:620px){
+    body{padding:12px}
+    .bottom-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="hero">
+    <h1>Marble Pinball Draw</h1>
+    <p>Alternatywny prototyp losowania: wszystkie kulki są od razu widoczne w komorze START. Jedna dźwignia wypuszcza je razem, a na dole kulki wpadają do rur, które prowadzą je do małych komór wynikowych.</p>
+  </header>
+
+  <div class="layout">
+    <section class="panel">
+      <h2>Szybka konfiguracja</h2>
+      <div class="sub">Wspólne ustawienia turnieju są na górze: 2–128 uczestników, format, tempo i seed. Parametry fizycznej maszyny pozostają osobno.</div>
+
+      <div class="tds-standard-bar">
+        <span><strong>Wspólna konfiguracja turnieju</strong> · mechanizm: Marble</span>
+        <span class="tds-standard-badge">TDS 1.0</span>
+      </div>
+
+      <div class="quick-setup">
+        <div class="setup-row">
+          <div class="setup-card">
+            <div class="label">Liczba uczestników</div>
+            <input id="ballCountInput" data-tds-setting="participantCount" type="number" min="2" max="128" value="8" />
+            <div class="hint">2–128 uczestników.</div>
+          </div>
+
+          <div class="setup-card">
+            <div class="label">Format turnieju</div>
+            <select id="drawFormatSelect" data-tds-setting="format">
+              <option value="elimination" selected>Single Elimination — drabinka</option>
+              <option value="groups">Grupy</option>
+              <option value="swiss">Szwajcarski — pary rundy 1</option>
+            </select>
+            <div id="formatHelp" class="hint">Kolejność wygenerowana przez maszynę zostanie zamieniona na pozycje drabinki.</div>
+          </div>
+        </div>
+
+        <div class="setup-row">
+          <div class="setup-card">
+            <div class="label">Liczba grup</div>
+            <input id="groupCountInput" data-tds-setting="groupCount" type="number" min="2" max="16" value="4" />
+            <div id="groupCountHint" class="hint">Używane tylko w formacie grupowym.</div>
+          </div>
+
+          <div class="setup-card">
+            <div class="label">Tempo losowania</div>
+            <select id="drawSpeedSelect" data-tds-setting="pace">
+              <option value="auto" selected>Auto — zależne od liczby graczy</option>
+              <option value="show">Pokazowe</option>
+              <option value="fast">Szybkie</option>
+              <option value="turbo">Turbo</option>
+            </select>
+            <div class="hint">Wpływa głównie na odstęp między falami. Fizyka kulek pozostaje taka sama.</div>
+          </div>
+        </div>
+
+        <div class="setup-card">
+          <div class="label">Seed losowania</div>
+          <div class="row">
+            <input id="quickSeedInput" data-tds-setting="seed" type="text" value="" placeholder="opcjonalny seed" />
+            <button id="quickRandomSeedBtn" class="secondary" type="button">Losowy</button>
+          </div>
+          <div class="hint">To samo ustawienie jest dostępne niżej w sekcji testowej.</div>
+        </div>
+
+        <div class="setup-row">
+          <div class="setup-card">
+            <div class="label">Pojemność jednego otworu</div>
+            <input id="holeCapacityInput" type="number" min="1" max="16" value="1" />
+            <div class="hint">1–16 kulek, pionowo jedna nad drugą.</div>
+          </div>
+
+          <div class="setup-card">
+            <div class="label">Liczba otworów / rur</div>
+            <input id="pocketCountInput" type="number" min="4" max="16" value="8" />
+            <div class="hint">4–16 niezależnych rur i pojemników.</div>
+          </div>
+        </div>
+
+        <div class="setup-row">
+          <div class="setup-card">
+            <div class="label">Kulki wypuszczane naraz</div>
+            <input id="waveSizeInput" type="number" min="1" max="128" value="8" />
+            <div class="hint">Dźwignia uruchamia kolejne fale aż wypuści wszystkie.</div>
+          </div>
+
+        </div>
+
+        <div class="tds-standard-bar">
+          <span><strong>Mechanika losowania</strong> · Marble / Pinball</span>
+          <span class="tds-standard-badge">ustawienia silnika</span>
+        </div>
+
+        <div class="setup-card">
+          <div class="label">Szybki scenariusz</div>
+          <div class="scenario-bar">
+            <select id="scenarioPresetSelect">
+              <option value="custom">Własna konfiguracja</option>
+              <option value="8solo">8 kulek → 8 pojedynczych miejsc</option>
+              <option value="16x4">16 kulek → 4 komory po 4</option>
+              <option value="32x4">32 kulki → 8 komór po 4</option>
+              <option value="64x8">64 kulki → 8 komór po 8</option>
+              <option value="128x16">128 kulek → 8 komór po 16</option>
+            </select>
+            <button id="applyScenarioBtn" class="secondary" type="button">Ustaw</button>
+          </div>
+        </div>
+        <div class="setup-card">
+          <div class="label">Dopasowanie przy wielu otworach</div>
+          <label class="setup-option"><input id="autoFitDenseInput" type="checkbox" checked> Automatycznie zmniejsz kulki i tuby, jeśli przy wybranej liczbie otworów się nie mieszczą</label>
+          <div class="hint" id="autoFitDenseHint">Rozmiar zostanie zachowany, dopóki fizycznie mieści się w szerokości kanału.</div>
+        </div>
+
+        <div class="setup-card">
+          <div class="label">Gotowy układ toru</div>
+          <select id="quickPresetSelect">
+            <option value="standard" selected>Standardowy</option>
+            <option value="dense">Gęsty — dużo pegów</option>
+            <option value="sparse">Luźny — mniej pegów</option>
+            <option value="slow">Wolny pokazowy</option>
+          </select>
+        </div>
+
+        <div class="setup-card">
+          <div class="label">Uczestnicy</div>
+          <textarea id="participantsInput" data-tds-setting="participants">Team 1
+Team 2
+Team 3
+Team 4
+Team 5
+Team 6
+Team 7
+Team 8
+Team 9
+Team 10
+Team 11
+Team 12
+Team 13
+Team 14
+Team 15
+Team 16
+Team 17
+Team 18
+Team 19
+Team 20
+Team 21
+Team 22
+Team 23
+Team 24
+Team 25
+Team 26
+Team 27
+Team 28
+Team 29
+Team 30
+Team 31
+Team 32</textarea>
+          <div class="setup-actions">
+            <button id="generateNamesBtn" class="secondary" type="button">Wygeneruj Team 1…N</button>
+            <button id="applyBtn" data-tds-action="apply" type="button">Zastosuj konfigurację</button>
+          </div>
+        </div>
+
+        <div class="setup-card">
+          <div class="label">Prezentacja wyników</div>
+          <label class="setup-option"><input id="autoShowResults" type="checkbox" checked> Automatycznie pokaż pełne wyniki po zakończeniu</label>
+        </div>
+      </div>
+
+      <div class="config-summary" id="configSummary">
+        <div class="summary-line"><span>Format turnieju</span><strong id="summaryFormat">Single Elimination</strong></div>
+        <div class="summary-line"><span>Pojemność całkowita</span><strong id="summaryCapacity">8 / 8</strong></div>
+        <div class="summary-line"><span>Fale</span><strong id="summaryWaves">1 × 8</strong></div>
+        <div class="summary-line"><span>Układ</span><strong id="summaryLayout">8 rur × 1</strong></div>
+        <div class="summary-line"><span>Status</span><span id="summaryStatus" class="summary-badge ok">Gotowe</span></div>
+        <div id="dirtyNote" class="dirty-note">Masz niezastosowane zmiany ustawień.</div>
+        <div class="smart-actions">
+          <button id="autoFixBtn" class="secondary" type="button">Dopasuj pojemność automatycznie</button>
+        </div>
+      </div>
+
+      <details class="custom-panel">
+        <summary>Zaawansowane ustawienia toru</summary>
+        <div class="custom-body">
+          <div class="custom-grid">
+            <div class="custom-item">
+              <label><span>Rozmiar kulek</span><output id="ballSizeOut">17 px</output></label>
+              <input id="ballSizeInput" type="range" min="6" max="28" value="17">
+            </div>
+
+            <div class="custom-item">
+              <label><span>Rozmiar pegów</span><output id="pegSizeOut">9 px</output></label>
+              <input id="pegSizeInput" type="range" min="5" max="16" value="9">
+            </div>
+
+            <div class="custom-item">
+              <label><span>Liczba rzędów pegów</span><output id="pegRowsOut">12</output></label>
+              <input id="pegRowsInput" type="range" min="4" max="26" value="12">
+            </div>
+
+            <div class="custom-item">
+              <label><span>Pegi w pełnym rzędzie</span><output id="pegColsOut">7</output></label>
+              <input id="pegColsInput" type="range" min="3" max="14" value="7">
+            </div>
+
+            <div class="custom-item">
+              <label><span>Odstęp pionowy pegów</span><output id="pegGapYOut">72 px</output></label>
+              <input id="pegGapYInput" type="range" min="32" max="110" value="72">
+            </div>
+
+            <div class="custom-item">
+              <label><span>Szerokość aktywnego pola</span><output id="fieldWidthOut">740 px</output></label>
+              <input id="fieldMarginInput" type="range" min="35" max="220" value="120">
+            </div>
+
+            <div class="custom-item">
+              <label><span>Rozmiar otworów</span><output id="holeSizeOut">36 px</output></label>
+              <input id="holeSizeInput" type="range" min="12" max="50" value="36">
+            </div>
+
+            <div class="custom-item">
+              <label><span>Wysokość lejków</span><output id="funnelHeightOut">68 px</output></label>
+              <input id="funnelHeightInput" type="range" min="42" max="115" value="68">
+            </div>
+
+            <div class="custom-item">
+              <label><span>Grubość prowadnic</span><output id="railSizeOut">6 px</output></label>
+              <input id="railSizeInput" type="range" min="3" max="11" value="6">
+            </div>
+
+            <div class="custom-item">
+              <label><span>Grawitacja</span><output id="gravityOut">0.065</output></label>
+              <input id="gravityInput" type="range" min="25" max="110" value="65">
+            </div>
+
+            <div class="custom-item">
+              <label><span>Prędkość startowa</span><output id="launchSpeedOut">100%</output></label>
+              <input id="launchSpeedInput" type="range" min="35" max="160" value="100">
+            </div>
+
+            <div class="custom-item">
+              <label><span>Siła sprężyny</span><output id="springPowerOut">100%</output></label>
+              <input id="springPowerInput" type="range" min="50" max="180" value="100">
+            </div>
+
+            <div class="custom-item">
+              <label><span>Długość smugi</span><output id="trailLengthOut">12</output></label>
+              <input id="trailLengthInput" type="range" min="0" max="28" value="12">
+            </div>
+
+            <div class="custom-item">
+              <label><span>Odstęp między falami</span><output id="waveDelayOut">650 ms</output></label>
+              <input id="waveDelayInput" type="range" min="150" max="2000" step="50" value="650">
+            </div>
+
+            <div class="custom-item">
+              <label><span>Sprężystość zderzeń kulek</span><output id="ballBounceOut">74%</output></label>
+              <input id="ballBounceInput" type="range" min="30" max="95" value="74">
+            </div>
+
+            <div class="custom-item">
+              <label><span>Tarcie przy zderzeniach</span><output id="collisionFrictionOut">8%</output></label>
+              <input id="collisionFrictionInput" type="range" min="0" max="30" value="8">
+            </div>
+          </div>
+
+          <div class="custom-actions">
+            <button id="applyTrackBtn" class="secondary" type="button">Zastosuj tor</button>
+            <button id="densePresetBtn" class="secondary" type="button">Preset: gęsty</button>
+            <button id="sparsePresetBtn" class="secondary" type="button">Preset: luźny</button>
+            <button id="defaultTrackBtn" class="secondary" type="button">Domyślny</button>
+          </div>
+          <div class="custom-note">Zmiany geometrii są stosowane przyciskiem „Zastosuj tor” i resetują aktualne losowanie.</div>
+        </div>
+      </details>
+
+      <details class="custom-panel">
+        <summary>Seed / testowanie powtarzalności</summary>
+        <div class="custom-body">
+          <div class="field">
+            <div class="label">Seed testowy (opcjonalny)</div>
+            <div class="row">
+              <input id="seedInput" type="text" value="" placeholder="np. PINBALL-123" />
+              <button id="seedRandomBtn" class="secondary" type="button">Losowy seed</button>
+            </div>
+            <div class="small" id="seedStatus">Brak seeda = zwykła losowość.</div>
+          </div>
+        </div>
+      </details>
+
+      <div class="controls" style="margin-top:12px">
+        <button id="resetBtn" data-tds-action="reset" class="warn" type="button">Nowe losowanie</button>
+      </div>
+
+      <div class="lever-panel">
+        <div class="lever-title">Start losowania</div>
+        <button id="leverBtn" data-tds-action="start" class="lever-control" type="button" aria-label="Pociągnij dźwignię i wypuść wszystkie kulki">
+          <span class="lever-track">
+            <span class="lever-stick"></span>
+            <span class="lever-knob"></span>
+          </span>
+          <span class="lever-copy">
+            <strong id="leverTitle">Pociągnij dźwignię</strong>
+            <small id="leverSubtitle">Odblokowanie od dołu ku górze</small>
+          </span>
+        </button>
+        <div class="small" style="margin-top:8px;text-align:center">
+          Kolejność odblokowania: <strong style="color:var(--text)">najniższy rząd → kolejne wyższe rzędy</strong>
+        </div>
+      </div>
+
+      <div class="status" id="statusBox">
+        <div><strong>Gotowe.</strong> Ustaw parametry i pociągnij dźwignię.</div>
+      </div>
+
+      <details class="participant-details">
+        <summary id="participantsSummary">Uczestnicy — 0</summary>
+        <div class="queue" id="queueBox"></div>
+      </details>
+
+      <div class="legend">
+        <span><span class="dot" style="background:#8fb4ff"></span>aktywna kulka</span>
+        <span><span class="dot" style="background:#58d68d"></span>kulka w kieszeni</span>
+        <span><span class="dot" style="background:#ff6b6b"></span>wolne wejście</span>
+      </div>
+    </section>
+
+    <section class="panel" id="boardPanel">
+      <div class="board-toolbar">
+        <div class="board-toolbar-group">
+          <h2 style="margin:0">Tor losowania</h2>
+          <span class="small" id="boardStateLabel">Gotowy</span>
+        </div>
+        <div class="board-toolbar-group">
+          <button id="presentationBtn" data-tds-action="presentation" class="secondary" type="button">Tryb prezentacji</button>
+          <button id="scrollStartBtn" class="secondary" type="button">Do STARTU</button>
+          <button id="scrollResultsBtn" class="secondary" type="button">Do wyników</button>
+        </div>
+      </div>
+
+      <div class="progress-panel">
+        <div class="progress-stat"><b id="progressStart">0</b><span>START</span></div>
+        <div class="progress-stat"><b id="progressBoard">0</b><span>NA TORZE</span></div>
+        <div class="progress-stat"><b id="progressPipes">0</b><span>W RURACH</span></div>
+        <div class="progress-stat"><b id="progressDone">0</b><span>GOTOWE</span></div>
+        <div class="progress-track"><div id="progressFill" class="progress-fill"></div></div>
+      </div>
+
+      <div class="sub">Każdy otwór prowadzi do osobnej pionowej rury i pojemnika. Pełny kanał zamyka sprężyna, a mechanizm anti-stuck odblokowuje kulki, które utknęły na torze.</div>
+
+      <div class="board-wrap">
+        <canvas id="board" data-tds-engine-root="marble" width="980" height="1480"></canvas>
+      </div>
+
+      <div class="results-toolbar">
+        <div class="results-toolbar-left">
+          <button id="showResultsBtn" class="secondary result-counter" type="button">
+            Wyniki <span id="resultsCount">0</span>
+          </button>
+          <select id="resultsModeSelect" aria-label="Sposób prezentacji wyników">
+            <option value="format" selected>Przydział turniejowy</option>
+            <option value="holes">Według rur</option>
+            <option value="history">Kolejność trafień</option>
+          </select>
+        </div>
+        <div class="results-toolbar-right">
+          <button id="copyResultsBtn" data-tds-action="copy" class="secondary" type="button">Kopiuj wyniki</button>
+          <button id="saveCsvBtn" data-tds-action="csv" class="secondary" type="button">Zapisz CSV</button>
+          <button id="saveJsonBtn" data-tds-action="json" class="secondary" type="button">Zapisz JSON</button>
+        </div>
+      </div>
+
+      <div id="resultsPanel" class="results-panel hidden">
+        <div class="results-title">Wyniki losowania</div>
+        <div id="resultsHoles" class="results-grid"></div>
+        <div id="resultsHistory" class="results-history" style="display:none"></div>
+      </div>
+
+      <div id="slotsGrid" style="display:none"></div>
+      <div id="drawOrder" style="display:none"></div>
+    </section>
+  </div>
+</div>
+
+<script>
+(function(global){
+  "use strict";
+
+  const VERSION = "TDS-1.0";
+  const LIMITS = Object.freeze({
+    participantsMin: 2,
+    participantsMax: 128,
+    groupsMin: 2,
+    groupsMax: 16
+  });
+
+  const FORMATS = Object.freeze({
+    elimination: "elimination",
+    groups: "groups",
+    swiss: "swiss"
+  });
+
+  const PACES = Object.freeze(["auto","show","fast","turbo"]);
+
+  function clamp(value,min,max){
+    return Math.max(min,Math.min(max,value));
+  }
+
+  function nextPowerOfTwo(n){
+    let p=1;
+    while(p<n)p*=2;
+    return Math.max(2,Math.min(128,p));
+  }
+
+  function normalizeConfig(input){
+    const participantCount=clamp(
+      Number(input?.participantCount)||8,
+      LIMITS.participantsMin,
+      LIMITS.participantsMax
+    );
+    const format=Object.values(FORMATS).includes(input?.format)
+      ? input.format
+      : FORMATS.elimination;
+    const groupCount=clamp(
+      Number(input?.groupCount)||4,
+      LIMITS.groupsMin,
+      Math.min(LIMITS.groupsMax,participantCount)
+    );
+    const pace=PACES.includes(input?.pace)?input.pace:"auto";
+    const seed=String(input?.seed||"").trim();
+
+    return {participantCount,format,groupCount,pace,seed};
+  }
+
+  function groupName(index){
+    return index<26?String.fromCharCode(65+index):`G${index+1}`;
+  }
+
+  function chooseByePositions(size,participants){
+    const byes=size-participants;
+    const matchCount=size/2;
+    const result=new Set();
+    if(byes<=0)return result;
+
+    for(let i=0;i<byes;i++){
+      let matchIndex=Math.floor((i+.5)*matchCount/byes);
+      matchIndex=Math.max(0,Math.min(matchCount-1,matchIndex));
+      let probe=0;
+
+      while(probe<matchCount){
+        const m=(matchIndex+probe)%matchCount;
+        const top=m*2,bottom=top+1;
+        if(!result.has(top)&&!result.has(bottom)){
+          result.add(i%2===0?top:bottom);
+          break;
+        }
+        probe++;
+      }
+    }
+    return result;
+  }
+
+  function eliminationMeta(participantCount){
+    const size=nextPowerOfTwo(participantCount);
+    const byes=chooseByePositions(size,participantCount);
+    const positions=[];
+    for(let i=0;i<size;i++){
+      if(!byes.has(i))positions.push(i+1);
+    }
+    return {
+      bracketSize:size,
+      byeCount:byes.size,
+      byePositions:[...byes].map(v=>v+1),
+      participantPositions:positions
+    };
+  }
+
+  function buildAssignmentPlan(input){
+    const config=normalizeConfig(input);
+    const plan=[];
+
+    if(config.format===FORMATS.groups){
+      for(let i=0;i<config.participantCount;i++){
+        const group=i%config.groupCount;
+        const position=Math.floor(i/config.groupCount)+1;
+        plan.push({
+          drawIndex:i,
+          drawOrder:i+1,
+          format:FORMATS.groups,
+          group,
+          groupName:groupName(group),
+          groupPosition:position,
+          label:`Grupa ${groupName(group)} · miejsce ${position}`
+        });
+      }
+      return plan;
+    }
+
+    if(config.format===FORMATS.swiss){
+      for(let i=0;i<config.participantCount;i++){
+        const pairing=Math.floor(i/2)+1;
+        const side=i%2===0?"A":"B";
+        plan.push({
+          drawIndex:i,
+          drawOrder:i+1,
+          format:FORMATS.swiss,
+          round:1,
+          pairing,
+          side,
+          label:`Para ${pairing} · ${side}`
+        });
+      }
+      return plan;
+    }
+
+    const meta=eliminationMeta(config.participantCount);
+    for(let i=0;i<config.participantCount;i++){
+      const bracketPosition=meta.participantPositions[i];
+      plan.push({
+        drawIndex:i,
+        drawOrder:i+1,
+        format:FORMATS.elimination,
+        bracketSize:meta.bracketSize,
+        bracketPosition,
+        label:`Pozycja drabinki ${bracketPosition}`
+      });
+    }
+    return plan;
+  }
+
+  function formatMeta(input){
+    const config=normalizeConfig(input);
+
+    if(config.format===FORMATS.groups){
+      const minSize=Math.floor(config.participantCount/config.groupCount);
+      const maxSize=Math.ceil(config.participantCount/config.groupCount);
+      return {
+        format:config.format,
+        groupCount:config.groupCount,
+        minGroupSize:minSize,
+        maxGroupSize:maxSize
+      };
+    }
+
+    if(config.format===FORMATS.swiss){
+      return {
+        format:config.format,
+        round:1,
+        pairCount:Math.ceil(config.participantCount/2),
+        byeCount:config.participantCount%2
+      };
+    }
+
+    return {format:config.format,...eliminationMeta(config.participantCount)};
+  }
+
+  function participantId(index){
+    return `P${String(index+1).padStart(3,"0")}`;
+  }
+
+  function buildResultEnvelope({
+    engineId,
+    engineVersion,
+    config,
+    participants,
+    order,
+    engineData={}
+  }){
+    const normalized=normalizeConfig({
+      ...config,
+      participantCount:participants.length
+    });
+    const plan=buildAssignmentPlan(normalized);
+
+    const participantRecords=participants.map((name,index)=>({
+      id:participantId(index),
+      index,
+      name
+    }));
+
+    const nameToUnusedIndices=new Map();
+    participantRecords.forEach((p)=>{
+      if(!nameToUnusedIndices.has(p.name))nameToUnusedIndices.set(p.name,[]);
+      nameToUnusedIndices.get(p.name).push(p.index);
+    });
+
+    const standardizedOrder=(order||[]).map((item,index)=>{
+      const name=typeof item==="string"?item:item.name;
+      let participantIndex=Number.isInteger(item?.participantIndex)
+        ? item.participantIndex
+        : null;
+
+      if(participantIndex===null){
+        const queue=nameToUnusedIndices.get(name)||[];
+        participantIndex=queue.length?queue.shift():index;
+      }
+
+      return {
+        drawOrder:index+1,
+        participantId:participantId(participantIndex),
+        participantIndex,
+        name,
+        assignment:plan[index]||null,
+        engineDetail:typeof item==="object"&&item?.engineDetail
+          ? item.engineDetail
+          : null
+      };
+    });
+
+    return {
+      schemaVersion:VERSION,
+      generatedAt:new Date().toISOString(),
+      engine:{
+        id:String(engineId||"unknown"),
+        version:String(engineVersion||"1")
+      },
+      tournament:{
+        ...normalized,
+        meta:formatMeta(normalized)
+      },
+      participants:participantRecords,
+      results:{
+        complete:standardizedOrder.length===participants.length,
+        completedCount:standardizedOrder.length,
+        totalCount:participants.length,
+        order:standardizedOrder
+      },
+      engineData
+    };
+  }
+
+  function resultRows(snapshot){
+    return snapshot.results.order.map(item=>[
+      item.drawOrder,
+      item.participantId,
+      item.name,
+      snapshot.tournament.format,
+      item.assignment?.label||"",
+      snapshot.engine.id,
+      item.engineDetail||""
+    ]);
+  }
+
+  function toCsv(snapshot){
+    const rows=[
+      ["Kolejność","ID","Uczestnik","Format","Przydział","Mechanizm","Dane mechaniki"],
+      ...resultRows(snapshot)
+    ];
+    return "\ufeff"+rows.map(row=>
+      row.map(v=>`"${String(v??"").replace(/"/g,'""')}"`).join(",")
+    ).join("\n");
+  }
+
+  global.TournamentDrawStandard=Object.freeze({
+    VERSION,
+    LIMITS,
+    FORMATS,
+    PACES,
+    normalizeConfig,
+    nextPowerOfTwo,
+    chooseByePositions,
+    eliminationMeta,
+    buildAssignmentPlan,
+    formatMeta,
+    participantId,
+    buildResultEnvelope,
+    toCsv
+  });
+})(typeof window!=="undefined"?window:globalThis);
+
+
+(() => {
+  const TDS=window.TournamentDrawStandard;
+  const ENGINE_ID="marble";
+  const ENGINE_VERSION="24";
+  const participantsInput = document.getElementById('participantsInput');
+  const drawFormatSelect = document.getElementById('drawFormatSelect');
+  const groupCountInput = document.getElementById('groupCountInput');
+  const groupCountHint = document.getElementById('groupCountHint');
+  const drawSpeedSelect = document.getElementById('drawSpeedSelect');
+  const formatHelp = document.getElementById('formatHelp');
+  const quickSeedInput = document.getElementById('quickSeedInput');
+  const quickRandomSeedBtn = document.getElementById('quickRandomSeedBtn');
+  const scenarioPresetSelect = document.getElementById('scenarioPresetSelect');
+  const applyScenarioBtn = document.getElementById('applyScenarioBtn');
+  const autoFixBtn = document.getElementById('autoFixBtn');
+  const summaryFormat = document.getElementById('summaryFormat');
+  const summaryCapacity = document.getElementById('summaryCapacity');
+  const summaryWaves = document.getElementById('summaryWaves');
+  const summaryLayout = document.getElementById('summaryLayout');
+  const summaryStatus = document.getElementById('summaryStatus');
+  const dirtyNote = document.getElementById('dirtyNote');
+  const participantsSummary = document.getElementById('participantsSummary');
+  const quickPresetSelect = document.getElementById('quickPresetSelect');
+  const generateNamesBtn = document.getElementById('generateNamesBtn');
+  const autoShowResults = document.getElementById('autoShowResults');
+
+  const ballCountInput = document.getElementById('ballCountInput');
+  const holeCapacityInput = document.getElementById('holeCapacityInput');
+  const waveSizeInput = document.getElementById('waveSizeInput');
+  const pocketCountInput = document.getElementById('pocketCountInput');
+  const autoFitDenseInput = document.getElementById('autoFitDenseInput');
+  const autoFitDenseHint = document.getElementById('autoFitDenseHint');
+  const seedInput = document.getElementById('seedInput');
+  const seedRandomBtn = document.getElementById('seedRandomBtn');
+  const seedStatus = document.getElementById('seedStatus');
+  const applyBtn = document.getElementById('applyBtn');
+  const leverBtn = document.getElementById('leverBtn');
+  const resetBtn = document.getElementById('resetBtn');
+  const statusBox = document.getElementById('statusBox');
+  const queueBox = document.getElementById('queueBox');
+  const slotsGrid = document.getElementById('slotsGrid');
+  const drawOrder = document.getElementById('drawOrder');
+  const showResultsBtn = document.getElementById('showResultsBtn');
+  const resultsCount = document.getElementById('resultsCount');
+  const resultsModeSelect = document.getElementById('resultsModeSelect');
+  const resultsPanel = document.getElementById('resultsPanel');
+  const resultsHoles = document.getElementById('resultsHoles');
+  const resultsHistory = document.getElementById('resultsHistory');
+  const copyResultsBtn = document.getElementById('copyResultsBtn');
+  const saveCsvBtn = document.getElementById('saveCsvBtn');
+  const saveJsonBtn = document.getElementById('saveJsonBtn');
+  const canvas = document.getElementById('board');
+  const boardPanel = document.getElementById('boardPanel');
+  const presentationBtn = document.getElementById('presentationBtn');
+  const scrollStartBtn = document.getElementById('scrollStartBtn');
+  const scrollResultsBtn = document.getElementById('scrollResultsBtn');
+  const boardStateLabel = document.getElementById('boardStateLabel');
+  const progressStart = document.getElementById('progressStart');
+  const progressBoard = document.getElementById('progressBoard');
+  const progressPipes = document.getElementById('progressPipes');
+  const progressDone = document.getElementById('progressDone');
+  const progressFill = document.getElementById('progressFill');
+  const leverTitle = document.getElementById('leverTitle');
+  const leverSubtitle = document.getElementById('leverSubtitle');
+  const ctx = canvas.getContext('2d');
+
+  const ballSizeInput = document.getElementById('ballSizeInput');
+  const pegSizeInput = document.getElementById('pegSizeInput');
+  const pegRowsInput = document.getElementById('pegRowsInput');
+  const pegColsInput = document.getElementById('pegColsInput');
+  const pegGapYInput = document.getElementById('pegGapYInput');
+  const fieldMarginInput = document.getElementById('fieldMarginInput');
+  const holeSizeInput = document.getElementById('holeSizeInput');
+  const funnelHeightInput = document.getElementById('funnelHeightInput');
+  const railSizeInput = document.getElementById('railSizeInput');
+  const gravityInput = document.getElementById('gravityInput');
+  const launchSpeedInput = document.getElementById('launchSpeedInput');
+  const springPowerInput = document.getElementById('springPowerInput');
+  const trailLengthInput = document.getElementById('trailLengthInput');
+  const waveDelayInput = document.getElementById('waveDelayInput');
+  const ballBounceInput = document.getElementById('ballBounceInput');
+  const collisionFrictionInput = document.getElementById('collisionFrictionInput');
+
+  const ballSizeOut = document.getElementById('ballSizeOut');
+  const pegSizeOut = document.getElementById('pegSizeOut');
+  const pegRowsOut = document.getElementById('pegRowsOut');
+  const pegColsOut = document.getElementById('pegColsOut');
+  const pegGapYOut = document.getElementById('pegGapYOut');
+  const fieldWidthOut = document.getElementById('fieldWidthOut');
+  const holeSizeOut = document.getElementById('holeSizeOut');
+  const funnelHeightOut = document.getElementById('funnelHeightOut');
+  const railSizeOut = document.getElementById('railSizeOut');
+  const gravityOut = document.getElementById('gravityOut');
+  const launchSpeedOut = document.getElementById('launchSpeedOut');
+  const springPowerOut = document.getElementById('springPowerOut');
+  const trailLengthOut = document.getElementById('trailLengthOut');
+  const waveDelayOut = document.getElementById('waveDelayOut');
+  const ballBounceOut = document.getElementById('ballBounceOut');
+  const collisionFrictionOut = document.getElementById('collisionFrictionOut');
+
+  const applyTrackBtn = document.getElementById('applyTrackBtn');
+  const densePresetBtn = document.getElementById('densePresetBtn');
+  const sparsePresetBtn = document.getElementById('sparsePresetBtn');
+  const defaultTrackBtn = document.getElementById('defaultTrackBtn');
+
+
+  const W = canvas.width;
+  let H = canvas.height;
+  let pocketCount = 8;
+  const PARTICLE_COUNT = 12;
+
+  const COLORS = ['#7C9CFF','#FF7A90','#56D7A4','#FFC857','#63A7FF','#D38BFF','#78D35D','#27D3D0'];
+
+  let participants = [];
+  let assignedSlots = Array.from({length: pocketCount}, () => []);
+  let drawHistory = [];
+  let currentIndex = 0;
+  let activeBalls = [];
+  let runStarted = false;
+  let configurationDirty = false;
+  let releasedWaveNumber = 0;
+  let particles = [];
+  let raf = null;
+  let releaseTimers = [];
+  let seedState = null;
+  let springPulse = new Array(pocketCount).fill(0);
+
+  let gravity = 0.065;
+  const air = 0.997;
+  const wallBounce = 0.72;
+  const pegBounce = 0.76;
+  const bumperBounce = 0.84;
+
+  let boardLeft = 120;
+  let boardRight = W - 120;
+  const boardTop = 30;
+  const floorY = 1180;
+  const railTop = 70;
+
+  let ballRadius = 17;
+  let requestedBallRadius = 17;
+  let pegRadius = 9;
+  let pegRows = 12;
+  let pegCols = 7;
+  let requestedPegGapY = 72;
+  let funnelHeight = 68;
+  let railThickness = 6;
+  let holeRadius = 36;
+  let launchSpeedScale = 1;
+  let springPower = 1;
+  let trailLength = 12;
+  let ballRestitution = 0.74;
+  let collisionFriction = 0.08;
+
+  // Symulacja działa w stałym kroku 120 Hz.
+  // 0.5 oznacza pół starej "klatki fizyki" 60 Hz.
+  const PHYSICS_STEP_MS = 1000 / 120;
+  const PHYSICS_DT = 0.5;
+  const MAX_PHYSICS_STEPS = 8;
+  let physicsAccumulator = 0;
+  let lastPhysicsTime = 0;
+
+  let pockets = [];
+  let chambers = [];
+  let pegs = [];
+  const bumpers = [];
+
+  function getStartRackMetrics(count = participants.length || getBallLimit()){
+    const gap = Math.max(3, Math.min(8, ballRadius * 0.35));
+    const pitch = ballRadius * 2 + gap;
+    const usableWidth = Math.max(220, (boardRight - boardLeft) - 70);
+    const cols = Math.max(4, Math.min(count, Math.floor(usableWidth / pitch)));
+    const rows = Math.max(1, Math.ceil(count / cols));
+    const rackWidth = (cols - 1) * pitch;
+    const top = 68;
+    const bottom = top + (rows - 1) * pitch + ballRadius * 2;
+    return {gap, pitch, cols, rows, rackWidth, top, bottom};
+  }
+
+  function rebuildGeometry(){
+    const margin = Number(fieldMarginInput.value);
+    boardLeft = margin;
+    boardRight = W - margin;
+
+    requestedBallRadius = Number(ballSizeInput.value);
+    pegRadius = Number(pegSizeInput.value);
+    pegRows = Number(pegRowsInput.value);
+    pegCols = Number(pegColsInput.value);
+    requestedPegGapY = Number(pegGapYInput.value);
+    holeRadius = Number(holeSizeInput.value);
+    funnelHeight = Number(funnelHeightInput.value);
+    railThickness = Number(railSizeInput.value);
+    gravity = Number(gravityInput.value) / 1000;
+    launchSpeedScale = Number(launchSpeedInput.value) / 100;
+    springPower = Number(springPowerInput.value) / 100;
+    trailLength = Number(trailLengthInput.value);
+    ballRestitution = Number(ballBounceInput.value) / 100;
+    collisionFriction = Number(collisionFrictionInput.value) / 100;
+    pocketCount = getPocketCount();
+
+    const previewPocketWidth = (boardRight - boardLeft) / pocketCount;
+    const denseMaxRadius = Math.max(5, (previewPocketWidth - 12) / 2);
+
+    ballRadius = autoFitDenseInput.checked
+      ? Math.min(requestedBallRadius, denseMaxRadius)
+      : requestedBallRadius;
+
+    if (autoFitDenseInput.checked && ballRadius < requestedBallRadius - 0.1) {
+      autoFitDenseHint.textContent =
+        `Przy ${pocketCount} otworach kulki zostały automatycznie zmniejszone z ${requestedBallRadius.toFixed(0)} px do ${ballRadius.toFixed(1)} px.`;
+    } else {
+      autoFitDenseHint.textContent =
+        `Aktualny rozmiar kulek: ${ballRadius.toFixed(1)} px — mieści się bez skalowania.`;
+    }
+
+    // Canvas rośnie tylko tyle, ile potrzeba dla pionowych tub 1–16 kulek.
+    const chamberPitch = ballRadius * 2 + 4;
+    const chamberHeightNeeded = 34 + getHoleCapacity() * chamberPitch + 16;
+    const requiredHeight = Math.max(1480, floorY + 120 + chamberHeightNeeded + 28);
+    if (canvas.height !== requiredHeight) canvas.height = requiredHeight;
+    H = canvas.height;
+
+    assignedSlots = assignedSlots.length === pocketCount
+      ? assignedSlots
+      : Array.from({length:pocketCount}, () => []);
+    springPulse = springPulse.length === pocketCount
+      ? springPulse
+      : new Array(pocketCount).fill(0);
+
+    pockets = [];
+    chambers = [];
+    const pocketWidth = (boardRight - boardLeft) / pocketCount;
+    for(let i=0;i<pocketCount;i++){
+      const left = boardLeft + i * pocketWidth;
+      const x = left + pocketWidth/2;
+      const capacity = getHoleCapacity();
+      const rowGap = Math.max(2, Math.min(4, ballRadius * 0.28));
+      const ballPitch = ballRadius * 2 + rowGap;
+
+      // Tuba nigdy nie może być szersza niż przypisany jej kanał.
+      const chamberWidth = Math.max(
+        ballRadius * 2 + 6,
+        Math.min(pocketWidth - 6, ballRadius * 2 + 12)
+      );
+
+      const chamberHeight = 34 + capacity * ballPitch + 16;
+      const chamberTop = floorY + 120;
+      const chamberBottom = chamberTop + chamberHeight;
+      const chamberLeft = x - chamberWidth / 2;
+
+      pockets.push({
+        index:i,
+        x,
+        width:pocketWidth,
+        left,
+        right:left+pocketWidth,
+        y:floorY + 10,
+        r:Math.min(holeRadius, pocketWidth * 0.38),
+        label:i+1
+      });
+
+      chambers.push({
+        index:i,
+        x,
+        left: chamberLeft,
+        right: chamberLeft + chamberWidth,
+        top: chamberTop,
+        bottom: chamberBottom,
+        width: chamberWidth,
+        height: chamberHeight,
+        tubeHalf: Math.max(
+          ballRadius + 2,
+          Math.min(
+            chamberWidth / 2 - 3,
+            pocketWidth / 2 - 5,
+            Math.max(ballRadius + 3, holeRadius * 0.62)
+          )
+        ),
+        ballPitch
+      });
+    }
+
+    pegs = [];
+    const pegTopY = Math.max(270, getStartRackMetrics().bottom + 48);
+    const pegBottomLimit = floorY - funnelHeight - 105;
+    const availableHeight = Math.max(120, pegBottomLimit - pegTopY);
+    const actualGapY = pegRows > 1
+      ? Math.min(requestedPegGapY, availableHeight / (pegRows - 1))
+      : 0;
+
+    const sidePad = Math.max(55, ballRadius * 3.2);
+    const usableWidth = Math.max(160, (boardRight-boardLeft) - sidePad*2);
+    const stepX = pegCols > 1 ? usableWidth / (pegCols - 1) : 0;
+    const baseX = boardLeft + sidePad;
+
+    for(let row=0;row<pegRows;row++){
+      const count = row % 2 === 0 ? pegCols : Math.max(2,pegCols-1);
+      const offset = row % 2 === 0 ? 0 : stepX/2;
+
+      for(let i=0;i<count;i++){
+        pegs.push({
+          x:baseX + i*stepX + offset,
+          y:pegTopY + row*actualGapY,
+          r:pegRadius
+        });
+      }
+    }
+
+    updateCustomLabels();
+  }
+
+  function updateCustomLabels(){
+    ballSizeOut.value = ballRadius < requestedBallRadius - 0.1 ? `${ballRadius.toFixed(1)} px (auto)` : `${ballSizeInput.value} px`;
+    pegSizeOut.value = `${pegSizeInput.value} px`;
+    pegRowsOut.value = pegRowsInput.value;
+    pegColsOut.value = pegColsInput.value;
+    pegGapYOut.value = `${pegGapYInput.value} px`;
+    fieldWidthOut.value = `${Math.round(W - Number(fieldMarginInput.value)*2)} px`;
+    holeSizeOut.value = `${holeSizeInput.value} px`;
+    funnelHeightOut.value = `${funnelHeightInput.value} px`;
+    railSizeOut.value = `${railSizeInput.value} px`;
+    gravityOut.value = (Number(gravityInput.value)/1000).toFixed(3);
+    launchSpeedOut.value = `${launchSpeedInput.value}%`;
+    springPowerOut.value = `${springPowerInput.value}%`;
+    trailLengthOut.value = trailLengthInput.value;
+    waveDelayOut.value = `${waveDelayInput.value} ms`;
+    ballBounceOut.value = `${ballBounceInput.value}%`;
+    collisionFrictionOut.value = `${collisionFrictionInput.value}%`;
+  }
+
+
+  function hashString(str){
+    let h = 2166136261 >>> 0;
+    for (let i = 0; i < str.length; i++) {
+      h ^= str.charCodeAt(i);
+      h = Math.imul(h, 16777619);
+    }
+    return h >>> 0;
+  }
+
+  function seededRandom(){
+    if (seedState === null) return Math.random();
+    seedState = (seedState + 0x6D2B79F5) >>> 0;
+    let t = seedState;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  }
+
+  function countInputNames(){
+    return participantsInput.value
+      .split(/\r?\n/)
+      .map(v => v.trim())
+      .filter(Boolean).length;
+  }
+
+  function ensureParticipantNames(){
+    const target = getBallLimit();
+    const list = participantsInput.value
+      .split(/\r?\n/)
+      .map(v => v.trim())
+      .filter(Boolean);
+
+    const used = new Set(list);
+    let n = 1;
+    while (list.length < target) {
+      let candidate = `Team ${n++}`;
+      while (used.has(candidate)) candidate = `Team ${n++}`;
+      used.add(candidate);
+      list.push(candidate);
+    }
+    participantsInput.value = list.join('\n');
+  }
+
+  function nextPowerOfTwo(n){
+    let p = 1;
+    while (p < n) p *= 2;
+    return Math.max(2, Math.min(128, p));
+  }
+
+  function chooseByePositions(size, participantsCount){
+    const byes = size - participantsCount;
+    const matchCount = size / 2;
+    const result = new Set();
+    if (byes <= 0) return result;
+
+    for (let i = 0; i < byes; i++) {
+      let matchIndex = Math.floor((i + 0.5) * matchCount / byes);
+      matchIndex = Math.max(0, Math.min(matchCount - 1, matchIndex));
+      let probe = 0;
+      while (probe < matchCount) {
+        const m = (matchIndex + probe) % matchCount;
+        const top = m * 2, bottom = top + 1;
+        if (!result.has(top) && !result.has(bottom)) {
+          result.add(i % 2 === 0 ? top : bottom);
+          break;
+        }
+        probe++;
+      }
+    }
+    return result;
+  }
+
+  function getDrawFormat(){
+    return drawFormatSelect.value || 'elimination';
+  }
+
+  function getGroupCount(){
+    return clamp(Number(groupCountInput.value) || 4, 2, 16);
+  }
+
+  function groupName(index){
+    return index < 26 ? String.fromCharCode(65 + index) : `G${index + 1}`;
+  }
+
+  function eliminationPositions(total){
+    const size = nextPowerOfTwo(total);
+    const byes = chooseByePositions(size, total);
+    const positions = [];
+    for (let i = 0; i < size; i++) {
+      if (!byes.has(i)) positions.push(i + 1);
+    }
+    return {size, byes: byes.size, positions};
+  }
+
+  function getStandardConfig(){
+    return TDS.normalizeConfig({
+      participantCount:participants.length || getBallLimit(),
+      format:getDrawFormat(),
+      groupCount:getGroupCount(),
+      pace:drawSpeedSelect.value,
+      seed:seedInput.value.trim()
+    });
+  }
+
+  function tournamentAssignmentForDrawIndex(drawIndex){
+    return TDS.buildAssignmentPlan(getStandardConfig())[drawIndex] || null;
+  }
+
+
+  function tournamentAssignmentForHistoryItem(item){
+    return tournamentAssignmentForDrawIndex(Math.max(0, item.arrivalOrder - 1));
+  }
+
+  function getEffectiveWaveDelay(){
+    const mode = drawSpeedSelect.value;
+    const total = getBallLimit();
+    const base = getWaveDelay();
+
+    if (mode === 'show') return Math.max(500, base);
+    if (mode === 'fast') return Math.max(180, Math.round(base * 0.55));
+    if (mode === 'turbo') return 150;
+
+    if (total > 80) return 170;
+    if (total > 48) return 240;
+    if (total > 24) return 360;
+    return base;
+  }
+
+  function speedLabel(){
+    const mode = drawSpeedSelect.value;
+    if (mode === 'show') return 'Pokazowe';
+    if (mode === 'fast') return 'Szybkie';
+    if (mode === 'turbo') return 'Turbo';
+    const total = getBallLimit();
+    if (total > 80) return 'Auto · Turbo';
+    if (total > 48) return 'Auto · szybkie';
+    if (total > 24) return 'Auto · średnie';
+    return 'Auto · pokazowe';
+  }
+
+  function syncQuickSeedFromAdvanced(){
+    quickSeedInput.value = seedInput.value;
+  }
+
+  function syncAdvancedSeedFromQuick(){
+    seedInput.value = quickSeedInput.value.trim();
+  }
+
+  function updateFormatHelp(){
+    const total = getBallLimit();
+    const format = getDrawFormat();
+
+    groupCountInput.disabled = runStarted || format !== 'groups';
+    groupCountHint.textContent = format === 'groups'
+      ? `Grupy: ${getGroupCount()} · około ${Math.floor(total/getGroupCount())}–${Math.ceil(total/getGroupCount())} osób.`
+      : 'Używane tylko w formacie grupowym.';
+
+    if (format === 'groups') {
+      formatHelp.textContent = `Kolejność zakończenia kulek zostanie rozdzielona rotacyjnie do ${getGroupCount()} grup.`;
+      summaryFormat.textContent = `Grupy · ${getGroupCount()}`;
+    } else if (format === 'swiss') {
+      formatHelp.textContent = `Kolejność zakończenia utworzy ${Math.ceil(total/2)} par rundy 1. Kolejne rundy zależą od wyników.`;
+      summaryFormat.textContent = 'Swiss · runda 1';
+    } else {
+      const data = eliminationPositions(total);
+      formatHelp.textContent = data.byes
+        ? `Kolejność zakończenia obsadzi drabinkę ${data.size}; ${data.byes} miejsc to BYE.`
+        : `Kolejność zakończenia obsadzi pełną drabinkę ${data.size}.`;
+      summaryFormat.textContent = 'Single Elimination';
+    }
+  }
+
+  function getDraftSummary(){
+    const balls = getBallLimit();
+    const holes = getPocketCount();
+    const capacity = getHoleCapacity();
+    const totalCapacity = holes * capacity;
+    const wave = Math.min(getWaveSize(), balls);
+    const waves = Math.ceil(balls / Math.max(1, wave));
+    return {balls, holes, capacity, totalCapacity, wave, waves};
+  }
+
+  function updateConfigurationSummary(){
+    const s = getDraftSummary();
+    updateFormatHelp();
+
+    summaryCapacity.textContent = `${s.balls} / ${s.totalCapacity}`;
+    summaryWaves.textContent = s.waves === 1
+      ? `1 fala × ${s.wave} · ${speedLabel()}`
+      : `${s.waves} fal · do ${s.wave} · ${speedLabel()}`;
+    summaryLayout.textContent = `${s.holes} rur × ${s.capacity}`;
+
+    const valid = s.balls <= s.totalCapacity;
+    summaryStatus.textContent = valid
+      ? (configurationDirty ? 'Do zastosowania' : 'Gotowe')
+      : `Brakuje ${s.balls - s.totalCapacity} miejsc`;
+
+    summaryStatus.className = `summary-badge ${valid ? (configurationDirty ? 'dirty' : 'ok') : 'bad'}`;
+    dirtyNote.classList.toggle('visible', configurationDirty);
+
+    applyBtn.disabled = !valid || runStarted;
+    autoFixBtn.disabled = valid || runStarted;
+
+    const effectiveWave = Math.min(s.wave, s.balls);
+    leverSubtitle.textContent = s.waves <= 1
+      ? `Dół → góra · ${s.balls} kulek`
+      : `Dół → góra · ${s.waves} fal · do ${effectiveWave} naraz`;
+  }
+
+  function markConfigurationDirty(){
+    configurationDirty = true;
+    scenarioPresetSelect.value = 'custom';
+    updateCustomLabels();
+    updateConfigurationSummary();
+  }
+
+  function autoFixCapacity(){
+    const balls = getBallLimit();
+    let holes = getPocketCount();
+    let capacity = getHoleCapacity();
+
+    if (holes * capacity >= balls) {
+      updateConfigurationSummary();
+      return;
+    }
+
+    capacity = Math.min(16, Math.max(capacity, Math.ceil(balls / holes)));
+    if (holes * capacity < balls) {
+      holes = Math.min(16, Math.max(holes, Math.ceil(balls / capacity)));
+    }
+
+    pocketCountInput.value = holes;
+    holeCapacityInput.value = capacity;
+    markConfigurationDirty();
+  }
+
+  function applyScenario(name){
+    const presets = {
+      '8solo':   {balls:8,   holes:8, capacity:1,  wave:8},
+      '16x4':    {balls:16,  holes:4, capacity:4,  wave:8},
+      '32x4':    {balls:32,  holes:8, capacity:4,  wave:12},
+      '64x8':    {balls:64,  holes:8, capacity:8,  wave:16},
+      '128x16':  {balls:128, holes:8, capacity:16, wave:16}
+    };
+
+    const p = presets[name];
+    if (!p) return;
+
+    ballCountInput.value = p.balls;
+    pocketCountInput.value = p.holes;
+    holeCapacityInput.value = p.capacity;
+    waveSizeInput.value = p.wave;
+    ensureParticipantNames();
+    configurationDirty = true;
+    applyParticipants();
+  }
+
+  function setConfigurationLocked(locked){
+    const controls = [
+      ballCountInput,holeCapacityInput,waveSizeInput,pocketCountInput,
+      drawFormatSelect,groupCountInput,drawSpeedSelect,quickSeedInput,quickRandomSeedBtn,
+      quickPresetSelect,scenarioPresetSelect,applyScenarioBtn,generateNamesBtn,
+      applyBtn,autoFixBtn,autoFitDenseInput,participantsInput,seedInput,seedRandomBtn,
+      applyTrackBtn,densePresetBtn,sparsePresetBtn,defaultTrackBtn,
+      ...customInputs
+    ].filter(Boolean);
+
+    controls.forEach(el => el.disabled = locked);
+    if (!locked) groupCountInput.disabled = getDrawFormat() !== 'groups';
+    document.querySelector('.quick-setup')?.classList.toggle('config-locked', locked);
+  }
+
+  function updateProgressUI(){
+    const total = participants.length || getBallLimit();
+    const start = activeBalls.filter(b => b.held).length;
+    const pipes = activeBalls.filter(b => b.captured && !b.settled).length;
+    const done = activeBalls.filter(b => b.settled).length;
+    const board = Math.max(0, total - start - pipes - done);
+
+    progressStart.textContent = String(start);
+    progressBoard.textContent = String(board);
+    progressPipes.textContent = String(pipes);
+    progressDone.textContent = String(done);
+
+    const pct = total ? done / total * 100 : 0;
+    progressFill.style.width = `${pct}%`;
+
+    if (!runStarted) boardStateLabel.textContent = 'Gotowy';
+    else if (done >= total && total > 0) boardStateLabel.textContent = 'Zakończone';
+    else {
+      const totalWaves = Math.ceil(total / Math.max(1,getWaveSize()));
+      boardStateLabel.textContent = `Losowanie ${Math.round(pct)}% · fala ${Math.max(1,releasedWaveNumber)}/${totalWaves}`;
+    }
+
+    participantsSummary.textContent = `Uczestnicy — ${total} · gotowe ${done}`;
+  }
+
+  function setStatus(html){
+    statusBox.innerHTML = html;
+  }
+
+  function parseParticipants(){
+    const list = participantsInput.value
+      .split(/\r?\n/)
+      .map(v => v.trim())
+      .filter(Boolean);
+
+    const unique = [...new Set(list)];
+    const wanted = getBallLimit();
+
+    if (unique.length < 2 || unique.length > 120) {
+      setStatus('<div><strong style="color:var(--danger)">Błąd.</strong> Potrzebujesz od 2 do 120 unikalnych nazw.</div>');
+      return null;
+    }
+    if (unique.length < wanted) {
+      setStatus(`<div><strong style="color:var(--danger)">Błąd.</strong> Wybrano <strong>${wanted}</strong> kulek, ale podano tylko <strong>${unique.length}</strong> unikalnych nazw.</div>`);
+      return null;
+    }
+    return unique.slice(0, wanted);
+  }
+
+  function updateSeedState(){
+    syncQuickSeedFromAdvanced();
+    const seed = seedInput.value.trim();
+    if (!seed) {
+      seedState = null;
+      seedStatus.textContent = 'Brak seeda = zwykła losowość. Seed w tej wersji wpływa tylko na wybór startowej pozycji i drobne odchylenia.';
+      return;
+    }
+    seedState = hashString(seed);
+    seedStatus.textContent = `Aktywny seed: ${seed}`;
+  }
+
+
+  function clamp(value, min, max){
+    return Math.max(min, Math.min(max, value));
+  }
+
+  function getBallLimit(){
+    return clamp(Number(ballCountInput.value) || 8, 2, 128);
+  }
+
+  function getHoleCapacity(){
+    return clamp(Number(holeCapacityInput.value) || 1, 1, 16);
+  }
+
+  function getWaveSize(){
+    return clamp(Number(waveSizeInput.value) || getBallLimit(), 1, 128);
+  }
+
+  function getPocketCount(){
+    return clamp(Number(pocketCountInput.value) || 8, 4, 16);
+  }
+
+  function getWaveDelay(){
+    return clamp(Number(waveDelayInput.value) || 650, 150, 2000);
+  }
+
+  function slotCount(index){
+    const arr = assignedSlots[index];
+    return Array.isArray(arr) ? arr.filter(Boolean).length : 0;
+  }
+
+  function slotLoad(index){
+    const fallingIntoPocket = activeBalls.filter(
+      b => b.captured && !b.settled && b.pocketIndex === index
+    ).length;
+    return slotCount(index) + fallingIntoPocket;
+  }
+
+  function slotIsFull(index){
+    // Otwór zamyka się od razu po zarezerwowaniu ostatniego miejsca,
+    // a nie dopiero po zatrzymaniu kulki w komorze.
+    return slotLoad(index) >= getHoleCapacity();
+  }
+
+  function slotHasSpace(index){
+    return slotLoad(index) < getHoleCapacity();
+  }
+
+  function anySlotHasSpace(){
+    return assignedSlots.some((_, idx) => slotHasSpace(idx));
+  }
+
+  function formatSlotEntry(entry){
+    const filled = entry.map((name, order) => name ? {name, order} : null).filter(Boolean);
+    if (!filled.length) return `<span class="empty">puste</span>`;
+    const chips = filled.map(item => `<div>${item.order + 1}. ${item.name}</div>`).join('');
+    return `<div class="slot-list">${chips}</div><div class="hint">${filled.length}/${getHoleCapacity()} kulek</div>`;
+  }
+
+  function getPocketStackPosition(pocket, order){
+    const chamber = chambers[pocket.index];
+    const bottomCenterY = chamber.bottom - 10 - ballRadius;
+    const y = bottomCenterY - order * chamber.ballPitch;
+    return { x: chamber.x, y };
+  }
+
+
+  function renderResults(){
+    resultsCount.textContent = String(drawHistory.length);
+    const hasResults = drawHistory.length > 0;
+    copyResultsBtn.disabled = !hasResults;
+    saveCsvBtn.disabled = !hasResults;
+    saveJsonBtn.disabled = !hasResults;
+
+    const mode = resultsModeSelect.value;
+    resultsHoles.innerHTML = '';
+
+    if (mode === 'format') {
+      const ordered = [...drawHistory].sort((a,b)=>a.arrivalOrder-b.arrivalOrder);
+      const format = getDrawFormat();
+
+      if (format === 'groups') {
+        const groups = getGroupCount();
+        for (let g=0; g<groups; g++) {
+          const card = document.createElement('div');
+          card.className = 'result-hole-card';
+          const members = ordered
+            .map(item => ({item, assignment:tournamentAssignmentForHistoryItem(item)}))
+            .filter(x => x.assignment.group === g);
+
+          card.innerHTML =
+            `<b>Grupa ${groupName(g)} · ${members.length}</b>` +
+            (members.length
+              ? `<div class="result-hole-list">${members.map(x =>
+                  `<span>${x.assignment.position}. ${x.item.name}</span>`).join('')}</div>`
+              : `<span class="result-empty">Brak uczestników</span>`);
+          resultsHoles.appendChild(card);
+        }
+      } else if (format === 'swiss') {
+        const pairCount = Math.ceil((participants.length || getBallLimit())/2);
+        for (let p=1; p<=pairCount; p++) {
+          const card = document.createElement('div');
+          card.className = 'result-hole-card';
+          const members = ordered
+            .map(item => ({item, assignment:tournamentAssignmentForHistoryItem(item)}))
+            .filter(x => x.assignment.pairing === p);
+
+          const names = members.map(x => `${x.assignment.side}. ${x.item.name}`);
+          if (p === pairCount && (participants.length || getBallLimit()) % 2 === 1 && names.length === 1) {
+            names.push('B. BYE');
+          }
+          card.innerHTML =
+            `<b>Para ${p} · runda 1</b>` +
+            `<div class="result-hole-list">${names.map(v=>`<span>${v}</span>`).join('')}</div>`;
+          resultsHoles.appendChild(card);
+        }
+      } else {
+        const data = eliminationPositions(participants.length || getBallLimit());
+        ordered.forEach(item => {
+          const a = tournamentAssignmentForHistoryItem(item);
+          const card = document.createElement('div');
+          card.className = 'result-hole-card';
+          card.innerHTML = `<b>Pozycja ${a.bracketPosition}</b><div class="result-hole-list"><span>${item.name}</span></div>`;
+          resultsHoles.appendChild(card);
+        });
+        if (data.byes) {
+          const card = document.createElement('div');
+          card.className = 'result-hole-card';
+          card.innerHTML = `<b>BYE</b><span class="result-empty">${data.byes} wolnych losów w drabince ${data.size}</span>`;
+          resultsHoles.appendChild(card);
+        }
+      }
+    } else if (mode === 'holes') {
+      assignedSlots.forEach((entry, idx) => {
+        const card = document.createElement('div');
+        card.className = 'result-hole-card';
+        card.dataset.hole = String(idx);
+
+        const rows = entry
+          .map((name, pos) => name ? {name, pos} : null)
+          .filter(Boolean)
+          .sort((a,b) => a.pos - b.pos);
+
+        const body = rows.length
+          ? `<div class="result-hole-list">${rows.map(item => `<span>${item.pos + 1}. ${item.name}</span>`).join('')}</div>`
+          : `<span class="result-empty">Brak kulek</span>`;
+
+        card.innerHTML = `<b>Komora ${idx + 1} · ${rows.length}/${getHoleCapacity()}</b>${body}`;
+        resultsHoles.appendChild(card);
+      });
+    }
+
+    const orderedHistory = [...drawHistory].sort((a,b) => a.arrivalOrder - b.arrivalOrder);
+    resultsHistory.innerHTML = orderedHistory.length
+      ? orderedHistory.map(item => {
+          const a = tournamentAssignmentForHistoryItem(item);
+          return `<span class="history-chip">#${item.arrivalOrder} ${item.name} → ${a.label} · komora ${item.slot}/${item.pocketOrder}</span>`;
+        }).join('')
+      : `<span class="result-empty">Jeszcze nic nie wylosowano.</span>`;
+
+    const historyMode = mode === 'history';
+    resultsHoles.style.display = historyMode ? 'none' : 'grid';
+    resultsHistory.style.display = historyMode ? 'flex' : 'none';
+  }
+
+
+  function buildResultsSnapshot(){
+    const ordered=[...drawHistory].sort((a,b)=>a.arrivalOrder-b.arrivalOrder);
+    return TDS.buildResultEnvelope({
+      engineId:ENGINE_ID,
+      engineVersion:ENGINE_VERSION,
+      config:getStandardConfig(),
+      participants:[...participants],
+      order:ordered.map(item=>({
+        name:item.name,
+        participantIndex:item.participantIndex,
+        engineDetail:`komora ${item.slot} · pozycja ${item.pocketOrder}`
+      })),
+      engineData:{
+        marble:{
+          chamberCount:pocketCount,
+          capacityPerChamber:getHoleCapacity(),
+          waveSize:getWaveSize(),
+          baseWaveDelayMs:getWaveDelay(),
+          effectiveWaveDelayMs:getEffectiveWaveDelay(),
+          physicalResults:ordered.map(item=>({
+            participantIndex:item.participantIndex,
+            name:item.name,
+            chamber:item.slot,
+            chamberPosition:item.pocketOrder,
+            arrivalOrder:item.arrivalOrder
+          }))
+        }
+      }
+    });
+  }
+
+
+  function persistResults(){
+    try {
+      localStorage.setItem('tds:v1:last:marble', JSON.stringify(buildResultsSnapshot()));
+    } catch (_) {}
+  }
+
+  function downloadTextFile(filename, content, type){
+    const blob = new Blob([content], {type});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 250);
+  }
+
+  function saveResultsCsv(){
+    downloadTextFile(
+      "wyniki-losowania-tds.csv",
+      TDS.toCsv(buildResultsSnapshot()),
+      "text/csv;charset=utf-8"
+    );
+  }
+
+
+  function saveResultsJson(){
+    downloadTextFile(
+      'wyniki-losowania.json',
+      JSON.stringify(buildResultsSnapshot(), null, 2),
+      'application/json;charset=utf-8'
+    );
+  }
+
+  async function copyResults(){
+    const ordered = [...drawHistory].sort((a,b)=>a.arrivalOrder-b.arrivalOrder);
+    const lines = ordered.map(item => {
+      const a = tournamentAssignmentForHistoryItem(item);
+      return `${item.arrivalOrder}. ${item.name} → ${a.label}`;
+    });
+
+    const value = lines.join('\n');
+    try {
+      await navigator.clipboard.writeText(value);
+      setStatus('<div><strong>Skopiowano przydział turniejowy.</strong></div>');
+    } catch (_) {
+      setStatus('<div><strong>Nie udało się użyć schowka.</strong> Użyj Zapisz CSV lub JSON.</div>');
+    }
+  }
+
+
+  function setResultsVisible(visible){
+    resultsPanel.classList.toggle('hidden', !visible);
+    showResultsBtn.firstChild.nodeValue = visible ? 'Ukryj wyniki ' : 'Wyniki ';
+  }
+
+
+  function applyQuickPreset(name){
+    if (name === 'dense') {
+      pegRowsInput.value = 20;
+      pegColsInput.value = 11;
+      pegGapYInput.value = 54;
+      pegSizeInput.value = 7;
+      gravityInput.value = 60;
+      launchSpeedInput.value = 90;
+    } else if (name === 'sparse') {
+      pegRowsInput.value = 8;
+      pegColsInput.value = 5;
+      pegGapYInput.value = 96;
+      pegSizeInput.value = 11;
+      gravityInput.value = 66;
+      launchSpeedInput.value = 95;
+    } else if (name === 'slow') {
+      pegRowsInput.value = 12;
+      pegColsInput.value = 7;
+      pegGapYInput.value = 72;
+      pegSizeInput.value = 9;
+      gravityInput.value = 45;
+      launchSpeedInput.value = 65;
+    } else {
+      pegRowsInput.value = 12;
+      pegColsInput.value = 7;
+      pegGapYInput.value = 72;
+      pegSizeInput.value = 9;
+      gravityInput.value = 65;
+      launchSpeedInput.value = 100;
+    }
+
+    updateCustomLabels();
+    configurationDirty = true;
+    applyParticipants();
+  }
+
+  function buildSlotsUI(){
+    slotsGrid.innerHTML = '';
+    assignedSlots.forEach((entry, idx) => {
+      const div = document.createElement('div');
+      const hasAny = entry.length > 0;
+      div.className = 'slot' + (hasAny ? ' filled' : '') + (slotHasSpace(idx) && idx === nextFreeSlotHint() ? ' active' : '');
+      div.innerHTML = `<b>Miejsce ${idx + 1}</b>` + formatSlotEntry(entry);
+      slotsGrid.appendChild(div);
+    });
+  }
+
+  function buildQueueUI(){
+    queueBox.innerHTML = '';
+    participants.forEach((name, idx) => {
+      const chip = document.createElement('span');
+      let cls = 'chip';
+      const isFinished = drawHistory.some(item => item.participantIndex === idx);
+      const isActive = activeBalls.some(ball => ball.idx === idx && !ball.held && !ball.settled);
+      if (isFinished) cls += ' done';
+      else if (isActive || idx === currentIndex) cls += ' current';
+      chip.className = cls;
+      chip.textContent = name;
+      queueBox.appendChild(chip);
+    });
+  }
+
+  function updateDrawOrder(){
+    drawOrder.innerHTML = '';
+    drawHistory.forEach(item => {
+      const chip = document.createElement('span');
+      chip.className = 'result-chip';
+      chip.textContent = `${item.name} → ${item.slot}`;
+      drawOrder.appendChild(chip);
+    });
+    renderResults();
+  }
+
+  function nextFreeSlotHint(){
+    return assignedSlots.findIndex((_, idx) => slotHasSpace(idx));
+  }
+
+  function applyParticipants(){
+    ensureParticipantNames();
+    const parsed = parseParticipants();
+    if (!parsed) return;
+
+    participants = parsed;
+    updateFormatHelp();
+    pocketCount = getPocketCount();
+    if (participants.length > pocketCount * getHoleCapacity()) {
+      setStatus(`<div><strong style="color:var(--danger)">Błąd.</strong> Przy ${pocketCount} otworach i limicie <strong>${getHoleCapacity()}</strong> na otwór zmieścisz maksymalnie <strong>${pocketCount * getHoleCapacity()}</strong> kulek.</div>`);
+      return;
+    }
+
+    assignedSlots = Array.from({length: pocketCount}, () => []);
+    springPulse = new Array(pocketCount).fill(0);
+    drawHistory = [];
+    currentIndex = participants.length;
+    activeBalls = [];
+    particles = [];
+    releaseTimers.forEach(clearTimeout);
+    releaseTimers = [];
+    runStarted = false;
+    releasedWaveNumber = 0;
+    physicsAccumulator = 0;
+    lastPhysicsTime = 0;
+
+    setResultsVisible(false);
+    resultsModeSelect.value = 'format';
+    updateSeedState();
+    rebuildGeometry();
+    activeBalls = participants.map((name, idx) => createBall(name, idx));
+
+    buildSlotsUI();
+    buildQueueUI();
+    updateDrawOrder();
+    leverBtn.disabled = false;
+    leverBtn.classList.remove('pulled');
+    configurationDirty = false;
+    setConfigurationLocked(false);
+    updateConfigurationSummary();
+    updateProgressUI();
+
+    setStatus(`<div><strong>Gotowe do startu.</strong> ${participants.length} kulek, ${pocketCount} rur, pojemność ${getHoleCapacity()} na rurę. ${Math.ceil(participants.length / Math.max(1,getWaveSize()))} fal.</div>`);
+    draw();
+  }
+
+  function resetBoard(){
+    releaseTimers.forEach(clearTimeout);
+    releaseTimers = [];
+    leverTitle.textContent = 'Pociągnij dźwignię';
+    document.body.classList.remove('presentation-mode');
+    presentationBtn.textContent = 'Tryb prezentacji';
+    applyParticipants();
+  }
+
+  function randomSeed(){
+    const a = Math.floor(Math.random() * 1e8).toString(36).toUpperCase();
+    const b = Math.floor(Math.random() * 1e8).toString(36).toUpperCase();
+    seedInput.value = `PINBALL-${a}-${b}`;
+    updateSeedState();
+  }
+
+  function createBall(name, idx){
+    const metrics = getStartRackMetrics(participants.length);
+    const col = idx % metrics.cols;
+    const row = Math.floor(idx / metrics.cols);
+
+    const rackLeft = W * 0.5 - metrics.rackWidth / 2;
+    const x = rackLeft + col * metrics.pitch;
+    const y = metrics.top + row * metrics.pitch;
+
+    return {
+      name, idx, x, y,
+      vx: 0, vy: 0,
+      r: ballRadius,
+      color: COLORS[idx % COLORS.length],
+      glow: 0,
+      springFlash: 0,
+      springCooldown: 0,
+      lastSpringPocket: -1,
+      stuckFrames: 0,
+      lastProgressY: y,
+      stuckAnchorX: x,
+      stuckAnchorY: y,
+      stuckCheckFrames: 0,
+      rescueFlash: 0,
+      trail: [],
+      age: 0,
+      held: true,
+      captured: false,
+      settled: false,
+      pocketIndex: -1,
+      pocketOrder: -1
+    };
+  }
+
+  function spawnParticles(x, y, color){
+    for (let i = 0; i < PARTICLE_COUNT; i++) {
+      particles.push({
+        x, y,
+        vx: (Math.random() - 0.5) * 4.8,
+        vy: -Math.random() * 4.2 - 1,
+        life: 1,
+        color
+      });
+    }
+  }
+
+  function getHeldBallsReleaseOrder(){
+    return activeBalls
+      .filter(ball => ball.held)
+      .sort((a,b) => {
+        // Najpierw najniższy rząd.
+        if (Math.abs(a.y - b.y) > 0.5) return b.y - a.y;
+
+        // W obrębie jednego rzędu najpierw środek, potem boki.
+        // Dzięki temu fala otwiera się wizualnie naturalniej i nie spycha
+        // całej masy kulek w jeden bok komory START.
+        const da = Math.abs(a.x - W * 0.5);
+        const db = Math.abs(b.x - W * 0.5);
+        if (Math.abs(da - db) > 0.5) return da - db;
+
+        return a.idx - b.idx;
+      });
+  }
+
+  function releaseWave(){
+    const held = getHeldBallsReleaseOrder();
+    if (!held.length) return;
+
+    const count = Math.min(getWaveSize(), held.length);
+    const waveBalls = held.slice(0, count);
+    releasedWaveNumber++;
+
+    // W tej fali wszystkie wybrane kulki startują z aktualnych pozycji,
+    // czyli fizycznie z najniższych jeszcze zablokowanych rzędów.
+    waveBalls.forEach((ball, localIdx) => {
+      ball.held = false;
+      ball.vx = (seededRandom() - 0.5) * 0.62 * launchSpeedScale;
+      ball.vy = (0.05 + seededRandom() * 0.08) * launchSpeedScale;
+      ball.age = -localIdx * 2;
+    });
+
+    buildQueueUI();
+    updateProgressUI();
+
+    const remaining = activeBalls.filter(ball => ball.held).length;
+    const totalWaves = Math.ceil(participants.length / Math.max(1, getWaveSize()));
+
+    setStatus(
+      `<div><strong>Fala ${releasedWaveNumber}/${totalWaves}.</strong> ` +
+      `Odblokowano <strong>${count}</strong> kulek z najniższego dostępnego poziomu. ` +
+      `W komorze START zostało: <strong>${remaining}</strong>.</div>`
+    );
+
+    if (remaining > 0) {
+      const timer = setTimeout(releaseWave, getEffectiveWaveDelay());
+      releaseTimers.push(timer);
+    }
+  }
+
+  function pullLever(){
+    if (runStarted || !activeBalls.length) return;
+
+    runStarted = true;
+    releasedWaveNumber = 0;
+    leverBtn.disabled = true;
+    leverBtn.classList.add('pulled');
+    setConfigurationLocked(true);
+    updateProgressUI();
+
+    releaseWave();
+  }
+
+
+  function findNearestFreeSlotByX(x){
+    const free = pockets.filter(p => slotHasSpace(p.index));
+    if (!free.length) return null;
+    free.sort((a,b) => Math.abs(a.x - x) - Math.abs(b.x - x));
+    return free[0];
+  }
+
+  function settleBall(ball, pocket){
+    if (!ball || !pocket || ball.settled) return;
+
+    const alreadyRecorded = drawHistory.some(item => item.participantIndex === ball.idx);
+    if (!alreadyRecorded) {
+      assignedSlots[pocket.index][ball.pocketOrder] = ball.name;
+      drawHistory.push({
+        name: ball.name,
+        slot: pocket.index + 1,
+        participantIndex: ball.idx,
+        pocketOrder: ball.pocketOrder + 1,
+        arrivalOrder: drawHistory.length + 1,
+        assignment: tournamentAssignmentForDrawIndex(drawHistory.length)
+      });
+      persistResults();
+    }
+
+    ball.settled = true;
+    ball.captured = true;
+    ball.vx = 0;
+    ball.vy = 0;
+    ball.trail = [];
+    ball.glow = 12;
+    spawnParticles(ball.x, ball.y, ball.color);
+
+    const tournamentAssignment = tournamentAssignmentForDrawIndex(drawHistory.length - 1);
+    setStatus(`<div><strong>${ball.name}</strong> → <strong>${tournamentAssignment.label}</strong>. Fizycznie: komora ${pocket.index + 1}, pozycja ${ball.pocketOrder + 1}.</div>`);
+    buildSlotsUI();
+    buildQueueUI();
+    updateDrawOrder();
+    updateProgressUI();
+
+    if (drawHistory.length >= participants.length) {
+      setStatus('<div><strong>Losowanie zakończone.</strong> Wszystkie kulki są zapisane w komorach. Możesz pokazać lub zapisać wyniki.</div>');
+      leverTitle.textContent = 'Losowanie zakończone';
+      leverSubtitle.textContent = `${participants.length} / ${participants.length} kulek`;
+      if (autoShowResults.checked) {
+        setResultsVisible(true);
+        resultsModeSelect.value = 'format';
+        renderResults();
+      }
+    }
+  }
+
+  function captureBall(ball, pocket){
+    if (!ball || !pocket || ball.captured || !slotHasSpace(pocket.index)) return false;
+
+    const reservedBefore = assignedSlots[pocket.index].length +
+      activeBalls.filter(b =>
+        b !== ball && b.captured && !b.settled && b.pocketIndex === pocket.index
+      ).length;
+
+    if (reservedBefore >= getHoleCapacity()) return false;
+
+    ball.captured = true;
+    ball.pocketIndex = pocket.index;
+    ball.pocketOrder = reservedBefore;
+    ball.trail = [];
+    ball.vx *= 0.55;
+    ball.vy = Math.max(ball.vy, 0.35);
+    updateProgressUI();
+    return true;
+  }
+
+  function updateCapturedBall(ball, dt = 1){
+    const pocket = pockets[ball.pocketIndex];
+    const chamber = chambers[ball.pocketIndex];
+    if (!pocket || !chamber) return;
+
+    const target = getPocketStackPosition(pocket, ball.pocketOrder);
+    const tubeCenterX = chamber.x;
+    const tubeLeft = tubeCenterX - chamber.tubeHalf;
+    const tubeRight = tubeCenterX + chamber.tubeHalf;
+
+    const dampX = Math.pow(0.88, dt);
+    const dampY = Math.pow(0.991, dt);
+
+    ball.vx += (tubeCenterX - ball.x) * 0.035 * dt;
+    ball.vx *= dampX;
+    ball.vy += gravity * 1.65 * dt;
+    ball.vy *= dampY;
+
+    ball.x += ball.vx * dt;
+    ball.y += ball.vy * dt;
+
+    if (ball.x - ball.r < tubeLeft) {
+      ball.x = tubeLeft + ball.r;
+      if (ball.vx < 0) ball.vx = Math.abs(ball.vx) * 0.16;
+    }
+    if (ball.x + ball.r > tubeRight) {
+      ball.x = tubeRight - ball.r;
+      if (ball.vx > 0) ball.vx = -Math.abs(ball.vx) * 0.16;
+    }
+
+    // Kulki w tubie są jednym pionowym "pociągiem":
+    // kolejna nie może wejść niżej niż średnica + mały odstęp od poprzedniej.
+    if (ball.pocketOrder > 0) {
+      const lower = activeBalls.find(b =>
+        b.captured &&
+        b.pocketIndex === ball.pocketIndex &&
+        b.pocketOrder === ball.pocketOrder - 1
+      );
+
+      if (lower) {
+        const minGap = ball.r + lower.r + 2.5;
+        const maxY = lower.y - minGap;
+
+        if (ball.y > maxY) {
+          ball.y = maxY;
+          ball.vy = Math.min(ball.vy, Math.max(-0.04, lower.vy || 0));
+          ball.vx *= 0.68;
+        }
+      }
+    }
+
+    const physicalBottom = chamber.bottom - 10 - ball.r;
+    if (ball.pocketOrder === 0 && ball.y > physicalBottom) {
+      ball.y = physicalBottom;
+      if (ball.vy > 0) ball.vy *= -0.08;
+      ball.vx *= 0.5;
+    }
+
+    if (ball.y > target.y) {
+      ball.y = target.y;
+      if (ball.vy > 0) ball.vy *= -0.06;
+      ball.vx *= 0.55;
+    }
+
+    const lowerReady = ball.pocketOrder === 0 || activeBalls.some(b =>
+      b.captured &&
+      b.pocketIndex === ball.pocketIndex &&
+      b.pocketOrder === ball.pocketOrder - 1 &&
+      b.settled
+    );
+
+    if (
+      lowerReady &&
+      Math.abs(ball.x - target.x) < 1.6 &&
+      Math.abs(ball.y - target.y) < 1.6 &&
+      Math.hypot(ball.vx, ball.vy) < 0.26
+    ) {
+      ball.x = target.x;
+      ball.y = target.y;
+      settleBall(ball, pocket);
+    }
+  }
+
+
+  function circleCollision(ball, peg, bounce){
+    let dx = ball.x - peg.x;
+    let dy = ball.y - peg.y;
+    let dist = Math.hypot(dx, dy);
+    const minDist = ball.r + peg.r;
+
+    if (dist >= minDist) return false;
+
+    if (dist < 0.0001) {
+      // Deterministyczny kierunek awaryjny dla idealnego nakładania.
+      const angle = ((ball.idx * 53 + Math.round(peg.x) * 7 + Math.round(peg.y) * 11) % 360) * Math.PI / 180;
+      dx = Math.cos(angle);
+      dy = Math.sin(angle);
+      dist = 1;
+    }
+
+    const nx = dx / dist;
+    const ny = dy / dist;
+    const overlap = minDist - dist + 0.02;
+
+    ball.x += nx * overlap;
+    ball.y += ny * overlap;
+
+    const normalSpeed = ball.vx * nx + ball.vy * ny;
+
+    // Nie odbijamy drugi raz, jeśli po korekcie kulka już odsuwa się od pegu.
+    if (normalSpeed < 0) {
+      const tx = -ny;
+      const ty = nx;
+      const tangentSpeed = ball.vx * tx + ball.vy * ty;
+
+      const reflectedNormal = -normalSpeed * bounce;
+      const tangentKeep = Math.max(0, 1 - collisionFriction);
+
+      ball.vx = nx * reflectedNormal + tx * tangentSpeed * tangentKeep;
+      ball.vy = ny * reflectedNormal + ty * tangentSpeed * tangentKeep;
+    }
+
+    return true;
+  }
+
+
+  function resolveBallCollisions(){
+    const bodies = activeBalls.filter(ball =>
+      !ball.held &&
+      !ball.captured &&
+      !ball.settled
+    );
+
+    if (bodies.length < 2) return;
+
+    // Rozmiar komórki dopasowany do największej możliwej średnicy.
+    const maxRadius = bodies.reduce((m,b) => Math.max(m,b.r), 1);
+    const cellSize = Math.max(18, maxRadius * 2 + 3);
+
+    // Trzy iteracje dają stabilność bez kosztu starego pełnego O(n²) x 4.
+    for (let pass = 0; pass < 3; pass++) {
+      const grid = new Map();
+
+      for (const ball of bodies) {
+        const cx = Math.floor(ball.x / cellSize);
+        const cy = Math.floor(ball.y / cellSize);
+        const key = `${cx},${cy}`;
+        if (!grid.has(key)) grid.set(key, []);
+        grid.get(key).push(ball);
+      }
+
+      for (const a of bodies) {
+        const cx = Math.floor(a.x / cellSize);
+        const cy = Math.floor(a.y / cellSize);
+
+        for (let oy = -1; oy <= 1; oy++) {
+          for (let ox = -1; ox <= 1; ox++) {
+            const bucket = grid.get(`${cx + ox},${cy + oy}`);
+            if (!bucket) continue;
+
+            for (const b of bucket) {
+              if (b.idx <= a.idx) continue;
+
+              let dx = b.x - a.x;
+              let dy = b.y - a.y;
+              let dist = Math.hypot(dx, dy);
+              const minDist = a.r + b.r + 0.15;
+
+              if (dist >= minDist) continue;
+
+              if (dist < 0.0001) {
+                const angle = ((a.idx * 37 + b.idx * 73 + pass * 29) % 360) * Math.PI / 180;
+                dx = Math.cos(angle);
+                dy = Math.sin(angle);
+                dist = 1;
+              }
+
+              const nx = dx / dist;
+              const ny = dy / dist;
+              const overlap = minDist - dist;
+
+              // Korekta pozycji z małym "slopem"; prawie całe przenikanie usuwamy natychmiast.
+              const correction = Math.max(0, overlap - 0.02) * 0.52;
+              a.x -= nx * correction;
+              a.y -= ny * correction;
+              b.x += nx * correction;
+              b.y += ny * correction;
+
+              const rvx = b.vx - a.vx;
+              const rvy = b.vy - a.vy;
+              const normalSpeed = rvx * nx + rvy * ny;
+
+              if (normalSpeed < 0) {
+                const impulse = -(1 + ballRestitution) * normalSpeed / 2;
+                const ix = impulse * nx;
+                const iy = impulse * ny;
+
+                a.vx -= ix;
+                a.vy -= iy;
+                b.vx += ix;
+                b.vy += iy;
+
+                // Proste tarcie styczne — ogranicza wieczne drgania w tłumie kulek.
+                const tx = -ny;
+                const ty = nx;
+                const tangentSpeed = rvx * tx + rvy * ty;
+                const frictionImpulse = tangentSpeed * collisionFriction * 0.5;
+
+                a.vx += tx * frictionImpulse;
+                a.vy += ty * frictionImpulse;
+                b.vx -= tx * frictionImpulse;
+                b.vy -= ty * frictionImpulse;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+
+  function nearestFreePocketDirection(fromPocket){
+    const free = pockets.filter(p => slotHasSpace(p.index));
+    if (!free.length) return seededRandom() < 0.5 ? -1 : 1;
+
+    free.sort((a,b) => Math.abs(a.index - fromPocket.index) - Math.abs(b.index - fromPocket.index));
+    const target = free[0];
+
+    if (target.x === fromPocket.x) return seededRandom() < 0.5 ? -1 : 1;
+    return Math.sign(target.x - fromPocket.x);
+  }
+
+  function triggerSpring(ball, pocket){
+    const dir = nearestFreePocketDirection(pocket);
+    const yTop = floorY - funnelHeight;
+
+    // Najważniejsza zmiana:
+    // zamiast czekać aż kulka prawie dotknie samej dziury, sprężyna łapie ją
+    // już wewnątrz zamkniętego lejka i wyrzuca PONAD jego krawędzie.
+    ball.y = yTop - ball.r - 18;
+
+    // Mocny impuls w górę + wyraźny impuls boczny w stronę wolnego miejsca.
+    ball.vy = -(6.8 + seededRandom() * 1.4) * springPower;
+    ball.vx = dir * (3.3 + seededRandom() * 1.5) * springPower;
+
+    // Kilkadziesiąt klatek ochrony przed ponownym "złapaniem"
+    // przez to samo zamknięte wyjście.
+    ball.springCooldown = 34;
+    ball.lastSpringPocket = pocket.index;
+    ball.springFlash = 18;
+    ball.glow = Math.max(ball.glow, 10);
+    ball.stuckFrames = 0;
+    ball.lastProgressY = ball.y;
+
+    springPulse[pocket.index] = 18;
+  }
+
+  function ejectFromClosedPocket(ball){
+    for (const pocket of pockets) {
+      if (!slotIsFull(pocket.index)) continue;
+
+      const yTop = floorY - funnelHeight;
+
+      // Pełny kanał ma aktywną "bramkę sprężynową" na całej szerokości.
+      // Reagujemy zanim kulka zjedzie głęboko między prowadnice.
+      const insideLane =
+        ball.x + ball.r > pocket.left + 2 &&
+        ball.x - ball.r < pocket.right - 2;
+
+      const reachesGate =
+        ball.y + ball.r > yTop - 18 &&
+        ball.y - ball.r < floorY + 26;
+
+      if (!insideLane || !reachesGate) continue;
+
+      // Cooldown dotyczy tylko tej samej sprężyny po jej własnym wyrzuceniu.
+      // Kulka nie może podczas cooldownu przelecieć przez pełny otwór.
+      if (ball.springCooldown > 0 && ball.lastSpringPocket === pocket.index) {
+        const safeY = yTop - ball.r - 20;
+        if (ball.y > safeY) ball.y = safeY;
+        ball.vy = Math.min(ball.vy, -1.15);
+        return true;
+      }
+
+      triggerSpring(ball, pocket);
+      return true;
+    }
+    return false;
+  }
+
+  function guideBallThroughBottom(ball, dt = 1){
+    const yTop = floorY - (funnelHeight + 24);
+    if (ball.y + ball.r < yTop) return;
+
+    // Zamknięte kanały obsługuje sprężyna.
+    // Tutaj prowadzimy kulkę tylko do najbliższego WOLNEGO otworu.
+    const free = pockets.filter(p => slotHasSpace(p.index));
+    if (!free.length) return;
+
+    free.sort((a,b) => Math.abs(a.x - ball.x) - Math.abs(b.x - ball.x));
+    const target = free[0];
+
+    const dx = target.x - ball.x;
+    const normalized = Math.max(-1, Math.min(1, dx / Math.max(1, target.width)));
+
+    // Im niżej kulka jest w lejku, tym wyraźniej kierujemy ją do środka otworu.
+    const depth = Math.max(0, Math.min(1, (ball.y - yTop) / 90));
+    ball.vx += normalized * (0.018 + 0.055 * depth) * dt;
+
+    // Jeżeli kulka praktycznie stoi w dolnym kanale, nie odbijamy jej bez końca.
+    if (Math.hypot(ball.vx, ball.vy) < 0.42) {
+      const dir = Math.sign(dx || (seededRandom() < 0.5 ? -1 : 1));
+      ball.vx += dir * 0.38 * dt;
+      ball.vy += 0.20 * dt;
+    }
+  }
+
+  function antiStuckRescue(ball, dt = 1){
+    ball.stuckCheckFrames += dt;
+
+    // Co ok. 0,4 s sprawdzamy REALNE przemieszczenie kulki,
+    // a nie tylko chwilową prędkość. To wykrywa także mikrodrgania na pegu.
+    if (ball.stuckCheckFrames < 24) return;
+
+    const dx = ball.x - ball.stuckAnchorX;
+    const dy = ball.y - ball.stuckAnchorY;
+    const displacement = Math.hypot(dx, dy);
+    const speed = Math.hypot(ball.vx, ball.vy);
+
+    ball.stuckCheckFrames = 0;
+    ball.stuckAnchorX = ball.x;
+    ball.stuckAnchorY = ball.y;
+
+    const inBottomZone = ball.y > floorY - 135;
+    const barelyMoved = displacement < (inBottomZone ? 13 : 8.5);
+    const lowEnergy = speed < (inBottomZone ? 1.35 : 0.95);
+
+    if (!(barelyMoved && lowEnergy)) {
+      ball.stuckFrames = Math.max(0, ball.stuckFrames - 1);
+      return;
+    }
+
+    ball.stuckFrames++;
+
+    // Dwa kolejne okna "prawie bez ruchu" = wymuszone odblokowanie.
+    if (ball.stuckFrames < 2) return;
+
+    // Jeśli kulka jest przy zajętym kanale, używamy prawdziwej sprężyny.
+    const closed = pockets
+      .filter(p => slotIsFull(p.index))
+      .sort((a,b) => Math.abs(a.x - ball.x) - Math.abs(b.x - ball.x))[0];
+
+    if (
+      closed &&
+      ball.y > floorY - (funnelHeight + 67) &&
+      ball.x > closed.left - 8 &&
+      ball.x < closed.right + 8
+    ) {
+      triggerSpring(ball, closed);
+      ball.stuckFrames = 0;
+      return;
+    }
+
+    // Na środku planszy kierujemy kulkę w stronę najbliższego wolnego wyjścia.
+    const free = findNearestFreeSlotByX(ball.x);
+    let dir = free ? Math.sign(free.x - ball.x) : 0;
+    if (!dir) dir = seededRandom() < 0.5 ? -1 : 1;
+
+    // Wyraźny, ale nadal naturalny "kick": trochę w bok + trochę w dół.
+    ball.vx += dir * (0.75 + seededRandom() * 0.45);
+    ball.vy = Math.max(ball.vy, 0.65 + seededRandom() * 0.25);
+
+    // Minimalna korekta pozycji zamiast widocznego "teleportującego" kopa.
+    ball.x += dir * 1.2;
+    ball.y += 0.8;
+
+    ball.rescueFlash = 12;
+    ball.stuckFrames = 0;
+  }
+
+  function updateBalls(dt = 1, recordTrail = false){
+    for (const ball of activeBalls) {
+      if (ball.settled) continue;
+      if (ball.held) continue;
+      if (ball.captured) {
+        updateCapturedBall(ball, dt);
+        continue;
+      }
+      ball.age += dt;
+      if (ball.springCooldown > 0) ball.springCooldown = Math.max(0, ball.springCooldown - dt);
+      if (recordTrail) {
+        if (trailLength > 0) {
+          ball.trail.push({x: ball.x, y: ball.y});
+          while (ball.trail.length > trailLength) ball.trail.shift();
+        } else {
+          ball.trail.length = 0;
+        }
+      }
+
+      ball.vy += gravity * dt;
+      const airStep = Math.pow(air, dt);
+      ball.vx *= airStep;
+      ball.vy *= airStep;
+
+      ball.x += ball.vx * dt;
+      ball.y += ball.vy * dt;
+
+      // Minimalny dryf grawitacyjny: zapobiega idealnemu "zawieszeniu"
+      // na środku pegu przez błędy dyskretnej symulacji.
+      if (Math.abs(ball.vy) < 0.035) {
+        ball.vy += 0.035 * dt;
+      }
+
+      // main walls
+      if (ball.x - ball.r < boardLeft) {
+        ball.x = boardLeft + ball.r;
+        if (ball.vx < 0) ball.vx = Math.abs(ball.vx) * wallBounce;
+      }
+      if (ball.x + ball.r > boardRight) {
+        ball.x = boardRight - ball.r;
+        if (ball.vx > 0) ball.vx = -Math.abs(ball.vx) * wallBounce;
+      }
+
+      // top safety
+      if (ball.y - ball.r < 28) {
+        ball.y = 28 + ball.r;
+        if (ball.vy < 0) ball.vy = Math.abs(ball.vy) * 0.72;
+      }
+
+      for (const peg of pegs) {
+        if (circleCollision(ball, peg, pegBounce)) {
+          // Nie pozwalamy kulce "usiąść" na pegu.
+          // Nawet jeśli kontakt jest prawie symetryczny, dostaje lekki tangencjalny impuls.
+          const side = Math.abs(ball.x - peg.x) > 1
+            ? Math.sign(ball.x - peg.x)
+            : (seededRandom() < 0.5 ? -1 : 1);
+
+          if (Math.abs(ball.vx) < 0.55 && Math.abs(ball.vy) < 0.75) {
+            ball.vx += side * (0.10 + seededRandom() * 0.10) * dt;
+            ball.vy += (0.08 + seededRandom() * 0.06) * dt;
+          }
+        }
+      }
+
+      for (const bumper of bumpers) {
+        if (circleCollision(ball, bumper, bumperBounce)) {
+          ball.glow = 10;
+
+          const side = Math.abs(ball.x - bumper.x) > 1
+            ? Math.sign(ball.x - bumper.x)
+            : (seededRandom() < 0.5 ? -1 : 1);
+
+          // Bumper zawsze lekko wypycha w bok, a nie tylko odbija po normalnej.
+          ball.vx += side * (0.45 + seededRandom() * 0.35);
+
+          if (Math.abs(ball.vy) < 0.9) {
+            ball.vy += 0.18 + seededRandom() * 0.14;
+          }
+        }
+      }
+
+      // Dolna strefa nie ma już martwych rogów: kulka jest delikatnie
+      // prowadzona do najbliższego wolnego kanału.
+      guideBallThroughBottom(ball, dt);
+
+      // Zamknięty lejek sprawdzamy zanim kulka zdąży się zaklinować
+      // pomiędzy jego dwiema prowadnicami.
+      const springEjected = ejectFromClosedPocket(ball);
+
+      // Funnel rails near bottom.
+      // Dla zajętego miejsca prowadnice nie uczestniczą już w kolizji:
+      // cały kanał obsługuje sprężyna, więc kulka nie może się w nim zakleszczyć.
+      if (!springEjected) for (const pocket of pockets) {
+        const yTop = floorY - funnelHeight;
+
+        // Pełne kanały są obsługiwane przez sprężynę; nie wpuszczamy ich do gardzieli.
+        if (slotIsFull(pocket.index)) {
+          const gateY = yTop - 2;
+          if (
+            ball.x + ball.r > pocket.left + 4 &&
+            ball.x - ball.r < pocket.right - 4 &&
+            ball.y + ball.r > gateY
+          ) {
+            triggerSpring(ball, pocket);
+          }
+          continue;
+        }
+        if (ball.y > yTop && ball.y < floorY + 10) {
+          const lx1 = pocket.left + 6;
+          const lx2 = pocket.x - pocket.r - 8;
+          const rx1 = pocket.x + pocket.r + 8;
+          const rx2 = pocket.right - 6;
+
+          // Dla skrajnych kanałów nie tworzymy dodatkowej prowadnicy
+          // przy samej bocznej ścianie — to właśnie tworzyło klin.
+          if (pocket.index !== 0) {
+            collideSegment(ball, lx1, yTop, lx2, floorY - 6, railThickness);
+          }
+          if (pocket.index !== pockets.length - 1) {
+            collideSegment(ball, rx1, floorY - 6, rx2, yTop, railThickness);
+          }
+        }
+      }
+
+      // Otwór nie teleportuje kulki. Przekroczenie krawędzi tylko zaczyna
+      // fizyczny spadek do głębokiej kieszeni pod planszą.
+      if (!springEjected && ball.y + ball.r > floorY) {
+        const pocket = pockets.find(p =>
+          slotHasSpace(p.index) &&
+          Math.abs(ball.x - p.x) < Math.max(p.r - 1, p.width * 0.34)
+        );
+
+        if (pocket) {
+          ball.x += (pocket.x - ball.x) * 0.09 * dt;
+          ball.vx *= Math.pow(0.91, dt);
+
+          if (ball.y > floorY + 7 && captureBall(ball, pocket)) {
+            continue;
+          }
+        } else {
+          const target = findNearestFreeSlotByX(ball.x);
+          ball.y = floorY - ball.r;
+          const dir = target
+            ? Math.sign(target.x - ball.x || 1)
+            : (seededRandom() < 0.5 ? -1 : 1);
+          ball.vy = -Math.max(0.42, Math.abs(ball.vy) * 0.26);
+          ball.vx = ball.vx * 0.78 + dir * (0.24 + seededRandom() * 0.12);
+        }
+      }
+
+      antiStuckRescue(ball, dt);
+
+      // Safety anti-stall after a long time.
+      if (ball.age > 2400) {
+        const pocket = findNearestFreeSlotByX(ball.x);
+        if (pocket) {
+          ball.x += (pocket.x - ball.x) * 0.02 * dt;
+          ball.vy += 0.02 * dt;
+        }
+      }
+
+      if (recordTrail) {
+        if (ball.glow > 0) ball.glow--;
+        if (ball.springFlash > 0) ball.springFlash--;
+        if (ball.rescueFlash > 0) ball.rescueFlash--;
+      }
+    }
+
+    resolveBallCollisions();
+  }
+
+  function collideSegment(ball, x1, y1, x2, y2, thickness){
+    const vx = x2 - x1;
+    const vy = y2 - y1;
+    const wx = ball.x - x1;
+    const wy = ball.y - y1;
+    const len2 = vx * vx + vy * vy;
+
+    let t = len2 ? ((wx * vx + wy * vy) / len2) : 0;
+    t = Math.max(0, Math.min(1, t));
+
+    const px = x1 + t * vx;
+    const py = y1 + t * vy;
+
+    let dx = ball.x - px;
+    let dy = ball.y - py;
+    let dist = Math.hypot(dx, dy);
+    const minDist = ball.r + thickness;
+
+    if (dist >= minDist) return false;
+
+    if (dist < 0.0001) {
+      // Normalna do odcinka.
+      const len = Math.hypot(vx, vy) || 1;
+      dx = -vy / len;
+      dy = vx / len;
+      dist = 1;
+    }
+
+    const nx = dx / dist;
+    const ny = dy / dist;
+    const overlap = minDist - dist + 0.02;
+
+    ball.x += nx * overlap;
+    ball.y += ny * overlap;
+
+    const normalSpeed = ball.vx * nx + ball.vy * ny;
+    if (normalSpeed < 0) {
+      const tx = -ny;
+      const ty = nx;
+      const tangentSpeed = ball.vx * tx + ball.vy * ty;
+      const bounce = 0.78;
+      const tangentKeep = Math.max(0, 1 - collisionFriction * 0.85);
+
+      ball.vx = nx * (-normalSpeed * bounce) + tx * tangentSpeed * tangentKeep;
+      ball.vy = ny * (-normalSpeed * bounce) + ty * tangentSpeed * tangentKeep;
+    }
+
+    return true;
+  }
+
+
+  function updateParticles(dtFrames = 1){
+    for (let i = 0; i < springPulse.length; i++) {
+      if (springPulse[i] > 0) springPulse[i] = Math.max(0, springPulse[i] - dtFrames);
+    }
+
+    particles.forEach(p => {
+      p.x += p.vx * dtFrames;
+      p.y += p.vy * dtFrames;
+      p.vy += 0.08 * dtFrames;
+      p.life -= 0.025 * dtFrames;
+    });
+
+    particles = particles.filter(p => p.life > 0);
+  }
+
+
+  function drawBackplate(){
+    ctx.save();
+
+    // outer rail
+    ctx.lineWidth = 10;
+    ctx.strokeStyle = '#3b4659';
+    ctx.beginPath();
+    ctx.moveTo(boardLeft, boardTop);
+    ctx.lineTo(boardRight, boardTop);
+    ctx.lineTo(boardRight, floorY + 10);
+    ctx.lineTo(boardLeft, floorY + 10);
+    ctx.closePath();
+    ctx.stroke();
+
+    // Komora START: wszystkie kulki są widoczne przed uruchomieniem.
+    ctx.fillStyle = 'rgba(124,156,255,.045)';
+    ctx.fillRect(boardLeft + 28, 47, (boardRight - boardLeft) - 56, 172);
+    ctx.strokeStyle = 'rgba(124,156,255,.18)';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(boardLeft + 28, 47, (boardRight - boardLeft) - 56, 172);
+
+    // launch lane
+    ctx.strokeStyle = 'rgba(255,255,255,.08)';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(W * 0.5 - 90, boardTop);
+    ctx.lineTo(W * 0.5 - 90, 120);
+    ctx.lineTo(W * 0.5 + 90, 120);
+    ctx.lineTo(W * 0.5 + 90, boardTop);
+    ctx.stroke();
+
+    // slope guides
+    pockets.forEach(pocket => {
+      const yTop = floorY - funnelHeight;
+      ctx.strokeStyle = '#56627a';
+      ctx.lineWidth = railThickness;
+      ctx.beginPath();
+
+      if (pocket.index !== 0) {
+        ctx.moveTo(pocket.left + 6, yTop);
+        ctx.lineTo(pocket.x - pocket.r - 8, floorY - 6);
+      }
+
+      if (pocket.index !== pockets.length - 1) {
+        ctx.moveTo(pocket.x + pocket.r + 8, floorY - 6);
+        ctx.lineTo(pocket.right - 6, yTop);
+      }
+
+      ctx.stroke();
+    });
+
+    // Numery wejść.
+    pockets.forEach((pocket) => {
+      ctx.fillStyle = 'rgba(255,255,255,.8)';
+      ctx.font = 'bold 15px Segoe UI';
+      ctx.textAlign = 'center';
+      ctx.fillText(String(pocket.label), pocket.x, floorY - 14);
+    });
+
+    // Rury i pionowe pojemniki w stylu tuby na piłki tenisowe.
+    pockets.forEach((pocket, idx) => {
+      const chamber = chambers[idx];
+      const settledCount = slotCount(idx);
+      const loadCount = slotLoad(idx);
+      const full = slotIsFull(idx);
+
+      const tubeLeft = chamber.x - chamber.tubeHalf;
+      const tubeWidth = chamber.tubeHalf * 2;
+      const tubeTop = floorY + 10;
+      const tubeBottom = chamber.top + 1;
+
+      ctx.save();
+
+      // Rura doprowadzająca.
+      ctx.fillStyle = 'rgba(125,145,175,.045)';
+      ctx.strokeStyle = full ? '#aab3c3' : '#607089';
+      ctx.lineWidth = 3;
+      ctx.fillRect(tubeLeft, tubeTop, tubeWidth, Math.max(0, tubeBottom - tubeTop));
+      ctx.strokeRect(tubeLeft, tubeTop, tubeWidth, Math.max(0, tubeBottom - tubeTop));
+
+      // Kołnierz przy otworze.
+      const mouthHalf = Math.min(pocket.width * 0.39, Math.max(pocket.r, 30));
+      ctx.beginPath();
+      ctx.moveTo(pocket.x - mouthHalf, floorY + 2);
+      ctx.quadraticCurveTo(pocket.x, floorY + 18, pocket.x + mouthHalf, floorY + 2);
+      ctx.stroke();
+
+      // Pojemnik jak tuba na piłki tenisowe: wąski, wysoki, przezroczysty.
+      const radius = chamber.width / 2;
+      ctx.fillStyle = full
+        ? 'rgba(148,163,184,.11)'
+        : settledCount > 0
+          ? 'rgba(96,165,250,.10)'
+          : 'rgba(255,255,255,.035)';
+
+      ctx.strokeStyle = full ? '#e2e8f0' : (settledCount > 0 ? '#60a5fa' : '#7e8aa0');
+      ctx.lineWidth = 3;
+
+      ctx.beginPath();
+      ctx.roundRect(chamber.left, chamber.top, chamber.width, chamber.height, Math.min(18, radius));
+      ctx.fill();
+      ctx.stroke();
+
+      // Delikatna pionowa poświata szkła/plastiku.
+      ctx.fillStyle = 'rgba(255,255,255,.055)';
+      ctx.fillRect(chamber.left + 5, chamber.top + 10, 5, chamber.height - 20);
+
+      // Podziałki pokazujące miejsca na kolejne kulki.
+      ctx.strokeStyle = 'rgba(255,255,255,.09)';
+      ctx.lineWidth = 1;
+      for (let pos = 1; pos < getHoleCapacity(); pos++) {
+        const y = chamber.bottom - 10 - ballRadius - pos * chamber.ballPitch + chamber.ballPitch / 2;
+        ctx.beginPath();
+        ctx.moveTo(chamber.left + 5, y);
+        ctx.lineTo(chamber.right - 5, y);
+        ctx.stroke();
+      }
+
+      // Nagłówek pod/obok tuby.
+      ctx.textAlign = 'center';
+      ctx.font = 'bold 11px Segoe UI';
+      ctx.fillStyle = '#d8deef';
+      ctx.fillText(`K${idx + 1}`, chamber.x, chamber.top - 8);
+
+      ctx.font = 'bold 10px Segoe UI';
+      ctx.fillStyle = full ? '#f4d35e' : '#a9c7ff';
+      ctx.fillText(`${loadCount}/${getHoleCapacity()}`, chamber.x, chamber.bottom + 13);
+
+      // Nazwy obok faktycznie zatrzymanych kulek.
+      assignedSlots[idx].forEach((name, pos) => {
+        if (!name) return;
+        const target = getPocketStackPosition(pocket, pos);
+        ctx.textAlign = 'left';
+        ctx.font = '600 9px Segoe UI';
+        ctx.fillStyle = '#dbe5f3';
+        ctx.fillText(name, chamber.right + 5, target.y + 3);
+      });
+
+      if (full) {
+        const pulse = springPulse[idx] / 18;
+        const gateY = floorY - funnelHeight - 2;
+        ctx.save();
+        ctx.strokeStyle = pulse > 0 ? '#fff6bd' : '#f4d35e';
+        ctx.lineWidth = 6 + pulse * 2;
+        ctx.shadowColor = '#f4d35e';
+        ctx.shadowBlur = 8 + pulse * 16;
+        ctx.beginPath();
+        ctx.moveTo(pocket.left + 10, gateY);
+        ctx.lineTo(pocket.right - 10, gateY);
+        ctx.stroke();
+        ctx.restore();
+      }
+
+      ctx.restore();
+    });
+
+    ctx.fillStyle = 'rgba(255,255,255,.75)';
+    ctx.font = 'bold 16px Segoe UI';
+    ctx.textAlign = 'center';
+    ctx.fillText('START', W / 2, 58);
+
+    ctx.fillStyle = 'rgba(255,255,255,.48)';
+    ctx.font = '600 11px Segoe UI';
+    ctx.fillText('odblokowanie: dół → góra', W / 2, 76);
+
+    ctx.restore();
+  }
+
+  function drawPegsAndBumpers(){
+    pegs.forEach(peg => {
+      ctx.fillStyle = '#c7cedc';
+      ctx.beginPath();
+      ctx.arc(peg.x, peg.y, peg.r, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = 'rgba(255,255,255,.18)';
+      ctx.beginPath();
+      ctx.arc(peg.x - 3, peg.y - 3, peg.r * 0.35, 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    bumpers.forEach(bumper => {
+      const grd = ctx.createRadialGradient(bumper.x - 2, bumper.y - 2, 3, bumper.x, bumper.y, bumper.r);
+      grd.addColorStop(0, '#fff4b7');
+      grd.addColorStop(.45, '#ffd166');
+      grd.addColorStop(1, '#d29a1a');
+      ctx.fillStyle = grd;
+      ctx.beginPath();
+      ctx.arc(bumper.x, bumper.y, bumper.r, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.strokeStyle = 'rgba(255,255,255,.5)';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    });
+  }
+
+  function drawBall(ball){
+    ball.trail.forEach((pt, idx) => {
+      const alpha = idx / ball.trail.length * 0.22;
+      ctx.fillStyle = hexToRgba(ball.color, alpha);
+      ctx.beginPath();
+      ctx.arc(pt.x, pt.y, ball.r * (0.45 + idx / ball.trail.length * 0.55), 0, Math.PI * 2);
+      ctx.fill();
+    });
+
+    if (ball.glow > 0) {
+      ctx.save();
+      ctx.shadowColor = '#ffd166';
+      ctx.shadowBlur = 16 + ball.glow * 1.5;
+      ctx.fillStyle = 'rgba(255,209,102,.35)';
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, ball.r + 4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+
+    if (ball.springFlash > 0) {
+      const p = ball.springFlash / 14;
+      ctx.save();
+      ctx.strokeStyle = `rgba(244,211,94,${0.25 + p * 0.7})`;
+      ctx.lineWidth = 2 + p * 3;
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, ball.r + 7 + (1 - p) * 10, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    if (ball.rescueFlash > 0) {
+      const p = ball.rescueFlash / 12;
+      ctx.save();
+      ctx.strokeStyle = `rgba(124,156,255,${0.18 + p * 0.65})`;
+      ctx.lineWidth = 1.5 + p * 2.5;
+      ctx.beginPath();
+      ctx.arc(ball.x, ball.y, ball.r + 5 + (1 - p) * 7, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    const grd = ctx.createRadialGradient(ball.x - 6, ball.y - 8, 2, ball.x, ball.y, ball.r);
+    grd.addColorStop(0, '#ffffff');
+    grd.addColorStop(.22, lightenColor(ball.color, .34));
+    grd.addColorStop(1, ball.color);
+    ctx.fillStyle = grd;
+    ctx.beginPath();
+    ctx.arc(ball.x, ball.y, ball.r, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = 'rgba(255,255,255,.65)';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+
+    ctx.fillStyle = '#0b0d12';
+    ctx.font = 'bold 10px Segoe UI';
+    ctx.textAlign = 'center';
+    ctx.fillText((ball.idx + 1).toString(), ball.x, ball.y + 3);
+
+    ctx.fillStyle = '#eef2ff';
+    ctx.font = ball.settled ? 'bold 9px Segoe UI' : (ball.held ? 'bold 10px Segoe UI' : 'bold 12px Segoe UI');
+    ctx.textAlign = 'center';
+    const labelY = ball.settled ? ball.y - ball.r - 4 : Math.max(22, ball.y - ball.r - 8);
+    if (!ball.settled && !ball.captured) {
+      ctx.fillText(ball.name, ball.x, labelY);
+    }
+  }
+
+  function drawParticles(){
+    particles.forEach(p => {
+      ctx.fillStyle = hexToRgba(p.color, p.life * 0.9);
+      ctx.fillRect(p.x, p.y, 5, 7);
+    });
+  }
+
+  function draw(){
+    ctx.clearRect(0, 0, W, H);
+
+    drawBackplate();
+    drawPegsAndBumpers();
+    activeBalls.forEach(drawBall);
+    drawParticles();
+  }
+
+  function loop(now = performance.now()){
+    if (!lastPhysicsTime) lastPhysicsTime = now;
+
+    // Nie próbujemy "odrabiać" całej długiej pauzy po zmianie karty.
+    const elapsed = Math.min(100, Math.max(0, now - lastPhysicsTime));
+    lastPhysicsTime = now;
+    physicsAccumulator += elapsed;
+
+    let steps = 0;
+    while (physicsAccumulator >= PHYSICS_STEP_MS && steps < MAX_PHYSICS_STEPS) {
+      // Ślad i liczniki wizualne aktualizujemy tylko raz na render,
+      // ale zderzenia liczone są w każdym kroku 120 Hz.
+      updateBalls(PHYSICS_DT, steps === 0);
+      physicsAccumulator -= PHYSICS_STEP_MS;
+      steps++;
+    }
+
+    // Jeśli przeglądarka bardzo zwolniła, odrzucamy nadmiar czasu zamiast
+    // generować ogromne skoki fizyki.
+    if (steps >= MAX_PHYSICS_STEPS) {
+      physicsAccumulator = 0;
+    }
+
+    updateParticles(elapsed / (1000 / 60));
+    draw();
+    raf = requestAnimationFrame(loop);
+  }
+
+  function hexToRgba(hex, alpha){
+    const c = hex.replace('#','');
+    const r = parseInt(c.slice(0,2),16);
+    const g = parseInt(c.slice(2,4),16);
+    const b = parseInt(c.slice(4,6),16);
+    return `rgba(${r},${g},${b},${alpha})`;
+  }
+
+  function lightenColor(hex, amount){
+    const c = hex.replace('#','');
+    let r = parseInt(c.slice(0,2),16);
+    let g = parseInt(c.slice(2,4),16);
+    let b = parseInt(c.slice(4,6),16);
+
+    r = Math.min(255, Math.round(r + (255 - r) * amount));
+    g = Math.min(255, Math.round(g + (255 - g) * amount));
+    b = Math.min(255, Math.round(b + (255 - b) * amount));
+    return `rgb(${r},${g},${b})`;
+  }
+
+  const customInputs = [
+    ballSizeInput,pegSizeInput,pegRowsInput,pegColsInput,pegGapYInput,
+    fieldMarginInput,holeSizeInput,funnelHeightInput,railSizeInput,
+    gravityInput,launchSpeedInput,springPowerInput,trailLengthInput,waveDelayInput,
+    ballBounceInput,collisionFrictionInput
+  ];
+
+  customInputs.forEach(el=>el.addEventListener('input',()=>{
+    updateCustomLabels();
+    markConfigurationDirty();
+  }));
+
+  applyTrackBtn.addEventListener('click',()=>{
+    configurationDirty = true;
+    applyParticipants();
+    setStatus('<div><strong>Zastosowano ustawienia toru.</strong> Losowanie jest gotowe do startu.</div>');
+  });
+
+  densePresetBtn.addEventListener('click',()=>{
+    pegRowsInput.value=17;
+    pegColsInput.value=9;
+    pegGapYInput.value=54;
+    pegSizeInput.value=7;
+    ballSizeInput.value=15;
+    fieldMarginInput.value=105;
+    holeSizeInput.value=21;
+    funnelHeightInput.value=78;
+    railSizeInput.value=5;
+    markConfigurationDirty();
+  });
+
+  sparsePresetBtn.addEventListener('click',()=>{
+    pegRowsInput.value=8;
+    pegColsInput.value=5;
+    pegGapYInput.value=96;
+    pegSizeInput.value=11;
+    ballSizeInput.value=19;
+    fieldMarginInput.value=135;
+    holeSizeInput.value=27;
+    funnelHeightInput.value=62;
+    railSizeInput.value=7;
+    markConfigurationDirty();
+  });
+
+  defaultTrackBtn.addEventListener('click',()=>{
+    ballSizeInput.value=17;
+    pegSizeInput.value=9;
+    pegRowsInput.value=12;
+    pegColsInput.value=7;
+    pegGapYInput.value=72;
+    fieldMarginInput.value=120;
+    holeSizeInput.value=38;
+    funnelHeightInput.value=68;
+    railSizeInput.value=6;
+    gravityInput.value=65;
+    launchSpeedInput.value=100;
+    springPowerInput.value=100;
+    trailLengthInput.value=12;
+    ballBounceInput.value=74;
+    collisionFrictionInput.value=8;
+    markConfigurationDirty();
+  });
+
+  generateNamesBtn.addEventListener('click',()=>{
+    const n = Math.max(2,Math.min(128,Number(ballCountInput.value)||8));
+    participantsInput.value = Array.from({length:n},(_,i)=>`Team ${i+1}`).join('\n');
+    markConfigurationDirty();
+  });
+
+  drawFormatSelect.addEventListener('change',()=>{
+    markConfigurationDirty();
+    updateConfigurationSummary();
+  });
+  groupCountInput.addEventListener('change',()=>{
+    groupCountInput.value = Math.max(2,Math.min(16,Number(groupCountInput.value)||4));
+    markConfigurationDirty();
+    updateConfigurationSummary();
+  });
+  drawSpeedSelect.addEventListener('change',()=>{
+    markConfigurationDirty();
+    updateConfigurationSummary();
+  });
+
+  quickSeedInput.addEventListener('change',()=>{
+    syncAdvancedSeedFromQuick();
+    updateSeedState();
+    markConfigurationDirty();
+  });
+  quickRandomSeedBtn.addEventListener('click',()=>{
+    randomSeed();
+    syncQuickSeedFromAdvanced();
+    markConfigurationDirty();
+  });
+
+  quickPresetSelect.addEventListener('change',()=>applyQuickPreset(quickPresetSelect.value));
+
+  showResultsBtn.addEventListener('click',()=>{
+    const visible = resultsPanel.classList.contains('hidden');
+    setResultsVisible(visible);
+    if (visible) renderResults();
+  });
+
+  resultsModeSelect.addEventListener('change',renderResults);
+  copyResultsBtn.addEventListener('click', copyResults);
+  saveCsvBtn.addEventListener('click', saveResultsCsv);
+  saveJsonBtn.addEventListener('click', saveResultsJson);
+
+  [ballCountInput,holeCapacityInput,waveSizeInput,pocketCountInput,autoFitDenseInput].forEach(el=>{
+    el.addEventListener('change',()=>{
+      if (el === ballCountInput) ensureParticipantNames();
+      markConfigurationDirty();
+    });
+  });
+
+  participantsInput.addEventListener('input', markConfigurationDirty);
+  applyBtn.addEventListener('click', applyParticipants);
+  autoFixBtn.addEventListener('click', autoFixCapacity);
+
+  applyScenarioBtn.addEventListener('click',()=>applyScenario(scenarioPresetSelect.value));
+  scenarioPresetSelect.addEventListener('change', updateConfigurationSummary);
+
+  presentationBtn.addEventListener('click',()=>{
+    const on = document.body.classList.toggle('presentation-mode');
+    presentationBtn.textContent = on ? 'Pokaż ustawienia' : 'Tryb prezentacji';
+    if (on) boardPanel.scrollIntoView({behavior:'smooth',block:'start'});
+  });
+
+  scrollStartBtn.addEventListener('click',()=>{
+    canvas.scrollIntoView({behavior:'smooth',block:'start'});
+  });
+
+  scrollResultsBtn.addEventListener('click',()=>{
+    setResultsVisible(true);
+    renderResults();
+    resultsPanel.scrollIntoView({behavior:'smooth',block:'start'});
+  });
+
+  leverBtn.addEventListener('click', pullLever);
+  resetBtn.addEventListener('click', resetBoard);
+  seedRandomBtn.addEventListener('click', randomSeed);
+
+  // init
+  updateCustomLabels();
+  rebuildGeometry();
+  updateConfigurationSummary();
+  applyParticipants();
+  renderResults();
+  updateProgressUI();
+  if (raf) cancelAnimationFrame(raf);
+  loop();
+})();
+</script>
+</body>
+</html>

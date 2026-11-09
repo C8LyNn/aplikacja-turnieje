@@ -50,7 +50,7 @@ export function verifyPassword(password: string, stored: string): Promise<boolea
   });
 }
 
-function organizerCredentialFingerprint(
+export function organizerCredentialFingerprint(
   tournamentId: number,
   passwordHash: string | null,
 ): string {

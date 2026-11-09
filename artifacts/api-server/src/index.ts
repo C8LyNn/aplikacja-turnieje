@@ -28,6 +28,11 @@ async function startApi(): Promise<void> {
     }
 
     logger.info({ port }, "Server listening");
+    if (process.env.STEAM_CATALOG_IMPORT_WORKER_ENABLED === "true") {
+      void import("./application/catalog/steam-catalog-import-jobs")
+        .then(({ startCatalogImportWorker }) => startCatalogImportWorker())
+        .catch((error) => logger.error({ error }, "Catalog import worker failed to start"));
+    }
   });
 }
 

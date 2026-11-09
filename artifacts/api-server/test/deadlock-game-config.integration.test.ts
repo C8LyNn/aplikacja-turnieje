@@ -164,7 +164,7 @@ describe("Deadlock tournament game configuration", () => {
     assert.equal(locked.body.code, "GAME_CONFIG_IMMUTABLE");
   });
 
-  test("persists cumulative per-stage bans and round-trips them through Backup v3", async () => {
+  test("[before V3 import] persists cumulative per-stage bans and round-trips them through Backup v3", async (swarm006V3TestContext) => {
     const stageBans = [
       { stageKey: "opening", bannedHeroIds: ["rem"] },
       { stageKey: "middle", bannedHeroIds: ["wraith", "haze"] },
@@ -213,14 +213,17 @@ describe("Deadlock tournament game configuration", () => {
       .get(`/api/tournaments/${created.body.id}/export`)
       .set(organizer)
       .expect(200);
+    await swarm006V3TestContext.test("V3 NOT_RUN: persists cumulative per-stage bans and round-trips them through Backup v3", { skip: "Backup V3 import disabled (#152)" }, async () => {
     const restored = await request(app)
       .post("/api/tournaments/import")
       .send({ backup: exported.body, organizerPassword: ORGANIZER_PASSWORD })
       .expect(201);
     assert.deepEqual(restored.body.tournament.gameConfig.config.stageBans, stageBans);
+
+    });
   });
 
-  test("Backup v3 round-trip preserves config while older v3 without it stays compatible", async () => {
+  test("[before V3 import] Backup v3 round-trip preserves config while older v3 without it stays compatible", async (swarm006V3TestContext) => {
     const created = await createTournament(deadlockConfig("rem"));
     assert.equal(created.status, 201, created.text);
     const exported = await request(app)
@@ -228,6 +231,7 @@ describe("Deadlock tournament game configuration", () => {
       .set("x-organizer-token", created.body.organizerToken as string);
     assert.equal(exported.status, 200, exported.text);
     assert.deepEqual(exported.body.tournament.gameConfig, deadlockConfig("rem"));
+    await swarm006V3TestContext.test("V3 NOT_RUN: Backup v3 round-trip preserves config while older v3 without it stays compatible", { skip: "Backup V3 import disabled (#152)" }, async () => {
 
     const restored = await request(app)
       .post("/api/tournaments/import")
@@ -244,9 +248,11 @@ describe("Deadlock tournament game configuration", () => {
       .send({ backup: olderV3, organizerPassword: ORGANIZER_PASSWORD });
     assert.equal(restoredOlder.status, 201, restoredOlder.text);
     assert.equal(restoredOlder.body.tournament.gameConfig, null);
+
+    });
   });
 
-  test("rejects an invalid Backup v3 game config without partially restoring it", async () => {
+  test("[before V3 import] rejects an invalid Backup v3 game config without partially restoring it", async (swarm006V3TestContext) => {
     const created = await createTournament(deadlockConfig("rem"));
     assert.equal(created.status, 201, created.text);
     const exported = await request(app)
@@ -267,6 +273,7 @@ describe("Deadlock tournament game configuration", () => {
     const beforeCount = await database.pool.query<{ count: number }>(
       "SELECT count(*)::int AS count FROM tournaments",
     );
+    await swarm006V3TestContext.test("V3 NOT_RUN: rejects an invalid Backup v3 game config without partially restoring it", { skip: "Backup V3 import disabled (#152)" }, async () => {
 
     const restored = await request(app)
       .post("/api/tournaments/import")
@@ -277,6 +284,8 @@ describe("Deadlock tournament game configuration", () => {
       "SELECT count(*)::int AS count FROM tournaments",
     );
     assert.equal(afterCount.rows[0].count, beforeCount.rows[0].count);
+
+    });
   });
 
   test("database row is deleted with its tournament", async () => {

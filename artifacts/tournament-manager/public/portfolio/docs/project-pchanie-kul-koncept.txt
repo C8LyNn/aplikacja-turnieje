@@ -1,0 +1,41 @@
+Zbigniew Janasek 30917 
+Jakub Powierski 30961
+Bartosz Krüger 30964
+
+Koncept:
+
+Na myśli miałem proste kształty z prostą fizyką które razem są w stanie byc fundamentem dość angażującej gry.
+Gra polega na przepchaniu jednej z 12 kul do dołka na końcu poziomu. gracz może wybrać dowolną kulę, a kazda różni się fizyką.
+Kule różnią się wagą, środkiem ciężkości, tarciem, odbijaniem się, maksymalną predkością kręcenia się oraz różnym odbijaniem się od gracza.
+Każdy poziom ma różne przeszkody i wyzwania wzorowane na typowych platformówkach 3D. 
+
+Motywy, inspiracje:
+
+Levele przypominają minigolfa. Jest to główna inspiracja zewnętrzna. Wewnętrzna inspiracja to po prostu używanie podstawowych
+elementów  w kreatywny sposób na bieżąco bez konkretnego planu. Co nie oznacza że level design nie ma tutaj sensu. nie ma konkretnego motywu poza ukazaniem minigolfa w formie platformówki 3D z kopaniem kuli.
+
+Krótki opis poziomów, stylistyki, mechanik i dodatków:
+
+Lobby ma pokazać graczowi mozliwośc wyboru poziomu i styl graficzny. Może tam przetestować działanie kul.
+1 poziom ma oswoić gracza z podstawowym terenem. Nie ma zadnych trudniejszych wyzwań, co nie oznacza że nie trzeba się wysilić. Głównym wywaniem jest tutaj teren oraz nieruchome obiekty. Poziom to krótki lej.
+2 poziom wprowadza ruszające się elementy. Poziom jest stosunkowo prosty. Ale jest wyraźnie trudniejszy od poprzedniego. obiekty poruszają się w jednej lub więcej osi. ten poziom to równiez lej, ale na środku znajduje się spawner sześcianów które maja przeszkadzać graczowi.
+3 poziom wprowadza trudniejsze wyzwania, choć błąd jeszcze nie kosztuje zbyt dużej ilości czasu. Wyzwaniem jest skuteczne wykorzystanie terenu. Bo zwykłe unikanie przeszkód to za mało. W tym poziomie trzeba zacząć myśleć. Tym razem poziom to prosty korytarz.
+4 poziom daje wytchnienie z ruszającymi sie elementami, ale jeszcze bardziej komplikuje wyzwania, tym razem błąd może kosztować sporo czasu. Ten poziom to wieża, kula może spaść na niższe segmenty.
+5 poziom zbiera rozwiązania ze wszystkich poprzednich poziomów i wynosi je do bardzo trudnych wyzwań które wymagają znajomości gry. Ostatni poziom to długi skręcający korytarz.
+
+Nieudane:
+
+nie udało się stworzyc kilku mechanik:
+-Zaawansowanych sekwencji poruszania się obiektów
+-Systemu checkpointów
+-Umiejętności zmiany fizyki kuli na bieżąco
+-Wpływania na elementy otoczenia przez gracza
+-Kopania piłki
+-Biegania
+-Wspinaczki
+
+
+Możliwe update projektu na przyszłość
+
+To czego się nie udało oraz więcej map, ewentualnie nowe tryby jak marble czy rougelike.
+

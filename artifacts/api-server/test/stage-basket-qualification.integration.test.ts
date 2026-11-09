@@ -705,6 +705,25 @@ describe("Phase 2 — Qualification Proposals", () => {
     );
   });
 
+  test("Approve blocks a live stage in basket-authoritative flow", async () => {
+    const fix = await buildSwissFixture({ qualifierCount: 2 });
+    const generate = await request(app)
+      .post(`/api/tournaments/${fix.tournamentId}/stages/${fix.stageId}/basket-qualification-proposal`)
+      .set(fix.organizerHeaders);
+    assert.equal(generate.status, 200, JSON.stringify(generate.body));
+
+    await database.db
+      .update(database.tournamentsTable)
+      .set({ basketFlowAuthorityVersion: 1 })
+      .where(eq(database.tournamentsTable.id, fix.tournamentId));
+
+    const approve = await request(app)
+      .post(`/api/tournaments/${fix.tournamentId}/stages/${fix.stageId}/basket-qualification-proposal/approve`)
+      .set(fix.organizerHeaders);
+    assert.equal(approve.status, 409, JSON.stringify(approve.body));
+    assert.equal(approve.body.code, "STAGE_BASKET_QUALIFICATION_STAGE_INCOMPLETE");
+  });
+
   // ── Generate blocked after approval ───────────────────────────────────────
 
   test("Generate fails with ALREADY_APPROVED when a proposal is already approved", async () => {
@@ -1170,14 +1189,7 @@ describe("Phase 2 — Qualification Proposals", () => {
   }
 
   /** Shared restore logic for pending round-trip tests. */
-  async function generateExportAndRestore(qualifierCount = 2): Promise<{
-    newTournamentId: number;
-    newStageId: number;
-    newOrganizerToken: string;
-    newMatchIds: number[];
-    newPlayerIds: number[];
-    newOutputBasketId: string;
-  }> {
+  async function generateBackupExport(qualifierCount = 2): Promise<unknown> {
     const fix = await buildBackupSwissFixture(qualifierCount);
 
     // Generate pending proposal
@@ -1193,11 +1205,23 @@ describe("Phase 2 — Qualification Proposals", () => {
       .get(`/api/tournaments/${fix.tournamentId}/export`)
       .set(fix.organizerHeaders);
     assert.equal(exportRes.status, 200, "export should succeed");
+    return exportRes.body;
+  }
+
+  async function generateExportAndRestore(qualifierCount = 2, preparedBackup?: unknown): Promise<{
+    newTournamentId: number;
+    newStageId: number;
+    newOrganizerToken: string;
+    newMatchIds: number[];
+    newPlayerIds: number[];
+    newOutputBasketId: string;
+  }> {
+    const backup = preparedBackup === undefined ? await generateBackupExport(qualifierCount) : preparedBackup;
 
     // Restore
     const importRes = await request(app)
       .post("/api/tournaments/import")
-      .send({ backup: exportRes.body, organizerPassword: "RestoredPw1!" });
+      .send({ backup, organizerPassword: "RestoredPw1!" });
     assert.ok(
       importRes.status >= 200 && importRes.status < 300,
       `import failed ${importRes.status}: ${JSON.stringify(importRes.body)}`,
@@ -1244,12 +1268,14 @@ describe("Phase 2 — Qualification Proposals", () => {
     };
   }
 
-  test("Backup V3 pending round-trip: restore → immediate approve succeeds with output materialised", async () => {
+  test("[before V3 import] Backup V3 pending round-trip: restore → immediate approve succeeds with output materialised", async (swarm006V3TestContext) => {
+    const preparedBackup = await generateBackupExport(2);
+    await swarm006V3TestContext.test("V3 NOT_RUN: Backup V3 pending round-trip: restore → immediate approve succeeds with output materialised", { skip: "Backup V3 import disabled (#152)" }, async () => {
     const {
       newTournamentId,
       newStageId,
       newOrganizerToken,
-    } = await generateExportAndRestore(2);
+    } = await generateExportAndRestore(2, preparedBackup);
     const headers = { "x-organizer-token": newOrganizerToken };
 
     // Verify the proposal is pending
@@ -1302,16 +1328,20 @@ describe("Phase 2 — Qualification Proposals", () => {
       .map((e) => e.finalRank)
       .sort((a, b) => a - b);
     assert.deepEqual(finalRanks, [1, 2]);
+
+    });
   });
 
-  test("Backup V3 pending round-trip: restore → match mutation → approve = STALE", async () => {
+  test("[before V3 import] Backup V3 pending round-trip: restore → match mutation → approve = STALE", async (swarm006V3TestContext) => {
+    const preparedBackup = await generateBackupExport(2);
+    await swarm006V3TestContext.test("V3 NOT_RUN: Backup V3 pending round-trip: restore → match mutation → approve = STALE", { skip: "Backup V3 import disabled (#152)" }, async () => {
     const {
       newTournamentId,
       newStageId,
       newOrganizerToken,
       newMatchIds,
       newPlayerIds,
-    } = await generateExportAndRestore(2);
+    } = await generateExportAndRestore(2, preparedBackup);
     const headers = { "x-organizer-token": newOrganizerToken };
 
     // Mutate a match result on the restored tournament (flip winner of match 0)
@@ -1327,15 +1357,19 @@ describe("Phase 2 — Qualification Proposals", () => {
       .set(headers);
     assert.equal(approveRes.status, 409, JSON.stringify(approveRes.body));
     assert.equal(approveRes.body.code, "STAGE_BASKET_QUALIFICATION_PROPOSAL_STALE");
+
+    });
   });
 
-  test("Backup V3 pending round-trip: restore → qualifierCount mutation → approve = STALE", async () => {
+  test("[before V3 import] Backup V3 pending round-trip: restore → qualifierCount mutation → approve = STALE", async (swarm006V3TestContext) => {
+    const preparedBackup = await generateBackupExport(2);
+    await swarm006V3TestContext.test("V3 NOT_RUN: Backup V3 pending round-trip: restore → qualifierCount mutation → approve = STALE", { skip: "Backup V3 import disabled (#152)" }, async () => {
     const {
       newTournamentId,
       newStageId,
       newOrganizerToken,
       newOutputBasketId,
-    } = await generateExportAndRestore(2);
+    } = await generateExportAndRestore(2, preparedBackup);
     const headers = { "x-organizer-token": newOrganizerToken };
 
     // Mutate the output basket qualifierCount on the restored tournament
@@ -1351,11 +1385,13 @@ describe("Phase 2 — Qualification Proposals", () => {
       .set(headers);
     assert.equal(approveRes.status, 409, JSON.stringify(approveRes.body));
     assert.equal(approveRes.body.code, "STAGE_BASKET_QUALIFICATION_PROPOSAL_STALE");
+
+    });
   });
 
   // ── Backup V3 round-trip: approved ────────────────────────────────────────
 
-  test("Backup V3 approved round-trip: approved proposal with output rows survives export → restore → reload", async () => {
+  test("[before V3 import] Backup V3 approved round-trip: approved proposal with output rows survives export → restore → reload", async (swarm006V3TestContext) => {
     const fix = await buildSwissFixture({ qualifierCount: 2 });
 
     // Reset advancingCount to null so the backup v3 stage plan validator
@@ -1413,6 +1449,7 @@ describe("Phase 2 — Qualification Proposals", () => {
           .length === 2,
       "approved backup must include 2 output rows",
     );
+    await swarm006V3TestContext.test("V3 NOT_RUN: Backup V3 approved round-trip: approved proposal with output rows survives export → restore → reload", { skip: "Backup V3 import disabled (#152)" }, async () => {
 
     // Restore to a new tournament (import returns 201 Created)
     const importRes = await request(app)
@@ -1498,5 +1535,7 @@ describe("Phase 2 — Qualification Proposals", () => {
     assert.equal(approve2.status, 200);
     assert.equal(approve2.body.status, "approved");
     assert.equal(approve2.body.entries.length, 2);
+
+    });
   });
 });
