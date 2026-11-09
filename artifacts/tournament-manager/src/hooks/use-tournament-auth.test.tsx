@@ -6,7 +6,7 @@ import {
   setActiveOrganizerToken,
   setActiveSupportToken,
 } from "@workspace/api-client-react";
-import { AuthProvider } from "@/context/auth-context";
+import { TestAuthProvider as AuthProvider } from "../../test/auth-provider";
 import { getSupportSession, setSupportSession } from "@/lib/auth";
 import { deriveOrganizerCapabilities, NO_ORGANIZER_CAPABILITIES } from "@/lib/organizer-capabilities";
 import { useSyncTournamentAuth } from "./use-tournament-auth";

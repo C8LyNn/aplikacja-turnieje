@@ -1,0 +1,40 @@
+name: Game catalog seed QA
+
+on:
+  push:
+    branches:
+      - codex/game-catalog-verified-seed-batch
+    paths:
+      - data/steam-catalog-seed-106.csv
+      - scripts/import-game-catalog-seed.ps1
+      - .github/workflows/game-catalog-seed-qa.yml
+  pull_request:
+    paths:
+      - data/steam-catalog-seed-106.csv
+      - scripts/import-game-catalog-seed.ps1
+      - .github/workflows/game-catalog-seed-qa.yml
+
+jobs:
+  validate-seed:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate all 106 unique Steam AppIDs
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          import csv
+          with open('data/steam-catalog-seed-106.csv', encoding='utf-8', newline='') as f:
+              rows = list(csv.DictReader(f))
+          assert len(rows) == 106, f'expected 106, got {len(rows)}'
+          ids = [int(row['appId']) for row in rows]
+          assert all(0 < n < 2147483648 for n in ids)
+          assert len(set(ids)) == len(ids), 'duplicate AppIDs'
+          assert all(row['titleHint'].strip() for row in rows)
+          print(f'PASS: {len(rows)} unique AppID candidates')
+          PY
+      - name: Parse PowerShell and execute no-write dry runs
+        shell: pwsh
+        run: |
+          ./scripts/import-game-catalog-seed.ps1 -Limit 5
+          ./scripts/import-game-catalog-seed.ps1 -Limit 106

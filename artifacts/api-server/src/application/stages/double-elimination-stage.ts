@@ -128,7 +128,12 @@ async function serialize(
         round: roundOf(match.name),
         matchNumber: matchNumberOf(match.name),
         order: match.order,
-        slots: match.slots,
+        // Scores and side swaps belong to the canonical match. The routing graph
+        // identifies the pair, but its slot order need not match the operator's sides.
+        slots: canonical?.player1Id != null && canonical.player2Id != null
+          && (match.status === "ready" || match.status === "completed")
+          ? [String(canonical.player1Id), String(canonical.player2Id)]
+          : match.slots,
         status: match.status,
         bestOf: canonical?.bestOf ?? null,
         score1: canonical?.score1 ?? null,

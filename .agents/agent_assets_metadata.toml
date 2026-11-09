@@ -1,0 +1,16 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "igUOOEM_1APkCQvLHIAMF"
+uri = "file://docs/steam-catalog-production-audit-2026-10-12.txt"
+type = "text"
+title = "Raport kontroli produkcyjnego katalogu Steam"
+description = "Stan przed i po, weryfikacja pięciu AppID, powód wstrzymania zapisu oraz wyniki testów poprawki workspace."
+logical_id = "9131fd69-a203-4b50-a535-7823a7fe11a3"
+content_hash = "sha256:7349a966a53d0a20459a524d074a1f90f21c07d561fa6569988f566a71215203"
+size = 3195
+mtime_ms = 1791819915620
+storage_uri = "gcs://replit-rams-assets-spock/rams/assets/repl:87be406c-bc97-44fd-ac84-dfcc89b4fc8a/9131fd69-a203-4b50-a535-7823a7fe11a3/fbc628b0-6f0f-47da-a84d-8f37ba143d8d"
+storage_version_token = "1791819931551011"
+content_type = "text/plain"

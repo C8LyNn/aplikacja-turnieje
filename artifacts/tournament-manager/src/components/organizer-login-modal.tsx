@@ -8,6 +8,7 @@ import {
 import {
   setActiveOrganizerToken,
   setActiveSupportToken,
+  setActiveViewerToken,
   type OrganizerCredentialState,
 } from "@workspace/api-client-react";
 import { organizerCredentialScreen } from "@/lib/organizer-credential-screen";
@@ -26,7 +27,8 @@ interface Props {
 }
 
 export function OrganizerLoginModal({ open, onClose, tournamentId, tournamentName, onSuccess, onCancel }: Props) {
-  const { storeOrgToken } = useAuth();
+  const { storeOrgToken, setRole } = useAuth();
+  const submitLock = useRef(false);
   const [password, setPassword] = useState("");
   const [hostCode, setHostCode] = useState("");
   const [credentialState, setCredentialState] =
@@ -77,6 +79,9 @@ export function OrganizerLoginModal({ open, onClose, tournamentId, tournamentNam
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (submitLock.current || stateLoading || !password ||
+      (credentialScreen !== "organizer_login" && credentialScreen !== "legacy_upgrade")) return;
+    submitLock.current = true;
     setLoading(true);
     setError(null);
     try {
@@ -86,10 +91,15 @@ export function OrganizerLoginModal({ open, onClose, tournamentId, tournamentNam
       storeOrgToken(tournamentId, token);
       setActiveOrganizerToken(token);
       setActiveSupportToken(null);
+      setActiveViewerToken(null);
+      setRole("organizer");
+      setPassword("");
+      setHostCode("");
       onSuccess(token);
     } catch (err: any) {
       setError(err.message ?? "Nieprawidłowe hasło");
     } finally {
+      submitLock.current = false;
       setLoading(false);
     }
   }
@@ -136,6 +146,13 @@ export function OrganizerLoginModal({ open, onClose, tournamentId, tournamentNam
           </p>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
+            {credentialScreen !== "legacy_upgrade" && (
+              <p className="text-sm text-muted-foreground">
+                Podaj zachowane hasło organizatora tego turnieju. Możesz nim wrócić
+                po wylogowaniu lub utracie danych przeglądarki i wejść na drugim
+                urządzeniu. Logowanie nie wyloguje pozostałych sesji.
+              </p>
+            )}
             {credentialScreen === "legacy_upgrade" && (
               <>
                 <p className="text-xs text-muted-foreground">
@@ -156,20 +173,22 @@ export function OrganizerLoginModal({ open, onClose, tournamentId, tournamentNam
               </>
             )}
             <div className="space-y-1.5">
-              <Label className="flex items-center gap-1.5">
+              <Label htmlFor="organizer-login-password" className="flex items-center gap-1.5">
                 <Lock className="w-3.5 h-3.5" />
                 {credentialScreen === "legacy_upgrade"
                   ? "Nowe hasło organizatora"
                   : "Hasło organizatora"}
               </Label>
               <Input
+                id="organizer-login-password"
                 type="password"
+                autoComplete={credentialScreen === "legacy_upgrade" ? "new-password" : "current-password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder={
                   credentialScreen === "legacy_upgrade"
                     ? "Minimum 8 znaków"
-                    : "Hasło ustawione przy tworzeniu turnieju"
+                    : "Zachowane hasło organizatora"
                 }
                 minLength={
                   credentialScreen === "legacy_upgrade" ? 8 : undefined

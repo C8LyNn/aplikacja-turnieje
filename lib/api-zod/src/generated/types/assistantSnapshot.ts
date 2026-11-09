@@ -5,9 +5,11 @@
  * Tournament Manager API
  * OpenAPI spec version: 0.1.0
  */
+import type { TournamentOperationsSnapshot } from './tournamentOperationsSnapshot';
 
 export interface AssistantSnapshot {
   stepTitle: string;
   nextAction: string;
   warnings?: string[];
+  operations?: TournamentOperationsSnapshot;
 }

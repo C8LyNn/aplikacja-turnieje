@@ -2,18 +2,15 @@ import { createHash } from "node:crypto";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import {
   actionLogTable,
-  db,
   matchesTable,
   playersTable,
   stageGroupsTable,
   stageParticipantsTable,
   tournamentStagesTable,
   tournamentsTable,
-} from "@workspace/db";
-import {
-  revalidateTournamentMutationActor,
-  type TournamentMutationActor,
-} from "../../access-policy";
+} from "@workspace/db/schema";
+import type { db } from "@workspace/db";
+import type { TournamentMutationActor } from "../../access-policy";
 import {
   calculateBalancedGroupSizes,
   groupKeyFromIndex,
@@ -25,6 +22,8 @@ import {
   buildStandardSeededBracket,
 } from "../../domain/tournament/stage-placement";
 import { assignSeeds, type SeedingPolicy } from "../../domain/tournament/seeding";
+import { loadBasketInputRoster } from "./basket-input-roster";
+import { StageLifecycleError } from "./stage-lifecycle-error";
 
 export type SeedingCeremonyStatus = "prepared" | "in_progress" | "completed" | "applied";
 export type SeedingCeremonyDrawMode = "seed" | "placement";
@@ -117,8 +116,10 @@ export class SeedingCeremonyError extends Error {
 
 type StageRow = typeof tournamentStagesTable.$inferSelect;
 type MembershipRow = typeof stageParticipantsTable.$inferSelect;
+type CeremonyMembership = Pick<MembershipRow, "playerId" | "stageSeed"> & Partial<Pick<MembershipRow, "id">>;
 type PlayerRow = typeof playersTable.$inferSelect;
 type DatabaseTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
+const BASKET_SIGNATURE_PREFIX = "basket_input_v1:";
 
 function nonEmptyString(value: unknown): value is string {
   return typeof value === "string" && value.trim().length > 0;
@@ -149,17 +150,20 @@ export function stageUsesRandomCeremony(
 }
 
 export function ceremonyParticipantSignature(
-  memberships: readonly Pick<MembershipRow, "id" | "playerId" | "stageSeed">[],
+  memberships: readonly CeremonyMembership[],
   players: readonly Pick<PlayerRow, "id" | "name" | "seed">[],
+  basketInput = false,
 ): string {
   const playerById = new Map(players.map((player) => [player.id, player]));
-  return sha256(
+  // Basket membership IDs are assigned only at start. Sign player identity instead,
+  // while preserving the exact historical signature for legacy ceremonies.
+  return (basketInput ? BASKET_SIGNATURE_PREFIX : "") + sha256(
     [...memberships]
       .sort((left, right) => left.stageSeed - right.stageSeed)
       .map((membership) => {
         const player = playerById.get(membership.playerId);
         return {
-          membershipId: membership.id,
+          ...(basketInput ? {} : { membershipId: membership.id }),
           playerId: membership.playerId,
           playerName: player?.name ?? null,
           manualSeed: player?.seed ?? null,
@@ -330,13 +334,23 @@ function placementByParticipant(
   return placements;
 }
 
+/** Use attendance for DE ceremony signatures before and after start recompiles capacity. */
+function effectiveCeremonyStage(stage: StageRow, participantCount: number): StageRow {
+  return stage.format === "double_elimination" &&
+    participantCount >= 2 && participantCount < stage.participantCount
+    ? { ...stage, participantCount }
+    : stage;
+}
+
 export function buildSeedingCeremonyState(input: {
   stage: StageRow;
-  memberships: readonly MembershipRow[];
+  memberships: readonly CeremonyMembership[];
   players: readonly PlayerRow[];
+  basketInput?: boolean;
   now?: Date;
 }): SeedingCeremonyState {
-  const { stage, memberships, players } = input;
+  const { memberships, players } = input;
+  const stage = effectiveCeremonyStage(input.stage, memberships.length);
   if (!stageUsesRandomCeremony(stage)) {
     throw new SeedingCeremonyError("SEEDING_CEREMONY_NOT_AVAILABLE");
   }
@@ -404,7 +418,7 @@ export function buildSeedingCeremonyState(input: {
     placementRandomSeed: ["random_groups", "random_bracket"].includes(stage.seedingPolicy)
       ? `${stage.randomSeed}:placement`
       : null,
-    participantSignature: ceremonyParticipantSignature(memberships, players),
+    participantSignature: ceremonyParticipantSignature(memberships, players, input.basketInput),
     configurationSignature: ceremonyConfigurationSignature(stage),
     participantOrder,
     draws,
@@ -419,12 +433,16 @@ export function buildSeedingCeremonyState(input: {
 export function isCeremonyCurrent(input: {
   ceremony: SeedingCeremonyState;
   stage: StageRow;
-  memberships: readonly MembershipRow[];
+  memberships: readonly CeremonyMembership[];
   players: readonly PlayerRow[];
 }): boolean {
   return input.ceremony.stageId === input.stage.id &&
-    input.ceremony.participantSignature === ceremonyParticipantSignature(input.memberships, input.players) &&
-    input.ceremony.configurationSignature === ceremonyConfigurationSignature(input.stage);
+    input.ceremony.participantSignature === ceremonyParticipantSignature(
+      input.memberships, input.players, input.ceremony.participantSignature.startsWith(BASKET_SIGNATURE_PREFIX),
+    ) &&
+    input.ceremony.configurationSignature === ceremonyConfigurationSignature(
+      effectiveCeremonyStage(input.stage, input.memberships.length),
+    );
 }
 
 export function markCeremonyApplied(ceremony: SeedingCeremonyState, now = new Date()): SeedingCeremonyState {
@@ -439,10 +457,31 @@ export function markCeremonyApplied(ceremony: SeedingCeremonyState, now = new Da
   };
 }
 
+async function loadCeremonyMemberships(
+  reader: Pick<DatabaseTransaction, "select">,
+  stage: StageRow,
+  basketInput: boolean,
+  lock = false,
+): Promise<CeremonyMembership[]> {
+  if (basketInput) {
+    try {
+      return await loadBasketInputRoster(reader, stage);
+    } catch (error) {
+      if (!(error instanceof StageLifecycleError)) throw error;
+      throw new SeedingCeremonyError("STAGE_PARTICIPANTS_INCONSISTENT");
+    }
+  }
+  const query = reader.select().from(stageParticipantsTable)
+    .where(eq(stageParticipantsTable.stageId, stage.id))
+    .orderBy(asc(stageParticipantsTable.stageSeed));
+  return lock ? query.for("update") : query;
+}
+
 async function loadPlannedStageForCeremony(
   tx: DatabaseTransaction,
   input: { tournamentId: number; stageId: number; actor?: TournamentMutationActor },
 ) {
+  const { revalidateTournamentMutationActor } = await import("../../access-policy");
   const [tournament] = await tx.select().from(tournamentsTable)
     .where(eq(tournamentsTable.id, input.tournamentId)).for("update");
   if (!tournament) throw new SeedingCeremonyError("TOURNAMENT_NOT_FOUND");
@@ -459,46 +498,41 @@ async function loadPlannedStageForCeremony(
   const groups = await tx.select({ id: stageGroupsTable.id }).from(stageGroupsTable)
     .where(eq(stageGroupsTable.stageId, stage.id)).for("update");
   if (groups.length > 0) throw new SeedingCeremonyError("GROUPS_ALREADY_EXIST");
-  const memberships = await tx.select().from(stageParticipantsTable)
-    .where(eq(stageParticipantsTable.stageId, stage.id))
-    .orderBy(asc(stageParticipantsTable.stageSeed)).for("update");
+  const basketInput = tournament.basketFlowAuthorityVersion === 1;
+  const memberships = await loadCeremonyMemberships(tx, stage, basketInput, true);
   const players = memberships.length === 0 ? [] : await tx.select().from(playersTable)
     .where(inArray(playersTable.id, memberships.map((membership) => membership.playerId))).for("update");
-  // For single-stage DE, maxPlayers is a bracket capacity, not a required attendance count.
-  // When actual < maxPlayers the routing plan is recompiled to the actual count at startStage
-  // time.  Allow ceremony prepare/reveal with fewer participants than plan capacity, and use
-  // the actual count in the configuration signature so it stays consistent across
-  // prepare → reveal → startStage (where the recompile sets participantCount = actual too).
-  const isDeCapacityCase = stage.format === "double_elimination" &&
-    memberships.length >= 2 &&
-    memberships.length <= stage.participantCount;
-  const participantCountOk = isDeCapacityCase || memberships.length === stage.participantCount;
-  if (!participantCountOk || memberships.length < 2 || players.length !== memberships.length) {
+  const effectiveStage = effectiveCeremonyStage(stage, memberships.length);
+  if (memberships.length !== effectiveStage.participantCount || memberships.length < 2 || players.length !== memberships.length) {
     throw new SeedingCeremonyError("STAGE_PARTICIPANTS_INCONSISTENT");
   }
-  // Use the actual participant count for the configuration signature so that the ceremony
-  // remains valid even after the routing plan is recompiled to the actual count.
-  const effectiveStage = (isDeCapacityCase && memberships.length < stage.participantCount)
-    ? { ...stage, participantCount: memberships.length }
-    : stage;
-  return { tournament, stage: effectiveStage, memberships, players };
+  return { tournament, stage: effectiveStage, memberships, players, basketInput };
 }
 
 export async function getSeedingCeremony(input: { tournamentId: number; stageId: number }): Promise<SeedingCeremonyState | null> {
+  const { db } = await import("@workspace/db");
   const [stage] = await db.select().from(tournamentStagesTable)
     .where(and(eq(tournamentStagesTable.id, input.stageId), eq(tournamentStagesTable.tournamentId, input.tournamentId)));
   if (!stage) throw new SeedingCeremonyError("STAGE_NOT_FOUND");
   const ceremony = parseSeedingCeremonyState(stage.seedingAudit);
   if (!ceremony || stage.status !== "planned") return ceremony;
-  const memberships = await db.select().from(stageParticipantsTable)
-    .where(eq(stageParticipantsTable.stageId, stage.id))
-    .orderBy(asc(stageParticipantsTable.stageSeed));
+  const [tournament] = await db.select().from(tournamentsTable)
+    .where(eq(tournamentsTable.id, input.tournamentId));
+  if (!tournament) throw new SeedingCeremonyError("TOURNAMENT_NOT_FOUND");
+  let memberships: CeremonyMembership[];
+  try {
+    memberships = await loadCeremonyMemberships(db, stage, tournament.basketFlowAuthorityVersion === 1);
+  } catch (error) {
+    if (error instanceof SeedingCeremonyError && error.code === "STAGE_PARTICIPANTS_INCONSISTENT") return null;
+    throw error;
+  }
   const players = memberships.length === 0 ? [] : await db.select().from(playersTable)
     .where(inArray(playersTable.id, memberships.map((membership) => membership.playerId)));
   return isCeremonyCurrent({ ceremony, stage, memberships, players }) ? ceremony : null;
 }
 
 export async function prepareSeedingCeremony(input: { tournamentId: number; stageId: number; actor?: TournamentMutationActor }): Promise<SeedingCeremonyState> {
+  const { db } = await import("@workspace/db");
   return db.transaction(async (tx) => {
     const loaded = await loadPlannedStageForCeremony(tx, input);
     const existing = parseSeedingCeremonyState(loaded.stage.seedingAudit);
@@ -549,6 +583,7 @@ async function revealCeremony(
   input: { tournamentId: number; stageId: number; actor?: TournamentMutationActor },
   revealAll: boolean,
 ): Promise<SeedingCeremonyState> {
+  const { db } = await import("@workspace/db");
   return db.transaction(async (tx) => {
     const loaded = await loadPlannedStageForCeremony(tx, input);
     const current = parseSeedingCeremonyState(loaded.stage.seedingAudit);
@@ -585,6 +620,7 @@ export async function revealAllSeedingDraws(input: { tournamentId: number; stage
 }
 
 export async function resetSeedingCeremony(input: { tournamentId: number; stageId: number; actor?: TournamentMutationActor }): Promise<void> {
+  const { db } = await import("@workspace/db");
   await db.transaction(async (tx) => {
     const loaded = await loadPlannedStageForCeremony(tx, input);
     const current = parseSeedingCeremonyState(loaded.stage.seedingAudit);

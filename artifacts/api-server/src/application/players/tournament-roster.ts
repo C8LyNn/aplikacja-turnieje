@@ -10,12 +10,15 @@ import {
   type TournamentMutationActor,
 } from "../../access-policy";
 import { addPlayerWithStagePlanCompatibilityInTransaction } from "../stages/create-tournament-with-plan";
+import { parseRosterUndoPayload } from "./roster-undo-payload";
+import { lockLatestUndoableAction, UndoActionChangedError } from "../undo/latest-undo-action";
 
 export type TournamentRosterErrorCode =
   | "TOURNAMENT_NOT_FOUND"
   | "PLAYER_NOT_FOUND"
   | "ROSTER_LOCKED"
   | "ROSTER_UNDO_UNAVAILABLE"
+  | "UNDO_ACTION_CHANGED"
   | "DUPLICATE_PLAYER_NAME"
   | "PLAYER_LIMIT_REACHED"
   | "CSV_INVALID_HEADER"
@@ -28,6 +31,7 @@ const ERROR_MESSAGES: Record<TournamentRosterErrorCode, string> = {
   PLAYER_NOT_FOUND: "Gracz nie istnieje.",
   ROSTER_LOCKED: "Składu nie można zmieniać po rozpoczęciu turnieju.",
   ROSTER_UNDO_UNAVAILABLE: "Ta operacja składu nie może już zostać cofnięta.",
+  UNDO_ACTION_CHANGED: "Ostatnia akcja do cofnięcia uległa zmianie.",
   DUPLICATE_PLAYER_NAME: "Gracz o tej nazwie już istnieje w turnieju.",
   PLAYER_LIMIT_REACHED: "Osiągnięto limit graczy turnieju.",
   CSV_INVALID_HEADER:
@@ -212,29 +216,27 @@ export async function undoTournamentRosterAction(input: {
 }) {
   return db.transaction(async (tx) => {
     await lockDraftTournament(tx, input.tournamentId, input.actor);
-    const [action] = await tx
-      .select()
-      .from(actionLogTable)
-      .where(
-        and(
-          eq(actionLogTable.id, input.actionId),
-          eq(actionLogTable.tournamentId, input.tournamentId),
-          eq(actionLogTable.isUndone, false),
-        ),
-      )
-      .for("update");
-    if (!action?.undoPayload)
+    let action;
+    try {
+      action = await lockLatestUndoableAction(tx, input.tournamentId, input.actionId);
+    } catch (error) {
+      if (error instanceof UndoActionChangedError) {
+        throw new TournamentRosterError("UNDO_ACTION_CHANGED");
+      }
+      throw error;
+    }
+    if (!action.undoPayload)
       throw new TournamentRosterError("ROSTER_UNDO_UNAVAILABLE");
 
-    let payload: Record<string, unknown>;
+    let payload: ReturnType<typeof parseRosterUndoPayload>;
     try {
-      payload = JSON.parse(action.undoPayload) as Record<string, unknown>;
+      payload = parseRosterUndoPayload(JSON.parse(action.undoPayload), action.actionType);
     } catch {
       throw new TournamentRosterError("ROSTER_UNDO_UNAVAILABLE");
     }
 
     if (payload.type === "delete_player") {
-      const playerId = Number(payload.playerId);
+      const playerId = payload.playerId;
       const [player] = await tx
         .select()
         .from(playersTable)
@@ -254,10 +256,7 @@ export async function undoTournamentRosterAction(input: {
         isUndone: false,
       });
     } else if (payload.type === "restore_player") {
-      const playerId = Number(payload.playerId);
-      const prevData = payload.prevData;
-      if (!prevData || typeof prevData !== "object" || Array.isArray(prevData))
-        throw new TournamentRosterError("ROSTER_UNDO_UNAVAILABLE");
+      const playerId = payload.playerId;
       const [player] = await tx
         .select()
         .from(playersTable)
@@ -269,7 +268,7 @@ export async function undoTournamentRosterAction(input: {
         )
         .for("update");
       if (!player) throw new TournamentRosterError("PLAYER_NOT_FOUND");
-      const changes = prevData as PlayerUpdate;
+      const changes: PlayerUpdate = { ...payload.prevData };
       if (changes.name != null) {
         changes.name = String(changes.name).trim();
         await assertUniqueName(tx, input.tournamentId, changes.name, playerId);

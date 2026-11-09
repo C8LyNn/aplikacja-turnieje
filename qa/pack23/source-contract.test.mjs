@@ -1,0 +1,17 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { test } from "node:test";
+import path from "node:path";
+const root = process.cwd();
+const read = (p) => readFileSync(path.join(root,p),"utf8");
+const panel = read("artifacts/tournament-manager/src/components/tournament-result-correction-panel.tsx");
+const lib = read("artifacts/tournament-manager/src/lib/se-assessment-history.ts");
+const ci = read(".github/workflows/tournament-correction-ci.yml");
+test("Pack23 installed: UI imports bounded history",()=>{assert.match(panel,/from "@\/lib\/se-assessment-history"/);assert.match(panel,/summarizeSeAssessmentHistory\(seAssessmentHistory\)/);});
+test("Pack23 installed: success callback validates scope before append",()=>{const guard=panel.indexOf('if (selected !== String(variables.matchId)');const capture=panel.indexOf('const captured = captureSeAssessment(');const append=panel.indexOf('setSeAssessmentHistory(previous => captured');assert.ok(guard>=0&&guard<capture&&capture<append);});
+test("Pack23 installed: score/match changes clear history",()=>{assert.match(panel,/if \(!preserveSeAssessment\) \{ setSeAssessmentPair\(null\); setSeAssessmentHistory\(emptySeAssessmentHistory\(\)\); \}/);});
+test("Pack23 installed: clear button has working callback",()=>{assert.match(panel,/onClick=\{\(\) => \{ setSeAssessmentHistory\(emptySeAssessmentHistory\(\)\); setSeAssessmentPair\(null\); \}\}/);});
+test("Pack23 remains in-memory advisory only",()=>{assert.doesNotMatch(lib,/localStorage\.|sessionStorage\.|fetch\(|db\.|executeCorrection\(|mutation\./);assert.match(lib,/executionEnabled: false/);assert.match(lib,/writePerformed: false/);});
+test("Pack23 CI includes unit and contract gates",()=>{assert.match(ci,/se-assessment-history\.test\.ts/);assert.match(ci,/qa\/pack23\/source-contract\.test\.mjs/);});
+test("Pack23 adds paths for both triggers",()=>{assert.equal((ci.match(/qa\/pack23\/\*\*/g)||[]).length,2);});
+test("Pack23 detects recurrence after absence",()=>{assert.match(lib,/"reappeared"/);assert.match(lib,/seen\.has\(b\.code\)/);});

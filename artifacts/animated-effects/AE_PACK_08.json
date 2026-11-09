@@ -1,0 +1,34 @@
+{
+  "pack": "Animated Effects Pack 08 - Full UI QA + Batch GIF + Expansion",
+  "installedAt": "2026-09-27T21:51:38.233Z",
+  "backup": ".ae-pack-backup\\pack-08-full-ui-batch-gif-2026-09-27_21-51-38-218",
+  "newEffects": [
+    "Black Hole Accretion",
+    "Orbital Debris",
+    "Star Tunnel",
+    "Energy Lattice",
+    "Target Lock",
+    "Scanner Beams",
+    "Digital Fragments",
+    "Pixel Melt",
+    "Wireframe Cubes",
+    "Floating Polyhedra",
+    "Shockwave Rings",
+    "Electric Web",
+    "Ribbon Streamers",
+    "Ink Clouds"
+  ],
+  "features": [
+    "14 new visually distinct effects",
+    "manual Density / Speed / Intensity ranges up to 400%",
+    "independent left and right scrolling",
+    "inspector sticky-overlap removed",
+    "header/dropdown z-index and closing behavior",
+    "library filter and card readability pass",
+    "layer controls readability pass",
+    "PNG/GIF modal readability pass",
+    "batch GIF export for all effects or one category",
+    "10-second default GIFs, fixed seeds, sequential render",
+    "automatic ZIP with manifest.json"
+  ]
+}

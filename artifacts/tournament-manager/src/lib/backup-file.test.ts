@@ -20,7 +20,7 @@ test("frontend accepts a series_v1 Backup v2 file", () => {
   if (result.ok) assert.equal(result.backup.schemaVersion, 2);
 });
 
-test("frontend accepts a series_v1 Backup v3 file", () => {
+test("frontend blocks Backup v3 restore until separately authorized and database-tested", () => {
   const result = parseTournamentBackupFile(JSON.stringify({
     ...validBackupHeader,
     schemaVersion: 3,
@@ -28,8 +28,8 @@ test("frontend accepts a series_v1 Backup v3 file", () => {
     groups: [],
     stageParticipants: [],
   }));
-  assert.equal(result.ok, true);
-  if (result.ok) assert.equal(result.backup.schemaVersion, 3);
+  assert.equal(result.ok, false);
+  if (!result.ok) assert.match(result.error, /Import Backup V3 jest wyłączony/);
 });
 
 test("frontend rejects legacy Backup v1 with a clear message", () => {

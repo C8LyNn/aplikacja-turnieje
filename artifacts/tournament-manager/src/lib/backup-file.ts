@@ -39,6 +39,13 @@ export function parseTournamentBackupFile(contents: string): ParsedBackupFile {
     };
   }
 
+  if (Number(value["schemaVersion"]) === 3) {
+    return {
+      ok: false,
+      error: "Import Backup V3 jest wyłączony do czasu zatwierdzenia zabezpieczeń i testów odtwarzania na odrębnej bazie. Eksport pozostaje dostępny.",
+    };
+  }
+
   if (
     value["resultModelVersion"] !== "series_v1" ||
     value["rankingPolicy"] !== "match_record_v1"

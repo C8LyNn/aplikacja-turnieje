@@ -10,6 +10,8 @@ import type { MatchStatus } from './matchStatus';
 
 export interface Match {
   id: number;
+  /** @minimum 1 */
+  revision: number;
   tournamentId: number;
   stageId: number;
   /** @nullable */

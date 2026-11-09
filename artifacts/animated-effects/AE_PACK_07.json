@@ -1,0 +1,11 @@
+{
+  "pack": "Animated Effects Pack 07 - FX Overdrive",
+  "installedAt": "2026-09-27T17:42:11.941Z",
+  "backup": ".ae-pack-backup\\pack-07-fx-overdrive-2026-09-27_17-42-11-932",
+  "features": [
+    "Overrides and improves: gears, comets, fireworks, lightning-storm, liquid-blobs, particle-vortex, portal-rings, radar-sweep, glitch-blocks, gravity-well, hex-grid, floating-cubes",
+    "Adds: prism-drift, neon-shards, plasma-storm, cube-swarm",
+    "Adds Overdrive variants with ready presets up to 320% for density/speed/intensity",
+    "Appends UI polish CSS for cards, inspector, preview and export modal"
+  ]
+}

@@ -1,0 +1,337 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cards Engine — extracted legacy host</title>
+  <link rel="stylesheet" href="./cards.css">
+</head>
+<body>
+<div class="wrap">
+<header class="hero">
+  <h1>Losowanie turnieju — talie kart</h1>
+  <p>Do 16 fizycznie widocznych talii. Organizator wybiera, z której talii losuje następną kartę, może mieszać dwie talie oraz ręcznie przypisywać uczestników do talii.</p>
+</header>
+
+<div class="layout">
+<section class="panel left-panel">
+  <div class="tds-bar">
+    <span><strong>Wspólna konfiguracja turnieju</strong> · mechanizm: Talie kart</span>
+    <span class="tds-badge">TDS 1.0 · 2–128</span>
+  </div>
+
+  <div class="section-title">Turniej</div>
+  <div class="grid2">
+    <div class="cardbox">
+      <div class="label">Liczba uczestników</div>
+      <div class="row">
+        <input id="participantCount" data-tds-setting="participantCount" type="number" min="2" max="128" value="32">
+        <button id="generateBtn" class="ghost">Team 1…N</button>
+      </div>
+      <div class="hint">Standard wszystkich mechanizmów: 2–128.</div>
+    </div>
+
+    <div class="cardbox">
+      <div class="label">Format turnieju</div>
+      <select id="format" data-tds-setting="format">
+        <option value="elimination">Single Elimination — drabinka</option>
+        <option value="groups" selected>Grupy</option>
+        <option value="swiss">Szwajcarski — runda 1</option>
+      </select>
+      <div id="formatHint" class="hint"></div>
+    </div>
+
+    <div class="cardbox">
+      <div class="label">Liczba grup</div>
+      <input id="groupCount" data-tds-setting="groupCount" type="number" min="2" max="16" value="8">
+      <div class="hint">Wspólne ustawienie TDS.</div>
+    </div>
+
+    <div class="cardbox">
+      <div class="label">Tempo losowania</div>
+      <select id="pace" data-tds-setting="pace">
+        <option value="auto">Auto</option>
+        <option value="show">Pokazowe</option>
+        <option value="fast">Szybkie</option>
+        <option value="turbo">Turbo</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="cardbox" style="margin-top:8px">
+    <div class="label">Seed</div>
+    <div class="row">
+      <input id="seed" data-tds-setting="seed" type="text" placeholder="opcjonalny seed">
+      <button id="randomSeedBtn" class="ghost">Losowy</button>
+    </div>
+  </div>
+
+  <div class="cardbox" style="margin-top:8px">
+    <div class="label">Uczestnicy</div>
+    <textarea id="participants" data-tds-setting="participants"></textarea>
+    <div class="actions">
+      <button id="applyBtn" data-tds-action="apply">Zastosuj konfigurację</button>
+      <button id="resetBtn" data-tds-action="reset" class="warn">Nowe losowanie</button>
+    </div>
+  </div>
+
+  <div class="summary">
+    <div class="summary-line"><span>Format</span><strong id="summaryFormat">—</strong></div>
+    <div class="summary-line"><span>Uczestnicy</span><strong id="summaryCount">—</strong></div>
+    <div class="summary-line"><span>Układ</span><strong id="summaryLayout">—</strong></div>
+    <div class="summary-line"><span>Status</span><span id="summaryStatus" class="status-pill">Gotowe</span></div>
+  </div>
+
+  <div class="section-title">Mechanika losowania · talie</div>
+  <div class="grid2">
+    <div class="cardbox">
+      <div class="label">Liczba talii</div>
+      <input id="deckCount" type="number" min="1" max="16" value="8">
+      <div class="hint">Startowo gracze są rozdzielani możliwie równo. Różnica: maks. 1 karta.</div>
+    </div>
+    <div class="cardbox">
+      <div class="label">Skórka kart</div>
+      <select id="skin">
+        <option value="tournament">Tournament Blue</option>
+        <option value="classic">Classic Black</option>
+        <option value="casino">Casino Red</option>
+        <option value="emerald">Emerald</option>
+        <option value="cyber">Cyber Neon</option>
+        <option value="gold">Gold</option>
+        <option value="minimal">Minimal White</option>
+        <option value="retro">Retro Arcade</option>
+      </select>
+    </div>
+    <div class="cardbox">
+      <div class="label">Animacja odkrycia</div>
+      <select id="revealStyle">
+        <option value="flip">Flip</option>
+        <option value="slide">Slide + flip</option>
+        <option value="fan">Fan</option>
+        <option value="deal">Deal from top</option>
+        <option value="cinematic">Cinematic</option>
+        <option value="random">Losowa animacja</option>
+      </select>
+    </div>
+    <div class="cardbox">
+      <div class="label">Grafika środka karty</div>
+      <select id="cardArtStyle">
+        <option value="emblem">Esport emblem</option>
+        <option value="holo">Hologram</option>
+        <option value="arena">Arena / spotlight</option>
+        <option value="tech">Tech HUD</option>
+        <option value="burst">Dynamic burst</option>
+        <option value="minimal">Minimal premium</option>
+      </select>
+    </div>
+
+    <div class="cardbox">
+      <div class="label">Styl nazwy drużyny</div>
+      <select id="nameStyle">
+        <option value="esport">Bold esport</option>
+        <option value="condensed">Tech condensed</option>
+        <option value="outline">Outline</option>
+        <option value="neon">Neon glow</option>
+        <option value="premium">Premium serif</option>
+        <option value="sticker">Sticker</option>
+      </select>
+    </div>
+
+    <div class="cardbox">
+      <div class="label">Pozycja aktywnej talii</div>
+      <div class="deck-position-panel">
+        <label class="deck-drag-option">
+          <input id="manualDeckMove" type="checkbox">
+          Złap i przeciągaj talię na scenie
+        </label>
+
+        <label class="deck-drag-option">
+          <input id="deckSnapGrid" type="checkbox" checked>
+          Przyciągaj do siatki 10 px
+        </label>
+
+        <div class="deck-position-status">
+          <span>Pozycja sceny</span>
+          <span id="deckPositionReadout" class="deck-position-readout">X 0 · Y 0</span>
+        </div>
+
+        <div class="deck-position-controls" aria-label="Precyzyjne przesuwanie aktywnej talii">
+          <span></span>
+          <button id="deckMoveUp" class="ghost" type="button" aria-label="Przesuń talię w górę">↑</button>
+          <span></span>
+          <button id="deckMoveLeft" class="ghost" type="button" aria-label="Przesuń talię w lewo">←</button>
+          <button id="deckMoveReset" class="ghost center-reset" type="button" aria-label="Wyśrodkuj talię">CENTRUM</button>
+          <button id="deckMoveRight" class="ghost" type="button" aria-label="Przesuń talię w prawo">→</button>
+          <span></span>
+          <button id="deckMoveDown" class="ghost" type="button" aria-label="Przesuń talię w dół">↓</button>
+          <span></span>
+        </div>
+
+        <div class="deck-preset-row">
+          <button id="deckPresetLeft" class="ghost" type="button">Lewy dół</button>
+          <button id="deckPresetCenter" class="ghost" type="button">Środek</button>
+          <button id="deckPresetMiddle" class="ghost" type="button">Centrum sceny</button>
+          <button id="deckPresetRight" class="ghost" type="button">Prawy dół</button>
+        </div>
+
+        <div class="deck-transform-controls">
+          <label>Obrót talii
+            <input id="deckRotation" type="range" min="-18" max="18" step="1" value="0">
+          </label>
+          <label>Rozmiar talii
+            <input id="deckScale" type="range" min="80" max="125" step="1" value="100">
+          </label>
+        </div>
+
+        <div id="deckAnchorHint" class="deck-anchor-hint">
+          <span class="deck-anchor-dot"></span>
+          <span>Najbliższy punkt: <strong>Środek</strong></span>
+        </div>
+      </div>
+      <div class="hint">Przeciąganie, strzałki i klawiatura działają razem. Shift + strzałka przesuwa szybciej.</div>
+    </div>
+
+    <div class="cardbox">
+      <div class="label">Przelot do wyniku</div>
+      <select id="transferStyle">
+        <option value="arc">Łuk</option>
+        <option value="straight">Prosto</option>
+        <option value="snap">Szybki snap</option>
+      </select>
+    </div>
+  </div>
+
+  <details id="manualPanel" class="manual-panel">
+    <summary>Ręczny przydział uczestników do talii</summary>
+    <div class="manual-body">
+      <div class="actions" style="margin-bottom:8px">
+        <button id="evenDistributeBtn" class="ghost">Rozłóż równo</button>
+        <button id="randomDistributeBtn" class="ghost">Rozłóż losowo</button>
+        <button id="applyManualBtn" class="secondary">Zastosuj rozmieszczenie</button>
+      </div>
+      <div id="manualRows"></div>
+    </div>
+  </details>
+</section>
+
+<section class="panel">
+  <div class="engine-toolbar">
+    <div>
+      <h2>Talie kart</h2>
+      <div id="engineState" class="hint">Gotowe.</div>
+    </div>
+    <div class="row">
+      <button id="presentationBtn" data-tds-action="presentation" class="ghost">Tryb prezentacji</button>
+      <button id="resultsBtn" class="ghost">Wyniki</button>
+    </div>
+  </div>
+
+  <div class="engine-shell" data-tds-engine-root="cards-multideck">
+    <div class="engine-top">
+      <div id="nextTarget" class="target-box"><strong>Następny przydział:</strong> —</div>
+      <div class="deck-tools">
+        <span class="hint" style="margin:0">Losuj z:</span>
+        <select id="activeDeckSelect"></select>
+        <button id="drawBtn" data-tds-action="start">Losuj kartę</button>
+      </div>
+    </div>
+
+    <div class="decks-area">
+      <div id="decksGrid" class="decks-grid"></div>
+    </div>
+
+    <div id="centerStage" class="center-stage">
+      <div class="reveal-arena" aria-hidden="true">
+        <div class="reveal-spotlight"></div>
+        <div class="reveal-ring r1"></div>
+        <div class="reveal-ring r2"></div>
+        <div class="reveal-ring r3"></div>
+        <div class="reveal-grid-floor"></div>
+        <div class="reveal-podium"></div>
+        <div id="revealBurst" class="reveal-burst"></div>
+      </div>
+
+      <div class="deck-drag-zone" aria-hidden="true"></div>
+      <div id="deckMotionTrail" class="deck-motion-trail" aria-hidden="true"></div>
+      <div class="deck-anchor-marker" data-anchor-marker="left" aria-hidden="true"></div>
+      <div class="deck-anchor-marker" data-anchor-marker="center" aria-hidden="true"></div>
+      <div class="deck-anchor-marker" data-anchor-marker="middle" aria-hidden="true"></div>
+      <div class="deck-anchor-marker" data-anchor-marker="right" aria-hidden="true"></div>
+
+      <div id="activeDeckStage" class="active-deck-stage" tabindex="-1" aria-label="Aktywna talia">
+        <div class="deck-grab-handle" aria-hidden="true">przeciągnij</div>
+        <span id="activeDeckCount" class="active-deck-count">0</span>
+        <div id="activeDeckCards" class="active-deck-cards"></div>
+        <div id="activeDeckTitle" class="active-deck-title">TALIA 1</div>
+      </div>
+
+      <div id="drawOriginCard" class="draw-origin-card" aria-hidden="true"></div>
+
+      <div class="stage-hud">
+        <span class="stage-chip"><span class="status-dot"></span><span id="stageDeckLabel">TALIA —</span></span>
+        <span class="stage-chip destination"><span class="status-dot"></span><span id="stageDestinationLabel">OCZEKUJE</span></span>
+      </div>
+
+      <div id="revealCard" class="reveal-card">
+        <div id="revealBack" class="face back">DRAW</div>
+        <div id="revealFront" class="face front">
+          <div class="card-topline">
+            <span id="cardOrder" class="order">#1</span>
+            <span id="cardDeckBadge" class="card-deck-badge">Talia 1</span>
+          </div>
+
+          <div id="cardArt" class="card-art art-emblem" aria-hidden="true"></div>
+
+          <div class="card-center">
+            <span class="card-kicker">wylosowany uczestnik</span>
+            <strong id="cardName" class="name">Team 1</strong>
+          </div>
+
+          <span id="cardAssignment" class="assignment-badge">Grupa A · miejsce 1</span>
+          <span class="card-seal" aria-hidden="true">D</span>
+        </div>
+      </div>
+
+      <div class="reveal-caption">reveal stage · tournament draw system</div>
+    </div>
+
+    <div class="engine-controls">
+      <button id="shuffleAllBtn" class="secondary">Potasuj wszystkie talie</button>
+      <button id="autoBtn" class="secondary">Losuj automatycznie</button>
+      <button id="showMixBtn" class="ghost">Wymieszaj 2 talie</button>
+    </div>
+
+    <div id="mixBar" class="engine-controls" style="padding-top:0;display:none">
+      <select id="mixDeckA"></select>
+      <span class="hint" style="margin:0">+</span>
+      <select id="mixDeckB"></select>
+      <button id="mixBtn" class="secondary">Przelosuj między taliami</button>
+    </div>
+
+    <div class="progress"><span id="progressFill"></span></div>
+    <div id="status" class="status"><strong>Gotowe.</strong> Wybierz talię i losuj.</div>
+
+    <div class="assignment-section">
+      <div class="assignment-head">
+        <h3>Przydział turniejowy</h3>
+        <div class="row">
+          <button id="copyBtn" data-tds-action="copy" class="ghost">Kopiuj</button>
+          <button id="csvBtn" data-tds-action="csv" class="ghost">CSV</button>
+          <button id="jsonBtn" data-tds-action="json" class="ghost">JSON</button>
+        </div>
+      </div>
+      <div id="assignmentGrid" class="assignment-grid"></div>
+
+      <details id="resultsPanel" class="results-panel">
+        <summary>Pełne wyniki · <span id="resultCount">0</span></summary>
+        <div id="resultsBody" class="results-body"></div>
+      </details>
+    </div>
+  </div>
+</section>
+</div>
+</div>
+
+<script src="./cards-engine.js"></script>
+</body>
+</html>

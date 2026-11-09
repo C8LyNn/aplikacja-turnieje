@@ -1,14 +1,14 @@
 import type { Request, Response } from "express";
 import { and, eq, sql } from "drizzle-orm";
 import { db, supportSessionsTable, tournamentsTable } from "@workspace/db";
-import { verifyOrganizerToken, verifyViewerToken } from "./auth";
+import { organizerCredentialFingerprint, verifyOrganizerToken, verifyViewerToken } from "./auth";
 import { logger } from "./lib/logger";
 
 export type TournamentActor =
   | { type: "anonymous" }
   | { type: "viewer" }
   | { type: "support"; nick: string; sessionId: number }
-  | { type: "organizer" };
+  | { type: "organizer"; credentialFingerprint: string };
 
 export interface TournamentAccess {
   actor: TournamentActor;
@@ -46,7 +46,20 @@ export async function revalidateTournamentMutationActor(
   tournament: typeof tournamentsTable.$inferSelect,
   actor?: TournamentMutationActor,
 ): Promise<void> {
-  if (!actor || actor.type === "organizer") return;
+  if (!actor) return;
+  if (actor.type === "organizer") {
+    // The actor contains only the credential version verified before waiting.
+    // Compare against the fresh row while the caller holds its mutation lock.
+    if (
+      actor.credentialFingerprint !== organizerCredentialFingerprint(
+        tournament.id,
+        tournament.organizerPasswordHash,
+      )
+    ) {
+      throw new TournamentMutationAuthorizationError();
+    }
+    return;
+  }
   const [session] = await tx
     .select({
       passwordVersion: supportSessionsTable.passwordVersion,
@@ -134,7 +147,13 @@ async function resolveActor(
 ): Promise<ResolvedTournamentActor> {
   const organizerToken = header(req, "x-organizer-token");
   if (hasValidOrganizerToken(organizerToken, tournament)) {
-    return { type: "organizer" };
+    return {
+      type: "organizer",
+      credentialFingerprint: organizerCredentialFingerprint(
+        tournament.id,
+        tournament.organizerPasswordHash,
+      ),
+    };
   }
 
   const supportToken = header(req, "x-support-token");

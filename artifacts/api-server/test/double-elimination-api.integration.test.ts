@@ -1,3 +1,4 @@
+import { matchRevision } from "./match-revision-fixture";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, before, test } from "node:test";
@@ -46,6 +47,7 @@ test("accepts ten-stage authoring plans and rejects an eleventh stage through th
       : { advancingCount: 2 }),
   }));
   const input = {
+    organizerPassword: "de-regression-password",
     name: `Ten-stage plan ${randomUUID()}`,
     format: "round_robin",
     defaultBestOf: 1,
@@ -78,6 +80,7 @@ test("runs, corrects, resets and restores a public Double Elimination tournament
   const created = await request(app)
     .post("/api/tournaments")
     .send({
+      organizerPassword: "de-regression-password",
       name: `Double Elimination API ${randomUUID()}`,
       format: "single_elimination",
       defaultBestOf: 3,
@@ -144,24 +147,24 @@ test("runs, corrects, resets and restores a public Double Elimination tournament
   assert.ok(first?.matchId, "a ready routing match must have a canonical match id");
   await request(app)
     .post(`/api/matches/${first.matchId}/complete`)
-    .send({ resultType: "played", score1: 2, score2: 0 })
+    .send({ expectedRevision: await matchRevision(database, first.matchId), ...({ resultType: "played", score1: 2, score2: 0 }) })
     .expect(403);
 
   const incompleteSeries = await request(app)
     .post(`/api/matches/${first.matchId}/complete`)
     .set(organizer)
-    .send({ resultType: "played", score1: 1, score2: 0 });
+    .send({ expectedRevision: await matchRevision(database, first.matchId), ...({ resultType: "played", score1: 1, score2: 0 }) });
   assert.equal(incompleteSeries.status, 422, incompleteSeries.text);
 
   const concurrentCompletions = await Promise.all([
     request(app)
       .post(`/api/matches/${first.matchId}/complete`)
       .set(organizer)
-      .send({ resultType: "played", score1: 2, score2: 1 }),
+      .send({ expectedRevision: await matchRevision(database, first.matchId), ...({ resultType: "played", score1: 2, score2: 1 }) }),
     request(app)
       .post(`/api/matches/${first.matchId}/complete`)
       .set(organizer)
-      .send({ resultType: "played", score1: 2, score2: 1 }),
+      .send({ expectedRevision: await matchRevision(database, first.matchId), ...({ resultType: "played", score1: 2, score2: 1 }) }),
   ]);
   assert.deepEqual(
     concurrentCompletions.map((response) => response.status).sort((left, right) => left - right),
@@ -227,7 +230,7 @@ test("runs, corrects, resets and restores a public Double Elimination tournament
   await request(app)
     .post(`/api/matches/${supportReady.matchId}/complete`)
     .set(support)
-    .send({ resultType: "played", score1: 2, score2: 0 })
+    .send({ expectedRevision: await matchRevision(database, supportReady.matchId), ...({ resultType: "played", score1: 2, score2: 0 }) })
     .expect(200);
   await request(app)
     .post(`/api/matches/${supportReady.matchId}/revert`)
@@ -257,7 +260,7 @@ test("runs, corrects, resets and restores a public Double Elimination tournament
     await request(app)
       .post(`/api/matches/${upperMatch.matchId}/complete`)
       .set(organizer)
-      .send({ resultType: "played", score1: 2, score2: 0 })
+      .send({ expectedRevision: await matchRevision(database, upperMatch.matchId), ...({ resultType: "played", score1: 2, score2: 0 }) })
       .expect(200);
   }
   state = (await request(app)
@@ -274,7 +277,7 @@ test("runs, corrects, resets and restores a public Double Elimination tournament
   await request(app)
     .post(`/api/matches/${lowerRoundOne.matchId}/complete`)
     .set(organizer)
-    .send({ resultType: "played", score1: 2, score2: 0 })
+    .send({ expectedRevision: await matchRevision(database, lowerRoundOne.matchId), ...({ resultType: "played", score1: 2, score2: 0 }) })
     .expect(200);
   await request(app)
     .post(`/api/matches/${upperRoundOne[0].matchId}/revert`)
@@ -312,11 +315,11 @@ test("runs, corrects, resets and restores a public Double Elimination tournament
     await request(app)
       .post(`/api/matches/${ready.matchId}/complete`)
       .set(organizer)
-      .send({
+      .send({ expectedRevision: await matchRevision(database, ready.matchId), ...({
         resultType: "played",
         score1: ready.bracket === "grand_final" ? 0 : 2,
         score2: ready.bracket === "grand_final" ? 2 : 0,
-      })
+      }) })
       .expect(200);
     state = (await request(app)
       .get(`/api/tournaments/${tournamentId}/stages/${stageId}/double-elimination`)
@@ -374,6 +377,7 @@ test("uses canonical BO5 matches and enforces Deadlock stage bans per game", asy
   const created = await request(app)
     .post("/api/tournaments")
     .send({
+      organizerPassword: "de-regression-password",
       name: `Double Elimination Deadlock ${randomUUID()}`,
       format: "single_elimination",
       defaultBestOf: 5,
@@ -439,12 +443,12 @@ test("uses canonical BO5 matches and enforces Deadlock stage bans per game", asy
   await request(app)
     .post(`/api/matches/${ready.matchId}/complete`)
     .set(organizer)
-    .send({ resultType: "played", score1: 2, score2: 0 })
+    .send({ expectedRevision: await matchRevision(database, ready.matchId), ...({ resultType: "played", score1: 2, score2: 0 }) })
     .expect(422);
   await request(app)
     .post(`/api/matches/${ready.matchId}/complete`)
     .set(organizer)
-    .send({ resultType: "played", score1: 3, score2: 2 })
+    .send({ expectedRevision: await matchRevision(database, ready.matchId), ...({ resultType: "played", score1: 3, score2: 2 }) })
     .expect(200);
   const history = await database.pool.query<{ best_of: number; score1: number; score2: number }>(
     "SELECT best_of, score1, score2 FROM result_history WHERE match_id = $1",
@@ -457,6 +461,7 @@ test("round-trips an active nine-player DE bracket with BO results and game pick
   const created = await request(app)
     .post("/api/tournaments")
     .send({
+      organizerPassword: "de-regression-password",
       name: `Active DE Backup ${randomUUID()}`,
       format: "single_elimination",
       defaultBestOf: 3,
@@ -506,7 +511,7 @@ test("round-trips an active nine-player DE bracket with BO results and game pick
     await request(app)
       .post(`/api/matches/${ready.matchId}/complete`)
       .set(organizer)
-      .send({ resultType: "played", score1: 2, score2: 1 })
+      .send({ expectedRevision: await matchRevision(database, ready.matchId), ...({ resultType: "played", score1: 2, score2: 1 }) })
       .expect(200);
     state = (await request(app)
       .get(`/api/tournaments/${tournamentId}/stages/${stage.id}/double-elimination`)
@@ -592,6 +597,7 @@ test("serializes CompleteMatch against correction and correction against reset",
   const created = await request(app)
     .post("/api/tournaments")
     .send({
+      organizerPassword: "de-regression-password",
       name: `Concurrent DE ${randomUUID()}`,
       format: "single_elimination",
       defaultBestOf: 1,
@@ -629,14 +635,14 @@ test("serializes CompleteMatch against correction and correction against reset",
   await request(app)
     .post(`/api/matches/${ready.matchId}/complete`)
     .set(organizer)
-    .send({ resultType: "played", score1: 1, score2: 0 })
+    .send({ expectedRevision: await matchRevision(database, ready.matchId), ...({ resultType: "played", score1: 1, score2: 0 }) })
     .expect(200);
 
   const completeVsCorrection = await Promise.all([
     request(app)
       .post(`/api/matches/${ready.matchId}/complete`)
       .set(organizer)
-      .send({ resultType: "played", score1: 1, score2: 0 }),
+      .send({ expectedRevision: await matchRevision(database, ready.matchId), ...({ resultType: "played", score1: 1, score2: 0 }) }),
     request(app).post(`/api/matches/${ready.matchId}/revert`).set(organizer),
   ]);
   assert.deepEqual(
@@ -652,7 +658,7 @@ test("serializes CompleteMatch against correction and correction against reset",
   await request(app)
     .post(`/api/matches/${ready.matchId}/complete`)
     .set(organizer)
-    .send({ resultType: "played", score1: 1, score2: 0 })
+    .send({ expectedRevision: await matchRevision(database, ready.matchId), ...({ resultType: "played", score1: 1, score2: 0 }) })
     .expect(200);
   state = (await request(app)
     .get(`/api/tournaments/${tournamentId}/stages/${stage.id}/double-elimination`)

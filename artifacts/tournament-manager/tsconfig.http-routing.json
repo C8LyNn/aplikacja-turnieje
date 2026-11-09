@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["vite.config.ts", "scripts/spa-http-routing.ts", "test/http-routing.test.ts"],
+  "exclude": ["node_modules"],
+  "compilerOptions": {
+    "rootDir": "../..",
+    "noEmit": true,
+    "incremental": false
+  }
+}

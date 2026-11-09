@@ -35,7 +35,7 @@
  *   - organizer can open the form;
  *   - role change organizer → fan during component lifecycle fires redirect
  *     without hook ordering error (guard/form split correctness);
- *   - passwordless create as organizer stores organizerToken and navigates to
+ *   - password-protected create as organizer stores organizerToken and navigates to
  *     management UI (role stays "organizer" — no automatic switching needed).
  */
 
@@ -184,11 +184,11 @@ describe("route guard blocks non-organizer roles from /tournaments/new", () => {
     });
   });
 
-  test("developer is redirected to /developer and no form renders", async () => {
+  test("developer is redirected to / and no form renders", async () => {
     const { location } = renderPage(<CreateTournament />, "/tournaments/new", "developer", emptyTournamentsFetch);
     assert.equal(document.querySelector("form"), null, "must not render form for developer");
     await waitFor(() => {
-      assert.ok(location.history.includes("/developer"), `expected /developer in history, got ${JSON.stringify(location.history)}`);
+      assert.ok(location.history.includes("/"), `expected / in history, got ${JSON.stringify(location.history)}`);
     });
   });
 
@@ -275,9 +275,9 @@ describe("hook ordering: role change during CreateTournament lifecycle", () => {
   });
 });
 
-// ── 4: Passwordless create as organizer stores organizerToken ─────────────────
+// ── 4: Password-protected create as organizer stores organizerToken ─────────────────
 
-describe("passwordless create: organizerToken ownership", () => {
+describe("password-protected create: organizerToken ownership", () => {
   test("stores organizerToken in sessionStorage and navigates to management UI (role stays organizer)", async () => {
     const TOURNAMENT_ID = 42;
     const ORG_TOKEN = "tok-organizer-abc";
@@ -295,7 +295,7 @@ describe("passwordless create: organizerToken ownership", () => {
             rankingPolicy: "match_record_v1",
             defaultBestOf: 1,
             hasHostCode: false,
-            hasOrganizerPassword: false,
+            hasOrganizerPassword: true,
             hasSupportPassword: false,
             activeStageId: null,
             createdAt: "2026-01-01T00:00:00.000Z",
@@ -311,8 +311,9 @@ describe("passwordless create: organizerToken ownership", () => {
 
     await waitFor(() => screen.getByLabelText("Nazwa turnieju *"));
 
-    // Fill only the required name; leave organizer password blank (passwordless)
+    // Preserve creator access while establishing a durable login credential.
     await userEvent.type(screen.getByLabelText("Nazwa turnieju *"), "Turniej testowy");
+    await userEvent.type(screen.getByLabelText("Hasło organizatora *"), "test-password");
     await userEvent.click(screen.getByRole("button", { name: "Utwórz turniej" }));
 
     await waitFor(() => {

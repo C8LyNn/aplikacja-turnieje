@@ -4,7 +4,7 @@ import React from "react";
 import { cleanup, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { setActiveOrganizerToken } from "@workspace/api-client-react";
-import { AuthProvider } from "@/context/auth-context";
+import { TestAuthProvider as AuthProvider } from "../../test/auth-provider";
 import { getOrganizerToken, setOrganizerToken } from "@/lib/auth";
 import { SecurityPanel } from "./security-panel";
 

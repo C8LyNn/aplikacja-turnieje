@@ -1,3 +1,4 @@
+import { matchRevision } from "./match-revision-fixture";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, before, describe, test } from "node:test";
@@ -26,12 +27,52 @@ let database: DatabaseModule;
 let config: TestDatabaseConfig;
 let schemaInitialized = false;
 let signViewerToken: typeof import("../src/auth").signViewerToken;
+let signVersionedOrganizerToken: typeof import("../src/auth").signVersionedOrganizerToken;
 let hashPassword: typeof import("../src/auth").hashPassword;
 let importTournamentPlayers: typeof import("../src/application/players/tournament-roster").importTournamentPlayers;
 let upgradeLegacyOrganizerCredentials: typeof import("../src/application/auth/legacy-organizer-credentials").upgradeLegacyOrganizerCredentials;
 let upgradeLegacyOrganizerCredentialsRateLimited: typeof import("../src/application/auth/legacy-organizer-credentials").upgradeLegacyOrganizerCredentialsRateLimited;
 let recoverLegacyOrganizerCredentials: typeof import("../src/application/auth/legacy-organizer-credentials").recoverLegacyOrganizerCredentials;
 const organizerTokens = new Map<number, string>();
+
+test("organizer recovery after session loss preserves independent sessions and denies viewers", async () => {
+  const password = "durable-organizer-password";
+  const created = await request(app).post("/api/tournaments").send({
+    name: "Recoverable owner", format: "single_elimination", organizerPassword: password,
+  }).expect(201);
+  const id = created.body.id as number;
+  const original = { "x-organizer-token": created.body.organizerToken as string };
+  assert.equal(created.body.hasOrganizerPassword, true);
+  await request(app).post(`/api/tournaments/${id}/players`).set(original)
+    .send({ name: "Before session loss", seed: 1 }).expect(201);
+  // Losing the browser token leaves an ordinary unauthenticated request.
+  await request(app).post(`/api/tournaments/${id}/players`)
+    .send({ name: "No credential", seed: 2 }).expect(403);
+  const viewer = { "x-viewer-token": signViewerToken(id) };
+  await request(app).post(`/api/tournaments/${id}/players`).set(viewer)
+    .send({ name: "Viewer cannot write", seed: 2 }).expect(403);
+  const wrong = await request(app).post(`/api/tournaments/${id}/auth/organizer-login`)
+    .send({ password: "incorrect-secret" }).expect(403);
+  const absent = await request(app).post("/api/tournaments/2147483647/auth/organizer-login")
+    .send({ password: "incorrect-secret" }).expect(403);
+  assert.deepEqual(wrong.body, absent.body);
+  assert.equal(wrong.body.token, undefined);
+  const login = await request(app).post(`/api/tournaments/${id}/auth/organizer-login`)
+    .send({ password }).expect(200);
+  const second = await request(app).post(`/api/tournaments/${id}/auth/organizer-login`)
+    .send({ password }).expect(200);
+  for (const [index, token] of [original["x-organizer-token"], login.body.token, second.body.token].entries()) {
+    await request(app).post(`/api/tournaments/${id}/players`).set("x-organizer-token", token)
+      .send({ name: `Independent session ${index}`, seed: index + 2 }).expect(201);
+  }
+  const publicRead = await request(app).get(`/api/tournaments/${id}`).expect(200);
+  const stored = await database.pool.query("SELECT organizer_password_hash FROM tournaments WHERE id = $1", [id]);
+  const serialized = JSON.stringify(publicRead.body);
+  for (const secret of [password, stored.rows[0].organizer_password_hash, original["x-organizer-token"], login.body.token]) {
+    assert.equal(serialized.includes(secret), false);
+  }
+  assert.notEqual(stored.rows[0].organizer_password_hash, password);
+});
 
 function organizerHeaders(tournamentId: number): Record<string, string> {
   const token = organizerTokens.get(tournamentId);
@@ -116,6 +157,100 @@ async function rosterNames(tournamentId: number): Promise<string[]> {
     [tournamentId],
   );
   return result.rows.map((row) => row.name);
+}
+
+async function organizerMutationState(tournamentId: number): Promise<unknown> {
+  // Exclude credentials and sessions from assertion failure output.
+  const result = await database.pool.query<{ state: unknown }>(
+    `SELECT jsonb_build_object(
+       'tournament', (SELECT jsonb_build_object('id', id, 'name', name, 'status', status)
+                       FROM tournaments WHERE id = $1),
+       'players', (SELECT coalesce(jsonb_agg(to_jsonb(p) ORDER BY p.id), '[]'::jsonb)
+                     FROM players p WHERE tournament_id = $1),
+       'matches', (SELECT coalesce(jsonb_agg(to_jsonb(m) ORDER BY m.id), '[]'::jsonb)
+                     FROM matches m WHERE tournament_id = $1),
+       'bans', (SELECT coalesce(jsonb_agg(to_jsonb(b) ORDER BY b.player_id), '[]'::jsonb)
+                  FROM player_deadlock_bans b WHERE tournament_id = $1),
+       'picks', (SELECT coalesce(jsonb_agg(to_jsonb(k) ORDER BY k.match_id, k.game_number), '[]'::jsonb)
+                   FROM match_game_picks k JOIN matches m ON m.id = k.match_id
+                   WHERE m.tournament_id = $1),
+       'stages', (SELECT coalesce(jsonb_agg(to_jsonb(s) ORDER BY s.id), '[]'::jsonb)
+                    FROM tournament_stages s WHERE tournament_id = $1),
+       'actions', (SELECT coalesce(jsonb_agg(jsonb_build_object(
+                       'id', id, 'type', action_type, 'undone', is_undone)
+                       ORDER BY id), '[]'::jsonb)
+                     FROM action_log WHERE tournament_id = $1),
+       'results', (SELECT coalesce(jsonb_agg(to_jsonb(h) ORDER BY h.id), '[]'::jsonb)
+                     FROM result_history h WHERE tournament_id = $1)
+     ) AS state`,
+    [tournamentId],
+  );
+  return result.rows[0].state;
+}
+
+async function runOrganizerRevocationRace(input: {
+  tournamentId: number;
+  mutate: (headers: Record<string, string>) => Promise<request.Response>;
+  successStatus: number;
+}): Promise<void> {
+  const beforeState = await organizerMutationState(input.tournamentId);
+  const oldHeaders = organizerHeaders(input.tournamentId);
+  const replacementHash = await hashPassword(`rotated-${randomUUID()}`);
+  const lockClient = await database.pool.connect();
+  let mutation: Promise<request.Response> | undefined;
+  let mutationResponse: { status: number; code: string } | undefined;
+  try {
+    await lockClient.query("BEGIN");
+    const blocker = await lockClient.query<{ pid: number }>("SELECT pg_backend_pid() AS pid");
+    await lockClient.query(
+      "SELECT id FROM tournaments WHERE id = $1 FOR UPDATE",
+      [input.tournamentId],
+    );
+    mutation = input.mutate(oldHeaders).then((response) => {
+      const code: unknown = response.body?.code;
+      mutationResponse = {
+        status: response.status,
+        code: typeof code === "string" && /^[A-Z_]{1,64}$/.test(code) ? code : "UNAVAILABLE",
+      };
+      return response;
+    });
+    // Match our blocker PID instead of counting unrelated global lock waits.
+    const deadline = Date.now() + 10_000;
+    let waiting = false;
+    while (Date.now() < deadline) {
+      const blocked = await database.pool.query<{ blocked: boolean }>(
+        `SELECT EXISTS (
+           SELECT 1 FROM pg_stat_activity
+           WHERE $1::integer = ANY(pg_blocking_pids(pid))
+             AND datname = current_database() AND wait_event_type = 'Lock'
+         ) AS blocked`,
+        [blocker.rows[0].pid],
+      );
+      if (blocked.rows[0].blocked) { waiting = true; break; }
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    assert.ok(waiting,
+      `The authenticated request must wait on this fixture's lock; HTTP status=${mutationResponse?.status ?? "pending"}; error code=${mutationResponse?.code ?? "UNAVAILABLE"}`,
+    );
+    await lockClient.query(
+      "UPDATE tournaments SET organizer_password_hash = $1 WHERE id = $2",
+      [replacementHash, input.tournamentId],
+    );
+    await lockClient.query("COMMIT");
+    const response = await mutation;
+    assert.equal(response.status, 403);
+    assert.equal(response.body.code, "SUPPORT_SESSION_EXPIRED"); // Existing 403 contract.
+    assert.deepEqual(await organizerMutationState(input.tournamentId), beforeState);
+    const control = await input.mutate({
+      "x-organizer-token": signVersionedOrganizerToken(input.tournamentId, replacementHash),
+    });
+    assert.equal(control.status, input.successStatus);
+  } finally {
+    try { await lockClient.query("ROLLBACK"); } catch {}
+    lockClient.release();
+    // Drain the request even on a failed wait/assertion before fixture teardown.
+    if (mutation) await mutation.catch(() => undefined);
+  }
 }
 
 async function waitForBlockedDatabaseRequests(minimum: number): Promise<void> {
@@ -211,7 +346,7 @@ before(async () => {
   database = (await import("@workspace/db")) as DatabaseModule;
   await resetTestSchema(database.pool as unknown as TestPool, config.schema);
   schemaInitialized = true;
-  ({ signViewerToken, hashPassword } = await import("../src/auth"));
+  ({ signViewerToken, signVersionedOrganizerToken, hashPassword } = await import("../src/auth"));
   ({ importTournamentPlayers } = await import("../src/application/players/tournament-roster"));
   ({
     upgradeLegacyOrganizerCredentials,
@@ -431,33 +566,22 @@ describe("security and tournament integrity regressions", () => {
     assert.equal(response.status, 404);
   });
 
-  test("creates immediately manageable tournaments with optional organizer credentials and validates private viewer access", async () => {
+  test("creates immediately manageable tournaments with required organizer credentials and validates private viewer access", async () => {
     const base = { name: `Credentials ${randomUUID()}`, format: "single_elimination" };
     const noOrganizer = await request(app).post("/api/tournaments").send(base);
-    assert.equal(noOrganizer.status, 201, noOrganizer.text);
-    assert.equal(typeof noOrganizer.body.organizerToken, "string");
-    await request(app)
-      .post(`/api/tournaments/${noOrganizer.body.id}/players`)
-      .set("x-organizer-token", noOrganizer.body.organizerToken)
-      .send({ name: "Immediate owner mutation", seed: 1 })
-      .expect(201);
+    assert.equal(noOrganizer.status, 400, noOrganizer.text);
+    assert.equal(noOrganizer.body.organizerToken, undefined);
 
+    const emptyOrganizerName = `Empty organizer ${randomUUID()}`;
     const emptyOrganizer = await request(app).post("/api/tournaments").send({
       ...base,
-      name: `Empty organizer ${randomUUID()}`,
+      name: emptyOrganizerName,
       organizerPassword: "",
     });
-    assert.equal(emptyOrganizer.status, 201, emptyOrganizer.text);
-    assert.equal(typeof emptyOrganizer.body.organizerToken, "string");
-    await request(app)
-      .post(`/api/tournaments/${emptyOrganizer.body.id}/players`)
-      .set("x-organizer-token", emptyOrganizer.body.organizerToken)
-      .send({ name: "Empty password owner mutation", seed: 1 })
-      .expect(201);
-    await request(app)
-      .post(`/api/tournaments/${emptyOrganizer.body.id}/auth/organizer-login`)
-      .send({ password: "" })
-      .expect(400);
+    assert.equal(emptyOrganizer.status, 400, emptyOrganizer.text);
+    assert.equal(emptyOrganizer.body.organizerToken, undefined);
+    const missingRows = await database.pool.query("SELECT id FROM tournaments WHERE name = ANY($1)", [[base.name, emptyOrganizerName]]);
+    assert.equal(missingRows.rowCount, 0);
 
     const privateName = `Private without viewer ${randomUUID()}`;
     const privateWithoutViewer = await request(app).post("/api/tournaments").send({
@@ -490,6 +614,7 @@ describe("security and tournament integrity regressions", () => {
         ...base,
         visibility: "private_online",
         viewerPassword: VIEWER_PASSWORD,
+        organizerPassword: ORGANIZER_PASSWORD,
       },
       { ...base, visibility: "private_offline", organizerPassword: ORGANIZER_PASSWORD },
     ]) {
@@ -499,14 +624,10 @@ describe("security and tournament integrity regressions", () => {
   });
 
   test("lets only a passwordless organizer set the first password and rotates its token", async () => {
-    const created = await request(app).post("/api/tournaments").send({
-      name: `Passwordless owner ${randomUUID()}`,
-      format: "single_elimination",
-      supportPassword: SUPPORT_PASSWORD,
-    });
-    assert.equal(created.status, 201, created.text);
-    const tournamentId = created.body.id as number;
-    const passwordlessToken = created.body.organizerToken as string;
+    // Historical data and an already issued session, no longer created by the public API.
+    const tournamentId = await createLegacyTournament();
+    await database.pool.query("UPDATE tournaments SET support_password_hash = $1 WHERE id = $2", [await hashPassword(SUPPORT_PASSWORD), tournamentId]);
+    const passwordlessToken = signVersionedOrganizerToken(tournamentId, null);
     assert.equal(typeof passwordlessToken, "string");
 
     const support = await supportHeaders(tournamentId);
@@ -1078,6 +1199,80 @@ describe("security and tournament integrity regressions", () => {
       .expect(201);
   });
 
+  test("revalidates in-flight organizer mutations after credential rotation", { timeout: 300_000 }, async (t) => {
+    for (const operation of [
+      "roster", "settings", "delete", "cancel", "restore", "score", "bans", "picks",
+      "undo-result", "undo-status", "undo-roster",
+    ] as const) {
+      await t.test(operation, async () => {
+        const tournament = await createTournament({ format: "round_robin", maxPlayers: 2 });
+        const id = tournament.id;
+        const headers = organizerHeaders(id);
+        let match: { id: number; player1Id: number; revision: number } | undefined;
+        let playerId: number | undefined;
+        if (!["roster", "settings", "delete"].includes(operation)) {
+          const first = await addPlayer(id, "Rotation fixture A", 1);
+          playerId = first.id;
+          await addPlayer(id, "Rotation fixture B", 2);
+          if (operation === "undo-roster") {
+            await request(app).delete(`/api/players/${first.id}`).set(headers).expect(204);
+          } else {
+            await request(app).post(`/api/tournaments/${id}/start`).set(headers).send({}).expect(200);
+            const matches = await request(app).get(`/api/tournaments/${id}/matches`).set(headers).expect(200);
+            match = matches.body[0];
+            assert.ok(match);
+            if (operation === "restore" || operation === "undo-status") {
+              await request(app).post(`/api/matches/${match.id}/cancel`).set(headers).send({}).expect(200);
+            } else if (operation === "undo-result") {
+              await request(app).post(`/api/matches/${match.id}/complete`).set(headers).send({
+                expectedRevision: match.revision, resultType: "played",
+                score1: 1, score2: 0, winnerId: match.player1Id,
+              }).expect(200);
+            }
+          }
+        }
+        await runOrganizerRevocationRace({
+          tournamentId: id,
+          successStatus: operation === "roster" ? 201 : operation === "delete" ? 204 : 200,
+          mutate: (actorHeaders) => {
+            if (operation === "roster") {
+              return request(app).post(`/api/tournaments/${id}/players`).set(actorHeaders)
+                .send({ name: "Only the new credential may add", seed: 1 }).then(r => r);
+            }
+            if (operation === "settings") {
+              return request(app).patch(`/api/tournaments/${id}`).set(actorHeaders)
+                .send({ name: "Only the new credential may rename" }).then(r => r);
+            }
+            if (operation === "delete") {
+              return request(app).delete(`/api/tournaments/${id}`).set(actorHeaders).then(r => r);
+            }
+            if (operation.startsWith("undo-")) {
+              return request(app).post(`/api/tournaments/${id}/undo-last`).set(actorHeaders).send({}).then(r => r);
+            }
+            if (operation === "bans") {
+              return request(app).put(`/api/players/${playerId}/bans`).set(actorHeaders)
+                .send({ bannedHeroIds: [] }).then(r => r);
+            }
+            assert.ok(match);
+            if (operation === "picks") {
+              return request(app).put(`/api/matches/${match.id}/game-picks/1`).set(actorHeaders)
+                .send({ player1HeroId: null, player2HeroId: null }).then(r => r);
+            }
+            if (operation === "score") {
+              return request(app).post(`/api/matches/${match.id}/complete`).set(actorHeaders).send({
+                expectedRevision: match.revision, resultType: "played",
+                score1: 1, score2: 0, winnerId: match.player1Id,
+              }).then(r => r);
+            }
+            const endpoint = operation === "restore" ? "restore-cancelled" : operation;
+            return request(app).post(`/api/matches/${match.id}/${endpoint}`)
+              .set(actorHeaders).send({}).then(r => r);
+          },
+        });
+      });
+    }
+  });
+
   test("revalidates an in-flight support session after the tournament lock", async () => {
     const rosterTournament = await createTournament();
     const rosterSupport = await supportHeaders(rosterTournament.id);
@@ -1130,10 +1325,10 @@ describe("security and tournament integrity regressions", () => {
     await runSupportRevocationRace({
       tournamentId: completeTournament.id,
       support: completeSupport,
-      mutate: () => request(app)
+      mutate: async () => request(app)
         .post(`/api/matches/${completeMatch.rows[0].id}/complete`)
         .set(completeSupport)
-        .send({ resultType: "played", score1: 1, score2: 0 })
+        .send({ expectedRevision: await matchRevision(database, completeMatch.rows[0].id), ...({ resultType: "played", score1: 1, score2: 0 }) })
         .then((response) => response),
     });
     const afterComplete = await database.pool.query<{ status: string }>(
@@ -1156,7 +1351,7 @@ describe("security and tournament integrity regressions", () => {
     await request(app)
       .post(`/api/matches/${revertMatchRow.rows[0].id}/complete`)
       .set(organizerHeaders(revertTournament.id))
-      .send({ resultType: "played", score1: 1, score2: 0 })
+      .send({ expectedRevision: await matchRevision(database, revertMatchRow.rows[0].id), ...({ resultType: "played", score1: 1, score2: 0 }) })
       .expect(200);
     const revertSupport = await supportHeaders(revertTournament.id);
     await runSupportRevocationRace({

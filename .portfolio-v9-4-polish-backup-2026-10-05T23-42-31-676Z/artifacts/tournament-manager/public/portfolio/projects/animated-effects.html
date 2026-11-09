@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#090b0f" />
+  <link rel="icon" href="../assets/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="../src/styles.css" />
+  <title>Animated Effects Editor — Case Study — Jakub Powierski</title>
+  <meta name="description" content="Case study Animated Effects Editor: configurable effects, layers, preview and StreamElements/OBS integration." />
+</head>
+<body class="case-body">
+  <a class="skip-link" href="#case-content">Przejdź do treści</a>
+  <header class="topbar case-topbar"><a class="brand" href="../index.html">← PORTFOLIO</a><nav><a class="nav-site-home" data-host-home-link href="../../">Strona główna</a><a href="index.html">Case studies</a><a href="../decisions.html">Decyzje</a><a href="../about.html">O mnie</a><a href="../evidence.html">Materiały</a><a class="nav-cv" href="../resume.html">CV</a></nav></header>
+  <main id="case-content">
+<section class="case-hero shell case-effects"><p class="eyebrow">CASE STUDY · LATO 2026</p><h1>Animated Effects Editor</h1><p class="case-lead">Narzędzie do tworzenia i konfigurowania animowanych overlayów z myślą o preview oraz integracji ze StreamElements / OBS.</p><div class="fact-grid"><div><span>Rola</span><b>Systems / Integration Design</b></div><div><span>Model</span><b>preset · intensity · seed · layers</b></div><div><span>Output</span><b>preview · StreamElements / OBS</b></div><div><span>Status</span><b>aktywny prototyp narzędzia</b></div></div></section>
+<section class="case-section shell"><div class="case-two-col"><div><p class="eyebrow">SYSTEM PREMISE</p><h2>Efekt jako konfiguracja i zachowanie, nie jednorazowa animacja.</h2></div><div class="case-copy"><p>Edytor był rozwijany wokół parametrów wspólnych dla różnych efektów: presetów, intensywności, seeda, blend mode, obszarów działania i kolejności warstw. Dzięki temu kolejne efekty mogą korzystać z tej samej powierzchni narzędzia.</p><p>Najważniejszym wyzwaniem integracyjnym jest zachowanie zgodności pomiędzy edytorem, preview i środowiskiem docelowym StreamElements / OBS.</p></div></div>
+<div class="pdr-grid"><article><span>PROBLEM</span><h3>Każdy efekt może mieć inne parametry.</h3><p>Bez wspólnego kontraktu edytor szybko zamieniłby się w zbiór wyjątków.</p></article><article><span>DECISION</span><h3>Wspólny model konfiguracji.</h3><p>Parametry globalne i efektowe są rozdzielone, a kompozycja warstw pozostaje kontrolowalna.</p></article><article><span>RESULT</span><h3>Rozszerzalne narzędzie.</h3><p>Nowe efekty mogą być dodawane do wspólnego workflow zamiast powstawać jako osobne mini-aplikacje.</p></article></div></section>
+<section class="case-section shell"><p class="eyebrow">TOOL ARCHITECTURE</p><h2 class="case-h2">Rozszerzalność wymaga rozdzielenia wspólnych parametrów od logiki konkretnego efektu.</h2><div class="effect-architecture"><article><span>01</span><h3>Global controls</h3><p>Intensity, seed, blend mode, obszar działania i kolejność warstw.</p></article><article><span>02</span><h3>Effect module</h3><p>Parametry charakterystyczne dla danego efektu bez przepisywania całego edytora.</p></article><article><span>03</span><h3>Preview</h3><p>Wspólna powierzchnia do oceny kompozycji przed eksportem.</p></article><article><span>04</span><h3>Export target</h3><p>Wynik gotowy do użycia w StreamElements / OBS i kolejnych środowiskach.</p></article></div></section>
+<section class="case-section shell"><div class="system-visual fx-visual case-diagram"><div class="fx-heading">ANIMATED<br>EFFECTS</div><div class="fx-orbit"><i></i><i></i><i></i><i></i><i></i></div><div class="fx-panel"><div><span>Preset</span><b>Energy</b></div><div><span>Intensity</span><b>0.72</b></div><div><span>Seed</span><b>1842</b></div><div><span>Blend</span><b>Screen</b></div><div><span>Z-index</span><b>+4</b></div></div><div class="fx-flow"><span>EDITOR</span><b>→</b><span>PREVIEW</span><b>→</b><span>SE / OBS</span></div></div><p class="metric-note">V9 celowo nie udaje screenshotu produktu. Ten schemat pozostaje wizualizacją systemu do czasu dodania zweryfikowanych screenów aktualnego runtime.</p></section>
+
+  <section class="case-section shell"><p class="eyebrow">CURRENT EVIDENCE STATE</p><div class="case-two-col"><div><h2>Opis systemu jest gotowy. Galeria runtime jeszcze nie.</h2></div><div class="case-copy"><p>W paczce zachowany jest kontekst repozytorium potwierdzający osobny obszar <code>artifacts/animated-effects</code> oraz serię pakietów zmian. Nie traktuję jednak listy plików jako zamiennika prawdziwych screenshotów produktu.</p><p>Przed publikacją finalną najlepiej dodać 3–5 aktualnych screenów: edytor, preview, bibliotekę efektów i wynik działający w StreamElements / OBS.</p><div class="project-links"><a href="../evidence.html">Zobacz indeks materiałów →</a></div></div></div></section>
+    <section class="case-section shell case-pagination" aria-label="Nawigacja między case studies"><a class="case-prev" href="tournament-manager.html"><span>← POPRZEDNI</span><b>Tournament Manager</b></a><a class="case-next" href="cuckoo-keeper.html"><span>NASTĘPNY →</span><b>Cuckoo Keeper</b></a></section>
+  </main>
+  <footer class="footer shell"><span>Jakub Powierski · Game Designer / Systems Designer</span><a href="../index.html">← Wróć do portfolio</a></footer>
+</body>
+</html>

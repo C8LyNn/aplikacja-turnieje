@@ -1,4 +1,8 @@
 import { Router, type IRouter } from "express";
+import { lockLatestUndoableAction, UndoActionChangedError } from "../application/undo/latest-undo-action";
+import { assertCancelRestoreState, MatchLifecycleConflict } from "../application/matches/cancel-restore-policy";
+import { deriveTournamentOperations } from "../application/operations/tournament-operations";
+import { deriveTournamentProgressionPreflight } from "../application/operations/tournament-progression-preflight";
 import { eq, and, sql, inArray, desc, ne } from "drizzle-orm";
 import { db, tournamentsTable, tournamentStagesTable, stageParticipantsTable, playersTable, matchesTable, resultHistoryTable, actionLogTable, authAuditLogTable, playerDeadlockBansTable, matchGamePicksTable, tournamentGameConfigsTable } from "@workspace/db";
 import {
@@ -24,7 +28,6 @@ import {
   withTournamentMutationLock,
 } from "../access-policy";
 import {
-  normalizeOrganizerPassword,
   organizerPasswordInputError,
   ORGANIZER_PASSWORD_TOO_SHORT_CODE,
 } from "../validation/organizer-password";
@@ -109,6 +112,7 @@ import {
 import { calculateMatchRecordStandings } from "../domain/tournament/standings";
 import { generateRoundRobinSchedule } from "../domain/tournament/round-robin";
 import { generateSwissPairings } from "../domain/tournament/swiss";
+import { BACKUP_V3_IMPORT_DISABLED, isBackupV3Import } from "../application/backups/backup-import-policy";
 import { buildStandardSeededBracket } from "../domain/tournament/stage-placement";
 import { validatePlayedSeriesResult } from "../domain/match/series-result";
 import {
@@ -309,6 +313,7 @@ function sendBasketRouteExecutionError(
   ]);
   const conflict = new Set<BasketRouteExecutionErrorCode>([
     "STAGE_BASKET_ROUTE_SOURCE_NOT_APPROVED",
+    "STAGE_BASKET_ROUTE_SOURCE_STAGE_NOT_COMPLETED",
     "STAGE_BASKET_ROUTE_SOURCE_OUTPUT_INCOMPLETE",
     "STAGE_BASKET_ROUTE_TARGET_STAGE_ALREADY_STARTED",
     "STAGE_BASKET_ROUTE_PARTICIPANT_CONFLICT",
@@ -332,6 +337,7 @@ function sendQualificationProposalError(
     "STAGE_BASKET_QUALIFICATION_FORMAT_NOT_SUPPORTED",
     "STAGE_BASKET_QUALIFICATION_ALREADY_APPROVED",
     "STAGE_BASKET_QUALIFICATION_PROPOSAL_STALE",
+    "STAGE_BASKET_QUALIFICATION_STAGE_INCOMPLETE",
     "RANKING_INCONSISTENT",
   ]);
   res
@@ -345,7 +351,7 @@ function sendTournamentRosterError(
 ): void {
   const status = error.code === "TOURNAMENT_NOT_FOUND" || error.code === "PLAYER_NOT_FOUND"
     ? 404
-    : error.code === "ROSTER_LOCKED" || error.code === "DUPLICATE_PLAYER_NAME"
+    : error.code === "ROSTER_LOCKED" || error.code === "DUPLICATE_PLAYER_NAME" || error.code === "UNDO_ACTION_CHANGED"
       ? 409
       : 422;
   res.status(status).json({ error: error.message, code: error.code });
@@ -589,11 +595,25 @@ function generateSwissRound(
 
 // ========== STANDINGS ==========
 
-function calculateStandings(
+async function calculateStandings(
   players: (typeof playersTable.$inferSelect)[],
   matches: (typeof matchesTable.$inferSelect)[],
   tournament: typeof tournamentsTable.$inferSelect,
 ) {
+  const stages = await db.select().from(tournamentStagesTable)
+    .where(eq(tournamentStagesTable.tournamentId, tournament.id)).limit(2);
+  const stage = stages.length === 1 ? stages[0] : undefined;
+  if (stage && stage.status !== "planned" && (stage.format === "round_robin" || stage.format === "swiss")) {
+    const members = await db.select({ playerId: stageParticipantsTable.playerId, stageSeed: stageParticipantsTable.stageSeed })
+      .from(stageParticipantsTable).where(eq(stageParticipantsTable.stageId, stage.id));
+    const seeds = new Map(members.map(member => [member.playerId, member.stageSeed]));
+    // A stage's frozen seeding, not registration order, resolves ranking ties.
+    return calculateMatchRecordStandings(
+      players.filter(player => seeds.has(player.id)).map(player => ({ ...player, seed: seeds.get(player.id)! })),
+      matches.filter(match => match.stageId === stage.id),
+      stage.format,
+    );
+  }
   return calculateMatchRecordStandings(players, matches, tournament.format);
 }
 
@@ -673,9 +693,7 @@ router.post("/tournaments", async (req, res): Promise<void> => {
     });
     return;
   }
-  const requestBody = req.body?.organizerPassword === ""
-    ? { ...req.body, organizerPassword: undefined }
-    : req.body;
+  const requestBody = req.body;
   const rawGameConfig = ownValue(requestBody, "gameConfig");
   const parsed = CreateTournamentBody.safeParse(requestBody);
   if (!parsed.success) {
@@ -712,9 +730,8 @@ router.post("/tournaments", async (req, res): Promise<void> => {
     });
     return;
   }
-  const organizerPassword = normalizeOrganizerPassword(rawOrganizerPassword);
   const insertValues: any = { ...rest };
-  if (organizerPassword) insertValues.organizerPasswordHash = await hashPassword(organizerPassword);
+  insertValues.organizerPasswordHash = await hashPassword(rawOrganizerPassword);
   if (supportPassword) insertValues.supportPasswordHash = await hashPassword(supportPassword);
   if (viewerPassword) insertValues.viewerPasswordHash = await hashPassword(viewerPassword);
   try {
@@ -1353,8 +1370,15 @@ router.delete("/tournaments/:id", async (req, res): Promise<void> => {
     res.status(400).json({ error: "Invalid id" });
     return;
   }
-  if (!await requireOrganizer(req, res, params.data.id)) return;
-  await db.delete(tournamentsTable).where(eq(tournamentsTable.id, params.data.id));
+  const access = await requireOrganizer(req, res, params.data.id);
+  if (!access) return;
+  await withTournamentMutationLock(
+    params.data.id,
+    getTournamentMutationActor(access),
+    async (tx) => {
+      await tx.delete(tournamentsTable).where(eq(tournamentsTable.id, params.data.id));
+    },
+  );
   res.sendStatus(204);
 });
 
@@ -1395,6 +1419,7 @@ router.post("/tournaments/:id/start", async (req, res): Promise<void> => {
   if (shouldUseStageLifecycleForLegacyTournamentStart(
     stages,
     startGameConfig?.gameId ?? null,
+    tournament.basketFlowAuthorityVersion,
   )) {
     try {
       await startStage({
@@ -1471,12 +1496,21 @@ router.post("/tournaments/:id/start", async (req, res): Promise<void> => {
       ) {
         throw new Error("STAGE_PARTICIPANTS_INCONSISTENT");
       }
+      if (memberships.some((membership, index) => membership.stageSeed !== index + 1)) {
+        throw new Error("STAGE_PARTICIPANTS_INCONSISTENT");
+      }
+      const existingMatches = await tx
+        .select({ id: matchesTable.id })
+        .from(matchesTable)
+        .where(eq(matchesTable.stageId, stage.id))
+        .for("update");
+      if (existingMatches.length > 0) {
+        throw new Error("MATCHES_ALREADY_EXIST");
+      }
       const stagePlayers = memberships.map((membership) => ({
         ...playersById.get(membership.playerId)!,
         seed: membership.stageSeed,
       }));
-
-      await tx.delete(matchesTable).where(eq(matchesTable.stageId, stage.id));
 
       const bestOf = stage.bestOf;
       let generatedMatches: (typeof matchesTable.$inferInsert)[];
@@ -1596,10 +1630,13 @@ router.post("/tournaments/:id/start", async (req, res): Promise<void> => {
       STAGE_FORMAT_NOT_SUPPORTED: "Tournament stage format is not supported by this operation",
       NOT_ENOUGH_PLAYERS: "Need at least 2 players to start",
       STAGE_PARTICIPANTS_INCONSISTENT: "Tournament stage participants are inconsistent",
+      MATCHES_ALREADY_EXIST: "Tournament stage already contains matches",
       STAGE_BASKET_CONFIGURATION_INVALID: "Tournament stage basket configuration is invalid",
     };
     const status = code === "TOURNAMENT_NOT_FOUND"
       ? 404
+      : code === "MATCHES_ALREADY_EXIST"
+        ? 409
       : code === "STAGE_BASKET_CONFIGURATION_INVALID"
         ? 422
         : 400;
@@ -1839,7 +1876,7 @@ router.get("/tournaments/:id/stats", async (req, res): Promise<void> => {
   const pendingMatches = matches.filter((m) => m.status === "pending" || m.status === "postponed").length;
   const inProgressMatches = matches.filter((m) => m.status === "in_progress").length;
 
-  const topPlayers = calculateStandings(players, matches, tournament)
+  const topPlayers = (await calculateStandings(players, matches, tournament))
     .slice(0, 5)
     .map((standing) => ({
       id: standing.playerId,
@@ -1884,7 +1921,7 @@ router.get("/tournaments/:id/standings", async (req, res): Promise<void> => {
     .from(matchesTable)
     .where(eq(matchesTable.tournamentId, params.data.id));
 
-  const standings = calculateStandings(players, matches, tournament);
+  const standings = await calculateStandings(players, matches, tournament);
   res.json(standings);
 });
 
@@ -1962,70 +1999,42 @@ router.get("/tournaments/:id/assistant", async (req, res): Promise<void> => {
     res.status(400).json({ error: "Invalid id" });
     return;
   }
-
   const access = await requireTournamentRead(req, res, params.data.id);
   if (!access) return;
   const tournament = access.tournament;
 
-  const players = await db
-    .select()
-    .from(playersTable)
-    .where(eq(playersTable.tournamentId, params.data.id));
-  const matches = await db
-    .select()
-    .from(matchesTable)
-    .where(eq(matchesTable.tournamentId, params.data.id));
-
-  const warnings: string[] = [];
-  let stepTitle = "";
-  let nextAction = "";
-
-  if (tournament.status === "draft") {
-    if (players.length === 0) {
-      stepTitle = "Krok 1/5: Dodaj zawodnikow";
-      nextAction = "Dodaj zawodnikow recznie lub wczytaj CSV. Wymagane minimum: 2.";
-    } else if (players.length < 2) {
-      stepTitle = "Krok 1/5: Wczytaj zawodnikow";
-      nextAction = `Dodaj jeszcze ${2 - players.length} zawodnika aby mozna bylo wystartowac.`;
-    } else {
-      stepTitle = "Krok 2/5: Sprawdz zawodnikow i start";
-      nextAction = `Masz ${players.length} zawodnikow. Sprawdz rozstawienie i kliknij Start.`;
-      const unseeded = players.filter((p) => !p.seed);
-      if (unseeded.length > 0) {
-        warnings.push(`${unseeded.length} zawodnikow bez rozstawienia.`);
-      }
+  // Never infer eligibility to start a stage from participant counts alone.
+  // Reuse the authoritative read-only stage-start readiness implementation.
+  const [players, matches, stages] = await Promise.all([
+    db.select().from(playersTable).where(eq(playersTable.tournamentId, tournament.id)),
+    db.select().from(matchesTable).where(eq(matchesTable.tournamentId, tournament.id)),
+    db.select().from(tournamentStagesTable).where(eq(tournamentStagesTable.tournamentId, tournament.id)),
+  ]);
+  const activeStage = stages.find(stage => stage.status === "active");
+  const plannedStage = !activeStage && [...stages]
+    .filter(stage => stage.status === "planned")
+    .sort((a, b) => a.position - b.position)[0];
+  let plannedStageReadiness: {ready: boolean; reasonCode: string; message: string} | null = null;
+  if (plannedStage && (tournament.status === "draft" || tournament.status === "active")) {
+    try {
+      plannedStageReadiness = await getStageStartReadiness({
+        tournamentId: tournament.id,
+        stageId: plannedStage.id,
+      });
+    } catch (error) {
+      if (!(error instanceof StageLifecycleError)) throw error;
+      plannedStageReadiness = {ready: false, reasonCode: error.code, message: error.message};
     }
-  } else if (tournament.status === "active") {
-    const pending = matches.filter((m) => m.status === "pending" || m.status === "postponed");
-    const live = matches.filter((m) => m.status === "in_progress");
-    const done = matches.filter((m) => m.status === "completed");
-
-    if (live.length > 0) {
-      stepTitle = "Krok 4/5: Mecz w toku";
-      nextAction = `${live.length} mecz(e) aktualnie grane. Wpisz wynik.`;
-    } else if (pending.length > 0) {
-      stepTitle = "Krok 3/5: Wpisuj wyniki";
-      nextAction = `${pending.length} mecz(e) oczekuje. Wybierz mecz i wpisz wynik.`;
-    } else {
-      if (tournament.format === "swiss" && (tournament.currentRound ?? 0) < (tournament.totalRounds ?? 0)) {
-        stepTitle = "Krok 4/5: Generuj nastepna runde";
-        nextAction = `Runda ${tournament.currentRound} zakonczona. Wygeneruj runde ${(tournament.currentRound ?? 0) + 1}.`;
-      } else {
-        stepTitle = "Krok 5/5: Zakonczenie";
-        nextAction = "Wszystkie mecze zakonczone. Mozesz zakonczyc turniej lub sprawdzic tabele.";
-      }
-    }
-
-    if (done.length > 0 && pending.length > 0) {
-      const progress = Math.round((done.length / matches.length) * 100);
-      warnings.push(`Postep rundy: ${progress}%`);
-    }
-  } else {
-    stepTitle = "Turniej zakonczony";
-    nextAction = "Sprawdz tabele koncową i exportuj wyniki.";
   }
-
-  res.json({ stepTitle, nextAction, warnings });
+  const operationsInput = { tournament, players, stages, matches, plannedStageReadiness };
+  const operations = deriveTournamentOperations(operationsInput);
+  const transitionPreview = deriveTournamentProgressionPreflight(operationsInput, operations);
+  res.json({
+    stepTitle: operations.recommendedAction.title,
+    nextAction: operations.recommendedAction.description,
+    warnings: operations.blockers.map(blocker => blocker.message),
+    operations: { ...operations, transitionPreview },
+  });
 });
 
 // ========== PLAYER ROUTES ==========
@@ -2221,6 +2230,7 @@ function sendRevertMatchError(
     "STAGE_ALREADY_ADVANCED",
     "CONCURRENT_MODIFICATION",
     "SYSTEM_BYE_REVERT_BLOCKED",
+    "STAGE_QUALIFICATION_ALREADY_COMMITTED",
   ]);
   const status = notFoundCodes.has(error.code)
     ? 404
@@ -2317,12 +2327,19 @@ router.post("/tournaments/:id/undo-last", async (req, res): Promise<void> => {
       if (!Number.isInteger(matchId) || matchId < 1) {
         throw new RevertMatchError("COMPLETION_LOG_AMBIGUOUS");
       }
-      const result = await revertMatch({
-        matchId,
-        expectedTournamentId: params.data.id,
-        expectedCompletionActionId: lastAction.id,
-        actor: mutationActor,
-      });
+      const result = await withTournamentMutationLock(
+        params.data.id,
+        mutationActor,
+        async (tx) => {
+          await lockLatestUndoableAction(tx, params.data.id, lastAction.id);
+          return revertMatch({
+            matchId,
+            expectedTournamentId: params.data.id,
+            expectedCompletionActionId: lastAction.id,
+            actor: mutationActor,
+          }, {}, tx);
+        },
+      );
       res.json({
         action: mapActionLog(result.completionAction),
         message: `Cofnięto: ${lastAction.description}`,
@@ -2334,19 +2351,9 @@ router.post("/tournaments/:id/undo-last", async (req, res): Promise<void> => {
       params.data.id,
       mutationActor,
       async (tx) => {
-        const [lockedAction] = await tx
-          .select()
-          .from(actionLogTable)
-          .where(eq(actionLogTable.id, lastAction.id))
-          .for("update");
-        if (
-          !lockedAction ||
-          lockedAction.tournamentId !== params.data.id ||
-          lockedAction.isUndone ||
-          !lockedAction.undoPayload
-        ) {
-          throw new RevertMatchError("UNDO_ACTION_CHANGED");
-        }
+        const lockedAction = await lockLatestUndoableAction(
+          tx, params.data.id, lastAction.id,
+        );
         const lockedPayload = JSON.parse(lockedAction.undoPayload) as Record<string, unknown>;
         if (lockedPayload.type !== payload.type) {
           throw new RevertMatchError("UNDO_ACTION_CHANGED");
@@ -2431,6 +2438,10 @@ router.post("/tournaments/:id/undo-last", async (req, res): Promise<void> => {
     );
     res.json({ action: mapActionLog(updated!), message: `Cofnięto: ${lastAction.description}` });
   } catch (err) {
+    if (err instanceof UndoActionChangedError) {
+      res.status(err.status).json({ error: err.message, code: err.code });
+      return;
+    }
     if (err instanceof RevertMatchError) {
       sendRevertMatchError(err, res);
       return;
@@ -2505,6 +2516,13 @@ router.patch("/matches/:id", async (req, res): Promise<void> => {
     });
     return;
   }
+  if (rawBody.status === "cancelled") {
+    res.status(422).json({
+      error: "Anulowanie meczu wymaga dedykowanej operacji.",
+      code: "MATCH_CANCELLATION_REQUIRES_DEDICATED_ACTION",
+    });
+    return;
+  }
   if (rawBody.status === "completed") {
     res.status(422).json({
       error: "Ten status wymaga dedykowanego przypadku użycia.",
@@ -2533,6 +2551,9 @@ router.patch("/matches/:id", async (req, res): Promise<void> => {
         .where(eq(matchesTable.id, params.data.id))
         .for("update");
       if (!lockedMatch) throw new Error("MATCH_NOT_FOUND");
+      if (lockedMatch.status === "cancelled" && parsed.data.status != null) {
+        throw new Error("CANCELLED_MATCH_PATCH_FORBIDDEN");
+      }
       if (
         lockedMatch.status === "completed" &&
         (parsed.data.status != null || parsed.data.bestOf != null)
@@ -2578,6 +2599,11 @@ router.patch("/matches/:id", async (req, res): Promise<void> => {
     if (!(error instanceof Error)) throw error;
     const responses: Record<string, { status: number; error: string; code?: string }> = {
       MATCH_NOT_FOUND: { status: 404, error: "Match not found" },
+      CANCELLED_MATCH_PATCH_FORBIDDEN: {
+        status: 422,
+        error: "Anulowany mecz wymaga dedykowanej operacji przywrócenia.",
+        code: "CANCELLED_MATCH_PATCH_FORBIDDEN",
+      },
       FINALIZED_MATCH_PATCH_FORBIDDEN: {
         status: 422,
         error: "Rozstrzygniętego meczu nie można zmieniać przez ogólny PATCH.",
@@ -2650,7 +2676,7 @@ router.post("/matches/:id/complete", async (req, res): Promise<void> => {
         "TOURNAMENT_NOT_FOUND",
         "PARTICIPANT_NOT_FOUND",
       ]);
-      const status = error.code === "MATCH_ALREADY_FINALIZED"
+      const status = error.code === "MATCH_ALREADY_FINALIZED" || error.code === "CONCURRENT_MODIFICATION"
         ? 409
         : notFoundCodes.has(error.code)
           ? 404
@@ -2698,6 +2724,22 @@ router.post("/matches/:id/revert", async (req, res): Promise<void> => {
 });
 
 // ===== CANCEL MATCH =====
+async function assertLockedCancelRestoreState(
+  tx: RouteTransaction,
+  match: typeof matchesTable.$inferSelect,
+  tournament: typeof tournamentsTable.$inferSelect,
+  operation: "cancel" | "restore",
+): Promise<void> {
+  const [stage] = await tx.select({ status: tournamentStagesTable.status })
+    .from(tournamentStagesTable)
+    .where(and(
+      eq(tournamentStagesTable.id, match.stageId),
+      eq(tournamentStagesTable.tournamentId, match.tournamentId),
+    ))
+    .for("update");
+  assertCancelRestoreState(operation, match, tournament.status, stage?.status);
+}
+
 router.post("/matches/:id/cancel", async (req, res): Promise<void> => {
   const params = CancelMatchParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
@@ -2717,10 +2759,11 @@ router.post("/matches/:id/cancel", async (req, res): Promise<void> => {
         .where(eq(matchesTable.id, params.data.id))
         .for("update");
       if (!lockedMatch) throw new Error("Match disappeared during cancellation");
-      const blockedStatuses = ["completed", "cancelled"];
-      if (blockedStatuses.includes(lockedMatch.status)) {
-        throw new Error(`MATCH_CANNOT_CANCEL:${lockedMatch.status}`);
-      }
+      // Re-read the tournament in the same transaction; the outer helper holds its lock.
+      const [lockedTournament] = await tx.select().from(tournamentsTable)
+        .where(eq(tournamentsTable.id, match.tournamentId));
+      if (!lockedTournament) throw new Error("Tournament disappeared during cancellation");
+      await assertLockedCancelRestoreState(tx, lockedMatch, lockedTournament, "cancel");
       const p1Ids = [lockedMatch.player1Id, lockedMatch.player2Id].filter(Boolean) as number[];
       const namePlayers = p1Ids.length > 0
         ? await tx.select().from(playersTable).where(inArray(playersTable.id, p1Ids))
@@ -2750,6 +2793,10 @@ router.post("/matches/:id/cancel", async (req, res): Promise<void> => {
       return saved;
     },
   ).catch((error: unknown) => {
+    if (error instanceof MatchLifecycleConflict) {
+      res.status(error.status).json({ error: error.message, code: error.code });
+      return null;
+    }
     if (error instanceof Error && error.message.startsWith("MATCH_CANNOT_CANCEL:")) {
       res.status(400).json({
         error: `Nie można anulować meczu o statusie: ${error.message.split(":")[1]}`,
@@ -2781,7 +2828,10 @@ router.post("/matches/:id/restore-cancelled", async (req, res): Promise<void> =>
         .where(eq(matchesTable.id, params.data.id))
         .for("update");
       if (!lockedMatch) throw new Error("Match disappeared during restore");
-      if (lockedMatch.status !== "cancelled") throw new Error("MATCH_NOT_CANCELLED");
+      const [lockedTournament] = await tx.select().from(tournamentsTable)
+        .where(eq(tournamentsTable.id, match.tournamentId));
+      if (!lockedTournament) throw new Error("Tournament disappeared during restore");
+      await assertLockedCancelRestoreState(tx, lockedMatch, lockedTournament, "restore");
       const [saved] = await tx
         .update(matchesTable)
         .set({ status: "pending" })
@@ -2803,6 +2853,10 @@ router.post("/matches/:id/restore-cancelled", async (req, res): Promise<void> =>
       return saved;
     },
   ).catch((error: unknown) => {
+    if (error instanceof MatchLifecycleConflict) {
+      res.status(error.status).json({ error: error.message, code: error.code });
+      return null;
+    }
     if (error instanceof Error && error.message === "MATCH_NOT_CANCELLED") {
       res.status(400).json({ error: "Mecz nie jest anulowany" });
       return null;
@@ -2956,6 +3010,10 @@ router.post("/tournaments/import", async (req, res): Promise<void> => {
     rawBody.backup && typeof rawBody.backup === "object"
       ? rawBody.backup as Record<string, unknown>
       : rawBody;
+  if (isBackupV3Import(rawBackup)) {
+    res.status(422).json(BACKUP_V3_IMPORT_DISABLED);
+    return;
+  }
   const rawBackupTournament =
     rawBackup.tournament &&
     typeof rawBackup.tournament === "object" &&
@@ -3186,14 +3244,17 @@ router.put("/players/:id/bans", async (req, res): Promise<void> => {
     }
   }
 
-  const [upserted] = await db
-    .insert(playerDeadlockBansTable)
+  const [upserted] = await withTournamentMutationLock(
+    player.tournamentId,
+    getTournamentMutationActor(access),
+    (tx) => tx.insert(playerDeadlockBansTable)
     .values({ playerId: pid, tournamentId: player.tournamentId, bannedHeroIds })
     .onConflictDoUpdate({
       target: playerDeadlockBansTable.playerId,
       set: { bannedHeroIds, updatedAt: new Date() },
     })
-    .returning();
+    .returning(),
+  );
 
   res.json({
     playerId: upserted.playerId,
@@ -3334,8 +3395,10 @@ router.put("/matches/:id/game-picks/:gameNumber", async (req, res): Promise<void
   void resolvedGameConfig; // consumed above
 
   const sideForInsert = side !== undefined ? side : null;
-  const [upserted] = await db
-    .insert(matchGamePicksTable)
+  const [upserted] = await withTournamentMutationLock(
+    matchRef.tournamentId,
+    getTournamentMutationActor(access),
+    (tx) => tx.insert(matchGamePicksTable)
     .values({
       matchId: mid,
       gameNumber: gn,
@@ -3352,7 +3415,8 @@ router.put("/matches/:id/game-picks/:gameNumber", async (req, res): Promise<void
         updatedAt: new Date(),
       },
     })
-    .returning();
+    .returning(),
+  );
 
   const storedSide = (upserted.player1Side as "archmother" | "hidden_king" | null) ?? null;
   res.json({

@@ -5,9 +5,12 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./schema": "./src/schema/index.ts"
+    "./schema": "./src/schema/index.ts",
+    "./development-connection": "./src/development-database-connection.mjs"
   },
   "scripts": {
+    "development:bootstrap": "node ./scripts/bootstrap-isolated-development.mjs --apply-to-empty-development-database",
+    "test:development-connection": "node --test ./test/development-database-connection.test.mjs",
     "push": "drizzle-kit push --config ./drizzle.config.ts",
     "push-force": "drizzle-kit push --force --config ./drizzle.config.ts",
     "migrate:tournament-stages:preflight": "node ./scripts/preflight-tournament-stages-v1.mjs",
@@ -35,7 +38,12 @@
     "preflight:tournament-engine-v2": "node ./scripts/preflight-tournament-engine-v2.mjs",
     "test:tournament-engine-v2-preflight": "node --test --test-concurrency=1 ./test/tournament-engine-v2-preflight.integration.test.mjs",
     "migrate:tournament-routing-persistence:preflight": "node ./scripts/preflight-tournament-routing-persistence-v2.mjs",
-    "test:tournament-routing-persistence-deployment": "node --test ./test/tournament-routing-persistence-v2-deployment.test.mjs"
+    "test:tournament-routing-persistence-deployment": "node --test ./test/tournament-routing-persistence-v2-deployment.test.mjs",
+    "preflight:game-catalog": "node ./scripts/preflight-game-catalog.mjs",
+    "test:game-catalog-preflight": "node --test ./test/game-catalog-preflight.test.mjs",
+    "test:game-catalog-preflight:integration": "node --test ./test/game-catalog-preflight.integration.test.mjs",
+    "audit:game-catalog-staging": "node ./scripts/audit-game-catalog-staging.mjs",
+    "test:game-catalog-staging-audit": "node --test ./test/game-catalog-staging-audit.test.mjs"
   },
   "dependencies": {
     "drizzle-orm": "catalog:",

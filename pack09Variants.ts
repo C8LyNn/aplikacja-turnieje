@@ -1,0 +1,42 @@
+import type { EffectSettings } from "../../core/types";
+export interface Pack09Variant{id:string;name:string;description:string;settings:Partial<EffectSettings>;}
+const configs:Record<string,{keys:[string,string,string];names:[string,string,string,string]}>={
+  "fireworks": { keys: ["burstSize", "trailLength", "cadence"], names: ["Soft", "Balanced", "Strong", "Overdrive"] },
+  "lightning": { keys: ["branching", "boltLength", "flash"], names: ["Soft", "Balanced", "Strong", "Overdrive"] },
+  "lightning-storm": { keys: ["branching", "stormSpread", "flash"], names: ["Soft", "Balanced", "Strong", "Overdrive"] },
+  "gears": { keys: ["teeth", "spacing", "mechanicalChaos"], names: ["Soft", "Balanced", "Strong", "Overdrive"] },
+  "liquid-blobs": { keys: ["viscosity", "blobSize", "merge"], names: ["Soft", "Balanced", "Strong", "Overdrive"] },
+  "gravity-well": { keys: ["pull", "orbitSpread", "coreSize"], names: ["Soft", "Balanced", "Strong", "Overdrive"] },
+  "black-hole-accretion": { keys: ["discWidth", "pull", "glow"], names: ["Soft", "Balanced", "Strong", "Overdrive"] },
+  "electric-web": { keys: ["connections", "reach", "jitter"], names: ["Soft", "Balanced", "Strong", "Overdrive"] },
+  "electric-arcs": { keys: ["arcLength", "jitter", "pulse"], names: ["Soft", "Balanced", "Strong", "Overdrive"] },
+  "spiral-galaxy": { keys: ["armTightness", "coreGlow", "armSpread"], names: ["Soft", "Balanced", "Strong", "Overdrive"] },
+  "growing-vines": { keys: ["curl", "branches", "growth"], names: ["Soft", "Balanced", "Strong", "Overdrive"] },
+  "neon-tunnel": { keys: ["depth", "spacing", "pulse"], names: ["Soft", "Balanced", "Strong", "Overdrive"] },
+  "scanlines": { keys: ["lineGap", "flicker", "drift"], names: ["Soft", "Balanced", "Strong", "Overdrive"] },
+  "laser-grid": { keys: ["perspective", "spacing", "pulse"], names: ["Soft", "Balanced", "Strong", "Overdrive"] },
+  "vhs-static": { keys: ["noise", "tracking", "jitter"], names: ["Soft", "Balanced", "Strong", "Overdrive"] },
+  "hud-grid": { keys: ["gridSpacing", "scan", "markers"], names: ["Soft", "Balanced", "Strong", "Overdrive"] },
+  "city-lights": { keys: ["skyline", "parallax", "windows"], names: ["Soft", "Balanced", "Strong", "Overdrive"] },
+  "embers": { keys: ["lift", "trail", "flicker"], names: ["Soft", "Balanced", "Strong", "Overdrive"] },
+  "dust-motes": { keys: ["depth", "drift", "sparkle"], names: ["Soft", "Balanced", "Strong", "Overdrive"] },
+  "magnetic-field": { keys: ["curvature", "poleDistance", "flow"], names: ["Soft", "Balanced", "Strong", "Overdrive"] },
+  "volumetric-rays": { keys: ["spread", "softness", "sweep"], names: ["Soft", "Balanced", "Strong", "Overdrive"] },
+  "plasma-filaments": { keys: ["curl", "length", "heat"], names: ["Soft", "Balanced", "Strong", "Overdrive"] },
+  "ripple-field": { keys: ["radius", "frequency", "distortion"], names: ["Soft", "Balanced", "Strong", "Overdrive"] },
+  "bioluminescent-plankton": { keys: ["current", "flash", "swarm"], names: ["Soft", "Balanced", "Strong", "Overdrive"] },
+  "glass-shards": { keys: ["shardSize", "spin", "reflection"], names: ["Soft", "Balanced", "Strong", "Overdrive"] },
+  "aurora-curtains": { keys: ["curtainWidth", "wave", "depth"], names: ["Soft", "Balanced", "Strong", "Overdrive"] },
+  "data-streams": { keys: ["packetLength", "lanes", "dropout"], names: ["Soft", "Balanced", "Strong", "Overdrive"] },
+  "orbital-rings": { keys: ["tilt", "radius", "satellites"], names: ["Soft", "Balanced", "Strong", "Overdrive"] },
+  "prism-caustics": { keys: ["spread", "softness", "motion"], names: ["Soft", "Balanced", "Strong", "Overdrive"] },
+  "ember-ribbons": { keys: ["trail", "curl", "sparks"], names: ["Soft", "Balanced", "Strong", "Overdrive"] },
+  "fractal-branches": { keys: ["branching", "angle", "growth"], names: ["Soft", "Balanced", "Strong", "Overdrive"] },
+};
+function set(keys:[string,string,string],names:[string,string,string,string]):Pack09Variant[]{return[
+{id:"soft",name:names[0],description:"Subtelny wariant.",settings:{opacity:56,density:48,speed:68,intensity:72,brightness:112,custom:{[keys[0]]:72,[keys[1]]:78,[keys[2]]:70}}},
+{id:"balanced",name:names[1],description:"Zbalansowany wariant bazowy.",settings:{opacity:80,density:92,speed:100,intensity:105,brightness:128,custom:{[keys[0]]:100,[keys[1]]:100,[keys[2]]:100}}},
+{id:"strong",name:names[2],description:"Mocniejszy wariant.",settings:{opacity:92,density:175,speed:155,intensity:185,brightness:148,custom:{[keys[0]]:145,[keys[1]]:140,[keys[2]]:150}}},
+{id:"overdrive",name:names[3],description:"Ekstremalny wariant.",settings:{opacity:98,density:330,speed:300,intensity:340,brightness:170,custom:{[keys[0]]:185,[keys[1]]:180,[keys[2]]:190}}},
+];}
+export const pack09VariantCatalog:Record<string,Pack09Variant[]>=Object.fromEntries(Object.entries(configs).map(([id,c])=>[id,set(c.keys,c.names)]));

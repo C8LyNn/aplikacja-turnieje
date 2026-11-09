@@ -1,0 +1,330 @@
+# Bazul Aronis - Iteracja 4: raport design review
+
+Data: 2026-07-13
+Zakres: ocena projektu pod katem game designu, czytelnosci walki, petli gry, UX, balansu i priorytetow dalszych decyzji.
+
+## 1. Krotka diagnoza
+
+Projekt ma juz sensowny rdzen techniczny dla gry o walce flot 2D:
+
+- wiele statkow naraz,
+- klasy statkow o roznych rolach,
+- arkadowy lot z bezwladnoscia,
+- rozdzielenie pilota od wykonania ruchu,
+- klasyczne AI,
+- unikanie kolizji,
+- bron pociskowa i laser,
+- obrazenia od zderzen,
+- asteroidy, fragmentacje i pooling.
+
+Designowo projekt jest teraz w fazie "system sandbox", nie jeszcze w fazie "czytelna gra". To znaczy: systemy zaczynaja tworzyc interesujace sytuacje, ale gracz nie ma jeszcze wystarczajaco jasnej odpowiedzi na pytania:
+
+- kim jestem w bitwie,
+- jaki jest moj glowny cel z sekundy na sekunde,
+- co jest najwiekszym zagrozeniem,
+- dlaczego przegralem albo wygralem,
+- ktore decyzje byly dobre.
+
+Najwieksza wartosc projektu lezy obecnie w fizycznej, chaotycznej bitwie flot z unikaniem przeszkod. Najwieksze ryzyko to zrobienie z tego nieczytelnej symulacji, w ktorej wynik bitwy wyglada losowo.
+
+## 2. Obecna obietnica gry
+
+Najmocniejsza obietnica:
+
+> Dowodzisz albo pilotujesz statek w czytelnej bitwie dwoch flot, gdzie bezwladnosc, zderzenia, asteroidy i formacje AI tworza realne ryzyko pozycyjne.
+
+To jest lepszy kierunek niz "kolejna arena shooter 2D", bo projekt ma juz:
+
+- duza liczbe jednostek,
+- fizyke kolizji,
+- zagrozenia srodowiskowe,
+- rozroznienie klas statkow,
+- potencjal AI kontra AI i przyszlego treningu.
+
+Trzeba jednak pilnowac, zeby gracz nie byl tylko widzem chaosu. Nawet przy duzej bitwie powinien miec prosty model mentalny:
+
+- chron swojego Command Ship,
+- niszcz wrogi Command Ship,
+- nie wlec przez pole asteroid bez kontroli,
+- wykorzystuj ciezkie jednostki jako oslonę i zagrozenie,
+- unikaj frontalnych zderzen przy wysokiej predkosci.
+
+## 3. Najmocniejsze elementy designu
+
+### 3.1 Lot statku
+
+Najwazniejsza poprawa designowa jest odejscie od modelu postaciowego WASD. Statek ma kierunek kadluba, thrust, bezwladnosc i opozniona reakcje. To wspiera fantazje "pojazdu kosmicznego" zamiast "kursora z HP".
+
+Mocne strony:
+
+- ruch jest kompatybilny z walka na dystans,
+- vacuum model pozwala robic ciekawsze manewry,
+- ograniczenie strafowania/reverse thrust daje roznice wzgledem typowego twin-stick shootera.
+
+Ryzyko:
+
+- jesli kamera, feedback i UI nie pokazuja predkosci oraz kierunku wektora ruchu, gracz moze czuc, ze statek "plywa" bez powodu.
+
+Rekomendacja:
+
+- dodac subtelny, opcjonalny debug/gameplay velocity indicator dla gracza,
+- nie jako duzy HUD, tylko lekka linia/przesuniecie przy statku albo minimalistyczny wskaznik.
+
+### 3.2 Klasy statkow
+
+Projekt ma wyrazne role:
+
+- lekki mysliwiec: szybki, kruchy, manewrowy,
+- fregata/sredni statek: seria pociskow, masa i stabilnosc,
+- pancernik/command: wolny, gruby, laser, cel strategiczny.
+
+To jest dobry zestaw na pierwsza wersje, bo daje czytelne kontrasty bez budowania modulowych statkow.
+
+Ryzyko:
+
+- jesli wszystkie statki tylko leca na najblizszy cel i strzelaja, role beda widoczne glownie w statystykach, nie w zachowaniu.
+
+Rekomendacja:
+
+- lekki statek powinien czesciej flankowac i unikac,
+- fregata powinna utrzymywac dystans roboczy,
+- command/pancernik powinien byc centrum pola walki, a nie tylko wiekszym statkiem.
+
+### 3.3 Asteroidy i zderzenia
+
+Etap C dodal bardzo wazny element designu: teren, ktory nie jest dekoracja. Asteroidy:
+
+- zmieniaja trasy lotu,
+- tworza ryzyko kolizji,
+- moga zaslaniac tor ataku,
+- moga zostac rozbite,
+- generuja fragmenty i dalszy chaos kontrolowany przez limity.
+
+To jest teraz najciekawszy material na "tozsamosc" projektu.
+
+Ryzyko:
+
+- zbyt duzo fragmentow moze zmienic walke w wizualny szum,
+- zbyt mocne obrazenia od zderzen moga sprawic, ze walka bedzie konczyc sie przypadkowymi smierciami,
+- zbyt slabe zderzenia sprawia, ze caly system bedzie kosmetyczny.
+
+Rekomendacja:
+
+- traktowac asteroidy jako glowna os ryzyka pozycyjnego,
+- stroic je recznie w trzech presetach: brak, malo, duzo,
+- najpierw znalezc przyjemny preset "malo asteroid", dopiero potem stress testy.
+
+## 4. Najslabsze punkty designowe
+
+### 4.1 Brak wyraznego "czytam bitwe i podejmuje decyzje"
+
+Obecna gra moze byc funkcjonalna, ale nadal moze nie mowic graczowi, co ma robic w danej chwili.
+
+Brakuje:
+
+- priorytetu celu,
+- sygnalu zagrozenia command shipa,
+- informacji, skad przyszly obrazenia,
+- wyraznego rozroznienia "dostalem od broni" vs "zginalem przez zderzenie",
+- czytelnego wyniku starcia po zakonczeniu bitwy.
+
+Nie chodzi o duzy HUD. Chodzi o minimalne, ale konkretne informacje.
+
+Rekomendacja:
+
+- nad command shipem dac prosty, stale czytelny marker,
+- przy mocnym impact pokazac krotki, inny feedback niz przy trafieniu pociskiem,
+- w koncu meczu pokazac powod: command destroyed, collision death, asteroid impact itd.
+
+### 4.2 AI ma fundament, ale nie ma jeszcze osobowosci
+
+AI juz moze latac, strzelac i unikac. Designowo to nadal raczej "dziala" niz "ma styl".
+
+Potrzebne sa proste, widoczne zachowania:
+
+- lekki statek probuje okrazac,
+- ciezszy statek utrzymuje linie ognia,
+- command ship unika centrum chaosu,
+- jednostki nie wchodza bezmyslnie w pole asteroid,
+- AI czasem rezygnuje z ataku, gdy koszt kolizji jest za wysoki.
+
+Rekomendacja:
+
+- nie dodawac behavior tree,
+- rozbudowac obecny `HeuristicShipPilot` o kilka jawnych intencji taktycznych,
+- kazda intencja musi byc widoczna w zachowaniu, nie tylko w kodzie.
+
+### 4.3 Brak designowego "baseline scenario"
+
+Projekt ma sandbox, ale potrzebuje jednego wzorcowego scenariusza do oceny.
+
+Proponowany baseline:
+
+- gracz: 1 lekki statek,
+- Blue: command + 12 lekkich + 3 srednie,
+- Red: command + 14 lekkich + 3 srednie,
+- asteroidy: 3 large, 5 medium, 8 small,
+- czas docelowy bitwy: 90-180 sekund,
+- gracz ma miec realny wplyw, ale nie samotnie wygrywac bitwy.
+
+Bez takiego baseline'u kazde strojenie bedzie przypadkowe.
+
+## 5. Czytelnosc wizualna
+
+### Co jest dobre
+
+- proceduralne statki sa proste i rozroznialne ksztaltem,
+- kolory frakcji sa czytelne,
+- laser ma ostrzezenie i faze charge,
+- asteroidy sa oddzielone rozmiarem.
+
+### Co trzeba sprawdzic w Play Mode
+
+- czy small asteroids nie sa mylone z pociskami,
+- czy fragmentacja nie wyglada jak losowy wybuch punktow,
+- czy laser warning jest widoczny w tlumie,
+- czy command ship jest natychmiast rozpoznawalny,
+- czy gracz umie znalezc swoj statek po 5 sekundach chaosu.
+
+### Rekomendacje
+
+- command ship powinien miec najbardziej rozpoznawalna sylwetke i marker,
+- pociski powinny byc najbardziej "szybkie i ostre",
+- asteroidy powinny byc bardziej matowe i neutralne,
+- fragmenty powinny miec nizszy kontrast niz aktywne statki i pociski.
+
+## 6. Balans i pacing
+
+### Obecny kierunek
+
+Parametry sugeruja dobra hierarchie:
+
+- light: szybki i kruchy,
+- heavy: duzo serii, srednia mobilnosc,
+- command: laser, duzo HP, niska mobilnosc.
+
+### Ryzyka
+
+- duze liczby statkow moga zakryc jakosc pojedynczych decyzji,
+- laser moze byc albo zbyt losowy, albo zbyt dominujacy,
+- impact damage moze zabijac bez czytelnego ostrzezenia,
+- fragmenty moga karac gracza za niszczenie asteroid, zamiast tworzyc ciekawe ryzyko.
+
+### Rekomendowany sposob strojenia
+
+Kolejnosc strojenia:
+
+1. Jeden statek gracza kontra nieruchome cele i asteroidy.
+2. Mala bitwa bez asteroid.
+3. Mala bitwa z kilkoma asteroidami.
+4. AI kontra AI bez gracza.
+5. Pelna bitwa.
+
+Nie zaczynac strojenia od 100-200 statkow. Stress test ma potwierdzac wydajnosc, nie definiowac game feel.
+
+## 7. UX i interfejs
+
+Projekt nie potrzebuje jeszcze duzego UI. Potrzebuje malego, funkcjonalnego UI, ktory odpowiada na pytania gracza.
+
+Minimalny potrzebny UX:
+
+- stan gracza: HP, predkosc albo thrust state,
+- stan celu strategicznego: HP command shipow,
+- status meczu: running/victory/defeat,
+- restart,
+- preset bitwy,
+- wlacz/wylacz asteroidy,
+- liczba asteroid jako prosty preset, nie slider z 20 opcjami.
+
+Nie dodawac:
+
+- duzych paneli statystyk w trakcie walki,
+- stalego HP nad kazda asteroida,
+- wielu ekranow konfiguracji przed ustaleniem baseline scenario.
+
+## 8. Co powinno byc nastepne designowo
+
+Najbardziej wartosciowy nastepny etap to nie ML i nie duzy ekran konfiguracji. Najpierw trzeba zrobic gre czytelna dla czlowieka.
+
+Priorytet 1: manualny design playtest
+
+- 10 minut lotu tylko graczem,
+- 5 restartow malej bitwy,
+- 5 restartow bitwy z asteroidami,
+- zapisac: co bylo nieczytelne, co zabijalo bez ostrzezenia, gdzie gracz tracil orientacje.
+
+Priorytet 2: baseline scenario
+
+- jeden domyslny scenariusz,
+- jeden seed asteroid,
+- jedna docelowa kompozycja flot,
+- zapisane oczekiwane tempo bitwy.
+
+Priorytet 3: czytelnosc strategiczna
+
+- marker command shipow,
+- jasny komunikat zwyciestwa/porazki,
+- minimalny feedback przy smierci od kolizji.
+
+Priorytet 4: AI personality pass
+
+- light: flank/harass,
+- medium: line fighter,
+- command: cautious anchor,
+- avoidance nie moze calkowicie zabijac agresji.
+
+Priorytet 5: dopiero potem Stage D
+
+- `BattleScenarioConfig`,
+- male menu presetow,
+- wlaczanie asteroid,
+- podstawowa konfiguracja liczebnosci flot.
+
+## 9. Czego teraz nie robic
+
+Nie zaczynac jeszcze:
+
+- ML-Agents,
+- self-play,
+- pelnego ekranu konfiguracji flot,
+- kampanii,
+- ekonomii,
+- modulowych statkow,
+- rozbudowanego HUD,
+- duzych efektow czasteczkowych,
+- optymalizacji systemow, ktore nie sa problemem w profilerze.
+
+Powod: projekt ma juz wystarczajaco duzo systemow. Teraz potrzebuje ostrej decyzji, co gracz ma czuc i rozumiec w pierwszych 30 sekundach.
+
+## 10. Pytania designowe do decyzji
+
+1. Czy gracz jest pilotem jednego statku, czy bardziej dowodca floty?
+2. Czy command ship ma byc celem do zabicia, czy jednostka, ktora aktywnie wspiera flote?
+3. Czy asteroidy sa neutralnym terenem, czy zasobem taktycznym do niszczenia?
+4. Czy zderzenia maja byc glownym zagrozeniem, czy kara za zle pozycjonowanie?
+5. Czy bitwa ma byc bardziej czytelna i taktyczna, czy bardziej spektakularna i chaotyczna?
+
+Moja rekomendacja:
+
+> Na Iteracje 4 ustawic kierunek: "czytelna taktyczna bitwa flot w asteroidowym polu", nie "maksymalny chaos".
+
+## 11. Ocena projektowa
+
+Skala: 1-5.
+
+| Obszar | Ocena | Komentarz |
+| --- | ---: | --- |
+| Rdzen ruchu | 4 | Jest kierunek pojazdu, thrust i bezwladnosc. Wymaga visual feedbacku. |
+| Walka | 3 | Bron dziala, role sa obecne, ale decyzje taktyczne nie sa jeszcze bardzo czytelne. |
+| Asteroidy | 4 | Bardzo dobry material na tozsamosc gry. Wymaga strojenia i kontroli chaosu. |
+| AI | 3 | Fundament dobry, brakuje osobowosci i roznic zachowan. |
+| Czytelnosc | 2 | Najwiekszy obecny problem designowy. |
+| UX | 2 | Wystarcza do debugowania, nie jeszcze do komfortowej gry. |
+| Balans | 3 | Parametry maja sens, ale potrzebny baseline scenario i playtest. |
+| Potencjal dalszego rozwoju | 5 | Architektura dobrze wspiera kolejne etapy, jezeli nie przeskoczyc za szybko do ML. |
+
+## 12. Konkluzja
+
+Projekt jest w dobrym miejscu technicznie, ale designowo stoi przed waznym wyborem: albo stanie sie czytelna gra o ryzyku pozycyjnym w bitwie flot, albo rozrosnie sie w zbyt chaotyczny sandbox systemow.
+
+Najlepszy nastepny krok to nie dodawanie nowych funkcji, tylko ustalenie jednego mocnego baseline scenariusza i przeprowadzenie manualnego playtestu czytelnosci. Dopiero po tym warto robic Stage D i pozniejsze AI/ML.

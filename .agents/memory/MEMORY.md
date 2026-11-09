@@ -6,3 +6,17 @@
 - [Host Access Control](host-access-control.md) — upgraded to role-based system; see topic file for full auth architecture (HMAC organizer token, DB support sessions, backward-compat host code).
 - [Bracket seeding](bracket-seeding.md) — standard single-elim seeding uses recursive interleave so #1 vs #2 can only meet in the final.
 - [Deadlock theme architecture](deadlock-theme-arch.md) — localStorage hook (useDeadlockTheme) bridges gap until Task #15 presentationSettings API merges; CSS via [data-theme="deadlock"]; nav has Reguły gry + Wizualia tabs.
+- [Nested static HTML under Vite](nested-static-html.md) — a directory URL in Vite's public folder may fall back to the parent SPA instead of serving its nested index.
+- [Portfolio source](portfolio-source.md) — Portfolio is the user's original standalone HTML site; import it intact, never fabricate a replacement.
+- [Landing labels](landing-labels.md) — Keep full main tile names; do not restore removed module codes or alter SF while restyling ordinary tiles.
+- [SF restoration scope](sf-scope.md) — Restoring the landing SF tile must preserve /sf behavior; distinguish a spec reconstruction from verified localhost parity.
+- [GitHub integration priorities](github-integration-priorities.md) — Preserve accepted local presentation while bringing in GitHub-only functionality; use the common ancestor to classify changes.
+- [Production target verification](production-target-verification.md) — Empty catalog parity does not prove writable database identity; abort internal production imports without independent proof.
+- [GitHub content verification](github-content-verification.md) — Connector snapshots need independent tree/hash validation; a synthetic snapshot is not the upstream commit history.
+- [Isolated PostgreSQL tests](isolated-postgres-tests.md) — Use a tracked background process, explicit socket/port and known initialization role for disposable database tests.
+- [Development database isolation](development-database-isolation.md) — Fresh synthetic data and separate dev credentials; provisioning is not authorization to change or publish production.
+- [Browser testing secrets](browser-testing-secrets.md) — Remote browser notebooks may lack workspace env; run credentialed steps locally without relaying or exposing secrets.
+- [DOM assertion diagnostics](dom-assertion-diagnostics.md) — Assert primitives inside waitFor; inspecting a live React DOM node on failure can exhaust the Node test worker.
+- [Publish diff coverage](publish-diff-coverage.md) — An empty Publish diff is not release readiness; verify the intended database, object scope and initialization.
+- [Prelaunch data status](prelaunch-data-status.md) — On 2026-10-13 the user declared all tournaments test-only and no real accounts; reconfirm before destructive action.
+- [Organizer authorization contract](organizer-authorization-contract.md) — Preserve the existing 403 contract; optional system actors never justify dropping verified context at HTTP boundaries.

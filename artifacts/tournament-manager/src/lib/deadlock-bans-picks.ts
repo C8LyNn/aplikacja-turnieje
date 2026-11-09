@@ -7,6 +7,7 @@
  */
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { customFetch } from "@workspace/api-client-react";
+import { getVerifiedMatchTournamentOwner } from "./tournament-query-invalidation";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -92,11 +93,20 @@ export function useMatchGamePicks(
   matchId: number | null | undefined,
   options?: { enabled?: boolean },
 ) {
+  const client = useQueryClient();
+  const owner = matchId ? getVerifiedMatchTournamentOwner(client, matchId) : null;
+  const legacyKey = getMatchGamePicksQueryKey(matchId ?? 0);
+  const legacy = owner !== null ? client.getQueryCache().find({ queryKey: legacyKey, exact: true }) : undefined;
+  // Do not immediately serve an unowned legacy cache entry after reauthorization.
+  const key = owner === null ? getMatchGamePicksQueryKey(0)
+    : legacy && legacy.meta?.web005VerifiedTournamentId !== owner
+      ? [...legacyKey, "verified-owner", owner] as const : legacyKey;
   return useQuery<GamePickRecord[]>({
-    queryKey: getMatchGamePicksQueryKey(matchId ?? 0),
+    queryKey: key,
     queryFn: () =>
       customFetch<GamePickRecord[]>(`/api/matches/${matchId}/game-picks`),
-    enabled: (options?.enabled ?? true) && !!matchId,
+    meta: owner === null ? undefined : { web005VerifiedTournamentId: owner },
+    enabled: (options?.enabled ?? true) && !!matchId && owner !== null,
     staleTime: 10_000,
   });
 }

@@ -1,0 +1,69 @@
+Kontrola katalogu Steam — 2026-10-12
+
+Wynik: zapis produkcyjny wstrzymany; nie wykonano importu.
+Nie wysłano POST do produkcyjnego endpointu importu.
+Nie publikowano ani nie przebudowywano produkcyjnego serwisu.
+
+Cel: https://C8LyNn.replit.app
+Metadane wdrożenia: aktywny publiczny autoscale, poprawny build.
+Publiczny GET /api/steam-catalog/games?page=1&pageSize=1:
+HTTP 200, application/json, {"games":[]}.
+
+Odczyt SQL wykonano przez odczytowy dostęp platformy do produkcyjnej bazy.
+Liczby przed i po zakończeniu kontroli:
+Tabela                          Przed  Po
+public.steam_catalog_games           0   0
+public.steam_catalog_terms           0   0
+public.steam_catalog_game_terms      0   0
+
+Istnieje unikalny indeks steam_catalog_games_app_id_uidx na steam_app_id.
+Końcowy SELECT po steam_app_id IN (570,730,620,220,1091500):
+brak rekordów.
+
+Oficjalne Steam Store appdetails pobrano odczytowo przez HTTPS.
+AppID    Nazwa              success  type  Zgodny steam_appid
+570      Dota 2             true     game  tak
+730      Counter-Strike 2   true     game  tak
+620      Portal 2           true     game  tak
+220      Half-Life 2        true     game  tak
+1091500  Cyberpunk 2077     true     game  tak
+
+Pierwsza próba pobrania w środowisku narzędzia nie powiodła się.
+Alternatywne pobranie przez curl potwierdziło powyższe dane wszystkich pięciu gier.
+Żadna gra nie została odrzucona ze względu na dane Steam.
+
+inserted: 0
+existing: 0
+rejected/blocked: 5 — zatrzymane przez kontrolę bezpieczeństwa całej operacji,
+nie przez typ aplikacji.
+
+Przyczyna wstrzymania:
+Nie potwierdzono niezależnie tożsamości bazy osiągalnej z wewnętrznego
+połączenia umożliwiającego zapis z bazą używaną przez publiczny GET.
+Zgodność pustych tabel nie jest dowodem tożsamości.
+Odczytowa replika produkcyjna nie umożliwia wewnętrznego INSERT.
+Nie użyto sekretu połączenia do próbnego zapisu ani nie ujawniano jego wartości.
+
+Poprawka wyłącznie w workspace:
+- osobny administrator: Authorization: Bearer, STEAM_CATALOG_ADMIN_TOKEN;
+- brak tokenu lub token krótszy niż 32 znaki blokuje import (503);
+- błędne/nieobecne poświadczenie przy skonfigurowanym tokenie: 401;
+- walidacja dodatniego bezpiecznego ID w zakresie PostgreSQL integer;
+- ścisła kontrola domeny i protokołu adresu Steam Store;
+- wyłącznie success === true, data.type === "game", zgodny steam_appid
+  oraz niepusta nazwa;
+- ON CONFLICT DO NOTHING; brak aktualizacji istniejącego rekordu;
+- brak zapisu statusu lub przypisań klasyfikacji z żądania;
+- duplikat zwraca outcome=existing, nowy rekord outcome=inserted.
+
+Weryfikacja workspace:
+9 testów importu zakończyło się powodzeniem.
+TypeScript: src i testy — poprawne.
+Lokalny workflow API uruchomiony; wywołanie importu bez skonfigurowanego
+tokenu zwróciło 503 STEAM_IMPORT_DISABLED, bez kontaktu z bazą/importu.
+Lokalny healthz zwrócił database=unavailable; nie zmieniano konfiguracji
+połączenia, nie próbowano przełączać workspace na produkcyjną bazę.
+
+Poprawka nie jest wdrożona na produkcję.
+STEAM_CATALOG_ADMIN_TOKEN nie został dodany ani wygenerowany.
+Stan produkcyjnego seeda taxonomy: brak rekordów.

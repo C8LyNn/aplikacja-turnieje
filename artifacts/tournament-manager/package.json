@@ -4,11 +4,12 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite --config vite.config.ts --host 0.0.0.0",
-    "build": "vite build --config vite.config.ts",
+    "dev": "node scripts/stage-animated-effects.mjs && vite --config vite.config.ts --host 0.0.0.0",
+    "build": "node scripts/stage-animated-effects.mjs && vite build --config vite.config.ts",
     "serve": "vite preview --config vite.config.ts --host 0.0.0.0",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "node ./test/run-tests.mjs"
+    "test": "node ./test/run-tests.mjs",
+    "test:http-routing": "node --import tsx --test ./test/http-routing.test.ts"
   },
   "devDependencies": {
     "@hookform/resolvers": "^3.10.0",

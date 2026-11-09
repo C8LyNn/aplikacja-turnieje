@@ -67,6 +67,8 @@ let database: DbModule;
 let testConfig: TestDatabaseConfig;
 let schemaInitialized = false;
 let signOrganizerToken: typeof import("../src/auth").signVersionedOrganizerToken;
+let revertMatch: typeof import("../src/application/matches/revert-match").revertMatch;
+let RevertMatchError: typeof import("../src/application/matches/revert-match").RevertMatchError;
 
 // ─── Bootstrap ────────────────────────────────────────────────────────────────
 
@@ -83,6 +85,7 @@ before(async () => {
   schemaInitialized = true;
   const auth = await import("../src/auth");
   signOrganizerToken = auth.signVersionedOrganizerToken;
+  ({ revertMatch, RevertMatchError } = await import("../src/application/matches/revert-match"));
   app = (await import("../src/app")).default;
 });
 
@@ -310,6 +313,29 @@ async function approveProposal(fix: RouteFixture): Promise<void> {
 
 describe("Phase 3 — Basket Route Execution", () => {
 
+  test("concurrent approval and concurrent routing persist one output and one arrival per qualifier", async () => {
+    const fix = await buildRouteFixture({ qualifierCount: 2 });
+    const proposalPath = `/api/tournaments/${fix.tournamentId}/stages/${fix.sourceStageId}/basket-qualification-proposal`;
+    await request(app).post(proposalPath).set(fix.organizerHeaders).expect(200);
+    const approvals = await Promise.all([1, 2].map(() =>
+      request(app).post(`${proposalPath}/approve`).set(fix.organizerHeaders).expect(200)));
+    assert.equal(approvals[0].body.revision, approvals[1].body.revision);
+    const path = `/api/tournaments/${fix.tournamentId}/stages/${fix.sourceStageId}/baskets/${fix.outputBasketId}/route/execute`;
+    const routes = await Promise.all([1, 2].map(() => request(app).post(path).set(fix.organizerHeaders).expect(200)));
+    assert.equal(routes[0].body.executionId, routes[1].body.executionId);
+    const executions = await database.pool.query(
+      "SELECT count(*)::int AS count FROM stage_basket_route_executions WHERE route_id=$1", [fix.routeId]);
+    assert.equal(executions.rows[0].count, 1);
+    const entries = await database.pool.query<{ player_id: number }>(
+      "SELECT player_id FROM stage_basket_route_entries WHERE target_stage_id=$1 ORDER BY player_id", [fix.targetStageId]);
+    assert.deepEqual(entries.rows.map(row => row.player_id), [fix.playerIds[0], fix.playerIds[2]].sort((a, b) => a - b));
+    const output = await request(app).get(`/api/tournaments/${fix.tournamentId}/stages/${fix.sourceStageId}/basket-qualification-output`)
+      .set(fix.organizerHeaders).expect(200);
+    assert.equal(output.body.entries.length, 2);
+    const retry = await request(app).post(path).set(fix.organizerHeaders).expect(200);
+    assert.equal(retry.body.executionId, routes[0].body.executionId);
+  });
+
   // §21.1 Happy path
   test("executeBasketRoute — happy path returns execution with entries", async () => {
     const fix = await buildRouteFixture({ qualifierCount: 2 });
@@ -357,6 +383,56 @@ describe("Phase 3 — Basket Route Execution", () => {
     assert.equal(res2.body.routedPlayerCount, res1.body.routedPlayerCount);
   });
 
+  test("revertMatch — rejects a source result after basket routing and preserves downstream state", async () => {
+    const fix = await buildRouteFixture({ qualifierCount: 2 });
+    await approveProposal(fix);
+
+    const route = await request(app)
+      .post(`/api/tournaments/${fix.tournamentId}/stages/${fix.sourceStageId}/baskets/${fix.outputBasketId}/route/execute`)
+      .set(fix.organizerHeaders);
+    assert.equal(route.status, 200, JSON.stringify(route.body));
+
+    const [sourceMatch] = await database.db
+      .select({ id: database.matchesTable.id })
+      .from(database.matchesTable)
+      .where(eq(database.matchesTable.stageId, fix.sourceStageId));
+    assert.ok(sourceMatch);
+    const beforeMatch = await database.pool.query(
+      "SELECT status, result_type, winner_id, score1, score2 FROM matches WHERE id = $1",
+      [sourceMatch.id],
+    );
+    const beforeRouteEntries = await database.pool.query(
+      "SELECT count(*)::int AS count FROM stage_basket_route_entries WHERE target_stage_id = $1",
+      [fix.targetStageId],
+    );
+    const beforeExecution = await database.pool.query(
+      "SELECT count(*)::int AS count FROM stage_basket_route_executions WHERE route_id = $1",
+      [fix.routeId],
+    );
+
+    await assert.rejects(
+      () => revertMatch({ matchId: sourceMatch.id }),
+      (error: unknown) => error instanceof RevertMatchError
+        && error.code === "STAGE_QUALIFICATION_ALREADY_COMMITTED",
+    );
+
+    const afterMatch = await database.pool.query(
+      "SELECT status, result_type, winner_id, score1, score2 FROM matches WHERE id = $1",
+      [sourceMatch.id],
+    );
+    const afterRouteEntries = await database.pool.query(
+      "SELECT count(*)::int AS count FROM stage_basket_route_entries WHERE target_stage_id = $1",
+      [fix.targetStageId],
+    );
+    const afterExecution = await database.pool.query(
+      "SELECT count(*)::int AS count FROM stage_basket_route_executions WHERE route_id = $1",
+      [fix.routeId],
+    );
+    assert.deepEqual(afterMatch.rows, beforeMatch.rows);
+    assert.deepEqual(afterRouteEntries.rows, beforeRouteEntries.rows);
+    assert.deepEqual(afterExecution.rows, beforeExecution.rows);
+  });
+
   // §21.3 ROUTE_NOT_FOUND
   test("executeBasketRoute — ROUTE_NOT_FOUND when no route configured for basket", async () => {
     const fix = await buildRouteFixture({ qualifierCount: 2, skipRoute: true });
@@ -366,6 +442,20 @@ describe("Phase 3 — Basket Route Execution", () => {
       .post(`/api/tournaments/${fix.tournamentId}/stages/${fix.sourceStageId}/baskets/${fix.outputBasketId}/route/execute`)
       .set(fix.organizerHeaders);
     assert.equal(res.status, 404);
+    assert.equal(res.body.code, "ROUTE_NOT_FOUND");
+  });
+
+  test("executeBasketRoute — rejects a route requested through the wrong source stage", async () => {
+    const fix = await buildRouteFixture({ qualifierCount: 2 });
+    await approveProposal(fix);
+
+    // The basket id belongs to the source stage, but the URL names the target
+    // stage. The configured route must not be executable through that
+    // mismatched stage context.
+    const res = await request(app)
+      .post(`/api/tournaments/${fix.tournamentId}/stages/${fix.targetStageId}/baskets/${fix.outputBasketId}/route/execute`)
+      .set(fix.organizerHeaders);
+    assert.equal(res.status, 404, JSON.stringify(res.body));
     assert.equal(res.body.code, "ROUTE_NOT_FOUND");
   });
 
@@ -393,6 +483,31 @@ describe("Phase 3 — Basket Route Execution", () => {
       .set(fix.organizerHeaders);
     assert.equal(res.status, 409);
     assert.equal(res.body.code, "STAGE_BASKET_ROUTE_SOURCE_NOT_APPROVED");
+  });
+
+  test("executeBasketRoute — basket-authoritative source must be completed", async () => {
+    const fix = await buildRouteFixture({ qualifierCount: 2 });
+    await database.db
+      .update(database.tournamentsTable)
+      .set({ basketFlowAuthorityVersion: 1 })
+      .where(eq(database.tournamentsTable.id, fix.tournamentId));
+    await database.db
+      .update(database.tournamentStagesTable)
+      .set({ status: "completed", completedAt: new Date() })
+      .where(eq(database.tournamentStagesTable.id, fix.sourceStageId));
+    await approveProposal(fix);
+
+    // Simulate a stale/legacy approved output becoming routable while the
+    // source stage is live again. The route must reject that state.
+    await database.db
+      .update(database.tournamentStagesTable)
+      .set({ status: "active", completedAt: null })
+      .where(eq(database.tournamentStagesTable.id, fix.sourceStageId));
+    const res = await request(app)
+      .post(`/api/tournaments/${fix.tournamentId}/stages/${fix.sourceStageId}/baskets/${fix.outputBasketId}/route/execute`)
+      .set(fix.organizerHeaders);
+    assert.equal(res.status, 409, JSON.stringify(res.body));
+    assert.equal(res.body.code, "STAGE_BASKET_ROUTE_SOURCE_STAGE_NOT_COMPLETED");
   });
 
   // §21.6 OUTPUT_INCOMPLETE (qualifierCount mismatch)

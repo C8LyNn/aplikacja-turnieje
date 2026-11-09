@@ -1,0 +1,93 @@
+# StreamElements — uruchamianie Animated Effects przez zdarzenia
+
+## Konfiguracja
+
+1. Otwórz `/stream/animated-effects/index.html` w aplikacji i przygotuj scenę z efektami.
+2. Kliknij **Eksport StreamElements**.
+3. W sekcji **Uruchamianie animacji** wybierz zdarzenie, a w trybie komendy wpisz np. `!hype`.
+4. Określ **czas wyświetlania** (0,5–60 s) i **przerwę między aktywacjami** (0–300 s).
+5. Skopiuj HTML, CSS i JavaScript do odpowiadających zakładek **StreamElements → Overlay → Custom Widget**.
+6. Dodaj adres overlay StreamElements do OBS jako Browser Source. W natywnym widżecie nie jest potrzebny iframe, token API ani połączenie z witryną edytora.
+7. Przetestuj komendę lub zdarzenie w rzeczywistym podglądzie StreamElements/OBS.
+
+## Biblioteka zestawów i przenoszenie projektu
+
+W oknie **Eksport StreamElements** pojawiła się sekcja **Zestawy animacji i zdarzeń**.
+
+- **Zapisz aktualny** zachowuje kompletną scenę (kolejność, ustawienia, nazwy, identyfikatory warstw) oraz jeden wyzwalacz lub pełną listę przypisanych reguł.
+- **Wczytaj** przywraca scenę i routing dopiero po potwierdzeniu użytkownika. Poprzedni stan sceny trafia do historii **Undo/Redo**.
+- **Pobierz JSON** zapisuje przenośny plik `.ae-profile.json`.
+- **Importuj JSON** sprawdza format i wersję profilu; po imporcie profil pojawia się w bibliotece, **ale nie zmienia bieżącej sceny** aż do wybrania opcji Wczytaj.
+- **Usuń** kasuje wyłącznie wybrany lokalny zapis i wymaga potwierdzenia.
+- Dwie konfiguracje o tej samej nazwie mogą współistnieć: nowa otrzyma dopisek `(2)`, `(3)` itd.
+
+Biblioteka korzysta z **localStorage danej przeglądarki** (maks. 16 profili); nie synchronizuje się automatycznie między urządzeniami ani kontami. Do przenoszenia między komputerami użyj eksportu/importu JSON. Import pojedynczego pliku jest ograniczony do **1 MB**, a dane są walidowane przed użyciem: obsługiwane identyfikatory efektów, skończone parametry numeryczne, schemat sceny, numery wersji i przypisania reguł. Nie wgrywaj nieznanych plików jako kodu JavaScript.
+
+Profil obejmuje samą scenę edytora i konfigurację StreamElements. **Nie zmienia już wklejonego kodu w StreamElements** — po zmianie zestawu trzeba ponownie skopiować wygenerowane zakładki HTML, CSS i JavaScript do widgetu.
+
+## Symulator zdarzeń w edytorze
+
+W **Eksport StreamElements → Symulator StreamElements** możesz zobaczyć, co uruchomi kod widgetu jeszcze przed wklejeniem go do OBS:
+
+1. Skonfiguruj pojedynczy wyzwalacz lub włącz wiele reguł.
+2. Wybierz z listy **Czat: !fire**, **Raid**, **Subskrypcja** albo inne dostępne zdarzenie.
+3. Kliknij **Symuluj zdarzenie**. Podgląd wysyła do widgetu komunikat `onEventReceived` o takiej samej strukturze jak prawdziwy event StreamElements.
+4. Kliknij ten sam przycisk ponownie, żeby przetestować cooldown, lub wybierz inne zdarzenie, żeby sprawdzić zastępowanie scen.
+5. Użyj **Resetuj podgląd**, aby wywołać `onWidgetLoad` i wyzerować cooldowny. W trybie **Zawsze aktywna** scena uruchamia się automatycznie po załadowaniu podglądu.
+
+Podgląd jest tworzony z **dokładnie tego HTML, CSS i JavaScript, który wygenerował aktualny eksport**, a nie z zastępczego silnika animacji. Uruchamia się w ramce iframe z `sandbox="allow-scripts"`, **bez `allow-same-origin`**, i nie ma bezpośredniego dostępu do edytora ani do jego stanu. Symulowane zdarzenia i identyfikatory wiadomości są testowe — nie wykonują rzeczywistych akcji na kanale.
+
+Zmiana warstw, czasów, komend albo reguł przebudowuje podgląd na podstawie aktualnego eksportu. Zamknięcie okna eksportu usuwa ramkę i zatrzymuje uruchomioną animację. Ramka przedstawia widget w proporcjach **16:9**. Nie zastępuje to ręcznych testów w OBS/StreamElements (np. sprawdzenia wydajności GPU, Browser Source, uprawnień czatu i rzeczywistych payloadów subskrypcji).
+
+## Wiele reguł w jednym widgetcie
+
+W oknie eksportu włącz **Wiele zdarzeń w jednym widżecie**. Kliknij **Dodaj regułę** (maksymalnie 8), wybierz rodzaj zdarzenia i zaznacz efekty z aktualnie włączonych warstw. Przykład:
+
+| Reguła | Wyzwalacz | Wybrane warstwy |
+| --- | --- | --- |
+| 1 | Komenda `!fire` | Ogień / dym |
+| 2 | Komenda `!ice` | Lód / śnieg |
+| 3 | Raid | Efekt kosmiczny / konfetti |
+
+Każda reguła ma własny cooldown i czas wyświetlania. **Zdarzenia są sprawdzane w kolejności reguł; pierwsza kwalifikująca się reguła ma pierwszeństwo.** Jeśli kilka reguł pasuje do tego samego zdarzenia, a pierwsza ma cooldown, może zostać uruchomiona następna. W razie nowej aktywacji **poprzednia scena jest zastępowana** (nie jest kolejkowana ani nakładana).
+
+Tryb wielu reguł działa również przy pustym zestawie reguł (widget pozostaje niewidoczny). Reguły bez zaznaczonych, włączonych warstw są pomijane. W tym trybie wyzwalacze są zdarzeniowe, a nie „zawsze aktywne”. Aby uzyskać ciągły efekt, wyłącz tryb wielu reguł i wybierz **Zawsze aktywna**.
+
+## Obsługiwane wyzwalacze
+
+| Tryb | Listener StreamElements | Zachowanie |
+| --- | --- | --- |
+| Zawsze aktywna | `onWidgetLoad` | Dotychczasowe, ciągłe działanie |
+| Komenda czatu | `message` | Pełny pierwszy token wiadomości odpowiada komendzie (np. `!hype` albo `!hype test`) |
+| Nowy obserwujący | `follower-latest` | Nowy follower |
+| Subskrypcja | `subscriber-latest` | Zdarzenie subskrypcji |
+| Donacja | `tip-latest` | Zdarzenie donacji |
+| Cheer / Bits | `cheer-latest` | Zdarzenie cheer |
+| Raid | `raid-latest` | Zdarzenie raid |
+
+W trybach zdarzeń po załadowaniu widget jest **przezroczysty i pusty**. Po poprawnym zdarzeniu wszystkie włączone warstwy efektów startują od nowa. Po wybranym czasie są usuwane z DOM; pętle symulacyjne zależne od obecności warstwy zatrzymują się po jej odłączeniu.
+
+**Cooldown** blokuje dodatkowe uruchomienia przez określoną liczbę milisekund. Po jego upływie nowa aktywacja restartuje scenę i jej licznik. W trybie czatu widget pamięta ostatnie 128 niepustych `msgId`, aby duplikat zdarzenia nie uruchamiał animacji drugi raz.
+
+Komendy są normalizowane do małych liter i muszą spełniać wzór `![a-z0-9_]{1,24}`. Niepoprawna komenda przyjmuje bezpieczną wartość `!hype`. **Każdy widz może wywołać komendę**; ta wersja nie weryfikuje uprawnień moderatora/subskrybenta ani nie filtruje stawki donacji. Nie wpisuj do wywołania tokenów ani sekretów.
+
+## Kompatybilność
+
+- Domyślny tryb `always` zachowuje się jak poprzedni eksport.
+- Ustawienia triggerów i wieloregularnego routingu są przywracane razem ze sceną w zapisanym **profilu**, ale sam kod StreamElements po publikacji pozostaje niezależny od późniejszych zmian profilu.
+- Eksport tworzy samodzielny widget z HTML, CSS i JS, bez zależności od dostępności aplikacji po wklejeniu kodu.
+- Camera + Chat Overlay i Animated Effects są nadal **dwoma niezależnymi widgetami**; za to pojedynczy widget Animated Effects może obsługiwać wiele zdarzeń i zestawów warstw.
+- Wielokrotna aktywacja ciężkich efektów może obciążać OBS Browser Source. Najpierw sprawdzaj scenę w podglądzie, szczególnie na 1080p/60 FPS.
+
+## Weryfikacja
+
+Testy regresyjne routingu, edytora i profili znajdują się w `artifacts/tournament-manager/src/features/streaming/obs-lab/animated-effects-trigger.test.ts` oraz `stream-elements-profiles.test.ts` w tym samym katalogu. Są uruchamiane przez istniejący test runner frontendowy:
+
+```bash
+pnpm --filter @workspace/tournament-manager test
+pnpm --filter @workspace/tournament-manager build
+```
+
+Dodatkowo skontroluj w StreamElements prawdziwe `message`, `follower-latest`, `subscriber-latest`, `tip-latest`, `cheer-latest` i `raid-latest`. W szczególności zweryfikuj brak animacji bez zdarzenia, obsługę cooldownu, usuwanie po czasie i przezroczyste tło w OBS.
+
+Zdarzenia bazują na [oficjalnej dokumentacji StreamElements](https://docs.streamelements.com/overlays/events).

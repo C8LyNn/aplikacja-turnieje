@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="theme-color" content="#090b0f" />
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml" />
+  <link rel="stylesheet" href="src/styles.css" />
+  <title>Wybrane decyzje projektowe — Jakub Powierski</title>
+  <meta name="description" content="Wybrane decyzje projektowe z projektów Warehouse Coop, Cuckoo Keeper, Tournament Manager, Chrono Runes, Core Clash i Bazul Aronis." />
+</head>
+<body class="case-body">
+  <a class="skip-link" href="#decisions-content">Przejdź do treści</a>
+  <header class="topbar case-topbar"><a class="brand" href="index.html">← PORTFOLIO</a><nav><a class="nav-site-home" data-host-home-link href="../">Strona główna</a><a href="projects/index.html">Case studies</a><a href="about.html">O mnie</a><a href="timeline.html">Rozwój</a><a href="evidence.html">Materiały</a><a class="nav-cv" href="resume.html">CV</a></nav></header>
+  <main id="decisions-content">
+    <section class="case-hero shell decisions-hero">
+      <p class="eyebrow">DESIGN DECISIONS</p>
+      <h1>Nie tylko co powstało, ale dlaczego.</h1>
+      <p class="case-lead">Ta strona zbiera kilka decyzji, które najlepiej pokazują sposób myślenia o systemach: problem, wybrany model, kompromis i ślad w projekcie.</p>
+    </section>
+
+    <section class="case-section shell decision-ledger">
+      <article class="decision-story">
+        <div class="decision-index">01</div><div class="decision-project">Warehouse Coop · 2025</div>
+        <h2>Logistyka jako sieć zależności, nie zbiór osobnych minigier.</h2>
+        <div class="decision-four"><div><span>Problem</span><p>Rozładunek, sortowanie, składowanie i wysyłka mogły działać osobno, ale nie tworzyłyby wtedy presji kooperacyjnej.</p></div><div><span>Decyzja</span><p>Paczki, tiry, transport, układ magazynu i progresję projektować jako jedną pętlę, w której wynik jednego etapu zmienia obciążenie następnego.</p></div><div><span>Trade-off</span><p>Więcej zależności oznacza większą podatność na zatory i trudniejszy balans, ale daje przestrzeń do optymalizacji zespołowej.</p></div><div><span>Evidence</span><p>GDD, 44 plansze Miro, UI wireframes, blocking i materiały balansu.</p></div></div>
+        <div class="project-links"><a href="projects/warehouse-coop.html">Case study →</a><a href="docs/evidence/warehouse-coop/warehouse-coop-gdd.pdf" target="_blank" rel="noreferrer">GDD ↗</a></div>
+      </article>
+
+      <article class="decision-story">
+        <div class="decision-index">02</div><div class="decision-project">Cuckoo Keeper · 2025/26</div>
+        <h2>Presja czasu jako zasób movementu, nie tylko licznik na ekranie.</h2>
+        <div class="decision-four"><div><span>Problem</span><p>Steampunkowy zegar był mocnym motywem świata, ale sam motyw nie wymuszał decyzji podczas eksploracji.</p></div><div><span>Decyzja</span><p>Naciąg / energia postaci jest zużywany przez ruch i dash, a postoje, przedmioty i stacje wpływają na ekonomię poruszania się.</p></div><div><span>Trade-off</span><p>Zasób może zwiększać napięcie, ale zbyt agresywny drain zamieni eksplorację w karę. Potrzebne były bezpieczne momenty, checkpointy i testy flow.</p></div><div><span>Evidence</span><p>Lista mechanik, raport 7 testerów, layouty oraz iteracja poziomu w Unity.</p></div></div>
+        <div class="project-links"><a href="projects/cuckoo-keeper.html">Case study →</a><a href="docs/evidence/cuckoo-keeper/cuckoo-keeper-test-deployment-report.pdf" target="_blank" rel="noreferrer">Raport testów ↗</a></div>
+      </article>
+
+      <article class="decision-story">
+        <div class="decision-index">03</div><div class="decision-project">Tournament Manager · 2026</div>
+        <h2>Jedno źródło reguł turnieju, wiele powierzchni interfejsu.</h2>
+        <div class="decision-four"><div><span>Problem</span><p>Organizer, host, publiczność i projektor potrzebują innych ekranów, a round-robin, Swiss i drabinki mają różne cykle.</p></div><div><span>Decyzja</span><p>Reguły, readiness, ranking, kwalifikacje i stan meczu pozostają wspólne. Warstwa prezentacji może być role-aware bez kopiowania silnika.</p></div><div><span>Trade-off</span><p>Współdzielenie logiki zwiększa wymagania wobec kontraktów danych i routingu, ale ogranicza rozjazdy między widokami.</p></div><div><span>Evidence</span><p>Repo audit, routing, stage lifecycle i osobne surfaces organizatora, hosta, audience i projectora.</p></div></div>
+        <div class="project-links"><a href="projects/tournament-manager.html">Case study →</a><a href="docs/evidence/tournament-manager-repo-audit.txt" target="_blank" rel="noreferrer">Repo audit ↗</a></div>
+      </article>
+
+      <article class="decision-story">
+        <div class="decision-index">04</div><div class="decision-project">Chrono Runes · 2025/26</div>
+        <h2>Metaprogresja ma poszerzać opcje, nie stale podnosić statystyki.</h2>
+        <div class="decision-four"><div><span>Problem</span><p>Stałe bonusy +HP / +Damage mogą z czasem zastępować decyzje w buildzie prostym grindem mocy.</p></div><div><span>Decyzja</span><p>Odblokowania mają głównie zwiększać liczbę klas, kart, sprzętu, eventów i możliwości budowania synergii.</p></div><div><span>Trade-off</span><p>Horyzontalny rozwój wymaga, by nowe opcje były naprawdę odmienne, a nie tylko matematycznie silniejsze.</p></div><div><span>Evidence</span><p>Biblia projektu, system klas/archetypów oraz dokument hexów, eventów i metaprogresji.</p></div></div>
+        <div class="project-links"><a href="projects/chrono-runes.html">Case study →</a><a href="docs/evidence/chrono-runes/chrono-runes-bible.pdf" target="_blank" rel="noreferrer">Biblia projektu ↗</a></div>
+      </article>
+
+      <article class="decision-story">
+        <div class="decision-index">05</div><div class="decision-project">Core Clash · 2026</div>
+        <h2>Trigger opisuje moment, condition opisuje sytuację.</h2>
+        <div class="decision-four"><div><span>Problem</span><p>Ukryte warunki i efekty działające inaczej zależnie od kontekstu utrudniały przewidywanie zachowania kulek.</p></div><div><span>Decyzja</span><p>Zdarzenie i warunek rozdzielić semantycznie, aby ten sam keyword znaczył to samo w całym systemie.</p></div><div><span>Trade-off</span><p>Kontrakt jest bardziej rygorystyczny i wymaga migracji istniejących kart, ale zmniejsza liczbę wyjątków.</p></div><div><span>Evidence</span><p>Archiwalne prototypy HTML, audyty keywordów i kierunek migracji do Unity / WebGL.</p></div></div>
+        <div class="project-links"><a href="projects/core-clash.html">Case study →</a><a href="docs/evidence/core-clash-v122-archive.html" target="_blank" rel="noreferrer">V122 ↗</a></div>
+      </article>
+
+      <article class="decision-story">
+        <div class="decision-index">06</div><div class="decision-project">Bazul Aronis · 2026</div>
+        <h2>Chaos bitwy flotowej potrzebuje czytelnych punktów decyzyjnych.</h2>
+        <div class="decision-four"><div><span>Problem</span><p>Wiele statków, bezwładność, AI, kolizje, lasery i asteroidy mogą tworzyć interesującą symulację, ale wynik może wyglądać losowo.</p></div><div><span>Decyzja</span><p>Priorytetem design review stała się czytelność: rola gracza, bieżący cel, największe zagrożenie oraz feedback, dlaczego akcja zakończyła się sukcesem lub porażką.</p></div><div><span>Trade-off</span><p>Większa czytelność może wymagać ograniczenia części emergentnego chaosu, ale wzmacnia agency.</p></div><div><span>Evidence</span><p>Design review Iteracji 4: gameplay, UX, balans i priorytety dalszych decyzji.</p></div></div>
+        <div class="project-links"><a href="projects/bazul-aronis.html">Case study →</a><a href="docs/evidence/bazul-aronis-design-review.txt" target="_blank" rel="noreferrer">Design review ↗</a></div>
+      </article>
+    </section>
+  </main>
+  <footer class="footer shell"><span>Jakub Powierski · Game Designer / Systems Designer</span><a href="index.html">← Strona główna portfolio</a></footer>
+</body>
+</html>

@@ -1,0 +1,13 @@
+{
+  "version": "V9.1",
+  "createdAt": "2026-10-05T22:28:16.344Z",
+  "repoRoot": "C:\\Users\\kubap\\Documents\\GitHub\\aplikacja-turnieje-live",
+  "backupDir": "C:\\Users\\kubap\\Documents\\GitHub\\aplikacja-turnieje-live\\.portfolio-integration-backup-2026-10-05T22-28-16-187Z",
+  "layoutStrategy": "nav-signals:href=\"/help\",Pomoc,HelpCircle,Dashboard,Nowy turniej,RoleSelectionLink",
+  "landingStrategy": "root-div",
+  "modified": [
+    "C:\\Users\\kubap\\Documents\\GitHub\\aplikacja-turnieje-live\\artifacts\\tournament-manager\\src\\components\\layout.tsx",
+    "C:\\Users\\kubap\\Documents\\GitHub\\aplikacja-turnieje-live\\artifacts\\tournament-manager\\src\\pages\\landing.tsx",
+    "C:\\Users\\kubap\\Documents\\GitHub\\aplikacja-turnieje-live\\artifacts\\tournament-manager\\public\\portfolio"
+  ]
+}
