@@ -1732,7 +1732,7 @@ describe("security and tournament integrity regressions", () => {
     assert.deepEqual(state.rows[0], { players: 2, matches: 1, status: "active" });
   });
 
-  test("restores a standalone V3 backup with new scoped credentials and no source dependency", async () => {
+  test("[before V3 import] restores a standalone V3 backup with new scoped credentials and no source dependency", async (swarm006V3TestContext) => {
     const source = await createTournament();
     await addPlayer(source.id, "Backup one", 1);
     await addPlayer(source.id, "Backup two", 2);
@@ -1741,6 +1741,7 @@ describe("security and tournament integrity regressions", () => {
       .set(organizerHeaders(source.id))
       .expect(200);
     await database.pool.query("DELETE FROM tournaments WHERE id = $1", [source.id]);
+    await swarm006V3TestContext.test("V3 NOT_RUN: restores a standalone V3 backup with new scoped credentials and no source dependency", { skip: "Backup V3 import disabled (#152)" }, async () => {
     const restored = await request(app)
       .post("/api/tournaments/import")
       .send({
@@ -1758,6 +1759,8 @@ describe("security and tournament integrity regressions", () => {
       .set({ "x-organizer-token": restored.body.organizerToken })
       .send({ name: "Managed after restore", seed: 3 })
       .expect(201);
+
+    });
   });
 
   test("restores standalone V2 and private-online backups with newly supplied credentials", async () => {
@@ -1898,7 +1901,7 @@ describe("security and tournament integrity regressions", () => {
     assert.equal(afterFailure.rows[0].count, before.rows[0].count);
   });
 
-  test("exports no credentials and scopes every restored organizer token", async () => {
+  test("[before V3 import] exports no credentials and scopes every restored organizer token", async (swarm006V3TestContext) => {
     const source = await createTournament({
       visibility: "private_online",
       viewerPassword: VIEWER_PASSWORD,
@@ -1921,6 +1924,7 @@ describe("security and tournament integrity regressions", () => {
     ]) {
       assert.equal(serialized.includes(forbidden), false, forbidden);
     }
+    await swarm006V3TestContext.test("V3 NOT_RUN: exports no credentials and scopes every restored organizer token", { skip: "Backup V3 import disabled (#152)" }, async () => {
     const restoredA = await request(app)
       .post("/api/tournaments/import")
       .send({
@@ -1947,14 +1951,17 @@ describe("security and tournament integrity regressions", () => {
       .set({ "x-organizer-token": restoredA.body.organizerToken as string })
       .send({ name: "Own-scope accepted", seed: 1 })
       .expect(201);
+
+    });
   });
 
-  test("requires new restore credentials and never accepts a bare legacy client body", async () => {
+  test("[before V3 import] requires new restore credentials and never accepts a bare legacy client body", async (swarm006V3TestContext) => {
     const source = await createTournament();
     const exported = await request(app)
       .get(`/api/tournaments/${source.id}/export`)
       .set(organizerHeaders(source.id))
       .expect(200);
+    await swarm006V3TestContext.test("V3 NOT_RUN: requires new restore credentials and never accepts a bare legacy client body", { skip: "Backup V3 import disabled (#152)" }, async () => {
     const bare = await request(app).post("/api/tournaments/import").send(exported.body);
     assert.equal(bare.status, 422);
     assert.equal(bare.body.code, "ORGANIZER_PASSWORD_REQUIRED");
@@ -1966,6 +1973,8 @@ describe("security and tournament integrity regressions", () => {
       .send({ backup: exported.body, organizerPassword: "new-organizer-password" });
     assert.equal(missingViewer.status, 422);
     assert.equal(missingViewer.body.code, "VIEWER_PASSWORD_REQUIRED");
+
+    });
   });
 
   test("returns stable JSON errors for malformed, empty, invalid and domain-error requests", async () => {

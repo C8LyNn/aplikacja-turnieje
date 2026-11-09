@@ -394,7 +394,7 @@ describe("Swiss generation policy", () => {
 });
 
 describe("backup v3 export and import", () => {
-  test("round-trips a complete tournament and preserves standings", async () => {
+  test("[before V3 import] round-trips a complete tournament and preserves standings", async (swarm006V3TestContext) => {
     const fixture = await createStartedTournament("round_robin", 3);
     const roundRows = await rows<{ round: number }>(
       "SELECT DISTINCT round FROM matches WHERE tournament_id = $1 ORDER BY round",
@@ -408,6 +408,7 @@ describe("backup v3 export and import", () => {
       .expect(200);
     assert.equal(exported.body.schemaVersion, 3);
     assert.equal(exported.body.resultModelVersion, "series_v1");
+    await swarm006V3TestContext.test("V3 NOT_RUN: round-trips a complete tournament and preserves standings", { skip: "Backup V3 import disabled (#152)" }, async () => {
 
     const imported = await request(app)
       .post("/api/tournaments/import")
@@ -434,6 +435,8 @@ describe("backup v3 export and import", () => {
     assert.deepEqual(semantic(restoredStandings.body), semantic(originalStandings.body));
     assert.equal(imported.body.playersImported, exported.body.players.length);
     assert.equal(imported.body.matchesImported, exported.body.matches.length);
+
+    });
   });
 
   test("rejects legacy v1 without creating a tournament", async () => {
@@ -451,7 +454,7 @@ describe("backup v3 export and import", () => {
     assert.equal(afterCount, beforeCount);
   });
 
-  test("validates the full v3 document before any insert", async () => {
+  test("[before V3 import] validates the full v3 document before any insert", async (swarm006V3TestContext) => {
     const fixture = await createStartedTournament("single_elimination", 2);
     await completePendingRound(fixture, 1);
     const exported = await request(app)
@@ -460,6 +463,7 @@ describe("backup v3 export and import", () => {
       .expect(200);
     exported.body.matches[0].winnerBackupId = 999_999;
     const [{ count: beforeCount }] = await rows<{ count: string }>("SELECT count(*)::text AS count FROM tournaments");
+    await swarm006V3TestContext.test("V3 NOT_RUN: validates the full v3 document before any insert", { skip: "Backup V3 import disabled (#152)" }, async () => {
     const response = await request(app)
       .post("/api/tournaments/import")
       .send({
@@ -470,5 +474,7 @@ describe("backup v3 export and import", () => {
     assert.equal(response.body.code, "INVALID_BACKUP_V3");
     const [{ count: afterCount }] = await rows<{ count: string }>("SELECT count(*)::text AS count FROM tournaments");
     assert.equal(afterCount, beforeCount);
+
+    });
   });
 });

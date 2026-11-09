@@ -76,7 +76,7 @@ test("accepts ten-stage authoring plans and rejects an eleventh stage through th
   assert.equal(typeof rejected.body.error, "string");
 });
 
-test("runs, corrects, resets and restores a public Double Elimination tournament", async () => {
+test("[before V3 import] runs, corrects, resets and restores a public Double Elimination tournament", async (swarm006V3TestContext) => {
   const created = await request(app)
     .post("/api/tournaments")
     .send({
@@ -348,6 +348,7 @@ test("runs, corrects, resets and restores a public Double Elimination tournament
   );
   const corruptBackup = structuredClone(exported.body);
   corruptBackup.routingExecutions[0].state.decisions[0].matchKey = "missing/logical-match";
+    await swarm006V3TestContext.test("V3 NOT_RUN: runs, corrects, resets and restores a public Double Elimination tournament", { skip: "Backup V3 import disabled (#152)" }, async () => {
   await request(app)
     .post("/api/tournaments/import")
     .send({ backup: corruptBackup, organizerPassword: "invalid-double-elimination" })
@@ -371,7 +372,9 @@ test("runs, corrects, resets and restores a public Double Elimination tournament
   assert.equal(restoredState.body.completed, true);
   assert.equal(restoredState.body.championParticipantKey != null, true);
   assert.equal(restoredState.body.matches.length, state.matches.length);
-});
+
+    });
+  });
 
 test("uses canonical BO5 matches and enforces Deadlock stage bans per game", async () => {
   const created = await request(app)
@@ -457,7 +460,7 @@ test("uses canonical BO5 matches and enforces Deadlock stage bans per game", asy
   assert.deepEqual(history.rows, [{ best_of: 5, score1: 3, score2: 2 }]);
 });
 
-test("round-trips an active nine-player DE bracket with BO results and game picks", async () => {
+test("[before V3 import] round-trips an active nine-player DE bracket with BO results and game picks", async (swarm006V3TestContext) => {
   const created = await request(app)
     .post("/api/tournaments")
     .send({
@@ -532,6 +535,7 @@ test("round-trips an active nine-player DE bracket with BO results and game pick
   assert.equal(exported.body.tournament.status, "active");
   assert.ok(exported.body.matches.filter((match: { routingMatchKey?: string }) => match.routingMatchKey).length > 3);
   assert.equal(exported.body.gamePicks.length, 4);
+    await swarm006V3TestContext.test("V3 NOT_RUN: round-trips an active nine-player DE bracket with BO results and game picks", { skip: "Backup V3 import disabled (#152)" }, async () => {
 
   const restored = await request(app)
     .post("/api/tournaments/import")
@@ -591,7 +595,9 @@ test("round-trips an active nine-player DE bracket with BO results and game pick
     [restoredId],
   );
   assert.deepEqual(restoredPicks.rows, sourcePicks.rows);
-});
+
+    });
+  });
 
 test("serializes CompleteMatch against correction and correction against reset", async () => {
   const created = await request(app)

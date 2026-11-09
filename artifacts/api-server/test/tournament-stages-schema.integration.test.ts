@@ -450,7 +450,7 @@ describe("single-stage compatibility lifecycle", () => {
     assert.equal(reopenedPointer.active_stage_id, fixture.stageId);
   });
 
-  test("round-trips Backup v3 through a normal single stage", async () => {
+  test("[before V3 import] round-trips Backup v3 through a normal single stage", async (swarm006V3TestContext) => {
     const fixture = await createDraftTournament("round_robin", 3, { bestOf: 3 });
     await request(app)
       .post(`/api/tournaments/${fixture.tournamentId}/start`)
@@ -481,6 +481,7 @@ describe("single-stage compatibility lifecycle", () => {
       .expect(200);
     assert.equal(exported.body.schemaVersion, 3);
     assert.ok(exported.body.resultHistory.length > 0);
+    await swarm006V3TestContext.test("V3 NOT_RUN: round-trips Backup v3 through a normal single stage", { skip: "Backup V3 import disabled (#152)" }, async () => {
 
     const imported = await request(app)
       .post("/api/tournaments/import")
@@ -613,6 +614,8 @@ describe("single-stage compatibility lifecycle", () => {
       semanticStandings(restoredStandings.body),
       semanticStandings(originalStandings.body),
     );
+
+    });
   });
 });
 

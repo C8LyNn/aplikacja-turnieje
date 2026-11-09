@@ -400,7 +400,7 @@ describe("public tournament stages API", () => {
 });
 
 describe("Backup v3", () => {
-  test("round-trips a draft group plan with registration still in progress", async () => {
+  test("[before V3 import] round-trips a draft group plan with registration still in progress", async (swarm006V3TestContext) => {
     const created = await request(app)
       .post("/api/tournaments")
       .send({
@@ -420,6 +420,7 @@ describe("Backup v3", () => {
       .get(`/api/tournaments/${created.body.id}/export`)
       .set({ "x-organizer-token": createdToken });
     assert.equal(exported.status, 200, exported.text);
+    await swarm006V3TestContext.test("V3 NOT_RUN: round-trips a draft group plan with registration still in progress", { skip: "Backup V3 import disabled (#152)" }, async () => {
     const imported = await request(app)
       .post("/api/tournaments/import")
       .send({
@@ -454,9 +455,11 @@ describe("Backup v3", () => {
         ),
       );
     assert.equal(memberships.length, 1);
+
+    });
   });
 
-  test("round-trips configurable seeding, placement and its audit", async () => {
+  test("[before V3 import] round-trips configurable seeding, placement and its audit", async (swarm006V3TestContext) => {
     const created = await request(app)
       .post("/api/tournaments")
       .send({
@@ -527,6 +530,7 @@ describe("Backup v3", () => {
       "backup-random-draw:placement",
     );
     assert.equal(exportedGroup.seedingAudit.status, "completed");
+    await swarm006V3TestContext.test("V3 NOT_RUN: round-trips configurable seeding, placement and its audit", { skip: "Backup V3 import disabled (#152)" }, async () => {
 
     const imported = await request(app)
       .post("/api/tournaments/import")
@@ -573,9 +577,11 @@ describe("Backup v3", () => {
       preparedAgain.body.ceremony.participantSignature,
       exportedGroup.seedingAudit.participantSignature,
     );
+
+    });
   });
 
-  test("imports a pre-Patch-04 Backup v3 with safe seeding defaults", async () => {
+  test("[before V3 import] imports a pre-Patch-04 Backup v3 with safe seeding defaults", async (swarm006V3TestContext) => {
     const created = await request(app)
       .post("/api/tournaments")
       .send({
@@ -599,6 +605,7 @@ describe("Backup v3", () => {
       delete stage.seedingAudit;
       if (stage.format === "single_elimination") stage.seedingPolicy = "cross_group";
     }
+    await swarm006V3TestContext.test("V3 NOT_RUN: imports a pre-Patch-04 Backup v3 with safe seeding defaults", { skip: "Backup V3 import disabled (#152)" }, async () => {
 
     const imported = await request(app)
       .post("/api/tournaments/import")
@@ -628,9 +635,11 @@ describe("Backup v3", () => {
     assert.equal(importedGroup.randomRevealOrder, "instant");
     assert.equal(importedPlayoff.seedingPolicy, "standard_bracket");
     assert.equal(importedPlayoff.resultSeedingPolicy, "standings_order");
+
+    });
   });
 
-  test("round-trips a group stage and cross-seeded play-off with all stage relations", async () => {
+  test("[before V3 import] round-trips a group stage and cross-seeded play-off with all stage relations", async (swarm006V3TestContext) => {
     const fixture = await createGroupTournament();
     await request(app)
       .post(
@@ -665,6 +674,7 @@ describe("Backup v3", () => {
       ),
       true,
     );
+    await swarm006V3TestContext.test("V3 NOT_RUN: round-trips a group stage and cross-seeded play-off with all stage relations", { skip: "Backup V3 import disabled (#152)" }, async () => {
 
     const imported = await request(app)
       .post("/api/tournaments/import")
@@ -714,6 +724,8 @@ describe("Backup v3", () => {
         ),
       true,
     );
+
+    });
   });
 
   test("keeps Backup v2 import as a compatible single-stage tournament", async () => {
@@ -760,7 +772,7 @@ describe("Backup v3", () => {
     assert.equal(stages[0].name, "Etap 1");
   });
 
-  test("rejects an inconsistent v3 group relation without partial writes", async () => {
+  test("[before V3 import] rejects an inconsistent v3 group relation without partial writes", async (swarm006V3TestContext) => {
     const fixture = await createGroupTournament();
     await request(app)
       .post(
@@ -797,6 +809,7 @@ describe("Backup v3", () => {
       scheduledAt: null,
       completedAt: null,
     });
+    await swarm006V3TestContext.test("V3 NOT_RUN: rejects an inconsistent v3 group relation without partial writes", { skip: "Backup V3 import disabled (#152)" }, async () => {
     const response = await request(app)
       .post("/api/tournaments/import")
       .send({
@@ -809,5 +822,7 @@ describe("Backup v3", () => {
       (await database.db.select().from(database.tournamentsTable)).length,
       before.length,
     );
+
+    });
   });
 });

@@ -835,7 +835,7 @@ describe("Phase 3 — Basket Route Execution", () => {
   });
 
   // §22 Backup round-trip
-  test("Backup V3 round-trip: executed route survives export → import → reload", async () => {
+  test("[before V3 import] Backup V3 round-trip: executed route survives export → import → reload", async (swarm006V3TestContext) => {
     const fix = await buildRouteFixture({ qualifierCount: 2 });
 
     // NOTE: Do NOT reset qualificationMode/advancingCount here — the trigger on tournament_stages
@@ -883,6 +883,7 @@ describe("Phase 3 — Basket Route Execution", () => {
     const backupExec = backup.routeExecutions![0];
     assert.equal(backupExec.routeId, origExecution.routeId);
     assert.equal(backupExec.entries.length, 2);
+    await swarm006V3TestContext.test("V3 NOT_RUN: Backup V3 round-trip: executed route survives export → import → reload", { skip: "Backup V3 import disabled (#152)" }, async () => {
 
     // Import to a new tournament
     const importRes = await request(app)
@@ -959,5 +960,7 @@ describe("Phase 3 — Basket Route Execution", () => {
       .set({ "x-organizer-token": newOrganizerToken });
     assert.equal(exec2.status, 200, `idempotent re-execute: ${JSON.stringify(exec2.body)}`);
     assert.equal(exec2.body.routedPlayerCount, 2);
+
+    });
   });
 });

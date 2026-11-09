@@ -363,7 +363,7 @@ describe("presentationSettings — no status lock", () => {
 });
 
 describe("Backup V3: gamePicks and deadlockBans round-trip", () => {
-  test("export/import preserves picks, sides, and player bans", async () => {
+  test("[before V3 import] export/import preserves picks, sides, and player bans", async (swarm006V3TestContext) => {
     const t = await createDeadlockTournament();
     const auth = { "x-organizer-token": t.organizerToken };
     const pA = await addPlayer(t.id, auth, "Alice");
@@ -411,6 +411,7 @@ describe("Backup V3: gamePicks and deadlockBans round-trip", () => {
     const aliceBans = backup.deadlockBans.find((b: any) => b.playerBackupId === pA.id);
     assert.ok(aliceBans, `Alice's bans should be in backup. deadlockBans: ${JSON.stringify(backup.deadlockBans)}`);
     assert.deepEqual(aliceBans.bannedHeroIds, ["haze", "abrams"]);
+    await swarm006V3TestContext.test("V3 NOT_RUN: export/import preserves picks, sides, and player bans", { skip: "Backup V3 import disabled (#152)" }, async () => {
 
     // Import backup as a new tournament
     const importR = await request(app)
@@ -456,5 +457,7 @@ describe("Backup V3: gamePicks and deadlockBans round-trip", () => {
     const allBans = bansR.body as Array<{ playerId: number; bannedHeroIds: string[] }>;
     const aliceRestoredBans = allBans.find((b) => b.bannedHeroIds?.includes("haze") && b.bannedHeroIds?.includes("abrams"));
     assert.ok(aliceRestoredBans, `Alice's bans should be restored. Got: ${JSON.stringify(allBans)}`);
+
+    });
   });
 });
