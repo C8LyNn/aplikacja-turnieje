@@ -1487,7 +1487,7 @@ paths:
     post:
       operationId: importTournament
       tags: [tournaments]
-      summary: Import Backup v2 or v3 as an independent tournament with new credentials
+      summary: Import Backup v2 as an independent tournament with new credentials (v3 import is disabled)
       requestBody:
         required: true
         content:
@@ -1508,7 +1508,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/BackupImportError"
         "422":
-          description: Missing or invalid new credentials
+          description: Missing or invalid new credentials, disabled v3 import, or v2 backup containing v3-only fields
           content:
             application/json:
               schema:
@@ -2667,7 +2667,7 @@ components:
         error: { type: string }
         code:
           type: string
-          enum: [LEGACY_BACKUP_UNSUPPORTED, INVALID_BACKUP, INVALID_BACKUP_V2, INVALID_BACKUP_V3, BACKUP_VERSION_UNSUPPORTED, BACKUP_IMPORT_ROLLED_BACK, ORGANIZER_PASSWORD_REQUIRED, VIEWER_PASSWORD_REQUIRED]
+          enum: [LEGACY_BACKUP_UNSUPPORTED, INVALID_BACKUP, INVALID_BACKUP_V2, INVALID_BACKUP_V3, BACKUP_VERSION_UNSUPPORTED, BACKUP_IMPORT_ROLLED_BACK, ORGANIZER_PASSWORD_REQUIRED, VIEWER_PASSWORD_REQUIRED, BACKUP_V3_IMPORT_DISABLED, BACKUP_V2_CONTAINS_V3_FIELDS]
         details:
           type: array
           items: { type: string }

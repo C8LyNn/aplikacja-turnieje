@@ -112,7 +112,7 @@ import {
 import { calculateMatchRecordStandings } from "../domain/tournament/standings";
 import { generateRoundRobinSchedule } from "../domain/tournament/round-robin";
 import { generateSwissPairings } from "../domain/tournament/swiss";
-import { BACKUP_V3_IMPORT_DISABLED, isBackupV3Import } from "../application/backups/backup-import-policy";
+import { BACKUP_V3_IMPORT_DISABLED, BACKUP_V2_CONTAINS_V3_FIELDS, hasV3OnlyFieldsInV2, isBackupV3Import } from "../application/backups/backup-import-policy";
 import { buildStandardSeededBracket } from "../domain/tournament/stage-placement";
 import { validatePlayedSeriesResult } from "../domain/match/series-result";
 import {
@@ -3012,6 +3012,10 @@ router.post("/tournaments/import", async (req, res): Promise<void> => {
       : rawBody;
   if (isBackupV3Import(rawBackup)) {
     res.status(422).json(BACKUP_V3_IMPORT_DISABLED);
+    return;
+  }
+  if (hasV3OnlyFieldsInV2(rawBackup)) {
+    res.status(422).json(BACKUP_V2_CONTAINS_V3_FIELDS);
     return;
   }
   const rawBackupTournament =

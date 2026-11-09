@@ -2967,7 +2967,7 @@ export const ExportTournamentResponse = zod.object({
 
 
 /**
- * @summary Import Backup v2 or v3 as an independent tournament with new credentials
+ * @summary Import Backup v2 as an independent tournament with new credentials (v3 import is disabled)
  */
 
 

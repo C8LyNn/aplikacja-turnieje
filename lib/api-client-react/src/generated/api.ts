@@ -3566,7 +3566,7 @@ export const getImportTournamentUrl = () => {
 }
 
 /**
- * @summary Import Backup v2 or v3 as an independent tournament with new credentials
+ * @summary Import Backup v2 as an independent tournament with new credentials (v3 import is disabled)
  */
 export const importTournament = async (backupRestoreInput: BackupRestoreInput, options?: RequestInit): Promise<ImportResult> => {
 
@@ -3615,7 +3615,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type ImportTournamentMutationError = ErrorType<BackupImportError>
 
     /**
- * @summary Import Backup v2 or v3 as an independent tournament with new credentials
+ * @summary Import Backup v2 as an independent tournament with new credentials (v3 import is disabled)
  */
 export const useImportTournament = <TError = ErrorType<BackupImportError>,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof importTournament>>, TError,{data: BodyType<BackupRestoreInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
