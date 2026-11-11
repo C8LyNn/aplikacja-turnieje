@@ -1,5 +1,6 @@
 import { useListTournaments } from "@workspace/api-client-react";
 import { Link, useLocation } from "wouter";
+import { Button } from "@/components/ui/button";
 import { Trophy, Eye, Calendar, FlaskConical, Users } from "lucide-react";
 import { format } from "date-fns";
 import { pl } from "date-fns/locale";
@@ -21,7 +22,8 @@ const FORMAT_LABELS: Record<string, string> = {
 export default function FanView() {
   const [location] = useLocation();
   const isExperimental = isExperimentalTournamentPath(location);
-  const { data: tournaments, isLoading } = useListTournaments();
+  const { data: tournaments, isError, isFetching, refetch } = useListTournaments();
+  const hasLoadedList = tournaments !== undefined;
   const visible = tournaments?.filter((t) => t.status === "active" || t.status === "completed") ?? [];
 
   return (
@@ -50,17 +52,37 @@ export default function FanView() {
           <p className="text-muted-foreground text-sm">Kliknij turniej, aby oglądać wyniki i drabinkę na żywo.</p>
         </div>
 
-        {isLoading ? (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="rounded-xl border border-border bg-card animate-pulse h-40" />
-            ))}
+        {isError && hasLoadedList && (
+          <div role="alert" className="mb-5 flex flex-col gap-3 rounded-lg border border-destructive/40 bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm">Nie udało się odświeżyć listy turniejów. Pokazujemy ostatnio pobrane dane.</p>
+            <Button type="button" variant="outline" disabled={isFetching} onClick={() => { void refetch(); }}>
+              {isFetching ? "Ponawianie…" : "Spróbuj ponownie"}
+            </Button>
+          </div>
+        )}
+
+        {!hasLoadedList && isError ? (
+          <div role="alert" className="rounded-xl border border-destructive/40 bg-card p-6 text-center space-y-3">
+            <p className="font-semibold">Nie udało się pobrać listy turniejów.</p>
+            <p className="text-sm text-muted-foreground">Sprawdź połączenie i spróbuj ponownie.</p>
+            <Button type="button" variant="outline" disabled={isFetching} onClick={() => { void refetch(); }}>
+              {isFetching ? "Ponawianie…" : "Spróbuj ponownie"}
+            </Button>
+          </div>
+        ) : !hasLoadedList ? (
+          <div role="status" className="space-y-3" aria-label="Pobieranie listy turniejów">
+            <p className="text-sm text-muted-foreground">Pobieranie listy turniejów…</p>
+            <div aria-hidden="true" className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+              {[1, 2, 3].map((i) => (
+                <div key={i} className="rounded-xl border border-border bg-card animate-pulse h-40" />
+              ))}
+            </div>
           </div>
         ) : visible.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center border rounded-xl bg-card/50">
             <Trophy className="w-12 h-12 text-muted-foreground mb-4 opacity-20" />
-            <h3 className="text-xl font-semibold mb-2">Brak aktywnych turniejów</h3>
-            <p className="text-muted-foreground text-sm">Poczekaj na start turnieju lub wróć później.</p>
+            <h3 className="text-xl font-semibold mb-2">Brak turniejów do oglądania</h3>
+            <p className="text-muted-foreground text-sm">Obecnie nie ma turniejów aktywnych ani zakończonych. Wróć później.</p>
           </div>
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">

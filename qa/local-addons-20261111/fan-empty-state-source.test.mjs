@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+const s=readFileSync(new URL('../../artifacts/tournament-manager/src/pages/fan-view.tsx',import.meta.url),'utf8');
+test('L23 rozróżnia brak danych i wynik pusty',()=>{assert.match(s,/const hasLoadedList = tournaments !== undefined/);assert.match(s,/!hasLoadedList && isError/);assert.match(s,/!hasLoadedList \?/);assert.match(s,/visible\.length === 0/)});
+test('L23 błąd pierwszego pobrania jest alertem z ponowieniem',()=>{assert.match(s,/Nie udało się pobrać listy turniejów/);assert.match(s,/role="alert"/);assert.match(s,/onClick=\{\(\) => \{ void refetch\(\); \}\}/)});
+test('L23 błąd odświeżenia zachowuje pobrane dane i ostrzega',()=>{assert.match(s,/isError && hasLoadedList/);assert.match(s,/Pokazujemy ostatnio pobrane dane/)});
+test('L23 ładowanie nie udaje pustej listy',()=>{assert.match(s,/role="status"/);assert.match(s,/Pobieranie listy turniejów/);assert.match(s,/aria-hidden="true"/)});
+test('L23 pusta lista mówi o obu dozwolonych statusach',()=>{assert.match(s,/Brak turniejów do oglądania/);assert.match(s,/active" \|\| t\.status === "completed"/)});
+test('L23 ponawianie blokuje przycisk na czas pobierania',()=>{assert.match(s,/isFetching/);assert.match(s,/disabled=\{isFetching\}/)});
