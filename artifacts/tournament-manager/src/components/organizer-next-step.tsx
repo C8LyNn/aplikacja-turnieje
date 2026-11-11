@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "wouter";
-import { ArrowRight, CheckCircle2 } from "lucide-react";
+import { ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { OrganizerNextStepModel } from "@/lib/organizer-next-step";
 import { isExperimentalTournamentPath, tournamentModeHref } from "@/features/experimental-tournaments/experimental-tournament-routing";
@@ -34,15 +34,21 @@ export function OrganizerNextStep({
         </div>
         {action && actionHref && !onAction && (
           <Button asChild className="organizer-next-action shrink-0">
-            <Link href={actionHref}>{step.actionLabel}<ArrowRight className="ml-2 h-4 w-4" /></Link>
+            <Link href={actionHref}>{step.actionLabel}<ArrowRight aria-hidden="true" className="ml-2 h-4 w-4" /></Link>
           </Button>
         )}
         {action && onAction && (
-          <Button onClick={onAction} disabled={pending} className="organizer-next-action shrink-0">
-            {step.actionLabel}<ArrowRight className="ml-2 h-4 w-4" />
+          <Button onClick={onAction} disabled={pending} aria-busy={pending} className="organizer-next-action shrink-0">
+            {pending ? "Wykonywanie…" : step.actionLabel}
+            {pending
+              ? <Loader2 aria-hidden="true" className="ml-2 h-4 w-4 animate-spin" />
+              : <ArrowRight aria-hidden="true" className="ml-2 h-4 w-4" />}
           </Button>
         )}
-        {!action && step.kind === "completed" && <CheckCircle2 className="h-6 w-6 shrink-0 text-primary" />}
+        {action && onAction && pending && (
+          <span role="status" aria-live="polite" className="sr-only">Trwa wykonywanie następnego kroku.</span>
+        )}
+        {!action && step.kind === "completed" && <CheckCircle2 aria-hidden="true" className="h-6 w-6 shrink-0 text-primary" />}
       </div>
     </section>
   );
