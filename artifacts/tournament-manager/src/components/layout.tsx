@@ -26,11 +26,14 @@ export function Layout({ children, deadlockTheme, colorPreset }: { children: Rea
       className={`min-h-screen flex flex-col bg-background text-foreground dark transition-colors duration-200 ${isExperimentalTournamentView ? "experimental-tournament-shell" : ""}`}
       data-theme={colorPreset || (deadlockTheme ? "deadlock" : undefined)}
     >
-      {isExperimentalTournamentView && (
-        <a href="#experimental-main" className="experimental-skip-link">
-          Przejdź do głównej treści
-        </a>
-      )}
+      <a
+        href={isExperimentalTournamentView ? "#experimental-main" : "#main-content"}
+        className={isExperimentalTournamentView
+          ? "experimental-skip-link"
+          : "sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-[100] focus:rounded-md focus:bg-background focus:px-4 focus:py-2 focus:text-foreground focus-visible:ring-2 focus-visible:ring-primary"}
+      >
+        Przejdź do głównej treści
+      </a>
       <header className="border-b border-border bg-card sticky top-0 z-10">
         <div className="container mx-auto px-4 md:px-8 h-14 flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -83,7 +86,7 @@ export function Layout({ children, deadlockTheme, colorPreset }: { children: Rea
 </nav>
         </div>
       </header>
-      <main id={isExperimentalTournamentView ? "experimental-main" : undefined} className="flex-1 container mx-auto px-4 md:px-8 py-8">
+      <main id={isExperimentalTournamentView ? "experimental-main" : "main-content"} tabIndex={-1} className="flex-1 container mx-auto px-4 md:px-8 py-8">
         {children}
       </main>
     </div>
