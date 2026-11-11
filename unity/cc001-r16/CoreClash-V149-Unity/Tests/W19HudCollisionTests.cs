@@ -32,16 +32,26 @@ public static partial class Program
 
     static void W19HudCollisionTests()
     {
-        Test("W19-05 ball keep-out covers the Replay pulse, R chip, owner chip and status rows at every scale",()=>{
+        Test("W19-05 ball keep-out covers the Replay pulse and chip, threat badge, HP plate and status row at every scale",()=>{
+            // W20: the owner chip is gone (ownership is the ring); HP and states are plates around the ball.
             foreach(float scale in new[]{.46f,.86f,1f,1.62f,2.4f})
-            foreach(int rows in new[]{0,1,2})
+            foreach(int rows in new[]{0,1})
             {
-                float x=300,y=400,r=21.25f*scale;var k=BoardLabelLayout.BallKeepOut(x,y,r,scale,rows);
-                float chip=Math.Max(12,14*scale),ownerW=Math.Max(16,18*scale),ownerH=Math.Max(10,12*scale),rowH=Math.Max(10,12*scale);
-                var rChip=new UiBox(x-r*.3f-chip,y-r-chip*.55f,chip,chip);var owner=new UiBox(x+r*.3f,y-r-ownerH*.7f,ownerW,ownerH);
-                float pulse=r+(5+1.2f)*scale+4*scale+scale;var ring=new UiBox(x-pulse,y-pulse,2*pulse,2*pulse);
-                foreach(var part in new[]{rChip,owner,ring})True(part.x>=k.x&&part.Right<=k.Right&&part.y>=k.y&&part.Bottom<=k.Bottom,$"part outside keep-out at scale {scale} rows {rows}");
-                if(rows>0){float sw=Math.Max(54,r*2+12*scale);var status=new UiBox(x-sw/2,y+r+2*scale,sw,rows*rowH);True(status.x>=k.x&&status.Right<=k.Right&&status.Bottom<=k.Bottom,"status rows outside keep-out");}
+                float x=300*scale,y=400*scale,r=21.25f*scale;var k=BoardLabelLayout.BallKeepOut(x,y,r,scale,rows);
+                var chips=rows==0?new BallStateLabel[0]:new[]{new BallStateLabel("F2","",StatusKind.Fire,"2"),new BallStateLabel("I1","",StatusKind.Ice,"1"),new BallStateLabel("T3","",StatusKind.Toxin,"3")};
+                var l=BallBadges.Layout(x,y,r,scale,30,10,chips,true,true,new UiBox(0,0,540*scale,900*scale));
+                True(l.Bounds.x>=k.x&&l.Bounds.Right<=k.Right&&l.Bounds.y>=k.y&&l.Bounds.Bottom<=k.Bottom,$"badges outside keep-out at scale {scale} rows {rows}");
+                float pulse=r+BallBadges.RingOut(scale)+BallBadges.ReplayPulse(scale);
+                True(x-pulse>=k.x&&x+pulse<=k.Right&&y-pulse>=k.y&&y+pulse<=k.Bottom,"Replay pulse outside keep-out");
+            }
+            // the planner's keep-out of a real ball is the exact layout of that ball, padded
+            var st=W18Sim();var ball=st.Spawn(1,"normal",176,177);ball.fireStacks=2;ball.burnTurns=4;ball.shield=5;
+            foreach(float bw in new[]{305f,423f,1270f})
+            {
+                float scale=bw/540;var field=BoardOverlayPlanner.Field(0,0,0,bw);var p=BoardSpace.ToView(176,177,0,0,0,bw);
+                var exact=BallBadges.Layout(ball,p.x,p.y,scale,true,field).Bounds;
+                var keep=BoardOverlayPlanner.KeepOuts(st.State,0,0,0,bw);
+                True(keep.Any(k=>k.x<=exact.x-3.9f*scale&&k.Right>=exact.Right+3.9f*scale&&k.y<=exact.y-3.9f*scale&&k.Bottom>=exact.Bottom+3.9f*scale),"planner keep-out does not cover the ball's plates");
             }
             True(BoardOverlayPlanner.AtViewTop(1,0)&&!BoardOverlayPlanner.AtViewTop(0,0)&&!BoardOverlayPlanner.AtViewTop(1,1)&&BoardOverlayPlanner.AtViewTop(0,1),"P1/P2 sides wrong");
             var f=new UiBox(0,0,400,700);var top=BoardLabelLayout.BandSlots(f,100,30,true,10,8,.5f);var bottom=BoardLabelLayout.BandSlots(f,100,30,false,10,8,.5f);

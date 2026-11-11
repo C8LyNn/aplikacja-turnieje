@@ -36,7 +36,16 @@ namespace CoreClash.Presentation
                 if(current==null||!current.OnBoard)line("This ball is no longer on the board.",15,Draw.Muted,false);
                 if(current!=null){
                     if(current.Shield==0)line("Shield: 0",15,Color.white,false);
-                    line(current.States.Length==0?"No active status.":string.Join("\n",current.States.Select(s=>s.Text)),15,Color.white,false);
+                    if(current.States.Length==0)line("No active status.",15,Color.white,false);
+                    // W20: every state with the same symbol and colour it has on the board.
+                    foreach(var state in current.States)
+                    {
+                        var stateStyle=new GUIStyle(GUI.skin.label){fontSize=15,wordWrap=true,padding=new RectOffset(0,0,0,0)};
+                        float stateHeight=Mathf.Ceil(stateStyle.CalcHeight(new GUIContent(state.Text),width-28))+3;
+                        if(draw){Glyphs.Paint(new Rect(0,y+1,18,18),state.Kind,Theme.Status(state.Kind));Draw.Text(new Rect(28,y,width-28,stateHeight),state.Text,15,Color.white,TextAnchor.UpperLeft,false);}
+                        y+=stateHeight+7;
+                    }
+                    if(current.States.Length>0)y+=5;
                 }
             }
             if(!string.IsNullOrEmpty(definition.archetype))line("ARCHETYPE  /  "+definition.archetype.ToUpperInvariant(),11,Draw.Muted,true);
