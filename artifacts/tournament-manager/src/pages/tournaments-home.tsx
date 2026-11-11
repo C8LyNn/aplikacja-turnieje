@@ -57,14 +57,14 @@ export default function TournamentsHome() {
   }
 
   return (
-    <div className={`min-h-screen bg-background px-4 py-12 text-foreground dark ${isExperimental ? "experimental-tournament-entry experimental-role-home" : ""}`}>
+    <div className={`min-h-screen bg-background px-4 py-8 sm:py-12 text-foreground dark ${isExperimental ? "experimental-tournament-entry experimental-role-home" : ""}`}>
       <div className={`mx-auto max-w-4xl ${isExperimental ? "experimental-entry-inner" : ""}`}>
         <button
           type="button"
           onClick={() => navigate("/")}
-          className="mb-8 inline-flex items-center gap-2 rounded-md text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+          className="mb-8 inline-flex min-h-11 items-center gap-2 -ml-2 px-2 rounded-md text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
-          <ArrowLeft className="h-4 w-4" />
+          <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           Wszystkie kategorie
         </button>
 
@@ -77,7 +77,7 @@ export default function TournamentsHome() {
               </span>
             </div>
           )}
-          <h1 className="text-4xl font-bold tracking-tight text-primary">
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-primary">
             {isExperimental ? "Turnieje — nowy interfejs" : "Turnieje"}
           </h1>
           <p className="mt-3 text-base text-muted-foreground">
@@ -87,19 +87,19 @@ export default function TournamentsHome() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:gap-4 md:grid-cols-3">
           {TOURNAMENT_ROLES.map((item) => (
             <button
               key={item.id}
               type="button"
               onClick={() => selectRole(item)}
               data-exp-role={isExperimental ? item.id : undefined}
-              className={`group relative min-h-56 rounded-xl border border-border bg-card p-6 text-left transition-all duration-200 ${item.cardHover} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${isExperimental ? "experimental-entry-card" : ""}`}
+              className={`group relative min-h-[148px] sm:min-h-56 rounded-xl border border-border bg-card p-4 sm:p-6 text-left transition-all duration-200 ${item.cardHover} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary ${isExperimental ? "experimental-entry-card" : ""}`}
             >
-              <div className={`mb-6 text-muted-foreground transition-colors ${item.iconHover}`}>
+              <div className={`mb-3 sm:mb-6 text-muted-foreground transition-colors ${item.iconHover}`}>
                 {item.icon}
               </div>
-              <h2 className="mb-2 text-xl font-semibold">{item.label}</h2>
+              <h2 className="mb-2 text-lg sm:text-xl font-semibold">{item.label}</h2>
               <p className="text-sm leading-relaxed text-muted-foreground">{item.desc}</p>
               {role === item.id && (
                 <span className="absolute right-3 top-3 rounded-full bg-primary/15 px-2 py-0.5 text-xs font-semibold text-primary">
