@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { Copy, Check, Link2, Globe, Lock, EyeOff, Eye, EyeOff as EyeOffIcon, Monitor, Key, Shield, AlertTriangle, Tv2, ChevronDown, ChevronUp } from "lucide-react";
+import { CopyLinkButton } from "./copy-link-button";
+import { Check, Link2, Globe, Lock, EyeOff, Eye, EyeOff as EyeOffIcon, Monitor, Key, Shield, AlertTriangle, Tv2, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -45,25 +46,6 @@ const VISIBILITY_INFO: Record<Visibility, { label: string; icon: React.ReactNode
   },
 };
 
-function CopyButton({ text }: { text: string }) {
-  const [copied, setCopied] = useState(false);
-  function handleCopy() {
-    navigator.clipboard.writeText(text).then(() => {
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    });
-  }
-  return (
-    <button
-      onClick={handleCopy}
-      className="shrink-0 p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-      title="Kopiuj link"
-    >
-      {copied ? <Check className="w-4 h-4 text-green-400" /> : <Copy className="w-4 h-4" />}
-    </button>
-  );
-}
-
 function LinkRow({ label, url, icon }: { label: string; url: string; icon: React.ReactNode }) {
   return (
     <div className="space-y-1.5">
@@ -71,9 +53,9 @@ function LinkRow({ label, url, icon }: { label: string; url: string; icon: React
         {icon}
         {label}
       </div>
-      <div className="flex items-center gap-2 bg-muted/40 rounded-lg px-3 py-2 border border-border/50">
+      <div className="flex flex-wrap items-center gap-2 bg-muted/40 rounded-lg px-3 py-2 border border-border/50">
         <span className="text-xs text-foreground/80 truncate flex-1 font-mono">{url}</span>
-        <CopyButton text={url} />
+        <CopyLinkButton text={url} label={`Kopiuj: ${label}`} />
       </div>
     </div>
   );
@@ -221,9 +203,9 @@ export function SharingPanel({ tournament, orgToken }: Props) {
                 {showObsConfig ? "Zwiń" : "Konfiguruj"}
               </button>
             </div>
-            <div className="flex items-center gap-2 bg-muted/40 rounded-lg px-3 py-2 border border-border/50">
+            <div className="flex flex-wrap items-center gap-2 bg-muted/40 rounded-lg px-3 py-2 border border-border/50">
               <span className="text-xs text-foreground/80 truncate flex-1 font-mono">{links.projector}</span>
-              <CopyButton text={links.projector} />
+              <CopyLinkButton text={links.projector} label="Kopiuj link projektora OBS" />
             </div>
 
             {showObsConfig && (
@@ -287,7 +269,7 @@ export function SharingPanel({ tournament, orgToken }: Props) {
                     </label>
                   ))}
                 </div>
-                <div className="pt-1 border-t border-border/40 flex gap-2">
+                <div className="pt-1 border-t border-border/40 flex flex-wrap items-center gap-2">
                   <a
                     href={links.projector}
                     target="_blank"
@@ -297,7 +279,7 @@ export function SharingPanel({ tournament, orgToken }: Props) {
                     Otwórz w nowej karcie ↗
                   </a>
                   <span className="text-muted-foreground/40 text-[11px]">·</span>
-                  <CopyButton text={links.projector} />
+                  <CopyLinkButton text={links.projector} label="Kopiuj link projektora OBS" />
                   <span className="text-[11px] text-muted-foreground/60">Skopiuj URL do OBS</span>
                 </div>
               </div>
