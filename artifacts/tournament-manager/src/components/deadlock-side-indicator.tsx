@@ -34,7 +34,8 @@ export function SideIndicator({
   size = "sm",
   className,
 }: SideIndicatorProps) {
-  const [imgFailed, setImgFailed] = useState(false);
+  const [failedSide, setFailedSide] = useState<DeadlockSide | null>(null);
+  const imgFailed = failedSide === side;
 
   if (!side) return null;
 
@@ -49,6 +50,8 @@ export function SideIndicator({
     // Compact dot — image preferred, colour dot fallback
     return (
       <span
+        role="img"
+        aria-label={label}
         className={cn("inline-flex items-center justify-center rounded-full shrink-0", className)}
         style={{ width: px, height: px, background: imgFailed ? color : undefined }}
         title={label}
@@ -56,10 +59,11 @@ export function SideIndicator({
         {!imgFailed ? (
           <img
             src={gameAssetUrl(SIDE_IMG[side])}
-            alt={label}
+            alt=""
+            aria-hidden="true"
             style={{ width: px, height: px }}
             className="rounded-full object-cover"
-            onError={() => setImgFailed(true)}
+            onError={() => setFailedSide(side)}
           />
         ) : null}
       </span>
@@ -75,13 +79,15 @@ export function SideIndicator({
       {!imgFailed ? (
         <img
           src={gameAssetUrl(SIDE_IMG[side])}
-          alt={label}
+          alt=""
+          aria-hidden="true"
           style={{ width: px * 0.7, height: px * 0.7 }}
           className="rounded-full object-cover"
-          onError={() => setImgFailed(true)}
+          onError={() => setFailedSide(side)}
         />
       ) : (
         <span
+          aria-hidden="true"
           className="rounded-full inline-block shrink-0"
           style={{ width: px * 0.5, height: px * 0.5, background: "rgba(255,255,255,0.3)" }}
         />
