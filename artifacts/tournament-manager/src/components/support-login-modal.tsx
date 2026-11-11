@@ -66,7 +66,7 @@ export function SupportLoginModal({ open, onClose, tournamentId, tournamentName,
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="bg-green-500/15 rounded-full p-2 shrink-0">
-              <Users className="w-5 h-5 text-green-400" />
+              <Users aria-hidden="true" className="w-5 h-5 text-green-400" />
             </div>
             <div>
               <h2 className="font-bold text-base">Logowanie wsparcia</h2>
@@ -74,43 +74,48 @@ export function SupportLoginModal({ open, onClose, tournamentId, tournamentName,
             </div>
           </div>
           {handleClose && (
-            <button onClick={handleClose} className="text-muted-foreground hover:text-foreground transition-colors mt-0.5" aria-label="Zamknij">
-              <X className="w-4 h-4" />
+            <button type="button" onClick={handleClose} className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-md text-muted-foreground hover:text-foreground transition-colors mt-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" aria-label="Zamknij">
+              <X aria-hidden="true" className="w-4 h-4" />
             </button>
           )}
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <Label className="flex items-center gap-1.5">
-              <User className="w-3.5 h-3.5" />
+            <Label htmlFor="support-login-nick" className="flex items-center gap-1.5">
+              <User aria-hidden="true" className="w-3.5 h-3.5" />
               Twój nick
             </Label>
             <Input
+              id="support-login-nick"
               value={nick}
               onChange={(e) => setNick(e.target.value)}
               placeholder="np. Sędzia1"
+              autoComplete="nickname"
               required
               maxLength={40}
               autoFocus
             />
           </div>
           <div className="space-y-1.5">
-            <Label className="flex items-center gap-1.5">
-              <Lock className="w-3.5 h-3.5" />
+            <Label htmlFor="support-login-password" className="flex items-center gap-1.5">
+              <Lock aria-hidden="true" className="w-3.5 h-3.5" />
               Hasło wsparcia
             </Label>
             <Input
+              id="support-login-password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Podane przez organizatora"
+              autoComplete="current-password"
+              aria-describedby={error ? "support-login-error" : undefined}
               required
             />
           </div>
 
           {error && (
-            <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">{error}</p>
+            <p id="support-login-error" role="alert" className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">{error}</p>
           )}
 
           <div className="flex gap-2">
@@ -120,7 +125,7 @@ export function SupportLoginModal({ open, onClose, tournamentId, tournamentName,
               </Button>
             )}
             <Button type="submit" className="flex-1 bg-green-600 hover:bg-green-700 text-white" disabled={loading || !nick.trim() || !password}>
-              <Users className="w-4 h-4 mr-2" />
+              <Users aria-hidden="true" className="w-4 h-4 mr-2" />
               {loading ? "Logowanie…" : "Zaloguj"}
             </Button>
           </div>
