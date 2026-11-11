@@ -13,6 +13,7 @@ const ROLE_HOME: Record<Role, { href: string; label: string }> = {
 
 const navigationFocus =
   "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background";
+const navigationTouch = "min-h-11 min-w-11 px-2 py-2";
 
 export function getRoleHomePath(
   role: Role | null,
@@ -36,11 +37,13 @@ export function AppLogoLink({
   const { role } = useAuth();
   const [location] = useLocation();
   const experimental = isExperimentalTournamentPath(location);
+  const homeHref = getRoleHomePath(role, fallbackHref, experimental);
 
   return (
     <Link
-      href={getRoleHomePath(role, fallbackHref, experimental)}
-      className={`inline-flex items-center gap-2 rounded-sm font-bold tracking-tight text-primary ${navigationFocus} ${className}`}
+      href={homeHref}
+      aria-current={location === homeHref ? "page" : undefined}
+      className={`inline-flex items-center gap-2 rounded-sm font-bold tracking-tight text-primary ${navigationTouch} ${navigationFocus} ${className}`}
       aria-label="Strona główna aktualnej roli"
     >
       <Trophy className="w-6 h-6" aria-hidden="true" />
@@ -71,7 +74,7 @@ export function RoleHomeLink({
   return (
     <Link
       href={destination.href}
-      className={`inline-flex items-center gap-1.5 rounded-md text-sm font-medium text-muted-foreground transition-colors hover:text-foreground ${navigationFocus} ${className}`}
+      className={`inline-flex items-center gap-1.5 rounded-md text-sm font-medium text-muted-foreground transition-colors hover:text-foreground ${navigationTouch} ${navigationFocus} ${className}`}
     >
       <ArrowLeft className="w-4 h-4" aria-hidden="true" />
       <span>{destination.label}</span>
@@ -82,11 +85,13 @@ export function RoleHomeLink({
 export function RoleSelectionLink({ className = "" }: { className?: string }) {
   const [location] = useLocation();
   const experimental = isExperimentalTournamentPath(location);
+  const selectionHref = experimental ? "/experimental/tournaments" : "/tournaments";
 
   return (
     <Link
-      href={experimental ? "/experimental/tournaments" : "/tournaments"}
-      className={`inline-flex items-center gap-1.5 rounded-md text-sm text-muted-foreground transition-colors hover:text-foreground ${navigationFocus} ${className}`}
+      href={selectionHref}
+      aria-current={location === selectionHref ? "page" : undefined}
+      className={`inline-flex items-center gap-1.5 rounded-md text-sm text-muted-foreground transition-colors hover:text-foreground ${navigationTouch} ${navigationFocus} ${className}`}
     >
       <ArrowLeft className="w-4 h-4" aria-hidden="true" />
       <span>Zmień rolę turniejową</span>
