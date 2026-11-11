@@ -1,21 +1,16 @@
 using System.Collections.Generic;
+using System.Linq;
 using CoreClash.Core;
 using CoreClash.Data;
 using UnityEngine;
 
 namespace CoreClash.Presentation
 {
-    // CC-001 W20: a ball is drawn in two passes so information never hides under a
-    // neighbour: Render() paints the body (shadow, ownership ring, sphere, type mark),
-    // RenderBadges() then paints everything around it (HP plate, shield, status chips,
-    // threat badge, Replay chip) from the shared BallBadges layout.
-    //   type      = body colour + letter mark (inside the ball)
-    //   owner     = ring: P1 solid, P2 segmented (colour is never the only cue)
-    //   HP        = plate outside the ball; no P1/P2 text over balls
     public static class BallView
     {
         const int SpriteSize = 96;
         static readonly Dictionary<string, Texture2D> BodySprites = new Dictionary<string, Texture2D>();
+        static readonly Dictionary<int, Texture2D> RingSprites = new Dictionary<int, Texture2D>();
         static BallIdentity identity;
         public static void SetIdentity(BallIdentity value){identity=value;}
         static string Mark(BallDefinition definition)=>definition==null?"?":identity?.Mark(definition.id)??"?";
@@ -23,139 +18,85 @@ namespace CoreClash.Presentation
         public static void Render(Rect board, BallRuntime ball, BallDefinition definition, bool replay)
             => Render(board,ball,definition,replay,ball.x,ball.y,0);
 
-        public static void Render(Rect board, BallRuntime ball, BallDefinition definition, bool replay,float x,float y,int localOwner=0,bool selected=false)
+        public static void Render(Rect board, BallRuntime ball, BallDefinition definition, bool replay,float x,float y,int localOwner=0)
         {
             float scale = board.width / 540f;
             float radius = ball.radius * scale;
-            var point = ViewPoint(board,x,y,localOwner);
+            float viewX=MatchPerspective.ViewX(x,localOwner),viewY=MatchPerspective.ViewY(y,localOwner);
+            var point = new Vector2(board.x + viewX * scale, board.y + viewY * scale);
             var body = new Rect(point.x - radius, point.y - radius, radius * 2, radius * 2);
             Color team = Draw.Owner(ball.owner);
             Color color = definition == null ? Color.white : Draw.Hex(definition.color);
 
             DrawWake(point, ball, color, scale,localOwner);
+            Draw.Circle(Expand(body, 5 * scale), Alpha(team, replay ? .17f : .07f));
             if (replay)
             {
                 // W18-02 (#287): Replay uses its own gold pulse, not the team colour.
                 float pulse = (5 + Mathf.Sin(Time.unscaledTime * 4 + ball.id) * 1.2f) * scale;
-                Draw.Circle(Expand(body, pulse + 3 * scale), Alpha(ReplayColor, .1f));
-                Draw.Ring(point, radius + pulse, Alpha(ReplayColor, .85f), Mathf.Max(1.5f, 2.2f * scale));
-                Draw.Ring(point, radius + pulse + 4 * scale, Alpha(ReplayColor, .22f), Mathf.Max(1, scale));
+                Ring(point, radius + pulse, Alpha(ReplayColor, .85f), Mathf.Max(1.5f, 2.2f * scale));
+                Ring(point, radius + pulse + 4 * scale, Alpha(ReplayColor, .22f), Mathf.Max(1, scale));
             }
-            if (selected)
-            {
-                float reach = radius + Theme.SelectionRing * scale;
-                Draw.Ring(point, reach, Color.white, Mathf.Max(1.5f, 2 * scale), 4, .7f);
-            }
-            DrawOrb(body, definition, ball.owner, scale, 1);
+
+            Draw.Circle(new Rect(body.x + scale, body.y + 3 * scale, body.width, body.height), new Color(0, 0, 0, .5f));
+            Draw.Circle(Expand(body, 2 * scale), Alpha(team, .92f));
+            Draw.Circle(Expand(body, .6f * scale), new Color(.035f, .06f, .085f));
+            DrawBody(body, definition);
+
             string mark = Mark(definition);
-            int markSize = Mathf.Max(7, Mathf.RoundToInt(radius * (mark.Length > 2 ? .6f : .72f)));
-            MarkLabel(body, mark, markSize, color);
-        }
+            int markSize = Mathf.Max(7, Mathf.RoundToInt(9 * scale));
+            int hpSize = Mathf.Max(8, Mathf.RoundToInt(11 * scale));
+            var markBox = new Rect(point.x - radius, point.y - radius * .68f, radius * 2, radius * .8f);
+            var hpBox = new Rect(point.x - radius, point.y - radius * .05f, radius * 2, radius * .95f);
+            Label(markBox, mark, markSize, new Color(.96f, .99f, 1, .88f));
+            Label(hpBox, ball.hp.ToString(), hpSize, Color.white);
 
-        // Second pass: HP, shield, states, threat and Replay chip around the ball.
-        public static void RenderBadges(Rect board, BallRuntime ball, bool replay,float x,float y,int localOwner,UiBox field)
-        {
-            float scale = board.width / 540f;
-            var point = ViewPoint(board,x,y,localOwner);
-            var layout = BallBadges.Layout(ball,point.x,point.y,scale,replay,field);
-            int font = layout.Font;
-            Color team = Draw.Owner(ball.owner);
-
-            // HP plate in the owner's colour. A damaged ball also gets a thin bar that shortens
-            // and turns amber, then red; a full-health plate stays plain.
-            var hp = RectOf(layout.Hp);
-            float fraction = ball.maxHp > 0 ? Mathf.Clamp01((float)ball.hp / ball.maxHp) : 1;
-            bool hurt = ball.hp < ball.maxHp;
-            Color health = fraction < Theme.HpCriticalBelow ? Theme.HpCritical : fraction < Theme.HpHurtBelow ? Theme.HpHurt : Theme.HpGood;
-            Draw.Chip(hp, Alpha(Theme.Plate, Theme.PlateAlpha), Alpha(team, .9f));
-            float bar = Mathf.Max(1.5f, 2 * scale);
-            Draw.Text(new Rect(hp.x, hp.y - (hurt ? bar * .5f + .5f : 0), hp.width, hp.height), ball.hp.ToString(), font, fraction < Theme.HpHurtBelow ? health : Theme.Text, TextAnchor.MiddleCenter, true);
-            if (hurt) Draw.Rect(new Rect(hp.x + 3, hp.yMax - bar - 1.5f, (hp.width - 6) * fraction, bar), health);
-
-            if (layout.HasShield)
-            {
-                var shield = RectOf(layout.Shield);
-                Draw.Chip(shield, Alpha(Theme.Plate, Theme.PlateAlpha), Alpha(Theme.Shield, .9f));
-                float glyph = shield.height - 3;
-                Glyphs.Paint(new Rect(shield.x + 2, shield.y + 1.5f, glyph, glyph), StatusKind.Shield, Theme.Shield);
-                Draw.Text(new Rect(shield.x + glyph + 2, shield.y - 1, shield.width - glyph - 3, shield.height), ball.shield.ToString(), font, Theme.Text, TextAnchor.MiddleCenter, true);
+            // Ownership and simultaneous states have non-hue readings separate from identity.
+            float ownerW=Mathf.Max(16,18*scale),ownerH=Mathf.Max(10,12*scale);
+            var ownerBox=new Rect(point.x+radius*.3f,point.y-radius-ownerH*.7f,ownerW,ownerH);
+            Draw.Round(ownerBox,new Color(.018f,.035f,.055f,.94f));
+            Label(ownerBox,BallInspection.OwnerMark(ball.owner),Mathf.Max(7,Mathf.RoundToInt(8*scale)),Color.white);
+            var statuses=BallInspection.Statuses(ball);int rows=(statuses.Length+1)/2;
+            float rowH=Mathf.Max(10,12*scale),statusW=Mathf.Max(54,radius*2+12*scale);
+            for(int row=0;row<rows;row++){
+                var box=new Rect(point.x-statusW/2,point.y+radius+2*scale+row*rowH,statusW,rowH);
+                Draw.Round(box,new Color(.018f,.035f,.055f,.9f));
+                Label(box,string.Join("  ",statuses.Skip(row*2).Take(2).Select(s=>s.Code)),Mathf.Max(7,Mathf.RoundToInt(8*scale)),Color.white);
             }
-            foreach (var chip in layout.Chips)
+            if (replay)
             {
-                var box = RectOf(chip.Box);
-                Color tint = Theme.Status(chip.Kind);
-                Draw.Chip(box, Alpha(Theme.Plate, Theme.PlateAlpha), Alpha(tint, .75f));
-                float glyph = box.height - 3;
-                Glyphs.Paint(new Rect(box.x + 1.5f, box.y + 1.5f, glyph, glyph), chip.Kind, tint);
-                if (chip.Text.Length > 0)
-                    Draw.Text(new Rect(box.x + glyph + 2, box.y - 1, box.width - glyph - 3, box.height), chip.Text, font, Theme.Text, TextAnchor.MiddleCenter, true);
-            }
-            if (layout.Hidden > 0)
-            {
-                var more = RectOf(layout.Overflow);
-                Draw.Chip(more, Alpha(Theme.Plate, Theme.PlateAlpha), Alpha(Theme.Muted, .7f));
-                Draw.Text(new Rect(more.x, more.y - 1, more.width, more.height), "+" + layout.Hidden, font, Theme.TextSoft, TextAnchor.MiddleCenter, true);
-            }
-            if (layout.HasThreat)
-            {
-                // Armed Mine: hazard badge. Time Bomb: the remaining own turns as a number.
-                var threat = BallBadges.Threat(ball);
-                var box = RectOf(layout.Threat);
-                float beat = .5f + .5f * Mathf.Sin(Time.unscaledTime * (threat.Short == "1" ? 11 : 6) + ball.id);
-                Draw.Circle(Expand(box, (1.5f + beat * 2) * scale), Alpha(Theme.Threat, .28f));
-                Draw.Circle(box, Theme.Threat);
-                Draw.Circle(Expand(box, -1.5f), Theme.Ink);
-                if (threat.Kind == StatusKind.Fuse)
-                    Draw.Text(new Rect(box.x, box.y - 1, box.width, box.height), threat.Short, Mathf.Max(8, Mathf.RoundToInt(12 * scale)), Theme.Threat, TextAnchor.MiddleCenter, true);
-                else
-                    Glyphs.Paint(Expand(box, -3), StatusKind.Armed, Theme.Threat);
-            }
-            if (layout.HasReplay)
-            {
-                var chipBox = RectOf(layout.Replay);
-                Draw.Circle(Expand(chipBox, 1), Theme.Ink);
+                float chip = Mathf.Max(12, 14 * scale);
+                var chipBox = new Rect(point.x - radius * .3f - chip, point.y - radius - chip * .55f, chip, chip);
                 Draw.Circle(chipBox, ReplayColor);
-                Draw.Text(new Rect(chipBox.x, chipBox.y - 1, chipBox.width, chipBox.height), ReplayAffordance.BallChip, Mathf.Max(7, Mathf.RoundToInt(10 * scale)), Theme.Ink, TextAnchor.MiddleCenter, true);
+                Label(chipBox, ReplayAffordance.BallChip, Mathf.Max(7, Mathf.RoundToInt(9 * scale)), new Color(.02f, .04f, .06f));
             }
         }
 
         // Shared by the launcher and the card tray: this previews a catalog orb, not a runtime ball.
         public static void Preview(Rect body, BallDefinition definition, int owner, bool selected = false)
         {
-            float unit = Mathf.Max(.6f, body.width / 42.5f);
+            Color team = Draw.Owner(owner);
+            float unit = Mathf.Max(.6f, body.width / 36f);
             if (selected)
             {
-                Draw.Circle(Expand(body, 7 * unit), Alpha(Theme.Select, .07f));
-                Draw.Circle(Expand(body, 4.5f * unit), Alpha(Theme.Select, .12f));
+                Draw.Circle(Expand(body, 8 * unit), Alpha(team, .045f));
+                Draw.Circle(Expand(body, 5 * unit), Alpha(team, .09f));
+                Draw.Circle(Expand(body, 2.5f * unit), Alpha(team, .26f));
             }
-            DrawOrb(body, definition, owner, unit, selected ? 1 : .8f);
-            if(body.width>=24&&definition!=null)
-            {
-                string mark=Mark(definition);
-                MarkLabel(body,mark,Mathf.Clamp(Mathf.RoundToInt(body.width*(mark.Length>2?.3f:.36f)),7,22),Draw.Hex(definition.color));
-            }
-        }
-
-        // Shadow, ownership ring (P1 solid, P2 segmented) and the shaded sphere.
-        static void DrawOrb(Rect body, BallDefinition definition, int owner, float scale, float ringAlpha)
-        {
-            Color team = Draw.Owner(owner);
-            var center = body.center;
-            float radius = body.width * .5f, ring = Mathf.Max(2, Theme.OwnerRing * scale), gap = Mathf.Max(1, Theme.OwnerGap * scale);
-            Draw.Circle(new Rect(body.x + scale, body.y + 3.5f * scale, body.width, body.height), new Color(0, 0, 0, Theme.ShadowAlpha));
-            Draw.Circle(Expand(body, gap + ring + .5f), Theme.Ink);
-            if (owner == 1) Draw.Ring(center, radius + gap + ring, Alpha(team, ringAlpha), ring, Theme.P2RingSegments, Theme.P2RingFill);
-            else Draw.Ring(center, radius + gap + ring, Alpha(team, ringAlpha), ring);
+            Draw.Circle(new Rect(body.x + unit, body.y + 2.5f * unit, body.width, body.height), new Color(0, 0, 0, .38f));
+            Draw.Circle(Expand(body, 1.5f * unit), Alpha(team, selected ? .95f : .65f));
+            Draw.Circle(Expand(body, .35f * unit), new Color(.035f, .06f, .085f));
             DrawBody(body, definition);
+            if(body.width>=28&&definition!=null)Draw.Text(body,Mark(definition),Mathf.Clamp(Mathf.RoundToInt(body.width*.22f),8,17),new Color(.94f,.99f,1,.9f),TextAnchor.MiddleCenter,true);
         }
 
         static void DrawBody(Rect body, BallDefinition definition)
         {
             string key = definition == null || string.IsNullOrEmpty(definition.color) ? "#d8e7f5" : definition.color;
-            if (!BodySprites.TryGetValue(key, out var sprite) || sprite == null)
+            if (!BodySprites.TryGetValue(key, out var sprite))
             {
                 sprite = CreateBodySprite(Draw.Hex(key));
-                BodySprites[key] = sprite;
+                BodySprites.Add(key, sprite);
             }
             Color old = GUI.color;
             GUI.color = Color.white;
@@ -163,19 +104,16 @@ namespace CoreClash.Presentation
             GUI.color = old;
         }
 
-        // One material for every ball: a matte-glass sphere lit from the upper left,
-        // with a dark rim (reads on any floor), a soft highlight and a faint bounce light.
         static Texture2D CreateBodySprite(Color color)
         {
             var sprite = new Texture2D(SpriteSize, SpriteSize, TextureFormat.RGBA32, false)
             {
-                name = "Core Clash orb",
+                name = "Core Clash glossy orb",
                 filterMode = FilterMode.Bilinear,
                 wrapMode = TextureWrapMode.Clamp,
                 hideFlags = HideFlags.HideAndDontSave
             };
             var pixels = new Color[SpriteSize * SpriteSize];
-            Color deep = Color.Lerp(new Color(.02f, .035f, .06f), color, Theme.BodyDark);
             for (int y = 0; y < SpriteSize; y++)
             for (int x = 0; x < SpriteSize; x++)
             {
@@ -184,15 +122,10 @@ namespace CoreClash.Presentation
                 float distance = Mathf.Sqrt(nx * nx + ny * ny);
                 if (distance > 1.02f) continue;
                 float nz = Mathf.Sqrt(Mathf.Max(0, 1 - distance * distance));
-                float light = Mathf.Clamp01(-nx * .42f - ny * .52f + nz * .72f);
-                Color pixel = Color.Lerp(deep, color, Mathf.SmoothStep(0, 1, .12f + light * .95f));
-                // Rim darkening separates the sphere from the ownership ring.
-                pixel = Color.Lerp(pixel, deep * .55f, Mathf.Pow(distance, 5) * .75f);
-                // Bounce light from the floor on the lower right.
-                float bounce = Mathf.Clamp01(nx * .35f + ny * .6f - .35f) * (1 - nz);
-                pixel = Color.Lerp(pixel, Color.Lerp(color, Color.white, .35f), bounce * .5f);
-                float highlight = Mathf.Exp(-((nx + .36f) * (nx + .36f) + (ny + .42f) * (ny + .42f)) * 15);
-                pixel = Color.Lerp(pixel, Color.white, highlight * Theme.BodyHighlight);
+                float light = Mathf.Clamp01(-nx * .38f - ny * .48f + nz * .76f);
+                Color pixel = Color.Lerp(new Color(.025f, .04f, .075f), color, .27f + light * .73f);
+                float highlight = Mathf.Exp(-((nx + .34f) * (nx + .34f) + (ny + .39f) * (ny + .39f)) * 17);
+                pixel = Color.Lerp(pixel, Color.white, highlight * .9f);
                 pixel.a = Mathf.Clamp01((1 - distance) * SpriteSize * .5f);
                 pixels[y * SpriteSize + x] = pixel;
             }
@@ -201,41 +134,57 @@ namespace CoreClash.Presentation
             return sprite;
         }
 
-        // Motion trail behind a fast ball: fading discs in the ball's own colour.
         static void DrawWake(Vector2 point, BallRuntime ball, Color color, float scale,int localOwner)
         {
             var velocity = localOwner==1?new Vector2(ball.vx,-ball.vy):new Vector2(ball.vx,ball.vy);
             if (!ball.moving || velocity.sqrMagnitude < 8100) return;
-            float speed = velocity.magnitude, radius = ball.radius * scale;
-            float length = Mathf.Min(Theme.WakeLength, speed * .13f) * scale;
-            Vector2 direction = velocity / speed;
-            for (int i = Theme.WakeSteps; i > 0; i--)
+            float length = Mathf.Min(42, velocity.magnitude * .075f) * scale;
+            Vector2 direction = velocity.normalized;
+            for (int i = 3; i > 0; i--)
             {
-                float t = i / (float)Theme.WakeSteps;
-                Vector2 p = point - direction * (radius * .6f + length * t);
-                float r = radius * (1 - t * .55f);
-                Draw.Circle(new Rect(p.x - r, p.y - r, r * 2, r * 2), Alpha(color, Theme.WakeAlpha * (1 - t * .8f)));
+                Vector2 start = point - direction * length * (i - 1) / 3;
+                Vector2 end = point - direction * length * i / 3;
+                Draw.Line(start, end, Alpha(color, .19f - i * .04f), Mathf.Max(1, ball.radius * .4f * scale));
             }
         }
 
-        // Type mark: dark on light bodies, light on dark ones, with a thin opposite edge.
-        static void MarkLabel(Rect body, string text, int size, Color bodyColor)
+        static void Label(Rect rect, string text, int size, Color color)
         {
-            float luminance = bodyColor.r * .299f + bodyColor.g * .587f + bodyColor.b * .114f;
-            bool darkText = luminance > .6f;
-            Color ink = darkText ? new Color(.03f, .07f, .11f, .95f) : new Color(.97f, .99f, 1, .97f);
-            Color edge = darkText ? new Color(1, 1, 1, .35f) : new Color(.01f, .03f, .05f, .7f);
-            var box = new Rect(body.x - 4, body.y, body.width + 8, body.height);
-            Draw.Text(new Rect(box.x, box.y + 1, box.width, box.height), text, size, edge, TextAnchor.MiddleCenter, true);
-            Draw.Text(box, text, size, ink, TextAnchor.MiddleCenter, true);
+            var shadow = new Rect(rect.x, rect.y + 1, rect.width, rect.height);
+            Draw.Text(shadow, text, size, new Color(.02f, .04f, .07f, .8f), TextAnchor.MiddleCenter, true);
+            Draw.Text(rect, text, size, color, TextAnchor.MiddleCenter, true);
         }
 
-        static Vector2 ViewPoint(Rect board,float x,float y,int localOwner)
+        static void Ring(Vector2 center, float radius, Color color, float width)
         {
-            float scale = board.width / 540f;
-            return new Vector2(board.x + MatchPerspective.ViewX(x,localOwner) * scale, board.y + MatchPerspective.ViewY(y,localOwner) * scale);
+            if (radius <= 0) return;
+            int key = Mathf.Max(1, Mathf.RoundToInt(width / radius * 2048));
+            if (!RingSprites.TryGetValue(key, out var sprite))
+            {
+                const int size = 128;
+                sprite = new Texture2D(size, size, TextureFormat.RGBA32, false)
+                {
+                    name = "Core Clash orb outline", filterMode = FilterMode.Bilinear,
+                    wrapMode = TextureWrapMode.Clamp, hideFlags = HideFlags.HideAndDontSave
+                };
+                float inner = size * .5f - Mathf.Max(.6f, key / 2048f * size * .5f);
+                var pixels = new Color[size * size];
+                for (int y = 0; y < size; y++)
+                for (int x = 0; x < size; x++)
+                {
+                    float distance = Vector2.Distance(new Vector2(x + .5f, y + .5f), new Vector2(size * .5f, size * .5f));
+                    pixels[y * size + x] = new Color(1, 1, 1, Mathf.Clamp01(size * .5f - distance) * Mathf.Clamp01(distance - inner + 1));
+                }
+                sprite.SetPixels(pixels);
+                sprite.Apply(false, true);
+                RingSprites.Add(key, sprite);
+            }
+            Color old = GUI.color;
+            GUI.color = color;
+            GUI.DrawTexture(new Rect(center.x - radius, center.y - radius, radius * 2, radius * 2), sprite);
+            GUI.color = old;
         }
-        static Rect RectOf(UiBox r)=>new Rect(r.x,r.y,r.width,r.height);
+
         static Rect Expand(Rect rect, float amount) => new Rect(rect.x - amount, rect.y - amount, rect.width + amount * 2, rect.height + amount * 2);
         static readonly Color ReplayColor = Draw.Gold;
         static Color Alpha(Color color, float alpha) => new Color(color.r, color.g, color.b, alpha);
