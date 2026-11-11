@@ -52,7 +52,7 @@ namespace CoreClash.Presentation
             var visible = BoardOverlayPlanner.Field(viewOwner, clippedBoard.x, clippedBoard.y, clippedBoard.width);
             for (int owner = 0; owner < 2; owner++) RenderLauncher(clippedBoard, state, owner, aim, selected);
             RenderZones(clippedBoard, state);
-            RenderTurnCue(clippedBoard, state, feedback, dragging);
+            RenderTurnSweep(clippedBoard, state, feedback, dragging);
             RenderStructures(clippedBoard, state);
             // Pass 1: bodies. Pass 2: plates and chips, so no ball hides another ball's information.
             drawn.Clear();
@@ -72,6 +72,7 @@ namespace CoreClash.Presentation
             marginNotes.Clear();var keepOut=BoardKeepOuts(clippedBoard,state);
             RenderBaseReport(clippedBoard,simulation,aim,keepOut);
             RenderReplayCounter(clippedBoard,simulation,aim,keepOut);
+            RenderTurnCue(clippedBoard,state,feedback,dragging,keepOut);
             if (state.phase == MatchPhase.Aiming && dragging) RenderAim(clippedBoard, state, aim,selected,simulation.Catalog);
             GUI.EndGroup();
 
@@ -245,27 +246,50 @@ namespace CoreClash.Presentation
             else Draw.Ring(center, reach, Theme.A(Theme.Threat, .55f + beat * .3f), Mathf.Max(1.5f, 2 * scale));
         }
 
-        // Turn change, from the real TURN event: a sweep from the new player's zone edge and
-        // a short pill. Drawn under the balls and hidden as soon as a drag starts.
-        static void RenderTurnCue(Rect board, GameState state, FeedbackTimeline feedback, bool dragging)
+        // Turn change, from the real TURN event: a sweep line from the new player's zone edge
+        // (under the balls) and a short pill in a free slot (never over a ball, its plates,
+        // a launcher or another board note). Both end at once when a drag starts.
+        static bool TurnCue(GameState state, FeedbackTimeline feedback, bool dragging, out float alpha, out float progress, out int owner)
         {
-            if (feedback == null || feedback.TurnBorn < 0 || dragging || state.phase == MatchPhase.Over) return;
+            alpha = progress = 0; owner = 0;
+            if (feedback == null || feedback.TurnBorn < 0 || dragging || state.phase == MatchPhase.Over) return false;
             float age = Time.unscaledTime - feedback.TurnBorn;
-            if (age < 0 || age >= Theme.TurnCue) return;
-            float scale = board.width / 540, t = age / Theme.TurnCue;
-            float alpha = Mathf.Clamp01(t * 6) * Mathf.Clamp01((1 - t) * 3) * Theme.EffectStrength;
-            int owner = feedback.TurnOwner == 1 ? 1 : 0;
-            Color team = Draw.Owner(owner);
+            if (age < 0 || age >= Theme.TurnCue) return false;
+            progress = age / Theme.TurnCue;
+            alpha = Mathf.Clamp01(progress * 6) * Mathf.Clamp01((1 - progress) * 3) * Theme.EffectStrength;
+            owner = feedback.TurnOwner == 1 ? 1 : 0;
+            return alpha > 0;
+        }
+        static void RenderTurnSweep(Rect board, GameState state, FeedbackTimeline feedback, bool dragging)
+        {
+            if (!TurnCue(state, feedback, dragging, out float alpha, out float progress, out int owner)) return;
             float edge = owner == 0 ? ZoneP1Top : ZoneP2Bottom;
-            float travel = (owner == 0 ? -1 : 1) * 90 * Mathf.SmoothStep(0, 1, t);
-            Line(board, Left, edge + travel, Right, edge + travel, Theme.A(team, alpha * .55f), 3);
-            Vector2 anchor = Point(board, CentreX, owner == 0 ? 640 : 260);
+            float travel = (owner == 0 ? -1 : 1) * 90 * Mathf.SmoothStep(0, 1, progress);
+            Line(board, Left, edge + travel, Right, edge + travel, Alpha(Draw.Owner(owner), alpha * .55f), 3);
+        }
+        static void RenderTurnCue(Rect board, GameState state, FeedbackTimeline feedback, bool dragging, List<UiBox> avoid)
+        {
+            if (!TurnCue(state, feedback, dragging, out float alpha, out _, out int owner)) return;
+            float scale = board.width / 540;
+            var field = BoardOverlayPlanner.Field(viewOwner, board.x, board.y, board.width);
+            Color team = Draw.Owner(owner);
             string text = "PLAYER " + (owner + 1) + " · TURN " + feedback.TurnNumber;
-            int font = Mathf.Max(10, Mathf.RoundToInt(15 * scale));
-            float width = text.Length * font * .66f + 22, height = font + 12;
-            var pill = new Rect(anchor.x - width / 2, anchor.y - height / 2, width, height);
-            Draw.Chip(pill, Theme.A(Theme.Plate, .82f * alpha), Theme.A(team, alpha));
-            Draw.Text(pill, text, font, Theme.A(team, alpha), TextAnchor.MiddleCenter, true);
+            int font = Mathf.Max(10, Mathf.RoundToInt(14 * scale));
+            float width = Mathf.Min(field.width - 16, text.Length * font * .66f + 22), height = font + 12;
+            // Rows from that player's zone edge toward the centre; centre first, then the sides.
+            bool top = BoardOverlayPlanner.AtViewTop(owner, viewOwner);
+            Vector2 edge = Point(board, CentreX, owner == 0 ? ZoneP1Top : ZoneP2Bottom);
+            var slots = new List<AimPoint>();
+            for (int row = 0; row < 16; row++)
+            {
+                float y = top ? edge.y + 8 * scale + row * height * .5f : edge.y - 8 * scale - height - row * height * .5f;
+                foreach (float anchor in new[] { .5f, 0f, 1f }) slots.Add(new AimPoint(field.x + 8 + anchor * (field.width - 16 - width), y));
+            }
+            if (!BoardLabelLayout.TryPlace(field, width, height, avoid, slots, 8, out var box)) return;
+            avoid.Add(box);
+            var pill = RectOf(box);
+            Draw.Chip(pill, Alpha(Theme.Plate, .88f * alpha), Alpha(team, alpha));
+            Draw.Text(pill, text, font, Alpha(team, alpha), TextAnchor.MiddleCenter, true);
         }
 
         static Color EffectColor(FeedbackClass kind)
@@ -316,9 +340,10 @@ namespace CoreClash.Presentation
                 var effect=feedback.Items[i];float age=now-effect.born;
                 if(age<0||age>=FeedbackTimeline.Life)continue;
                 var kind=FeedbackStyle.Classify(effect.kind,effect.text);
-                var origin=Point(board,effect.x,effect.y);
+                // Base damage: the wall and the HUD flash (RenderFrame); its label sits beside the launcher.
+                var origin=kind==FeedbackClass.BaseDamage?Point(board,412,effect.owner==0?850:50):Point(board,effect.x,effect.y);
                 Burst(origin,kind,age,scale,effect.ballId,veil);
-                string text=FeedbackStyle.Label(effect.kind,effect.text);
+                string text=FeedbackStyle.HasLabel(kind)?FeedbackStyle.Label(effect.kind,effect.text):"";
                 if(text.Length==0)continue;
                 bool number=FeedbackStyle.IsNumber(kind);
                 int font=number?Mathf.Max(11,Mathf.RoundToInt((FeedbackStyle.Amount(effect.text)>=10?17:15)*scale)):Mathf.Max(9,Mathf.RoundToInt(11*scale));
@@ -419,11 +444,7 @@ namespace CoreClash.Presentation
                     break;
                 }
                 case FeedbackClass.BaseDamage:
-                {
-                    float t=Mathf.Clamp01(age/Theme.BaseFlash);
-                    if(t<1)Draw.Ring(origin,(24+70*t)*scale,Theme.A(tint,(1-t)*.8f*strength),Mathf.Max(2,3*scale));
                     break;
-                }
                 default:
                 {
                     // Status applied and other events: one ring in the event's colour.
@@ -458,10 +479,13 @@ namespace CoreClash.Presentation
             {
                 var path=preview.Path;
                 if(!preview.Valid)return;
+                // Strokes start outside the origin ring, so the ball being launched stays readable.
+                float clear=(fromLauncher?37:(replay?.radius??17)+12)*scale;
                 for(int i=1;i<path.Length;i++){
                     var from=Point(board,path[i-1].x,path[i-1].y);var to=Point(board,path[i].x,path[i].y);
-                    AimStroke(from,to,under,Mathf.Max(4,6.5f*scale));
-                    AimStroke(from,to,i==1?vector:Alpha(vector,.6f),Mathf.Max(1.6f,2.6f*scale),i==1?9*scale:5*scale,6*scale);
+                    if(i==1){float reach=(to-from).magnitude;if(reach<=clear+2)continue;from+=(to-from)/reach*clear;}
+                    AimStroke(from,to,under,Mathf.Max(4.5f,7.5f*scale));
+                    AimStroke(from,to,i==1?vector:Alpha(vector,.6f),Mathf.Max(2,3.2f*scale),i==1?10*scale:5*scale,6*scale);
                     if(i==1&&path.Length>2)Draw.Ring(to,6*scale,Alpha(vector,.9f),Mathf.Max(1,1.4f*scale));
                 }
                 Vector2 tip=Point(board,path[path.Length-1].x,path[path.Length-1].y),last=Point(board,path[path.Length-2].x,path[path.Length-2].y);Vector2 direction=(tip-last).normalized;
@@ -470,7 +494,8 @@ namespace CoreClash.Presentation
                 AimStroke(tip-direction*13*scale-wing*7*scale,tip,under,Mathf.Max(4,6*scale));
                 AimStroke(tip-direction*13*scale+wing*7*scale,tip,vector,Mathf.Max(1.6f,2.8f*scale));
                 AimStroke(tip-direction*13*scale-wing*7*scale,tip,vector,Mathf.Max(1.6f,2.8f*scale));
-                AimStroke(origin,finger,Alpha(team,Theme.AimPull),Mathf.Max(1,1.4f*scale),4*scale,5*scale);
+                float pull=(finger-origin).magnitude;
+                if(pull>clear+4)AimStroke(origin+(finger-origin)/pull*clear,finger,Alpha(team,Theme.AimPull),Mathf.Max(1,1.4f*scale),4*scale,5*scale);
                 if(preview.Ready&&ShowStopEstimate)RenderStopEstimate(board,state,aim,selected,replay,catalog,vector,scale);
             }
             Draw.Ring(finger, 11 * scale, under, Mathf.Max(2.5f, 3.8f * scale));
@@ -566,7 +591,9 @@ namespace CoreClash.Presentation
             AimStroke(stop-new Vector2(0,r*.45f),stop+new Vector2(0,r*.45f),mark,Mathf.Max(1,1.2f*scale));
             string label=StopPredictor.Label(e);int font=Mathf.Max(9,Mathf.RoundToInt(11*scale));
             float w=label.Length*font*.6f+12,h=font+8;
-            var rect=RectOf(BoardLabelLayout.Fit(VisibleField(board),stop.x,stop.y+r+4,stop.y-r-4-h,w,h));
+            // W20: the label keeps to the field (W19-04) and now also moves off balls and their plates.
+            var standard=BoardLabelLayout.Fit(VisibleField(board),stop.x,stop.y+r+4,stop.y-r-4-h,w,h);
+            var rect=RectOf(BoardLabelLayout.FitAvoiding(standard,VisibleField(board),stop.x,stop.y+r+4,stop.y-r-4-h,w,h,BoardKeepOuts(board,state),h+2));
             Draw.Chip(rect,Alpha(Theme.Plate,.82f));Draw.Text(rect,label,font,mark,TextAnchor.MiddleCenter,true);
         }
 

@@ -49,6 +49,8 @@ namespace CoreClash.Presentation
             }
         }
         public static bool IsNumber(FeedbackClass kind)=>kind==FeedbackClass.Damage||kind==FeedbackClass.Heal;
+        // An explosion is shown by its blast; its damage numbers and defeats carry the words.
+        public static bool HasLabel(FeedbackClass kind)=>kind!=FeedbackClass.Explosion;
         // Amount of a "-12" / "+5" label, 0 when the text is not a number.
         public static int Amount(string text)
         {

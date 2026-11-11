@@ -61,14 +61,16 @@ namespace CoreClash.Presentation
             int font = layout.Font;
             Color team = Draw.Owner(ball.owner);
 
-            // HP plate: number plus a thin bar that shortens and changes colour with damage.
+            // HP plate in the owner's colour. A damaged ball also gets a thin bar that shortens
+            // and turns amber, then red; a full-health plate stays plain.
             var hp = RectOf(layout.Hp);
             float fraction = ball.maxHp > 0 ? Mathf.Clamp01((float)ball.hp / ball.maxHp) : 1;
+            bool hurt = ball.hp < ball.maxHp;
             Color health = fraction < Theme.HpCriticalBelow ? Theme.HpCritical : fraction < Theme.HpHurtBelow ? Theme.HpHurt : Theme.HpGood;
             Draw.Chip(hp, Alpha(Theme.Plate, Theme.PlateAlpha), Alpha(team, .9f));
-            Draw.Text(new Rect(hp.x, hp.y - 1, hp.width, hp.height), ball.hp.ToString(), font, fraction < Theme.HpHurtBelow ? health : Theme.Text, TextAnchor.MiddleCenter, true);
             float bar = Mathf.Max(1.5f, 2 * scale);
-            Draw.Rect(new Rect(hp.x + 3, hp.yMax - bar - 1, (hp.width - 6) * fraction, bar), health);
+            Draw.Text(new Rect(hp.x, hp.y - (hurt ? bar * .5f + .5f : 0), hp.width, hp.height), ball.hp.ToString(), font, fraction < Theme.HpHurtBelow ? health : Theme.Text, TextAnchor.MiddleCenter, true);
+            if (hurt) Draw.Rect(new Rect(hp.x + 3, hp.yMax - bar - 1.5f, (hp.width - 6) * fraction, bar), health);
 
             if (layout.HasShield)
             {

@@ -105,6 +105,24 @@ public static partial class Program
             var cramped=FeedbackLabels.Stack(Enumerable.Repeat(new UiBox(10,5,60,20),4).ToList(),new UiBox(0,0,100,30),24);
             True(cramped[0].width>0&&cramped.Skip(1).All(b=>b.width==0),"a label was drawn over another when no slot existed");
         });
+        Test("W20 STOP label moves off balls and their plates; an explosion carries no text label",()=>{
+            var field=new UiBox(0,0,400,700);
+            var standard=BoardLabelLayout.Fit(field,200,320,270,120,20);Eq(320f,standard.y);Eq(140f,standard.x);
+            var kept=BoardLabelLayout.FitAvoiding(standard,field,200,320,270,120,20,new List<UiBox>(),22);
+            True(kept.x==standard.x&&kept.y==standard.y&&kept.width==standard.width&&kept.height==standard.height,"moved with nothing to avoid");
+            // a ball under the marker: the label takes the other side
+            var under=new UiBox(150,315,100,40);
+            var moved=BoardLabelLayout.FitAvoiding(standard,field,200,320,270,120,20,new List<UiBox>{under},22);
+            Eq(270f,moved.y);True(!BoardLabelLayout.Overlaps(moved,under));
+            // both sides taken: further away, still inside the field
+            var over=new UiBox(150,260,100,40);
+            var far=BoardLabelLayout.FitAvoiding(standard,field,200,320,270,120,20,new List<UiBox>{under,over},22);
+            True(!BoardLabelLayout.Overlaps(far,under)&&!BoardLabelLayout.Overlaps(far,over)&&far.y>=4&&far.Bottom<=696,"no free position found");
+            // nothing free: the W19-04 in-field position is kept (never outside the field)
+            var blocked=BoardLabelLayout.FitAvoiding(standard,field,200,320,270,120,20,new List<UiBox>{new UiBox(0,0,400,700)},22);
+            True(blocked.x==standard.x&&blocked.y==standard.y,"blocked label left its standard position");
+            False(FeedbackStyle.HasLabel(FeedbackClass.Explosion));True(FeedbackStyle.HasLabel(FeedbackClass.Damage)&&FeedbackStyle.HasLabel(FeedbackClass.Defeat)&&FeedbackStyle.HasLabel(FeedbackClass.BaseDamage));
+        });
         Test("W20 turn-change cue is stamped only by a real TURN event and is not a feedback label",()=>{
             var s=Sim();var view=new FeedbackTimeline();view.Observe(s.State,0);True(view.TurnBorn<0,"cue before any turn change");
             True(s.TryCommand(Shot(s),out _));view.Observe(s.State,.2f);True(view.TurnBorn<0,"cue at launch");
@@ -168,6 +186,7 @@ public static partial class Program
             True(match.Contains("ToggleStopEstimate()")&&app.Contains("GetKeyDown(KeyCode.E))ToggleStopEstimate();"),"no control for the STOP mark");
             True(board.Contains("FeedbackLabels.Stack(")&&!board.Contains("labels.Any(r=>r.Overlaps(label))"),"overlapping feedback labels are still dropped");
             True(board.Contains("RenderTurnCue(")&&board.Contains("feedback.TurnBorn"),"turn cue does not come from the TURN stamp");
+            True(board.Contains("BoardLabelLayout.FitAvoiding(standard,VisibleField(board)")&&board.Contains("FeedbackStyle.HasLabel(kind)"),"STOP label or explosion label rule not applied");
             True(draw.Contains("Cyan=Theme.P1")&&draw.Contains("Pink=Theme.P2")&&theme.Contains("public const float EffectStrength"),"colours are not centralised in Theme");
             True(match.Contains("MatchPanelLayout.For(")&&match.Contains("ActionSummary.For(state)"),"side panel does not use the fitted layout or the result line");
             // presentation only: none of the new files drives the simulation

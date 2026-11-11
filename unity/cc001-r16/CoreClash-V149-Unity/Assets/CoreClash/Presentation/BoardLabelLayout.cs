@@ -25,6 +25,27 @@ namespace CoreClash.Presentation
         }
         static float Clamp(float v,float min,float max)=>max<min?min:Math.Max(min,Math.Min(max,v));
 
+        // W20: a label that would cover a ball or its plates moves to the first free
+        // position instead: the preferred side, the fallback side, then further away from
+        // the anchor in steps. `standard` (the plain Fit result) is kept when nothing is free.
+        public static UiBox FitAvoiding(UiBox standard,UiBox field,float cx,float preferredY,float fallbackY,float width,float height,IReadOnlyList<UiBox> avoid,float step,int tries=6,float margin=4)
+        {
+            if(avoid==null||avoid.Count==0||step<=0)return standard;
+            float w=Math.Max(1,Math.Min(width,field.width-2*margin)),h=Math.Max(1,Math.Min(height,field.height-2*margin));
+            float minY=field.y+margin,maxY=field.Bottom-margin-h,x=Clamp(cx-w/2,field.x+margin,field.Right-margin-w);
+            float away=preferredY>=fallbackY?1:-1;
+            for(int k=0;k<=tries;k++)
+                for(int side=0;side<2;side++)
+                {
+                    float y=side==0?preferredY+away*k*step:fallbackY-away*k*step;
+                    if(y<minY||y>maxY)continue;
+                    var box=new UiBox(x,y,w,h);bool hit=false;
+                    foreach(var other in avoid)if(Overlaps(box,other)){hit=true;break;}
+                    if(!hit)return box;
+                }
+            return standard;
+        }
+
         // CC-001 W19-05: collision-aware slots for the base-damage banner and the
         // Replay counter. Seen on the real d95ae7a Player: the banner covered a
         // home ball and its Replay "R" chip, and the counter sat on the launcher.

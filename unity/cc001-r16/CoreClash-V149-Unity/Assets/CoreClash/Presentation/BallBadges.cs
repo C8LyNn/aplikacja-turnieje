@@ -24,8 +24,8 @@ namespace CoreClash.Presentation
         // Fixed order = stable placement: the same state is always in the same relative slot.
         static readonly StatusKind[] Order={StatusKind.Frozen,StatusKind.Rooted,StatusKind.Fire,StatusKind.Ice,StatusKind.Toxin,StatusKind.Divine,
             StatusKind.Jammed,StatusKind.Sticky,StatusKind.Phased,StatusKind.Frostguard,StatusKind.Counter,StatusKind.Veteran,StatusKind.Split,StatusKind.Ancestral,StatusKind.Token};
-        public static float RowHeight(float scale)=>Math.Max(11f,13f*scale);
-        public static int Font(float scale)=>Math.Max(8,(int)Math.Round(10*scale));
+        public static float RowHeight(float scale)=>Math.Max(12f,14f*scale);
+        public static int Font(float scale)=>Math.Max(9,(int)Math.Round(11*scale));
         public static float RingOut(float scale)=>Math.Max(2.5f,3.4f*scale);
         public static float ReplayPulse(float scale)=>11.2f*scale;
         public static float ReplayChip(float scale)=>Math.Max(12f,14f*scale);

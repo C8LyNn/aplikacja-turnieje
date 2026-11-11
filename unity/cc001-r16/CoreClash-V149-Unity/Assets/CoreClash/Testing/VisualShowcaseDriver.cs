@@ -109,7 +109,7 @@ namespace CoreClash.Testing
             var times = new StringBuilder("frame,unscaledTime,phase,turn\n");
             int frame = 0, action = sim.State.actionSerial;
             Time.captureFramerate = 30;
-            Vector2 target = ScreenPoint(296, 640);
+            Vector2 target = ScreenPoint(281, 636); // straight at the enemy Standard ball: contact, damage, stop, turn change
             for (int i = 0; i < 12; i++) { Shot(clip, times, sim, ref frame); yield return null; }
             app.PresentationPointer(new PointerSample { id = 78, position = launcher, down = true, held = true });
             for (int i = 1; i <= 34; i++)
