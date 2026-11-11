@@ -202,6 +202,12 @@ namespace CoreClash.Presentation
                     float glyph=Mathf.Max(10,15*scale);
                     Glyphs.Paint(new Rect(center.x-glyph/2,center.y-glyph/2,glyph,glyph),fire?StatusKind.Fire:ice?StatusKind.Ice:StatusKind.Toxin,Theme.A(color,.95f));
                 }
+                else if(fire||ice||toxin)
+                {
+                    // Element field: the same symbol its status uses on a ball.
+                    float glyph=Mathf.Max(11,18*scale);
+                    Glyphs.Paint(new Rect(center.x-glyph/2,center.y-glyph/2,glyph,glyph),fire?StatusKind.Fire:ice?StatusKind.Ice:StatusKind.Toxin,Theme.A(color,.6f));
+                }
             }
         }
 
@@ -342,7 +348,11 @@ namespace CoreClash.Presentation
                 var kind=FeedbackStyle.Classify(effect.kind,effect.text);
                 // Base damage: the wall and the HUD flash (RenderFrame); its label sits beside the launcher.
                 var origin=kind==FeedbackClass.BaseDamage?Point(board,412,effect.owner==0?850:50):Point(board,effect.x,effect.y);
-                Burst(origin,kind,age,scale,effect.ballId,veil);
+                var contact=origin;
+                // HP and state labels travel with their ball; the contact flash stays where it happened.
+                if(FeedbackStyle.FollowsBall(kind))
+                    foreach(var item in drawn)if(item.ball.id==effect.ballId){origin=Point(board,item.x,item.y);break;}
+                Burst(kind==FeedbackClass.Damage?contact:origin,kind,age,scale,effect.ballId,veil);
                 string text=FeedbackStyle.HasLabel(kind)?FeedbackStyle.Label(effect.kind,effect.text):"";
                 if(text.Length==0)continue;
                 bool number=FeedbackStyle.IsNumber(kind);
@@ -590,7 +600,9 @@ namespace CoreClash.Presentation
             AimStroke(stop-new Vector2(r*.45f,0),stop+new Vector2(r*.45f,0),mark,Mathf.Max(1,1.2f*scale));
             AimStroke(stop-new Vector2(0,r*.45f),stop+new Vector2(0,r*.45f),mark,Mathf.Max(1,1.2f*scale));
             string label=StopPredictor.Label(e);int font=Mathf.Max(9,Mathf.RoundToInt(11*scale));
-            float w=label.Length*font*.6f+12,h=font+8;
+            float w=label.Length*font*.6f+12,h=font+8,room=VisibleField(board).width-8;
+            // On a very small board the full label is wider than the field: two lines instead of a cut line.
+            if(w>room){w=room;h=2*(font+2)+8;}
             // W20: the label keeps to the field (W19-04) and now also moves off balls and their plates.
             var standard=BoardLabelLayout.Fit(VisibleField(board),stop.x,stop.y+r+4,stop.y-r-4-h,w,h);
             var rect=RectOf(BoardLabelLayout.FitAvoiding(standard,VisibleField(board),stop.x,stop.y+r+4,stop.y-r-4-h,w,h,BoardKeepOuts(board,state),h+2));

@@ -122,6 +122,9 @@ public static partial class Program
             var blocked=BoardLabelLayout.FitAvoiding(standard,field,200,320,270,120,20,new List<UiBox>{new UiBox(0,0,400,700)},22);
             True(blocked.x==standard.x&&blocked.y==standard.y,"blocked label left its standard position");
             False(FeedbackStyle.HasLabel(FeedbackClass.Explosion));True(FeedbackStyle.HasLabel(FeedbackClass.Damage)&&FeedbackStyle.HasLabel(FeedbackClass.Defeat)&&FeedbackStyle.HasLabel(FeedbackClass.BaseDamage));
+            // a ball's own HP/state labels follow that ball; events about a place or a removed ball stay put
+            foreach(var kind in new[]{FeedbackClass.Damage,FeedbackClass.Absorbed,FeedbackClass.Heal,FeedbackClass.Shield,FeedbackClass.Fire,FeedbackClass.Fuse})True(FeedbackStyle.FollowsBall(kind),kind+" does not follow its ball");
+            foreach(var kind in new[]{FeedbackClass.Defeat,FeedbackClass.Explosion,FeedbackClass.BaseDamage,FeedbackClass.Structure,FeedbackClass.Info})True(!FeedbackStyle.FollowsBall(kind),kind+" must stay at its event position");
         });
         Test("W20 turn-change cue is stamped only by a real TURN event and is not a feedback label",()=>{
             var s=Sim();var view=new FeedbackTimeline();view.Observe(s.State,0);True(view.TurnBorn<0,"cue before any turn change");

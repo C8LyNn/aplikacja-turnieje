@@ -51,6 +51,18 @@ namespace CoreClash.Presentation
         public static bool IsNumber(FeedbackClass kind)=>kind==FeedbackClass.Damage||kind==FeedbackClass.Heal;
         // An explosion is shown by its blast; its damage numbers and defeats carry the words.
         public static bool HasLabel(FeedbackClass kind)=>kind!=FeedbackClass.Explosion;
+        // Labels about a ball's own HP or state travel with that ball, so it stays clear
+        // which ball they belong to after a collision sends both away from the contact point.
+        public static bool FollowsBall(FeedbackClass kind)
+        {
+            switch(kind)
+            {
+                case FeedbackClass.Damage:case FeedbackClass.Absorbed:case FeedbackClass.Heal:case FeedbackClass.Shield:
+                case FeedbackClass.Fire:case FeedbackClass.Ice:case FeedbackClass.Toxin:case FeedbackClass.Freeze:case FeedbackClass.Root:
+                case FeedbackClass.Cleanse:case FeedbackClass.Armed:case FeedbackClass.Fuse:case FeedbackClass.Disarm:return true;
+                default:return false;
+            }
+        }
         // Amount of a "-12" / "+5" label, 0 when the text is not a number.
         public static int Amount(string text)
         {
