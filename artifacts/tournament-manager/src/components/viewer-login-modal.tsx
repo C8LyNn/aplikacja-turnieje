@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useId } from "react";
 import { Eye, EyeOff, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,6 +20,8 @@ export function ViewerLoginModal({ open, tournamentId, tournamentName, onSuccess
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const backdropRef = useRef<HTMLDivElement>(null);
+  const passwordInputId = useId();
+  const passwordErrorId = useId();
 
   useEffect(() => {
     if (!open) { setPassword(""); setError(null); setLoading(false); return; }
@@ -77,28 +79,34 @@ export function ViewerLoginModal({ open, tournamentId, tournamentName, onSuccess
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <Label>Hasło widza</Label>
+            <Label htmlFor={passwordInputId}>Hasło widza</Label>
             <div className="relative">
               <Input
+                id={passwordInputId}
                 type={showPass ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Hasło widza..."
-                className="pr-10"
+                aria-invalid={!!error}
+                aria-describedby={error ? passwordErrorId : undefined}
+                className="pr-12"
                 autoFocus
               />
               <button
                 type="button"
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                aria-label={showPass ? "Ukryj hasło widza" : "Pokaż hasło widza"}
+                aria-controls={passwordInputId}
+                aria-pressed={showPass}
+                className="absolute right-1 top-1/2 -translate-y-1/2 inline-flex min-h-9 min-w-9 items-center justify-center rounded-md text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                 onClick={() => setShowPass((v) => !v)}
               >
-                {showPass ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                {showPass ? <EyeOff aria-hidden="true" className="w-4 h-4" /> : <Eye aria-hidden="true" className="w-4 h-4" />}
               </button>
             </div>
           </div>
 
           {error && (
-            <div className="flex items-center gap-2 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
+            <div id={passwordErrorId} role="alert" className="flex items-center gap-2 text-sm text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
               <Lock className="w-4 h-4 shrink-0" />
               {error}
             </div>
