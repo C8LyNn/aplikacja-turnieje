@@ -25,19 +25,43 @@ namespace CoreClash.Presentation
         }
         static float Clamp(float v,float min,float max)=>max<min?min:Math.Max(min,Math.Min(max,v));
 
+        // W20: a label that would cover a ball or its plates moves to the first free
+        // position instead: the preferred side, the fallback side, then further away from
+        // the anchor in steps. `standard` (the plain Fit result) is kept when nothing is free.
+        public static UiBox FitAvoiding(UiBox standard,UiBox field,float cx,float preferredY,float fallbackY,float width,float height,IReadOnlyList<UiBox> avoid,float step,int tries=6,float margin=4)
+        {
+            if(avoid==null||avoid.Count==0||step<=0)return standard;
+            float w=Math.Max(1,Math.Min(width,field.width-2*margin)),h=Math.Max(1,Math.Min(height,field.height-2*margin));
+            float minY=field.y+margin,maxY=field.Bottom-margin-h,x=Clamp(cx-w/2,field.x+margin,field.Right-margin-w);
+            float away=preferredY>=fallbackY?1:-1;
+            for(int k=0;k<=tries;k++)
+                for(int side=0;side<2;side++)
+                {
+                    float y=side==0?preferredY+away*k*step:fallbackY-away*k*step;
+                    if(y<minY||y>maxY)continue;
+                    var box=new UiBox(x,y,w,h);bool hit=false;
+                    foreach(var other in avoid)if(Overlaps(box,other)){hit=true;break;}
+                    if(!hit)return box;
+                }
+            return standard;
+        }
+
         // CC-001 W19-05: collision-aware slots for the base-damage banner and the
         // Replay counter. Seen on the real d95ae7a Player: the banner covered a
         // home ball and its Replay "R" chip, and the counter sat on the launcher.
 
-        // Everything BallView draws around a ball (Replay pulse rings, R chip on
-        // the left, owner chip on the right, status rows below), in view space.
+        // Everything BallView draws around a ball (owner ring, Replay pulse and chip,
+        // threat badge, HP plate and an optional status row below), in view space.
+        // W20: conservative estimate for callers without the ball; KeepOuts uses the
+        // exact BallBadges.Layout bounds of each ball.
         public static UiBox BallKeepOut(float cx,float cy,float radius,float scale,int statusRows)
         {
-            float chip=Math.Max(12,14*scale),ownerW=Math.Max(16,18*scale),ownerH=Math.Max(10,12*scale),rowH=Math.Max(10,12*scale),pad=4*scale;
-            float halfW=Math.Max(radius+12*scale,radius*.3f+Math.Max(chip,ownerW));
-            if(statusRows>0)halfW=Math.Max(halfW,Math.Max(54,radius*2+12*scale)/2);
-            float top=Math.Max(radius+12*scale,radius+Math.Max(chip*.55f,ownerH*.7f));
-            float bottom=Math.Max(radius+12*scale,radius+2*scale+statusRows*rowH);
+            float rowH=BallBadges.RowHeight(scale),ring=BallBadges.RingOut(scale),gap=Math.Max(1f,1.5f*scale),pad=4*scale;
+            float reach=radius+ring+BallBadges.ReplayPulse(scale);
+            float halfW=Math.Max(reach,Math.Max(radius*.3f+BallBadges.ReplayChip(scale),radius*.35f+BallBadges.ThreatSize(scale)));
+            halfW=Math.Max(halfW,rowH*(statusRows>0?2.6f:1.9f));
+            float top=Math.Max(reach,radius+Math.Max(BallBadges.ReplayChip(scale),BallBadges.ThreatSize(scale))*.55f);
+            float bottom=Math.Max(reach,radius+ring+gap+(1+Math.Max(0,statusRows))*(rowH+gap));
             halfW+=pad;top+=pad;bottom+=pad;
             return new UiBox(cx-halfW,cy-top,halfW*2,top+bottom);
         }
@@ -92,13 +116,14 @@ namespace CoreClash.Presentation
         public static UiBox Field(int viewOwner,float bx,float by,float bw){var a=View(WorldLeft,WorldTop,viewOwner,bx,by,bw);var b=View(WorldRight,WorldBottom,viewOwner,bx,by,bw);return BoardLabelLayout.Field(a.x,a.y,b.x,b.y);}
         // P2's base/launcher is at the top of the P1 view and at the bottom of the P2 view.
         public static bool AtViewTop(int owner,int viewOwner)=>(owner==1)==(viewOwner!=1);
-        public static int StatusRows(BallRuntime b)=>(BallInspection.Statuses(b).Length+1)/2;
+        public static int StatusRows(BallRuntime b)=>BallBadges.Chips(b).Length>0?1:0;
 
         public static List<UiBox> KeepOuts(GameState s,int viewOwner,float bx,float by,float bw)
         {
             float scale=Scale(bw);var list=new List<UiBox>();
             for(int owner=0;owner<2;owner++){var c=View(270,owner==0?853:47,viewOwner,bx,by,bw);list.Add(BoardLabelLayout.LauncherKeepOut(c.x,c.y,scale));}
-            if(s?.balls!=null)foreach(var b in s.balls)if(b!=null&&!b.dead&&!b.banished){var c=View(b.x,b.y,viewOwner,bx,by,bw);list.Add(BoardLabelLayout.BallKeepOut(c.x,c.y,b.radius*scale,scale,StatusRows(b)));}
+            var field=Field(viewOwner,bx,by,bw);
+            if(s?.balls!=null)foreach(var b in s.balls)if(b!=null&&!b.dead&&!b.banished){var c=View(b.x,b.y,viewOwner,bx,by,bw);list.Add(BallBadges.Inflate(BallBadges.Layout(b,c.x,c.y,scale,true,field).Bounds,4*scale));}
             if(s?.structures!=null)foreach(var g in s.structures)if(g!=null&&!g.dead){var c=View(g.x,g.y,viewOwner,bx,by,bw);float r=(g.radius+6)*scale;list.Add(new UiBox(c.x-r,c.y-r,2*r,2*r));}
             return list;
         }

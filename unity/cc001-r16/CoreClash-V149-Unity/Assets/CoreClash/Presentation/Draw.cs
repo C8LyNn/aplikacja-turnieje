@@ -10,9 +10,10 @@ namespace CoreClash.Presentation
         static Texture2D disc;
         static GUIStyle rounded;
         static readonly Dictionary<int,GUIStyle> labels=new Dictionary<int,GUIStyle>();
-        public static Color Cyan=new Color(.31f,.84f,1),Pink=new Color(1,.36f,.47f),Muted=new Color(.55f,.65f,.73f),Gold=new Color(1,.82f,.4f);
-        public static Color Background=Hex("#09111c"),Panel=Hex("#0e1a29"),PanelLight=Hex("#122235"),Edge=Hex("#263b50");
-        public static Color Owner(int owner)=>owner==0?Cyan:Pink;
+        // W20: every colour comes from Theme (one place to retune the look).
+        public static Color Cyan=Theme.P1,Pink=Theme.P2,Muted=Theme.Muted,Gold=Theme.Select;
+        public static Color Background=Theme.Background,Panel=Theme.Panel,PanelLight=Theme.PanelLight,Edge=Theme.Edge;
+        public static Color Owner(int owner)=>Theme.Team(owner);
         public static Color Hex(string text){return ColorUtility.TryParseHtmlString(text,out var c)?c:Color.white;}
         public static void Rect(Rect r,Color c){var old=GUI.color;GUI.color=c;GUI.DrawTexture(r,Texture2D.whiteTexture);GUI.color=old;}
         public static Rect Inset(Rect r,float amount)=>new Rect(r.x+amount,r.y+amount,Mathf.Max(0,r.width-amount*2),Mathf.Max(0,r.height-amount*2));
@@ -23,6 +24,67 @@ namespace CoreClash.Presentation
             var old=GUI.color;GUI.color=color;rounded.Draw(r,GUIContent.none,false,false,false,false);GUI.color=old;
         }
         public static void Surface(Rect r,Color fill,Color? border=null){Round(r,border??Edge);Round(Inset(r,1),fill);}
+        // W20: small rounded plate for HP, status chips and board labels (9-slice, crisp from 10 px up).
+        static GUIStyle chip;
+        public static void Chip(Rect r,Color color)
+        {
+            if(r.width<10||r.height<10){Rect(r,color);return;}
+            if(chip==null){const int n=12;var texture=new Texture2D(n,n,TextureFormat.RGBA32,false);for(int y=0;y<n;y++)for(int x=0;x<n;x++){float dx=Mathf.Max(Mathf.Abs(x-5.5f)-1.5f,0),dy=Mathf.Max(Mathf.Abs(y-5.5f)-1.5f,0);texture.SetPixel(x,y,new Color(1,1,1,Mathf.Clamp01(5f-Mathf.Sqrt(dx*dx+dy*dy))));}texture.Apply();chip=new GUIStyle{border=new RectOffset(5,5,5,5)};chip.normal.background=texture;}
+            var old=GUI.color;GUI.color=color;chip.Draw(r,GUIContent.none,false,false,false,false);GUI.color=old;
+        }
+        public static void Chip(Rect r,Color fill,Color border){Chip(r,border);Chip(Inset(r,1),fill);}
+        // W20: vertical two-colour gradient (one stretched 1x2 texture per colour pair).
+        static readonly Dictionary<long,Texture2D> gradients=new Dictionary<long,Texture2D>();
+        public static void VGradient(Rect r,Color top,Color bottom)
+        {
+            Color32 a=top,b=bottom;
+            long key=((long)a.r<<56)|((long)a.g<<48)|((long)a.b<<40)|((long)a.a<<32)|((long)b.r<<24)|((long)b.g<<16)|((long)b.b<<8)|(long)b.a;
+            if(!gradients.TryGetValue(key,out var texture)||texture==null){texture=new Texture2D(1,2,TextureFormat.RGBA32,false){filterMode=FilterMode.Bilinear,wrapMode=TextureWrapMode.Clamp,hideFlags=HideFlags.HideAndDontSave};texture.SetPixel(0,0,bottom);texture.SetPixel(0,1,top);texture.Apply();gradients[key]=texture;}
+            var old=GUI.color;GUI.color=Color.white;GUI.DrawTextureWithTexCoords(r,texture,new Rect(0,.25f,1,.5f));GUI.color=old;
+        }
+        // W20: repeating pattern fill (zone textures); tile is the on-screen size of one repeat.
+        public static void Tile(Rect r,Texture2D texture,float tile,Color color)
+        {
+            if(texture==null||tile<=0||r.width<=0||r.height<=0)return;
+            var old=GUI.color;GUI.color=color;GUI.DrawTextureWithTexCoords(r,texture,new Rect(0,0,r.width/tile,r.height/tile));GUI.color=old;
+        }
+        // W20: shared ring sprites. segments>0 gives a broken ring (P2 ownership, threat pulse).
+        static readonly Dictionary<long,Texture2D> rings=new Dictionary<long,Texture2D>();
+        public static void Ring(Vector2 center,float radius,Color color,float width,int segments=0,float fill=1)
+        {
+            if(radius<=0||width<=0)return;
+            int thickness=Mathf.Clamp(Mathf.RoundToInt(width/radius*2048),1,2048);
+            long key=thickness+((long)segments<<16)+((long)Mathf.RoundToInt(fill*100)<<24);
+            if(!rings.TryGetValue(key,out var sprite)||sprite==null)
+            {
+                const int size=128;
+                sprite=new Texture2D(size,size,TextureFormat.RGBA32,false){name="Core Clash ring",filterMode=FilterMode.Bilinear,wrapMode=TextureWrapMode.Clamp,hideFlags=HideFlags.HideAndDontSave};
+                float inner=size*.5f-Mathf.Max(.6f,thickness/2048f*size*.5f);
+                var pixels=new Color[size*size];
+                for(int y=0;y<size;y++)
+                for(int x=0;x<size;x++)
+                {
+                    float dx=x+.5f-size*.5f,dy=y+.5f-size*.5f,distance=Mathf.Sqrt(dx*dx+dy*dy);
+                    float alpha=Mathf.Clamp01(size*.5f-distance)*Mathf.Clamp01(distance-inner+1);
+                    if(segments>0&&alpha>0)
+                    {
+                        // Position inside one segment, 0..1; soft ends so the dashes stay round at small sizes.
+                        float turn=(Mathf.Atan2(dy,dx)/(2*Mathf.PI)+1.0625f)*segments;turn-=Mathf.Floor(turn);
+                        float edge=Mathf.Min(turn,fill-turn)*distance*2*Mathf.PI/segments;
+                        alpha*=Mathf.Clamp01(edge+.5f);
+                    }
+                    pixels[y*size+x]=new Color(1,1,1,alpha);
+                }
+                sprite.SetPixels(pixels);sprite.Apply(false,true);rings[key]=sprite;
+            }
+            var old=GUI.color;GUI.color=color;GUI.DrawTexture(new Rect(center.x-radius,center.y-radius,radius*2,radius*2),sprite);GUI.color=old;
+        }
+        // W20: text with a soft dark edge so it reads on any arena background.
+        public static void Label(Rect r,string text,int size,Color color,TextAnchor align=TextAnchor.MiddleCenter,bool bold=true)
+        {
+            Text(new Rect(r.x,r.y+1,r.width,r.height),text,size,new Color(.01f,.03f,.05f,.85f*color.a),align,bold);
+            Text(r,text,size,color,align,bold);
+        }
         public static bool Button(Rect r,string text,Color? accent=null,bool selected=false,bool enabled=true,int size=13)
         {
             Color tint=accent??Cyan;bool hover=r.Contains(Event.current.mousePosition)&&enabled;

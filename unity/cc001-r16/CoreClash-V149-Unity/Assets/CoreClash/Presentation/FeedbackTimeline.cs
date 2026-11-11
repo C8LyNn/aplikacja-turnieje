@@ -6,14 +6,20 @@ namespace CoreClash.Presentation
     public sealed class FeedbackItem { public string kind,text;public float x,y,born;public int owner,ballId; }
     public sealed class FeedbackTimeline
     {
+        public const float Life=1.15f;
         public readonly List<FeedbackItem> Items=new List<FeedbackItem>();
+        // W20: the latest real TURN event (turn-change cue). Not part of Items, so label
+        // budgets and their tests are unchanged. TurnBorn<0: nothing to show.
+        public int TurnOwner,TurnNumber;
+        public float TurnBorn=-1;
         int cursor=-1;
         public void Observe(GameState state,float now)
         {
             if(state==null||!GameSimulation.Finite(now))return;
-            Items.RemoveAll(e=>now-e.born>=1.15f);
-            if(cursor<0||state.eventSerial<cursor){Items.Clear();cursor=state.eventSerial;return;}
+            Items.RemoveAll(e=>now-e.born>=Life);
+            if(cursor<0||state.eventSerial<cursor){Items.Clear();TurnBorn=-1;cursor=state.eventSerial;return;}
             foreach(var e in state.events){
+                if(e.id>cursor&&e.kind=="TURN"){TurnOwner=state.turn;TurnNumber=e.turn;TurnBorn=now;}
                 if(e.id<=cursor||!Visible(e.kind))continue;
                 var ball=state.balls.FirstOrDefault(b=>b.id==e.ballId);
                 int owner=ball?.owner??state.turn;float x=e.x,y=e.y;

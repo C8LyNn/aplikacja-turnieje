@@ -89,6 +89,7 @@ namespace CoreClash.Presentation
                 for(int i=0;i<Simulation.State.players[Simulation.State.turn].stock.Count&&i<9;i++)if(UnityEngine.Input.GetKeyDown((KeyCode)((int)KeyCode.Alpha1+i))||UnityEngine.Input.GetKeyDown((KeyCode)((int)KeyCode.Keypad1+i)))SelectBall(Simulation.State.players[Simulation.State.turn].stock[i].id);
             }
             if(UnityEngine.Input.GetKeyDown(KeyCode.I))SetBoardInspection(!boardInspection);
+            if(UnityEngine.Input.GetKeyDown(KeyCode.E))ToggleStopEstimate();
             if(UnityEngine.Input.touchCount==0&&UnityEngine.Input.GetMouseButtonDown(1)&&InspectAt(UnityEngine.Input.mousePosition))return;
             if(TouchInput.Read(out var pointer)||DesktopInput.Read(out pointer))HandlePointer(pointer);
         }
@@ -165,7 +166,7 @@ namespace CoreClash.Presentation
         void RenderUi()
         {
             GUI.skin.button.fontSize=14;GUI.skin.label.fontSize=14;GUI.skin.textField.fontSize=16;
-            Draw.Rect(new Rect(0,0,UiWidth,UiHeight),Draw.Background);Draw.Rect(new Rect(0,0,UiWidth,60),new Color(.027f,.047f,.075f));Draw.Rect(new Rect(0,59,UiWidth,1),Draw.Edge);
+            Draw.Rect(new Rect(0,0,UiWidth,UiHeight),Draw.Background);Draw.Rect(new Rect(0,0,UiWidth,60),Theme.Header);Draw.Rect(new Rect(0,59,UiWidth,1),Draw.Edge);
             Draw.Text(new Rect(UiWidth<500?16:24,11,UiWidth<360?130:UiWidth<500?190:310,28),"CORE CLASH",UiWidth<360?16:UiWidth<500?23:25,Color.white,TextAnchor.MiddleLeft,true);if(UiWidth>700)Draw.Text(new Rect(228,16,170,23),"CLASS DEMO  /  V149",11,Draw.Gold,TextAnchor.MiddleLeft,true);
             if(fatal.Length>0){Draw.Text(new Rect(30,100,UiWidth-60,200),fatal,18,Draw.Pink);return;}if(Catalog==null)return;
             bool prior=GUI.enabled;GUI.enabled=!externalModal&&inspect.Length==0&&!DeveloperOverlay;

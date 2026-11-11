@@ -13,40 +13,105 @@ namespace CoreClash.Presentation
             int displayOwner=LocalDeckContent.DisplayOwner(state.turn,NetworkLink==null?(int?)null:NetworkLink.LocalOwner);
             int visualOwner=displayOwner>=0?displayOwner:state.turn;
             var remoteVisual=NetworkLink!=null&&!NetworkLink.IsAuthority&&NetworkLink.IsConnected?remoteBallSmoother:null;
-            BoardView.Render(board,Simulation,gesture,Catalog.Ball(selected),feedback,remoteVisual,ViewOwner);
+            BoardView.Render(board,Simulation,gesture,Catalog.Ball(selected),feedback,remoteVisual,ViewOwner,gesture.Active?replayId:0);
             if(layout.CompactLandscape){RenderCompactLandscape();return;}
-            if(layout.Portrait){Hud(new Rect(12,68,UiWidth-24,48),true);Draw.Text(new Rect(12,118,UiWidth-24,17),TurnText(),11,Draw.Owner(state.turn),TextAnchor.MiddleCenter,true);}
+            if(layout.Portrait){Hud(new Rect(12,66,UiWidth-24,44),true);Draw.Text(new Rect(12,111,UiWidth-24,14),TurnText(),11,Draw.Owner(state.turn),TextAnchor.MiddleCenter,true);}
             if(layout.Portrait&&UiViewport.Profile==DeviceProfile.Phone){RenderPhoneTray();return;}
-            bool touch=UiViewport.TargetSize>=44;
-            Draw.Surface(side,Draw.Panel);float w=side.width-46,y=0,cardH=layout.Portrait?80:98,content=layout.Portrait?590:810,actionH=UiViewport.TargetSize;
-            matchScroll=Draw.ScrollView(Draw.Inset(side,12),matchScroll,new Rect(0,0,w,content));
-            if(!layout.Portrait){Hud(new Rect(0,y,w,72),false);y+=82;Draw.Surface(new Rect(0,y,w,40),Draw.PanelLight,Draw.Owner(state.turn));Draw.Text(new Rect(12,y+4,w-24,32),TurnText(),w<330?12:w<370?14:17,Draw.Owner(state.turn),TextAnchor.MiddleLeft,true);y+=50;}
-            var d=Catalog.Ball(selected);float orb=layout.Portrait?38:56,stripH=layout.Portrait?50:74;
-            Draw.Surface(new Rect(0,y,w,stripH),Draw.PanelLight);BallView.Preview(new Rect(12,y+(stripH-orb)/2,orb,orb),d,visualOwner,true);
-            Draw.Text(new Rect(orb+26,y+9,w-orb-40,24),d.name,layout.Portrait?16:21,Color.white,TextAnchor.MiddleLeft,true);
-            if(!layout.Portrait)Draw.Text(new Rect(orb+26,y+39,w-orb-40,24),Cue(selected),13,Draw.Muted);y+=stripH+10;
+            RenderSidePanel(displayOwner,visualOwner);
+        }
+        // W20: desktop/tablet side panel. Rows come from MatchPanelLayout, so everything a
+        // decision needs is visible without scrolling, in this order: whose turn, base HP,
+        // the selected ball and its stock, the deck, actions, the result of the last action.
+        void RenderSidePanel(int displayOwner,int visualOwner)
+        {
+            var state=Simulation.State;bool over=state.phase==MatchPhase.Over;
+            Color active=over?Theme.Select:Draw.Owner(state.turn);
+            Draw.Surface(side,Draw.Panel);
+            var inner=Draw.Inset(side,12);
+            var rows=MatchPanelLayout.For(inner.width,inner.height,UiViewport.TargetSize,!layout.Portrait);
+            if(rows.Scrolls)matchScroll=Draw.ScrollView(inner,matchScroll,new Rect(0,0,rows.Width,rows.ContentHeight));
+            else{matchScroll=Vector2.zero;GUI.BeginGroup(inner);}
+            if(rows.Scoreboard)
+            {
+                var turn=RectOf(rows.Turn);
+                Draw.Surface(turn,Color.Lerp(Theme.PanelLight,active,.16f),active);
+                Draw.Rect(new Rect(turn.x+2,turn.y+7,4,turn.height-14),active);
+                string status=TurnText();int cut=status.IndexOf("     ",StringComparison.Ordinal);
+                if(cut<0)Draw.Text(new Rect(turn.x+16,turn.y,turn.width-28,turn.height),status,status.Length>22?13:17,active,TextAnchor.MiddleLeft,true);
+                else
+                {
+                    string who=status.Substring(cut).Trim(),count=status.Substring(0,cut);
+                    float countWidth=Mathf.Min(turn.width*.34f,count.Length*7.4f+8);
+                    Draw.Text(new Rect(turn.x+16,turn.y,turn.width-countWidth-30,turn.height),who,who.Length>24?11:who.Length>17?13:rows.Tight?15:17,active,TextAnchor.MiddleLeft,true);
+                    Draw.Text(new Rect(turn.xMax-countWidth-10,turn.y,countWidth,turn.height),count,Theme.FontSmall,Theme.TextSoft,TextAnchor.MiddleRight,true);
+                }
+                HpCell(RectOf(rows.Hp1),0);HpCell(RectOf(rows.Hp2),1);
+            }
+            var d=Catalog.Ball(selected);var strip=RectOf(rows.Selected);
+            Draw.Surface(strip,Theme.PanelLight,Theme.A(Theme.Select,.6f));
+            float orb=strip.height-(rows.Tight?20:24);
+            BallView.Preview(new Rect(strip.x+15,strip.y+(strip.height-orb)/2,orb,orb),d,visualOwner,true);
+            float textX=strip.x+orb+32,textWidth=strip.width-orb-42;
+            Draw.Text(new Rect(textX,strip.y+(rows.Tight?5:7),textWidth,22),d.name,rows.Tight?16:19,Theme.Text,TextAnchor.MiddleLeft,true);
+            string stockText=selected=="normal"?"UNLIMITED":LocalDeckContent.StockLabel(Simulation,displayOwner,selected);
+            string facts=(string.IsNullOrEmpty(d.archetype)||d.archetype=="base"?"":d.archetype.ToUpperInvariant()+"  ·  ")+d.hp+" HP  ·  "+stockText;
+            Draw.Text(new Rect(textX,strip.y+(rows.Tight?27:30),textWidth,16),facts,Theme.FontSmall,Theme.Select,TextAnchor.MiddleLeft,true);
+            if(!rows.Tight)Draw.Text(new Rect(textX,strip.y+47,textWidth,16),Cue(selected),Theme.FontSmall,Theme.Muted,TextAnchor.MiddleLeft);
             string deckHeading=NetworkLink==null?"ACTIVE DECK  /  NINE SPECIALS":displayOwner<0?"DECK UNAVAILABLE":"YOUR DECK  /  NINE SPECIALS";
-            Draw.Text(new Rect(0,y,w,18),deckHeading,10,Draw.Muted,TextAnchor.MiddleLeft,true);y+=24;
-            var ids=LocalDeckContent.StockIds(state,displayOwner);float cw=(w-16)/3;
-            for(int i=0;i<ids.Length;i++)BallCard(new Rect((i%3)*(cw+8),y+(i/3)*(cardH+8),cw,cardH),ids[i]);
-            y+=3*(cardH+8)+4;
-            bool normalSelected=selected=="normal";var standard=new Rect(0,y,w,actionH);Draw.Surface(standard,normalSelected?Color.Lerp(Draw.PanelLight,Draw.Owner(visualOwner),.14f):Draw.Panel,normalSelected?Draw.Owner(visualOwner):Draw.Edge);
-            if(Draw.Button(new Rect(40,y,w-40,actionH),"STANDARD  /  UNLIMITED",Draw.Owner(visualOwner),normalSelected,CanChoose,12))SelectBall("normal");BallView.Preview(new Rect(10,y+(actionH-22)/2,22,22),Catalog.Ball("normal"),visualOwner,normalSelected);y+=actionH+11;
-            float actionW=(w-20)/3;
-            if(Draw.Button(new Rect(0,y,actionW,actionH),"BALL DETAILS",size:touch?12:10))ShowBallDetails(selected);
-            if(Draw.Button(new Rect(actionW+10,y,actionW,actionH),boardInspection?"CANCEL INSPECT":"INSPECT BOARD",selected:boardInspection,size:touch?12:10))SetBoardInspection(!boardInspection);
-            if(Draw.Button(new Rect((actionW+10)*2,y,actionW,actionH),"MATCH SETUP",size:touch?12:10))RequestLeaveMatch();y+=actionH+11;
-            string hint=boardInspection?"TAP A BALL TO INSPECT":state.phase==MatchPhase.Over?(state.winner<0?"DRAW":("PLAYER "+(state.winner+1)+" WINS")):
+            var heading=RectOf(rows.Heading);
+            Draw.Text(heading,deckHeading,10,Theme.Muted,TextAnchor.MiddleLeft,true);
+            if(!UiViewport.IsTouch&&heading.width>=330)Draw.Text(heading,"KEYS 1-9  ·  0 STANDARD",Theme.FontTiny,Theme.Disabled,TextAnchor.MiddleRight,true);
+            var ids=LocalDeckContent.StockIds(state,displayOwner);
+            for(int i=0;i<ids.Length&&i<rows.Cards.Length;i++)BallCard(RectOf(rows.Cards[i]),ids[i]);
+            bool normalSelected=selected=="normal";var standard=RectOf(rows.Standard);
+            if(Draw.Button(standard,"STANDARD  ·  UNLIMITED",Draw.Owner(visualOwner),normalSelected,CanChoose,12))SelectBall("normal");
+            BallView.Preview(new Rect(standard.x+11,standard.y+(standard.height-20)/2,20,20),Catalog.Ball("normal"),visualOwner,false);
+            bool touch=UiViewport.TargetSize>=44;int actionFont=rows.Width<380?10:touch?12:11;
+            if(Draw.Button(RectOf(rows.Actions[0]),"DETAILS",size:actionFont))ShowBallDetails(selected);
+            if(Draw.Button(RectOf(rows.Actions[1]),boardInspection?"CANCEL":"INSPECT",selected:boardInspection,size:actionFont))SetBoardInspection(!boardInspection);
+            if(Draw.Button(RectOf(rows.Actions[2]),BoardView.ShowStopEstimate?"STOP MARK ON":"STOP MARK OFF",Theme.Select,BoardView.ShowStopEstimate,true,actionFont))ToggleStopEstimate();
+            if(Draw.Button(RectOf(rows.Actions[3]),"SETUP",size:actionFont))RequestLeaveMatch();
+            string hint=boardInspection?"TAP A BALL TO INSPECT":over?(state.winner<0?"DRAW":("PLAYER "+(state.winner+1)+" WINS")):
                 LocalTurnPresentation.ActionHint(state,NetworkLink==null?-1:NetworkLink.LocalOwner,
                     NetworkLink!=null,NetworkLink==null||NetworkLink.IsConnected,gesture.Active,
                     gesture.AimX-gesture.OriginX,gesture.AimY-gesture.OriginY,"DRAG FROM YOUR LAUNCHER TO AIM");
-            Draw.Text(new Rect(0,y,w,24),hint,12,state.phase==MatchPhase.Over?Draw.Gold:Draw.Owner(state.turn),TextAnchor.MiddleLeft,true);
-            if(state.phase==MatchPhase.Over)Draw.Text(new Rect(0,y+27,w,40),state.resultReason,12,Draw.Muted);
-            else if(boardInspection)Draw.Text(new Rect(0,y+27,w,38),"Inspect either player's ball. Cancel to resume aiming.",12,Draw.Muted);
-            else if(notice.Length>0&&CanChoose)Draw.Text(new Rect(0,y+27,w,35),notice,12,Draw.Muted);
-            else Draw.Text(new Rect(0,y+27,w,38),state.bonusPending?"Player 2 gets one extra spawn on the opening turn.":"A glowing home ball can Replay before you spawn.",12,Draw.Muted);
-            GUI.EndScrollView();
+            // Second line, most relevant first: result, inspection help, a rejected shot,
+            // the last action's result from real events, then the standing tip.
+            string summary=ActionSummary.For(state);bool result=false;string detail;
+            if(over)detail=state.resultReason;
+            else if(boardInspection)detail="Inspect either player's ball. Cancel to resume aiming.";
+            else if(notice.Length>0&&CanChoose)detail=notice;
+            else if(summary.Length>0){detail=summary;result=true;}
+            else detail=state.bonusPending?"Player 2 gets one extra spawn on the opening turn.":"A glowing home ball can Replay before you spawn.";
+            var hintBox=RectOf(rows.Hint);
+            Draw.Surface(hintBox,Theme.Panel,result?Theme.EdgeStrong:Theme.Edge);
+            Draw.Text(new Rect(hintBox.x+10,hintBox.y+3,hintBox.width-20,17),hint,12,active,TextAnchor.MiddleLeft,true);
+            Draw.Text(new Rect(hintBox.x+10,hintBox.y+20,hintBox.width-20,hintBox.height-22),detail??"",rows.Tight?10:11,result?Theme.Text:Theme.Muted,TextAnchor.UpperLeft,result);
+            if(rows.Scrolls)GUI.EndScrollView();else GUI.EndGroup();
         }
+        // One base: ownership sample (the same ring pattern as that player's balls), HP as a
+        // number and a bar; flashes when a real BASE_DAMAGE event arrives.
+        void HpCell(Rect cell,int owner)
+        {
+            var state=Simulation.State;Color team=Draw.Owner(owner);int hp=state.players[owner].hp;
+            bool acting=state.turn==owner&&state.phase!=MatchPhase.Over,small=cell.height<52;
+            float flash=0;
+            foreach(var item in feedback.Items)if(item.kind=="BASE_DAMAGE"&&item.owner==owner)flash=Mathf.Max(flash,1-Mathf.Clamp01((Time.unscaledTime-item.born)/Theme.BaseFlash));
+            Draw.Surface(cell,Color.Lerp(Theme.PanelLight,Theme.Damage,flash*.4f),flash>0?Color.Lerp(Theme.Edge,Theme.Damage,flash):acting?team:Theme.Edge);
+            Draw.Ring(new Vector2(cell.x+17,cell.y+(small?14:17)),7,team,2.2f,owner==1?Theme.P2RingSegments:0,Theme.P2RingFill);
+            bool you=NetworkLink!=null&&NetworkLink.LocalOwner==owner,narrow=cell.width<200;
+            string name=cell.width<215?"P"+(owner+1)+(you?" · YOU":" BASE"):"P"+(owner+1)+" BASE"+(you?" · YOU":"");
+            // Narrow cells drop the "/ 20" (the bar and its quarter ticks still show the share).
+            float numberRight=narrow?12:42;
+            Draw.Text(new Rect(cell.x+30,cell.y+(small?5:8),cell.width-30-numberRight-54,18),name,Theme.FontSmall,team,TextAnchor.MiddleLeft,true);
+            Draw.Text(new Rect(cell.xMax-numberRight-54,cell.y+(small?1:3),54,small?26:30),hp.ToString(),small?19:24,flash>0?Theme.Damage:Theme.Text,TextAnchor.MiddleRight,true);
+            if(!narrow)Draw.Text(new Rect(cell.xMax-39,cell.y+(small?7:11),30,18),"/ 20",Theme.FontSmall,Theme.Muted,TextAnchor.MiddleLeft,true);
+            var bar=new Rect(cell.x+12,cell.yMax-(small?11:14),cell.width-24,small?5:7);
+            Draw.Rect(bar,Theme.Plate);
+            if(hp>0)Draw.Rect(new Rect(bar.x,bar.y,bar.width*Mathf.Clamp01(hp/20f),bar.height),team);
+            for(int i=1;i<4;i++)Draw.Rect(new Rect(bar.x+bar.width*i/4-.5f,bar.y,1,bar.height),Theme.PanelLight);
+        }
+        public void ToggleStopEstimate(){BoardView.ShowStopEstimate=!BoardView.ShowStopEstimate;Debug.Log("CORE_CLASH_STOP_MARK "+BoardView.ShowStopEstimate);}
         // Compact phone landscape does not use the 810-unit desktop scroll view.
         // Every critical control is drawn from testable MatchLayout rectangles.
         void RenderCompactLandscape()
@@ -172,22 +237,46 @@ namespace CoreClash.Presentation
                 if(!compact&&!stacked)Draw.Text(new Rect(cell.x+12,cell.y+32,w-24,16),"BASE HEALTH",9,Draw.Muted);
             }
         }
+        // Deck card. Tall cards stack orb / name / cue; short ones put the orb on the left
+        // so nine cards still fit the panel. Selection is gold, never a team colour.
         void BallCard(Rect r,string id)
         {
             var d=Catalog.Ball(id);int owner=LocalDeckContent.DisplayOwner(Simulation.State.turn,NetworkLink==null?(int?)null:NetworkLink.LocalOwner),stock=LocalDeckContent.Remaining(Simulation,owner,id);
             var source=LocalDeckContent.ActiveSource(Simulation,owner,id);
             bool available=LocalDeckContent.VisibleAsAvailable(Simulation,owner,id),handReady=source==BallSelectionSource.Hand;
-            bool canClick=LocalDeckContent.CanActivate(Simulation,owner,id,CanChoose),picked=canClick&&id==selected,compact=r.height<=80;
-            Color team=Draw.Owner(owner);Draw.Surface(r,picked?Color.Lerp(Draw.PanelLight,team,.13f):Draw.PanelLight,picked?team:Draw.Edge);
+            bool canClick=LocalDeckContent.CanActivate(Simulation,owner,id,CanChoose),picked=canClick&&id==selected;
+            bool hover=canClick&&r.Contains(Event.current.mousePosition);
+            Draw.Surface(r,picked?Color.Lerp(Theme.PanelLight,Theme.Select,.16f):hover?Theme.PanelRaised:Theme.PanelLight,picked?Theme.Select:hover?Theme.EdgeStrong:Theme.Edge);
             bool prior=GUI.enabled;GUI.enabled=prior&&canClick;if(GUI.Button(r,GUIContent.none,GUIStyle.none))SelectBall(id);GUI.enabled=prior;
-            float orb=compact?29:45;BallView.Preview(new Rect(r.center.x-orb/2,r.y+7,orb,orb),d,owner,picked);
-            Draw.Text(new Rect(r.x+7,r.y+7,44,20),d.hp+" HP",compact?8:10,Draw.Muted);
-            Draw.Text(new Rect(r.xMax-36,r.y+7,29,20),handReady?"H":available?"x"+stock:"0",compact?10:12,handReady?Draw.Gold:available?Color.white:Draw.Muted,TextAnchor.MiddleRight,true);
-            Draw.Text(new Rect(r.x+5,r.y+(compact?40:58),r.width-10,compact&&handReady?20:compact?35:23),d.name,compact?12:13,available?Color.white:Draw.Muted,TextAnchor.MiddleCenter,true);
-            if(handReady)Draw.Text(new Rect(r.x+5,r.y+(compact?61:81),r.width-10,compact?18:14),LocalDeckContent.StockLabel(Simulation,owner,id),compact?10:9,Draw.Gold,TextAnchor.MiddleCenter,true);
-            else if(!compact)Draw.Text(new Rect(r.x+5,r.y+81,r.width-10,14),available?Cue(id):"OUT OF STOCK",9,Draw.Muted,TextAnchor.MiddleCenter);
+            string count=handReady?"H":available?"x"+stock:"0";Color countColor=handReady?Theme.Select:available?Theme.Text:Theme.Muted;
+            Color nameColor=available?Theme.Text:Theme.Muted;
+            // Longest word decides the name size, so a name never breaks inside a word.
+            int longest=0;foreach(string word in d.name.Split(' '))longest=Mathf.Max(longest,word.Length);
+            bool side=r.width>=124?r.height<84:r.height<64;
+            if(side)
+            {
+                float orb=Mathf.Min(r.height-22,34);
+                BallView.Preview(new Rect(r.x+10,r.y+(r.height-orb)/2,orb,orb),d,owner,picked);
+                float textX=r.x+orb+19,textWidth=r.xMax-textX-6;
+                int nameFont=textWidth>=longest*7.2f?12:textWidth>=longest*6.6f?11:textWidth>=longest*6f?10:9;
+                Draw.Text(new Rect(textX,r.y+4,textWidth,r.height-24),d.name,nameFont,nameColor,TextAnchor.MiddleLeft,true);
+                Draw.Text(new Rect(textX,r.yMax-19,textWidth-30,15),handReady?LocalDeckContent.StockLabel(Simulation,owner,id):available?d.hp+" HP":"OUT",Theme.FontTiny,handReady?Theme.Select:Theme.Muted,TextAnchor.MiddleLeft,true);
+                Draw.Text(new Rect(r.xMax-36,r.yMax-21,30,17),count,12,countColor,TextAnchor.MiddleRight,true);
+            }
+            else
+            {
+                float orb=Mathf.Min(46,r.height-48);bool cue=r.height>=100,slim=r.width<124;
+                BallView.Preview(new Rect(r.center.x-orb/2,r.y+10,orb,orb),d,owner,picked);
+                Draw.Text(new Rect(r.x+(slim?6:8),r.y+6,slim?r.center.x-orb/2-r.x-9:46,16),d.hp+" HP",slim?8:10,Theme.Muted,TextAnchor.MiddleLeft,true);
+                Draw.Text(new Rect(r.xMax-(slim?30:40),r.y+5,slim?24:32,18),count,slim?12:13,countColor,TextAnchor.MiddleRight,true);
+                float nameWidth=r.width-10;
+                int nameFont=nameWidth>=longest*7.6f?13:nameWidth>=longest*7f?12:nameWidth>=longest*6.4f?11:10;
+                Draw.Text(new Rect(r.x+5,r.y+orb+14,nameWidth,cue||handReady?20:r.height-orb-18),d.name,nameFont,nameColor,TextAnchor.MiddleCenter,true);
+                if(handReady)Draw.Text(new Rect(r.x+5,r.yMax-19,r.width-10,14),LocalDeckContent.StockLabel(Simulation,owner,id),Theme.FontTiny,Theme.Select,TextAnchor.MiddleCenter,true);
+                else if(cue)Draw.Text(new Rect(r.x+5,r.yMax-19,r.width-10,14),available?Cue(id):"OUT OF STOCK",Theme.FontTiny,Theme.Muted,TextAnchor.MiddleCenter);
+            }
             if(!available)Draw.Round(Draw.Inset(r,2),new Color(.025f,.04f,.06f,.58f));
-            if(picked)Draw.Round(new Rect(r.x+12,r.yMax-3,r.width-24,2),team);
+            if(picked)Draw.Round(new Rect(r.x+12,r.yMax-3,r.width-24,2),Theme.Select);
         }
     }
 }

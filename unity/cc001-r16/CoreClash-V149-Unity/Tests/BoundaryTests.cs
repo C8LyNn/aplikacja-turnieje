@@ -14,6 +14,7 @@ public static partial class Program
         W18BaseDamageReportTests();
         W19LabelLayoutTests();
         W19HudCollisionTests();
+        W20VisualTests();
         SetupLayoutTests();
         W19ReadinessTests();
         IdentityPresentationTests();
