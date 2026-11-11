@@ -117,7 +117,10 @@ for (const [pathname, mime] of files) {
         assert.ok((response.headers.get("content-type") ?? "").includes(mime), `${target.name}: ${response.headers.get("content-type")}`);
         const bytes = new Uint8Array(await response.arrayBuffer());
         if (method === "HEAD") assert.equal(bytes.length, 0);
-        else assert.equal(sha256(bytes), sha256(expected), target.name);
+        else {
+          assert.equal(sha256(bytes), sha256(expected), target.name);
+          if (pathname.endsWith(".wasm")) assert.deepEqual([...bytes.subarray(0, 4)], [0x00, 0x61, 0x73, 0x6d], target.name);
+        }
       }
     });
   }
