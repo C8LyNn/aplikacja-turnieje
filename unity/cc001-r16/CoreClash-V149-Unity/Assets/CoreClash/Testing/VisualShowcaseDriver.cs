@@ -65,9 +65,10 @@ namespace CoreClash.Testing
             stack.Push(Run());
             while (stack.Count > 0 && !finished)
             {
-                bool more;
+                bool more; string error = null;
                 try { more = stack.Peek().MoveNext(); }
-                catch (Exception exception) { Fail(exception.ToString()); yield break; }
+                catch (Exception exception) { more = false; error = exception.ToString(); }
+                if (error != null) { Fail(error); yield break; }
                 if (!more) { stack.Pop(); continue; }
                 if (stack.Peek().Current is IEnumerator child) { stack.Push(child); continue; }
                 if (Time.realtimeSinceStartup - started > 280) { Fail("showcase exceeded 280 seconds"); yield break; }
@@ -133,7 +134,7 @@ namespace CoreClash.Testing
             yield return Capture("04-after-shot-turn-change");
 
             // Status, shield and damage feedback produced by the real simulation calls.
-            var live = sim.State.balls.Where(ball => !ball.dead && !ball.banished).ToList();
+            var live = sim.State.balls.Where(item => !item.dead && !item.banished).ToList();
             Require(live.Count >= 5, "sparse scene lost its balls");
             sim.Abilities.ApplyFire(live[0], 1 - live[0].owner); sim.Abilities.ApplyFire(live[0], 1 - live[0].owner);
             sim.Abilities.ApplyIce(live[1], 1 - live[1].owner);
@@ -145,7 +146,7 @@ namespace CoreClash.Testing
             yield return Seconds(1.4f);
             yield return Capture("06-statuses-settled");
 
-            var victim = sim.State.balls.FirstOrDefault(ball => !ball.dead && !ball.banished && ball.owner == 1);
+            var victim = sim.State.balls.FirstOrDefault(item => !item.dead && !item.banished && item.owner == 1);
             if (victim != null)
             {
                 var bomb = sim.Spawn(0, Type("bomb"), Mathf.Clamp(victim.x + 54, 60, 480), Mathf.Clamp(victim.y + 34, 60, 840));
@@ -171,7 +172,7 @@ namespace CoreClash.Testing
                 Place(sim, owner, DenseTypes[placed % DenseTypes.Length], 70 + column * 100 + jitterX, 112 + row * 135 + jitterY);
                 placed++;
             }
-            var dense = sim.State.balls.Where(ball => !ball.dead && !ball.banished).ToList();
+            var dense = sim.State.balls.Where(item => !item.dead && !item.banished).ToList();
             for (int i = 0; i < dense.Count; i++)
             {
                 var ball = dense[i];
@@ -187,8 +188,8 @@ namespace CoreClash.Testing
             Still(sim);
             yield return Seconds(1.6f);
             yield return Capture("08-dense-board");
-            foreach (var ball in dense.Where(ball => !ball.dead).Take(8)) sim.Damage(ball, 5, true);
-            foreach (var ball in dense.Where(ball => !ball.dead).Skip(8).Take(3)) sim.Heal(ball, 5);
+            foreach (var ball in dense.Where(item => !item.dead).Take(8)) sim.Damage(ball, 5, true);
+            foreach (var ball in dense.Where(item => !item.dead).Skip(8).Take(3)) sim.Heal(ball, 5);
             Still(sim);
             yield return Seconds(.25f);
             yield return Capture("09-dense-overlapping-feedback");
@@ -199,7 +200,7 @@ namespace CoreClash.Testing
             app.PresentationPointer(new PointerSample { id = 79, position = ScreenPoint(215, 610), held = true });
             yield return Capture("10-dense-aim");
             app.PresentationPointer(new PointerSample { id = 79, position = launcher, canceled = true });
-            var replay = sim.State.balls.FirstOrDefault(ball => sim.CanReplay(ball));
+            var replay = sim.State.balls.FirstOrDefault(item => sim.CanReplay(item));
             if (replay != null)
             {
                 Vector2 grab = ScreenPoint(replay.x, replay.y);
@@ -208,7 +209,7 @@ namespace CoreClash.Testing
                 yield return Capture("11-dense-replay-aim");
                 app.PresentationPointer(new PointerSample { id = 80, position = grab, canceled = true });
             }
-            var inspected = sim.State.balls.Where(ball => !ball.dead && !ball.banished).OrderByDescending(ball => BallInspection.Statuses(ball).Length).First();
+            var inspected = sim.State.balls.Where(item => !item.dead && !item.banished).OrderByDescending(item => BallInspection.Statuses(item).Length).First();
             app.ShowRuntimeBallDetails(inspected.id);
             yield return Capture("12-ball-details");
             app.CloseBallDetails();
