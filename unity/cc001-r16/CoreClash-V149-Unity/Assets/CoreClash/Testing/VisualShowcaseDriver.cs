@@ -25,7 +25,7 @@ namespace CoreClash.Testing
             "normal","fire","ice","mine","timebomb","web","plague","leech","medic","shield","magnet","anchor","ram","phase",
             "dart","splitter","colossus","tesla","quake","glue","pulse","breaker","bomb","regen","normal","mine","timebomb","fire" };
         CoreClashApp app;
-        string output = "";
+        string output = "", profile = "Desktop";
         float started;
         int repaints, lastRepaint = -1;
         bool finished;
@@ -81,6 +81,11 @@ namespace CoreClash.Testing
             while (!UnityEngine.Rendering.SplashScreen.isFinished || Time.realtimeSinceStartup - started < 3 || repaints < 3) yield return null;
             Require(app != null && app.Catalog != null && app.Simulation != null && app.IsSetup, "the app did not open on deck selection");
             app.SetDeveloperOverlay(false);
+            // The window size picks the layout a device of that size would use, so the phone
+            // and tablet layouts can be captured from the desktop Player as well.
+            int shortSide = Mathf.Min(Screen.width, Screen.height);
+            profile = shortSide <= 480 ? "Phone" : (Screen.width == 1024 && Screen.height == 768) || (Screen.width == 768 && Screen.height == 1024) ? "Tablet" : "Desktop";
+            if (profile != "Desktop") { app.SetDeviceProfile(profile); yield return null; yield return null; }
             app.SelectDeck(0, DeckA); app.SelectDeck(1, DeckB);
             yield return Capture("00-deck-selection");
 
@@ -215,7 +220,7 @@ namespace CoreClash.Testing
             app.CloseBallDetails();
 
             File.WriteAllText(Path.Combine(output, "showcase.txt"),
-                "unity=" + Application.unityVersion + "\nscreen=" + Screen.width + "x" + Screen.height + "\ndpi=" + Screen.dpi.ToString(CultureInfo.InvariantCulture) +
+                "unity=" + Application.unityVersion + "\nscreen=" + Screen.width + "x" + Screen.height + "\nprofile=" + profile + "\nlogical=" + app.UiWidth.ToString("0.#", CultureInfo.InvariantCulture) + "x" + app.UiHeight.ToString("0.#", CultureInfo.InvariantCulture) + "\ndpi=" + Screen.dpi.ToString(CultureInfo.InvariantCulture) +
                 "\ndenseBalls=" + dense.Count + "\nclipFrames=" + frame + "\ncaptures=" + string.Join(",", captures) + "\n");
             finished = true;
             Debug.Log("CC_VISUAL_SHOWCASE_PASS captures=" + captures.Count + " clipFrames=" + frame + " size=" + Screen.width + "x" + Screen.height);

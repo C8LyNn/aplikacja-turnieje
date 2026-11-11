@@ -201,18 +201,20 @@ namespace CoreClash.Presentation
             return sprite;
         }
 
+        // Motion trail behind a fast ball: fading discs in the ball's own colour.
         static void DrawWake(Vector2 point, BallRuntime ball, Color color, float scale,int localOwner)
         {
             var velocity = localOwner==1?new Vector2(ball.vx,-ball.vy):new Vector2(ball.vx,ball.vy);
             if (!ball.moving || velocity.sqrMagnitude < 8100) return;
-            float length = Mathf.Min(46, velocity.magnitude * .08f) * scale;
-            Vector2 direction = velocity.normalized;
-            float radius = ball.radius * scale;
-            for (int i = 4; i > 0; i--)
+            float speed = velocity.magnitude, radius = ball.radius * scale;
+            float length = Mathf.Min(Theme.WakeLength, speed * .13f) * scale;
+            Vector2 direction = velocity / speed;
+            for (int i = Theme.WakeSteps; i > 0; i--)
             {
-                Vector2 p = point - direction * length * i / 4;
-                float r = radius * (1 - i * .14f);
-                Draw.Circle(new Rect(p.x - r, p.y - r, r * 2, r * 2), Alpha(color, .16f - i * .03f));
+                float t = i / (float)Theme.WakeSteps;
+                Vector2 p = point - direction * (radius * .6f + length * t);
+                float r = radius * (1 - t * .55f);
+                Draw.Circle(new Rect(p.x - r, p.y - r, r * 2, r * 2), Alpha(color, Theme.WakeAlpha * (1 - t * .8f)));
             }
         }
 

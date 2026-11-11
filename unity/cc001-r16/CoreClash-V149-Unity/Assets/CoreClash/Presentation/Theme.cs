@@ -34,6 +34,8 @@ namespace CoreClash.Presentation
 
         // Balls.
         public const float OwnerRing=2.6f,OwnerGap=1f,SelectionRing=7f,BodyDark=.38f,BodyHighlight=.9f,ShadowAlpha=.5f;
+        public const float WakeLength=64f,WakeAlpha=.2f;
+        public const int WakeSteps=5;
         public static readonly Color HpGood=C("#8be28f"),HpHurt=C("#ffd166"),HpCritical=C("#ff5d5d");
         public const float HpHurtBelow=.6f,HpCriticalBelow=.3f,PlateAlpha=.93f;
 
