@@ -1,3 +1,4 @@
+import { useId } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
@@ -14,12 +15,14 @@ export function TournamentPresentationPanel({
   isDeadlock,
 }: TournamentPresentationPanelProps) {
   const [deadlockTheme, setDeadlockTheme] = useDeadlockTheme(tournamentId);
+  const switchId = useId();
+  const descriptionId = useId();
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <Palette className="h-5 w-5" />
+          <Palette className="h-5 w-5" aria-hidden="true" />
           Wizualia
         </CardTitle>
         <CardDescription>
@@ -30,15 +33,16 @@ export function TournamentPresentationPanel({
         {isDeadlock ? (
           <div className="flex items-center justify-between gap-4 py-1">
             <div className="space-y-0.5">
-              <Label htmlFor="deadlock-theme-switch" className="text-sm font-medium cursor-pointer">
+              <Label htmlFor={switchId} className="text-sm font-medium cursor-pointer">
                 Motyw Deadlock
               </Label>
-              <p className="text-xs text-muted-foreground">
-                Beżowo-ciemnobrązowa paleta z Valve Pulp Bold — aktywna na wszystkich widokach tego turnieju.
+              <p id={descriptionId} className="text-xs text-muted-foreground">
+                Beżowo-ciemnobrązowy motyw Deadlock w tej przeglądarce. Nie zmienia wyglądu na innych urządzeniach.
               </p>
             </div>
             <Switch
-              id="deadlock-theme-switch"
+              id={switchId}
+              aria-describedby={descriptionId}
               checked={deadlockTheme}
               onCheckedChange={setDeadlockTheme}
             />
