@@ -24,12 +24,15 @@ namespace CoreClash.Presentation
         // Fixed order = stable placement: the same state is always in the same relative slot.
         static readonly StatusKind[] Order={StatusKind.Frozen,StatusKind.Rooted,StatusKind.Fire,StatusKind.Ice,StatusKind.Toxin,StatusKind.Divine,
             StatusKind.Jammed,StatusKind.Sticky,StatusKind.Phased,StatusKind.Frostguard,StatusKind.Counter,StatusKind.Veteran,StatusKind.Split,StatusKind.Ancestral,StatusKind.Token};
-        public static float RowHeight(float scale)=>Math.Max(12f,14f*scale);
-        public static int Font(float scale)=>Math.Max(9,(int)Math.Round(11*scale));
+        // Very small boards (phone landscape): smaller plates and symbol-only chips, so the
+        // plates of one ball do not bury its neighbours.
+        public static bool Compact(float scale)=>scale<.45f;
+        public static float RowHeight(float scale)=>Compact(scale)?10f:Math.Max(12f,14f*scale);
+        public static int Font(float scale)=>Compact(scale)?8:Math.Max(9,(int)Math.Round(11*scale));
         public static float RingOut(float scale)=>Math.Max(2.5f,3.4f*scale);
         public static float ReplayPulse(float scale)=>11.2f*scale;
-        public static float ReplayChip(float scale)=>Math.Max(12f,14f*scale);
-        public static float ThreatSize(float scale)=>Math.Max(14f,17f*scale);
+        public static float ReplayChip(float scale)=>Compact(scale)?10f:Math.Max(12f,14f*scale);
+        public static float ThreatSize(float scale)=>Compact(scale)?11f:Math.Max(14f,17f*scale);
 
         // Status chips under the HP plate. Shield has its own plate next to HP; an
         // armed Mine and a Time Bomb fuse use the larger threat badge instead.
@@ -63,7 +66,7 @@ namespace CoreClash.Presentation
             var widths=new float[shown];float secondRow=0;
             for(int i=0;i<shown;i++)
             {
-                string text=chips[i].Short??"";
+                string text=Compact(scale)?"":chips[i].Short??"";
                 widths[i]=rowH+(text.Length>0?text.Length*digit+3:0);
                 secondRow+=widths[i]+(i>0?gap:0);
             }
@@ -82,7 +85,7 @@ namespace CoreClash.Presentation
             float x2=ClampX(cx-secondRow/2,secondRow,field);
             for(int i=0;i<shown;i++)
             {
-                layout.Chips[i]=new BadgeChip{Kind=chips[i].Kind,Text=chips[i].Short??"",Box=new UiBox(x2,y2,widths[i],rowH)};
+                layout.Chips[i]=new BadgeChip{Kind=chips[i].Kind,Text=Compact(scale)?"":chips[i].Short??"",Box=new UiBox(x2,y2,widths[i],rowH)};
                 x2+=widths[i]+gap;
             }
             if(layout.Hidden>0)layout.Overflow=new UiBox(x2,y2,overflowW,rowH);

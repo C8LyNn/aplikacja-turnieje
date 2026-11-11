@@ -106,7 +106,7 @@ namespace CoreClash.Presentation
                 Draw.Circle(box, Theme.Threat);
                 Draw.Circle(Expand(box, -1.5f), Theme.Ink);
                 if (threat.Kind == StatusKind.Fuse)
-                    Draw.Text(new Rect(box.x, box.y - 1, box.width, box.height), threat.Short, Mathf.Max(9, Mathf.RoundToInt(12 * scale)), Theme.Threat, TextAnchor.MiddleCenter, true);
+                    Draw.Text(new Rect(box.x, box.y - 1, box.width, box.height), threat.Short, Mathf.Max(8, Mathf.RoundToInt(12 * scale)), Theme.Threat, TextAnchor.MiddleCenter, true);
                 else
                     Glyphs.Paint(Expand(box, -3), StatusKind.Armed, Theme.Threat);
             }
@@ -115,7 +115,7 @@ namespace CoreClash.Presentation
                 var chipBox = RectOf(layout.Replay);
                 Draw.Circle(Expand(chipBox, 1), Theme.Ink);
                 Draw.Circle(chipBox, ReplayColor);
-                Draw.Text(new Rect(chipBox.x, chipBox.y - 1, chipBox.width, chipBox.height), ReplayAffordance.BallChip, Mathf.Max(8, Mathf.RoundToInt(10 * scale)), Theme.Ink, TextAnchor.MiddleCenter, true);
+                Draw.Text(new Rect(chipBox.x, chipBox.y - 1, chipBox.width, chipBox.height), ReplayAffordance.BallChip, Mathf.Max(7, Mathf.RoundToInt(10 * scale)), Theme.Ink, TextAnchor.MiddleCenter, true);
             }
         }
 
