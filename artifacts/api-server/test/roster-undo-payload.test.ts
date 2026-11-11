@@ -5,11 +5,20 @@ import { InvalidRosterUndoPayloadError, parseRosterUndoPayload } from "../src/ap
 test("roster Undo accepts legitimate add/edit payloads and copies snapshots", () => {
   assert.deepEqual(parseRosterUndoPayload({ type: "delete_player", playerId: 1 }, "player_added"), { type: "delete_player", playerId: 1 });
   const snapshot = { name: " Alpha ", seed: null, teamName: null, country: "PL", rank: "Gold" };
+  const originalSnapshot = structuredClone(snapshot);
   const result = parseRosterUndoPayload({ type: "restore_player", playerId: 2, prevData: snapshot }, "player_edited");
   assert.equal(result.type, "restore_player");
   if (result.type !== "restore_player") throw new Error("Unexpected payload");
   assert.deepEqual(result.prevData, { ...snapshot, name: "Alpha" });
   assert.notEqual(result.prevData, snapshot);
+  assert.deepEqual(snapshot, originalSnapshot);
+});
+
+test("roster Undo does not mutate rejected input", () => {
+  const input = { type: "restore_player", playerId: 3, prevData: { name: " Alpha ", tournamentId: 12 } };
+  const original = structuredClone(input);
+  assert.throws(() => parseRosterUndoPayload(input, "player_edited"), InvalidRosterUndoPayloadError);
+  assert.deepEqual(input, original);
 });
 
 test("roster Undo rejects corrupt IDs, mismatched action types and extra authority fields", () => {

@@ -37,9 +37,11 @@ async function fixture() {
     return (await request(app).post(`/api/tournaments/${id}/players`).set(headers).send({ name, seed }).expect(201)).body.id as number;
   }
   async function state() {
-    const players = await database.pool.query("SELECT id, name, seed FROM players WHERE tournament_id=$1 ORDER BY id", [id]);
-    const actions = await database.pool.query("SELECT id, action_type, is_undone, undo_payload FROM action_log WHERE tournament_id=$1 ORDER BY id", [id]);
-    return { players: players.rows, actions: actions.rows };
+    const players = await database.pool.query("SELECT * FROM players WHERE tournament_id=$1 ORDER BY id", [id]);
+    const actions = await database.pool.query("SELECT * FROM action_log WHERE tournament_id=$1 ORDER BY id", [id]);
+    const stages = await database.pool.query("SELECT * FROM tournament_stages WHERE tournament_id=$1 ORDER BY id", [id]);
+    const participants = await database.pool.query("SELECT * FROM stage_participants WHERE tournament_id=$1 ORDER BY stage_id, player_id", [id]);
+    return { players: players.rows, actions: actions.rows, stages: stages.rows, participants: participants.rows };
   }
   async function latest() {
     const result = await database.pool.query("SELECT id FROM action_log WHERE tournament_id=$1 AND undo_payload IS NOT NULL AND NOT is_undone ORDER BY created_at DESC, id DESC LIMIT 1", [id]);
@@ -61,9 +63,37 @@ test("malformed persisted roster payloads cause no writes", async () => {
     await database.pool.query("UPDATE action_log SET undo_payload=$1 WHERE id=$2", [JSON.stringify(payload), actionId]);
     const beforeState = await f.state();
     const response = await request(app).post(`/api/tournaments/${f.id}/undo-last`).set(f.headers).send({});
-    assert.notEqual(response.status, 200);
+    assert.equal(response.status, 422);
+    assert.equal(response.body.code, "ROSTER_UNDO_UNAVAILABLE");
     assert.deepEqual(await f.state(), beforeState);
   }
+});
+
+test("edited-player Undo validates snapshot fields and restores a valid snapshot", async () => {
+  const f = await fixture();
+  const playerId = await f.add("Before edit", 1);
+  await request(app).patch(`/api/players/${playerId}`).set(f.headers).send({ name: "After edit" }).expect(200);
+  const actionId = await f.latest();
+  const action = await database.pool.query("SELECT action_type, undo_payload FROM action_log WHERE id=$1", [actionId]);
+  assert.equal(action.rows[0].action_type, "player_edited");
+  const validPayload = action.rows[0].undo_payload as string;
+  for (const payload of [
+    { type: "restore_player", playerId, prevData: { tournamentId: 999 } },
+    { type: "restore_player", playerId, prevData: { name: "Injected", status: "active" } },
+    { type: "restore_player", playerId, prevData: { name: " " } },
+    { type: "restore_player", playerId: 0, prevData: { name: "Before edit" } },
+    { type: "delete_player", playerId },
+  ]) {
+    await database.pool.query("UPDATE action_log SET undo_payload=$1 WHERE id=$2", [JSON.stringify(payload), actionId]);
+    const beforeState = await f.state();
+    const response = await request(app).post(`/api/tournaments/${f.id}/undo-last`).set(f.headers).send({});
+    assert.equal(response.status, 422);
+    assert.equal(response.body.code, "ROSTER_UNDO_UNAVAILABLE");
+    assert.deepEqual(await f.state(), beforeState);
+  }
+  await database.pool.query("UPDATE action_log SET undo_payload=$1 WHERE id=$2", [validPayload, actionId]);
+  await request(app).post(`/api/tournaments/${f.id}/undo-last`).set(f.headers).send({}).expect(200);
+  assert.equal((await f.state()).players[0].name, "Before edit");
 });
 
 test("latest roster action wins; stale and repeated undo do not change state", async () => {
@@ -92,7 +122,14 @@ test("transaction rolls back player deletion when later action-log write fails",
   await database.pool.query(`CREATE FUNCTION swarm006_reject_action_log() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NEW.action_type = 'player_removed' THEN RAISE EXCEPTION 'test injected failure'; END IF; RETURN NEW; END $$`);
   await database.pool.query("CREATE TRIGGER swarm006_reject_action_log BEFORE INSERT ON action_log FOR EACH ROW EXECUTE FUNCTION swarm006_reject_action_log()");
   try {
-    await assert.rejects(undoAction({ tournamentId: f.id, actionId: await f.latest() }));
+    await assert.rejects(undoAction({ tournamentId: f.id, actionId: await f.latest() }), (error: unknown) => {
+      let cause = error;
+      while (cause instanceof Error) {
+        if (cause.message.includes("test injected failure")) return true;
+        cause = cause.cause;
+      }
+      return false;
+    });
     assert.deepEqual(await f.state(), beforeState);
   } finally {
     await database.pool.query("DROP TRIGGER swarm006_reject_action_log ON action_log");
