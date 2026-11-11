@@ -3,6 +3,7 @@ import { createHash } from "node:crypto";
 import { readFile, readdir, mkdir } from "node:fs/promises";
 import { createServer as httpServer, type Server } from "node:http";
 import path from "node:path";
+import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { before, after, test } from "node:test";
 import { build, createServer, preview, type ViteDevServer, type PreviewServer } from "vite";
@@ -11,8 +12,11 @@ import { createHttpAppWithoutDatabase } from "../../api-server/test/helpers/http
 
 const root = fileURLToPath(new URL("..", import.meta.url));
 const output = process.env.A30_HTTP_OUTPUT_DIR;
-if (!output || !path.isAbsolute(output) || !output.startsWith("/tmp/")) {
-  throw new Error("Set A30_HTTP_OUTPUT_DIR to an isolated /tmp output directory.");
+const temporaryRoot = path.resolve(tmpdir());
+const outputRelative = output && path.relative(temporaryRoot, path.resolve(output));
+if (!output || !path.isAbsolute(output) || !outputRelative || outputRelative === ".." ||
+    outputRelative.startsWith(`..${path.sep}`) || path.isAbsolute(outputRelative) || outputRelative.includes(path.sep)) {
+  throw new Error("Set A30_HTTP_OUTPUT_DIR to a new direct child of the system temporary directory.");
 }
 const outDir = path.join(output, "web");
 const configFile = path.join(root, "vite.config.ts");
@@ -24,7 +28,7 @@ let api: Server | undefined;
 const sha256 = (bytes: Uint8Array) => createHash("sha256").update(bytes).digest("hex");
 
 before(async () => {
-  await mkdir(output, { recursive: true });
+  await mkdir(output, { recursive: false });
   api = httpServer(await createHttpAppWithoutDatabase());
   await new Promise<void>(resolve => api!.listen(0, "127.0.0.1", resolve));
   const address = api.address();
