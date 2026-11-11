@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { useListTournaments } from "@workspace/api-client-react";
 import { useAuth } from "@/context/auth-context";
@@ -26,13 +26,15 @@ export default function SupportEntry() {
   const [password, setPassword] = useState("");
   const [nick, setNick] = useState("");
   const [loading, setLoading] = useState(false);
+  const submitLock = useRef(false);
   const [error, setError] = useState<string | null>(null);
 
   const active = tournaments?.filter((t) => t.status === "active") ?? [];
 
   async function handleLogin(e: React.FormEvent) {
     e.preventDefault();
-    if (!selectedId) return;
+    if (!selectedId || submitLock.current || !nick.trim() || !password) return;
+    submitLock.current = true;
     setLoading(true);
     setError(null);
     try {
@@ -42,6 +44,7 @@ export default function SupportEntry() {
     } catch (err: any) {
       setError(err.message ?? "Błąd logowania");
     } finally {
+      submitLock.current = false;
       setLoading(false);
     }
   }
@@ -106,10 +109,13 @@ export default function SupportEntry() {
 
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-1.5">
-                <Label className="flex items-center gap-1.5"><User className="w-3.5 h-3.5" />Twój nick</Label>
+                <Label htmlFor="support-entry-nick" className="flex items-center gap-1.5"><User aria-hidden="true" className="w-3.5 h-3.5" />Twój nick</Label>
                 <Input
+                  id="support-entry-nick"
                   value={nick}
-                  onChange={(e) => setNick(e.target.value)}
+                  aria-describedby={error ? "support-entry-login-error" : undefined}
+                  autoComplete="nickname"
+                  onChange={(e) => { setNick(e.target.value); setError(null); }}
                   placeholder="np. Sędzia1"
                   required
                   maxLength={40}
@@ -117,18 +123,21 @@ export default function SupportEntry() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="flex items-center gap-1.5"><Lock className="w-3.5 h-3.5" />Hasło wsparcia</Label>
+                <Label htmlFor="support-entry-password" className="flex items-center gap-1.5"><Lock aria-hidden="true" className="w-3.5 h-3.5" />Hasło wsparcia</Label>
                 <Input
+                  id="support-entry-password"
                   type="password"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  aria-describedby={error ? "support-entry-login-error" : undefined}
+                  autoComplete="current-password"
+                  onChange={(e) => { setPassword(e.target.value); setError(null); }}
                   placeholder="Podane przez organizatora"
                   required
                 />
               </div>
 
               {error && (
-                <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">{error}</p>
+                <p id="support-entry-login-error" role="alert" className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">{error}</p>
               )}
 
               <Button type="submit" className="w-full" disabled={loading || !nick.trim() || !password}>
