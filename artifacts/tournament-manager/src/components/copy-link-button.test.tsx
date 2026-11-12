@@ -14,7 +14,8 @@ function writer(value: unknown) {
   Object.defineProperty(navigator, "clipboard", { configurable: true, value });
 }
 const link = "https://example.invalid/tournaments/7?login=support&name=Łódź";
-const mount = (text = link) => render(<div className="flex flex-wrap"><CopyLinkButton text={text} /></div>);
+const view = (text = link) => <div className="flex flex-wrap"><CopyLinkButton text={text} /></div>;
+const mount = (text = link) => render(view(text));
 
 test("L09-UI-01: announces success only after write resolves", async () => {
   let finish!: () => void;
@@ -67,7 +68,7 @@ test("L09-UI-05: changing URL while pending cannot claim the new link was copied
   writer({ writeText: () => new Promise<void>(r => { finish = r; }) });
   const ui = mount();
   fireEvent.click(screen.getByRole("button", { name: "Kopiuj link" }));
-  ui.rerender(<CopyLinkButton text="https://example.invalid/new" />);
+  ui.rerender(view("https://example.invalid/new"));
   assert.ok((screen.getByRole("button", { name: "Kopiuj link" }) as HTMLButtonElement).disabled);
   await act(async () => finish());
   await waitFor(() => assert.equal((screen.getByRole("button", { name: "Kopiuj link" }) as HTMLButtonElement).disabled, false));
@@ -78,7 +79,7 @@ test("L09-UI-06: changing URL hides stale success and a stale manual field", asy
   const ui = mount();
   fireEvent.click(screen.getByRole("button", { name: "Kopiuj link" }));
   await screen.findByText("Link skopiowany.");
-  ui.rerender(<CopyLinkButton text="https://example.invalid/changed" />);
+  ui.rerender(view("https://example.invalid/changed"));
   assert.equal(screen.queryByText("Link skopiowany."), null);
   writer(undefined);
   fireEvent.click(screen.getByRole("button", { name: "Kopiuj link" }));
