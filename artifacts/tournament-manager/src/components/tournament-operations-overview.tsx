@@ -45,7 +45,10 @@ export function TournamentOperationsOverview({ tournamentId, enabled }: {tournam
   // Safe for older servers: the existing assistant fields remain unchanged and
   // the panel simply stays hidden if the new optional payload is unavailable.
   const operations = (query.data as unknown as {operations?: OperationsView} | undefined)?.operations;
+  // React Query keeps the previous snapshot on refetch failure: never present it as current.
+  // Preserve the legacy hidden-panel behavior when no advisory payload is supported.
   if (!operations || operations.version !== 1 || operations.advisory !== true) return null;
+  const stale = query.isError;
   const {recommendedAction: action, progress, blockers} = operations;
   const preview = operations.transitionPreview;
   const target = tournamentModeHref(action.href, experimental);
@@ -59,9 +62,22 @@ export function TournamentOperationsOverview({ tournamentId, enabled }: {tournam
           Stan operacyjny turnieju
         </div>
         <span className="text-xs text-muted-foreground" role="status">
-          {blockerCount > 0 ? `${blockerCount} blokad` : "Analiza backendu"}
+          {stale ? "Dane nieaktualne" : blockerCount > 0 ? `${blockerCount} blokad` : "Analiza backendu"}
         </span>
       </div>
+      {stale && (
+        <div role="alert" className="mt-3 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
+          Nie udało się odświeżyć podglądu. Wyświetlane informacje pochodzą z ostatniego udanego odczytu i mogą być nieaktualne.
+          <button
+            type="button"
+            onClick={() => { void query.refetch(); }}
+            disabled={query.isFetching}
+            className="ml-2 inline-flex min-h-11 items-center rounded px-2 font-semibold underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-50"
+          >
+            {query.isFetching ? "Ponawianie…" : "Ponów odczyt"}
+          </button>
+        </div>
+      )}
       {progress.total > 0 && (
         <div className="mt-3 space-y-1">
           <div className="flex justify-between text-xs text-muted-foreground">
@@ -97,9 +113,13 @@ export function TournamentOperationsOverview({ tournamentId, enabled }: {tournam
         </ul>
       )}
       <div className="mt-3 flex justify-end">
-        <Link href={target} className="inline-flex items-center gap-1.5 text-xs font-medium text-primary underline-offset-4 hover:underline">
-          Przejdź do właściwego widoku <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
-        </Link>
+        {stale ? (
+          <span className="text-xs text-muted-foreground">Przejście z nieaktualnej rekomendacji jest wstrzymane. Odśwież podgląd.</span>
+        ) : (
+          <Link href={target} className="inline-flex items-center gap-1.5 text-xs font-medium text-primary underline-offset-4 hover:underline">
+            Przejdź do właściwego widoku <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+          </Link>
+        )}
       </div>
       {preview?.advisory === true && preview.version === 1 && preview.kind !== "none" && (
         <details className="mt-3 rounded-lg border border-border/70 bg-background/30 p-3">
