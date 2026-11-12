@@ -126,7 +126,7 @@ export function OrganizerLoginModal({ open, onClose, tournamentId, tournamentNam
             </div>
           </div>
           {handleClose && (
-            <button onClick={handleClose} className="text-muted-foreground hover:text-foreground transition-colors mt-0.5" aria-label="Zamknij">
+            <button type="button" onClick={handleClose} className="text-muted-foreground hover:text-foreground transition-colors mt-0.5 min-h-11 min-w-11 inline-flex items-center justify-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" aria-label="Zamknij">
               <X className="w-4 h-4" />
             </button>
           )}
@@ -160,11 +160,14 @@ export function OrganizerLoginModal({ open, onClose, tournamentId, tournamentNam
                   dokładny dotychczasowy kod i ustaw nowe hasło organizatora.
                 </p>
                 <div className="space-y-1.5">
-                  <Label>Kod prowadzącego</Label>
+                  <Label htmlFor="organizer-login-host-code">Kod prowadzącego</Label>
                   <Input
+                    id="organizer-login-host-code"
                     type="password"
+                    aria-invalid={Boolean(error)}
+                    aria-describedby={error ? "organizer-login-error" : undefined}
                     value={hostCode}
-                    onChange={(event) => setHostCode(event.target.value)}
+                    onChange={(event) => { setHostCode(event.target.value); setError(null); }}
                     autoComplete="off"
                     required
                     autoFocus
@@ -182,9 +185,11 @@ export function OrganizerLoginModal({ open, onClose, tournamentId, tournamentNam
               <Input
                 id="organizer-login-password"
                 type="password"
+                aria-invalid={Boolean(error)}
+                aria-describedby={error ? "organizer-login-error" : undefined}
                 autoComplete={credentialScreen === "legacy_upgrade" ? "new-password" : "current-password"}
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                onChange={(e) => { setPassword(e.target.value); setError(null); }}
                 placeholder={
                   credentialScreen === "legacy_upgrade"
                     ? "Minimum 8 znaków"
@@ -199,7 +204,7 @@ export function OrganizerLoginModal({ open, onClose, tournamentId, tournamentNam
             </div>
 
             {error && (
-              <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">{error}</p>
+              <p id="organizer-login-error" role="alert" className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">{error}</p>
             )}
 
             <div className="flex gap-2">
@@ -228,7 +233,7 @@ export function OrganizerLoginModal({ open, onClose, tournamentId, tournamentNam
           </form>
         )}
         {error && credentialState == null && !stateLoading && (
-          <p className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">{error}</p>
+          <p role="alert" className="text-sm text-destructive bg-destructive/10 rounded-lg px-3 py-2">{error}</p>
         )}
       </div>
     </div>
