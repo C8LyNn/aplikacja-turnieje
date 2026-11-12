@@ -15,6 +15,6 @@ for(const [location,expected] of [['/support','/tournaments/stable'],['/tourname
   assert.equal(link.getAttribute('href'),expected);
   assert.equal(link.getAttribute('aria-current'),location===expected?'page':null);
   assert.ok(link.className.includes('whitespace-nowrap'));
-  assert.equal(link.querySelector('.sm\:hidden')?.textContent,'Zmień rolę');
+  assert.equal(link.querySelector('.sm\\:hidden')?.textContent,'Zmień rolę');
  });
 }
