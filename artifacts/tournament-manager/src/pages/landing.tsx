@@ -46,17 +46,17 @@ export default function Landing() {
             <TileLink
               key={href}
               href={href}
-              className={`group relative min-h-[205px] overflow-hidden rounded-2xl border border-border bg-card p-5 transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/10 ${borderHover}`}
+              className={`group relative min-h-[205px] overflow-hidden rounded-2xl border border-border bg-card p-5 transition hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background motion-reduce:transform-none motion-reduce:transition-none ${borderHover}`}
             >
               <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${gradient} to-transparent`} />
-              <div className={`absolute left-5 top-0 h-1.5 w-16 rounded-b-lg transition-all group-hover:w-20 ${stripe}`} />
+              <div className={`absolute left-5 top-0 h-1.5 w-16 rounded-b-lg transition-all motion-reduce:transition-none group-hover:w-20 ${stripe}`} />
               <div className="relative flex h-full flex-col items-start text-left">
                 <div className={`mb-5 grid h-11 w-11 place-items-center rounded-xl border border-border bg-background/65 ${text}`}>
-                  <Icon className="h-5 w-5" />
+                  <Icon aria-hidden="true" className="h-5 w-5" />
                 </div>
                 <h2 className="mt-1 text-lg font-bold leading-tight">{title}</h2>
                 <p className="mt-2 line-clamp-2 text-sm leading-5 text-muted-foreground">{description}</p>
-                <div className={`mt-auto pt-5 text-xs font-bold opacity-75 transition group-hover:opacity-100 ${text}`}>Otwórz →</div>
+                <div className={`mt-auto pt-5 text-xs font-bold opacity-75 transition motion-reduce:transition-none group-hover:opacity-100 group-focus-visible:opacity-100 ${text}`}>Otwórz →</div>
               </div>
             </TileLink>
             );
