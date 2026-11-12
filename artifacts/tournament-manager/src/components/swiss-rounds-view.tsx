@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Bracket, Match, Standing } from "@workspace/api-client-react";
+import { resolveSwissRound } from "@/lib/swiss-round-selection";
 
 interface SwissRoundsViewProps {
   bracket: Bracket;
@@ -11,16 +12,25 @@ interface SwissRoundsViewProps {
 export function SwissRoundsView({ bracket, currentRound, totalRounds, standings }: SwissRoundsViewProps) {
   const rounds = bracket?.rounds ?? [];
   const [selectedRound, setSelectedRound] = useState<number>(currentRound ?? rounds[0]?.round ?? 1);
+  // Data can be refreshed for another tournament or a different set of rounds.
+  // Preserve the user's choice only while that round still exists.
+  const visibleRound = resolveSwissRound(rounds.map(round => round.round), selectedRound, currentRound);
 
   useEffect(() => {
     if (currentRound != null) setSelectedRound(currentRound);
   }, [currentRound]);
 
+  useEffect(() => {
+    if (visibleRound !== null && !rounds.some(round => round.round === selectedRound)) {
+      setSelectedRound(visibleRound);
+    }
+  }, [rounds, selectedRound, visibleRound]);
+
   // W-L record for each player BEFORE the selected round, from completed matches
   const recordBefore = useMemo(() => {
     const map = new Map<number, { w: number; l: number }>();
     for (const round of rounds) {
-      if (round.round >= selectedRound) continue;
+      if (round.round >= (visibleRound ?? 1)) continue;
       for (const m of round.matches ?? []) {
         if (m.status !== "completed") continue;
         for (const pid of [m.player1Id, m.player2Id]) {
@@ -34,9 +44,9 @@ export function SwissRoundsView({ bracket, currentRound, totalRounds, standings 
       }
     }
     return map;
-  }, [rounds, selectedRound]);
+  }, [rounds, visibleRound]);
 
-  const activeRound = rounds.find((r) => r.round === selectedRound);
+  const activeRound = rounds.find((r) => r.round === visibleRound);
 
   // Group matches by pairing bracket (shared W-L record), stronger records first
   const groups = useMemo(() => {
@@ -94,15 +104,18 @@ export function SwissRoundsView({ bracket, currentRound, totalRounds, standings 
           )}
         </div>
         {/* Round selector pills */}
-        <div className="flex items-center gap-1.5">
+        <div className="flex max-w-full items-center gap-1.5 overflow-x-auto py-1" role="group" aria-label="Wybór rundy">
           {rounds.map((r) => {
-            const isSel = r.round === selectedRound;
+            const isSel = r.round === visibleRound;
             const isCur = r.round === currentRound;
             return (
               <button
+                type="button"
                 key={r.round}
+                aria-label={`Runda ${r.round}${isCur ? ", bieżąca" : ""}`}
+                aria-pressed={isSel}
                 onClick={() => setSelectedRound(r.round)}
-                className={`relative px-3 py-1 rounded-full text-[11px] font-bold transition-colors border ${
+                className={`relative min-h-11 min-w-11 shrink-0 rounded-full px-3 py-2 text-[11px] font-bold transition-colors border focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                   isSel
                     ? "bg-primary/15 border-primary/60 text-primary"
                     : "bg-card/40 border-border/50 text-muted-foreground hover:text-foreground hover:border-border"
@@ -111,7 +124,7 @@ export function SwissRoundsView({ bracket, currentRound, totalRounds, standings 
               >
                 R{r.round}
                 {isCur && (
-                  <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+                  <span aria-hidden="true" className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
                 )}
               </button>
             );
@@ -122,6 +135,7 @@ export function SwissRoundsView({ bracket, currentRound, totalRounds, standings 
       <div className={`grid gap-5 ${hasStandings ? "lg:grid-cols-[1fr_290px]" : ""}`}>
         {/* Matches column */}
         <div className="min-w-0">
+          {groups.length === 0 && <p role="status" className="rounded-lg border border-dashed p-5 text-sm text-muted-foreground">Brak meczów dla wybranej rundy.</p>}
           {groups.map((group) => (
             <div key={group.label} className="mb-5">
               <div className="flex items-center gap-2 mb-2 px-1">
