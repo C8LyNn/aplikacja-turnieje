@@ -17,7 +17,7 @@ const FORMAT_LABELS: Record<string, string> = {
 };
 
 export default function SupportEntry() {
-  const { data: tournaments } = useListTournaments();
+  const { data: tournaments, isError, isFetching, refetch } = useListTournaments();
   const { storeSupSession } = useAuth();
   const [location, navigate] = useLocation();
   const isExperimental = isExperimentalTournamentPath(location);
@@ -29,6 +29,7 @@ export default function SupportEntry() {
   const submitLock = useRef(false);
   const [error, setError] = useState<string | null>(null);
 
+  const hasLoadedList = tournaments !== undefined;
   const active = tournaments?.filter((t) => t.status === "active") ?? [];
 
   async function handleLogin(e: React.FormEvent) {
@@ -75,7 +76,28 @@ export default function SupportEntry() {
           <p className="text-muted-foreground text-sm">Wybierz turniej i zaloguj się hasłem wsparcia.</p>
         </div>
 
-        {active.length === 0 ? (
+        {isError && hasLoadedList && (
+          <div role="alert" className="mb-5 flex flex-col gap-3 rounded-lg border border-destructive/40 bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
+            <p className="text-sm">Nie udało się odświeżyć listy turniejów. Pokazujemy ostatnio pobrane dane.</p>
+            <Button type="button" variant="outline" disabled={isFetching} onClick={() => { void refetch(); }}>
+              {isFetching ? "Ponawianie…" : "Spróbuj ponownie"}
+            </Button>
+          </div>
+        )}
+
+        {!hasLoadedList && isError ? (
+          <div role="alert" className="rounded-xl border border-destructive/40 bg-card p-6 text-center space-y-3">
+            <p className="font-semibold">Nie udało się pobrać listy turniejów.</p>
+            <p className="text-sm text-muted-foreground">Sprawdź połączenie i spróbuj ponownie.</p>
+            <Button type="button" variant="outline" disabled={isFetching} onClick={() => { void refetch(); }}>
+              {isFetching ? "Ponawianie…" : "Spróbuj ponownie"}
+            </Button>
+          </div>
+        ) : !hasLoadedList ? (
+          <div role="status" className="rounded-xl border bg-card/50 p-6 text-center text-sm text-muted-foreground">
+            Pobieranie listy turniejów…
+          </div>
+        ) : active.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center border rounded-xl bg-card/50">
             <Trophy className="w-10 h-10 text-muted-foreground mb-3 opacity-20" />
             <h3 className="text-lg font-semibold mb-1">Brak aktywnych turniejów</h3>
