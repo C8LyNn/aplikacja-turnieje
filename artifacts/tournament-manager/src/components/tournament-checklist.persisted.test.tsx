@@ -1,0 +1,20 @@
+import assert from 'node:assert/strict';
+import { afterEach, test } from 'node:test';
+import React from 'react';
+import { cleanup, render, screen } from '@testing-library/react';
+import { Router } from 'wouter';
+import { memoryLocation } from 'wouter/memory-location';
+import userEvent from '@testing-library/user-event';
+import { TournamentChecklist } from './tournament-checklist';
+afterEach(()=>{cleanup();localStorage.clear();});
+test('L32 old code and V2 export checks do not preconfirm new security tasks',async()=>{
+ localStorage.setItem('tm_checklist_51',JSON.stringify(['code','backup_export','players']));
+ const loc=memoryLocation({path:'/tournaments/51'});
+ render(<Router hook={loc.hook} searchHook={loc.searchHook}><TournamentChecklist tournamentId={51} open={true} onClose={()=>{}} /></Router>);
+ const dialog=await screen.findByRole('dialog');
+ assert.match(dialog.textContent??'',/1\/13 \(8%\)/);
+ assert.ok(screen.getByText('Dostęp organizatora zabezpieczony'));
+ assert.ok(screen.getByText('Eksport backupu V3 sprawdzony'));
+ await userEvent.click(screen.getByRole('button',{name:/Dostęp organizatora zabezpieczony/}));
+ assert.match(dialog.textContent??'',/2\/13 \(15%\)/);
+});
