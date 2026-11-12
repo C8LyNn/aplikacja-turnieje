@@ -1,5 +1,5 @@
 import { ReadQueryState } from "@/components/read-query-state";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { setActiveOrganizerToken } from "@workspace/api-client-react";
 import { useAuth } from "@/context/auth-context";
 import {
@@ -43,6 +43,8 @@ export function SecurityPanel({
 }: Props) {
   const { getOrgToken, storeOrgToken } = useAuth();
   const token = getOrgToken(tournamentId) ?? "";
+  const changePasswordLock = useRef(false);
+  const setOrganizerPasswordLock = useRef(false);
 
   const [sessions, setSessions] = useState<Session[]>();
   const [auditLog, setAuditLog] = useState<AuditEntry[]>();
@@ -87,6 +89,9 @@ export function SecurityPanel({
 
   async function handleChangePassword(e: React.FormEvent) {
     e.preventDefault();
+    if (changePasswordLock.current || changingPw) return;
+    if (!token || newPassword.length < 8) return;
+    changePasswordLock.current = true;
     setChangingPw(true);
     setPwError(null);
     setPwSuccess(false);
@@ -98,13 +103,16 @@ export function SecurityPanel({
     } catch (err: any) {
       setPwError(err.message ?? "Błąd zmiany hasła");
     } finally {
+      changePasswordLock.current = false;
       setChangingPw(false);
     }
   }
 
   async function handleSetOrganizerPassword(e: React.FormEvent) {
     e.preventDefault();
+    if (setOrganizerPasswordLock.current || settingOrganizerPassword) return;
     if (!token || organizerPassword.length < 8) return;
+    setOrganizerPasswordLock.current = true;
     setSettingOrganizerPassword(true);
     setOrganizerPasswordError(null);
     try {
@@ -125,6 +133,7 @@ export function SecurityPanel({
         error instanceof Error ? error.message : "Błąd ustawiania hasła organizatora",
       );
     } finally {
+      setOrganizerPasswordLock.current = false;
       setSettingOrganizerPassword(false);
     }
   }
@@ -134,7 +143,7 @@ export function SecurityPanel({
       <div className="flex items-center gap-2">
         <Shield className="w-5 h-5 text-primary" />
         <h3 className="font-bold text-lg">Panel bezpieczeństwa</h3>
-        <button onClick={refresh} className="ml-auto text-muted-foreground hover:text-foreground" title="Odśwież" disabled={loading}>
+        <button type="button" onClick={refresh} aria-label="Odśwież sesje i logi" className="ml-auto inline-flex min-h-11 min-w-11 items-center justify-center rounded-md text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" title="Odśwież" disabled={loading}>
           <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
         </button>
       </div>
@@ -181,7 +190,7 @@ export function SecurityPanel({
               </div>
             </div>
             {organizerPasswordError && (
-              <p className="text-xs text-destructive">{organizerPasswordError}</p>
+              <p role="alert" className="text-xs text-destructive">{organizerPasswordError}</p>
             )}
             <Button
               type="submit"
@@ -248,9 +257,10 @@ export function SecurityPanel({
             </p>
             <form onSubmit={handleChangePassword} className="space-y-2">
               <div className="space-y-1">
-                <Label className="text-xs">Nowe hasło wsparcia</Label>
+                <Label htmlFor="support-new-password" className="text-xs">Nowe hasło wsparcia</Label>
                 <div className="relative">
                   <Input
+                    id="support-new-password"
                     type={showNewPw ? "text" : "password"}
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
@@ -262,14 +272,17 @@ export function SecurityPanel({
                   <button
                     type="button"
                     onClick={() => setShowNewPw((v) => !v)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex min-h-11 min-w-11 items-center justify-center text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    aria-label={showNewPw ? "Ukryj hasło wsparcia" : "Pokaż hasło wsparcia"}
+                    aria-controls="support-new-password"
+                    aria-pressed={showNewPw}
                   >
                     {showNewPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                   </button>
                 </div>
               </div>
-              {pwError && <p className="text-xs text-destructive">{pwError}</p>}
-              {pwSuccess && <p className="text-xs text-green-400">Hasło zmienione. Poprzednie sesje zostały unieważnione.</p>}
+              {pwError && <p role="alert" className="text-xs text-destructive">{pwError}</p>}
+              {pwSuccess && <p role="status" className="text-xs text-green-400">Hasło zmienione. Poprzednie sesje zostały unieważnione.</p>}
               <Button type="submit" variant="destructive" size="sm" disabled={changingPw || newPassword.length < 8}>
                 <AlertTriangle className="w-3.5 h-3.5 mr-1.5" />
                 {changingPw ? "Zmienianie…" : "Zmień hasło i unieważnij sesje"}
