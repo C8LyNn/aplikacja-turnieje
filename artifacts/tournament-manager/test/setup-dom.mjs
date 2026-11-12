@@ -1,5 +1,9 @@
 import { JSDOM } from "jsdom";
 import { after } from "node:test";
+import { register } from "node:module";
+
+// Vite resolves CSS imports at build time; component tests only need them to be no-ops.
+register("./css-import-stub.mjs", import.meta.url);
 
 const dom = new JSDOM("<!doctype html><html><body></body></html>", {
   url: "http://localhost/tournaments/new",
@@ -30,6 +34,9 @@ Object.defineProperties(globalThis, {
   PointerEvent: { value: dom.window.PointerEvent ?? dom.window.MouseEvent, configurable: true },
   FocusEvent: { value: dom.window.FocusEvent, configurable: true },
   KeyboardEvent: { value: dom.window.KeyboardEvent, configurable: true },
+  File: { value: dom.window.File, configurable: true },
+  FileList: { value: dom.window.FileList, configurable: true },
+  FileReader: { value: dom.window.FileReader, configurable: true },
   MutationObserver: { value: dom.window.MutationObserver, configurable: true },
   getComputedStyle: { value: dom.window.getComputedStyle.bind(dom.window), configurable: true },
 });
