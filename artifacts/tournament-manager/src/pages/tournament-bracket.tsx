@@ -184,21 +184,23 @@ export default function TournamentBracket() {
   return (
     <div className={`${isSingleElimination ? "h-dvh" : "min-h-screen"} min-w-0 max-w-full bg-background text-foreground flex flex-col overflow-hidden ${isExperimental ? "experimental-tournament-stage-view experimental-bracket-view" : ""}`} data-exp-format={isExperimental ? publicStage?.format ?? "unknown" : undefined} data-exp-tournament-status={isExperimental ? tournament.status : undefined} data-theme={presentationSettings.colorPreset || undefined}>
       {/* Floating navigation stays visible for keyboard and direct-URL users. */}
-      <div className="absolute top-0 left-0 w-full p-4 flex justify-between items-start z-50 bg-gradient-to-b from-background/80 to-transparent pointer-events-none">
+      <div className="absolute top-0 left-0 w-full p-2 sm:p-4 flex flex-wrap justify-between items-start gap-2 z-50 bg-gradient-to-b from-background/80 to-transparent pointer-events-none">
         <a
           href={tournamentHref(id, isExperimental)}
-          className="bg-background border border-border px-3 py-1.5 shadow-sm pointer-events-auto rounded-md text-sm font-medium text-foreground hover:bg-muted transition-colors"
+          className="inline-flex min-h-11 items-center bg-background border border-border px-3 py-2 shadow-sm pointer-events-auto rounded-md text-sm font-medium text-foreground hover:bg-muted transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
         >
           ← Wróć do turnieju
         </a>
 
-        <div className="flex items-center gap-2 pointer-events-auto">
+        <div className="flex flex-wrap items-center gap-2 pointer-events-auto">
           {/* UB→LB drop toggle — visible only when DE bracket is active */}
           {!!doubleEliminationStage && (
             <button
               type="button"
+              aria-pressed={showDropLines}
+              aria-label="Pokaż linie przejść Upper do Lower"
               onClick={() => setShowDropLines(v => !v)}
-              className={`px-2 py-1 rounded-lg border text-[11px] font-medium transition-colors ${
+              className={`min-h-11 px-3 py-2 rounded-lg border text-[11px] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                 showDropLines
                   ? "bg-background border-border text-muted-foreground hover:text-foreground"
                   : "bg-primary/10 border-primary/50 text-primary"
@@ -209,49 +211,59 @@ export default function TournamentBracket() {
             </button>
           )}
           {/* Zoom controls — hidden for Swiss (responsive layout, no transform) */}
-          {!isSwiss && <div className="flex items-center gap-1 bg-background border border-border rounded-lg px-2 py-1 shadow-md">
+          {!isSwiss && <div role="group" aria-label="Powiększenie drabinki" className="flex items-center gap-1 bg-background border border-border rounded-lg px-1 py-1 shadow-md">
             <button
-              className="w-7 h-7 flex items-center justify-center rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground disabled:opacity-40"
+              type="button"
+              aria-label="Oddal drabinkę"
+              className="min-w-11 min-h-11 flex items-center justify-center rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-40"
               onClick={() => setZoom((z) => clampZoom(z - ZOOM_STEP))}
               disabled={zoom <= ZOOM_MIN}
               title="Oddalenie (-)"
             >
-              <ZoomOut className="w-4 h-4" />
+              <ZoomOut aria-hidden="true" className="w-4 h-4" />
             </button>
             <button
-              className="min-w-[44px] text-center text-xs font-mono font-bold text-foreground hover:text-primary transition-colors px-1"
+              type="button"
+              aria-label={`Dopasuj drabinkę do ekranu, aktualne powiększenie ${Math.round(zoom * 100)}%`}
+              className="min-h-11 min-w-11 text-center text-xs font-mono font-bold text-foreground hover:text-primary transition-colors px-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               onClick={fitZoom}
               title="Dopasuj do ekranu"
             >
               {Math.round(zoom * 100)}%
             </button>
             <button
-              className="w-7 h-7 flex items-center justify-center rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground disabled:opacity-40"
+              type="button"
+              aria-label="Przybliż drabinkę"
+              className="min-w-11 min-h-11 flex items-center justify-center rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-40"
               onClick={() => setZoom((z) => clampZoom(z + ZOOM_STEP))}
               disabled={zoom >= ZOOM_MAX}
               title="Przybliżenie (+)"
             >
-              <ZoomIn className="w-4 h-4" />
+              <ZoomIn aria-hidden="true" className="w-4 h-4" />
             </button>
             <div className="w-px h-4 bg-border mx-0.5" />
             <button
-              className="w-7 h-7 flex items-center justify-center rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+              type="button"
+              aria-label="Dopasuj drabinkę do ekranu"
+              className="min-w-11 min-h-11 flex items-center justify-center rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               onClick={fitZoom}
               title="Dopasuj do ekranu (Fit)"
             >
-              <Minimize2 className="w-3.5 h-3.5" />
+              <Minimize2 aria-hidden="true" className="w-3.5 h-3.5" />
             </button>
           </div>}
           <Button
+            type="button"
             variant="outline"
             size="icon"
-            className="bg-background"
+            aria-label="Włącz tryb pełnoekranowy"
+            className="bg-background min-h-11 min-w-11 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             onClick={() =>
               document.documentElement.requestFullscreen().catch(() => {})
             }
             title="Pełny ekran"
           >
-            <Maximize2 className="w-4 h-4" />
+            <Maximize2 aria-hidden="true" className="w-4 h-4" />
           </Button>
         </div>
       </div>
