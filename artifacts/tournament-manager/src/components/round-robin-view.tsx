@@ -61,17 +61,18 @@ export function RoundRobinView({ bracket, standings, hideStandings }: RoundRobin
             <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3 px-1">
               Klasyfikacja
             </div>
-            <div className="border border-border/60 rounded-xl overflow-hidden bg-card/40">
-              <table className="w-full text-xs">
+            <div className="border border-border/60 rounded-xl overflow-x-auto bg-card/40" role="region" aria-label="Przewijana tabela klasyfikacji" tabIndex={0}>
+              <table className="w-full min-w-[380px] text-xs">
+                <caption className="sr-only">Klasyfikacja graczy — każdy z każdym</caption>
                 <thead>
                   <tr className="border-b border-border/40 bg-muted/20 text-muted-foreground">
-                    <th className="py-2 px-2 text-left w-6">#</th>
-                    <th className="py-2 px-2 text-left">Gracz</th>
-                    <th className="py-2 px-2 text-center">M</th>
-                    <th className="py-2 px-2 text-center">W</th>
-                    <th className="py-2 px-2 text-center">P</th>
-                    <th className="py-2 px-2 text-center">Gry</th>
-                    <th className="py-2 px-2 text-center">+/−</th>
+                    <th scope="col" className="py-2 px-2 text-left w-6">#</th>
+                    <th scope="col" className="py-2 px-2 text-left">Gracz</th>
+                    <th scope="col" aria-label="Rozegrane mecze" className="py-2 px-2 text-center">M</th>
+                    <th scope="col" aria-label="Wygrane mecze" className="py-2 px-2 text-center">W</th>
+                    <th scope="col" aria-label="Przegrane mecze" className="py-2 px-2 text-center">P</th>
+                    <th scope="col" aria-label="Wygrane i przegrane gry" className="py-2 px-2 text-center">Gry</th>
+                    <th scope="col" aria-label="Bilans gier" className="py-2 px-2 text-center">+/−</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -138,11 +139,11 @@ function RRMatchCard({ match }: { match: Match }) {
       <div className="flex items-center justify-between px-2 py-0.5 bg-muted/20 border-b border-border/20">
         <span className="font-mono text-[9px] text-muted-foreground">M{match.matchNumber}</span>
         {isLive && (
-          <span className="text-[8px] font-bold text-yellow-400 animate-pulse tracking-wide">LIVE</span>
+          <span className="text-[8px] font-bold text-yellow-400 animate-pulse tracking-wide">W TOKU</span>
         )}
         {isDone && (
           <span className="text-[8px] text-green-400">
-            {match.resultType === "walkover" ? "walkower" : match.resultType === "no_contest" ? "no contest" : "✓"}
+            {match.resultType === "walkover" ? "walkower" : match.resultType === "no_contest" ? "bez rozstrzygnięcia" : <><span aria-hidden="true">✓</span><span className="sr-only">Mecz zakończony</span></>}
           </span>
         )}
         {!isDone && !isLive && (
