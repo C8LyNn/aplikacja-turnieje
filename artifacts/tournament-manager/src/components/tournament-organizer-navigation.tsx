@@ -203,6 +203,7 @@ export function TournamentOrganizerNavigation({
                 ref={moreActive ? moreActiveRef : undefined}
                 variant="ghost"
                 className={`min-h-11 shrink-0 rounded-none border-b-2 px-4 py-3 focus-visible:ring-2 focus-visible:ring-primary ${moreActive ? "border-primary bg-primary/10 text-primary" : "border-transparent"}`}
+                aria-current={moreActive ? "page" : undefined}
                 aria-label={moreActiveItem ? `Więcej obszarów turnieju, aktywny obszar: ${moreActiveItem.label}` : "Więcej obszarów turnieju"}
               >
                 Więcej <ChevronDown aria-hidden="true" className="ml-1 h-4 w-4" />

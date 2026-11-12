@@ -22,10 +22,12 @@ function mount(active: "stages" | "security") {
   render(<Router hook={location.hook}><TournamentOrganizerNavigation tournamentId={71} active={active} capabilities={caps} /></Router>);
 }
 
-test("L38: collapsed More describes active Security; current belongs to actual menu link", async () => {
+test("L38: collapsed More describes active Security and is current; open menu marks the actual link", async () => {
   mount("security");
   const more = screen.getByRole("button", { name: /aktywny obszar: Bezpieczeństwo/ });
-  assert.equal(more.hasAttribute("aria-current"), false);
+  // Established contract (tournament-organizer-navigation.test.tsx): collapsed More is the single current item.
+  assert.equal(more.getAttribute("aria-current"), "page");
+  assert.equal(document.querySelectorAll('[aria-current="page"]').length, 1);
   await userEvent.click(more);
   const selected = await screen.findByRole("menuitem", { name: "Bezpieczeństwo" });
   assert.equal(selected.getAttribute("aria-current"), "page");

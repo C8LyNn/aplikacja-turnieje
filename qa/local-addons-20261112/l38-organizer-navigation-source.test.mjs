@@ -5,10 +5,11 @@ import {resolve,dirname} from 'node:path';
 import {fileURLToPath} from 'node:url';
 const root=resolve(dirname(fileURLToPath(import.meta.url)),'../..');
 const s=readFileSync(resolve(root,'artifacts/tournament-manager/src/components/tournament-organizer-navigation.tsx'),'utf8');
-test('L38: more-button exposes active sub-area without claiming to be a page',()=>{
+test('L38: more-button exposes active sub-area and keeps the established single-current contract',()=>{
   assert.match(s,/const moreActiveItem = more\.find\(/);
   assert.match(s,/aktywny obszar: \$\{moreActiveItem\.label\}/);
-  assert.doesNotMatch(s,/aria-current=\{moreActive \? "page"/);
+  // tournament-organizer-navigation.test.tsx: collapsed More is the one aria-current="page" element.
+  assert.match(s,/aria-current=\{moreActive \? "page" : undefined\}/);
 });
 test('L38: actual current submenu link receives aria-current',()=>{
   assert.match(s,/<Link href=\{item\.href\} aria-current=\{item\.area === active \? "page" : undefined\}/);
