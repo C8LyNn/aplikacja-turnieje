@@ -68,15 +68,29 @@ export function TournamentQualificationRoutingPanel({ tournamentId, enabled }: {
   });
   const data = query.data;
   if (!enabled) return null;
-  if (query.isError) {
-    return <p role="status" className="mt-3 text-xs text-muted-foreground">
-      Nie udało się odczytać stanu kwalifikacji i routingu. Odśwież panel po sprawdzeniu uprawnień i połączenia.
-    </p>;
+  if (query.isError && !data) {
+    return <div role="alert" className="mt-3 rounded-lg border border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive">
+      <p>Nie udało się pobrać podglądu kwalifikacji i routingu. To nie oznacza braku tras.</p>
+      <button type="button" onClick={() => void query.refetch()} disabled={query.isFetching}
+        className="mt-2 min-h-11 rounded-md border border-destructive/40 px-4 font-medium hover:bg-destructive/10 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+        {query.isFetching ? "Ponawianie…" : "Ponów odczyt kwalifikacji"}
+      </button>
+    </div>;
   }
+  if (query.isPending && !data) return <p role="status" className="mt-3 text-xs text-muted-foreground">Ładowanie kwalifikacji i routingu…</p>;
   if (!data || data.version !== 1 || data.advisory !== true || data.flowAuthority !== "basket_v1") return null;
   const href = tournamentModeHref(`/tournaments/${tournamentId}?tab=baskets`, experimental);
   return (
     <section aria-label="Kwalifikacje i routing" className="mt-4 rounded-xl border border-border/80 bg-background/30 p-3 sm:p-4">
+      {query.isError && (
+        <div role="status" className="mb-3 rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-xs">
+          Nie udało się odświeżyć podglądu. Poniżej znajdują się ostatnio dostępne dane, które mogą być nieaktualne.
+          <button type="button" onClick={() => void query.refetch()} disabled={query.isFetching}
+            className="ml-2 min-h-11 rounded-md px-3 font-medium underline underline-offset-4 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-primary">
+            {query.isFetching ? "Ponawianie…" : "Ponów odczyt kwalifikacji"}
+          </button>
+        </div>
+      )}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2 text-sm font-semibold">
           <GitBranch className="h-4 w-4 text-primary" aria-hidden="true" />
@@ -119,7 +133,7 @@ export function TournamentQualificationRoutingPanel({ tournamentId, enabled }: {
         </details>
       ))}
       <div className="mt-3 flex items-center justify-between gap-2 border-t border-border/70 pt-3">
-        <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"><ShieldCheck className="h-3.5 w-3.5" /> Podgląd tylko do odczytu</span>
+        <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground"><ShieldCheck aria-hidden="true" className="h-3.5 w-3.5" /> Podgląd tylko do odczytu</span>
         <Link className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline" href={href}>
           Otwórz koszyki <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
         </Link>
