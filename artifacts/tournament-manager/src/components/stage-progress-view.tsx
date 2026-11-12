@@ -120,6 +120,18 @@ export function StageProgressView({
     );
   }
 
+  if (stagesQuery.isError && stages.length === 0) {
+    return (
+      <div role="alert" className="rounded-lg border border-destructive/40 bg-destructive/5 p-6 text-sm text-destructive">
+        <p>Nie udało się pobrać listy etapów. Nie oznacza to, że turniej nie ma drabinki.</p>
+        <button type="button" onClick={() => void stagesQuery.refetch()} disabled={stagesQuery.isFetching}
+          className="mt-3 min-h-11 rounded-md border border-destructive/40 px-4 font-medium hover:bg-destructive/10 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+          {stagesQuery.isFetching ? "Ponawianie…" : "Ponów odczyt etapów"}
+        </button>
+      </div>
+    );
+  }
+
   if (!stages.length) {
     return (
       <div className="rounded-lg border border-dashed p-10 text-center text-sm text-muted-foreground">
@@ -130,6 +142,15 @@ export function StageProgressView({
 
   return (
     <div className="space-y-5">
+      {stagesQuery.isError && (
+        <div role="status" className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm">
+          Nie udało się odświeżyć listy etapów. Widoczne dane mogą być nieaktualne.
+          <button type="button" onClick={() => void stagesQuery.refetch()} disabled={stagesQuery.isFetching}
+            className="ml-2 min-h-11 rounded-md px-3 font-medium underline underline-offset-4 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-primary">
+            {stagesQuery.isFetching ? "Ponawianie…" : "Ponów odczyt etapów"}
+          </button>
+        </div>
+      )}
       {stages.length > 1 && (
         <StageNavigation
           stages={stages}
@@ -146,9 +167,15 @@ export function StageProgressView({
       )}
 
       {detailQuery.error && (
-        <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-5 text-sm text-destructive">
-          Nie udało się pobrać danych etapu.{" "}
+        <div role="alert" className="rounded-lg border border-destructive/40 bg-destructive/5 p-5 text-sm text-destructive">
+          {detail ? "Nie udało się odświeżyć danych etapu. Pokazujemy ostatnio pobrane dane." : "Nie udało się pobrać danych etapu."}{" "}
           {getApiErrorMessage(detailQuery.error)}
+          {!denied && (
+            <button type="button" onClick={() => void detailQuery.refetch()} disabled={detailQuery.isFetching}
+              className="mt-3 block min-h-11 rounded-md border border-destructive/40 px-4 font-medium hover:bg-destructive/10 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+              {detailQuery.isFetching ? "Ponawianie…" : "Ponów odczyt etapu"}
+            </button>
+          )}
         </div>
       )}
 
