@@ -20,7 +20,14 @@ export function organizerCredentialScreen(
   loading: boolean,
 ): OrganizerCredentialScreen {
   if (loading) return "loading";
-  if (state == null) return "not_found";
-  if (!state.exists) return "not_found";
-  return state.accessMode ?? "not_found";
+  if (state?.exists !== true) return "not_found";
+  switch (state.accessMode) {
+    case "organizer_login":
+    case "legacy_upgrade":
+    case "admin_recovery":
+      return state.accessMode;
+    default:
+      // Unknown/unsupported backend mode must never select an unintended login flow.
+      return "not_found";
+  }
 }
