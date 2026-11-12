@@ -176,7 +176,8 @@ export function TournamentOrganizerNavigation({
     ...item,
     href: tournamentModeHref(item.href, isExperimental),
   }));
-  const moreActive = more.some((item) => item.area === active);
+  const moreActiveItem = more.find((item) => item.area === active);
+  const moreActive = Boolean(moreActiveItem);
   return (
     <nav aria-label="Nawigacja organizatora turnieju" className="organizer-navigation rounded-lg border bg-card">
       <div className="flex items-stretch overflow-x-auto overscroll-x-contain [scrollbar-width:thin]">
@@ -201,17 +202,16 @@ export function TournamentOrganizerNavigation({
               <Button
                 ref={moreActive ? moreActiveRef : undefined}
                 variant="ghost"
-                className={`h-auto shrink-0 rounded-none border-b-2 px-4 py-3 ${moreActive ? "border-primary bg-primary/10 text-primary" : "border-transparent"}`}
-                aria-label="Więcej obszarów turnieju"
-                aria-current={moreActive ? "page" : undefined}
+                className={`min-h-11 shrink-0 rounded-none border-b-2 px-4 py-3 focus-visible:ring-2 focus-visible:ring-primary ${moreActive ? "border-primary bg-primary/10 text-primary" : "border-transparent"}`}
+                aria-label={moreActiveItem ? `Więcej obszarów turnieju, aktywny obszar: ${moreActiveItem.label}` : "Więcej obszarów turnieju"}
               >
-                Więcej <ChevronDown className="ml-1 h-4 w-4" />
+                Więcej <ChevronDown aria-hidden="true" className="ml-1 h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               {more.map((item) => (
                 <DropdownMenuItem key={item.area} asChild>
-                  <Link href={item.href}>{item.label}</Link>
+                  <Link href={item.href} aria-current={item.area === active ? "page" : undefined} className="flex min-h-11 items-center">{item.label}</Link>
                 </DropdownMenuItem>
               ))}
             </DropdownMenuContent>
