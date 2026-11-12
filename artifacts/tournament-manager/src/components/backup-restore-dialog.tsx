@@ -27,6 +27,7 @@ export function BackupRestoreDialog(props: {
   const { toast } = useToast();
   const importTournament = useImportTournament();
   const fileInput = useRef<HTMLInputElement>(null);
+  const restoreInFlight = useRef(false);
   const [backup, setBackup] = useState<TournamentBackupFile | null>(null);
   const [organizerPassword, setOrganizerPassword] = useState("");
   const [viewerPassword, setViewerPassword] = useState("");
@@ -39,6 +40,7 @@ export function BackupRestoreDialog(props: {
   const privateOnline = visibility === "private_online";
 
   const resetAndClose = () => {
+    restoreInFlight.current = false;
     setBackup(null);
     setOrganizerPassword("");
     setViewerPassword("");
@@ -66,7 +68,7 @@ export function BackupRestoreDialog(props: {
   };
 
   const restore = () => {
-    if (!backup) return;
+    if (!backup || restoreInFlight.current || importTournament.isPending) return;
     if (organizerPassword.length < 8) {
       setError("Nowe hasło organizatora musi mieć co najmniej 8 znaków.");
       return;
@@ -80,6 +82,7 @@ export function BackupRestoreDialog(props: {
       return;
     }
     setError(null);
+    restoreInFlight.current = true;
     importTournament.mutate(
       {
         data: {
@@ -91,6 +94,7 @@ export function BackupRestoreDialog(props: {
       },
       {
         onSuccess: (result) => {
+          restoreInFlight.current = false;
           storeOrgToken(result.tournament.id, result.organizerToken);
           setActiveOrganizerToken(result.organizerToken);
           toast({
@@ -101,6 +105,7 @@ export function BackupRestoreDialog(props: {
           navigate(tournamentHref(result.tournament.id, experimental));
         },
         onError: (requestError: any) => {
+          restoreInFlight.current = false;
           setError(
             requestError?.data?.error ??
               requestError?.message ??
@@ -116,12 +121,13 @@ export function BackupRestoreDialog(props: {
       <div className="w-full max-w-lg space-y-4 rounded-xl border bg-card p-6 shadow-2xl">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-lg font-bold">Przywróć backup V2/V3</h2>
+            <h2 className="text-lg font-bold">Przywróć backup V2</h2>
             <p className="mt-1 text-sm text-muted-foreground">
               Backup nie przechowuje haseł ani tokenów. Dla nowej kopii ustawiasz nowe poświadczenia.
+              Import backupu V3 jest wyłączony do czasu odrębnej weryfikacji; eksport V3 pozostaje dostępny.
             </p>
           </div>
-          <Button variant="ghost" size="icon" onClick={resetAndClose}>
+          <Button type="button" variant="ghost" size="icon" aria-label="Zamknij okno przywracania" onClick={resetAndClose} disabled={importTournament.isPending}>
             <X className="h-4 w-4" />
           </Button>
         </div>
@@ -180,10 +186,10 @@ export function BackupRestoreDialog(props: {
           </p>
         </div>
 
-        {error && <p className="text-sm text-destructive">{error}</p>}
+        {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
 
         <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={resetAndClose}>Anuluj</Button>
+          <Button variant="outline" onClick={resetAndClose} disabled={importTournament.isPending}>Anuluj</Button>
           <Button
             onClick={restore}
             disabled={
