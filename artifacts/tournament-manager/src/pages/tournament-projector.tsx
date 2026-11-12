@@ -43,6 +43,7 @@ import { SwissRoundsView } from "@/components/swiss-rounds-view";
 import { MarvelEliminationStage } from "@/components/marvel-elimination-stage";
 import { selectPublicStage, publicStageBracket, publicStageLabel } from "@/lib/public-stage";
 import { useTournamentRoute } from "@/features/experimental-tournaments/experimental-tournament-routing";
+import { parseProjectorNumber, parseProjectorInteger } from "@/lib/projector-url-settings";
 
 // ─── Preset definitions ───────────────────────────────────────────────────────
 
@@ -79,11 +80,11 @@ export default function TournamentProjector() {
   const finalsParam = sp.get("finals");
   const finalsPosition: "upper" | "between" =
     finalsParam === "between" ? "between" : "upper";
-  const zoom = parseFloat(sp.get("zoom") ?? "1") || 1;
-  const padding = parseInt(sp.get("padding") ?? "24", 10);
+  const zoom = parseProjectorNumber(sp.get("zoom"), 1, 0.25, 3);
+  const padding = parseProjectorInteger(sp.get("padding"), 24, 0, 96);
   const hideHeader = sp.get("hide-header") === "1";
   const connectorColor = sp.get("connector-color") ?? undefined;
-  const connectorWidth = parseFloat(sp.get("connector-width") ?? "1") || 1;
+  const connectorWidth = parseProjectorNumber(sp.get("connector-width"), 1, 0.5, 8);
   const forceAspect = sp.get("aspect") === "169";
   // show-drops=0 hides UB→LB loser-drop connector lines; default on
   const showDropLines = sp.get("show-drops") !== "0";
