@@ -10,9 +10,10 @@ import { AppLogoLink, RoleSelectionLink } from "./app-navigation";
 afterEach(() => { cleanup(); sessionStorage.clear(); localStorage.clear(); });
 
 test("L20: standard selection route has aria-current only on destination", () => {
-  const loc = memoryLocation({ path: "/tournaments" });
+  const loc = memoryLocation({ path: "/tournaments/stable" });
   const ui = render(<TestAuthProvider><Router hook={loc.hook} searchHook={loc.searchHook}><RoleSelectionLink /></Router></TestAuthProvider>);
   const link = screen.getByRole("link", { name: "Zmień rolę turniejową" });
+  assert.equal(link.getAttribute("href"), "/tournaments/stable");
   assert.equal(link.getAttribute("aria-current"), "page");
   assert.ok(link.className.includes("min-h-11"));
   loc.navigate("/fan");

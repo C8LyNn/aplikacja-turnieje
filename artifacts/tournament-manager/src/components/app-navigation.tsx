@@ -85,16 +85,18 @@ export function RoleHomeLink({
 export function RoleSelectionLink({ className = "" }: { className?: string }) {
   const [location] = useLocation();
   const experimental = isExperimentalTournamentPath(location);
-  const selectionHref = experimental ? "/experimental/tournaments" : "/tournaments";
+  const selectionHref = experimental ? "/experimental/tournaments" : "/tournaments/stable";
 
   return (
     <Link
       href={selectionHref}
       aria-current={location === selectionHref ? "page" : undefined}
-      className={`inline-flex items-center gap-1.5 rounded-md text-sm text-muted-foreground transition-colors hover:text-foreground ${navigationTouch} ${navigationFocus} ${className}`}
+      aria-label="Zmień rolę turniejową"
+      className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-md text-sm text-muted-foreground transition-colors hover:text-foreground ${navigationTouch} ${navigationFocus} ${className}`}
     >
       <ArrowLeft className="w-4 h-4" aria-hidden="true" />
-      <span>Zmień rolę turniejową</span>
+      <span className="sm:hidden" aria-hidden="true">Zmień rolę</span>
+      <span className="hidden sm:inline" aria-hidden="true">Zmień rolę turniejową</span>
     </Link>
   );
 }
