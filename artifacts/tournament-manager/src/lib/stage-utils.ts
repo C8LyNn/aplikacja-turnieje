@@ -32,10 +32,15 @@ export function buildBracketFromMatches(matches: Match[]): BracketShape {
  * highest completed round, or null if no matches have been played.
  */
 export function deriveCurrentRound(matches: Match[]): number | null {
-  const inProgress = matches.find((m) => m.status === "in_progress");
-  if (inProgress) return inProgress.round;
-  const completed = matches
-    .filter((m) => m.status === "completed")
-    .map((m) => m.round);
-  return completed.length ? Math.max(...completed) : null;
+  let latestInProgress: number | null = null;
+  let latestCompleted: number | null = null;
+  for (const match of matches) {
+    if (match.status === "in_progress") {
+      latestInProgress = latestInProgress === null ? match.round : Math.max(latestInProgress, match.round);
+    } else if (match.status === "completed") {
+      latestCompleted = latestCompleted === null ? match.round : Math.max(latestCompleted, match.round);
+    }
+  }
+  // Never infer current round from incidental API order. No large-array spread.
+  return latestInProgress ?? latestCompleted;
 }
