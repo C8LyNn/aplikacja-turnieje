@@ -3,7 +3,7 @@ import {
   BookOpen, Play, RotateCcw, Download, Upload, Clock, AlertTriangle,
   CheckCircle2, Monitor, Shield, Users, Swords, HelpCircle,
 } from "lucide-react";
-import { useState } from "react";
+import { useId, useState } from "react";
 
 interface SectionProps {
   icon: React.ReactNode;
@@ -14,18 +14,27 @@ interface SectionProps {
 
 function Section({ icon, title, children, defaultOpen = false }: SectionProps) {
   const [open, setOpen] = useState(defaultOpen);
+  const sectionId = useId();
+  const buttonId = `${sectionId}-button`;
+  const panelId = `${sectionId}-panel`;
   return (
     <div className="border rounded-xl overflow-hidden bg-card">
-      <button
-        className="w-full flex items-center gap-3 px-5 py-4 text-left hover:bg-muted/30 transition-colors"
-        onClick={() => setOpen((v) => !v)}
-      >
-        <div className="text-primary shrink-0">{icon}</div>
-        <h2 className="text-base font-semibold flex-1">{title}</h2>
-        <span className="text-muted-foreground text-sm">{open ? "▲" : "▼"}</span>
-      </button>
+      <h2 className="text-base font-semibold">
+        <button
+          id={buttonId}
+          type="button"
+          aria-expanded={open}
+          aria-controls={panelId}
+          className="w-full flex items-center gap-3 px-5 py-4 text-left hover:bg-muted/30 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-primary"
+          onClick={() => setOpen((v) => !v)}
+        >
+          <span className="text-primary shrink-0" aria-hidden="true">{icon}</span>
+          <span className="flex-1">{title}</span>
+          <span className="text-muted-foreground text-sm" aria-hidden="true">{open ? "▲" : "▼"}</span>
+        </button>
+      </h2>
       {open && (
-        <div className="px-5 pb-5 pt-1 border-t text-sm text-muted-foreground space-y-3">
+        <div id={panelId} role="region" aria-labelledby={buttonId} className="px-5 pb-5 pt-1 border-t text-sm text-muted-foreground space-y-3">
           {children}
         </div>
       )}
@@ -101,8 +110,8 @@ Charlie,,Ancient`}
               Jeśli nie zależy Ci na rozstawieniu — nie wypełniaj pola seed.
             </Step>
             <Step n={4}>
-              Ustaw kod prowadzącego (przycisk <strong>Kod</strong> w panelu prowadzącego).
-              Bez kodu każdy ze znającym link może prowadzić turniej.
+              Ustaw <strong>hasło organizatora</strong> podczas tworzenia nowego turnieju.
+              Dostęp dla obsługi i widzów konfiguruj osobno; sam link do turnieju nie jest hasłem.
             </Step>
             <Step n={5}>
               Kliknij <strong>Wystartuj turniej</strong> — aplikacja wygeneruje drabinkę,
@@ -115,8 +124,9 @@ Charlie,,Ancient`}
         <Section icon={<Play className="w-5 h-5" />} title="2. Prowadzenie meczów">
           <div className="space-y-2">
             <Step n={1}>
-              Otwórz <strong>Panel prowadzącego</strong> (przycisk lub link /host).
-              Wprowadź kod jeśli jest ustawiony.
+              Otwórz <strong>Panel prowadzącego</strong> z poziomu turnieju.
+              Zaloguj się hasłem organizatora lub uprawnioną sesją obsługi.
+              W starszych turniejach może być dostępny dotychczasowy kod prowadzącego.
             </Step>
             <Step n={2}>
               Kliknij <strong>Rozpocznij</strong> dla aktywnego meczu.
@@ -180,8 +190,8 @@ Charlie,,Ancient`}
               znajdź właściwy mecz i ponownie zatwierdź wynik.
             </Step>
             <Step n={4}>
-              <strong>Coś poszło bardzo nie tak?</strong> Przywróć backup (patrz sekcja niżej).
-              Import backupu tworzy nowy turniej — oryginał pozostaje nienaruszony.
+              <strong>Coś poszło bardzo nie tak?</strong> Sprawdź dostępny backup (patrz sekcja niżej).
+              Import zgodnego pliku V2 tworzy nowy turniej; import eksportu V3 jest obecnie wyłączony.
             </Step>
             <Tip>
               Jeśli cofasz wynik i zwycięzca już grał kolejny mecz —
@@ -193,19 +203,18 @@ Charlie,,Ancient`}
         <Section icon={<Download className="w-5 h-5" />} title="5. Backup i przywracanie">
           <div className="space-y-2">
             <Step n={1}>
-              Na dashboardzie najedź na kartę turnieju i kliknij ikonę <strong>↓</strong> (Pobierz backup).
-              Powstanie backup JSON w formacie v2 dla modelu `series_v1`.
+              W panelu turnieju wybierz <strong>Eksport backupu</strong> i zachowaj plik JSON.
+              Eksport V3 jest dostępny, ale <strong>import V3 jest wyłączony</strong>.
             </Step>
             <Step n={2}>
               Rób backup <strong>po każdej rundzie</strong> i zawsze przed przerwą lub zakończeniem turnieju.
             </Step>
             <Step n={3}>
-              <strong>Przywrócenie:</strong> w zakładce Przegląd turnieju kliknij
-              <em> Import backupu</em> i wczytaj plik JSON.
-              Zostanie utworzony nowy turniej z identycznym stanem.
+              <strong>Import V2:</strong> wybierz <em>Import backupu</em> i wczytaj zgodny plik V2.
+              Serwer weryfikuje plik przed utworzeniem nowego turnieju. Eksportu V3 nie można tam wczytać.
             </Step>
-            <Good>Backup zawiera wszystkich graczy, mecze, wyniki i historię akcji.</Good>
-            <Tip>Backup NIE zawiera kodu prowadzącego — po imporcie ustaw nowy kod ręcznie.</Tip>
+            <Good>Chroń pliki backupu: mogą zawierać dane zawodników, mecze i historię turnieju.</Good>
+            <Tip>Po imporcie V2 sprawdź aktualne uprawnienia i ustaw nowe dane dostępu. Nie traktuj backupu jako kopii aktywnych sesji.</Tip>
           </div>
         </Section>
 
@@ -228,21 +237,21 @@ Charlie,,Ancient`}
           </div>
         </Section>
 
-        <Section icon={<Shield className="w-5 h-5" />} title="7. Bezpieczeństwo i kod prowadzącego">
+        <Section icon={<Shield className="w-5 h-5" />} title="7. Bezpieczeństwo i dostęp do turnieju">
           <div className="space-y-2">
             <Step n={1}>
-              Ustaw kod prowadzącego przed udostępnieniem linku.
-              Bez kodu każdy ze znajomością URL /host może edytować turniej.
+              W nowych turniejach chroń <strong>hasło organizatora</strong>.
+              Konta lub sesje obsługi przyznawaj tylko zaufanym osobom.
             </Step>
             <Step n={2}>
-              Kod jest przechowywany w przeglądarce (sessionStorage).
-              Po zamknięciu karty należy go wpisać ponownie.
+              Hasło i sesja dostępu to różne rzeczy. Na współdzielonym urządzeniu
+              wyloguj się po zakończeniu pracy i nie pozostawiaj otwartego panelu organizatora.
             </Step>
             <Step n={3}>
-              Link do widoku widzów (/audience) jest bezpieczny — tylko do odczytu.
-              Udostępniaj go swobodnie.
+              Widok widzów jest przeznaczony do odczytu. Jeśli ustawiono hasło widza,
+              odbiorca musi się uwierzytelnić. Nie zakładaj, że każdy widok jest publiczny.
             </Step>
-            <Tip>Nie udostępniaj linku /host publicznie — ten link daje dostęp do panelu prowadzącego.</Tip>
+            <Tip>Nie udostępniaj haseł organizatora lub obsługi. Adres panelu nie powinien zastępować weryfikacji uprawnień.</Tip>
           </div>
         </Section>
 
