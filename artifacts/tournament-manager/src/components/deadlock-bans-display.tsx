@@ -15,18 +15,22 @@ const SORTED_HEROES = sortHeroesByName(DEADLOCK_HEROES);
 // Internal hero image — shape controlled by parent wrapper
 // ---------------------------------------------------------------------------
 
-function HeroImg({
-  hero,
-  size = 20,
-  className,
-}: {
+interface HeroImgProps {
   hero: DeadlockHeroDefinition;
   size?: number;
   className?: string;
-}) {
-  const [failed, setFailed] = useState(false);
+}
+
+function HeroImg(props: HeroImgProps) {
   const base = import.meta.env?.BASE_URL ?? "/";
-  const url = `${base.replace(/\/$/, "")}/${hero.iconKey.replace(/^\//, "")}`;
+  const url = `${base.replace(/\/$/, "")}/${props.hero.iconKey.replace(/^\//, "")}`;
+
+  // Each URL owns its failure state. Replacing a hero also detaches the old image.
+  return <HeroImgContent key={url} {...props} url={url} />;
+}
+
+function HeroImgContent({ hero, size = 20, className, url }: HeroImgProps & { url: string }) {
+  const [failed, setFailed] = useState(false);
 
   if (failed) {
     return (
@@ -217,7 +221,7 @@ export function GamePicksRow({
     !!player2BannedByOpponent &&
     player2BannedByOpponent.includes(player2HeroId);
 
-  if (!hero1 && !hero2) {
+  if (!player1HeroId && !player2HeroId) {
     if (!showEmpty) return null;
     return (
       <span className="flex items-center gap-1">
