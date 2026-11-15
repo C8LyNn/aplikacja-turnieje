@@ -44,6 +44,9 @@ export function DeadlockStageBansEditor({
         <p className="text-xs text-muted-foreground">
           Bany kumulują się. Odziedziczonych z wcześniejszych etapów nie można tutaj usunąć.
         </p>
+        <p className="mt-1 text-xs text-muted-foreground" aria-live="polite" aria-atomic="true">
+          Odziedziczone: {inheritedSet.size}. Dodane w tym etapie: {additionalSet.size}.
+        </p>
       </div>
 
       {inherited.length > 0 && (
@@ -64,6 +67,11 @@ export function DeadlockStageBansEditor({
         {HEROES.map((hero) => {
           const inheritedHero = inheritedSet.has(hero.id);
           const selected = inheritedHero || additionalSet.has(hero.id);
+          const actionLabel = inheritedHero
+            ? `${hero.displayName} — ban odziedziczony z poprzedniego etapu, nie można usunąć`
+            : additionalSet.has(hero.id)
+              ? `Usuń ban postaci ${hero.displayName} z tego etapu`
+              : `Dodaj ban postaci ${hero.displayName} do tego etapu`;
           return (
             <Button
               key={hero.id}
@@ -71,6 +79,8 @@ export function DeadlockStageBansEditor({
               variant={selected ? "secondary" : "outline"}
               disabled={disabled || inheritedHero}
               aria-pressed={selected}
+              aria-label={actionLabel}
+              title={inheritedHero ? "Ban odziedziczony z poprzedniego etapu" : undefined}
               onClick={() => toggle(hero.id)}
               className={cn(
                 "h-auto min-h-12 justify-start gap-2 px-2 py-2 text-left",
