@@ -23,6 +23,7 @@ import { isExperimentalTournamentPath, tournamentHref } from "@/features/experim
 import { ExperimentalDashboardToolbar, type ExperimentalTournamentStatusFilter } from "@/features/experimental-tournaments/experimental-dashboard-toolbar";
 import { ExperimentalDeleteTournamentDialog, ExperimentalTestDataDialog } from "@/features/experimental-tournaments/experimental-dashboard-dialogs";
 import { ExperimentalStatePanel } from "@/features/experimental-tournaments/experimental-ui";
+import { ExperimentalTournamentList } from "@/features/experimental-tournaments/experimental-tournament-list";
 
 const TEST_SIZES = [4, 8, 16, 32] as const;
 type TestSize = typeof TEST_SIZES[number];
@@ -46,6 +47,11 @@ const STATUS_LABELS: Record<string, string> = {
   active: "AKTYWNY",
   completed: "ZAKOŃCZONY",
 };
+
+function experimentalSummary(counts: { all: number; draft: number; active: number; completed: number }): string {
+  if (counts.all === 0) return "Nie masz jeszcze żadnego turnieju.";
+  return `Trwające: ${counts.active} · W przygotowaniu: ${counts.draft} · Zakończone: ${counts.completed}`;
+}
 
 export default function Dashboard() {
   const { data: tournaments, isLoading, isError, isFetching, refetch } = useListTournaments();
@@ -244,8 +250,8 @@ export default function Dashboard() {
       <div className="organizer-workspace flex flex-col gap-6">
         <div className="organizer-header flex justify-between items-center gap-3 flex-wrap">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-primary">{isExperimental ? "Centrum turniejów" : "Turnieje"}</h1>
-            <p className="text-muted-foreground">{isExperimental ? "Nowy interfejs zarządzania rozgrywkami, etapami i wynikami." : "Zarządzaj rozgrywkami, drabinkami i wynikami."}</p>
+            <h1 className="text-3xl font-bold tracking-tight text-primary">{isExperimental ? "Twoje turnieje" : "Turnieje"}</h1>
+            <p className="text-muted-foreground">{isExperimental ? experimentalSummary(tournamentCounts) : "Zarządzaj rozgrywkami, drabinkami i wynikami."}</p>
           </div>
           <div className="organizer-header-actions flex gap-2">
             <Button
@@ -258,7 +264,7 @@ export default function Dashboard() {
             <Button
               variant="outline"
               onClick={() => setShowTestDataModal(true)}
-              title="Utwórz turniej z przykładowymi graczami do testowania"
+              title={isExperimental ? undefined : "Utwórz turniej z przykładowymi graczami do testowania"}
             >
               <FlaskConical className="w-4 h-4 mr-2" />
               Dane testowe
@@ -501,6 +507,16 @@ export default function Dashboard() {
           <ExperimentalStatePanel
             title="Brak turniejów pasujących do filtrów"
             description="Zmień status albo frazę wyszukiwania. Dane turniejów nie zostały usunięte."
+          />
+        ) : isExperimental ? (
+          <ExperimentalTournamentList
+            tournaments={filteredTournaments}
+            statusFilter={statusFilter}
+            formatLabels={FORMAT_LABELS}
+            canExport={(id) => Boolean(getOrgToken(id))}
+            exportingId={exportingId}
+            onExport={(event, tournament) => void handleQuickExport(event, tournament)}
+            onDelete={setConfirmDeleteId}
           />
         ) : (
           <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
