@@ -54,6 +54,14 @@ const CONFIG_ERROR_MESSAGES: Record<string, string> = {
 
 const CONNECTION_ERROR = "Nie udało się połączyć z serwerem. Spróbuj ponownie.";
 
+/** An API error payload is untrusted at runtime, regardless of generated TS types. */
+function isConfigurationProblem(value: unknown): value is ConfigurationProblem {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const candidate = value as Record<string, unknown>;
+  return typeof candidate.code === "string" && candidate.code.length > 0 &&
+    typeof candidate.message === "string";
+}
+
 export function configurationProblemMessage(problem: ConfigurationProblem, context: ConfigurationContext = {}): string {
   if (!problem.code) return problem.message;
   const detail = problem.context ?? {};
@@ -64,7 +72,8 @@ export function configurationProblemMessage(problem: ConfigurationProblem, conte
   const names = stageIds.map(id => context.stages?.find(stage => stage.id === id)?.name ?? `Etap ${id}`).join(" → ");
   const expected = problem.expected ?? detail.expected;
   const actual = problem.actual ?? detail.actual;
-  let message = PROBLEM_CODE_MESSAGES[problem.code] ?? problem.message;
+  let message = Object.hasOwn(PROBLEM_CODE_MESSAGES, problem.code)
+    ? PROBLEM_CODE_MESSAGES[problem.code] : problem.message;
   let instruction = "Sprawdź wskazany koszyk i popraw jego konfigurację.";
   if (problem.code === "STAGE_PARTICIPANTS_INCONSISTENT") {
     message = typeof expected === "number" && typeof actual === "number" && expected !== actual
@@ -87,15 +96,34 @@ export function configurationProblemMessage(problem: ConfigurationProblem, conte
 }
 
 export function configurationErrorFeedback(error: unknown): { message: string; problems: ConfigurationProblem[] } {
-  const response = error as { status?: number; data?: { code?: string; error?: string; message?: string; problems?: ConfigurationProblem[]; details?: ConfigurationProblem[] | (ConfigurationProblem["context"] & { problems?: ConfigurationProblem[] }) } } | null;
+  const response = error as { status?: number; data?: {
+    code?: unknown; error?: unknown; message?: unknown; problems?: unknown; details?: unknown;
+  } } | null;
   if (!response?.status || response.status >= 500) return { message: CONNECTION_ERROR, problems: [] };
   const data = response.data;
-  const problems = [...(data?.problems ?? (Array.isArray(data?.details) ? data.details : data?.details?.problems) ?? [])];
-  if (!problems.length && data?.code && data.details && !Array.isArray(data.details)) {
-    problems.push({ code: data.code, message: data.error ?? data.message ?? data.code, context: data.details });
+  const details = data?.details;
+  const detailObject = details !== null && typeof details === "object" && !Array.isArray(details)
+    ? details as Record<string, unknown> : undefined;
+  const candidates = Array.isArray(data?.problems) ? data.problems
+    : Array.isArray(details) ? details
+    : detailObject?.problems;
+  const problems: ConfigurationProblem[] = Array.isArray(candidates)
+    ? candidates.filter(isConfigurationProblem) : [];
+  const code = typeof data?.code === "string" ? data.code : undefined;
+  const serverError = typeof data?.error === "string" && data.error.trim() ? data.error : undefined;
+  const serverMessage = typeof data?.message === "string" && data.message.trim() ? data.message : undefined;
+  if (!problems.length && code && detailObject) {
+    problems.push({
+      code,
+      message: serverError ?? serverMessage ?? code,
+      context: detailObject as ConfigurationProblem["context"],
+    });
   }
+  const knownCodeMessage = code && Object.hasOwn(CONFIG_ERROR_MESSAGES, code)
+    ? CONFIG_ERROR_MESSAGES[code] : undefined;
   return {
-    message: data?.error || data?.message || (data?.code && CONFIG_ERROR_MESSAGES[data.code]) || data?.code || "Nie można zapisać konfiguracji. Sprawdź wprowadzone dane.",
+    message: serverError ?? serverMessage ?? knownCodeMessage ?? code ??
+      "Nie można zapisać konfiguracji. Sprawdź wprowadzone dane.",
     problems,
   };
 }
