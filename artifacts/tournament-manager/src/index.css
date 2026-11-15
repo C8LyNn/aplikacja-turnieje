@@ -3,6 +3,7 @@
 @import "tw-animate-css";
 @import "./organizer.css";
 @import "./experimental-tournaments.css";
+@import "./experimental-design-system.css";
 @plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:is(.dark *));
