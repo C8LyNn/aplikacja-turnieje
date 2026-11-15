@@ -37,6 +37,24 @@ export function useDeadlockTheme(
     }
   }, [tournamentId]);
 
+  // Storage events originate from OTHER tabs/windows. The active tab already
+  // updates itself through `set`; never synchronize a different tournament.
+  useEffect(() => {
+    if (!tournamentId) return;
+    const key = storageKey(tournamentId);
+    const onStorage = (event: StorageEvent) => {
+      if (event.key !== key && event.key !== null) return;
+      try {
+        if (event.storageArea && event.storageArea !== localStorage) return;
+        setEnabled(localStorage.getItem(key) === "true");
+      } catch {
+        setEnabled(false);
+      }
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, [tournamentId]);
+
   const set = useCallback(
     (value: boolean) => {
       if (!tournamentId) return;
