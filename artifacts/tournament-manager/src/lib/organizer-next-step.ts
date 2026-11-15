@@ -130,7 +130,9 @@ export function deriveOrganizerNextStep(input: {
         stageId: active.id,
       };
     }
-    const next = stages.find((stage) => stage.position === active.position + 1);
+    // Stage positions can have gaps after editing; the next planned stage is the
+    // next stage in the ordered plan, not necessarily position + 1.
+    const next = stages.find((stage) => stage.position > active.position && stage.status === "planned");
     return {
       kind: "complete_stage",
       title: "Sprawdź zakończenie etapu",
@@ -146,9 +148,9 @@ export function deriveOrganizerNextStep(input: {
   if (input.transitionStep) return input.transitionStep;
   const planned = stages.find((stage) => stage.status === "planned");
   if (planned) {
-    const hasCompletedPredecessor = stages.some(
-      (stage) => stage.position === planned.position - 1 && stage.status === "completed",
-    );
+    // Use the actual predecessor in the plan rather than assuming consecutive positions.
+    const plannedIndex = stages.findIndex((stage) => stage.id === planned.id);
+    const hasCompletedPredecessor = plannedIndex > 0 && stages[plannedIndex - 1].status === "completed";
     const readiness = input.plannedStageReadiness;
     if (!readiness?.ready) {
       const feedback = readiness ? stageReadinessFeedback(readiness, planned.name) : undefined;
