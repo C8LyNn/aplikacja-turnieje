@@ -8,10 +8,10 @@ export function ExperimentalTournamentShell({ children }: { children: ReactNode 
         <ModuleHeader
           code="TURN EXP"
           title="Nowy turniej"
-          description="Uproszczony kreator zgodny z nowym standardem. Po utworzeniu pozostajesz w równoległej ścieżce Experimental."
+          description="Podaj nazwę i format. Uczestników, etapy i koszyki skonfigurujesz po utworzeniu turnieju."
           accent="primary"
-          backHref="/tournaments/create"
-          backLabel="Wybór wersji"
+          backHref="/experimental/tournaments/dashboard"
+          backLabel="Twoje turnieje"
           status="experimental"
         />
         {children}
