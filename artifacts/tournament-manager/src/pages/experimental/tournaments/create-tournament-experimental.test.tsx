@@ -341,10 +341,11 @@ test("double submit in the same frame sends only one request", async () => {
 });
 
 for (const [role, destination] of [
-  ["fan", "/fan"],
-  ["support", "/support"],
-  [null, "/"],
+  ["fan", "/experimental/tournaments/fan"],
+  ["support", "/experimental/tournaments/support"],
+  [null, "/experimental/tournaments"],
 ] as const) {
+  // The guard keeps non-organizers inside Experimental: their own Experimental home, never a Stable route.
   test(`${role ?? "anonymous"} cannot open Experimental creation directly`, async () => {
     const { location } = renderExperimental(role);
     assert.equal(screen.queryByRole("heading", { name: "Nowy turniej" }), null);
