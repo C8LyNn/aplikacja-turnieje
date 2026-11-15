@@ -10,7 +10,6 @@ import {
 import { Link } from "wouter";
 import {
   ExperimentalMetricCard,
-  ExperimentalSectionHeader,
   ExperimentalStatusPill,
 } from "@/features/experimental-tournaments/experimental-ui";
 import { tournamentHref } from "@/features/experimental-tournaments/experimental-tournament-routing";
@@ -69,29 +68,53 @@ export function ExperimentalHostCommandCenter({
             ? "warning"
             : "neutral";
 
+  const progress = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0;
+  const linkClass =
+    "inline-flex min-h-9 items-center gap-2 rounded-md px-2.5 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted/40 hover:text-foreground";
+
   return (
     <section
       aria-label="Centrum prowadzenia turnieju"
-      className="experimental-host-command-center rounded-2xl border border-border/80 bg-card/55 p-4 sm:p-5"
+      className="experimental-host-command-center rounded-xl border p-4 sm:p-5"
     >
-      <div className="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
-        <ExperimentalSectionHeader
-          eyebrow="Command center"
-          title={stageName}
-          description={
-            isCompleted
+      <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
+        <div className="min-w-0">
+          <p className="experimental-host-overline">Bieżący etap</p>
+          <h2 className="mt-0.5 text-lg font-semibold leading-tight">{stageName}</h2>
+          <p className="mt-0.5 text-sm text-muted-foreground">
+            {isCompleted
               ? championName
                 ? `Zwycięzca: ${championName}.`
                 : "Turniej został zakończony."
               : formatLabel
                 ? `${formatLabel} · ${roundLabel}`
-                : roundLabel
-          }
-        />
+                : roundLabel}
+          </p>
+        </div>
         <ExperimentalStatusPill tone={stateTone}>{stateLabel}</ExperimentalStatusPill>
       </div>
 
-      <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-5">
+      {totalCount > 0 && (
+        <div className="mt-4">
+          <div className="flex items-baseline justify-between text-xs text-muted-foreground">
+            <span>Postęp etapu</span>
+            <span className="tabular-nums">{completedCount}/{totalCount} meczów · {progress}%</span>
+          </div>
+          <div
+            className="experimental-host-progress mt-1.5"
+            role="progressbar"
+            aria-label="Postęp bieżącego etapu"
+            aria-valuemin={0}
+            aria-valuemax={totalCount}
+            aria-valuenow={completedCount}
+            aria-valuetext={`${completedCount} z ${totalCount} meczów zakończonych`}
+          >
+            <span style={{ width: `${progress}%` }} />
+          </div>
+        </div>
+      )}
+
+      <div className="mt-4 grid grid-cols-2 gap-2 lg:grid-cols-4">
         <ExperimentalMetricCard
           label="Na żywo"
           tone="live"
@@ -103,7 +126,7 @@ export function ExperimentalHostCommandCenter({
           label="Gotowe"
           tone="warning"
           value={dataLoading ? "…" : readyCount}
-          meta="oczekują na rozegranie"
+          meta="czekają na start"
           icon={CircleDot}
         />
         <ExperimentalMetricCard
@@ -117,43 +140,27 @@ export function ExperimentalHostCommandCenter({
           label="Pozostałe"
           tone="neutral"
           value={dataLoading ? "…" : otherCount}
-          meta="pary oczekujące / inne stany"
+          meta="pary bez kompletu graczy lub wstrzymane"
           icon={Clock3}
-        />
-        <ExperimentalMetricCard
-          label="Następny krok"
-          tone={nextStepTitle ? "primary" : "neutral"}
-          value={nextStepTitle ? "1" : "—"}
-          meta={nextStepTitle || (isCompleted ? "brak — turniej zakończony" : "brak dodatkowej akcji")}
-          icon={ListChecks}
         />
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-2 border-t border-border/70 pt-4">
-        <Link
-          href={tournamentHref(tournamentId, true, "/host?tab=wyniki")}
-          className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-border bg-background/45 px-3 py-2 text-sm font-semibold transition hover:border-primary/35 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-        >
-          <Trophy className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+      <nav aria-label="Skróty prowadzenia" className="mt-3 flex flex-wrap gap-1 border-t pt-3">
+        <Link href={tournamentHref(tournamentId, true, "/host?tab=wyniki")} className={linkClass}>
+          <Trophy className="h-4 w-4" aria-hidden="true" />
           Wszystkie wyniki
         </Link>
-        <Link
-          href={tournamentHref(tournamentId, true, "?tab=stages")}
-          className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-border bg-background/45 px-3 py-2 text-sm font-semibold transition hover:border-primary/35 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-        >
-          <ListChecks className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+        <Link href={tournamentHref(tournamentId, true, "?tab=stages")} className={linkClass}>
+          <ListChecks className="h-4 w-4" aria-hidden="true" />
           Etapy
         </Link>
         {!isCompleted && (
-          <Link
-            href={tournamentHref(tournamentId, true, "/audience")}
-            className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-border bg-background/45 px-3 py-2 text-sm font-semibold transition hover:border-primary/35 hover:bg-primary/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
-          >
-            <Eye className="h-4 w-4 text-muted-foreground" aria-hidden="true" />
+          <Link href={tournamentHref(tournamentId, true, "/audience")} className={linkClass}>
+            <Eye className="h-4 w-4" aria-hidden="true" />
             Widok widzów
           </Link>
         )}
-      </div>
+      </nav>
     </section>
   );
 }
