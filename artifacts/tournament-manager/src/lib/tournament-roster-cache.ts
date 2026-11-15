@@ -15,7 +15,9 @@ export function tournamentRosterQueryKeys(
     getListPlayersQueryKey(tournamentId),
     getGetTournamentStatsQueryKey(tournamentId),
     getListTournamentStagesQueryKey(tournamentId),
-    ...stageIds.flatMap((stageId) => [
+    // One canonical invalidation per stage, even when its ID appears in
+    // several input/output routes. Preserve the caller's original order.
+    ...[...new Set(stageIds)].flatMap((stageId) => [
       getGetTournamentStageQueryKey(tournamentId, stageId),
       getGetTournamentStageReadinessQueryKey(tournamentId, stageId),
     ]),
