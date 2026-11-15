@@ -50,83 +50,15 @@ import {
 } from "@/lib/seeding-ceremony-view";
 import { getApiErrorMessage } from "@/lib/tournament-stages-ui";
 
-// ── Animation settings ───────────────────────────────────────────────────────
-
-interface AnimSettings {
-  // Duration
-  durationMode: "fixed" | "random";
-  durationMin: number;          // seconds [1, 30]
-  durationMax: number;          // seconds [durationMin, 30]
-  durationLongEnabled: boolean;
-  durationLongChance: number;   // percent [1, 99]
-  durationLongMin: number;      // seconds [durationMax+0.5, 60]
-  durationLongMax: number;      // seconds [durationLongMin, 60]
-  // Speed (multiplier on base 4-turn spin)
-  speedMode: "fixed" | "random";
-  speedMin: number;             // multiplier [0.5, 5.0]
-  speedMax: number;             // multiplier [speedMin, 5.0]
-  speedAltEnabled: boolean;
-  speedAltChance: number;       // percent [1, 99]
-  speedAltMin: number;
-  speedAltMax: number;
-}
-
-const ANIM_DEFAULTS: AnimSettings = {
-  durationMode: "random",
-  durationMin: 4,
-  durationMax: 6,
-  durationLongEnabled: true,
-  durationLongChance: 20,
-  durationLongMin: 7,
-  durationLongMax: 10,
-  speedMode: "random",
-  speedMin: 0.9,
-  speedMax: 1.1,
-  speedAltEnabled: true,
-  speedAltChance: 20,
-  speedAltMin: 1.1,
-  speedAltMax: 1.4,
-};
-
-const ANIM_LS_KEY = "seeding-ceremony-anim-v1";
-
-function loadAnimSettings(): AnimSettings {
-  try {
-    const raw = localStorage.getItem(ANIM_LS_KEY);
-    if (!raw) return { ...ANIM_DEFAULTS };
-    return { ...ANIM_DEFAULTS, ...(JSON.parse(raw) as Partial<AnimSettings>) };
-  } catch {
-    return { ...ANIM_DEFAULTS };
-  }
-}
-
-function saveAnimSettings(s: AnimSettings): void {
-  try { localStorage.setItem(ANIM_LS_KEY, JSON.stringify(s)); } catch { /* noop */ }
-}
-
-/** Sample animation duration (seconds). Purely visual — does not affect draw result. */
-function sampleDuration(s: AnimSettings): number {
-  const useLong = s.durationLongEnabled && Math.random() * 100 < s.durationLongChance;
-  if (useLong) {
-    const span = Math.max(0, s.durationLongMax - s.durationLongMin);
-    return s.durationLongMin + Math.random() * span;
-  }
-  const lo = s.durationMin;
-  const hi = s.durationMode === "fixed" ? lo : Math.max(lo, s.durationMax);
-  return lo + Math.random() * Math.max(0, hi - lo);
-}
-
-/** Sample speed multiplier. Purely visual — does not affect draw result. */
-function sampleSpeed(s: AnimSettings): number {
-  const useAlt = s.speedAltEnabled && Math.random() * 100 < s.speedAltChance;
-  if (useAlt) {
-    const span = Math.max(0, s.speedAltMax - s.speedAltMin);
-    return s.speedAltMin + Math.random() * span;
-  }
-  const lo = s.speedMin;
-  const hi = s.speedMode === "fixed" ? lo : Math.max(lo, s.speedMax);
-  return lo + Math.random() * Math.max(0, hi - lo);
-}
+import {
+  ANIM_DEFAULTS,
+  loadAnimSettings,
+  normalizeAnimSettings,
+  sampleDuration,
+  sampleSpeed,
+  saveAnimSettings,
+  type AnimSettings,
+} from "@/lib/seeding-animation-settings";
 
 // ── AnimSettingsPanel helpers ────────────────────────────────────────────────
 
@@ -657,8 +589,9 @@ export function SeedingCeremony({
   // Animation settings — persisted to localStorage
   const [animSettings, setAnimSettingsRaw] = useState<AnimSettings>(loadAnimSettings);
   const setAnimSettings = useCallback((next: AnimSettings) => {
-    setAnimSettingsRaw(next);
-    saveAnimSettings(next);
+    const normalized = normalizeAnimSettings(next);
+    setAnimSettingsRaw(normalized);
+    saveAnimSettings(normalized);
   }, []);
 
   const animationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
