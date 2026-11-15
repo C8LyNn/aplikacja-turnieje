@@ -31,8 +31,14 @@ export function drawResultLabel(
   return mode === "seed" ? `Seed ${draw.seed}` : draw.placement.label;
 }
 
+/** Defensive presentation bound: never trust an out-of-range reveal counter. */
+function safeRevealedCount(state: SeedingCeremonyState): number {
+  const count = state.revealedCount;
+  return Number.isFinite(count) ? Math.max(0, Math.min(state.draws.length, Math.trunc(count))) : 0;
+}
+
 export function remainingWheelDraws(state: SeedingCeremonyState): SeedingCeremonyDraw[] {
-  return [...state.draws.slice(state.revealedCount)].sort((left, right) =>
+  return [...state.draws.slice(safeRevealedCount(state))].sort((left, right) =>
     state.drawMode === "seed"
       ? left.seed - right.seed
       : left.placement.label.localeCompare(right.placement.label, "pl", { numeric: true }),
@@ -40,7 +46,7 @@ export function remainingWheelDraws(state: SeedingCeremonyState): SeedingCeremon
 }
 
 export function revealedCeremonyDraws(state: SeedingCeremonyState): SeedingCeremonyDraw[] {
-  return state.draws.slice(0, state.revealedCount);
+  return state.draws.slice(0, safeRevealedCount(state));
 }
 
 export function visibleWheelDraws(
@@ -49,12 +55,14 @@ export function visibleWheelDraws(
   limit = 32,
 ): SeedingCeremonyDraw[] {
   const remaining = remainingWheelDraws(state);
-  if (remaining.length <= limit) return remaining;
-  const visible = remaining.slice(0, limit);
+  const safeLimit = Number.isFinite(limit) ? Math.max(0, Math.trunc(limit)) : 32;
+  if (safeLimit === 0) return [];
+  if (remaining.length <= safeLimit) return remaining;
+  const visible = remaining.slice(0, safeLimit);
   if (targetDrawNumber == null || visible.some((draw) => draw.drawNumber === targetDrawNumber)) {
     return visible;
   }
   const target = remaining.find((draw) => draw.drawNumber === targetDrawNumber);
   if (!target) return visible;
-  return [...remaining.slice(0, Math.max(0, limit - 1)), target];
+  return [...remaining.slice(0, safeLimit - 1), target];
 }
