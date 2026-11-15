@@ -10,7 +10,10 @@ export function stageReadinessFeedback(readiness: StageStartReadiness, stageName
     QUALIFICATION_CONFIGURATION_INVALID: ["Konfiguracja kwalifikacji jest nieprawidłowa.", "Sprawdź ustawienia kwalifikacji i koszyki etapu."],
     PREVIOUS_STAGE_NOT_COMPLETED: ["Poprzedni etap nie został zakończony.", "Sprawdź zakończenie poprzedniego etapu."],
   };
-  let [reason, action] = messages[readiness.reasonCode] ?? [readiness.message, "Sprawdź szczegóły gotowości etapu."];
+  const predefined = Object.prototype.hasOwnProperty.call(messages, readiness.reasonCode)
+    ? messages[readiness.reasonCode]
+    : undefined;
+  let [reason, action] = predefined ?? [readiness.message, "Sprawdź szczegóły gotowości etapu."];
   if (readiness.reasonCode === "STAGE_PARTICIPANTS_INCONSISTENT" && readiness.requiredParticipantCount !== readiness.participantCount) {
     reason = "Liczba uczestników nie odpowiada wymaganiom etapu.";
     action = "Sprawdź przypisania i dopływ uczestników do etapu.";
@@ -36,8 +39,13 @@ export function stageReadinessMessages(readiness: StageStartReadiness, context: 
 }
 
 export function stageLifecycleError(error: unknown): string {
-  const response = error as { status?: number; data?: { code?: string; error?: string } };
-  const detail = getApiErrorMessage(error);
+  const response = error as { status?: number; data?: { code?: unknown; error?: unknown }; message?: unknown } | null;
+  // Unknown API responses must not use inherited Object prototype keys as error codes.
+  const rawCode = response?.data?.code;
+  const code = typeof rawCode === "string" && /^[A-Z][A-Z0-9_]{0,127}$/.test(rawCode)
+    ? rawCode : undefined;
+  const rawDetail = code ? getApiErrorMessage(error) : response?.data?.error;
+  const detail = typeof rawDetail === "string" ? rawDetail : "";
   const qualificationMessages: Record<string, string> = {
     STAGE_BASKET_CONFIGURATION_NOT_EXPLICIT: "Ten turniej nie ma jawnej konfiguracji koszyków wymaganej do qualification/routingu.",
     STAGE_BASKET_QUALIFICATION_FORMAT_NOT_SUPPORTED: "Ten format etapu nie obsługuje qualification przez koszyki.",
@@ -53,8 +61,12 @@ export function stageLifecycleError(error: unknown): string {
     STAGE_BASKET_ROUTE_LEGACY_NOT_SUPPORTED: "Ten turniej nie ma konfiguracji routingu obsługiwanej przez ten panel.",
     RANKING_INCONSISTENT: "Nie można potwierdzić rankingu etapu. Odśwież wyniki i sprawdź kompletność danych.",
   };
-  const message = qualificationMessages[response?.data?.code ?? ""] ?? (response?.data?.code || response?.data?.error
-    ? (/^[A-Z_\d]+$/.test(detail) ? "Stan etapu nie pozwala na tę operację. Sprawdź warunki gotowości." : detail)
-    : "Nie udało się potwierdzić operacji. Sprawdź połączenie i aktualny stan etapu przed ponowieniem.");
-  return `${message}${response?.data?.code ? ` Kod diagnostyczny: ${response.data.code}` : ""}`;
+  const known = code && Object.prototype.hasOwnProperty.call(qualificationMessages, code)
+    ? qualificationMessages[code] : undefined;
+  const hasServerDetail = typeof response?.data?.error === "string" && !!response.data.error.trim();
+  const fallback = "Nie udało się potwierdzić operacji. Sprawdź połączenie i aktualny stan etapu przed ponowieniem.";
+  const message = known ?? (code || hasServerDetail
+    ? (!detail || /^[A-Z_\d]+$/.test(detail) ? "Stan etapu nie pozwala na tę operację. Sprawdź warunki gotowości." : detail)
+    : fallback);
+  return `${message}${code ? ` Kod diagnostyczny: ${code}` : ""}`;
 }
