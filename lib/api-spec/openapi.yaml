@@ -2811,6 +2811,8 @@ components:
           description: "public_online=no viewer password; private_online=viewer needs password; private_offline=not listed, org/support only"
         createdAt:
           type: string
+        activity:
+          $ref: "#/components/schemas/TournamentActivity"
         gameConfig:
           oneOf:
             - $ref: "#/components/schemas/DeadlockTournamentGameConfig"
@@ -2838,6 +2840,21 @@ components:
       properties:
         code: { type: string }
         error: { type: string }
+
+    TournamentActivity:
+      type: object
+      description: Read-only workload summary, present only in the tournament list. Clients must treat it as optional.
+      required: [playerCount, readyMatchCount, liveMatchCount]
+      properties:
+        playerCount: { type: integer, minimum: 0 }
+        readyMatchCount:
+          type: integer
+          minimum: 0
+          description: Pending matches with both participants assigned.
+        liveMatchCount:
+          type: integer
+          minimum: 0
+          description: Matches in progress.
 
     TournamentTemplatePreview:
       type: object

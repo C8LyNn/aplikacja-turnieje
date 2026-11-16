@@ -21,6 +21,12 @@ export const HealthCheckResponse = zod.object({
  * @summary List all tournaments
  */
 
+export const listTournamentsResponseActivityPlayerCountMin = 0;
+
+export const listTournamentsResponseActivityReadyMatchCountMin = 0;
+
+export const listTournamentsResponseActivityLiveMatchCountMin = 0;
+
 export const listTournamentsResponseGameConfigOneConfigBansPerPlayerMin = 0;
 export const listTournamentsResponseGameConfigOneConfigBansPerPlayerMax = 20;
 
@@ -59,6 +65,11 @@ export const ListTournamentsResponseItem = zod.object({
   "hasViewerPassword": zod.boolean().optional().describe('Whether a viewer password has been set (private_online mode)'),
   "visibility": zod.enum(['public_online', 'private_online', 'private_offline']).optional().describe('public_online=no viewer password; private_online=viewer needs password; private_offline=not listed, org\/support only'),
   "createdAt": zod.string(),
+  "activity": zod.object({
+  "playerCount": zod.number().min(listTournamentsResponseActivityPlayerCountMin),
+  "readyMatchCount": zod.number().min(listTournamentsResponseActivityReadyMatchCountMin).describe('Pending matches with both participants assigned.'),
+  "liveMatchCount": zod.number().min(listTournamentsResponseActivityLiveMatchCountMin).describe('Matches in progress.')
+}).optional().describe('Read-only workload summary, present only in the tournament list. Clients must treat it as optional.'),
   "gameConfig": zod.union([zod.object({
   "gameId": zod.literal("deadlock"),
   "configVersion": zod.number(),
@@ -609,6 +620,12 @@ export const GetTournamentParams = zod.object({
 })
 
 
+export const getTournamentResponseActivityPlayerCountMin = 0;
+
+export const getTournamentResponseActivityReadyMatchCountMin = 0;
+
+export const getTournamentResponseActivityLiveMatchCountMin = 0;
+
 export const getTournamentResponseGameConfigOneConfigBansPerPlayerMin = 0;
 export const getTournamentResponseGameConfigOneConfigBansPerPlayerMax = 20;
 
@@ -647,6 +664,11 @@ export const GetTournamentResponse = zod.object({
   "hasViewerPassword": zod.boolean().optional().describe('Whether a viewer password has been set (private_online mode)'),
   "visibility": zod.enum(['public_online', 'private_online', 'private_offline']).optional().describe('public_online=no viewer password; private_online=viewer needs password; private_offline=not listed, org\/support only'),
   "createdAt": zod.string(),
+  "activity": zod.object({
+  "playerCount": zod.number().min(getTournamentResponseActivityPlayerCountMin),
+  "readyMatchCount": zod.number().min(getTournamentResponseActivityReadyMatchCountMin).describe('Pending matches with both participants assigned.'),
+  "liveMatchCount": zod.number().min(getTournamentResponseActivityLiveMatchCountMin).describe('Matches in progress.')
+}).optional().describe('Read-only workload summary, present only in the tournament list. Clients must treat it as optional.'),
   "gameConfig": zod.union([zod.object({
   "gameId": zod.literal("deadlock"),
   "configVersion": zod.number(),
@@ -735,6 +757,12 @@ export const UpdateTournamentBody = zod.object({
 })
 
 
+export const updateTournamentResponseActivityPlayerCountMin = 0;
+
+export const updateTournamentResponseActivityReadyMatchCountMin = 0;
+
+export const updateTournamentResponseActivityLiveMatchCountMin = 0;
+
 export const updateTournamentResponseGameConfigOneConfigBansPerPlayerMin = 0;
 export const updateTournamentResponseGameConfigOneConfigBansPerPlayerMax = 20;
 
@@ -773,6 +801,11 @@ export const UpdateTournamentResponse = zod.object({
   "hasViewerPassword": zod.boolean().optional().describe('Whether a viewer password has been set (private_online mode)'),
   "visibility": zod.enum(['public_online', 'private_online', 'private_offline']).optional().describe('public_online=no viewer password; private_online=viewer needs password; private_offline=not listed, org\/support only'),
   "createdAt": zod.string(),
+  "activity": zod.object({
+  "playerCount": zod.number().min(updateTournamentResponseActivityPlayerCountMin),
+  "readyMatchCount": zod.number().min(updateTournamentResponseActivityReadyMatchCountMin).describe('Pending matches with both participants assigned.'),
+  "liveMatchCount": zod.number().min(updateTournamentResponseActivityLiveMatchCountMin).describe('Matches in progress.')
+}).optional().describe('Read-only workload summary, present only in the tournament list. Clients must treat it as optional.'),
   "gameConfig": zod.union([zod.object({
   "gameId": zod.literal("deadlock"),
   "configVersion": zod.number(),
@@ -2224,6 +2257,12 @@ export const StartTournamentParams = zod.object({
 })
 
 
+export const startTournamentResponseActivityPlayerCountMin = 0;
+
+export const startTournamentResponseActivityReadyMatchCountMin = 0;
+
+export const startTournamentResponseActivityLiveMatchCountMin = 0;
+
 export const startTournamentResponseGameConfigOneConfigBansPerPlayerMin = 0;
 export const startTournamentResponseGameConfigOneConfigBansPerPlayerMax = 20;
 
@@ -2262,6 +2301,11 @@ export const StartTournamentResponse = zod.object({
   "hasViewerPassword": zod.boolean().optional().describe('Whether a viewer password has been set (private_online mode)'),
   "visibility": zod.enum(['public_online', 'private_online', 'private_offline']).optional().describe('public_online=no viewer password; private_online=viewer needs password; private_offline=not listed, org\/support only'),
   "createdAt": zod.string(),
+  "activity": zod.object({
+  "playerCount": zod.number().min(startTournamentResponseActivityPlayerCountMin),
+  "readyMatchCount": zod.number().min(startTournamentResponseActivityReadyMatchCountMin).describe('Pending matches with both participants assigned.'),
+  "liveMatchCount": zod.number().min(startTournamentResponseActivityLiveMatchCountMin).describe('Matches in progress.')
+}).optional().describe('Read-only workload summary, present only in the tournament list. Clients must treat it as optional.'),
   "gameConfig": zod.union([zod.object({
   "gameId": zod.literal("deadlock"),
   "configVersion": zod.number(),
@@ -2357,6 +2401,12 @@ export const GenerateNextRoundParams = zod.object({
 })
 
 
+export const generateNextRoundResponseActivityPlayerCountMin = 0;
+
+export const generateNextRoundResponseActivityReadyMatchCountMin = 0;
+
+export const generateNextRoundResponseActivityLiveMatchCountMin = 0;
+
 export const generateNextRoundResponseGameConfigOneConfigBansPerPlayerMin = 0;
 export const generateNextRoundResponseGameConfigOneConfigBansPerPlayerMax = 20;
 
@@ -2395,6 +2445,11 @@ export const GenerateNextRoundResponse = zod.object({
   "hasViewerPassword": zod.boolean().optional().describe('Whether a viewer password has been set (private_online mode)'),
   "visibility": zod.enum(['public_online', 'private_online', 'private_offline']).optional().describe('public_online=no viewer password; private_online=viewer needs password; private_offline=not listed, org\/support only'),
   "createdAt": zod.string(),
+  "activity": zod.object({
+  "playerCount": zod.number().min(generateNextRoundResponseActivityPlayerCountMin),
+  "readyMatchCount": zod.number().min(generateNextRoundResponseActivityReadyMatchCountMin).describe('Pending matches with both participants assigned.'),
+  "liveMatchCount": zod.number().min(generateNextRoundResponseActivityLiveMatchCountMin).describe('Matches in progress.')
+}).optional().describe('Read-only workload summary, present only in the tournament list. Clients must treat it as optional.'),
   "gameConfig": zod.union([zod.object({
   "gameId": zod.literal("deadlock"),
   "configVersion": zod.number(),
@@ -2427,6 +2482,12 @@ export const GetTournamentBracketParams = zod.object({
   "id": zod.coerce.number()
 })
 
+
+export const getTournamentBracketResponseTournamentActivityPlayerCountMin = 0;
+
+export const getTournamentBracketResponseTournamentActivityReadyMatchCountMin = 0;
+
+export const getTournamentBracketResponseTournamentActivityLiveMatchCountMin = 0;
 
 export const getTournamentBracketResponseTournamentGameConfigOneConfigBansPerPlayerMin = 0;
 export const getTournamentBracketResponseTournamentGameConfigOneConfigBansPerPlayerMax = 20;
@@ -2469,6 +2530,11 @@ export const GetTournamentBracketResponse = zod.object({
   "hasViewerPassword": zod.boolean().optional().describe('Whether a viewer password has been set (private_online mode)'),
   "visibility": zod.enum(['public_online', 'private_online', 'private_offline']).optional().describe('public_online=no viewer password; private_online=viewer needs password; private_offline=not listed, org\/support only'),
   "createdAt": zod.string(),
+  "activity": zod.object({
+  "playerCount": zod.number().min(getTournamentBracketResponseTournamentActivityPlayerCountMin),
+  "readyMatchCount": zod.number().min(getTournamentBracketResponseTournamentActivityReadyMatchCountMin).describe('Pending matches with both participants assigned.'),
+  "liveMatchCount": zod.number().min(getTournamentBracketResponseTournamentActivityLiveMatchCountMin).describe('Matches in progress.')
+}).optional().describe('Read-only workload summary, present only in the tournament list. Clients must treat it as optional.'),
   "gameConfig": zod.union([zod.object({
   "gameId": zod.literal("deadlock"),
   "configVersion": zod.number(),

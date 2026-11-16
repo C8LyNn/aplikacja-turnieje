@@ -661,19 +661,60 @@ function parseCsv(csv: string) {
 
 // ========== TOURNAMENT ROUTES ==========
 
+/**
+ * Read-only workload summary for the tournament list (SWARM-006 V4 dashboard).
+ * Two grouped aggregate queries, independent of the number of tournaments.
+ */
+export async function loadTournamentActivityMap(tournamentIds: number[]) {
+  const activity = new Map<number, { playerCount: number; readyMatchCount: number; liveMatchCount: number }>();
+  if (tournamentIds.length === 0) return activity;
+  for (const id of tournamentIds) activity.set(id, { playerCount: 0, readyMatchCount: 0, liveMatchCount: 0 });
+  const [playerRows, matchRows] = await Promise.all([
+    db
+      .select({ tournamentId: playersTable.tournamentId, count: sql<number>`count(*)::int` })
+      .from(playersTable)
+      .where(inArray(playersTable.tournamentId, tournamentIds))
+      .groupBy(playersTable.tournamentId),
+    db
+      .select({
+        tournamentId: matchesTable.tournamentId,
+        ready: sql<number>`count(*) filter (where ${matchesTable.status} = 'pending' and ${matchesTable.player1Id} is not null and ${matchesTable.player2Id} is not null)::int`,
+        live: sql<number>`count(*) filter (where ${matchesTable.status} = 'in_progress')::int`,
+      })
+      .from(matchesTable)
+      .where(and(inArray(matchesTable.tournamentId, tournamentIds), inArray(matchesTable.status, ["pending", "in_progress"])))
+      .groupBy(matchesTable.tournamentId),
+  ]);
+  for (const row of playerRows) {
+    const entry = activity.get(row.tournamentId);
+    if (entry) entry.playerCount = Number(row.count) || 0;
+  }
+  for (const row of matchRows) {
+    const entry = activity.get(row.tournamentId);
+    if (entry) {
+      entry.readyMatchCount = Number(row.ready) || 0;
+      entry.liveMatchCount = Number(row.live) || 0;
+    }
+  }
+  return activity;
+}
+
 router.get("/tournaments", async (_req, res): Promise<void> => {
   const tournaments = await db
     .select()
     .from(tournamentsTable)
     .where(ne(tournamentsTable.visibility, "private_offline"))
     .orderBy(tournamentsTable.createdAt);
-  const gameConfigs = await loadTournamentGameConfigMap(
-    tournaments.map((tournament) => tournament.id),
-  );
+  const ids = tournaments.map((tournament) => tournament.id);
+  const [gameConfigs, activity] = await Promise.all([
+    loadTournamentGameConfigMap(ids),
+    loadTournamentActivityMap(ids),
+  ]);
   res.json(
-    tournaments.map((tournament) =>
-      mapTournament(tournament, gameConfigs.get(tournament.id) ?? null),
-    ),
+    tournaments.map((tournament) => ({
+      ...mapTournament(tournament, gameConfigs.get(tournament.id) ?? null),
+      activity: activity.get(tournament.id),
+    })),
   );
 });
 

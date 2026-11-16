@@ -50,7 +50,8 @@ import { parseTournamentBackupFile } from "@/lib/backup-file";
 import { organizerAreaForDetailTab, organizerDetailTab, TournamentOrganizerNavigation, useLegacyMatchesRedirect } from "@/components/tournament-organizer-navigation";
 import { OrganizerNextStep } from "@/components/organizer-next-step";
 import { experimentalNextStep } from "@/features/experimental-tournaments/experimental-next-step";
-import { ExperimentalRosterHealth, ExperimentalStageRail } from "@/features/experimental-tournaments/experimental-v4-panels";
+import { ExperimentalRosterHealth, ExperimentalStageMap } from "@/features/experimental-tournaments/experimental-v4-panels";
+import { ExperimentalBulkPaste, type BulkImportOutcome } from "@/features/experimental-tournaments/experimental-v4-bulk-paste";
 import { TournamentOperationsOverview } from "@/components/tournament-operations-overview";
 import { useOrganizerOperation } from "@/hooks/use-organizer-operation";
 import { deriveOrganizerCapabilities, managementRoleForCapabilities } from "@/lib/organizer-capabilities";
@@ -570,6 +571,15 @@ export default function TournamentDetail() {
     URL.revokeObjectURL(url);
   };
 
+  // Experimental bulk paste: same import endpoint as CSV, validated and previewed client-side first.
+  const handleExperimentalBulkImport = (csv: string, mode: "append" | "replace") =>
+    new Promise<BulkImportOutcome>((resolve, reject) => {
+      importPlayers.mutate({ id, data: { csv, mode } }, {
+        onSuccess: (result) => { void invalidateRoster(); resolve(result as BulkImportOutcome); },
+        onError: (e: any) => { handleMutationError(e, "Błąd dodawania listy"); reject(e); },
+      });
+    });
+
   const resetCsvImport = () => {
     setShowCsvImport(false);
     setCsvText("");
@@ -958,7 +968,7 @@ export default function TournamentDetail() {
           </TabsContent>
 
           <TabsContent value="stages" className={isExperimental ? "pt-2 experimental-stages-surface" : "pt-2"}>
-            {isExperimental && <ExperimentalStageRail stages={stages} matches={matches} activeStageId={tournament.activeStageId} />}
+            {isExperimental && <ExperimentalStageMap tournamentId={id} stages={stages} matches={matches} activeStageId={tournament.activeStageId} />}
             <TournamentStagesPanel
               tournamentId={id}
               tournamentStatus={tournament.status}
@@ -988,12 +998,24 @@ export default function TournamentDetail() {
                     <CardTitle>Zawodnicy ({players?.length ?? "—"})</CardTitle>
                     {tournament.status === "draft" && capabilities.canManageParticipants && (
                       <Button variant="outline" size="sm" onClick={() => showCsvImport ? resetCsvImport() : setShowCsvImport(true)}>
-                        <Upload className="w-4 h-4 mr-2" /> {showCsvImport ? "Zamknij" : "Import CSV"}
+                        <Upload className="w-4 h-4 mr-2" /> {showCsvImport ? "Zamknij" : isExperimental ? "Wklej listę" : "Import CSV"}
                       </Button>
                     )}
                   </CardHeader>
 
-                  {showCsvImport && capabilities.canManageParticipants && (
+                  {isExperimental && showCsvImport && capabilities.canManageParticipants && (
+                    <div className="border-b px-6 pb-5">
+                      <ExperimentalBulkPaste
+                        existingNames={(players ?? []).map((player) => player.name)}
+                        existingSeeds={(players ?? []).flatMap((player) => (typeof player.seed === "number" ? [player.seed] : []))}
+                        maxPlayers={tournament.maxPlayers}
+                        pending={importPlayers.isPending}
+                        onImport={handleExperimentalBulkImport}
+                        onClose={resetCsvImport}
+                      />
+                    </div>
+                  )}
+                  {!isExperimental && showCsvImport && capabilities.canManageParticipants && (
                     <div className="border-b">
                       {/* Result panel */}
                       {csvResult ? (

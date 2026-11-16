@@ -1616,7 +1616,7 @@ export default function TournamentHost() {
             {/* Big active match panel */}
             {!dataLoading && !dataError && renderActiveMatchPanel()}
             {isExperimental && !dataLoading && !dataError && (
-              <ExperimentalMatchFlow matches={operationalMatches} focusedMatchId={focusedMatchId} onSelect={setSelectedMatchId} disabled={hostPending} />
+              <ExperimentalMatchFlow matches={operationalMatches} allMatches={matches} stageNames={new Map((stages ?? []).map((stage) => [stage.id, stage.name]))} focusedMatchId={focusedMatchId} onSelect={setSelectedMatchId} disabled={hostPending} />
             )}
 
             {/* Queue + recent results */}

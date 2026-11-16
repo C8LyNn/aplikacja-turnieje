@@ -7,6 +7,7 @@
  */
 import type { DeadlockTournamentGameConfig } from './deadlockTournamentGameConfig';
 import type { MarvelTournamentGameConfig } from './marvelTournamentGameConfig';
+import type { TournamentActivity } from './tournamentActivity';
 import type { TournamentFormat } from './tournamentFormat';
 import type { TournamentPresentationSettings } from './tournamentPresentationSettings';
 import type { TournamentRankingPolicy } from './tournamentRankingPolicy';
@@ -50,6 +51,7 @@ export interface Tournament {
   /** public_online=no viewer password; private_online=viewer needs password; private_offline=not listed, org/support only */
   visibility?: TournamentVisibility;
   createdAt: string;
+  activity?: TournamentActivity;
   gameConfig?: DeadlockTournamentGameConfig | MarvelTournamentGameConfig | null;
   presentationSettings?: TournamentPresentationSettings | null;
 }

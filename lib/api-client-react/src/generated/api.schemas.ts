@@ -717,6 +717,24 @@ export const TournamentVisibility = {
   private_offline: 'private_offline',
 } as const;
 
+/**
+ * Read-only workload summary, present only in the tournament list. Clients must treat it as optional.
+ */
+export interface TournamentActivity {
+  /** @minimum 0 */
+  playerCount: number;
+  /**
+     * Pending matches with both participants assigned.
+     * @minimum 0
+     */
+  readyMatchCount: number;
+  /**
+     * Matches in progress.
+     * @minimum 0
+     */
+  liveMatchCount: number;
+}
+
 export interface TournamentPresentationSettings {
   /** Enable Deadlock visual theme (beige/dark-brown palette + Valve Pulp Bold font) */
   deadlockTheme?: boolean;
@@ -758,6 +776,7 @@ export interface Tournament {
   /** public_online=no viewer password; private_online=viewer needs password; private_offline=not listed, org/support only */
   visibility?: TournamentVisibility;
   createdAt: string;
+  activity?: TournamentActivity;
   gameConfig?: DeadlockTournamentGameConfig | MarvelTournamentGameConfig | null;
   presentationSettings?: TournamentPresentationSettings | null;
 }

@@ -220,6 +220,7 @@ export * from './targetStageInputArrivalsBasketsItem';
 export * from './targetStageInputArrivalsBasketsItemDirectPlayersItem';
 export * from './targetStageInputArrivalsBasketsItemRoutedArrivalsItem';
 export * from './tournament';
+export * from './tournamentActivity';
 export * from './tournamentBackup';
 export * from './tournamentBackupV2';
 export * from './tournamentBackupV2ActionLogItem';

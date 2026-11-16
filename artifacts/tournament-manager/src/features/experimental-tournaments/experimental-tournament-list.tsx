@@ -4,6 +4,7 @@ import { format } from "date-fns";
 import { pl } from "date-fns/locale";
 import { Download, Trash2 } from "lucide-react";
 import { tournamentHref } from "@/features/experimental-tournaments/experimental-tournament-routing";
+import { ACTION_GROUPS, tournamentAction, type TournamentAction, type TournamentActionGroup } from "@/features/experimental-tournaments/experimental-v4-model";
 import type { ExperimentalTournamentStatusFilter } from "@/features/experimental-tournaments/experimental-dashboard-toolbar";
 
 export interface ExperimentalTournamentListItem {
@@ -14,6 +15,8 @@ export interface ExperimentalTournamentListItem {
   format: string;
   maxPlayers?: number | null;
   createdAt: string;
+  /** v4: workload summary from the list API; absent on older servers. */
+  activity?: { playerCount: number; readyMatchCount: number; liveMatchCount: number } | null;
   currentRound?: number | null;
   totalRounds?: number | null;
 }
@@ -23,6 +26,14 @@ const GROUPS: Array<{ status: string; title: string; empty: string }> = [
   { status: "draft", title: "W przygotowaniu", empty: "Brak szkiców." },
   { status: "completed", title: "Zakończone", empty: "Brak zakończonych turniejów." },
 ];
+
+const ACTION_LIFECYCLE: Record<TournamentActionGroup, string> = {
+  play: "active",
+  advance: "active",
+  start: "draft",
+  roster: "draft",
+  done: "completed",
+};
 
 const STATUS_TEXT: Record<string, string> = {
   active: "Trwa",
@@ -61,23 +72,42 @@ export function ExperimentalTournamentList({
   onDelete: (id: number) => void;
 }) {
   const labels: Record<string, string> = { double_elimination: "Podwójna eliminacja", ...formatLabels };
-  const groups = GROUPS.filter((group) => statusFilter === "all" || group.status === statusFilter)
-    .map((group) => ({ ...group, items: tournaments.filter((item) => item.status === group.status) }))
-    .filter((group) => group.items.length > 0 || statusFilter !== "all");
-  const known = new Set(GROUPS.map((group) => group.status));
-  const other = tournaments.filter((item) => !known.has(item.status));
-  if (other.length && statusFilter === "all") groups.push({ status: "other", title: "Pozostałe", empty: "", items: other });
+  // v4: when the API reports activity, group by the action each tournament needs;
+  // otherwise keep the V3 lifecycle grouping unchanged.
+  const actions = new Map<number, TournamentAction | null>(tournaments.map((item) => [item.id, tournamentAction(item)]));
+  const actionMode = tournaments.some((item) => actions.get(item.id));
+  type Group = { key: string; status: string; title: string; empty: string; items: ExperimentalTournamentListItem[] };
+  let groups: Group[];
+  if (actionMode) {
+    groups = ACTION_GROUPS.map(({ group, title }) => ({
+      key: group,
+      status: ACTION_LIFECYCLE[group],
+      title,
+      empty: "",
+      items: tournaments.filter((item) => actions.get(item.id)?.group === group),
+    })).filter((group) => group.items.length > 0);
+    const rest = tournaments.filter((item) => !actions.get(item.id));
+    if (rest.length) groups.push({ key: "other", status: "other", title: "Pozostałe", empty: "", items: rest });
+  } else {
+    groups = GROUPS.filter((group) => statusFilter === "all" || group.status === statusFilter)
+      .map((group) => ({ ...group, key: group.status, items: tournaments.filter((item) => item.status === group.status) }))
+      .filter((group) => group.items.length > 0 || statusFilter !== "all");
+    const known = new Set(GROUPS.map((group) => group.status));
+    const other = tournaments.filter((item) => !known.has(item.status));
+    if (other.length && statusFilter === "all") groups.push({ key: "other", status: "other", title: "Pozostałe", empty: "", items: other });
+  }
 
   return (
     <div className="experimental-tlist">
       {groups.map((group) => (
         <section
-          key={group.status}
-          aria-labelledby={`exp-tlist-${group.status}`}
+          key={group.key}
+          aria-labelledby={`exp-tlist-${group.key}`}
           className="experimental-tlist-group"
           data-group={group.status}
+          data-action-group={actionMode ? group.key : undefined}
         >
-          <h2 id={`exp-tlist-${group.status}`} className="experimental-tlist-heading">
+          <h2 id={`exp-tlist-${group.key}`} className="experimental-tlist-heading">
             {group.title}
             <span className="experimental-tlist-count">{group.items.length}</span>
           </h2>
@@ -86,6 +116,7 @@ export function ExperimentalTournamentList({
           ) : (
             <ul className="experimental-tlist-items">
               {group.items.map((tournament) => {
+                const action = actions.get(tournament.id) ?? null;
                 const round =
                   tournament.status === "active" && tournament.currentRound
                     ? { current: tournament.currentRound, total: tournament.totalRounds ?? null }
@@ -107,6 +138,7 @@ export function ExperimentalTournamentList({
                           Utworzono {format(new Date(tournament.createdAt), "d MMM yyyy", { locale: pl })}
                         </span>
                       </p>
+                      {action ? <p className="experimental-tlist-hint">{action.hint}</p> : null}
                       {tournament.description ? (
                         <p className="experimental-tlist-description">{tournament.description}</p>
                       ) : null}
@@ -128,6 +160,11 @@ export function ExperimentalTournamentList({
                             </span>
                           )}
                         </div>
+                      ) : null}
+                      {action ? (
+                        <Link href={action.href} className="experimental-tlist-action" data-action-group={action.group} aria-label={`${action.label}: ${tournament.name}`}>
+                          {action.label}
+                        </Link>
                       ) : null}
                     </div>
 
