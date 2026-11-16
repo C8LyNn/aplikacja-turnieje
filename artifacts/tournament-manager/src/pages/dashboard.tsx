@@ -25,6 +25,7 @@ import { ExperimentalDeleteTournamentDialog, ExperimentalTestDataDialog } from "
 import { ExperimentalStatePanel } from "@/features/experimental-tournaments/experimental-ui";
 import { ExperimentalTournamentList } from "@/features/experimental-tournaments/experimental-tournament-list";
 import { ExperimentalDashboardStats } from "@/features/experimental-tournaments/experimental-dashboard-stats";
+import { ExperimentalResumeCard } from "@/features/experimental-tournaments/experimental-v4-panels";
 
 const TEST_SIZES = [4, 8, 16, 32] as const;
 type TestSize = typeof TEST_SIZES[number];
@@ -282,6 +283,8 @@ export default function Dashboard() {
             )}
           </div>
         </div>
+
+        {isExperimental && tournamentCounts.all > 0 && <ExperimentalResumeCard tournaments={tournaments} />}
 
         {isExperimental && tournamentCounts.all > 0 && (
           <ExperimentalDashboardStats counts={tournamentCounts} status={statusFilter} onStatusChange={setStatusFilter} />

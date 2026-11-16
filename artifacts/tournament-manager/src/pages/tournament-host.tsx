@@ -60,6 +60,7 @@ import { matchOperationError, MATCH_STATUS_LABELS } from "@/lib/match-operation-
 import { tournamentHref, useTournamentRoute } from "@/features/experimental-tournaments/experimental-tournament-routing";
 import { ExperimentalTournamentContextBar } from "@/features/experimental-tournaments/experimental-tournament-context-bar";
 import { ExperimentalHostCommandCenter } from "@/features/experimental-tournaments/experimental-host-command-center";
+import { ExperimentalMatchFlow } from "@/features/experimental-tournaments/experimental-v4-panels";
 import { ExperimentalHostFocusToggle } from "@/features/experimental-tournaments/experimental-host-focus-toggle";
 
 type ScoreEntry = { s1: number; s2: number; baseline?: string };
@@ -1614,6 +1615,9 @@ export default function TournamentHost() {
           <TabsContent value="prowadzenie" className="pt-4 space-y-4">
             {/* Big active match panel */}
             {!dataLoading && !dataError && renderActiveMatchPanel()}
+            {isExperimental && !dataLoading && !dataError && (
+              <ExperimentalMatchFlow matches={operationalMatches} focusedMatchId={focusedMatchId} onSelect={setSelectedMatchId} disabled={hostPending} />
+            )}
 
             {/* Queue + recent results */}
             {(queueMatches.length > 0 || completedMatches.length > 0 || postponedMatches.length > 0) && (

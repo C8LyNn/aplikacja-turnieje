@@ -50,6 +50,7 @@ import { parseTournamentBackupFile } from "@/lib/backup-file";
 import { organizerAreaForDetailTab, organizerDetailTab, TournamentOrganizerNavigation, useLegacyMatchesRedirect } from "@/components/tournament-organizer-navigation";
 import { OrganizerNextStep } from "@/components/organizer-next-step";
 import { experimentalNextStep } from "@/features/experimental-tournaments/experimental-next-step";
+import { ExperimentalRosterHealth, ExperimentalStageRail } from "@/features/experimental-tournaments/experimental-v4-panels";
 import { TournamentOperationsOverview } from "@/components/tournament-operations-overview";
 import { useOrganizerOperation } from "@/hooks/use-organizer-operation";
 import { deriveOrganizerCapabilities, managementRoleForCapabilities } from "@/lib/organizer-capabilities";
@@ -957,6 +958,7 @@ export default function TournamentDetail() {
           </TabsContent>
 
           <TabsContent value="stages" className={isExperimental ? "pt-2 experimental-stages-surface" : "pt-2"}>
+            {isExperimental && <ExperimentalStageRail stages={stages} matches={matches} activeStageId={tournament.activeStageId} />}
             <TournamentStagesPanel
               tournamentId={id}
               tournamentStatus={tournament.status}
@@ -977,6 +979,7 @@ export default function TournamentDetail() {
           </TabsContent>
 
           <TabsContent value="players" className={isExperimental ? "pt-6 experimental-players-surface" : "pt-6"}>
+            {isExperimental && <ExperimentalRosterHealth players={players} maxPlayers={tournament.maxPlayers} />}
             {isExperimental && <ExperimentalPlayerToolbar query={playerSearch} onQueryChange={setPlayerSearch} status={playerStatusFilter} onStatusChange={setPlayerStatusFilter} sort={playerSort} onSortChange={setPlayerSort} total={players?.length ?? 0} visible={displayedPlayers.length} />}
             <div className={`grid md:grid-cols-3 gap-6 ${isExperimental ? "mt-4" : ""}`}>
               <div className="md:col-span-2 space-y-4">

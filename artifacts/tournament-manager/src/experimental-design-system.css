@@ -1693,6 +1693,103 @@ html[data-x-skin="classic"] :is(.experimental-tournament-shell, .experimental-to
 .experimental-result-preview[data-complete="true"]::before { content: "🏆"; font-size: 1rem; }
 .experimental-result-preview strong { font-size: 1.0625rem; color: color-mix(in oklab, var(--x-gold) 55%, var(--x-text)); }
 
+/* ═══════════════════════════════════════════════════════════════════════════
+   v4 — resume card, roster health, stage rail and match flow.
+   Experimental-only; same Arena tokens, so skins, backgrounds and colour systems apply.
+   ═══════════════════════════════════════════════════════════════════════════ */
+.experimental-tournament-shell .experimental-v4-kicker { margin: 0; font-size: .6875rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--x-text-2); }
+.experimental-tournament-shell .experimental-v4-muted { margin: 0; font-size: .8125rem; color: var(--x-text-2); }
+.experimental-tournament-shell .experimental-v4-progress { height: .375rem; border-radius: 999px; background: var(--x-glass-2); overflow: hidden; }
+.experimental-tournament-shell .experimental-v4-progress > span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--x-a1), var(--x-a2)); transition: width 240ms var(--x-ease); }
+
+/* v4 · dashboard resume card */
+.experimental-tournament-shell .experimental-v4-resume {
+  --tone: hsl(var(--x-live));
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 1rem;
+  margin-bottom: 1rem; padding: 1rem 1.25rem;
+  border: 1px solid color-mix(in oklab, var(--tone) 40%, var(--x-line)); border-radius: var(--x-radius-lg);
+  background: radial-gradient(120% 120% at 0% 0%, color-mix(in oklab, var(--tone) 14%, transparent), transparent 60%), linear-gradient(180deg, var(--x-card-top), var(--x-card-bot));
+  box-shadow: var(--x-shadow);
+}
+.experimental-tournament-shell .experimental-v4-resume[data-reason="draft"] { --tone: hsl(var(--x-ready)); }
+.experimental-tournament-shell .experimental-v4-resume-icon { display: grid; place-items: center; width: 3rem; height: 3rem; border-radius: var(--x-radius); color: var(--tone); background: color-mix(in oklab, var(--tone) 16%, transparent); }
+.experimental-tournament-shell .experimental-v4-resume-body { display: grid; gap: .3rem; min-width: 0; }
+.experimental-tournament-shell .experimental-v4-resume-title { margin: 0; font: var(--x-font-section); font-size: 1.25rem; color: var(--x-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.experimental-tournament-shell .experimental-v4-cta {
+  display: inline-flex; align-items: center; gap: .5rem; min-height: var(--x-tap, 2.75rem); padding-inline: 1.1rem;
+  border-radius: 999px; font-weight: 700; color: hsl(var(--primary-foreground)); background: var(--x-a1);
+  transition: transform 160ms var(--x-ease), box-shadow 160ms var(--x-ease);
+}
+.experimental-tournament-shell .experimental-v4-cta:hover { transform: translateY(-1px); box-shadow: 0 10px 24px -14px var(--x-a1); }
+
+/* v4 · roster health */
+.experimental-tournament-shell .experimental-v4-roster {
+  display: grid; grid-template-columns: auto minmax(8rem, 14rem) minmax(0, 1fr); align-items: center; gap: .75rem 1.25rem;
+  margin-bottom: 1rem; padding: .875rem 1.125rem; border: 1px solid var(--x-line); border-radius: var(--x-radius-lg);
+  background: linear-gradient(180deg, var(--x-card-top), var(--x-card-bot));
+}
+.experimental-tournament-shell .experimental-v4-roster-count { display: inline-flex; align-items: baseline; gap: .5rem; color: var(--x-text); }
+.experimental-tournament-shell .experimental-v4-roster-count svg { align-self: center; color: var(--x-a1); }
+.experimental-tournament-shell .experimental-v4-roster-value { font-size: 1.5rem; font-weight: 750; font-variant-numeric: tabular-nums; }
+.experimental-tournament-shell .experimental-v4-roster-value small { font-size: .9375rem; color: var(--x-text-2); }
+.experimental-tournament-shell .experimental-v4-chips { display: flex; flex-wrap: wrap; gap: .375rem; margin: 0; padding: 0; list-style: none; }
+.experimental-tournament-shell .experimental-v4-chip {
+  --tone: var(--x-a1);
+  display: inline-flex; align-items: center; gap: .3rem; padding: .2rem .6rem; border-radius: 999px; font-size: .75rem; font-weight: 600;
+  border: 1px solid color-mix(in oklab, var(--tone) 45%, transparent); background: color-mix(in oklab, var(--tone) 14%, transparent);
+  color: color-mix(in oklab, var(--tone) 55%, var(--x-text));
+}
+.experimental-tournament-shell .experimental-v4-chip[data-tone="success"] { --tone: hsl(var(--x-live)); }
+.experimental-tournament-shell .experimental-v4-chip[data-tone="warning"] { --tone: hsl(var(--x-ready)); }
+.experimental-tournament-shell .experimental-v4-chip[data-tone="danger"] { --tone: hsl(var(--x-danger)); }
+.experimental-tournament-shell .experimental-v4-chip[data-tone="info"] { --tone: hsl(var(--x-info)); }
+
+/* v4 · stage rail */
+.experimental-tournament-shell .experimental-v4-rail { margin: .25rem 0 1rem; overflow-x: auto; scrollbar-width: none; }
+.experimental-tournament-shell .experimental-v4-rail ol { display: flex; gap: .5rem; margin: 0; padding: .25rem; list-style: none; }
+.experimental-tournament-shell .experimental-v4-rail-step {
+  --tone: var(--x-status-planned, var(--x-a2));
+  position: relative; display: flex; align-items: center; gap: .625rem; flex: 1 0 12rem; padding: .625rem .875rem;
+  border: 1px dashed color-mix(in oklab, var(--tone) 45%, transparent); border-radius: var(--x-radius); background: var(--x-card-bot);
+}
+.experimental-tournament-shell .experimental-v4-rail-step[data-status="active"] { --tone: hsl(var(--x-live)); border-style: solid; }
+.experimental-tournament-shell .experimental-v4-rail-step[data-status="completed"] { --tone: var(--x-gold); border-style: solid; }
+.experimental-tournament-shell .experimental-v4-rail-step[aria-current="step"] { box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--tone) 35%, transparent), 0 12px 28px -20px var(--tone); }
+.experimental-tournament-shell .experimental-v4-rail-dot { display: grid; place-items: center; flex: none; width: 1.75rem; height: 1.75rem; border-radius: 999px; font-size: .8125rem; font-weight: 700; color: var(--x-text); background: color-mix(in oklab, var(--tone) 22%, transparent); border: 1px solid color-mix(in oklab, var(--tone) 55%, transparent); }
+.experimental-tournament-shell .experimental-v4-rail-text { display: grid; gap: .1rem; min-width: 0; }
+.experimental-tournament-shell .experimental-v4-rail-text strong { font-size: .9375rem; color: var(--x-text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* v4 · match flow */
+.experimental-tournament-shell .experimental-v4-flow {
+  display: grid; grid-template-columns: minmax(12rem, 16rem) minmax(0, 1fr); gap: 1rem 1.5rem; padding: .875rem 1.125rem;
+  border: 1px solid var(--x-line); border-radius: var(--x-radius-lg); background: linear-gradient(180deg, var(--x-card-top), var(--x-card-bot));
+}
+.experimental-tournament-shell .experimental-v4-flow-round { display: grid; gap: .375rem; align-content: start; }
+.experimental-tournament-shell .experimental-v4-flow-count { margin: 0; color: var(--x-text-2); font-variant-numeric: tabular-nums; }
+.experimental-tournament-shell .experimental-v4-flow-count strong { font-size: 1.375rem; color: var(--x-text); }
+.experimental-tournament-shell .experimental-v4-flow-next { display: grid; gap: .5rem; min-width: 0; }
+.experimental-tournament-shell .experimental-v4-flow-next ol { display: grid; grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr)); gap: .5rem; margin: 0; padding: 0; list-style: none; }
+.experimental-tournament-shell .experimental-v4-flow-match {
+  display: flex; align-items: center; gap: .5rem; width: 100%; min-height: var(--x-tap, 2.75rem); padding: .375rem .75rem; text-align: left;
+  border: 1px solid var(--x-line); border-left: 3px solid hsl(var(--x-ready)); border-radius: var(--x-radius-sm); background: var(--x-glass); color: var(--x-text);
+  transition: background 160ms var(--x-ease), border-color 160ms var(--x-ease);
+}
+.experimental-tournament-shell .experimental-v4-flow-match:hover:not(:disabled) { background: var(--x-glass-2); border-color: var(--x-line-strong); }
+.experimental-tournament-shell .experimental-v4-flow-match:disabled { opacity: .6; cursor: progress; }
+.experimental-tournament-shell .experimental-v4-flow-tag { flex: none; font-size: .6875rem; font-weight: 700; color: var(--x-text-2); font-variant-numeric: tabular-nums; }
+.experimental-tournament-shell .experimental-v4-flow-names { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 600; }
+.experimental-tournament-shell .experimental-v4-flow-names em { font-style: normal; font-weight: 500; color: var(--x-text-2); }
+
+@media (max-width: 767px) {
+  .experimental-tournament-shell .experimental-v4-resume { grid-template-columns: auto minmax(0, 1fr); }
+  .experimental-tournament-shell .experimental-v4-resume .experimental-v4-cta { grid-column: 1 / -1; justify-content: center; }
+  .experimental-tournament-shell :is(.experimental-v4-roster, .experimental-v4-flow) { grid-template-columns: minmax(0, 1fr); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .experimental-tournament-shell :is(.experimental-v4-progress > span, .experimental-v4-cta, .experimental-v4-flow-match) { transition: none; }
+  .experimental-tournament-shell .experimental-v4-cta:hover { transform: none; }
+}
+
 /* v3 · support entry — access marker, unavailable tournaments */
 .experimental-support-entry .experimental-support-access {
   flex: none; border-radius: 999px; padding: .15rem .6rem; font-size: .72rem; font-weight: 700;
