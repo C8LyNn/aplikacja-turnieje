@@ -4,6 +4,7 @@ import { useAuth } from "@/context/auth-context";
 import { AppLogoLink, getRoleHomePath, RoleHomeLink, RoleSelectionLink } from "@/components/app-navigation";
 import { isExperimentalTournamentPath } from "@/features/experimental-tournaments/experimental-tournament-routing";
 import { ExperimentalDensityControl } from "@/features/experimental-tournaments/experimental-density-control";
+import { ExperimentalAppearanceControl } from "@/features/experimental-tournaments/experimental-appearance";
 
 export function Layout({ children, deadlockTheme, colorPreset }: { children: React.ReactNode; deadlockTheme?: boolean; colorPreset?: string }) {
   const [location] = useLocation();
@@ -52,7 +53,7 @@ export function Layout({ children, deadlockTheme, colorPreset }: { children: Rea
               />
             )}
           </div>
-          <nav className="flex items-center gap-3 text-sm font-medium text-muted-foreground">{isExperimentalTournamentView && <ExperimentalDensityControl />}
+          <nav className="flex items-center gap-3 text-sm font-medium text-muted-foreground">{isExperimentalTournamentView && <ExperimentalAppearanceControl />}{isExperimentalTournamentView && <ExperimentalDensityControl />}
             {role && (
               <RoleSelectionLink className="border border-border rounded-full px-2.5 py-1 text-xs" />
             )}

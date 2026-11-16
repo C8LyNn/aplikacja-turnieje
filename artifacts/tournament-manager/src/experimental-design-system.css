@@ -19,8 +19,8 @@
     .experimental-tournament-public, .experimental-tournament-stage-view) {
   /* Accent family (fallback hues; replaced by theme-derived ones below) */
   --x-a1: hsl(var(--primary));
-  --x-a2: hsl(262 83% 68%);
-  --x-a3: hsl(326 80% 64%);
+  --x-a2: var(--x-sig-a2, hsl(262 83% 68%));
+  --x-a3: var(--x-sig-a3, hsl(326 80% 64%));
   --x-a4: hsl(168 70% 48%);
   --x-gold: hsl(43 92% 60%);
 
@@ -34,8 +34,9 @@
   /* Surfaces & text */
   --x-bg: hsl(var(--background));
   --x-deep: color-mix(in oklab, hsl(var(--background)) 82%, #000 18%);
-  --x-card-top: color-mix(in oklab, hsl(var(--card)) 88%, hsl(var(--foreground)) 12%);
-  --x-card-bot: color-mix(in oklab, hsl(var(--card)) 95%, hsl(var(--foreground)) 5%);
+  /* Cards are slightly translucent so the chosen background reads through (layering). */
+  --x-card-top: color-mix(in oklab, color-mix(in oklab, hsl(var(--card)) 88%, hsl(var(--foreground)) 12%) 84%, transparent);
+  --x-card-bot: color-mix(in oklab, color-mix(in oklab, hsl(var(--card)) 95%, hsl(var(--foreground)) 5%) 88%, transparent);
   --x-glass: color-mix(in oklab, hsl(var(--foreground)) 5%, transparent);
   --x-glass-2: color-mix(in oklab, hsl(var(--foreground)) 9%, transparent);
   --x-line: color-mix(in oklab, hsl(var(--foreground)) 12%, transparent);
@@ -80,10 +81,11 @@
   --exp-tone-live: var(--x-live);
 
   color: var(--x-text);
-  background:
+  /* Skin signature background when the skin defines one (see "Skin signatures"), otherwise Aura. */
+  background: var(--x-sig-bg,
     radial-gradient(70rem 32rem at 8% -12rem, color-mix(in oklab, var(--x-a1) 16%, transparent), transparent 70%),
     radial-gradient(56rem 30rem at 100% -10rem, color-mix(in oklab, var(--x-a2) 12%, transparent), transparent 70%),
-    linear-gradient(180deg, var(--x-bg) 0%, var(--x-deep) 100%);
+    linear-gradient(180deg, var(--x-bg) 0%, var(--x-deep) 100%));
   background-attachment: fixed;
   font-feature-settings: "cv11", "ss01";
   -webkit-font-smoothing: antialiased;
@@ -93,8 +95,8 @@
 @supports (color: oklch(from red l c h)) {
   :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create,
       .experimental-tournament-public, .experimental-tournament-stage-view) {
-    --x-a2: oklch(from hsl(var(--primary)) clamp(.66, l, .78) clamp(.13, c, .2) calc(h + 72));
-    --x-a3: oklch(from hsl(var(--primary)) clamp(.66, l, .78) clamp(.13, c, .2) calc(h - 72));
+    --x-a2: var(--x-sig-a2, oklch(from hsl(var(--primary)) clamp(.66, l, .78) clamp(.13, c, .2) calc(h + 72)));
+    --x-a3: var(--x-sig-a3, oklch(from hsl(var(--primary)) clamp(.66, l, .78) clamp(.13, c, .2) calc(h - 72)));
     --x-a4: oklch(from hsl(var(--primary)) clamp(.66, l, .78) clamp(.11, c, .18) calc(h + 150));
   }
 }
@@ -153,7 +155,7 @@
 }
 .experimental-tournament-shell > header > div { height: 3.75rem; gap: 1rem; }
 .experimental-tournament-shell > header nav { gap: .25rem; align-items: center; }
-.experimental-tournament-shell > header nav > * { display: inline-flex; align-items: center; }
+.experimental-tournament-shell > header nav > * { display: inline-flex; align-items: center; white-space: nowrap; flex: 0 0 auto; }
 .experimental-tournament-shell > header nav :is(a, button) {
   min-height: 2.25rem;
   padding-inline: .75rem;
@@ -770,7 +772,7 @@
 }
 
 /* ── Responsive ──────────────────────────────────────────────────────────── */
-@media (max-width: 1279px) {
+@media (max-width: 1535px) {
   .experimental-tournament-shell > header > div { gap: .5rem; padding-inline: .75rem; min-width: 0; }
   .experimental-tournament-shell > header > div > :first-child { flex: 0 1 auto; min-width: 0; }
   .experimental-tournament-shell > header nav {
@@ -830,4 +832,448 @@
   .experimental-metric-card > div:nth-child(2) { font-size: 1.75rem; }
   .experimental-tournament-entry .experimental-entry-hero,
   .experimental-tournament-create section.relative.overflow-hidden.rounded-2xl.border { padding: 1.5rem 1.25rem !important; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Viewer appearance: background style × colour system (chosen in "Wygląd").
+   Defaults (aura + harmony) are the base rules above. Every option is derived
+   from the active theme, so it combines with all 12 colour presets.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Colour systems: how the section accents relate to the theme colour ──── */
+@supports (color: oklch(from red l c h)) {
+  html[data-x-palette="harmony"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create,
+      .experimental-tournament-public, .experimental-tournament-stage-view) {
+    --x-a2: oklch(from hsl(var(--primary)) clamp(.66, l, .78) clamp(.13, c, .2) calc(h + 72));
+    --x-a3: oklch(from hsl(var(--primary)) clamp(.66, l, .78) clamp(.13, c, .2) calc(h - 72));
+  }
+  html[data-x-palette="analog"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create,
+      .experimental-tournament-public, .experimental-tournament-stage-view) {
+    --x-a2: oklch(from hsl(var(--primary)) clamp(.66, l, .78) clamp(.12, c, .19) calc(h + 38));
+    --x-a3: oklch(from hsl(var(--primary)) clamp(.66, l, .78) clamp(.12, c, .19) calc(h - 38));
+  }
+  html[data-x-palette="triad"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create,
+      .experimental-tournament-public, .experimental-tournament-stage-view) {
+    --x-a2: oklch(from hsl(var(--primary)) clamp(.7, l, .8) clamp(.16, c, .22) calc(h + 120));
+    --x-a3: oklch(from hsl(var(--primary)) clamp(.7, l, .8) clamp(.16, c, .22) calc(h - 120));
+  }
+  html[data-x-palette="contrast"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create,
+      .experimental-tournament-public, .experimental-tournament-stage-view) {
+    --x-a2: oklch(from hsl(var(--primary)) clamp(.7, l, .8) clamp(.15, c, .21) calc(h + 180));
+    --x-a3: oklch(from hsl(var(--primary)) clamp(.7, l, .8) clamp(.15, c, .21) calc(h + 150));
+  }
+  html[data-x-palette="mono"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create,
+      .experimental-tournament-public, .experimental-tournament-stage-view) {
+    --x-a2: oklch(from hsl(var(--primary)) min(calc(l + .12), .9) calc(c * .8) h);
+    --x-a3: oklch(from hsl(var(--primary)) max(calc(l - .1), .5) c h);
+  }
+}
+
+/* ── Backgrounds ─────────────────────────────────────────────────────────── */
+html[data-x-bg="aura"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create,
+    .experimental-tournament-public, .experimental-tournament-stage-view) {
+  background:
+    radial-gradient(70rem 32rem at 8% -12rem, color-mix(in oklab, var(--x-a1) 16%, transparent), transparent 70%),
+    radial-gradient(56rem 30rem at 100% -10rem, color-mix(in oklab, var(--x-a2) 12%, transparent), transparent 70%),
+    linear-gradient(180deg, var(--x-bg) 0%, var(--x-deep) 100%);
+  background-attachment: fixed;
+}
+html[data-x-bg="nebula"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create,
+    .experimental-tournament-public, .experimental-tournament-stage-view) {
+  background:
+    radial-gradient(52rem 40rem at -6% -8%, color-mix(in oklab, var(--x-a1) 38%, transparent), transparent 66%),
+    radial-gradient(48rem 38rem at 106% 18%, color-mix(in oklab, var(--x-a2) 34%, transparent), transparent 66%),
+    radial-gradient(64rem 40rem at 30% 108%, color-mix(in oklab, var(--x-a3) 30%, transparent), transparent 70%),
+    radial-gradient(circle at 1px 1px, color-mix(in oklab, hsl(var(--foreground)) 10%, transparent) 1px, transparent 0) 0 0 / 24px 24px,
+    linear-gradient(180deg, var(--x-bg), var(--x-deep));
+  background-attachment: fixed;
+}
+html[data-x-bg="grid"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create,
+    .experimental-tournament-public, .experimental-tournament-stage-view) {
+  background:
+    radial-gradient(64rem 30rem at 50% -10rem, color-mix(in oklab, var(--x-a1) 22%, transparent), transparent 70%),
+    linear-gradient(color-mix(in oklab, var(--x-a1) 14%, transparent) 1px, transparent 1px) 0 0 / 44px 44px,
+    linear-gradient(90deg, color-mix(in oklab, var(--x-a1) 14%, transparent) 1px, transparent 1px) 0 0 / 44px 44px,
+    linear-gradient(180deg, var(--x-bg), var(--x-deep));
+  background-attachment: fixed;
+}
+html[data-x-bg="carbon"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create,
+    .experimental-tournament-public, .experimental-tournament-stage-view) {
+  --x-bg: oklch(.15 .006 260);
+  --x-deep: oklch(.11 .005 260);
+  --x-card-top: oklch(.23 .008 260);
+  --x-card-bot: oklch(.19 .007 260);
+  background:
+    radial-gradient(44rem 22rem at 50% -9rem, color-mix(in oklab, var(--x-a1) 13%, transparent), transparent 72%),
+    linear-gradient(180deg, var(--x-bg), var(--x-deep));
+  background-attachment: fixed;
+}
+html[data-x-bg="solid"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create,
+    .experimental-tournament-public, .experimental-tournament-stage-view) {
+  background: var(--x-bg);
+}
+html[data-x-bg="solid"] .experimental-tournament-shell .organizer-header::after { display: none; }
+
+
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Skin signatures — the 12 existing colour presets get their own character in
+   Experimental: curated companion accents and a signature background. Used when
+   the viewer keeps "Motyw" for background / colour system. Scoped to
+   Experimental roots; the presets themselves (and Stable) are unchanged.
+   ═══════════════════════════════════════════════════════════════════════════ */
+/* deadlock: Okultystyczne kręgi, szmaragd i złoto */
+[data-theme="deadlock"]:is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create,
+    .experimental-tournament-public, .experimental-tournament-stage-view),
+[data-theme="deadlock"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create,
+    .experimental-tournament-public, .experimental-tournament-stage-view),
+html[data-x-skin="deadlock"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create,
+    .experimental-tournament-public, .experimental-tournament-stage-view) {
+  --x-sig-a2: hsl(43 72% 58%);
+  --x-sig-a3: hsl(276 42% 64%);
+  --x-sig-bg:
+    radial-gradient(60rem 34rem at 0% -10rem, color-mix(in oklab, var(--x-a1) 30%, transparent), transparent 70%),
+    radial-gradient(40rem 30rem at 100% 0%, color-mix(in oklab, var(--x-a2) 16%, transparent), transparent 70%),
+    repeating-radial-gradient(circle at 88% -6rem, color-mix(in oklab, var(--x-a2) 9%, transparent) 0 1px, transparent 1px 46px),
+    linear-gradient(180deg, var(--x-bg), var(--x-deep));
+}
+/* obsidian: Szklista czerń z fioletowym połyskiem */
+[data-theme="obsidian"]:is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create,
+    .experimental-tournament-public, .experimental-tournament-stage-view),
+[data-theme="obsidian"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create,
+    .experimental-tournament-public, .experimental-tournament-stage-view),
+html[data-x-skin="obsidian"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create,
+    .experimental-tournament-public, .experimental-tournament-stage-view) {
+  --x-sig-a2: hsl(258 62% 74%);
+  --x-sig-a3: hsl(190 48% 70%);
+  --x-sig-bg:
+    linear-gradient(118deg, transparent 32%, color-mix(in oklab, hsl(var(--foreground)) 6%, transparent) 46%, transparent 58%),
+    radial-gradient(50rem 30rem at 100% -8rem, color-mix(in oklab, var(--x-a2) 16%, transparent), transparent 70%),
+    linear-gradient(180deg, color-mix(in oklab, var(--x-bg) 85%, #000), var(--x-deep));
+}
+/* crimson-vault: Skarbiec: szkarłat, kratownica i złoto */
+[data-theme="crimson-vault"]:is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create,
+    .experimental-tournament-public, .experimental-tournament-stage-view),
+[data-theme="crimson-vault"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create,
+    .experimental-tournament-public, .experimental-tournament-stage-view),
+html[data-x-skin="crimson-vault"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create,
+    .experimental-tournament-public, .experimental-tournament-stage-view) {
+  --x-sig-a2: hsl(40 86% 60%);
+  --x-sig-a3: hsl(345 72% 70%);
+  --x-sig-bg:
+    radial-gradient(64rem 34rem at 10% -12rem, color-mix(in oklab, var(--x-a1) 32%, transparent), transparent 70%),
+    repeating-linear-gradient(45deg, color-mix(in oklab, var(--x-a1) 7%, transparent) 0 1px, transparent 1px 18px),
+    linear-gradient(180deg, var(--x-bg), var(--x-deep));
+}
+/* abyssal: Głębina: bioluminescencja i fale */
+[data-theme="abyssal"]:is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create,
+    .experimental-tournament-public, .experimental-tournament-stage-view),
+[data-theme="abyssal"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create,
+    .experimental-tournament-public, .experimental-tournament-stage-view),
+html[data-x-skin="abyssal"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create,
+    .experimental-tournament-public, .experimental-tournament-stage-view) {
+  --x-sig-a2: hsl(178 82% 55%);
+  --x-sig-a3: hsl(258 70% 74%);
+  --x-sig-bg:
+    radial-gradient(70rem 36rem at 50% 115%, color-mix(in oklab, var(--x-a2) 22%, transparent), transparent 70%),
+    repeating-radial-gradient(ellipse at 50% 120%, color-mix(in oklab, var(--x-a2) 7%, transparent) 0 1px, transparent 1px 34px),
+    radial-gradient(60rem 30rem at 0% -10rem, color-mix(in oklab, var(--x-a1) 20%, transparent), transparent 70%),
+    linear-gradient(180deg, var(--x-bg), var(--x-deep));
+}
+/* iron-citadel: Stal, nity i rozżarzony metal */
+[data-theme="iron-citadel"]:is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create,
+    .experimental-tournament-public, .experimental-tournament-stage-view),
+[data-theme="iron-citadel"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create,
+    .experimental-tournament-public, .experimental-tournament-stage-view),
+html[data-x-skin="iron-citadel"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create,
+    .experimental-tournament-public, .experimental-tournament-stage-view) {
+  --x-sig-a2: hsl(24 92% 58%);
+  --x-sig-a3: hsl(200 32% 72%);
+  --x-sig-bg:
+    radial-gradient(circle at 2px 2px, color-mix(in oklab, hsl(var(--foreground)) 12%, transparent) 1.5px, transparent 0) 0 0 / 32px 32px,
+    radial-gradient(60rem 26rem at 50% 112%, color-mix(in oklab, var(--x-a2) 20%, transparent), transparent 70%),
+    linear-gradient(180deg, var(--x-bg), var(--x-deep));
+}
+/* ember: Żar: ognista poświata i iskry */
+[data-theme="ember"]:is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create,
+    .experimental-tournament-public, .experimental-tournament-stage-view),
+[data-theme="ember"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create,
+    .experimental-tournament-public, .experimental-tournament-stage-view),
+html[data-x-skin="ember"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create,
+    .experimental-tournament-public, .experimental-tournament-stage-view) {
+  --x-sig-a2: hsl(48 96% 60%);
+  --x-sig-a3: hsl(350 76% 64%);
+  --x-sig-bg:
+    radial-gradient(80rem 40rem at 50% 120%, color-mix(in oklab, var(--x-a1) 34%, transparent), transparent 70%),
+    radial-gradient(circle at 20% 30%, color-mix(in oklab, var(--x-a2) 30%, transparent) 1px, transparent 2px) 0 0 / 140px 160px,
+    radial-gradient(circle at 70% 60%, color-mix(in oklab, var(--x-a1) 34%, transparent) 1px, transparent 2px) 0 0 / 190px 210px,
+    linear-gradient(180deg, var(--x-bg), var(--x-deep));
+}
+/* void: Pustka: gwiezdne pole i mgławice */
+[data-theme="void"]:is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create,
+    .experimental-tournament-public, .experimental-tournament-stage-view),
+[data-theme="void"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create,
+    .experimental-tournament-public, .experimental-tournament-stage-view),
+html[data-x-skin="void"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create,
+    .experimental-tournament-public, .experimental-tournament-stage-view) {
+  --x-sig-a2: hsl(190 92% 64%);
+  --x-sig-a3: hsl(320 82% 68%);
+  --x-sig-bg:
+    radial-gradient(circle, color-mix(in oklab, #fff 55%, transparent) 0.6px, transparent 1.4px) 0 0 / 120px 120px,
+    radial-gradient(circle, color-mix(in oklab, #fff 35%, transparent) 0.5px, transparent 1.2px) 60px 40px / 170px 170px,
+    radial-gradient(56rem 34rem at 85% -6rem, color-mix(in oklab, var(--x-a1) 26%, transparent), transparent 70%),
+    radial-gradient(40rem 28rem at 0% 100%, color-mix(in oklab, var(--x-a3) 16%, transparent), transparent 70%),
+    linear-gradient(180deg, var(--x-bg), var(--x-deep));
+}
+/* copper-age: Szczotkowana miedź i patyna */
+[data-theme="copper-age"]:is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create,
+    .experimental-tournament-public, .experimental-tournament-stage-view),
+[data-theme="copper-age"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create,
+    .experimental-tournament-public, .experimental-tournament-stage-view),
+html[data-x-skin="copper-age"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create,
+    .experimental-tournament-public, .experimental-tournament-stage-view) {
+  --x-sig-a2: hsl(162 42% 54%);
+  --x-sig-a3: hsl(18 72% 60%);
+  --x-sig-bg:
+    repeating-linear-gradient(0deg, color-mix(in oklab, hsl(var(--foreground)) 3%, transparent) 0 1px, transparent 1px 4px),
+    radial-gradient(64rem 34rem at 0% -10rem, color-mix(in oklab, var(--x-a1) 28%, transparent), transparent 70%),
+    radial-gradient(40rem 26rem at 100% 100%, color-mix(in oklab, var(--x-a2) 14%, transparent), transparent 70%),
+    linear-gradient(180deg, var(--x-bg), var(--x-deep));
+}
+/* glacier: Lodowiec: zorza i szron */
+[data-theme="glacier"]:is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create,
+    .experimental-tournament-public, .experimental-tournament-stage-view),
+[data-theme="glacier"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create,
+    .experimental-tournament-public, .experimental-tournament-stage-view),
+html[data-x-skin="glacier"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create,
+    .experimental-tournament-public, .experimental-tournament-stage-view) {
+  --x-sig-a2: hsl(210 92% 74%);
+  --x-sig-a3: hsl(266 62% 80%);
+  --x-sig-bg:
+    linear-gradient(168deg, transparent 0%, color-mix(in oklab, var(--x-a1) 18%, transparent) 14%, color-mix(in oklab, var(--x-a3) 14%, transparent) 26%, transparent 42%),
+    repeating-linear-gradient(120deg, color-mix(in oklab, #fff 3%, transparent) 0 1px, transparent 1px 60px),
+    linear-gradient(180deg, var(--x-bg), var(--x-deep));
+}
+/* midnight-rose: Nocna róża: miękkie bokeh */
+[data-theme="midnight-rose"]:is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create,
+    .experimental-tournament-public, .experimental-tournament-stage-view),
+[data-theme="midnight-rose"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create,
+    .experimental-tournament-public, .experimental-tournament-stage-view),
+html[data-x-skin="midnight-rose"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create,
+    .experimental-tournament-public, .experimental-tournament-stage-view) {
+  --x-sig-a2: hsl(266 72% 74%);
+  --x-sig-a3: hsl(28 92% 72%);
+  --x-sig-bg:
+    radial-gradient(18rem 18rem at 12% 18%, color-mix(in oklab, var(--x-a1) 22%, transparent), transparent 70%),
+    radial-gradient(14rem 14rem at 82% 30%, color-mix(in oklab, var(--x-a2) 20%, transparent), transparent 70%),
+    radial-gradient(22rem 22rem at 60% 90%, color-mix(in oklab, var(--x-a1) 16%, transparent), transparent 70%),
+    radial-gradient(10rem 10rem at 35% 65%, color-mix(in oklab, var(--x-a3) 14%, transparent), transparent 70%),
+    linear-gradient(180deg, var(--x-bg), var(--x-deep));
+}
+/* toxic: Toksyczny neon i linie skanowania */
+[data-theme="toxic"]:is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create,
+    .experimental-tournament-public, .experimental-tournament-stage-view),
+[data-theme="toxic"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create,
+    .experimental-tournament-public, .experimental-tournament-stage-view),
+html[data-x-skin="toxic"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create,
+    .experimental-tournament-public, .experimental-tournament-stage-view) {
+  --x-sig-a2: hsl(186 92% 56%);
+  --x-sig-a3: hsl(290 72% 68%);
+  --x-sig-bg:
+    repeating-linear-gradient(0deg, color-mix(in oklab, var(--x-a1) 5%, transparent) 0 1px, transparent 1px 3px),
+    radial-gradient(60rem 36rem at 0% 110%, color-mix(in oklab, var(--x-a1) 28%, transparent), transparent 70%),
+    radial-gradient(40rem 26rem at 100% -6rem, color-mix(in oklab, var(--x-a2) 16%, transparent), transparent 70%),
+    linear-gradient(180deg, var(--x-bg), var(--x-deep));
+}
+/* sandstorm: Burza piaskowa: wydmy i terakota */
+[data-theme="sandstorm"]:is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create,
+    .experimental-tournament-public, .experimental-tournament-stage-view),
+[data-theme="sandstorm"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create,
+    .experimental-tournament-public, .experimental-tournament-stage-view),
+html[data-x-skin="sandstorm"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create,
+    .experimental-tournament-public, .experimental-tournament-stage-view) {
+  --x-sig-a2: hsl(15 66% 58%);
+  --x-sig-a3: hsl(188 46% 56%);
+  --x-sig-bg:
+    repeating-radial-gradient(ellipse 140% 60% at 50% 130%, color-mix(in oklab, var(--x-a1) 8%, transparent) 0 2px, transparent 2px 40px),
+    radial-gradient(70rem 34rem at 80% -10rem, color-mix(in oklab, var(--x-a1) 24%, transparent), transparent 70%),
+    linear-gradient(180deg, var(--x-bg), var(--x-deep));
+}
+/* Toxic hero gets a hazard stripe instead of the plain accent line. */
+:is([data-theme="toxic"], html[data-x-skin="toxic"]) .experimental-tournament-shell .organizer-header::before,
+[data-theme="toxic"].experimental-tournament-shell .organizer-header::before {
+  height: 4px;
+  background: repeating-linear-gradient(135deg, var(--x-a1) 0 8px, transparent 8px 16px);
+}
+html[data-x-skin="classic"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create,
+    .experimental-tournament-public, .experimental-tournament-stage-view) { --x-sig-a2: initial; --x-sig-a3: initial; --x-sig-bg: initial; }
+
+
+/* ── "Wygląd" control ────────────────────────────────────────────────────── */
+.experimental-appearance-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  min-height: 2.25rem;
+  padding-inline: .75rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in oklab, hsl(var(--primary)) 40%, transparent);
+  background: color-mix(in oklab, hsl(var(--primary)) 12%, transparent);
+  color: hsl(var(--foreground));
+  font-size: .75rem;
+  font-weight: 650;
+  transition: background-color 140ms ease, border-color 140ms ease;
+}
+.experimental-appearance-trigger:hover { background: color-mix(in oklab, hsl(var(--primary)) 22%, transparent); }
+.experimental-appearance-trigger[data-state="open"] { border-color: hsl(var(--primary)); }
+@media (max-width: 639px) { .experimental-appearance-trigger-label { display: none; } }
+
+.experimental-appearance-panel {
+  --p: hsl(var(--primary));
+  width: min(22rem, calc(100vw - 1.5rem)) !important;
+  max-height: min(36rem, calc(100vh - 6rem));
+  overflow-y: auto;
+  padding: 1rem !important;
+  border-radius: 1rem !important;
+  border: 1px solid color-mix(in oklab, hsl(var(--foreground)) 14%, transparent) !important;
+  background:
+    radial-gradient(80% 60% at 0% 0%, color-mix(in oklab, var(--p) 16%, transparent), transparent 70%),
+    hsl(var(--popover)) !important;
+  color: hsl(var(--popover-foreground));
+  box-shadow: 0 24px 60px -20px rgb(0 0 0 / .8) !important;
+}
+.experimental-appearance-title { font-size: 1rem; font-weight: 700; }
+.experimental-appearance-note { margin-top: .2rem; font-size: .75rem; color: hsl(var(--muted-foreground)); }
+.experimental-appearance-group { margin-top: 1rem; border: 0; padding: 0; }
+.experimental-appearance-group legend {
+  margin-bottom: .5rem;
+  font-size: .6875rem;
+  font-weight: 700;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  color: color-mix(in oklab, var(--p) 75%, hsl(var(--foreground)));
+}
+.experimental-appearance-options { display: grid; gap: .375rem; }
+.experimental-appearance-option {
+  position: relative;
+  display: grid;
+  grid-template-columns: 2.75rem 1fr;
+  align-items: center;
+  gap: .75rem;
+  padding: .45rem .55rem;
+  border-radius: .7rem;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+.experimental-appearance-option:hover { background: color-mix(in oklab, hsl(var(--foreground)) 6%, transparent); }
+.experimental-appearance-option input { position: absolute; opacity: 0; inset: 0; margin: 0; cursor: pointer; }
+.experimental-appearance-option:has(input:checked) {
+  border-color: color-mix(in oklab, var(--p) 60%, transparent);
+  background: color-mix(in oklab, var(--p) 14%, transparent);
+}
+.experimental-appearance-option:has(input:focus-visible) { outline: 2px solid var(--p); outline-offset: 2px; }
+.experimental-appearance-text { display: grid; line-height: 1.2; font-size: .8125rem; font-weight: 600; }
+.experimental-appearance-text small { margin-top: .1rem; font-size: .6875rem; font-weight: 400; color: hsl(var(--muted-foreground)); }
+
+/* Background previews */
+.experimental-appearance-swatch {
+  width: 2.75rem;
+  height: 1.9rem;
+  border-radius: .45rem;
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, hsl(var(--foreground)) 16%, transparent);
+  background: hsl(var(--background));
+}
+[data-x-bg-option="aura"] .experimental-appearance-swatch {
+  background: radial-gradient(120% 120% at 0% 0%, color-mix(in oklab, var(--p) 45%, transparent), transparent 70%), hsl(var(--background));
+}
+[data-x-bg-option="nebula"] .experimental-appearance-swatch {
+  background:
+    radial-gradient(90% 90% at 0% 0%, color-mix(in oklab, var(--p) 55%, transparent), transparent 70%),
+    radial-gradient(90% 90% at 100% 100%, color-mix(in oklab, hsl(326 80% 64%) 45%, transparent), transparent 70%),
+    hsl(var(--background));
+}
+[data-x-bg-option="grid"] .experimental-appearance-swatch {
+  background:
+    linear-gradient(color-mix(in oklab, var(--p) 35%, transparent) 1px, transparent 1px) 0 0 / 8px 8px,
+    linear-gradient(90deg, color-mix(in oklab, var(--p) 35%, transparent) 1px, transparent 1px) 0 0 / 8px 8px,
+    hsl(var(--background));
+}
+[data-x-bg-option="carbon"] .experimental-appearance-swatch { background: linear-gradient(180deg, oklch(.2 .006 260), oklch(.12 .005 260)); }
+[data-x-bg-option="solid"] .experimental-appearance-swatch { background: hsl(var(--background)); }
+
+/* Colour-system previews: theme colour + the two derived accents */
+.experimental-appearance-dots { display: inline-flex; justify-content: center; }
+.experimental-appearance-dots i {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 999px;
+  border: 2px solid hsl(var(--popover));
+  background: var(--p);
+}
+.experimental-appearance-dots i + i { margin-left: -.3rem; }
+@supports (color: oklch(from red l c h)) {
+  [data-x-palette-option="harmony"] i:nth-child(2) { background: oklch(from var(--p) clamp(.66, l, .78) clamp(.13, c, .2) calc(h + 72)); }
+  [data-x-palette-option="harmony"] i:nth-child(3) { background: oklch(from var(--p) clamp(.66, l, .78) clamp(.13, c, .2) calc(h - 72)); }
+  [data-x-palette-option="analog"] i:nth-child(2) { background: oklch(from var(--p) clamp(.66, l, .78) clamp(.12, c, .19) calc(h + 38)); }
+  [data-x-palette-option="analog"] i:nth-child(3) { background: oklch(from var(--p) clamp(.66, l, .78) clamp(.12, c, .19) calc(h - 38)); }
+  [data-x-palette-option="triad"] i:nth-child(2) { background: oklch(from var(--p) clamp(.7, l, .8) clamp(.16, c, .22) calc(h + 120)); }
+  [data-x-palette-option="triad"] i:nth-child(3) { background: oklch(from var(--p) clamp(.7, l, .8) clamp(.16, c, .22) calc(h - 120)); }
+  [data-x-palette-option="contrast"] i:nth-child(2) { background: oklch(from var(--p) clamp(.7, l, .8) clamp(.15, c, .21) calc(h + 180)); }
+  [data-x-palette-option="contrast"] i:nth-child(3) { background: oklch(from var(--p) clamp(.7, l, .8) clamp(.15, c, .21) calc(h + 150)); }
+  [data-x-palette-option="mono"] i:nth-child(2) { background: oklch(from var(--p) min(calc(l + .12), .9) calc(c * .8) h); }
+  [data-x-palette-option="mono"] i:nth-child(3) { background: oklch(from var(--p) max(calc(l - .1), .5) c h); }
+}
+.experimental-appearance-reset {
+  margin-top: 1rem;
+  width: 100%;
+  min-height: 2.25rem;
+  border-radius: .6rem;
+  border: 1px solid color-mix(in oklab, hsl(var(--foreground)) 16%, transparent);
+  font-size: .8125rem;
+  font-weight: 600;
+  color: hsl(var(--foreground));
+}
+.experimental-appearance-reset:hover:not(:disabled) { background: color-mix(in oklab, hsl(var(--foreground)) 7%, transparent); }
+.experimental-appearance-reset:disabled { opacity: .45; cursor: default; }
+.experimental-appearance-panel :is(button, input):focus-visible { outline: 2px solid var(--p); outline-offset: 2px; }
+
+/* Skin picker: compact swatch grid */
+.experimental-appearance-skins { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .3rem; }
+.experimental-appearance-skin {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  min-height: 2.25rem;
+  padding: .3rem .5rem;
+  border-radius: .6rem;
+  border: 1px solid transparent;
+  cursor: pointer;
+  font-size: .75rem;
+  font-weight: 600;
+  transition: background-color 120ms ease, border-color 120ms ease;
+}
+.experimental-appearance-skin:first-child { grid-column: 1 / -1; }
+.experimental-appearance-skin:hover { background: color-mix(in oklab, hsl(var(--foreground)) 6%, transparent); }
+.experimental-appearance-skin input { position: absolute; inset: 0; opacity: 0; margin: 0; cursor: pointer; }
+.experimental-appearance-skin:has(input:checked) {
+  border-color: color-mix(in oklab, var(--p) 60%, transparent);
+  background: color-mix(in oklab, var(--p) 14%, transparent);
+}
+.experimental-appearance-skin:has(input:focus-visible) { outline: 2px solid var(--p); outline-offset: 2px; }
+.experimental-appearance-skin-chip {
+  flex: 0 0 auto;
+  width: 1.125rem;
+  height: 1.125rem;
+  border-radius: .35rem;
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / .2), 0 0 10px -2px currentColor;
+  background: conic-gradient(from 45deg, hsl(148 35% 40%), hsl(210 80% 60%), hsl(270 58% 62%), hsl(332 58% 58%), hsl(24 72% 52%), hsl(100 68% 46%), hsl(148 35% 40%));
+}
+.experimental-appearance-skin-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+[data-x-bg-option="theme"] .experimental-appearance-swatch {
+  background:
+    repeating-radial-gradient(circle at 90% 0%, color-mix(in oklab, var(--p) 30%, transparent) 0 1px, transparent 1px 7px),
+    radial-gradient(120% 120% at 0% 0%, color-mix(in oklab, var(--p) 45%, transparent), transparent 70%),
+    hsl(var(--background));
 }
