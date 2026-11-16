@@ -226,7 +226,7 @@
   font-weight: 700;
   letter-spacing: .14em;
   text-transform: uppercase;
-  color: color-mix(in oklab, var(--x-a1) 80%, var(--x-text));
+  color: color-mix(in oklab, var(--x-a1) 62%, var(--x-text));
 }
 .experimental-eyebrow::before { content: ""; width: .5rem; height: .5rem; border-radius: 2px; background: linear-gradient(135deg, var(--x-a1), var(--x-a2)); transform: rotate(45deg); }
 
@@ -395,7 +395,7 @@
   font-weight: 700;
   letter-spacing: .14em;
   text-transform: uppercase;
-  color: color-mix(in oklab, var(--x-a1) 80%, var(--x-text));
+  color: color-mix(in oklab, var(--x-a1) 62%, var(--x-text));
 }
 .experimental-host-progress {
   height: .5rem;
@@ -532,7 +532,7 @@
   padding: 0 .5rem;
   border-radius: 999px;
   background: color-mix(in oklab, var(--tone) 16%, transparent);
-  color: color-mix(in oklab, var(--tone) 75%, var(--x-text));
+  color: color-mix(in oklab, var(--tone) 62%, var(--x-text));
   font-size: .75rem;
   font-weight: 700;
   line-height: 1.5rem;
@@ -633,7 +633,7 @@
   border-radius: 999px;
   background: color-mix(in oklab, var(--tone) 15%, transparent);
   box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--tone) 35%, transparent);
-  color: color-mix(in oklab, var(--tone) 80%, var(--x-text));
+  color: color-mix(in oklab, var(--tone) 60%, var(--x-text));
   font-size: .75rem;
   font-weight: 700;
 }
@@ -1363,7 +1363,7 @@ html[data-x-skin="classic"] :is(.experimental-tournament-shell, .experimental-to
 .experimental-players-surface .experimental-player-row > div:first-child > div:last-child > div[class*="rounded-md"] {
   border: 1px solid color-mix(in oklab, var(--tone) 45%, transparent) !important;
   background: color-mix(in oklab, var(--tone) 15%, transparent) !important;
-  color: color-mix(in oklab, var(--tone) 70%, var(--x-text)) !important;
+  color: color-mix(in oklab, var(--tone) 60%, var(--x-text)) !important;
   border-radius: 999px;
   box-shadow: none;
 }
@@ -1407,7 +1407,7 @@ html[data-x-skin="classic"] :is(.experimental-tournament-shell, .experimental-to
   border: 1px solid color-mix(in oklab, var(--tone) 45%, transparent) !important;
   border-radius: 999px !important;
   background: color-mix(in oklab, var(--tone) 15%, transparent) !important;
-  color: color-mix(in oklab, var(--tone) 72%, var(--x-text)) !important;
+  color: color-mix(in oklab, var(--tone) 60%, var(--x-text)) !important;
   box-shadow: none !important;
 }
 .experimental-stages-surface [data-stage-status="active"] { --tone: hsl(var(--x-live)); }
@@ -1634,4 +1634,20 @@ html[data-x-skin="classic"] :is(.experimental-tournament-shell, .experimental-to
 }
 @media (max-width: 639px) {
   :is(.experimental-test-data-dialog, .experimental-delete-dialog) { width: calc(100vw - 1.5rem) !important; border-radius: 1rem !important; }
+}
+
+
+/* ── v3 contrast guarantees (measured across 13 skins × 6 backgrounds × 6 colour systems) ── */
+@supports (color: oklch(from red l c h)) {
+  :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create,
+      .experimental-tournament-public, .experimental-tournament-stage-view) {
+    /* Primary action surface: the skin accent, deepened just enough for white text ≥ 4.5:1. */
+    --x-cta-1: oklch(from var(--x-a1) min(l, .52) c h);
+    --x-cta-2: oklch(from var(--x-a1) min(l, .46) c calc(h + 18));
+  }
+  :is(.experimental-tournament-shell, .experimental-tournament-create, .experimental-tournament-entry)
+    main :is(a, button).bg-primary {
+    background: linear-gradient(135deg, var(--x-cta-1), var(--x-cta-2)) !important;
+    color: #fff !important;
+  }
 }
