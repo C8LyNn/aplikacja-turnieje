@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import { Link, useLocation } from "wouter";
 import { PlusCircle, HelpCircle, FlaskConical } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
@@ -10,6 +11,10 @@ export function Layout({ children, deadlockTheme, colorPreset }: { children: Rea
   const [location] = useLocation();
   const { role } = useAuth();
   const isExperimentalTournamentView = isExperimentalTournamentPath(location);
+  // Experimental: a new screen starts at its top (the router keeps the previous scroll offset).
+  useEffect(() => {
+    if (isExperimentalTournamentView) window.scrollTo({ top: 0, left: 0 });
+  }, [isExperimentalTournamentView, location]);
   const isTournamentView = /^\/(?:experimental\/)?tournaments\/\d+(?:\/|$)/.test(location);
   const fallbackHref = isExperimentalTournamentView
     ? "/experimental/tournaments"

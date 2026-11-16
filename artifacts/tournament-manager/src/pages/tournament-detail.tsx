@@ -49,6 +49,7 @@ import { StageBasketsPanel } from "@/components/stage-baskets-panel";
 import { parseTournamentBackupFile } from "@/lib/backup-file";
 import { organizerAreaForDetailTab, organizerDetailTab, TournamentOrganizerNavigation, useLegacyMatchesRedirect } from "@/components/tournament-organizer-navigation";
 import { OrganizerNextStep } from "@/components/organizer-next-step";
+import { experimentalNextStep } from "@/features/experimental-tournaments/experimental-next-step";
 import { TournamentOperationsOverview } from "@/components/tournament-operations-overview";
 import { useOrganizerOperation } from "@/hooks/use-organizer-operation";
 import { deriveOrganizerCapabilities, managementRoleForCapabilities } from "@/lib/organizer-capabilities";
@@ -292,7 +293,28 @@ export default function TournamentDetail() {
   const experimentalWorkTab = isExperimental && activeDetailTab !== "stages" && activeDetailTab !== "overview";
   const operation = useOrganizerOperation({ tournament, stages, matches: tournament?.status === "draft" ? [] : matches,
     capabilities, surface: "details", enabled: !!managementRole && readOk });
-  const nextStep = operation.nextStep;
+  // Experimental: a fresh draft without enough participants gets one plain next step
+  // ("add participants") instead of the stage-consistency diagnostics.
+  const experimentalParticipantCount = players?.length ?? 0;
+  const nextStep =
+    isExperimental &&
+    tournament?.status === "draft" &&
+    experimentalParticipantCount < 2 &&
+    operation.nextStep &&
+    ["stage_preparation", "not_ready", "planned_stage"].includes(operation.nextStep.kind)
+      ? {
+          kind: "stage_preparation" as const,
+          title: "Dodaj uczestników",
+          description:
+            experimentalParticipantCount === 0
+              ? "Turniej jest gotowy do zapisów. Dodaj co najmniej 2 uczestników — pojedynczo lub z pliku CSV."
+              : "Masz 1 uczestnika. Do rozpoczęcia turnieju potrzeba co najmniej 2.",
+          actionLabel: "Dodaj uczestników",
+          actionHref: `/tournaments/${id}?tab=players`,
+        }
+      : isExperimental
+        ? experimentalNextStep(operation.nextStep)
+        : operation.nextStep;
   const plannedStageReadiness = operation.readiness.data;
   const isFetchingPlannedStageReadiness = operation.readiness.isFetching;
 
@@ -1304,8 +1326,9 @@ export default function TournamentDetail() {
                     <CardContent>
                       <form onSubmit={handleAddPlayer} className="space-y-3">
                         <div className="space-y-1">
-                          <Label>Nick *</Label>
+                          <Label htmlFor={isExperimental ? "experimental-add-player-nick" : undefined}>Nick *</Label>
                           <Input
+                            id={isExperimental ? "experimental-add-player-nick" : undefined}
                             value={newPlayerName}
                             onChange={(e) => { setNewPlayerName(e.target.value); setAddPlayerError(null); }}
                             placeholder="Alias gracza"
@@ -1319,6 +1342,10 @@ export default function TournamentDetail() {
                             </p>
                           )}
                         </div>
+                        {isExperimental ? (
+                          <details className="experimental-add-player-more">
+                            <summary>Więcej danych (ranga, drużyna, kraj, rozstawienie)</summary>
+                            <div className="space-y-3 pt-3">
                         <div className="space-y-1">
                           <Label>Ranga</Label>
                           <Input value={newPlayerRank} onChange={(e) => setNewPlayerRank(e.target.value)} placeholder="np. GM, Diamond" />
@@ -1334,10 +1361,34 @@ export default function TournamentDetail() {
                           </div>
                         </div>
                         <div className="space-y-1">
-                          <Label>Rozstawienie</Label>
-                          <Input type="number" value={newPlayerSeed} onChange={(e) => setNewPlayerSeed(e.target.value)} placeholder="1" />
+                          <Label htmlFor={isExperimental ? "experimental-add-player-seed" : undefined}>Rozstawienie</Label>
+                          <Input id={isExperimental ? "experimental-add-player-seed" : undefined} type="number" value={newPlayerSeed} onChange={(e) => setNewPlayerSeed(e.target.value)} placeholder={isExperimental ? `Automatycznie: ${(players?.length ?? 0) + 1}` : "1"} />
                         </div>
-                        <Button type="submit" className="w-full" disabled={addPlayer.isPending}>Dodaj gracza</Button>
+                            </div>
+                          </details>
+                        ) : (
+                          <>
+                        <div className="space-y-1">
+                          <Label>Ranga</Label>
+                          <Input value={newPlayerRank} onChange={(e) => setNewPlayerRank(e.target.value)} placeholder="np. GM, Diamond" />
+                        </div>
+                        <div className="grid grid-cols-2 gap-2">
+                          <div className="space-y-1">
+                            <Label>Drużyna</Label>
+                            <Input value={newPlayerTeam} onChange={(e) => setNewPlayerTeam(e.target.value)} placeholder="Nazwa" />
+                          </div>
+                          <div className="space-y-1">
+                            <Label>Kraj</Label>
+                            <Input value={newPlayerCountry} onChange={(e) => setNewPlayerCountry(e.target.value)} placeholder="PL, DE..." />
+                          </div>
+                        </div>
+                        <div className="space-y-1">
+                          <Label htmlFor={isExperimental ? "experimental-add-player-seed" : undefined}>Rozstawienie</Label>
+                          <Input id={isExperimental ? "experimental-add-player-seed" : undefined} type="number" value={newPlayerSeed} onChange={(e) => setNewPlayerSeed(e.target.value)} placeholder={isExperimental ? `Automatycznie: ${(players?.length ?? 0) + 1}` : "1"} />
+                        </div>
+                          </>
+                        )}
+                        <Button type="submit" className="w-full" disabled={addPlayer.isPending}>{isExperimental && addPlayer.isPending ? "Dodawanie…" : "Dodaj gracza"}</Button>
                       </form>
                     </CardContent>
                   </Card>

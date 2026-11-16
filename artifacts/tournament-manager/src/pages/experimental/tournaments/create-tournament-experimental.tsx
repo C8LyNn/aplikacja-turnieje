@@ -427,20 +427,6 @@ function ExperimentalCreateForm() {
                 </div>
               </ToolSection>
 
-              <TournamentTemplatePlanner
-                selectedPlan={selectedTemplatePlan}
-                onClear={() => setSelectedTemplatePlan(null)}
-                onApply={(choice) => {
-                  setSelectedTemplatePlan(choice);
-                  setMaxPlayers(String(choice.participantCount));
-                  setDefaultBestOf(String(choice.bestOf));
-                  const first = choice.stagePlan.stages[0];
-                  setFormat(first.format === "group_stage" ? "round_robin" : first.format);
-                  setEntrySeedingMethod("registration_order");
-                  setSwissRounds("");
-                }}
-              />
-
               <ToolSection
                 title="Format"
                 description="Sposób rozgrywania meczów i podstawowe limity."
@@ -535,139 +521,6 @@ function ExperimentalCreateForm() {
               </ToolSection>
 
               <ToolSection
-                title="Seedowanie"
-                description="Ustal sposób nadawania pozycji startowych uczestnikom."
-              >
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="experimental-seeding-method">Metoda seedowania</Label>
-                    <Select
-                      value={entrySeedingMethod}
-                      onValueChange={(value) =>
-                        (setSelectedTemplatePlan(null), setEntrySeedingMethod(value as SingleStageEntrySeedingMethod))
-                      }
-                    >
-                      <SelectTrigger id="experimental-seeding-method">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {(
-                          Object.entries(SINGLE_STAGE_SEEDING_LABELS) as [
-                            SingleStageEntrySeedingMethod,
-                            string,
-                          ][]
-                        ).map(([value, label]) => (
-                          <SelectItem key={value} value={value}>
-                            {label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  {entrySeedingMethod === "random" && (
-                    <div className="grid gap-2 sm:grid-cols-2">
-                      {(
-                        [
-                          {
-                            value: "sequential",
-                            label: "Sekwencyjnie",
-                            description: "Losowanie ujawnia kolejne pozycje po jednej.",
-                          },
-                          {
-                            value: "instant",
-                            label: "Natychmiast",
-                            description: "Wszystkie pozycje są ujawniane od razu.",
-                          },
-                        ] as const
-                      ).map((option) => (
-                        <label
-                          key={option.value}
-                          className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition ${
-                            randomRevealOrder === option.value
-                              ? "border-primary/60 bg-primary/5"
-                              : "border-border bg-background/20 hover:bg-muted/30"
-                          }`}
-                        >
-                          <input
-                            type="radio"
-                            name="experimental-random-reveal"
-                            value={option.value}
-                            checked={randomRevealOrder === option.value}
-                            onChange={() => { setSelectedTemplatePlan(null); setRandomRevealOrder(option.value); }}
-                            className="mt-1 accent-primary"
-                          />
-                          <span>
-                            <span className="block text-sm font-semibold">{option.label}</span>
-                            <span className="mt-0.5 block text-xs text-muted-foreground">
-                              {option.description}
-                            </span>
-                          </span>
-                        </label>
-                      ))}
-                    </div>
-                  )}
-
-                  {entrySeedingMethod === "manual" && (
-                    <ToolNotice>
-                      Po dodaniu uczestników ustawisz ich numery seedów przed uruchomieniem turnieju.
-                    </ToolNotice>
-                  )}
-                </div>
-              </ToolSection>
-
-              <ToolSection
-                title="Widoczność"
-                description="Określ, kto może oglądać turniej."
-              >
-                <div className="grid gap-2">
-                  {(
-                    [
-                      {
-                        value: "public_online",
-                        label: "Publiczny online",
-                        description: "Widzowie mogą otworzyć turniej bez hasła.",
-                      },
-                      {
-                        value: "private_online",
-                        label: "Prywatny online",
-                        description: "Dostęp dla widzów wymaga hasła.",
-                      },
-                      {
-                        value: "private_offline",
-                        label: "Prywatny offline",
-                        description: "Dostęp ograniczony do obsługi turnieju.",
-                      },
-                    ] as const
-                  ).map((option) => (
-                    <label
-                      key={option.value}
-                      className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition ${
-                        visibility === option.value
-                          ? "border-primary/60 bg-primary/5"
-                          : "border-border bg-background/20 hover:bg-muted/30"
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="experimental-visibility"
-                        value={option.value}
-                        checked={visibility === option.value}
-                        onChange={() => setVisibility(option.value)}
-                        className="mt-1 accent-primary"
-                      />
-                      <span>
-                        <span className="block text-sm font-semibold">{option.label}</span>
-                        <span className="mt-0.5 block text-xs text-muted-foreground">
-                          {option.description}
-                        </span>
-                      </span>
-                    </label>
-                  ))}
-                </div>
-              </ToolSection>
-
-              <ToolSection
                 title="Dostęp"
                 description="Hasło organizatora jest wymagane. Hasła nie są zapisywane w szkicu formularza."
               >
@@ -733,6 +586,164 @@ function ExperimentalCreateForm() {
                 </div>
               </ToolSection>
 
+              <ToolDisclosure
+                title="Seedowanie i widoczność"
+                description="Domyślnie: kolejność dodania, publiczny online. Zmień tylko w razie potrzeby."
+              >
+                <ToolSection
+                  title="Seedowanie"
+                  description="Ustal sposób nadawania pozycji startowych uczestnikom."
+                >
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="experimental-seeding-method">Metoda seedowania</Label>
+                      <Select
+                        value={entrySeedingMethod}
+                        onValueChange={(value) =>
+                          (setSelectedTemplatePlan(null), setEntrySeedingMethod(value as SingleStageEntrySeedingMethod))
+                        }
+                      >
+                        <SelectTrigger id="experimental-seeding-method">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {(
+                            Object.entries(SINGLE_STAGE_SEEDING_LABELS) as [
+                              SingleStageEntrySeedingMethod,
+                              string,
+                            ][]
+                          ).map(([value, label]) => (
+                            <SelectItem key={value} value={value}>
+                              {label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {entrySeedingMethod === "random" && (
+                      <div className="grid gap-2 sm:grid-cols-2">
+                        {(
+                          [
+                            {
+                              value: "sequential",
+                              label: "Sekwencyjnie",
+                              description: "Losowanie ujawnia kolejne pozycje po jednej.",
+                            },
+                            {
+                              value: "instant",
+                              label: "Natychmiast",
+                              description: "Wszystkie pozycje są ujawniane od razu.",
+                            },
+                          ] as const
+                        ).map((option) => (
+                          <label
+                            key={option.value}
+                            className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition ${
+                              randomRevealOrder === option.value
+                                ? "border-primary/60 bg-primary/5"
+                                : "border-border bg-background/20 hover:bg-muted/30"
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              name="experimental-random-reveal"
+                              value={option.value}
+                              checked={randomRevealOrder === option.value}
+                              onChange={() => { setSelectedTemplatePlan(null); setRandomRevealOrder(option.value); }}
+                              className="mt-1 accent-primary"
+                            />
+                            <span>
+                              <span className="block text-sm font-semibold">{option.label}</span>
+                              <span className="mt-0.5 block text-xs text-muted-foreground">
+                                {option.description}
+                              </span>
+                            </span>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+
+                    {entrySeedingMethod === "manual" && (
+                      <ToolNotice>
+                        Po dodaniu uczestników ustawisz ich numery seedów przed uruchomieniem turnieju.
+                      </ToolNotice>
+                    )}
+                  </div>
+                </ToolSection>
+
+                <ToolSection
+                  title="Widoczność"
+                  description="Określ, kto może oglądać turniej."
+                >
+                  <div className="grid gap-2">
+                    {(
+                      [
+                        {
+                          value: "public_online",
+                          label: "Publiczny online",
+                          description: "Widzowie mogą otworzyć turniej bez hasła.",
+                        },
+                        {
+                          value: "private_online",
+                          label: "Prywatny online",
+                          description: "Dostęp dla widzów wymaga hasła.",
+                        },
+                        {
+                          value: "private_offline",
+                          label: "Prywatny offline",
+                          description: "Dostęp ograniczony do obsługi turnieju.",
+                        },
+                      ] as const
+                    ).map((option) => (
+                      <label
+                        key={option.value}
+                        className={`flex cursor-pointer items-start gap-3 rounded-xl border p-3 transition ${
+                          visibility === option.value
+                            ? "border-primary/60 bg-primary/5"
+                            : "border-border bg-background/20 hover:bg-muted/30"
+                        }`}
+                      >
+                        <input
+                          type="radio"
+                          name="experimental-visibility"
+                          value={option.value}
+                          checked={visibility === option.value}
+                          onChange={() => setVisibility(option.value)}
+                          className="mt-1 accent-primary"
+                        />
+                        <span>
+                          <span className="block text-sm font-semibold">{option.label}</span>
+                          <span className="mt-0.5 block text-xs text-muted-foreground">
+                            {option.description}
+                          </span>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </ToolSection>
+              </ToolDisclosure>
+
+              <ToolDisclosure
+                title="Turniej wieloetapowy"
+                description="Grupy, play-off, koszyki — gotowe szablony struktury."
+                open={Boolean(selectedTemplatePlan)}
+              >
+                <TournamentTemplatePlanner
+                  selectedPlan={selectedTemplatePlan}
+                  onClear={() => setSelectedTemplatePlan(null)}
+                  onApply={(choice) => {
+                    setSelectedTemplatePlan(choice);
+                    setMaxPlayers(String(choice.participantCount));
+                    setDefaultBestOf(String(choice.bestOf));
+                    const first = choice.stagePlan.stages[0];
+                    setFormat(first.format === "group_stage" ? "round_robin" : first.format);
+                    setEntrySeedingMethod("registration_order");
+                    setSwissRounds("");
+                  }}
+                />
+              </ToolDisclosure>
+
               {submitError && <ToolNotice tone="danger">{submitError}</ToolNotice>}
 
               <ToolNotice>
@@ -772,9 +783,8 @@ function ExperimentalCreateForm() {
               description="Konfiguracja, z którą utworzysz turniej."
               actions={
                 <div className="flex items-center gap-2">
-                  <Badge variant="outline">experimental</Badge>
                   <Badge variant={isFormReady ? "default" : "outline"}>
-                    {isFormReady ? "gotowe" : "do uzupełnienia"}
+                    {isFormReady ? "Gotowe do utworzenia" : "Uzupełnij wymagane pola"}
                   </Badge>
                 </div>
               }

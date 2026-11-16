@@ -47,6 +47,7 @@ import { OrganizerRecoveryNotice } from "@/components/organizer-recovery-notice"
 import { SupportLoginModal } from "@/components/support-login-modal";
 import { organizerAreaForHostTab, organizerHostTab, TournamentOrganizerNavigation } from "@/components/tournament-organizer-navigation";
 import { OrganizerNextStep } from "@/components/organizer-next-step";
+import { experimentalNextStep } from "@/features/experimental-tournaments/experimental-next-step";
 import { useOrganizerOperation } from "@/hooks/use-organizer-operation";
 import { deriveOrganizerCapabilities, managementRoleForCapabilities } from "@/lib/organizer-capabilities";
 import { invalidateTournamentDependentQueries } from "@/lib/tournament-query-invalidation";
@@ -217,7 +218,7 @@ export default function TournamentHost() {
   const activeHostTab = organizerHostTab(search, capabilities);
   const operation = useOrganizerOperation({ tournament, stages, matches: tournament?.status === "draft" ? [] : matches,
     capabilities, surface: "conducting", enabled: !!managementRole && isAuthReady });
-  const nextStep = operation.nextStep;
+  const nextStep = isExperimental ? experimentalNextStep(operation.nextStep) : operation.nextStep;
 
   const [scores, setScores] = useState<Record<number, ScoreEntry>>({});
   const [selectedMatchId, storeSelectedMatchId] = useState<number | null>(null);
@@ -1407,6 +1408,17 @@ export default function TournamentHost() {
                 : `Do wygrania meczu potrzeba ${maxScore} ${maxScore === 1 ? "wygranej" : "wygranych"}. Ustaw wynik przyciskami + i −.`}
             </p>
           )}
+          {isExperimental && !isDone && !isCancelled && !conflictedDraft && scores[focusedMatch.id] && (() => {
+            const draft = scores[focusedMatch.id]!;
+            const winnerName = draft.s1 > draft.s2 ? focusedMatch.player1Name : focusedMatch.player2Name;
+            return (
+              <p role="status" className="experimental-result-preview" data-complete={isCompleteSeries ? "true" : "false"}>
+                {isCompleteSeries
+                  ? <>Po zapisie wygrywa: <strong>{winnerName ?? "—"}</strong> <span className="tabular-nums">({draft.s1}:{draft.s2})</span></>
+                  : `Aby zapisać, jedna strona musi mieć ${maxScore} ${maxScore === 1 ? "wygraną" : "wygrane"}. Teraz: ${draft.s1}:${draft.s2}.`}
+              </p>
+            );
+          })()}
           {isDone && <p className="mt-3 text-sm text-muted-foreground">Wynik zapisany: {completedResultLabel}. Aby go zmienić, wybierz „Popraw wynik”.</p>}
           {staleDraft && !conflictedDraft && <p className="mt-3 text-sm text-orange-400">Stan meczu zmienił się od rozpoczęcia edycji. Twój wynik roboczy: {scores[focusedMatch.id]?.s1 ?? 0}:{scores[focusedMatch.id]?.s2 ?? 0}. Aktualny wynik: {focusedMatch.score1 ?? 0}:{focusedMatch.score2 ?? 0}. Odrzuć wynik roboczy i sprawdź mecz przed kolejnym zapisem. Draft dotyczy: {resultDrafts.drafts[focusedMatch.id]?.player1Name} – {resultDrafts.drafts[focusedMatch.id]?.player2Name}.</p>}
           {!conflictedDraft && (scores[focusedMatch.id] || staleDraft) && <Button variant="ghost" size="sm" className="mt-2" onClick={() => {
