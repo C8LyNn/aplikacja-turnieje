@@ -85,10 +85,10 @@ const VISIBILITY_LABELS: Record<Visibility, string> = {
 };
 
 const FORMAT_SHORT_LABELS: Record<ExperimentalFormat, string> = {
-  single_elimination: "Single Elimination",
-  double_elimination: "Double Elimination",
-  swiss: "Swiss",
-  round_robin: "Round Robin",
+  single_elimination: "Drabinka eliminacyjna",
+  double_elimination: "Podwójna eliminacja",
+  swiss: "System szwajcarski",
+  round_robin: "Każdy z każdym",
 };
 
 function readDraft(): DraftState {

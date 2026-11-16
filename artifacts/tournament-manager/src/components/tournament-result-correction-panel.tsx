@@ -438,8 +438,8 @@ export function TournamentResultCorrectionPanel({ tournamentId, enabled }: { tou
       {revertReceipt && <p role="status" className="mt-3 rounded-md border border-amber-500/50 p-3 text-xs font-medium">{revertReceipt} <Link className="underline" href={tournamentModeHref(`/tournaments/${tournamentId}/host?tab=korekta`, experimental)}>Przejdź do korekt</Link></p>}
       {request.isError && <p role="alert" className="mt-3 text-xs text-destructive">Podgląd nie powiódł się. Odśwież dane meczu i sprawdź sesję organizatora.</p>}
       {shownPreview?.bracketImpact?.status === "available" && (
-        <section className="mt-3 rounded-lg border border-border/70 p-3 text-xs" aria-label="Bezpieczna ocena korekty Single Elimination">
-          <p className="font-semibold">Single Elimination — kontrola zależnego miejsca w drabince</p>
+        <section className="mt-3 rounded-lg border border-border/70 p-3 text-xs" aria-label={experimental ? "Bezpieczna ocena korekty w drabince eliminacyjnej" : "Bezpieczna ocena korekty Single Elimination"}>
+          <p className="font-semibold">{experimental ? "Drabinka eliminacyjna" : "Single Elimination"} — kontrola zależnego miejsca w drabince</p>
           <p className="mt-1 text-muted-foreground">Ta analiza sprawdza historię, kolejny mecz i zatwierdzone awanse. Automatyczne wykonanie SE pozostaje wyłączone.</p>
           <Button type="button" size="sm" variant="outline" className="mt-2"
             disabled={!chosen || safetyRequest.isPending}

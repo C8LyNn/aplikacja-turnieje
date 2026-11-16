@@ -52,3 +52,10 @@ test('v3 CSS is scoped to Experimental roots', () => {
     assert.match(line, /experimental-/, `unscoped selector: ${line}`);
   }
 });
+
+test('Experimental create form and correction panel use Polish format names; Stable copy kept', () => {
+  const create = src('pages/experimental/tournaments/create-tournament-experimental.tsx');
+  assert.doesNotMatch(create, /"Single Elimination"|"Round Robin"|"Double Elimination"/);
+  const panel = src('components/tournament-result-correction-panel.tsx');
+  assert.match(panel, /experimental \? "Drabinka eliminacyjna" : "Single Elimination"/);
+});
