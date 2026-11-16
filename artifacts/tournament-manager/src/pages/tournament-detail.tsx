@@ -781,7 +781,7 @@ export default function TournamentDetail() {
         {/* Authenticated badge */}
         {orgToken && !tournament.hasOrganizerPassword && <OrganizerRecoveryNotice tournamentId={id} />}
         {tournament.hasOrganizerPassword && isAuthenticated && (
-          <div className={`bg-green-500/10 border border-green-500/30 rounded-lg px-4 py-2.5 flex items-center gap-2 ${isExperimental ? "experimental-session-chip" : ""}`}>
+          <div className={`bg-green-500/10 border border-green-500/30 rounded-lg px-4 py-2.5 flex items-center gap-2${isExperimental ? " experimental-session-chip" : ""}`}>
             <Shield className="w-4 h-4 text-green-400 shrink-0" aria-hidden="true" />
             <p className="text-sm text-green-400 font-medium">
               {orgToken ? "Zalogowano jako organizator" : `Zalogowano jako wsparcie (${supSession?.nick})`}
