@@ -1,59 +1,77 @@
 /* ═══════════════════════════════════════════════════════════════════════════
-   Experimental tournament UI — design system v2 (2026-11-16)
+   Experimental tournament UI — design language "Arena" (v2, 2026-11-16)
 
    Scope: only the five Experimental roots below. Stable /tournaments/* never
    renders these classes, so nothing here can reach it.
 
-   Principles
-   - One accent (the theme primary) reserved for primary actions, the current
-     location and focus. Status colours carry meaning only.
-   - Flat, quiet surfaces: one surface level for panels, borders instead of
-     glows, no decorative gradients or stripes.
-   - Every colour derives from the active theme tokens, so game themes
-     (e.g. Deadlock) keep working inside Experimental.
-   - Hierarchy through type size/weight and spacing, not through boxes.
+   Direction
+   - Deep, layered background with a soft aura taken from the active theme.
+   - Cards are the main visual element: lit top edge, section accent, soft depth.
+   - Colour carries identity and orientation: every section has an accent.
+     Accents are derived from the theme primary (hue rotation in OKLCH), so all
+     12 game themes keep a coherent palette instead of one fixed set of colours.
+   - Status colours (live / ready / done / danger) keep their meaning everywhere.
+   - Effects stay quiet: one gradient per surface, one accent per card, short
+     motion that switches off with prefers-reduced-motion.
    ═══════════════════════════════════════════════════════════════════════════ */
 
 :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create,
     .experimental-tournament-public, .experimental-tournament-stage-view) {
-  /* Surfaces & text (theme-derived) */
-  --x-bg: hsl(var(--background));
-  --x-surface: color-mix(in oklab, hsl(var(--card)) 94%, hsl(var(--foreground)) 6%);
-  --x-surface-2: color-mix(in oklab, hsl(var(--card)) 88%, hsl(var(--foreground)) 12%);
-  --x-border: color-mix(in oklab, hsl(var(--border)) 82%, hsl(var(--foreground)) 18%);
-  --x-border-strong: color-mix(in oklab, hsl(var(--border)) 60%, hsl(var(--foreground)) 40%);
-  --x-text: hsl(var(--foreground));
-  --x-text-2: hsl(var(--muted-foreground));
-  --x-accent: hsl(var(--primary));
-  --x-accent-soft: hsl(var(--primary) / .12);
+  /* Accent family (fallback hues; replaced by theme-derived ones below) */
+  --x-a1: hsl(var(--primary));
+  --x-a2: hsl(262 83% 68%);
+  --x-a3: hsl(326 80% 64%);
+  --x-a4: hsl(168 70% 48%);
+  --x-gold: hsl(43 92% 60%);
 
   /* Semantic status colours (HSL triplets) */
-  --x-live: 152 60% 50%;
-  --x-ready: 38 92% 58%;
-  --x-info: 199 85% 62%;
-  --x-done: 215 14% 64%;
-  --x-danger: 0 78% 64%;
+  --x-live: 150 64% 50%;
+  --x-ready: 36 94% 58%;
+  --x-info: 199 88% 62%;
+  --x-done: 215 16% 66%;
+  --x-danger: 0 80% 64%;
+
+  /* Surfaces & text */
+  --x-bg: hsl(var(--background));
+  --x-deep: color-mix(in oklab, hsl(var(--background)) 82%, #000 18%);
+  --x-card-top: color-mix(in oklab, hsl(var(--card)) 88%, hsl(var(--foreground)) 12%);
+  --x-card-bot: color-mix(in oklab, hsl(var(--card)) 95%, hsl(var(--foreground)) 5%);
+  --x-glass: color-mix(in oklab, hsl(var(--foreground)) 5%, transparent);
+  --x-glass-2: color-mix(in oklab, hsl(var(--foreground)) 9%, transparent);
+  --x-line: color-mix(in oklab, hsl(var(--foreground)) 12%, transparent);
+  --x-line-strong: color-mix(in oklab, hsl(var(--foreground)) 22%, transparent);
+  --x-text: hsl(var(--foreground));
+  --x-text-2: hsl(var(--muted-foreground));
+  --x-accent: var(--x-a1);
+  --x-accent-soft: color-mix(in oklab, var(--x-a1) 16%, transparent);
+
+  /* Depth */
+  --x-shadow: inset 0 1px 0 color-mix(in oklab, hsl(var(--foreground)) 7%, transparent),
+              0 18px 40px -24px rgb(0 0 0 / .85);
+  --x-shadow-hover: inset 0 1px 0 color-mix(in oklab, hsl(var(--foreground)) 10%, transparent),
+              0 22px 48px -22px rgb(0 0 0 / .9);
 
   /* Shape, rhythm, type */
-  --x-radius: .625rem;
+  --x-radius-lg: 1rem;
+  --x-radius: .75rem;
   --x-radius-sm: .5rem;
   --x-gap: 1.5rem;
-  --x-pad: 1.125rem;
-  --x-font-title: 600 1.625rem/1.2 var(--app-font-sans, Inter, system-ui, sans-serif);
-  --x-font-section: 600 1rem/1.35 var(--app-font-sans, Inter, system-ui, sans-serif);
+  --x-ease: cubic-bezier(.2, .7, .2, 1);
+  --x-font-title: 700 2rem/1.1 var(--app-font-sans, Inter, system-ui, sans-serif);
+  --x-font-section: 650 1.0625rem/1.3 var(--app-font-sans, Inter, system-ui, sans-serif);
 
-  /* Re-point the legacy Experimental tokens to the new system. */
-  --exp-panel: var(--x-surface);
-  --exp-panel-strong: var(--x-surface);
-  --exp-line: var(--x-border);
-  --exp-line-strong: var(--x-border);
-  --exp-soft: var(--x-surface-2);
+  /* Re-point the legacy Experimental tokens. */
+  --exp-panel: var(--x-card-bot);
+  --exp-panel-strong: var(--x-card-top);
+  --exp-line: var(--x-line);
+  --exp-line-strong: var(--x-line-strong);
+  --exp-soft: var(--x-glass);
   --exp-accent-soft: var(--x-accent-soft);
-  --exp-shadow: none;
+  --exp-shadow: var(--x-shadow);
   --exp-surface-1: var(--x-bg);
-  --exp-surface-2: var(--x-surface);
-  --exp-surface-3: var(--x-surface);
-  --exp-surface-4: var(--x-surface-2);
+  --exp-surface-2: var(--x-card-bot);
+  --exp-surface-3: var(--x-card-bot);
+  --exp-surface-4: var(--x-card-top);
   --exp-tone-primary: var(--primary);
   --exp-tone-info: var(--x-info);
   --exp-tone-success: var(--x-live);
@@ -61,10 +79,62 @@
   --exp-tone-danger: var(--x-danger);
   --exp-tone-live: var(--x-live);
 
-  background: var(--x-bg);
   color: var(--x-text);
+  background:
+    radial-gradient(70rem 32rem at 8% -12rem, color-mix(in oklab, var(--x-a1) 16%, transparent), transparent 70%),
+    radial-gradient(56rem 30rem at 100% -10rem, color-mix(in oklab, var(--x-a2) 12%, transparent), transparent 70%),
+    linear-gradient(180deg, var(--x-bg) 0%, var(--x-deep) 100%);
+  background-attachment: fixed;
   font-feature-settings: "cv11", "ss01";
   -webkit-font-smoothing: antialiased;
+}
+
+/* Theme-derived accent family: same lightness band, rotated hues. */
+@supports (color: oklch(from red l c h)) {
+  :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create,
+      .experimental-tournament-public, .experimental-tournament-stage-view) {
+    --x-a2: oklch(from hsl(var(--primary)) clamp(.66, l, .78) clamp(.13, c, .2) calc(h + 72));
+    --x-a3: oklch(from hsl(var(--primary)) clamp(.66, l, .78) clamp(.13, c, .2) calc(h - 72));
+    --x-a4: oklch(from hsl(var(--primary)) clamp(.66, l, .78) clamp(.11, c, .18) calc(h + 150));
+  }
+}
+
+/* ── Card recipe ─────────────────────────────────────────────────────────────
+   Any element marked as an Arena card gets: tinted corner light in its --tone,
+   lit top edge, soft depth. --tone defaults to the theme accent. */
+.experimental-tournament-shell :is(.organizer-header, .experimental-host-command-center, .organizer-next-step,
+  .experimental-next-step-panel, .organizer-readiness, .organizer-stage-detail, .organizer-route, .organizer-stage-card,
+  .experimental-overview-hero, .experimental-tlist-row, .experimental-dstat, .experimental-metric-card),
+.experimental-tournament-entry :is(.experimental-entry-hero, .experimental-entry-card),
+.experimental-tournament-create section.relative.overflow-hidden.rounded-2xl.border,
+:is(.experimental-fan-entry .experimental-fan-card, .experimental-support-entry .experimental-support-tournament-card,
+  .experimental-support-entry .experimental-support-login-panel) {
+  --tone: var(--x-a1);
+  position: relative;
+  isolation: isolate;
+  border: 1px solid var(--x-line) !important;
+  border-radius: var(--x-radius-lg) !important;
+  background:
+    radial-gradient(120% 90% at 0% 0%, color-mix(in oklab, var(--tone) 13%, transparent), transparent 58%),
+    linear-gradient(180deg, var(--x-card-top), var(--x-card-bot)) !important;
+  box-shadow: var(--x-shadow) !important;
+}
+.experimental-tournament-shell :is(.organizer-header, .experimental-host-command-center, .organizer-next-step,
+  .experimental-next-step-panel, .organizer-readiness, .organizer-stage-detail, .experimental-tlist-row,
+  .experimental-dstat, .experimental-metric-card)::before,
+.experimental-tournament-entry :is(.experimental-entry-hero, .experimental-entry-card)::before,
+.experimental-tournament-create section.relative.overflow-hidden.rounded-2xl.border::before,
+:is(.experimental-fan-entry .experimental-fan-card, .experimental-support-entry .experimental-support-tournament-card)::before {
+  content: "";
+  position: absolute;
+  z-index: 1;
+  top: -1px;
+  left: 1.25rem;
+  right: 35%;
+  height: 2px;
+  border-radius: 0 0 2px 2px;
+  background: linear-gradient(90deg, var(--tone), color-mix(in oklab, var(--tone) 0%, transparent));
+  pointer-events: none;
 }
 
 /* ── Focus: one visible, consistent ring everywhere (WCAG 2.4.7 / 2.4.11) ── */
@@ -73,173 +143,615 @@
   :is(a, button, input, select, textarea, summary, [role="button"], [role="tab"], [role="combobox"], [tabindex]):focus-visible {
   outline: 2px solid var(--x-accent) !important;
   outline-offset: 2px;
-  box-shadow: none;
 }
 
-/* ── App bar ─────────────────────────────────────────────────────────────── */
+/* ── App bar: translucent, sits above the aura ───────────────────────────── */
 :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-public) > header {
-  background: var(--x-bg);
-  border-bottom: 1px solid var(--x-border);
+  background: color-mix(in oklab, var(--x-bg) 78%, transparent);
+  backdrop-filter: blur(14px) saturate(140%);
+  border-bottom: 1px solid var(--x-line);
 }
-.experimental-tournament-shell > header > div { height: 3.5rem; gap: 1rem; }
-.experimental-tournament-shell > header nav { gap: .25rem; }
+.experimental-tournament-shell > header > div { height: 3.75rem; gap: 1rem; }
+.experimental-tournament-shell > header nav { gap: .25rem; align-items: center; }
+.experimental-tournament-shell > header nav > * { display: inline-flex; align-items: center; }
 .experimental-tournament-shell > header nav :is(a, button) {
   min-height: 2.25rem;
-  padding-inline: .7rem;
-  border-radius: var(--x-radius-sm);
+  padding-inline: .75rem;
+  border-radius: 999px;
   color: var(--x-text-2);
   background: transparent;
   border-color: transparent;
+  transition: color 140ms var(--x-ease), background-color 140ms var(--x-ease);
 }
-.experimental-tournament-shell > header nav :is(a, button):hover { color: var(--x-text); background: var(--x-surface-2); }
+.experimental-tournament-shell > header nav :is(a, button):hover { color: var(--x-text); background: var(--x-glass-2); }
 .experimental-tournament-shell > header nav a[aria-current="page"] {
   color: var(--x-text);
-  background: transparent;
-  box-shadow: inset 0 -2px 0 var(--x-accent);
-  border-radius: 0;
+  background: var(--x-accent-soft);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--x-a1) 40%, transparent);
 }
 .experimental-mode-badge {
-  border: 0;
-  background: var(--x-accent-soft);
-  color: var(--x-accent);
+  border: 1px solid color-mix(in oklab, var(--x-a1) 45%, transparent);
+  background: linear-gradient(90deg, color-mix(in oklab, var(--x-a1) 22%, transparent), color-mix(in oklab, var(--x-a2) 18%, transparent));
+  color: var(--x-text);
   font-size: .6875rem;
-  letter-spacing: .06em;
+  letter-spacing: .08em;
   min-height: 1.5rem;
 }
 
-/* ── Page header: title + context + actions, no card ─────────────────────── */
-.experimental-tournament-shell > main { padding-top: 1.5rem; padding-bottom: 4rem; }
+/* ── Page hero ───────────────────────────────────────────────────────────── */
+.experimental-tournament-shell > main { padding-top: 1.75rem; padding-bottom: 4rem; }
 .experimental-tournament-shell .organizer-workspace { gap: var(--x-gap); }
 .experimental-tournament-shell .organizer-header {
-  padding: 0;
-  border: 0;
-  border-radius: 0;
-  background: transparent;
-  box-shadow: none;
-  overflow: visible;
+  padding: 1.75rem 2rem !important;
+  border-radius: 1.25rem !important;
+  overflow: hidden;
+  background:
+    radial-gradient(60% 140% at 0% 0%, color-mix(in oklab, var(--x-a1) 26%, transparent), transparent 62%),
+    radial-gradient(45% 140% at 100% 0%, color-mix(in oklab, var(--x-a2) 18%, transparent), transparent 64%),
+    linear-gradient(180deg, var(--x-card-top), var(--x-card-bot)) !important;
 }
+/* Fine grid texture, fading to the right: futuristic, never behind text contrast. */
+.experimental-tournament-shell .organizer-header::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image:
+    linear-gradient(color-mix(in oklab, hsl(var(--foreground)) 6%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in oklab, hsl(var(--foreground)) 6%, transparent) 1px, transparent 1px);
+  background-size: 28px 28px;
+  -webkit-mask-image: linear-gradient(100deg, transparent 30%, #000 75%);
+  mask-image: linear-gradient(100deg, transparent 30%, #000 75%);
+  pointer-events: none;
+}
+.experimental-tournament-shell .organizer-header::before { left: 2rem; right: auto; width: 6rem; height: 3px;
+  background: linear-gradient(90deg, var(--x-a1), var(--x-a2)); }
 .experimental-tournament-shell .organizer-header h1 {
   font: var(--x-font-title);
-  letter-spacing: -.015em;
-  color: var(--x-text);
+  font-size: clamp(1.5rem, 1.1rem + 1.4vw, 2.125rem);
+  letter-spacing: -.025em;
+  color: var(--x-text) !important;
 }
+.experimental-tournament-shell .organizer-header h1 svg { color: var(--x-a1); filter: drop-shadow(0 0 10px color-mix(in oklab, var(--x-a1) 60%, transparent)); }
 .experimental-tournament-shell .organizer-header p { color: var(--x-text-2); }
-.experimental-tournament-shell .organizer-header-actions { gap: .5rem; align-items: center; }
-.experimental-tournament-shell .organizer-header-actions > * { min-height: 2.5rem; }
+.experimental-tournament-shell .organizer-header .experimental-eyebrow,
+.experimental-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  margin-bottom: .5rem;
+  font-size: .75rem;
+  font-weight: 700;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: color-mix(in oklab, var(--x-a1) 80%, var(--x-text));
+}
+.experimental-eyebrow::before { content: ""; width: .5rem; height: .5rem; border-radius: 2px; background: linear-gradient(135deg, var(--x-a1), var(--x-a2)); transform: rotate(45deg); }
 
-/* Breadcrumb / context bar reads as quiet navigation, not as another panel. */
+/* Header actions: glass buttons, primary CTA with accent gradient. */
+.experimental-tournament-shell .organizer-header-actions { gap: .5rem; align-items: center; }
+.experimental-tournament-shell .organizer-header :is(a, button):not(.bg-primary):is(.border, [class*="border-input"]) {
+  min-height: 2.5rem;
+  border-color: var(--x-line-strong);
+  background: var(--x-glass);
+  border-radius: var(--x-radius);
+  transition: border-color 140ms var(--x-ease), background-color 140ms var(--x-ease), transform 140ms var(--x-ease);
+}
+.experimental-tournament-shell .organizer-header :is(a, button):not(.bg-primary):is(.border, [class*="border-input"]):hover {
+  border-color: color-mix(in oklab, var(--x-a1) 55%, transparent);
+  background: var(--x-accent-soft);
+}
+:is(.experimental-tournament-shell, .experimental-tournament-create, .experimental-tournament-entry)
+  main :is(a, button).bg-primary {
+  border-radius: var(--x-radius);
+  background: linear-gradient(135deg, var(--x-a1), color-mix(in oklab, var(--x-a1) 55%, var(--x-a2))) !important;
+  color: hsl(var(--primary-foreground));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .18), 0 10px 26px -12px color-mix(in oklab, var(--x-a1) 80%, transparent) !important;
+  transition: transform 140ms var(--x-ease), box-shadow 140ms var(--x-ease), filter 140ms var(--x-ease);
+}
+:is(.experimental-tournament-shell, .experimental-tournament-create, .experimental-tournament-entry)
+  main :is(a, button).bg-primary:hover {
+  filter: brightness(1.08);
+  transform: translateY(-1px);
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .22), 0 14px 32px -12px color-mix(in oklab, var(--x-a1) 90%, transparent) !important;
+}
+
+/* Breadcrumb: quiet navigation line. */
 .experimental-context-bar {
   border: 0 !important;
   background: transparent !important;
-  padding: 0 !important;
+  padding: 0 .25rem !important;
   min-height: 0;
   font-size: .8125rem;
   color: var(--x-text-2);
   box-shadow: none !important;
 }
 
-/* Section tabs: one underline indicator, solid sticky background. */
+/* Section tabs: segmented bar, active tab lit in the accent. */
 .experimental-tournament-shell .organizer-navigation {
-  top: 3.5rem;
-  border: 0;
-  border-bottom: 1px solid var(--x-border);
-  border-radius: 0;
-  background: var(--x-bg);
-  box-shadow: none;
+  top: 3.75rem;
+  padding: .3rem !important;
+  border: 1px solid var(--x-line) !important;
+  border-radius: 999px !important;
+  background: color-mix(in oklab, var(--x-card-bot) 82%, transparent) !important;
+  backdrop-filter: blur(12px);
+  box-shadow: var(--x-shadow) !important;
 }
 .experimental-tournament-shell .organizer-navigation :is(a, button) {
-  min-height: 2.75rem;
+  min-height: 2.5rem;
+  border-radius: 999px;
   color: var(--x-text-2);
   border-bottom-color: transparent !important;
   background: transparent !important;
-  font-weight: 500;
+  font-weight: 550;
+  transition: color 140ms var(--x-ease), background-color 140ms var(--x-ease);
 }
-.experimental-tournament-shell .organizer-navigation :is(a, button):hover { color: var(--x-text); }
+.experimental-tournament-shell .organizer-navigation :is(a, button):hover { color: var(--x-text); background: var(--x-glass-2) !important; }
 .experimental-tournament-shell .organizer-navigation [aria-current="page"] {
   color: var(--x-text) !important;
-  background: transparent !important;
-  box-shadow: inset 0 -2px 0 var(--x-accent);
+  background: linear-gradient(135deg, color-mix(in oklab, var(--x-a1) 30%, transparent), color-mix(in oklab, var(--x-a2) 18%, transparent)) !important;
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--x-a1) 50%, transparent), 0 6px 18px -10px var(--x-a1);
 }
 
-/* ── Panels: one surface, one border, consistent radius ──────────────────── */
+/* ── Generic panels inside Experimental pages ────────────────────────────── */
 :is(.experimental-tournament-shell, .experimental-tournament-public, .experimental-tournament-create)
   main :where(.rounded-lg.border, .rounded-xl.border, .rounded-2xl.border, .bg-card) {
-  border-color: var(--x-border);
-  background-color: var(--x-surface);
+  border-color: var(--x-line);
+  background-color: color-mix(in oklab, var(--x-card-bot) 92%, transparent);
   border-radius: var(--x-radius);
-  box-shadow: none;
 }
 :is(.experimental-tournament-shell, .experimental-tournament-public) main :where(table) { font-variant-numeric: tabular-nums; }
-:is(.experimental-tournament-shell, .experimental-tournament-public) main thead { background: var(--x-surface-2); }
+:is(.experimental-tournament-shell, .experimental-tournament-public) main thead { background: var(--x-glass); }
 :is(.experimental-tournament-shell, .experimental-tournament-public, .experimental-tournament-create)
   main :where(input, textarea, select, [role="combobox"]) {
   border-radius: var(--x-radius-sm);
-  border-color: var(--x-border);
-  background-color: var(--x-bg);
+  border-color: var(--x-line-strong);
+  background-color: color-mix(in oklab, var(--x-deep) 70%, transparent);
+  transition: border-color 140ms var(--x-ease), box-shadow 140ms var(--x-ease);
 }
 :is(.experimental-tournament-shell, .experimental-tournament-public, .experimental-tournament-create)
-  main :where(input, textarea, select, [role="combobox"]):hover { border-color: var(--x-border-strong); }
+  main :where(input, textarea, select, [role="combobox"]):hover { border-color: color-mix(in oklab, var(--x-a1) 45%, transparent); }
 
-/* Panels that previously competed through tinted gradients now share one look. */
-.experimental-tournament-shell :is(.organizer-next-step, .organizer-stage-detail, .organizer-readiness, .organizer-route,
-  .organizer-stage-card, .organizer-notice, .experimental-host-command-center, .experimental-overview-hero,
-  .experimental-next-step-panel, .experimental-dashboard-toolbar, .experimental-player-toolbar),
-.experimental-tournament-shell section[data-exp-tone] {
-  background: var(--x-surface) !important;
-  border-color: var(--x-border) !important;
-  border-radius: var(--x-radius);
-  box-shadow: none !important;
+/* Panels with a role get an accent of their own. */
+.experimental-tournament-shell :is(.organizer-readiness, .organizer-stage-detail, .organizer-route, .organizer-stage-card) { --tone: var(--x-a2); }
+.experimental-tournament-shell :is(.organizer-notice, .experimental-dashboard-toolbar, .experimental-player-toolbar),
+.experimental-tournament-shell section[data-exp-tone]:not(.experimental-host-command-center) {
+  border-color: var(--x-line) !important;
+  border-radius: var(--x-radius-lg);
 }
-/* The single next action stays findable: accent overline + left rule. */
+
+/* Next step: the one action that matters, a lit accent band. */
 .experimental-tournament-shell :is(.organizer-next-step, .experimental-next-step-panel) {
-  border-left: 3px solid var(--x-accent) !important;
+  --tone: var(--x-a1);
+  background:
+    linear-gradient(100deg, color-mix(in oklab, var(--x-a1) 24%, transparent), color-mix(in oklab, var(--x-a2) 10%, transparent) 55%, transparent 80%),
+    linear-gradient(180deg, var(--x-card-top), var(--x-card-bot)) !important;
+  border-color: color-mix(in oklab, var(--x-a1) 38%, transparent) !important;
 }
+.experimental-tournament-shell :is(.organizer-next-step, .experimental-next-step-panel)::before { left: 0; right: auto; top: 1rem; bottom: 1rem; width: 3px; height: auto;
+  border-radius: 0 3px 3px 0; background: linear-gradient(180deg, var(--x-a1), var(--x-a2)); }
 
-/* ── Status language: pill = tinted background + coloured text ───────────── */
+/* ── Status language ─────────────────────────────────────────────────────── */
 :is(.experimental-tournament-shell, .experimental-tournament-public) span[data-exp-tone] {
-  border-color: transparent !important;
+  border: 1px solid hsl(var(--exp-current-tone) / .35) !important;
   background: hsl(var(--exp-current-tone) / .14) !important;
   color: hsl(var(--exp-current-tone)) !important;
-  font-weight: 600;
+  font-weight: 650;
 }
 :is(.experimental-tournament-shell, .experimental-tournament-public) [data-exp-tone="neutral"] { --exp-current-tone: var(--x-done); }
 
-/* Metric tiles: neutral by default; tone only colours the icon. */
-.experimental-metric-card,
-.experimental-metric-card[data-exp-tone] {
-  background: var(--x-surface) !important;
-  border: 1px solid var(--x-border) !important;
-  border-radius: var(--x-radius);
-  box-shadow: none !important;
+/* ── Metric tiles: tone-coloured value, icon chip, lit corner ────────────── */
+.experimental-metric-card[data-exp-tone="live"] { --tone: hsl(var(--x-live)); }
+.experimental-metric-card[data-exp-tone="warning"] { --tone: hsl(var(--x-ready)); }
+.experimental-metric-card:is([data-exp-tone="success"], [data-exp-tone="primary"]) { --tone: var(--x-a1); }
+.experimental-metric-card[data-exp-tone="info"] { --tone: var(--x-a2); }
+.experimental-metric-card[data-exp-tone="danger"] { --tone: hsl(var(--x-danger)); }
+.experimental-metric-card[data-exp-tone="neutral"] { --tone: hsl(var(--x-done)); }
+.experimental-metric-card { padding: 1rem 1.125rem !important; transition: transform 160ms var(--x-ease), border-color 160ms var(--x-ease); }
+.experimental-metric-card:hover { border-color: color-mix(in oklab, var(--tone) 40%, transparent) !important; }
+.experimental-metric-card > div:first-child p { color: var(--x-text-2); letter-spacing: .12em; }
+.experimental-metric-card svg {
+  box-sizing: content-box;
+  padding: .4rem;
+  border-radius: .55rem;
+  color: var(--tone) !important;
+  background: color-mix(in oklab, var(--tone) 16%, transparent);
 }
-.experimental-metric-card[data-exp-tone] > div:nth-child(2) { color: var(--x-text); font-variant-numeric: tabular-nums; }
-.experimental-metric-card[data-exp-tone] svg { color: hsl(var(--exp-current-tone)) !important; }
+.experimental-metric-card > div:nth-child(2) {
+  margin-top: .5rem;
+  font-size: 2.125rem;
+  line-height: 1;
+  font-weight: 750;
+  letter-spacing: -.02em;
+  color: color-mix(in oklab, var(--tone) 70%, var(--x-text));
+  font-variant-numeric: tabular-nums;
+}
+.experimental-metric-card[data-exp-tone="neutral"] > div:nth-child(2) { color: var(--x-text); }
 .experimental-quick-link,
 .experimental-quick-link[data-exp-tone] {
-  background: var(--x-surface) !important;
-  border-color: var(--x-border) !important;
+  background: var(--x-glass) !important;
+  border-color: var(--x-line) !important;
   border-radius: var(--x-radius);
 }
-.experimental-quick-link[data-exp-tone]:hover { border-color: var(--x-border-strong) !important; background: var(--x-surface-2) !important; }
-.experimental-quick-link[data-exp-tone] > div:first-child { border-color: transparent; background: var(--x-surface-2); color: var(--x-text-2); }
+.experimental-quick-link[data-exp-tone]:hover { border-color: color-mix(in oklab, var(--x-a1) 45%, transparent) !important; background: var(--x-accent-soft) !important; }
 
-/* ── Entry, create and public roots share the same calm frame ────────────── */
-.experimental-tournament-entry .experimental-entry-hero,
-.experimental-tournament-create :is(.rounded-2xl.border) {
-  background: var(--x-surface) !important;
-  border-color: var(--x-border) !important;
-  box-shadow: none !important;
+/* ── Host: stage cockpit ─────────────────────────────────────────────────── */
+.experimental-tournament-shell .experimental-host-command-center {
+  padding: 1.5rem !important;
+  background:
+    radial-gradient(70% 120% at 100% 0%, color-mix(in oklab, var(--x-a2) 14%, transparent), transparent 60%),
+    radial-gradient(60% 120% at 0% 0%, color-mix(in oklab, var(--x-a1) 16%, transparent), transparent 60%),
+    linear-gradient(180deg, var(--x-card-top), var(--x-card-bot)) !important;
 }
-.experimental-tournament-entry .experimental-entry-card {
-  background: var(--x-surface) !important;
-  border-color: var(--x-border) !important;
-  box-shadow: none !important;
-  transition: border-color 120ms ease, background-color 120ms ease;
+.experimental-host-command-center h2 { font-size: 1.75rem; font-weight: 750; letter-spacing: -.02em; }
+.experimental-host-command-center .experimental-metric-card { background: var(--x-glass) !important; box-shadow: none !important; }
+.experimental-host-command-center .experimental-metric-card::before { right: 50%; }
+.experimental-host-command-center nav a { border-radius: 999px; }
+.experimental-host-command-center nav a:hover { background: var(--x-accent-soft); color: var(--x-text); }
+.experimental-host-overline {
+  font-size: .75rem;
+  font-weight: 700;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: color-mix(in oklab, var(--x-a1) 80%, var(--x-text));
 }
-.experimental-tournament-entry .experimental-entry-card:hover { border-color: var(--x-border-strong) !important; background: var(--x-surface-2) !important; }
+.experimental-host-progress {
+  height: .5rem;
+  border-radius: 999px;
+  background: var(--x-glass-2);
+  overflow: hidden;
+}
+.experimental-host-progress > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, hsl(var(--x-live)), var(--x-a1));
+  box-shadow: 0 0 14px color-mix(in oklab, hsl(var(--x-live)) 60%, transparent);
+  transition: width 320ms var(--x-ease);
+}
+
+/* Selected match: the arena scoreboard. Side A takes the theme accent, side B its counterpart. */
+.experimental-tournament-shell .experimental-host-primary {
+  --tone: var(--x-a1);
+  position: relative;
+  border-width: 1px !important;
+  border-color: color-mix(in oklab, var(--tone) 40%, transparent) !important;
+  border-radius: 1.25rem !important;
+  background:
+    radial-gradient(50% 110% at 0% 60%, color-mix(in oklab, var(--x-a1) 24%, transparent), transparent 72%),
+    radial-gradient(50% 110% at 100% 60%, color-mix(in oklab, var(--x-a3) 22%, transparent), transparent 72%),
+    linear-gradient(180deg, var(--x-card-top), var(--x-card-bot)) !important;
+  box-shadow: var(--x-shadow), 0 32px 64px -40px color-mix(in oklab, var(--tone) 70%, transparent) !important;
+}
+.experimental-tournament-shell .experimental-host-primary[data-exp-match-state="in_progress"] { --tone: hsl(var(--x-live)); }
+.experimental-tournament-shell .experimental-host-primary[data-exp-match-state="completed"] { --tone: var(--x-gold); }
+.experimental-tournament-shell .experimental-host-primary > div:first-child {
+  background: color-mix(in oklab, hsl(var(--foreground)) 4%, transparent) !important;
+  border-color: var(--x-line) !important;
+}
+.experimental-host-primary .font-mono.text-5xl {
+  font-variant-numeric: tabular-nums;
+  color: color-mix(in oklab, var(--side, var(--x-a1)) 35%, var(--x-text));
+  text-shadow: 0 0 32px color-mix(in oklab, var(--side, var(--x-a1)) 70%, transparent);
+}
+.experimental-host-primary .flex-1:first-of-type { --side: var(--x-a1); }
+.experimental-host-primary .flex-1:last-of-type { --side: var(--x-a3); }
+.experimental-host-primary .flex-1 .font-extrabold { letter-spacing: -.01em; }
+.experimental-host-primary .flex-1 .font-extrabold + div,
+.experimental-host-primary .flex-1 .text-xs.text-muted-foreground { color: color-mix(in oklab, var(--side) 70%, var(--x-text-2)); font-weight: 600; letter-spacing: .06em; text-transform: uppercase; font-size: .6875rem; }
+.experimental-host-primary .flex-1 button.rounded-full {
+  border-color: color-mix(in oklab, var(--side) 45%, transparent);
+  background: color-mix(in oklab, var(--side) 10%, transparent);
+}
+.experimental-host-primary .flex-1 button.rounded-full:hover { background: color-mix(in oklab, var(--side) 22%, transparent); }
+
+/* Queue and recent results under the scoreboard. */
+.experimental-host-secondary h3 {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  font-size: .9375rem !important;
+  font-weight: 650 !important;
+  color: var(--x-text) !important;
+}
+.experimental-host-secondary h3::before { content: ""; width: .25rem; height: 1rem; border-radius: 2px; background: var(--x-a2); }
+.experimental-host-secondary section:last-child h3::before { background: var(--x-gold); }
+.experimental-host-secondary ol > li {
+  border-color: var(--x-line) !important;
+  border-radius: var(--x-radius) !important;
+  background: linear-gradient(90deg, color-mix(in oklab, var(--x-a2) 8%, transparent), transparent 60%), var(--x-card-bot) !important;
+  transition: border-color 140ms var(--x-ease), background-color 140ms var(--x-ease);
+}
+.experimental-host-secondary ol > li:hover { border-color: color-mix(in oklab, var(--x-a1) 45%, transparent) !important; }
+.experimental-host-secondary .bg-card.border.rounded-lg { border-color: var(--x-line); border-radius: var(--x-radius); background: var(--x-card-bot); }
+
+/* ── Dashboard: lifecycle summary tiles (also filters) ───────────────────── */
+.experimental-dstats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+.experimental-dstat {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: .25rem 1rem;
+  padding: 1rem 1.25rem !important;
+  text-align: left;
+  color: var(--x-text);
+  cursor: pointer;
+  transition: transform 160ms var(--x-ease), border-color 160ms var(--x-ease), box-shadow 160ms var(--x-ease);
+}
+.experimental-dstat[data-status="active"] { --tone: hsl(var(--x-live)); }
+.experimental-dstat[data-status="draft"] { --tone: var(--x-a2); }
+.experimental-dstat[data-status="completed"] { --tone: var(--x-gold); }
+.experimental-dstat:hover { transform: translateY(-2px); border-color: color-mix(in oklab, var(--tone) 45%, transparent) !important; box-shadow: var(--x-shadow-hover) !important; }
+.experimental-dstat[aria-pressed="true"] {
+  border-color: color-mix(in oklab, var(--tone) 70%, transparent) !important;
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--tone) 55%, transparent), 0 14px 34px -18px var(--tone) !important;
+}
+.experimental-dstat-icon {
+  grid-row: span 2;
+  display: grid;
+  place-items: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: .8rem;
+  color: var(--tone);
+  background: color-mix(in oklab, var(--tone) 16%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--tone) 30%, transparent);
+}
+.experimental-dstat-value { font-size: 1.875rem; line-height: 1; font-weight: 750; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.experimental-dstat-label { font-size: .8125rem; color: var(--x-text-2); }
+
+/* ── Dashboard: tournament cards grouped by lifecycle ────────────────────── */
+.experimental-tlist { display: grid; gap: 2.25rem; }
+.experimental-tlist-group { --tone: var(--x-a1); display: grid; gap: .875rem; }
+.experimental-tlist-group[data-group="active"] { --tone: hsl(var(--x-live)); }
+.experimental-tlist-group[data-group="draft"] { --tone: var(--x-a2); }
+.experimental-tlist-group[data-group="completed"] { --tone: var(--x-gold); }
+.experimental-tournament-shell .experimental-tlist-group[data-group="active"] .experimental-tlist-row { --tone: hsl(var(--x-live)); }
+.experimental-tournament-shell .experimental-tlist-group[data-group="draft"] .experimental-tlist-row { --tone: var(--x-a2); }
+.experimental-tournament-shell .experimental-tlist-group[data-group="completed"] .experimental-tlist-row { --tone: var(--x-gold); }
+.experimental-tlist-heading {
+  display: flex;
+  align-items: center;
+  gap: .625rem;
+  font: var(--x-font-section);
+  font-size: 1.125rem;
+  color: var(--x-text);
+}
+.experimental-tlist-heading::before {
+  content: "";
+  width: .25rem;
+  height: 1.125rem;
+  border-radius: 2px;
+  background: var(--tone);
+  box-shadow: 0 0 12px var(--tone);
+}
+.experimental-tlist-count {
+  min-width: 1.75rem;
+  padding: 0 .5rem;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--tone) 16%, transparent);
+  color: color-mix(in oklab, var(--tone) 75%, var(--x-text));
+  font-size: .75rem;
+  font-weight: 700;
+  line-height: 1.5rem;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.experimental-tlist-empty { color: var(--x-text-2); font-size: .875rem; }
+.experimental-tlist-items {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 21rem), 1fr));
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.experimental-tlist-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-areas: "mono main actions" "state state state";
+  align-items: start;
+  gap: 1rem 1rem;
+  padding: 1.125rem 1.125rem 1rem;
+  transition: transform 180ms var(--x-ease), border-color 180ms var(--x-ease), box-shadow 180ms var(--x-ease);
+}
+.experimental-tlist-row:hover {
+  transform: translateY(-2px);
+  border-color: color-mix(in oklab, var(--tone) 45%, transparent) !important;
+  box-shadow: var(--x-shadow-hover), 0 0 0 1px color-mix(in oklab, var(--tone) 18%, transparent) !important;
+}
+.experimental-tlist-row:has(.experimental-tlist-link:focus-visible) {
+  border-color: var(--x-accent) !important;
+  box-shadow: 0 0 0 2px var(--x-accent), var(--x-shadow-hover) !important;
+}
+.experimental-tlist-mono {
+  grid-area: mono;
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: .85rem;
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: .02em;
+  color: #fff;
+  text-shadow: 0 1px 2px rgb(0 0 0 / .35);
+  background: linear-gradient(135deg, var(--tone), color-mix(in oklab, var(--tone) 35%, var(--x-a2)));
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / .25), 0 8px 20px -10px var(--tone);
+}
+.experimental-tlist-group[data-group="completed"] .experimental-tlist-mono { color: hsl(30 60% 12%); text-shadow: none; }
+.experimental-tlist-main { grid-area: main; min-width: 0; }
+.experimental-tlist-link {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--x-text);
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.experimental-tlist-link::after { content: ""; position: absolute; inset: 0; border-radius: inherit; }
+.experimental-tlist-link:focus-visible { outline: none !important; }
+.experimental-tlist-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .3rem .375rem;
+  margin-top: .45rem;
+  font-size: .75rem;
+  color: var(--x-text-2);
+}
+.experimental-tlist-meta > span {
+  padding: .1rem .5rem;
+  border-radius: 999px;
+  background: var(--x-glass);
+  box-shadow: inset 0 0 0 1px var(--x-line);
+}
+.experimental-tlist-description {
+  margin-top: .55rem;
+  font-size: .8125rem;
+  color: var(--x-text-2);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.experimental-tlist-state {
+  grid-area: state;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .5rem 1rem;
+  padding-top: .875rem;
+  border-top: 1px solid var(--x-line);
+}
+.experimental-tlist-status {
+  display: inline-flex;
+  align-items: center;
+  gap: .45rem;
+  padding: .2rem .6rem;
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--tone) 15%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in oklab, var(--tone) 35%, transparent);
+  color: color-mix(in oklab, var(--tone) 80%, var(--x-text));
+  font-size: .75rem;
+  font-weight: 700;
+}
+.experimental-tlist-dot { width: .45rem; height: .45rem; border-radius: 999px; background: currentColor; }
+.experimental-tlist-row[data-status="active"] .experimental-tlist-dot { box-shadow: 0 0 0 0 currentColor; animation: x-pulse 2s var(--x-ease) infinite; }
+@keyframes x-pulse {
+  0% { box-shadow: 0 0 0 0 color-mix(in oklab, currentColor 60%, transparent); }
+  70% { box-shadow: 0 0 0 6px transparent; }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+.experimental-tlist-round {
+  flex: 1 1 10rem;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: .625rem;
+  font-size: .75rem;
+  color: var(--x-text-2);
+}
+.experimental-tlist-bar { height: .375rem; border-radius: 999px; background: var(--x-glass-2); overflow: hidden; }
+.experimental-tlist-bar > span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--tone), var(--x-a1));
+  box-shadow: 0 0 10px color-mix(in oklab, var(--tone) 55%, transparent);
+}
+.experimental-tlist-actions { grid-area: actions; position: relative; z-index: 2; display: flex; gap: .125rem; margin: -.375rem -.375rem 0 0; }
+.experimental-tlist-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: var(--x-radius-sm);
+  color: var(--x-text-2);
+  transition: color 140ms var(--x-ease), background-color 140ms var(--x-ease);
+}
+.experimental-tlist-icon:hover { color: var(--x-text); background: var(--x-glass-2); }
+.experimental-tlist-icon--danger:hover { color: hsl(var(--x-danger)); background: hsl(var(--x-danger) / .14); }
+.experimental-tlist-icon:disabled { opacity: .5; cursor: progress; }
+
+/* Toolbar: search and filter as one glass strip. */
+.experimental-tournament-shell .experimental-dashboard-toolbar {
+  padding: .5rem !important;
+  border: 1px solid var(--x-line) !important;
+  border-radius: var(--x-radius-lg) !important;
+  background: color-mix(in oklab, var(--x-card-bot) 80%, transparent) !important;
+  box-shadow: var(--x-shadow) !important;
+}
+
+/* ── Role entry ──────────────────────────────────────────────────────────── */
+.experimental-tournament-entry .experimental-entry-hero {
+  margin-bottom: 2rem;
+  padding: 2.25rem 2rem !important;
+  text-align: left;
+  background:
+    radial-gradient(60% 140% at 0% 0%, color-mix(in oklab, var(--x-a1) 26%, transparent), transparent 62%),
+    radial-gradient(45% 140% at 100% 0%, color-mix(in oklab, var(--x-a2) 20%, transparent), transparent 64%),
+    linear-gradient(180deg, var(--x-card-top), var(--x-card-bot)) !important;
+}
+.experimental-tournament-entry .experimental-entry-hero > * { justify-content: flex-start; margin-inline: 0; }
+.experimental-tournament-entry .experimental-entry-hero h1 {
+  font: var(--x-font-title);
+  font-size: clamp(1.75rem, 1.2rem + 1.8vw, 2.5rem);
+  letter-spacing: -.03em;
+  color: var(--x-text);
+}
+.experimental-tournament-entry .experimental-entry-hero p { margin-inline: 0; color: var(--x-text-2); }
+.experimental-tournament-entry .experimental-entry-card { transition: transform 180ms var(--x-ease), border-color 180ms var(--x-ease), box-shadow 180ms var(--x-ease); }
+.experimental-tournament-entry .experimental-entry-card:nth-of-type(3n+1) { --tone: var(--x-a1); }
+.experimental-tournament-entry .experimental-entry-card:nth-of-type(3n+2) { --tone: var(--x-a2); }
+.experimental-tournament-entry .experimental-entry-card:nth-of-type(3n) { --tone: var(--x-a3); }
+.experimental-tournament-entry .experimental-entry-card:hover {
+  transform: translateY(-3px);
+  border-color: color-mix(in oklab, var(--tone) 50%, transparent) !important;
+  box-shadow: var(--x-shadow-hover), 0 0 0 1px color-mix(in oklab, var(--tone) 20%, transparent) !important;
+}
+.experimental-tournament-entry .experimental-entry-card svg { color: var(--tone); }
+.experimental-tournament-entry .experimental-entry-card :is(h2, h3) { font-weight: 700; }
+
+/* ── Create: module header as hero, form sections as cards ──────────────── */
+.experimental-tournament-create section.relative.overflow-hidden.rounded-2xl.border {
+  padding: 1.75rem 2rem !important;
+  background:
+    radial-gradient(60% 140% at 0% 0%, color-mix(in oklab, var(--x-a1) 24%, transparent), transparent 62%),
+    radial-gradient(45% 140% at 100% 0%, color-mix(in oklab, var(--x-a2) 18%, transparent), transparent 64%),
+    linear-gradient(180deg, var(--x-card-top), var(--x-card-bot)) !important;
+}
+.experimental-tournament-create section.relative.overflow-hidden > .pointer-events-none,
+.experimental-tournament-create section.relative.overflow-hidden > .absolute { display: none; }
+.experimental-tournament-create section.relative.overflow-hidden h1 { font: var(--x-font-title); letter-spacing: -.025em; }
+.experimental-tournament-create form :is(h2, h3) { font-weight: 650; }
+.experimental-create-form-stack > * {
+  border-color: var(--x-line) !important;
+  border-radius: var(--x-radius-lg) !important;
+  background: linear-gradient(180deg, var(--x-card-top), var(--x-card-bot)) !important;
+  box-shadow: var(--x-shadow);
+}
+
+/* ── Fan & support lists ─────────────────────────────────────────────────── */
+.experimental-support-entry main > div:first-child { border-left: 0; padding-left: 0; }
+.experimental-fan-entry .experimental-fan-card[data-exp-tournament-status="active"] { --tone: hsl(var(--x-live)); }
+.experimental-fan-entry .experimental-fan-card[data-exp-tournament-status="completed"] { --tone: var(--x-gold); }
+.experimental-fan-entry .experimental-fan-card[data-exp-tournament-status="draft"] { --tone: var(--x-a2); }
+.experimental-support-entry .experimental-support-tournament-card { --tone: var(--x-a2); }
+.experimental-fan-entry .experimental-fan-card,
+.experimental-support-entry .experimental-support-tournament-card {
+  transition: transform 180ms var(--x-ease), border-color 180ms var(--x-ease), box-shadow 180ms var(--x-ease);
+}
+.experimental-fan-entry .experimental-fan-card:hover,
+.experimental-support-entry .experimental-support-tournament-card:is(:hover, :focus-visible) {
+  transform: translateY(-2px);
+  border-color: color-mix(in oklab, var(--tone) 50%, transparent) !important;
+  box-shadow: var(--x-shadow-hover) !important;
+}
+.experimental-fan-entry :is(h1, h2) { letter-spacing: -.02em; }
+.experimental-fan-entry .text-orange-400 { color: hsl(var(--x-live)); }
 
 .experimental-tournament-public article,
-.experimental-tournament-public main .rounded-xl.border { box-shadow: none; }
+.experimental-tournament-public main .rounded-xl.border { box-shadow: var(--x-shadow); }
 
 /* ── Motion: short, functional, and off when the user asks ──────────────── */
 @media (prefers-reduced-motion: reduce) {
@@ -254,218 +766,10 @@
     transition-duration: .01ms !important;
     scroll-behavior: auto !important;
   }
+  :is(.experimental-tlist-row, .experimental-dstat, .experimental-entry-card, .experimental-fan-card):hover { transform: none !important; }
 }
 
-@media (max-width: 767px) {
-  .experimental-tournament-shell > main { padding-top: 1rem; }
-  .experimental-tournament-shell .organizer-header h1 { font-size: 1.375rem; }
-  .experimental-tournament-shell .organizer-navigation { top: 3.5rem; }
-}
-
-/* ── Header alignment: all app-bar items share one baseline ─────────────── */
-.experimental-tournament-shell > header nav { align-items: center; }
-.experimental-tournament-shell > header nav > * { display: inline-flex; align-items: center; }
-.experimental-tournament-shell .organizer-header h1.text-primary { color: var(--x-text); }
-
-/* ── Host: compact status strip ───────────────────────────────────────────── */
-.experimental-host-overline {
-  font-size: .75rem;
-  font-weight: 600;
-  letter-spacing: .04em;
-  color: var(--x-text-2);
-}
-.experimental-host-progress {
-  height: .375rem;
-  border-radius: 999px;
-  background: var(--x-surface-2);
-  overflow: hidden;
-}
-.experimental-host-progress > span {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  background: hsl(var(--x-live));
-  transition: width 240ms ease;
-}
-.experimental-host-command-center .experimental-metric-card { padding: .75rem .875rem; }
-.experimental-host-command-center .experimental-metric-card > div:nth-child(2) { margin-top: .375rem; font-size: 1.5rem; }
-
-/* ── Dashboard: tournaments grouped by lifecycle ─────────────────────────── */
-.experimental-tlist { display: grid; gap: 2rem; }
-.experimental-tlist-group { display: grid; gap: .625rem; }
-.experimental-tlist-heading {
-  display: flex;
-  align-items: center;
-  gap: .5rem;
-  font: var(--x-font-section);
-  color: var(--x-text);
-}
-.experimental-tlist-count {
-  min-width: 1.5rem;
-  padding: 0 .4rem;
-  border-radius: 999px;
-  background: var(--x-surface-2);
-  color: var(--x-text-2);
-  font-size: .75rem;
-  font-weight: 600;
-  line-height: 1.375rem;
-  text-align: center;
-  font-variant-numeric: tabular-nums;
-}
-.experimental-tlist-empty { color: var(--x-text-2); font-size: .875rem; }
-.experimental-tlist-items {
-  display: grid;
-  border: 1px solid var(--x-border);
-  border-radius: var(--x-radius);
-  background: var(--x-surface);
-  overflow: hidden;
-}
-.experimental-tlist-row {
-  position: relative;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 13rem 5.25rem;
-  align-items: center;
-  gap: 1rem;
-  padding: .875rem 1rem;
-  transition: background-color 120ms ease;
-}
-.experimental-tlist-row + .experimental-tlist-row { border-top: 1px solid var(--x-border); }
-.experimental-tlist-row:hover,
-.experimental-tlist-row:focus-within { background: var(--x-surface-2); }
-.experimental-tlist-main { min-width: 0; }
-.experimental-tlist-link {
-  font-weight: 600;
-  color: var(--x-text);
-  text-decoration: none;
-  overflow-wrap: anywhere;
-}
-/* Whole row is a target for pointer users; the link stays the single tab stop. */
-.experimental-tlist-link::after { content: ""; position: absolute; inset: 0; }
-.experimental-tlist-link:hover { text-decoration: underline; text-underline-offset: 3px; }
-.experimental-tlist-link:focus-visible { outline: none !important; }
-.experimental-tlist-row:has(.experimental-tlist-link:focus-visible) { box-shadow: inset 0 0 0 2px var(--x-accent); }
-.experimental-tlist-meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: .25rem .875rem;
-  margin-top: .2rem;
-  font-size: .8125rem;
-  color: var(--x-text-2);
-}
-.experimental-tlist-description {
-  margin-top: .3rem;
-  font-size: .8125rem;
-  color: var(--x-text-2);
-  display: -webkit-box;
-  -webkit-line-clamp: 1;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-.experimental-tlist-state { display: grid; gap: .4rem; justify-items: start; }
-.experimental-tlist-status {
-  --tone: var(--x-done);
-  display: inline-flex;
-  align-items: center;
-  gap: .4rem;
-  padding: .125rem .55rem;
-  border-radius: 999px;
-  background: hsl(var(--tone) / .14);
-  color: hsl(var(--tone));
-  font-size: .75rem;
-  font-weight: 600;
-}
-.experimental-tlist-status[data-status="active"] { --tone: var(--x-live); }
-.experimental-tlist-status[data-status="draft"] { --tone: var(--x-info); }
-.experimental-tlist-dot { width: .4rem; height: .4rem; border-radius: 999px; background: currentColor; }
-.experimental-tlist-round { display: grid; gap: .25rem; width: 100%; font-size: .75rem; color: var(--x-text-2); }
-.experimental-tlist-bar { height: .25rem; border-radius: 999px; background: var(--x-surface-2); overflow: hidden; }
-.experimental-tlist-bar > span { display: block; height: 100%; background: hsl(var(--x-live)); }
-.experimental-tlist-actions { position: relative; z-index: 1; display: flex; justify-content: flex-end; gap: .25rem; }
-.experimental-tlist-icon {
-  display: inline-grid;
-  place-items: center;
-  width: 2.5rem;
-  height: 2.5rem;
-  border-radius: var(--x-radius-sm);
-  color: var(--x-text-2);
-  transition: color 120ms ease, background-color 120ms ease;
-}
-.experimental-tlist-icon:hover { color: var(--x-text); background: var(--x-surface-2); }
-.experimental-tlist-icon--danger:hover { color: hsl(var(--x-danger)); background: hsl(var(--x-danger) / .12); }
-.experimental-tlist-icon:disabled { opacity: .5; cursor: progress; }
-
-@media (max-width: 639px) {
-  .experimental-tlist-row { grid-template-columns: minmax(0, 1fr) auto; gap: .5rem .75rem; }
-  .experimental-tlist-state { grid-column: 1; grid-row: 2; }
-  .experimental-tlist-actions { grid-column: 2; grid-row: 1 / span 2; align-self: start; }
-}
-
-/* Toolbar sits flush above the list, without a competing frame. */
-.experimental-tournament-shell .experimental-dashboard-toolbar {
-  background: transparent !important;
-  border: 0 !important;
-  padding: 0 !important;
-}
-
-/* ── Role entry: a plain page title and three clear choices ─────────────── */
-.experimental-tournament-entry .experimental-entry-hero {
-  margin-bottom: 1.5rem;
-  padding: 0 !important;
-  border: 0 !important;
-  background: transparent !important;
-  text-align: left;
-}
-.experimental-tournament-entry .experimental-entry-hero > * { justify-content: flex-start; margin-inline: 0; }
-.experimental-tournament-entry .experimental-entry-hero h1 {
-  font: var(--x-font-title);
-  font-size: clamp(1.625rem, 1.2rem + 1.2vw, 2rem);
-  letter-spacing: -.02em;
-  color: var(--x-text);
-}
-.experimental-tournament-entry .experimental-entry-hero p { margin-inline: 0; color: var(--x-text-2); }
-.experimental-tournament-entry .experimental-entry-card h2,
-.experimental-tournament-entry .experimental-entry-card h3 { font-weight: 600; }
-
-/* ── Create: the shared module header keeps its structure, loses decoration ─ */
-.experimental-tournament-create section.relative.overflow-hidden {
-  padding: 0 0 .25rem;
-  border: 0;
-  background: transparent;
-}
-.experimental-tournament-create section.relative.overflow-hidden > .pointer-events-none,
-.experimental-tournament-create section.relative.overflow-hidden > .absolute { display: none; }
-.experimental-tournament-create section.relative.overflow-hidden h1 { font: var(--x-font-title); letter-spacing: -.015em; }
-.experimental-tournament-create form :is(h2, h3) { font-weight: 600; }
-.experimental-create-form-stack > * { border-color: var(--x-border) !important; background: var(--x-surface) !important; }
-
-.experimental-tournament-create section.relative.overflow-hidden.rounded-2xl.border {
-  padding: .25rem 0 0 !important;
-  border: 0 !important;
-  background: transparent !important;
-  overflow: visible;
-}
-
-/* ── Fan & support lists: neutral cards, status carried by the badge ─────── */
-.experimental-support-entry main > div:first-child { border-left: 0; padding-left: 0; }
-.experimental-fan-entry .experimental-fan-card,
-.experimental-fan-entry .experimental-fan-card[data-exp-tournament-status],
-.experimental-support-entry .experimental-support-tournament-card,
-.experimental-support-entry .experimental-support-login-panel {
-  border-color: var(--x-border) !important;
-  background: var(--x-surface) !important;
-  border-radius: var(--x-radius);
-  transition: border-color 120ms ease, background-color 120ms ease;
-}
-.experimental-fan-entry .experimental-fan-card:hover,
-.experimental-support-entry .experimental-support-tournament-card:is(:hover, :focus-visible) {
-  border-color: var(--x-border-strong) !important;
-  background: var(--x-surface-2) !important;
-}
-.experimental-fan-entry .experimental-fan-card[data-exp-tournament-status="completed"] { opacity: .85; }
-.experimental-fan-entry :is(h1, h2) { letter-spacing: -.015em; }
-.experimental-fan-entry .text-orange-400 { color: hsl(var(--x-live)); }
-
-/* ── Narrow screens: the app bar scrolls inside itself, the page never does ─ */
+/* ── Responsive ──────────────────────────────────────────────────────────── */
 @media (max-width: 1279px) {
   .experimental-tournament-shell > header > div { gap: .5rem; padding-inline: .75rem; min-width: 0; }
   .experimental-tournament-shell > header > div > :first-child { flex: 0 1 auto; min-width: 0; }
@@ -479,6 +783,51 @@
   }
   .experimental-tournament-shell > header nav::-webkit-scrollbar { display: none; }
   .experimental-tournament-shell > header nav > * { flex: 0 0 auto; white-space: nowrap; }
-  .experimental-tournament-shell .organizer-header { gap: .75rem; }
   .experimental-tournament-shell .organizer-header h1 { overflow-wrap: anywhere; }
+}
+/* Horizontal scrollers (breadcrumb, tabs) scroll without a visible bar; a fade hints at more. */
+.experimental-tournament-shell :is(.organizer-navigation, .experimental-context-bar),
+.experimental-tournament-shell :is(.organizer-navigation, .experimental-context-bar) * { scrollbar-width: none; }
+.experimental-tournament-shell :is(.organizer-navigation, .experimental-context-bar) ::-webkit-scrollbar { display: none; }
+
+@media (max-width: 767px) {
+  .experimental-tournament-shell > main { padding-top: 1rem; }
+  .experimental-tournament-shell .organizer-header-actions {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .experimental-tournament-shell .organizer-header-actions > :is(.bg-primary, :last-child:nth-child(odd)) { grid-column: 1 / -1; }
+  .experimental-tournament-shell .organizer-header-actions > * {
+    width: 100%;
+    min-width: 0;
+    height: auto;
+    min-height: 2.75rem;
+    padding-inline: .625rem;
+    white-space: normal;
+    line-height: 1.2;
+    text-align: center;
+  }
+  .experimental-metric-card > div:first-child p { letter-spacing: .06em; }
+  .experimental-tournament-shell .organizer-navigation > *,
+  .experimental-tournament-shell .experimental-context-bar {
+    -webkit-mask-image: linear-gradient(90deg, #000 82%, transparent);
+    mask-image: linear-gradient(90deg, #000 82%, transparent);
+  }
+  .experimental-tournament-shell .organizer-header { padding: 1.25rem !important; gap: 1rem; }
+  .experimental-tournament-shell .organizer-header::before { left: 1.25rem; }
+  /* Host header: title gets the full row, actions wrap below it. */
+  .experimental-tournament-shell .organizer-header > .flex-1 { flex: 1 1 calc(100% - 3.5rem); }
+  .experimental-tournament-shell .organizer-header-actions { width: 100%; }
+  .experimental-tournament-shell .organizer-header-actions > * { flex: 1 1 auto; }
+  .experimental-tournament-shell .organizer-navigation { border-radius: var(--x-radius-lg) !important; }
+  .experimental-dstats { gap: .5rem; }
+  .experimental-dstat { grid-template-columns: 1fr; padding: .75rem !important; gap: .25rem; }
+  .experimental-dstat-icon { display: none; }
+  .experimental-dstat-value { font-size: 1.5rem; }
+  .experimental-dstat-label { font-size: .75rem; }
+  .experimental-host-command-center { padding: 1.125rem !important; }
+  .experimental-host-command-center h2 { font-size: 1.375rem; }
+  .experimental-metric-card > div:nth-child(2) { font-size: 1.75rem; }
+  .experimental-tournament-entry .experimental-entry-hero,
+  .experimental-tournament-create section.relative.overflow-hidden.rounded-2xl.border { padding: 1.5rem 1.25rem !important; }
 }

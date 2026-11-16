@@ -30,6 +30,14 @@ const STATUS_TEXT: Record<string, string> = {
   completed: "Zakończony",
 };
 
+/** Two-letter badge from the tournament name, e.g. "Winter Clash 2026" -> "WC". Decorative only. */
+export function monogram(name: string): string {
+  const words = name.match(/[\p{L}\p{N}]+/gu) ?? [];
+  const letters = words.filter((word) => /\p{L}/u.test(word[0] ?? "")).map((word) => word[0]!.toUpperCase());
+  if (letters.length >= 2) return letters[0]! + letters[1]!;
+  return (words[0] ?? "?").slice(0, 2).toUpperCase();
+}
+
 /**
  * Experimental-only presentation of the organizer's tournaments.
  * Grouped by lifecycle so live events are always first; all actions stay visible
@@ -52,6 +60,7 @@ export function ExperimentalTournamentList({
   onExport: (event: MouseEvent, tournament: ExperimentalTournamentListItem) => void;
   onDelete: (id: number) => void;
 }) {
+  const labels: Record<string, string> = { double_elimination: "Podwójna eliminacja", ...formatLabels };
   const groups = GROUPS.filter((group) => statusFilter === "all" || group.status === statusFilter)
     .map((group) => ({ ...group, items: tournaments.filter((item) => item.status === group.status) }))
     .filter((group) => group.items.length > 0 || statusFilter !== "all");
@@ -62,7 +71,12 @@ export function ExperimentalTournamentList({
   return (
     <div className="experimental-tlist">
       {groups.map((group) => (
-        <section key={group.status} aria-labelledby={`exp-tlist-${group.status}`} className="experimental-tlist-group">
+        <section
+          key={group.status}
+          aria-labelledby={`exp-tlist-${group.status}`}
+          className="experimental-tlist-group"
+          data-group={group.status}
+        >
           <h2 id={`exp-tlist-${group.status}`} className="experimental-tlist-heading">
             {group.title}
             <span className="experimental-tlist-count">{group.items.length}</span>
@@ -79,12 +93,15 @@ export function ExperimentalTournamentList({
                 const progress = round?.total ? Math.min(100, Math.round((round.current / round.total) * 100)) : null;
                 return (
                   <li key={tournament.id} className="experimental-tlist-row" data-status={tournament.status}>
+                    <span className="experimental-tlist-mono" aria-hidden="true">
+                      {monogram(tournament.name)}
+                    </span>
                     <div className="experimental-tlist-main">
                       <Link href={tournamentHref(tournament.id, true)} className="experimental-tlist-link">
                         {tournament.name}
                       </Link>
                       <p className="experimental-tlist-meta">
-                        <span>{formatLabels[tournament.format] ?? tournament.format}</span>
+                        <span>{labels[tournament.format] ?? tournament.format}</span>
                         {tournament.maxPlayers ? <span>{tournament.maxPlayers} miejsc</span> : null}
                         <span>
                           Utworzono {format(new Date(tournament.createdAt), "d MMM yyyy", { locale: pl })}

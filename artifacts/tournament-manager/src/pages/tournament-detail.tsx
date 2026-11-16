@@ -637,6 +637,7 @@ export default function TournamentDetail() {
       <div className="organizer-workspace flex flex-col gap-6">
         <div className="organizer-header flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
+            {isExperimental && <p className="experimental-eyebrow">Panel turnieju</p>}
             <div className="flex flex-wrap items-center gap-3 mb-2">
               <h1 className="text-3xl font-bold tracking-tight text-primary">{tournament.name}</h1>
               <Badge variant={tournament.status === "active" ? "default" : tournament.status === "completed" ? "secondary" : "outline"}

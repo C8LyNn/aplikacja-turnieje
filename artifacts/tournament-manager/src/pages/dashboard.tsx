@@ -24,6 +24,7 @@ import { ExperimentalDashboardToolbar, type ExperimentalTournamentStatusFilter }
 import { ExperimentalDeleteTournamentDialog, ExperimentalTestDataDialog } from "@/features/experimental-tournaments/experimental-dashboard-dialogs";
 import { ExperimentalStatePanel } from "@/features/experimental-tournaments/experimental-ui";
 import { ExperimentalTournamentList } from "@/features/experimental-tournaments/experimental-tournament-list";
+import { ExperimentalDashboardStats } from "@/features/experimental-tournaments/experimental-dashboard-stats";
 
 const TEST_SIZES = [4, 8, 16, 32] as const;
 type TestSize = typeof TEST_SIZES[number];
@@ -50,7 +51,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 function experimentalSummary(counts: { all: number; draft: number; active: number; completed: number }): string {
   if (counts.all === 0) return "Nie masz jeszcze żadnego turnieju.";
-  return `Trwające: ${counts.active} · W przygotowaniu: ${counts.draft} · Zakończone: ${counts.completed}`;
+  return "Prowadź rozgrywki, etapy i wyniki w jednym miejscu.";
 }
 
 export default function Dashboard() {
@@ -250,6 +251,7 @@ export default function Dashboard() {
       <div className="organizer-workspace flex flex-col gap-6">
         <div className="organizer-header flex justify-between items-center gap-3 flex-wrap">
           <div>
+            {isExperimental && <p className="experimental-eyebrow">Centrum turniejów</p>}
             <h1 className="text-3xl font-bold tracking-tight text-primary">{isExperimental ? "Twoje turnieje" : "Turnieje"}</h1>
             <p className="text-muted-foreground">{isExperimental ? experimentalSummary(tournamentCounts) : "Zarządzaj rozgrywkami, drabinkami i wynikami."}</p>
           </div>
@@ -280,6 +282,10 @@ export default function Dashboard() {
             )}
           </div>
         </div>
+
+        {isExperimental && tournamentCounts.all > 0 && (
+          <ExperimentalDashboardStats counts={tournamentCounts} status={statusFilter} onStatusChange={setStatusFilter} />
+        )}
 
         {isExperimental && (
           <ExperimentalDashboardToolbar

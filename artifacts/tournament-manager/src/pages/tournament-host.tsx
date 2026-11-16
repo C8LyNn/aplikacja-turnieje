@@ -1428,13 +1428,16 @@ export default function TournamentHost() {
             <Link href={tournamentHref(id, isExperimental)} aria-label="Wróć do szczegółów turnieju"><ArrowLeft className="w-5 h-5" /></Link>
           </Button>
           <div className="flex-1 min-w-0">
+            {isExperimental && <p className="experimental-eyebrow">Prowadzenie na żywo</p>}
             <h1 className="text-xl font-bold flex items-center gap-2">
               <Swords className="text-primary w-5 h-5 shrink-0" />
               <span className="break-words">{tournament.name}</span>
             </h1>
-            <p className="text-xs text-muted-foreground">
-              Prowadzenie turnieju
-            </p>
+            {!isExperimental && (
+              <p className="text-xs text-muted-foreground">
+                Prowadzenie turnieju
+              </p>
+            )}
             <div className="mt-1">
               <ForcedHeroBadge gameConfig={tournament.gameConfig} compact />
             </div>

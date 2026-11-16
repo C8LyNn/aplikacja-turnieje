@@ -131,7 +131,7 @@ export function ExperimentalHostCommandCenter({
         />
         <ExperimentalMetricCard
           label="Zakończone"
-          tone="success"
+          tone="primary"
           value={dataLoading ? "…" : completedCount}
           meta={totalCount ? `z ${totalCount} w etapie` : "w bieżącym etapie"}
           icon={CircleCheck}
