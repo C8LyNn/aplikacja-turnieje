@@ -78,7 +78,7 @@ export function ExperimentalTestDataDialog({
           </fieldset>
 
           <div className="rounded-lg border border-border/70 bg-muted/20 px-3 py-2 text-xs leading-5 text-muted-foreground">
-            Format: <strong>Single Elimination</strong> · BO1 · bez seedów.
+            Format: <strong>drabinka eliminacyjna</strong> · BO1 · bez seedów.
           </div>
 
           <div className="space-y-1.5">

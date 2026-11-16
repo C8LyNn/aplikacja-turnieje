@@ -33,7 +33,7 @@ import {
   setActiveSupportToken,
   setActiveViewerToken,
 } from "@workspace/api-client-react";
-import { useEffect, useMemo } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Trophy } from "lucide-react";
 import { usePresentationTheme, resolvePresentationSettings } from "@/lib/presentation-theme";
 import { DEBracketCanvas } from "@/components/de-bracket-canvas";
@@ -88,6 +88,34 @@ export default function TournamentProjector() {
   const forceAspect = sp.get("aspect") === "169";
   // show-drops=0 hides UB→LB loser-drop connector lines; default on
   const showDropLines = sp.get("show-drops") !== "0";
+  // Experimental: without an explicit zoom/aspect the stage view is fitted to the screen,
+  // so it reads from a distance. An explicit ?zoom= or ?aspect=169 keeps the old behaviour.
+  const autoFit = isExperimental && !sp.has("zoom") && !forceAspect;
+  const fitRef = useRef<HTMLDivElement>(null);
+  const [fitScale, setFitScale] = useState(1);
+  useLayoutEffect(() => {
+    if (!autoFit) return;
+    const node = fitRef.current;
+    if (!node || typeof ResizeObserver === "undefined") return;
+    const measure = () => {
+      const header = document.querySelector<HTMLElement>(".experimental-projector-header");
+      const availableWidth = window.innerWidth - padding * 2;
+      const availableHeight = window.innerHeight - (header?.offsetHeight ?? 0) - padding * 2;
+      const width = node.scrollWidth;
+      const height = node.scrollHeight;
+      if (!width || !height || availableWidth <= 0 || availableHeight <= 0) return;
+      const next = Math.max(0.5, Math.min(availableWidth / width, availableHeight / height, 2.4));
+      setFitScale((current) => (Math.abs(current - next) > 0.01 ? next : current));
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(node);
+    window.addEventListener("resize", measure);
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", measure);
+    };
+  }, [autoFit, padding]);
 
   // No auth tokens — projector is read-only public access
   useEffect(() => {
@@ -207,7 +235,7 @@ export default function TournamentProjector() {
               className="font-mono uppercase tracking-widest text-muted-foreground"
               style={{ fontSize: compact ? "0.6rem" : "0.7rem" }}
             >
-              {publicStageLabel(publicStage)}
+              {publicStageLabel(publicStage, isExperimental)}
               {publicStage.currentRound && publicStage.totalRounds ? ` · Runda ${publicStage.currentRound}/${publicStage.totalRounds}` : ""}
             </p>
           )}
@@ -219,9 +247,10 @@ export default function TournamentProjector() {
         className="experimental-projector-canvas"
         style={{
           padding,
-          ...(forceAspect ? {} : { transform: `scale(${zoom})`, transformOrigin: "top left" }),
+          ...(forceAspect ? {} : autoFit ? {} : { transform: `scale(${zoom})`, transformOrigin: "top left" }),
         }}
       >
+        <ProjectorFit enabled={autoFit} fitRef={fitRef} scale={fitScale}>
         <ReadQueryState query={stagesQuery} loadingMessage="Ładowanie etapów…" errorMessage="Nie udało się pobrać etapów.">
         {!publicStage ? (
           <p className="py-20 text-center text-muted-foreground">Brak rozpoczętego etapu.</p>
@@ -247,7 +276,28 @@ export default function TournamentProjector() {
           </ReadQueryState>
         )}
         </ReadQueryState>
+        </ProjectorFit>
       </div>
+    </div>
+  );
+}
+
+/** Experimental auto-fit wrapper; renders its children untouched when disabled (Stable). */
+function ProjectorFit({
+  enabled,
+  fitRef,
+  scale,
+  children,
+}: {
+  enabled: boolean;
+  fitRef: React.RefObject<HTMLDivElement | null>;
+  scale: number;
+  children: React.ReactNode;
+}) {
+  if (!enabled) return <>{children}</>;
+  return (
+    <div ref={fitRef} className="experimental-projector-fit" style={{ transform: `scale(${scale})`, transformOrigin: "top center" }}>
+      {children}
     </div>
   );
 }

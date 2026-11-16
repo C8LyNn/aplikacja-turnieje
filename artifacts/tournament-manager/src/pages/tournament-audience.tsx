@@ -744,7 +744,7 @@ export default function TournamentAudience() {
           ) : marvelStage ? (
             <AudienceSectionShell
               title="Drabinka"
-              description={publicStageLabel(publicStage)}
+              description={publicStageLabel(publicStage, isExperimental)}
             >
               <div className="rounded-xl border border-white/8 bg-card p-4 text-foreground">
                 <MarvelEliminationStage
@@ -756,7 +756,7 @@ export default function TournamentAudience() {
           ) : doubleEliminationStage ? (
             <AudienceSectionShell
               title="Drabinka"
-              description={publicStageLabel(publicStage)}
+              description={publicStageLabel(publicStage, isExperimental)}
             >
               <ReadQueryState query={doubleEliminationQuery} loadingMessage="Ładowanie drabinki Double Elimination…" errorMessage="Nie udało się pobrać drabinki Double Elimination.">
                 {doubleEliminationQuery.data && <div className="rounded-xl border border-white/8 bg-card p-4 text-foreground">
@@ -768,7 +768,7 @@ export default function TournamentAudience() {
             <ReadQueryState query={bracketQuery} loadingMessage="Ładowanie drabinki…" errorMessage="Nie udało się pobrać drabinki.">
             <PublicBracketSection
               bracket={bracket}
-              stageLabel={publicStageLabel(publicStage)}
+              stageLabel={publicStageLabel(publicStage, isExperimental)}
               format={publicStage.format}
               currentRound={publicStage.currentRound}
               totalRounds={publicStage.totalRounds}

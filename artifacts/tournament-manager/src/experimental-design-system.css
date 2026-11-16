@@ -1549,3 +1549,89 @@ html[data-x-skin="classic"] :is(.experimental-tournament-shell, .experimental-to
 .experimental-dialog-close:hover { background: hsl(var(--foreground) / .08); color: hsl(var(--foreground)); }
 .experimental-dialog-close:focus-visible { outline: 2px solid hsl(var(--primary)); outline-offset: 2px; }
 .experimental-dialog-close:disabled { opacity: .4; }
+
+/* ── E2. Projector: readable from a distance, skin-aware ─────────────────── */
+.experimental-projector-view {
+  --x-a1: hsl(var(--primary));
+  --x-bg: hsl(var(--background));
+  --x-deep: color-mix(in oklab, hsl(var(--background)) 70%, #000 30%);
+}
+/* Classic preset (the default) adopts the skin's deep background; transparent OBS mode and
+   other presets keep their inline style. */
+.experimental-projector-view[data-exp-preset="classic"]:not([style*="transparent"]) {
+  background:
+    radial-gradient(80rem 40rem at 50% -14rem, color-mix(in oklab, var(--x-a1) 22%, transparent), transparent 70%),
+    linear-gradient(180deg, var(--x-bg), var(--x-deep)) !important;
+  color: hsl(var(--foreground)) !important;
+}
+.experimental-projector-view .experimental-projector-header {
+  padding-block: clamp(1rem, 2.5vh, 2rem) !important;
+  border-bottom: 2px solid color-mix(in oklab, var(--x-a1) 45%, transparent) !important;
+  background: linear-gradient(180deg, color-mix(in oklab, var(--x-a1) 10%, transparent), transparent);
+}
+.experimental-projector-view .experimental-projector-header h1 {
+  font-size: clamp(2.25rem, 1.2rem + 3.2vw, 4.75rem) !important;
+  letter-spacing: -.02em;
+  background-image: linear-gradient(90deg, hsl(var(--foreground)), color-mix(in oklab, var(--x-a1) 70%, hsl(var(--foreground)))) !important;
+}
+.experimental-projector-view .experimental-projector-header p {
+  font-size: clamp(.875rem, .6rem + .9vw, 1.5rem) !important;
+  letter-spacing: .14em;
+  color: color-mix(in oklab, var(--x-a1) 55%, hsl(var(--foreground))) !important;
+}
+.experimental-projector-fit { width: max-content; max-width: none; margin-inline: auto; }
+.experimental-projector-fit .overflow-x-auto { overflow: visible !important; }
+
+/* ── States: loading, error, empty, blocked ──────────────────────────────── */
+:is(.experimental-tournament-shell, .experimental-tournament-public, .experimental-tournament-stage-view, .experimental-projector-view)
+  .read-query-state--loading {
+  align-self: flex-start;
+  width: fit-content;
+  margin: .5rem 0;
+  padding: .5rem .875rem !important;
+  border-radius: 999px;
+  border: 1px solid var(--x-line, hsl(var(--border)));
+  background: var(--x-glass, hsl(var(--muted) / .3));
+}
+:is(.experimental-tournament-shell, .experimental-tournament-public, .experimental-tournament-stage-view, .experimental-projector-view)
+  .read-query-state--error {
+  border-left-width: 4px !important;
+  border-radius: var(--x-radius, .75rem) !important;
+  background: color-mix(in oklab, hsl(0 80% 64%) 8%, hsl(var(--card))) !important;
+}
+:is(.experimental-tournament-shell, .experimental-tournament-public) .organizer-empty-state {
+  border-radius: var(--x-radius-lg) !important;
+  border-color: var(--x-line-strong) !important;
+  background: repeating-linear-gradient(135deg, var(--x-glass) 0 10px, transparent 10px 20px) !important;
+  color: var(--x-text-2);
+}
+/* Disabled actions: visibly unavailable, no hover lift, explicit cursor. */
+:is(.experimental-tournament-shell, .experimental-tournament-create, .experimental-tournament-entry, .experimental-tournament-public)
+  :is(button, a[aria-disabled="true"]):is(:disabled, [aria-disabled="true"]) {
+  opacity: .5 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+  filter: none !important;
+  box-shadow: none !important;
+}
+/* Consistent icon size inside text buttons. */
+.experimental-tournament-shell main :is(button, a).inline-flex > svg:is([class*="h-3"], [class*="w-3"]) { width: 1rem; height: 1rem; }
+
+/* ── E1. Viewer: lighter header and tabs on phones ───────────────────────── */
+.experimental-tournament-public .overflow-x-auto { scrollbar-width: none; }
+.experimental-tournament-public .overflow-x-auto::-webkit-scrollbar { display: none; }
+.experimental-tournament-public nav .overflow-x-auto,
+.experimental-tournament-public > * .max-w-5xl.overflow-x-auto { scroll-padding-inline: 3rem; }
+.experimental-tournament-public .max-w-5xl.overflow-x-auto :is(a, button) { min-height: var(--x-tap); }
+@media (max-width: 767px) {
+  .experimental-tournament-public .max-w-5xl.overflow-x-auto {
+    -webkit-mask-image: linear-gradient(90deg, #000 85%, transparent);
+    mask-image: linear-gradient(90deg, #000 85%, transparent);
+  }
+  /* Pause / waiting hero: present, but not a whole screen. */
+  .experimental-tournament-public .max-w-lg > .py-14 { padding-block: 1.75rem; gap: .75rem; }
+  .experimental-tournament-public .max-w-lg > .py-14 > :first-child { transform: scale(.8); }
+}
+@media (max-width: 639px) {
+  :is(.experimental-test-data-dialog, .experimental-delete-dialog) { width: calc(100vw - 1.5rem) !important; border-radius: 1rem !important; }
+}

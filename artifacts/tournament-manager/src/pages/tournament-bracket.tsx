@@ -276,7 +276,7 @@ export default function TournamentBracket() {
           {tournament.name}
         </h1>
         <p className="text-base text-muted-foreground mt-1 font-mono uppercase tracking-widest relative z-10">
-          {publicStageLabel(publicStage)} · {marvelStage
+          {publicStageLabel(publicStage, isExperimental)} · {marvelStage
             ? "Marvel — Eliminacyjne grupy"
             : ((isExperimental ? (STAGE_FORMAT_LABELS as Record<string, string>)[publicStage?.format ?? ""] : undefined) ?? FORMAT_LABELS[publicStage?.format ?? ""] ?? publicStage?.format)}
           {publicStage?.currentRound && publicStage.totalRounds

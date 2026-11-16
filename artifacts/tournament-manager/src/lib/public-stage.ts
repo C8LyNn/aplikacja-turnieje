@@ -20,6 +20,9 @@ export function publicStageBracket(bracket: Bracket | undefined, stage: Tourname
   return { ...bracket, rounds, winner: winner ? { id: winner.id!, name: winner.name! } : undefined };
 }
 
-export function publicStageLabel(stage: TournamentStage | undefined) {
-  return stage ? `${stage.name} — Etap ${stage.position}` : "Brak rozpoczętego etapu.";
+export function publicStageLabel(stage: TournamentStage | undefined, omitRedundantPosition = false) {
+  if (!stage) return "Brak rozpoczętego etapu.";
+  // Experimental views skip "— Etap N" when the stage name already is "Etap N".
+  if (omitRedundantPosition && stage.name.trim().toLowerCase() === `etap ${stage.position}`) return stage.name;
+  return `${stage.name} — Etap ${stage.position}`;
 }
