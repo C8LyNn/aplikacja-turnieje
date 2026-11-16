@@ -287,6 +287,9 @@ export default function TournamentDetail() {
   const managementRole = managementRoleForCapabilities(capabilities, !!orgToken, !!supSession, role);
   const activeDetailTab = organizerDetailTab(search, capabilities);
   const activeArea = organizerAreaForDetailTab(activeDetailTab);
+  // Experimental: work tabs (players, baskets, matches…) open straight on their content; the
+  // tournament-wide next step and operations overview stay on the stage panel and the overview.
+  const experimentalWorkTab = isExperimental && activeDetailTab !== "stages" && activeDetailTab !== "overview";
   const operation = useOrganizerOperation({ tournament, stages, matches: tournament?.status === "draft" ? [] : matches,
     capabilities, surface: "details", enabled: !!managementRole && readOk });
   const nextStep = operation.nextStep;
@@ -706,14 +709,14 @@ export default function TournamentDetail() {
         {managementRole && (
           <TournamentOrganizerNavigation tournamentId={id} active={activeArea} capabilities={capabilities} />
         )}
-        {nextStep && (
+        {nextStep && !experimentalWorkTab && (
           <OrganizerNextStep
             step={nextStep}
             onAction={nextStep.kind === "planned_stage" && !capabilities.canManageLifecycle ? handleStart : undefined}
             pending={startTournament.isPending}
           />
         )}
-        {managementRole && (
+        {managementRole && !experimentalWorkTab && (
           <TournamentOperationsOverview
             tournamentId={id}
             enabled={readOk && preparedAuthId === id}
@@ -756,8 +759,8 @@ export default function TournamentDetail() {
         {/* Authenticated badge */}
         {orgToken && !tournament.hasOrganizerPassword && <OrganizerRecoveryNotice tournamentId={id} />}
         {tournament.hasOrganizerPassword && isAuthenticated && (
-          <div className="bg-green-500/10 border border-green-500/30 rounded-lg px-4 py-2.5 flex items-center gap-2">
-            <Shield className="w-4 h-4 text-green-400 shrink-0" />
+          <div className={`bg-green-500/10 border border-green-500/30 rounded-lg px-4 py-2.5 flex items-center gap-2 ${isExperimental ? "experimental-session-chip" : ""}`}>
+            <Shield className="w-4 h-4 text-green-400 shrink-0" aria-hidden="true" />
             <p className="text-sm text-green-400 font-medium">
               {orgToken ? "Zalogowano jako organizator" : `Zalogowano jako wsparcie (${supSession?.nick})`}
             </p>
@@ -1176,7 +1179,7 @@ export default function TournamentDetail() {
                                 <div>
                                   <div className="flex items-center gap-2">
                                     <span className="font-semibold">{p.name}</span>
-                                    {p.seed != null && <Badge variant="outline" className="text-xs">#{p.seed}</Badge>}
+                                    {p.seed != null && <Badge variant="outline" className="text-xs" aria-label={isExperimental ? `Rozstawienie ${p.seed}` : undefined}>#{p.seed}</Badge>}
                                   </div>
                                   <div className="flex gap-3 mt-0.5">
                                     {p.rank && <span className="text-xs text-muted-foreground">{p.rank}</span>}
@@ -1215,7 +1218,7 @@ export default function TournamentDetail() {
                                     </Button>
                                   )}
                                   {capabilities.canManageParticipants && (
-                                    <Button variant="ghost" size="icon" onClick={() => handleStartEdit(p)} className="text-muted-foreground hover:text-foreground h-8 w-8">
+                                    <Button variant="ghost" size="icon" onClick={() => handleStartEdit(p)} className="text-muted-foreground hover:text-foreground h-8 w-8" aria-label={isExperimental ? `Edytuj gracza ${p.name}` : undefined} title={isExperimental ? "Edytuj gracza" : undefined}>
                                       <Pencil className="w-3.5 h-3.5" />
                                     </Button>
                                   )}
@@ -1230,7 +1233,7 @@ export default function TournamentDetail() {
                                         </Button>
                                       </div>
                                     ) : (
-                                      <Button variant="ghost" size="icon" onClick={() => handleDeletePlayer(p.id)} className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8">
+                                      <Button variant="ghost" size="icon" onClick={() => handleDeletePlayer(p.id)} className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8" aria-label={isExperimental ? `Usuń gracza ${p.name}` : undefined} title={isExperimental ? "Usuń gracza" : undefined}>
                                         <Trash2 className="w-3.5 h-3.5" />
                                       </Button>
                                     )

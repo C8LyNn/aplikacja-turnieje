@@ -6,6 +6,7 @@ import { format } from "date-fns";
 import { pl } from "date-fns/locale";
 import { AppLogoLink, RoleSelectionLink } from "@/components/app-navigation";
 import { isExperimentalTournamentPath, tournamentHref } from "@/features/experimental-tournaments/experimental-tournament-routing";
+import { STAGE_FORMAT_LABELS } from "@/lib/tournament-stages-ui";
 
 const STATUS_LABELS: Record<string, string> = {
   active: "AKTYWNY",
@@ -97,7 +98,7 @@ export default function FanView() {
                       {STATUS_LABELS[t.status] ?? t.status}
                     </span>
                   </div>
-                  <p className="text-sm text-muted-foreground">{FORMAT_LABELS[t.format] ?? t.format}</p>
+                  <p className="text-sm text-muted-foreground">{(isExperimental ? (STAGE_FORMAT_LABELS as Record<string, string>)[t.format] : undefined) ?? FORMAT_LABELS[t.format] ?? t.format}</p>
                   <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-border/50">
                     <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{format(new Date(t.createdAt), "d MMM yyyy", { locale: pl })}</span>
                     {t.maxPlayers && <span className="flex items-center gap-1"><Users className="w-3 h-3" />maks. {t.maxPlayers}</span>}

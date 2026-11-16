@@ -1,6 +1,7 @@
 import { AlertTriangle, FlaskConical, Lock, Trash2, X } from "lucide-react";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
   DialogDescription,
   DialogFooter,
@@ -40,13 +41,16 @@ export function ExperimentalTestDataDialog({
             <div className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-primary/12">
               <FlaskConical className="h-5 w-5 text-primary" aria-hidden="true" />
             </div>
-            <div className="min-w-0">
+            <div className="min-w-0 flex-1">
               <DialogTitle>Dane testowe</DialogTitle>
               <DialogDescription className="mt-1 leading-6">
-                Utwórz szybki turniej Single Elimination z przykładowymi graczami.
+                Utwórz szybki turniej (drabinka eliminacyjna) z przykładowymi graczami.
                 To narzędzie QA — możesz usunąć turniej po zakończeniu testów.
               </DialogDescription>
             </div>
+            <DialogClose className="experimental-dialog-close" aria-label="Zamknij okno Dane testowe">
+              <X className="h-4 w-4" aria-hidden="true" />
+            </DialogClose>
           </div>
         </DialogHeader>
 
@@ -144,6 +148,9 @@ export function ExperimentalDeleteTournamentDialog({
                 wraz z graczami, meczami i historią wyników.
               </DialogDescription>
             </div>
+            <DialogClose className="experimental-dialog-close" aria-label="Zamknij okno Usuń turniej" disabled={loading}>
+              <X className="h-4 w-4" aria-hidden="true" />
+            </DialogClose>
           </div>
         </DialogHeader>
 

@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { FlaskConical, Users, Lock, User, Trophy } from "lucide-react";
 import { AppLogoLink, RoleSelectionLink } from "@/components/app-navigation";
 import { isExperimentalTournamentPath, tournamentHref } from "@/features/experimental-tournaments/experimental-tournament-routing";
+import { STAGE_FORMAT_LABELS } from "@/lib/tournament-stages-ui";
 
 const FORMAT_LABELS: Record<string, string> = {
   single_elimination: "Drabinka eliminacyjna",
@@ -113,7 +114,7 @@ export default function SupportEntry() {
                 className={`w-full text-left border border-border rounded-xl p-4 bg-card hover:border-green-500/50 hover:bg-green-500/5 transition-all ${isExperimental ? "experimental-support-tournament-card" : ""}`}
               >
                 <div className="font-semibold">{t.name}</div>
-                <div className="text-sm text-muted-foreground">{FORMAT_LABELS[t.format] ?? t.format}</div>
+                <div className="text-sm text-muted-foreground">{(isExperimental ? (STAGE_FORMAT_LABELS as Record<string, string>)[t.format] : undefined) ?? FORMAT_LABELS[t.format] ?? t.format}</div>
               </button>
             ))}
           </div>

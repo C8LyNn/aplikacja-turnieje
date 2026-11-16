@@ -48,6 +48,7 @@ import {
   resolvePresentationSettings,
 } from "@/lib/presentation-theme";
 import { tournamentHref, useTournamentRoute } from "@/features/experimental-tournaments/experimental-tournament-routing";
+import { STAGE_FORMAT_LABELS } from "@/lib/tournament-stages-ui";
 
 const FORMAT_LABELS: Record<string, string> = {
   single_elimination: "Drabinka eliminacyjna",
@@ -571,7 +572,7 @@ export default function TournamentAudience() {
                 </div>
               )}
               <Badge className="mt-2 bg-yellow-500/15 text-yellow-400 border-yellow-500/30 text-sm px-4 py-1">
-                {FORMAT_LABELS[tournament.format] ?? tournament.format}
+                {(isExperimental ? (STAGE_FORMAT_LABELS as Record<string, string>)[tournament.format] : undefined) ?? FORMAT_LABELS[tournament.format] ?? tournament.format}
               </Badge>
             </div>
           </section>
@@ -707,7 +708,7 @@ export default function TournamentAudience() {
         {/* Format label at the very bottom */}
         {tournament?.format && (
           <p className="text-[11px] text-white/15 uppercase tracking-widest font-mono mt-2">
-            {FORMAT_LABELS[tournament.format] ?? tournament.format}
+            {(isExperimental ? (STAGE_FORMAT_LABELS as Record<string, string>)[tournament.format] : undefined) ?? FORMAT_LABELS[tournament.format] ?? tournament.format}
           </p>
         )}
         </ReadQueryState>

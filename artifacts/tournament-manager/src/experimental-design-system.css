@@ -1277,3 +1277,275 @@ html[data-x-skin="classic"] :is(.experimental-tournament-shell, .experimental-to
     radial-gradient(120% 120% at 0% 0%, color-mix(in oklab, var(--p) 45%, transparent), transparent 70%),
     hsl(var(--background));
 }
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   v3 — finishing the Arena screens (players, stages, baskets, match, viewer).
+   Same tokens and recipes as above; nothing new to personalise.
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Shared: status pill language used across v3 screens ─────────────────── */
+:is(.experimental-tournament-shell, .experimental-tournament-public, .experimental-tournament-stage-view) {
+  --x-status-planned: var(--x-a2);
+  --x-tap: 2.75rem; /* minimum comfortable touch target */
+}
+
+/* Session chip: one slim line with the logout action, not a full-width banner. */
+.experimental-tournament-shell .experimental-session-chip {
+  align-self: flex-start;
+  gap: .5rem !important;
+  padding: .3rem .4rem .3rem .75rem !important;
+  border-radius: 999px !important;
+  border-color: hsl(var(--x-live) / .35) !important;
+  background: hsl(var(--x-live) / .1) !important;
+}
+.experimental-tournament-shell .experimental-session-chip p { font-size: .75rem; color: hsl(var(--x-live)) !important; }
+.experimental-tournament-shell .experimental-session-chip button {
+  margin-left: .5rem !important;
+  min-height: 1.875rem;
+  padding-inline: .7rem;
+  border-radius: 999px;
+  background: var(--x-glass);
+  color: var(--x-text) !important;
+  font-weight: 600;
+}
+.experimental-tournament-shell .experimental-session-chip button:hover { background: var(--x-glass-2); }
+
+/* Section tabs: larger touch targets; the bar scrolls by itself, never the page. */
+.experimental-tournament-shell .organizer-navigation { max-width: 100%; }
+.experimental-tournament-shell .organizer-navigation :is(a, button) { min-height: var(--x-tap); padding-inline: 1rem; white-space: nowrap; }
+.experimental-tournament-shell .organizer-navigation > * { scroll-snap-type: x proximity; scroll-padding-inline: 4rem; }
+.experimental-tournament-shell .organizer-navigation > * > * { scroll-snap-align: start; }
+
+/* ── A. Players ──────────────────────────────────────────────────────────── */
+/* When the side panel (add player) is not shown, the list uses the full width. */
+.experimental-players-surface > .grid:has(> :nth-child(2):empty) > .md\:col-span-2 { grid-column: 1 / -1; }
+.experimental-players-surface > .grid > :nth-child(2):empty { display: none; }
+.experimental-players-surface .experimental-player-toolbar {
+  position: sticky;
+  top: calc(3.75rem + 4rem);
+  z-index: 5;
+  border-radius: var(--x-radius-lg) !important;
+  background: color-mix(in oklab, var(--x-card-bot) 88%, transparent) !important;
+  backdrop-filter: blur(12px);
+}
+.experimental-players-surface .experimental-player-list { max-height: none; overflow: visible; display: grid; gap: .375rem; }
+.experimental-players-surface .experimental-player-list > * + * { margin-top: 0 !important; }
+.experimental-players-surface .experimental-player-row {
+  --tone: hsl(var(--x-done));
+  position: relative;
+  border-color: var(--x-line) !important;
+  border-radius: var(--x-radius) !important;
+  background: linear-gradient(90deg, color-mix(in oklab, var(--tone) 9%, transparent), transparent 45%), var(--x-card-bot) !important;
+  box-shadow: inset 3px 0 0 var(--tone);
+  transition: border-color 140ms var(--x-ease), background-color 140ms var(--x-ease);
+}
+.experimental-players-surface .experimental-player-row[data-exp-player-status="active"] { --tone: hsl(var(--x-live)); }
+.experimental-players-surface .experimental-player-row[data-exp-player-status="winner"] { --tone: var(--x-gold); }
+.experimental-players-surface .experimental-player-row[data-exp-player-status="registered"] { --tone: var(--x-a2); }
+.experimental-players-surface .experimental-player-row[data-exp-player-status="eliminated"] { --tone: hsl(var(--x-danger) / .8); }
+.experimental-players-surface .experimental-player-row[data-exp-player-status="eliminated"] .font-semibold { color: var(--x-text-2); }
+.experimental-players-surface .experimental-player-row:hover,
+.experimental-players-surface .experimental-player-row:focus-within { border-color: color-mix(in oklab, var(--tone) 50%, transparent) !important; }
+.experimental-players-surface .experimental-player-row > div:first-child { min-height: 3.5rem; padding: .55rem .75rem .55rem 1rem; gap: .75rem; }
+.experimental-players-surface .experimental-player-row .font-semibold { font-size: .9375rem; }
+/* Seed reads as a fixed-width chip so the column of seeds lines up. */
+.experimental-players-surface .experimental-player-row [aria-label^="Rozstawienie"] {
+  min-width: 2.5rem;
+  justify-content: center;
+  border-radius: .5rem;
+  border-color: color-mix(in oklab, var(--x-a1) 35%, transparent);
+  background: color-mix(in oklab, var(--x-a1) 12%, transparent);
+  color: color-mix(in oklab, var(--x-a1) 75%, var(--x-text));
+  font-variant-numeric: tabular-nums;
+}
+.experimental-players-surface .experimental-player-row .font-mono { font-variant-numeric: tabular-nums; color: var(--x-text-2); }
+/* Status badge: tinted pill + text, never colour alone. */
+.experimental-players-surface .experimental-player-row > div:first-child > div:last-child > div[class*="rounded-md"] {
+  border: 1px solid color-mix(in oklab, var(--tone) 45%, transparent) !important;
+  background: color-mix(in oklab, var(--tone) 15%, transparent) !important;
+  color: color-mix(in oklab, var(--tone) 70%, var(--x-text)) !important;
+  border-radius: 999px;
+  box-shadow: none;
+}
+.experimental-players-surface .experimental-player-row button { min-width: 2.25rem; min-height: 2.25rem; border-radius: .6rem; }
+@media (max-width: 639px) {
+  .experimental-players-surface .experimental-player-toolbar { position: static; }
+  .experimental-players-surface .experimental-player-row > div:first-child { flex-wrap: wrap; }
+  .experimental-players-surface .experimental-player-row > div:first-child > div:last-child { width: 100%; justify-content: flex-end; }
+  .experimental-players-surface .experimental-player-row > div:first-child > div:last-child .font-mono { margin-right: auto; }
+}
+
+/* ── B. Stages ───────────────────────────────────────────────────────────── */
+.experimental-stages-surface .organizer-stage-navigation { gap: 1.25rem; padding: .25rem .25rem .75rem; }
+.experimental-stages-surface .organizer-stage-card {
+  --tone: var(--x-status-planned);
+  min-width: 14rem;
+  padding: .875rem 1rem !important;
+  border-radius: var(--x-radius-lg) !important;
+  border: 1px dashed color-mix(in oklab, var(--tone) 45%, transparent) !important;
+  background: linear-gradient(180deg, color-mix(in oklab, var(--tone) 8%, transparent), transparent 70%), var(--x-card-bot) !important;
+  box-shadow: none !important;
+  transition: transform 160ms var(--x-ease), border-color 160ms var(--x-ease), box-shadow 160ms var(--x-ease);
+}
+.experimental-stages-surface .organizer-stage-card[data-exp-stage-status="active"] {
+  --tone: hsl(var(--x-live));
+  border-style: solid !important;
+  border-color: color-mix(in oklab, var(--tone) 60%, transparent) !important;
+  box-shadow: 0 14px 34px -22px var(--tone), inset 0 0 0 1px color-mix(in oklab, var(--tone) 20%, transparent) !important;
+}
+.experimental-stages-surface .organizer-stage-card[data-exp-stage-status="completed"] { --tone: var(--x-gold); border-style: solid !important; opacity: 1; }
+.experimental-stages-surface .organizer-stage-card[aria-pressed="true"] { outline: 2px solid color-mix(in oklab, var(--x-a1) 70%, transparent); outline-offset: 3px; }
+.experimental-stages-surface .organizer-stage-card:hover { transform: translateY(-2px); }
+.experimental-stages-surface .organizer-stage-card:not(:last-child)::after {
+  right: -1.15rem; width: 1rem; height: 2px; border-radius: 2px;
+  background: linear-gradient(90deg, var(--tone), color-mix(in oklab, var(--tone) 20%, transparent));
+}
+.experimental-stages-surface .organizer-stage-card svg { color: var(--tone) !important; }
+/* Stage status chips: planned / active / completed are told apart by text and colour. */
+.experimental-stages-surface [data-stage-status] {
+  --tone: var(--x-status-planned);
+  border: 1px solid color-mix(in oklab, var(--tone) 45%, transparent) !important;
+  border-radius: 999px !important;
+  background: color-mix(in oklab, var(--tone) 15%, transparent) !important;
+  color: color-mix(in oklab, var(--tone) 72%, var(--x-text)) !important;
+  box-shadow: none !important;
+}
+.experimental-stages-surface [data-stage-status="active"] { --tone: hsl(var(--x-live)); }
+.experimental-stages-surface [data-stage-status="completed"] { --tone: var(--x-gold); }
+.experimental-stages-surface .organizer-stage-detail h3 { font-size: 1.375rem; letter-spacing: -.015em; }
+.experimental-stages-surface .organizer-stage-detail[data-exp-stage-status="active"] { --tone: hsl(var(--x-live)); }
+.experimental-stages-surface .organizer-stage-detail[data-exp-stage-status="completed"] { --tone: var(--x-gold); }
+.experimental-stages-surface :is(table th) { white-space: nowrap; font-size: .6875rem; letter-spacing: .06em; text-transform: uppercase; color: var(--x-text-2); }
+.experimental-stages-surface table tbody tr:hover { background: var(--x-glass); }
+.experimental-stages-surface table tbody tr td:first-child { font-variant-numeric: tabular-nums; }
+
+/* ── C. Baskets: participant flow map ────────────────────────────────────── */
+.experimental-baskets-surface .organizer-flow-map {
+  padding: 1.25rem !important;
+  border-color: var(--x-line) !important;
+  border-radius: var(--x-radius-lg) !important;
+  background:
+    radial-gradient(circle at 1px 1px, color-mix(in oklab, hsl(var(--foreground)) 7%, transparent) 1px, transparent 0) 0 0 / 18px 18px,
+    color-mix(in oklab, var(--x-deep) 60%, transparent) !important;
+}
+.experimental-baskets-surface .organizer-flow-stage {
+  --tone: var(--x-status-planned);
+  min-width: 17rem;
+  border-color: color-mix(in oklab, var(--tone) 40%, transparent) !important;
+  border-radius: var(--x-radius-lg) !important;
+  background: linear-gradient(180deg, var(--x-card-top), var(--x-card-bot)) !important;
+  box-shadow: var(--x-shadow), inset 0 3px 0 var(--tone);
+  overflow: hidden;
+}
+.experimental-baskets-surface .organizer-flow-stage[data-exp-stage-status="active"] { --tone: hsl(var(--x-live)); }
+.experimental-baskets-surface .organizer-flow-stage[data-exp-stage-status="completed"] { --tone: var(--x-gold); }
+.experimental-baskets-surface .organizer-flow-stage-header { background: color-mix(in oklab, var(--tone) 8%, transparent) !important; border-color: var(--x-line) !important; padding: .75rem 1rem !important; }
+.experimental-baskets-surface .organizer-flow-stage-header > .font-semibold { font-size: 1rem; }
+.experimental-baskets-surface .organizer-flow-stage-body { gap: .75rem; padding: .875rem 1rem !important; }
+.experimental-baskets-surface .organizer-basket {
+  --btone: var(--x-a1);
+  border-radius: var(--x-radius) !important;
+  border-color: color-mix(in oklab, var(--btone) 40%, transparent) !important;
+  background: color-mix(in oklab, var(--btone) 9%, var(--x-card-bot)) !important;
+}
+.experimental-baskets-surface .organizer-basket[data-exp-basket-type="output"] { --btone: var(--x-a3); }
+.experimental-baskets-surface .organizer-basket > div:first-child { font-size: .875rem; }
+/* Locked: read-only is shown by a label and a solid-but-muted frame, not by colour alone. */
+.experimental-baskets-surface .organizer-flow-stage[data-exp-locked="true"] .organizer-flow-stage-header > .font-semibold::after {
+  content: "tylko odczyt";
+  margin-left: .5rem;
+  padding: .05rem .45rem;
+  border-radius: 999px;
+  border: 1px solid var(--x-line-strong);
+  font-size: .625rem;
+  font-weight: 700;
+  letter-spacing: .06em;
+  text-transform: uppercase;
+  color: var(--x-text-2);
+  vertical-align: middle;
+}
+.experimental-baskets-surface .organizer-basket[data-exp-locked="true"] { border-style: solid; }
+.experimental-baskets-surface .organizer-basket[data-exp-locked="false"] { border-style: dashed; cursor: pointer; }
+.experimental-baskets-surface .organizer-basket[data-exp-locked="false"]:hover { border-color: color-mix(in oklab, var(--btone) 70%, transparent) !important; }
+/* Route between stages: an arrow link, source and target named in full. */
+.experimental-baskets-surface .organizer-route-summary { padding-inline: .5rem; }
+.experimental-baskets-surface .organizer-route-summary > [role="listitem"] {
+  min-width: 13rem;
+  border-color: color-mix(in oklab, var(--x-a1) 40%, transparent) !important;
+  border-radius: var(--x-radius) !important;
+  background: color-mix(in oklab, var(--x-a1) 8%, var(--x-card-bot)) !important;
+}
+.experimental-baskets-surface .organizer-route-summary svg { color: var(--x-a1) !important; filter: drop-shadow(0 0 6px color-mix(in oklab, var(--x-a1) 60%, transparent)); }
+.experimental-baskets-surface .organizer-notice--error,
+.experimental-baskets-surface [data-testid="baskets-validation-warning"] {
+  border-width: 1px;
+  border-left-width: 4px !important;
+  border-radius: var(--x-radius) !important;
+}
+@media (max-width: 767px) {
+  /* Phones: stages stack top to bottom; routes sit between them as arrows down. */
+  .experimental-baskets-surface .organizer-flow-map > * { flex-direction: column !important; align-items: stretch !important; }
+  .experimental-baskets-surface .organizer-flow-stage { min-width: 0; width: 100%; }
+  .experimental-baskets-surface .organizer-route-summary { align-self: stretch !important; padding: 0; }
+  .experimental-baskets-surface .organizer-route-summary > [role="listitem"] { min-width: 0; }
+  .experimental-baskets-surface .organizer-flow-stage-body { grid-template-columns: 1fr !important; }
+}
+
+/* ── D. Match scoreboard ─────────────────────────────────────────────────── */
+.experimental-host-primary > div:first-child { flex-wrap: wrap; row-gap: .5rem; }
+.experimental-host-primary > div:first-child > div:first-child { flex-wrap: wrap; min-width: 0; }
+.experimental-host-primary > div:first-child .text-sm.font-semibold { font-size: .9375rem; letter-spacing: .01em; }
+/* Format selector: segmented control, current format clearly filled. */
+.experimental-host-primary > div:first-child button.rounded {
+  min-height: 2rem;
+  min-width: 2.75rem;
+  border-radius: 999px !important;
+  font-variant-numeric: tabular-nums;
+}
+.experimental-host-primary .font-mono.text-5xl { font-size: clamp(3rem, 2rem + 3vw, 4.5rem); line-height: 1; }
+.experimental-host-primary .flex-1 .font-extrabold { font-size: clamp(1.125rem, .9rem + 1vw, 1.75rem); }
+.experimental-host-primary .flex-1 button.rounded-full { width: var(--x-tap); height: var(--x-tap); }
+@media (max-width: 639px) {
+  .experimental-host-primary > div:first-child > div:last-child { width: 100%; justify-content: space-between; }
+  /* Sides stack as two rows: name on the left, score controls on the right. */
+  .experimental-host-primary .flex.items-center.justify-center:has(> .flex-1) {
+    flex-direction: column;
+    align-items: stretch;
+    gap: .5rem !important;
+  }
+  .experimental-host-primary .flex.items-center.justify-center > .flex-1 {
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: space-between;
+    gap: .5rem !important;
+    padding: .625rem .625rem .625rem .875rem;
+    border-radius: var(--x-radius);
+    background: color-mix(in oklab, var(--side) 10%, transparent);
+    box-shadow: inset 3px 0 0 var(--side);
+  }
+  .experimental-host-primary .flex.items-center.justify-center > .flex-1 > div:first-child { text-align: left !important; padding: 0 !important; min-width: 0; flex: 1 1 auto; }
+  .experimental-host-primary .flex-1 .font-extrabold { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; overflow-wrap: anywhere; font-size: 1.125rem; }
+  .experimental-host-primary .flex.items-center.justify-center > .flex-1 > div:last-child { gap: .375rem !important; flex: 0 0 auto; }
+  .experimental-host-primary .font-mono.text-5xl { width: 2.75rem !important; font-size: 2.5rem; }
+  /* The ":" divider becomes a thin row with the "first to N" hint. */
+  .experimental-host-primary .flex.items-center.justify-center > .shrink-0 { flex-direction: row !important; justify-content: center; gap: .5rem !important; }
+  .experimental-host-primary .flex.items-center.justify-center > .shrink-0 > span:first-child { display: none; }
+}
+
+/* ── Dialogs (portaled, so styled by their own class) ────────────────────── */
+:is(.experimental-test-data-dialog, .experimental-delete-dialog) > button.absolute { display: none; }
+.experimental-delete-dialog .min-w-0:has(> h2) { flex: 1 1 auto; }
+.experimental-dialog-close {
+  flex: 0 0 auto;
+  display: inline-grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  margin: -.25rem -.25rem 0 0;
+  border-radius: .6rem;
+  color: hsl(var(--muted-foreground));
+  transition: background-color 120ms ease, color 120ms ease;
+}
+.experimental-dialog-close:hover { background: hsl(var(--foreground) / .08); color: hsl(var(--foreground)); }
+.experimental-dialog-close:focus-visible { outline: 2px solid hsl(var(--primary)); outline-offset: 2px; }
+.experimental-dialog-close:disabled { opacity: .4; }

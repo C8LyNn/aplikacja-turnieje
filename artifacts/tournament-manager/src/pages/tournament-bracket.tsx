@@ -26,6 +26,7 @@ import { useState, useRef, useCallback, useEffect, useMemo } from "react";
 import { usePresentationTheme, resolvePresentationSettings } from "@/lib/presentation-theme";
 import { selectPublicStage, publicStageBracket, publicStageLabel } from "@/lib/public-stage";
 import { tournamentHref, useTournamentRoute } from "@/features/experimental-tournaments/experimental-tournament-routing";
+import { STAGE_FORMAT_LABELS } from "@/lib/tournament-stages-ui";
 
 const FORMAT_LABELS: Record<string, string> = {
   single_elimination: "Drabinka eliminacyjna",
@@ -277,7 +278,7 @@ export default function TournamentBracket() {
         <p className="text-base text-muted-foreground mt-1 font-mono uppercase tracking-widest relative z-10">
           {publicStageLabel(publicStage)} · {marvelStage
             ? "Marvel — Eliminacyjne grupy"
-            : (FORMAT_LABELS[publicStage?.format ?? ""] ?? publicStage?.format)}
+            : ((isExperimental ? (STAGE_FORMAT_LABELS as Record<string, string>)[publicStage?.format ?? ""] : undefined) ?? FORMAT_LABELS[publicStage?.format ?? ""] ?? publicStage?.format)}
           {publicStage?.currentRound && publicStage.totalRounds
             ? ` · Runda ${publicStage.currentRound}/${publicStage.totalRounds}`
             : ""}

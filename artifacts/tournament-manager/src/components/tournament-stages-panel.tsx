@@ -929,8 +929,8 @@ export function TournamentStagesPanel({
               <div>
                 <div className="flex flex-wrap items-center gap-2">
                   <h3 className="text-lg font-bold">{selected.name}</h3>
-                  <Badge>{STAGE_STATUS_LABELS[selected.status]}</Badge>
-                  {selected.status === "active" && (
+                  <Badge data-stage-status={isExperimental ? selected.status : undefined}>{STAGE_STATUS_LABELS[selected.status]}</Badge>
+                  {selected.status === "active" && !isExperimental && (
                     <Badge className="bg-green-500/15 text-green-600">
                       Aktualny etap
                     </Badge>
