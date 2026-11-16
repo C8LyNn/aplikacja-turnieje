@@ -1126,7 +1126,7 @@ html[data-x-skin="classic"] :is(.experimental-tournament-shell, .experimental-to
 }
 .experimental-appearance-trigger:hover { background: color-mix(in oklab, hsl(var(--primary)) 22%, transparent); }
 .experimental-appearance-trigger[data-state="open"] { border-color: hsl(var(--primary)); }
-@media (max-width: 639px) { .experimental-appearance-trigger-label { display: none; } }
+@media (max-width: 1679px) { .experimental-appearance-trigger-label { display: none; } .experimental-appearance-trigger { padding-inline: .6rem; } }
 
 .experimental-appearance-panel {
   --p: hsl(var(--primary));

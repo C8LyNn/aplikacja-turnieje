@@ -111,7 +111,7 @@ export function ExperimentalAppearanceControl() {
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <button type="button" className="experimental-appearance-trigger" aria-label="Wygląd: tło i kolory">
+        <button type="button" className="experimental-appearance-trigger" aria-label="Wygląd: tło i kolory" title="Wygląd: skórka, tło i kolory">
           <Palette className="h-4 w-4" aria-hidden="true" />
           <span className="experimental-appearance-trigger-label">Wygląd</span>
         </button>
