@@ -5,6 +5,7 @@
  * Tournament Manager API
  * OpenAPI spec version: 0.1.0
  */
+import type { StandingDecidedBy } from './standingDecidedBy';
 import type { StandingStatus } from './standingStatus';
 
 export interface Standing {
@@ -28,4 +29,18 @@ export interface Standing {
   gameDiff: number;
   /** @nullable */
   buchholz: number | null;
+  /** V5.3: draws (0 without league rules). */
+  matchDraws?: number;
+  /**
+     * V5.3: league points; null when the stage has no league rules.
+     * @nullable
+     */
+  points?: number | null;
+  /**
+     * V5.3: what placed this row below the previous one.
+     * @nullable
+     */
+  decidedBy?: StandingDecidedBy;
+  /** V5.3: every configured criterion left this row level; seeding decided. */
+  tiedAfterAllRules?: boolean;
 }

@@ -41,6 +41,8 @@ import {
   type StageHeadToHeadResult,
 } from "../../domain/tournament/stage-ranking";
 import { calculateMatchRecordStandings } from "../../domain/tournament/standings";
+import { leagueRulesFromStorage } from "../../domain/tournament/league-rules";
+import { applySchedulePlanAtStart } from "./apply-schedule-plan";
 import { generateSwissPairings } from "../../domain/tournament/swiss";
 import {
   revalidateTournamentMutationActor,
@@ -219,7 +221,7 @@ export function calculateRanking(
   const format = stage.format === "swiss" ? "swiss" : stage.format === "round_robin" ? "round_robin" : null;
   const projections = format == null
     ? calculateMatchRecordStandings(stagePlayers, matches, "single_elimination")
-    : calculateMatchRecordStandings(stagePlayers, matches, format);
+    : calculateMatchRecordStandings(stagePlayers, matches, format, leagueRulesFromStorage(stage.leagueRules));
   const projectionByPlayerId = new Map(projections.map((entry) => [entry.playerId, entry]));
 
   if (stage.format === "swiss") {
@@ -260,13 +262,16 @@ export function calculateRanking(
       resultType: match.resultType === "bye" ? null : match.resultType,
       winnerKey: match.winnerId == null ? null : String(match.winnerId),
     }));
-    const result = rankRoundRobinOrGroup(projections.map((entry) => ({
-      participantKey: String(entry.playerId),
-      matchWins: entry.matchWins,
-      gameDiff: entry.gameDiff,
-      gameWins: entry.gameWins,
-      stageSeed: membershipByPlayerId.get(entry.playerId)?.stageSeed,
-    })), headToHead);
+    // V5.3: with league rules the points table (points + configured tie-breakers) is the official order.
+    const result = stage.leagueRules != null
+      ? leagueProjectionRanking(projections, (playerId) => membershipByPlayerId.get(playerId)?.stageSeed)
+      : rankRoundRobinOrGroup(projections.map((entry) => ({
+        participantKey: String(entry.playerId),
+        matchWins: entry.matchWins,
+        gameDiff: entry.gameDiff,
+        gameWins: entry.gameWins,
+        stageSeed: membershipByPlayerId.get(entry.playerId)?.stageSeed,
+      })), headToHead);
     if (!result.valid) throw new StageLifecycleError("RANKING_INCONSISTENT");
     return result.standings.map((entry) => {
       const playerId = Number(entry.participantKey);
@@ -327,6 +332,25 @@ export function calculateRanking(
   throw new StageLifecycleError("STAGE_FORMAT_NOT_SUPPORTED");
 }
 
+/** V5.3: the league projection is already fully ordered; only seeds are validated, like rankRoundRobinOrGroup. */
+function leagueProjectionRanking(
+  projections: ReturnType<typeof calculateMatchRecordStandings>,
+  seedOf: (playerId: number) => number | undefined,
+): { valid: true; standings: Array<{ participantKey: string; rank: number; stageSeed: number }> } | { valid: false } {
+  const seeds = projections.map((entry) => seedOf(entry.playerId));
+  if (seeds.some((seed) => seed == null || !Number.isInteger(seed) || seed <= 0) || new Set(seeds).size !== seeds.length) {
+    return { valid: false };
+  }
+  return {
+    valid: true,
+    standings: projections.map((entry, index) => ({
+      participantKey: String(entry.playerId),
+      rank: index + 1,
+      stageSeed: seeds[index]!,
+    })),
+  };
+}
+
 function calculateGroupRanking(
   stage: typeof tournamentStagesTable.$inferSelect,
   groups: Array<typeof stageGroupsTable.$inferSelect>,
@@ -349,9 +373,15 @@ function calculateGroupRanking(
       return { ...player, seed: membership.stageSeed, status: "active" as const };
     });
     const groupMatches = matches.filter((match) => match.stageGroupId === group.id);
-    const projections = calculateMatchRecordStandings(groupPlayers, groupMatches, "round_robin");
+    const leagueRules = leagueRulesFromStorage(stage.leagueRules);
+    const projections = calculateMatchRecordStandings(groupPlayers, groupMatches, "round_robin", leagueRules);
     const projectionByPlayerId = new Map(projections.map((entry) => [entry.playerId, entry]));
-    const result = rankRoundRobinOrGroup(
+    const result = leagueRules != null
+      ? leagueProjectionRanking(
+        projections,
+        (playerId) => groupMemberships.find((membership) => membership.playerId === playerId)?.stageSeed,
+      )
+      : rankRoundRobinOrGroup(
       projections.map((entry) => ({
         participantKey: String(entry.playerId),
         matchWins: entry.matchWins,
@@ -1363,6 +1393,7 @@ export async function startStage(
       description: `Uruchomiono etap ${stage.name}; seedowanie=${stage.entrySeedingPolicy}; rozmieszczenie=${stage.seedingPolicy}`,
       matchId: null, undoPayload: null, isUndone: false,
     });
+    await applySchedulePlanAtStart(tx, stage);
     return updatedStage;
   });
 }

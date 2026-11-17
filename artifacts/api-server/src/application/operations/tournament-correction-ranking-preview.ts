@@ -9,6 +9,7 @@ import {
 } from "@workspace/db";
 import { calculateRanking } from "../stages/stage-lifecycle";
 import { calculateMatchRecordStandings } from "../../domain/tournament/standings";
+import { leagueRulesFromStorage, type LeagueRules } from "../../domain/tournament/league-rules";
 import { rankRoundRobinOrGroup } from "../../domain/tournament/stage-ranking";
 import { deriveTournamentRankingImpact, type RankingSnapshotRow, type RankingImpactDiff } from "./tournament-ranking-impact";
 import type { CorrectionPreview } from "./tournament-result-correction-preflight";
@@ -35,7 +36,7 @@ type MemberRow = typeof stageParticipantsTable.$inferSelect;
 type PlayerRow = typeof playersTable.$inferSelect;
 type GroupRow = typeof stageGroupsTable.$inferSelect;
 
-function groupRanking(group: GroupRow, memberships: MemberRow[], players: PlayerRow[], matches: MatchRow[]): RankingSnapshotRow[] {
+function groupRanking(group: GroupRow, memberships: MemberRow[], players: PlayerRow[], matches: MatchRow[], leagueRules: LeagueRules | null): RankingSnapshotRow[] {
   const members = memberships.filter(m => m.groupId === group.id)
     .sort((a,b)=>a.stageSeed-b.stageSeed);
   if (members.length !== group.participantCount) throw new Error("GROUP_MEMBERSHIP_MISMATCH");
@@ -46,8 +47,11 @@ function groupRanking(group: GroupRow, memberships: MemberRow[], players: Player
     return {...p, seed:m.stageSeed, status:"active" as const};
   });
   const groupMatches = matches.filter(m=>m.stageGroupId === group.id);
-  const projections = calculateMatchRecordStandings(groupPlayers,groupMatches,"round_robin");
-  const values = rankRoundRobinOrGroup(projections.map(row=>({
+  const projections = calculateMatchRecordStandings(groupPlayers,groupMatches,"round_robin",leagueRules);
+  // V5.3: with league rules the points projection is the official order (same as stage completion).
+  const values = leagueRules != null
+    ? { valid: true as const, standings: projections.map((row,index)=>({ participantKey:String(row.playerId), rank:index+1 })) }
+    : rankRoundRobinOrGroup(projections.map(row=>({
     participantKey:String(row.playerId),matchWins:row.matchWins,
     gameDiff:row.gameDiff,gameWins:row.gameWins,
     stageSeed:members.find(m=>m.playerId===row.playerId)?.stageSeed,
@@ -90,7 +94,8 @@ export async function getResultCorrectionStandingsComparison(input: {
     return unavailable("UNSUPPORTED_FORMAT", "Ranking tego formatu nie jest obsługiwany w podglądzie.");
   if (preflight.issues.some(i=>["INVALID_PROPOSED_RESULT","MATCH_NOT_COMPLETED","RESULT_INCONSISTENT","STALE_MATCH_REVISION","PARTICIPANTS_INVALID","STAGE_NOT_FOUND"].includes(i.code)))
     return unavailable("INVALID_PREVIEW_STATE", "Najpierw popraw wynik lub odśwież mecz. Porównanie nie jest wiarygodne przy tych blokadach.");
-  if(match.resultType!=="played" || preflight.proposedResult.winnerId==null)
+  const drawLeague = leagueRulesFromStorage(stage.leagueRules)?.allowDraws === true;
+  if(match.resultType!=="played" || (preflight.proposedResult.winnerId==null && !drawLeague))
     return unavailable("RESULT_NOT_COMPARABLE", "Podgląd klasyfikacji obsługuje wyłącznie kompletny wynik punktowy.");
   const [members,groups] = await Promise.all([
     db.select().from(stageParticipantsTable).where(eq(stageParticipantsTable.stageId,stage.id)),
@@ -117,8 +122,9 @@ export async function getResultCorrectionStandingsComparison(input: {
     if(stage.format==="group_stage") {
       const group=groups.find(g=>g.id===match.stageGroupId);
       if(!group) return unavailable("GROUP_NOT_FOUND", "Nie znaleziono grupy dla tego meczu.");
-      before=groupRanking(group,members,players,stageMatches);
-      after=groupRanking(group,members,players,afterMatches);
+      const leagueRules = leagueRulesFromStorage(stage.leagueRules);
+      before=groupRanking(group,members,players,stageMatches,leagueRules);
+      after=groupRanking(group,members,players,afterMatches,leagueRules);
       scope="group";scopeLabel=group.groupKey;
       if(nextStageExists && stage.qualificationMode==="top_n_per_group") cutoff=group.qualifiersCount;
     } else {

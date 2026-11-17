@@ -5,6 +5,8 @@
  * Tournament Manager API
  * OpenAPI spec version: 0.1.0
  */
+import type { LeagueRules } from './leagueRules';
+import type { SchedulePlan } from './schedulePlan';
 import type { TournamentStageEntrySeedingPolicy } from './tournamentStageEntrySeedingPolicy';
 import type { TournamentStageFormat } from './tournamentStageFormat';
 import type { TournamentStageQualificationMode } from './tournamentStageQualificationMode';
@@ -30,6 +32,20 @@ export interface TournamentStage {
   plannedRounds?: number | null;
   /** 2 = home and away (double round robin). Only round_robin stages may use 2. */
   roundRobinLegs?: TournamentStageRoundRobinLegs;
+  /** V5.3: league rules; null keeps the pre-V5.3 ranking by match wins. */
+  leagueRules?: LeagueRules | null;
+  /**
+     * V5.3: plain-language description of the league rules.
+     * @nullable
+     */
+  leagueRulesSummary?: string | null;
+  /**
+     * V5.3: IANA time zone of the league schedule.
+     * @nullable
+     */
+  scheduleTimeZone?: string | null;
+  /** V5.3: dates assigned automatically when the stage starts. */
+  schedulePlan?: SchedulePlan | null;
   /** @nullable */
   currentRound?: number | null;
   /** @nullable */

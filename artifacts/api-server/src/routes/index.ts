@@ -15,6 +15,7 @@ import tournamentPresetsRouter from "./tournament-presets";
 import tournamentAiConfigRouter from "./tournament-ai-config";
 import tournamentTeamsRouter from "./tournament-teams";
 import authRouter from "./auth";
+import leagueRouter from "./league";
 
 const router: IRouter = Router();
 
@@ -25,6 +26,7 @@ router.use(tournamentPlanPreviewRouter);
 router.use(tournamentPresetsRouter);
 router.use(tournamentAiConfigRouter);
 router.use(tournamentTeamsRouter);
+router.use(leagueRouter);
 router.use(qualificationRoutingPreviewRouter);
 router.use(resultCorrectionPreviewRouter);
 router.use(tournamentSeCorrectionPreflightRouter);

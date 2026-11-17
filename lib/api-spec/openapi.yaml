@@ -1112,6 +1112,120 @@ paths:
               schema:
                 $ref: "#/components/schemas/StageLifecycleError"
 
+  /tournaments/{id}/stages/{stageId}/league-rules:
+    put:
+      operationId: updateStageLeagueRules
+      tags: [tournaments]
+      summary: "V5.3: set or clear league rules (draws, points, tie-breakers) of a stage that has not started"
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+        - $ref: "#/components/parameters/StageId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StageLeagueRulesUpdateRequest"
+      responses:
+        "200":
+          description: Updated stage
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TournamentStage"
+        "403":
+          description: Organizer authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "404":
+          description: Tournament or stage not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "409":
+          description: Stage already started or changed since it was read
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "422":
+          description: Rules invalid for this stage
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+
+  /tournaments/{id}/stages/{stageId}/schedule:
+    get:
+      operationId: getStageSchedule
+      tags: [tournaments]
+      summary: "V5.3: league schedule by round (kolejka) with local dates, match states, resting participants and upcoming matches"
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+        - $ref: "#/components/parameters/StageId"
+      responses:
+        "200":
+          description: Stage schedule
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StageSchedule"
+        "404":
+          description: Tournament or stage not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+
+  /tournaments/{id}/stages/{stageId}/schedule/generate:
+    post:
+      operationId: generateStageSchedule
+      tags: [tournaments]
+      summary: "V5.3: preview or apply one date per round (start date, interval, default local time, time zone)"
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+        - $ref: "#/components/parameters/StageId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StageScheduleGenerateRequest"
+      responses:
+        "200":
+          description: Preview (apply=false) or the applied schedule (apply=true)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StageScheduleGenerateResult"
+        "403":
+          description: Organizer authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "404":
+          description: Tournament or stage not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "409":
+          description: Stage changed since it was read
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "422":
+          description: Invalid schedule input (e.g. local time skipped by a DST change)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+
   /tournaments/{id}/stages/{stageId}/double-elimination:
     get:
       operationId: getDoubleEliminationStage
@@ -2215,6 +2329,48 @@ paths:
               schema:
                 $ref: "#/components/schemas/Match"
 
+  /matches/{id}/schedule:
+    put:
+      operationId: updateMatchSchedule
+      tags: [matches]
+      summary: "V5.3: set or clear a match date as local date/time in the stage schedule time zone (result and history untouched)"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MatchScheduleUpdateRequest"
+      responses:
+        "200":
+          description: Updated match
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Match"
+        "403":
+          description: Organizer or support authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "404":
+          description: Match not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "422":
+          description: Invalid date/time or match state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+
   /matches/{id}/complete:
     post:
       operationId: completeMatch
@@ -3176,6 +3332,14 @@ components:
         stagePlan:
           $ref: "#/components/schemas/TournamentStagePlanInput"
           description: Optional authoritative 1-10 stage plan. The legacy format fields remain a compatibility projection.
+        leagueRules:
+          $ref: "#/components/schemas/LeagueRules"
+          description: "V5.3: league rules for a single round_robin tournament created without a stage plan (flexible participant count)."
+        scheduleTimeZone:
+          type: string
+          description: "V5.3: schedule time zone for a single round_robin created without a stage plan."
+        schedulePlan:
+          $ref: "#/components/schemas/SchedulePlan"
         gameConfig:
           oneOf:
             - $ref: "#/components/schemas/DeadlockTournamentGameConfig"
@@ -3331,6 +3495,14 @@ components:
           type: integer
           enum: [1, 2]
           description: Round robin only. 2 = every pair plays twice (home and away).
+        leagueRules:
+          $ref: "#/components/schemas/LeagueRules"
+          description: "V5.3: round_robin and group_stage only. Omitted keeps ranking by match wins."
+        scheduleTimeZone:
+          type: string
+          description: "V5.3: round_robin and group_stage. IANA time zone of the schedule, e.g. Europe/Warsaw."
+        schedulePlan:
+          $ref: "#/components/schemas/SchedulePlan"
         advancingCount:
           type: integer
           minimum: 2
@@ -3402,6 +3574,22 @@ components:
           type: integer
           enum: [1, 2]
           description: 2 = home and away (double round robin). Only round_robin stages may use 2.
+        leagueRules:
+          description: "V5.3: league rules; null keeps the pre-V5.3 ranking by match wins."
+          oneOf:
+            - $ref: "#/components/schemas/LeagueRules"
+            - type: "null"
+        leagueRulesSummary:
+          type: ["string", "null"]
+          description: "V5.3: plain-language description of the league rules."
+        scheduleTimeZone:
+          type: ["string", "null"]
+          description: "V5.3: IANA time zone of the league schedule."
+        schedulePlan:
+          description: "V5.3: dates assigned automatically when the stage starts."
+          oneOf:
+            - $ref: "#/components/schemas/SchedulePlan"
+            - type: "null"
         currentRound: { type: ["integer", "null"] }
         totalRounds: { type: ["integer", "null"] }
         rankingPolicy:
@@ -4125,6 +4313,182 @@ components:
           type: integer
         buchholz:
           type: ["integer", "null"]
+        matchDraws:
+          type: integer
+          description: "V5.3: draws (0 without league rules)."
+        points:
+          type: ["integer", "null"]
+          description: "V5.3: league points; null when the stage has no league rules."
+        decidedBy:
+          type: ["string", "null"]
+          enum: [points, head_to_head, score_difference, scored, wins, seed, null]
+          description: "V5.3: what placed this row below the previous one."
+        tiedAfterAllRules:
+          type: boolean
+          description: "V5.3: every configured criterion left this row level; seeding decided."
+
+    LeagueRules:
+      type: object
+      additionalProperties: false
+      required: [points]
+      description: "V5.3: draws, points and ordered tie-breakers for round_robin and group_stage stages."
+      properties:
+        version: { type: integer, enum: [1] }
+        allowDraws:
+          type: boolean
+          description: "Draws need a single-game match (bestOf 1); the score is then goals/points."
+        points:
+          type: object
+          additionalProperties: false
+          required: [win, draw, loss]
+          properties:
+            win: { type: integer, minimum: 0, maximum: 99 }
+            draw: { type: integer, minimum: 0, maximum: 99 }
+            loss: { type: integer, minimum: 0, maximum: 99 }
+        tieBreakers:
+          type: array
+          items:
+            type: string
+            enum: [head_to_head, score_difference, scored, wins]
+
+    SchedulePlan:
+      type: object
+      additionalProperties: false
+      required: [startDate, intervalDays, defaultTime]
+      description: "V5.3: round 1 on startDate, every next round intervalDays later, at defaultTime (local, in scheduleTimeZone)."
+      properties:
+        startDate: { type: string, description: "YYYY-MM-DD" }
+        intervalDays: { type: integer, minimum: 1, maximum: 60 }
+        defaultTime: { type: string, description: "HH:MM" }
+
+    StageLeagueRulesUpdateRequest:
+      type: object
+      additionalProperties: false
+      required: [leagueRules, expectedVersion]
+      properties:
+        leagueRules:
+          oneOf:
+            - $ref: "#/components/schemas/LeagueRules"
+            - type: "null"
+        expectedVersion: { type: integer, minimum: 1 }
+
+    MatchScheduleUpdateRequest:
+      type: object
+      additionalProperties: false
+      required: [date]
+      properties:
+        date: { type: ["string", "null"], description: "YYYY-MM-DD in the stage time zone; null clears the date" }
+        time: { type: string, description: "HH:MM local time (required with a date)" }
+        timeZone: { type: string, description: "IANA zone; only used when the stage has none yet" }
+
+    StageScheduleGenerateRequest:
+      type: object
+      additionalProperties: false
+      required: [startDate, intervalDays, defaultTime, timeZone, apply, expectedVersion]
+      properties:
+        startDate: { type: string, description: "YYYY-MM-DD, local date of round 1" }
+        intervalDays: { type: integer, minimum: 1, maximum: 60 }
+        defaultTime: { type: string, description: "HH:MM local time" }
+        timeZone: { type: string, description: "IANA time zone, e.g. Europe/Warsaw" }
+        apply: { type: boolean }
+        onlyUnscheduled:
+          type: boolean
+          description: "Keep dates the organizer already set; fill only matches without a date."
+        expectedVersion: { type: integer, minimum: 1 }
+
+    StageScheduleGenerateResult:
+      type: object
+      required: [applied, timeZone, rounds, updatedMatches, skippedMatches, firstDate, lastDate]
+      properties:
+        applied: { type: boolean }
+        timeZone: { type: string }
+        rounds:
+          type: array
+          items:
+            type: object
+            required: [round, date, time, scheduledAt, matchCount]
+            properties:
+              round: { type: integer }
+              date: { type: string }
+              time: { type: string }
+              scheduledAt: { type: string, format: date-time }
+              matchCount: { type: integer }
+        updatedMatches: { type: integer }
+        skippedMatches: { type: integer }
+        firstDate: { type: ["string", "null"] }
+        lastDate: { type: ["string", "null"] }
+
+    StageScheduleMatch:
+      type: object
+      required: [matchId, round, matchNumber, player1Id, player2Id, player1Name, player2Name, status, scheduleState, scheduledAt, localDate, localTime, score1, score2, winnerId, isDraw]
+      properties:
+        matchId: { type: integer }
+        round: { type: integer }
+        matchNumber: { type: integer }
+        player1Id: { type: ["integer", "null"] }
+        player2Id: { type: ["integer", "null"] }
+        player1Name: { type: ["string", "null"] }
+        player2Name: { type: ["string", "null"] }
+        status: { type: string, enum: [pending, in_progress, postponed, completed, cancelled] }
+        scheduleState:
+          type: string
+          enum: [completed, postponed, cancelled, in_progress, awaiting_result, scheduled, unscheduled]
+        scheduledAt: { type: ["string", "null"], format: date-time }
+        localDate: { type: ["string", "null"] }
+        localTime: { type: ["string", "null"] }
+        score1: { type: ["integer", "null"] }
+        score2: { type: ["integer", "null"] }
+        winnerId: { type: ["integer", "null"] }
+        isDraw: { type: boolean }
+
+    StageSchedule:
+      type: object
+      required: [stageId, stageName, format, timeZone, timeZoneSource, now, currentRound, rounds, upcoming, overdue, counts]
+      properties:
+        stageId: { type: integer }
+        stageName: { type: string }
+        format: { type: string }
+        timeZone: { type: string }
+        timeZoneSource: { type: string, enum: [stage, default] }
+        now: { type: string, format: date-time }
+        currentRound: { type: ["integer", "null"], description: "Lowest round that still has unfinished matches" }
+        rounds:
+          type: array
+          items:
+            type: object
+            required: [round, matches, resting, completed, total, firstDate]
+            properties:
+              round: { type: integer }
+              matches:
+                type: array
+                items: { $ref: "#/components/schemas/StageScheduleMatch" }
+              resting:
+                type: array
+                items:
+                  type: object
+                  required: [playerId, name]
+                  properties:
+                    playerId: { type: integer }
+                    name: { type: string }
+              completed: { type: integer }
+              total: { type: integer }
+              firstDate: { type: ["string", "null"] }
+        upcoming:
+          type: array
+          items: { $ref: "#/components/schemas/StageScheduleMatch" }
+        overdue:
+          type: array
+          items: { $ref: "#/components/schemas/StageScheduleMatch" }
+        counts:
+          type: object
+          required: [scheduled, awaitingResult, completed, postponed, unscheduled, total]
+          properties:
+            scheduled: { type: integer }
+            awaitingResult: { type: integer }
+            completed: { type: integer }
+            postponed: { type: integer }
+            unscheduled: { type: integer }
+            total: { type: integer }
 
     ResultRecord:
       type: object
@@ -4975,6 +5339,13 @@ components:
               bestOf: { type: integer }
               plannedRounds: { type: ["integer", "null"] }
               roundRobinLegs: { type: integer, enum: [2], description: "V5: present only for home-and-away round robin stages." }
+              leagueRules:
+                $ref: "#/components/schemas/LeagueRules"
+                description: "V5.3: present only when the stage has league rules (draws, points, tie-breakers)."
+              scheduleTimeZone: { type: string, description: "V5.3: present only when the stage has a schedule time zone." }
+              schedulePlan:
+                $ref: "#/components/schemas/SchedulePlan"
+                description: "V5.3: present only when the stage has a schedule template."
               currentRound: { type: ["integer", "null"] }
               totalRounds: { type: ["integer", "null"] }
               rankingPolicy: { type: string, enum: [swiss_v1, round_robin_v1, group_v1, elimination_bracket_v1] }

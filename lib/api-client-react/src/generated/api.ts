@@ -52,6 +52,7 @@ import type {
   Match,
   MatchCancelInput,
   MatchResult,
+  MatchScheduleUpdateRequest,
   MatchUpdate,
   OrganizerCredentialState,
   OrganizerPasswordAlreadySetError,
@@ -75,8 +76,12 @@ import type {
   StageBasketConfiguration,
   StageBasketConfigurationError,
   StageBasketConfigurationInput,
+  StageLeagueRulesUpdateRequest,
   StageLifecycleError,
   StageQualificationPreview,
+  StageSchedule,
+  StageScheduleGenerateRequest,
+  StageScheduleGenerateResult,
   StageStartReadiness,
   Standing,
   TargetStageInputArrivals,
@@ -2830,6 +2835,236 @@ export const useStartTournamentStage = <TError = ErrorType<DomainError | StageLi
       return useMutation(getStartTournamentStageMutationOptions(options));
     }
 
+export const getUpdateStageLeagueRulesUrl = (id: number,
+    stageId: number,) => {
+
+
+
+
+  return `/api/tournaments/${id}/stages/${stageId}/league-rules`
+}
+
+/**
+ * @summary V5.3: set or clear league rules (draws, points, tie-breakers) of a stage that has not started
+ */
+export const updateStageLeagueRules = async (id: number,
+    stageId: number,
+    stageLeagueRulesUpdateRequest: StageLeagueRulesUpdateRequest, options?: RequestInit): Promise<TournamentStage> => {
+
+  return customFetch<TournamentStage>(getUpdateStageLeagueRulesUrl(id,stageId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      stageLeagueRulesUpdateRequest,)
+  }
+);}
+
+
+
+
+export const getUpdateStageLeagueRulesMutationOptions = <TError = ErrorType<DomainError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateStageLeagueRules>>, TError,{id: number;stageId: number;data: BodyType<StageLeagueRulesUpdateRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateStageLeagueRules>>, TError,{id: number;stageId: number;data: BodyType<StageLeagueRulesUpdateRequest>}, TContext> => {
+
+const mutationKey = ['updateStageLeagueRules'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateStageLeagueRules>>, {id: number;stageId: number;data: BodyType<StageLeagueRulesUpdateRequest>}> = (props) => {
+          const {id,stageId,data} = props ?? {};
+
+          return  updateStageLeagueRules(id,stageId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateStageLeagueRulesMutationResult = NonNullable<Awaited<ReturnType<typeof updateStageLeagueRules>>>
+    export type UpdateStageLeagueRulesMutationBody = BodyType<StageLeagueRulesUpdateRequest>
+    export type UpdateStageLeagueRulesMutationError = ErrorType<DomainError>
+
+    /**
+ * @summary V5.3: set or clear league rules (draws, points, tie-breakers) of a stage that has not started
+ */
+export const useUpdateStageLeagueRules = <TError = ErrorType<DomainError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateStageLeagueRules>>, TError,{id: number;stageId: number;data: BodyType<StageLeagueRulesUpdateRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateStageLeagueRules>>,
+        TError,
+        {id: number;stageId: number;data: BodyType<StageLeagueRulesUpdateRequest>},
+        TContext
+      > => {
+      return useMutation(getUpdateStageLeagueRulesMutationOptions(options));
+    }
+
+export const getGetStageScheduleUrl = (id: number,
+    stageId: number,) => {
+
+
+
+
+  return `/api/tournaments/${id}/stages/${stageId}/schedule`
+}
+
+/**
+ * @summary V5.3: league schedule by round (kolejka) with local dates, match states, resting participants and upcoming matches
+ */
+export const getStageSchedule = async (id: number,
+    stageId: number, options?: RequestInit): Promise<StageSchedule> => {
+
+  return customFetch<StageSchedule>(getGetStageScheduleUrl(id,stageId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetStageScheduleQueryKey = (id: number,
+    stageId: number,) => {
+    return [
+    `/api/tournaments/${id}/stages/${stageId}/schedule`
+    ] as const;
+    }
+
+
+export const getGetStageScheduleQueryOptions = <TData = Awaited<ReturnType<typeof getStageSchedule>>, TError = ErrorType<DomainError>>(id: number,
+    stageId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getStageSchedule>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetStageScheduleQueryKey(id,stageId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getStageSchedule>>> = ({ signal }) => getStageSchedule(id,stageId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id && stageId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getStageSchedule>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetStageScheduleQueryResult = NonNullable<Awaited<ReturnType<typeof getStageSchedule>>>
+export type GetStageScheduleQueryError = ErrorType<DomainError>
+
+
+/**
+ * @summary V5.3: league schedule by round (kolejka) with local dates, match states, resting participants and upcoming matches
+ */
+
+export function useGetStageSchedule<TData = Awaited<ReturnType<typeof getStageSchedule>>, TError = ErrorType<DomainError>>(
+ id: number,
+    stageId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getStageSchedule>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetStageScheduleQueryOptions(id,stageId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGenerateStageScheduleUrl = (id: number,
+    stageId: number,) => {
+
+
+
+
+  return `/api/tournaments/${id}/stages/${stageId}/schedule/generate`
+}
+
+/**
+ * @summary V5.3: preview or apply one date per round (start date, interval, default local time, time zone)
+ */
+export const generateStageSchedule = async (id: number,
+    stageId: number,
+    stageScheduleGenerateRequest: StageScheduleGenerateRequest, options?: RequestInit): Promise<StageScheduleGenerateResult> => {
+
+  return customFetch<StageScheduleGenerateResult>(getGenerateStageScheduleUrl(id,stageId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      stageScheduleGenerateRequest,)
+  }
+);}
+
+
+
+
+export const getGenerateStageScheduleMutationOptions = <TError = ErrorType<DomainError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateStageSchedule>>, TError,{id: number;stageId: number;data: BodyType<StageScheduleGenerateRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof generateStageSchedule>>, TError,{id: number;stageId: number;data: BodyType<StageScheduleGenerateRequest>}, TContext> => {
+
+const mutationKey = ['generateStageSchedule'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof generateStageSchedule>>, {id: number;stageId: number;data: BodyType<StageScheduleGenerateRequest>}> = (props) => {
+          const {id,stageId,data} = props ?? {};
+
+          return  generateStageSchedule(id,stageId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type GenerateStageScheduleMutationResult = NonNullable<Awaited<ReturnType<typeof generateStageSchedule>>>
+    export type GenerateStageScheduleMutationBody = BodyType<StageScheduleGenerateRequest>
+    export type GenerateStageScheduleMutationError = ErrorType<DomainError>
+
+    /**
+ * @summary V5.3: preview or apply one date per round (start date, interval, default local time, time zone)
+ */
+export const useGenerateStageSchedule = <TError = ErrorType<DomainError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof generateStageSchedule>>, TError,{id: number;stageId: number;data: BodyType<StageScheduleGenerateRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof generateStageSchedule>>,
+        TError,
+        {id: number;stageId: number;data: BodyType<StageScheduleGenerateRequest>},
+        TContext
+      > => {
+      return useMutation(getGenerateStageScheduleMutationOptions(options));
+    }
+
 export const getGetDoubleEliminationStageUrl = (id: number,
     stageId: number,) => {
 
@@ -5252,6 +5487,78 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return useMutation(getUpdateMatchMutationOptions(options));
+    }
+
+export const getUpdateMatchScheduleUrl = (id: number,) => {
+
+
+
+
+  return `/api/matches/${id}/schedule`
+}
+
+/**
+ * @summary V5.3: set or clear a match date as local date/time in the stage schedule time zone (result and history untouched)
+ */
+export const updateMatchSchedule = async (id: number,
+    matchScheduleUpdateRequest: MatchScheduleUpdateRequest, options?: RequestInit): Promise<Match> => {
+
+  return customFetch<Match>(getUpdateMatchScheduleUrl(id),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      matchScheduleUpdateRequest,)
+  }
+);}
+
+
+
+
+export const getUpdateMatchScheduleMutationOptions = <TError = ErrorType<DomainError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMatchSchedule>>, TError,{id: number;data: BodyType<MatchScheduleUpdateRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateMatchSchedule>>, TError,{id: number;data: BodyType<MatchScheduleUpdateRequest>}, TContext> => {
+
+const mutationKey = ['updateMatchSchedule'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateMatchSchedule>>, {id: number;data: BodyType<MatchScheduleUpdateRequest>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateMatchSchedule(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateMatchScheduleMutationResult = NonNullable<Awaited<ReturnType<typeof updateMatchSchedule>>>
+    export type UpdateMatchScheduleMutationBody = BodyType<MatchScheduleUpdateRequest>
+    export type UpdateMatchScheduleMutationError = ErrorType<DomainError>
+
+    /**
+ * @summary V5.3: set or clear a match date as local date/time in the stage schedule time zone (result and history untouched)
+ */
+export const useUpdateMatchSchedule = <TError = ErrorType<DomainError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateMatchSchedule>>, TError,{id: number;data: BodyType<MatchScheduleUpdateRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateMatchSchedule>>,
+        TError,
+        {id: number;data: BodyType<MatchScheduleUpdateRequest>},
+        TContext
+      > => {
+      return useMutation(getUpdateMatchScheduleMutationOptions(options));
     }
 
 export const getCompleteMatchUrl = (id: number,) => {

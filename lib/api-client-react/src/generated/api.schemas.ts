@@ -897,6 +897,67 @@ export const TournamentStagePlanItemInputLegs = {
   NUMBER_2: 2,
 } as const;
 
+export type LeagueRulesVersion = typeof LeagueRulesVersion[keyof typeof LeagueRulesVersion];
+
+
+export const LeagueRulesVersion = {
+  NUMBER_1: 1,
+} as const;
+
+export type LeagueRulesTieBreakersItem = typeof LeagueRulesTieBreakersItem[keyof typeof LeagueRulesTieBreakersItem];
+
+
+export const LeagueRulesTieBreakersItem = {
+  head_to_head: 'head_to_head',
+  score_difference: 'score_difference',
+  scored: 'scored',
+  wins: 'wins',
+} as const;
+
+export type LeagueRulesPoints = {
+  /**
+     * @minimum 0
+     * @maximum 99
+     */
+  win: number;
+  /**
+     * @minimum 0
+     * @maximum 99
+     */
+  draw: number;
+  /**
+     * @minimum 0
+     * @maximum 99
+     */
+  loss: number;
+};
+
+/**
+ * V5.3: draws, points and ordered tie-breakers for round_robin and group_stage stages.
+ */
+export interface LeagueRules {
+  version?: LeagueRulesVersion;
+  /** Draws need a single-game match (bestOf 1); the score is then goals/points. */
+  allowDraws?: boolean;
+  points: LeagueRulesPoints;
+  tieBreakers?: LeagueRulesTieBreakersItem[];
+}
+
+/**
+ * V5.3: round 1 on startDate, every next round intervalDays later, at defaultTime (local, in scheduleTimeZone).
+ */
+export interface SchedulePlan {
+  /** YYYY-MM-DD */
+  startDate: string;
+  /**
+     * @minimum 1
+     * @maximum 60
+     */
+  intervalDays: number;
+  /** HH:MM */
+  defaultTime: string;
+}
+
 /**
  * How incoming participants are converted into stage seeds.
  */
@@ -973,6 +1034,11 @@ export interface TournamentStagePlanItemInput {
   rounds?: number;
   /** Round robin only. 2 = every pair plays twice (home and away). */
   legs?: TournamentStagePlanItemInputLegs;
+  /** V5.3: round_robin and group_stage only. Omitted keeps ranking by match wins. */
+  leagueRules?: LeagueRules;
+  /** V5.3: round_robin and group_stage. IANA time zone of the schedule, e.g. Europe/Warsaw. */
+  scheduleTimeZone?: string;
+  schedulePlan?: SchedulePlan;
   /**
      * Required for every non-terminal Swiss, Round Robin, or Single Elimination stage. Must equal the next stage participantCount. For Single Elimination it must be a complete-round boundary of at least 2 (for example 16 participants may advance 8, 4, or 2). A terminal Single Elimination stage omits this field and implicitly finishes with one champion.
      * @minimum 2
@@ -1114,6 +1180,11 @@ export interface TournamentInput {
   teamRosterMax?: number;
   /** Optional authoritative 1-10 stage plan. The legacy format fields remain a compatibility projection. */
   stagePlan?: TournamentStagePlanInput;
+  /** V5.3: league rules for a single round_robin tournament created without a stage plan (flexible participant count). */
+  leagueRules?: LeagueRules;
+  /** V5.3: schedule time zone for a single round_robin created without a stage plan. */
+  scheduleTimeZone?: string;
+  schedulePlan?: SchedulePlan;
   gameConfig?: DeadlockTournamentGameConfig | MarvelTournamentGameConfig;
 }
 
@@ -1369,6 +1440,20 @@ export interface TournamentStage {
   plannedRounds?: number | null;
   /** 2 = home and away (double round robin). Only round_robin stages may use 2. */
   roundRobinLegs?: TournamentStageRoundRobinLegs;
+  /** V5.3: league rules; null keeps the pre-V5.3 ranking by match wins. */
+  leagueRules?: LeagueRules | null;
+  /**
+     * V5.3: plain-language description of the league rules.
+     * @nullable
+     */
+  leagueRulesSummary?: string | null;
+  /**
+     * V5.3: IANA time zone of the league schedule.
+     * @nullable
+     */
+  scheduleTimeZone?: string | null;
+  /** V5.3: dates assigned automatically when the stage starts. */
+  schedulePlan?: SchedulePlan | null;
   /** @nullable */
   currentRound?: number | null;
   /** @nullable */
@@ -2060,6 +2145,22 @@ export const StandingStatus = {
   winner: 'winner',
 } as const;
 
+/**
+ * V5.3: what placed this row below the previous one.
+ * @nullable
+ */
+export type StandingDecidedBy = typeof StandingDecidedBy[keyof typeof StandingDecidedBy] | null;
+
+
+export const StandingDecidedBy = {
+  points: 'points',
+  head_to_head: 'head_to_head',
+  score_difference: 'score_difference',
+  scored: 'scored',
+  wins: 'wins',
+  seed: 'seed',
+} as const;
+
 export interface Standing {
   rank: number;
   playerId: number;
@@ -2081,6 +2182,180 @@ export interface Standing {
   gameDiff: number;
   /** @nullable */
   buchholz: number | null;
+  /** V5.3: draws (0 without league rules). */
+  matchDraws?: number;
+  /**
+     * V5.3: league points; null when the stage has no league rules.
+     * @nullable
+     */
+  points?: number | null;
+  /**
+     * V5.3: what placed this row below the previous one.
+     * @nullable
+     */
+  decidedBy?: StandingDecidedBy;
+  /** V5.3: every configured criterion left this row level; seeding decided. */
+  tiedAfterAllRules?: boolean;
+}
+
+export interface StageLeagueRulesUpdateRequest {
+  leagueRules: LeagueRules | null;
+  /** @minimum 1 */
+  expectedVersion: number;
+}
+
+export interface MatchScheduleUpdateRequest {
+  /**
+     * YYYY-MM-DD in the stage time zone; null clears the date
+     * @nullable
+     */
+  date: string | null;
+  /** HH:MM local time (required with a date) */
+  time?: string;
+  /** IANA zone; only used when the stage has none yet */
+  timeZone?: string;
+}
+
+export interface StageScheduleGenerateRequest {
+  /** YYYY-MM-DD, local date of round 1 */
+  startDate: string;
+  /**
+     * @minimum 1
+     * @maximum 60
+     */
+  intervalDays: number;
+  /** HH:MM local time */
+  defaultTime: string;
+  /** IANA time zone, e.g. Europe/Warsaw */
+  timeZone: string;
+  apply: boolean;
+  /** Keep dates the organizer already set; fill only matches without a date. */
+  onlyUnscheduled?: boolean;
+  /** @minimum 1 */
+  expectedVersion: number;
+}
+
+export type StageScheduleGenerateResultRoundsItem = {
+  round: number;
+  date: string;
+  time: string;
+  scheduledAt: string;
+  matchCount: number;
+};
+
+export interface StageScheduleGenerateResult {
+  applied: boolean;
+  timeZone: string;
+  rounds: StageScheduleGenerateResultRoundsItem[];
+  updatedMatches: number;
+  skippedMatches: number;
+  /** @nullable */
+  firstDate: string | null;
+  /** @nullable */
+  lastDate: string | null;
+}
+
+export type StageScheduleMatchStatus = typeof StageScheduleMatchStatus[keyof typeof StageScheduleMatchStatus];
+
+
+export const StageScheduleMatchStatus = {
+  pending: 'pending',
+  in_progress: 'in_progress',
+  postponed: 'postponed',
+  completed: 'completed',
+  cancelled: 'cancelled',
+} as const;
+
+export type StageScheduleMatchScheduleState = typeof StageScheduleMatchScheduleState[keyof typeof StageScheduleMatchScheduleState];
+
+
+export const StageScheduleMatchScheduleState = {
+  completed: 'completed',
+  postponed: 'postponed',
+  cancelled: 'cancelled',
+  in_progress: 'in_progress',
+  awaiting_result: 'awaiting_result',
+  scheduled: 'scheduled',
+  unscheduled: 'unscheduled',
+} as const;
+
+export interface StageScheduleMatch {
+  matchId: number;
+  round: number;
+  matchNumber: number;
+  /** @nullable */
+  player1Id: number | null;
+  /** @nullable */
+  player2Id: number | null;
+  /** @nullable */
+  player1Name: string | null;
+  /** @nullable */
+  player2Name: string | null;
+  status: StageScheduleMatchStatus;
+  scheduleState: StageScheduleMatchScheduleState;
+  /** @nullable */
+  scheduledAt: string | null;
+  /** @nullable */
+  localDate: string | null;
+  /** @nullable */
+  localTime: string | null;
+  /** @nullable */
+  score1: number | null;
+  /** @nullable */
+  score2: number | null;
+  /** @nullable */
+  winnerId: number | null;
+  isDraw: boolean;
+}
+
+export type StageScheduleTimeZoneSource = typeof StageScheduleTimeZoneSource[keyof typeof StageScheduleTimeZoneSource];
+
+
+export const StageScheduleTimeZoneSource = {
+  stage: 'stage',
+  default: 'default',
+} as const;
+
+export type StageScheduleRoundsItemRestingItem = {
+  playerId: number;
+  name: string;
+};
+
+export type StageScheduleRoundsItem = {
+  round: number;
+  matches: StageScheduleMatch[];
+  resting: StageScheduleRoundsItemRestingItem[];
+  completed: number;
+  total: number;
+  /** @nullable */
+  firstDate: string | null;
+};
+
+export type StageScheduleCounts = {
+  scheduled: number;
+  awaitingResult: number;
+  completed: number;
+  postponed: number;
+  unscheduled: number;
+  total: number;
+};
+
+export interface StageSchedule {
+  stageId: number;
+  stageName: string;
+  format: string;
+  timeZone: string;
+  timeZoneSource: StageScheduleTimeZoneSource;
+  now: string;
+  /**
+     * Lowest round that still has unfinished matches
+     * @nullable
+     */
+  currentRound: number | null;
+  rounds: StageScheduleRoundsItem[];
+  upcoming: StageScheduleMatch[];
+  overdue: StageScheduleMatch[];
+  counts: StageScheduleCounts;
 }
 
 export type ResultRecordResultType = typeof ResultRecordResultType[keyof typeof ResultRecordResultType];
@@ -3245,6 +3520,12 @@ export type TournamentBackupV3StagesItem = {
   plannedRounds?: number | null;
   /** V5: present only for home-and-away round robin stages. */
   roundRobinLegs?: TournamentBackupV3StagesItemRoundRobinLegs;
+  /** V5.3: present only when the stage has league rules (draws, points, tie-breakers). */
+  leagueRules?: LeagueRules;
+  /** V5.3: present only when the stage has a schedule time zone. */
+  scheduleTimeZone?: string;
+  /** V5.3: present only when the stage has a schedule template. */
+  schedulePlan?: SchedulePlan;
   /** @nullable */
   currentRound?: number | null;
   /** @nullable */

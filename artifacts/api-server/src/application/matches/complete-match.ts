@@ -15,6 +15,11 @@ import {
 } from "../../domain/match/series-result";
 import { calculateMatchRecordStandings } from "../../domain/tournament/standings";
 import {
+  leagueRulesFromStorage,
+  validateLeagueScore,
+  type LeagueRules,
+} from "../../domain/tournament/league-rules";
+import {
   revalidateTournamentMutationActor,
   type TournamentMutationActor,
 } from "../../access-policy";
@@ -37,6 +42,8 @@ export type CompleteMatchErrorCode =
   | "WINNER_NOT_PARTICIPANT"
   | "NO_CONTEST_REQUIRES_RESOLUTION"
   | "RESULT_TYPE_NOT_PUBLIC"
+  | "SCORE_TOO_HIGH"
+  | "DRAW_NOT_ALLOWED"
   | SeriesResultErrorCode;
 
 const ERROR_MESSAGES: Record<CompleteMatchErrorCode, string> = {
@@ -62,6 +69,8 @@ const ERROR_MESSAGES: Record<CompleteMatchErrorCode, string> = {
   SCORE_EXCEEDS_WIN_THRESHOLD: "Wynik przekracza próg zwycięstw dla tej serii.",
   WIN_THRESHOLD_NOT_REACHED: "Jedna ze stron musi osiągnąć próg zwycięstw dla tej serii.",
   BOTH_SIDES_REACHED_WIN_THRESHOLD: "Tylko jedna strona może osiągnąć próg zwycięstw.",
+  SCORE_TOO_HIGH: "Wynik jest zbyt wysoki (maksymalnie 999).",
+  DRAW_NOT_ALLOWED: "Ten etap nie dopuszcza remisów — wpisz wynik ze zwycięzcą.",
 };
 
 export class CompleteMatchError extends Error {
@@ -119,7 +128,23 @@ function normalizeResult(params: {
   player1Id: number;
   player2Id: number;
   format: "single_elimination" | "double_elimination" | "round_robin" | "swiss" | "group_stage";
+  leagueRules: LeagueRules | null;
 }): NormalizedResult {
+  if (params.input.resultType === "played" && params.leagueRules?.allowDraws) {
+    // V5.3 draw-enabled league: the score is goals/points of one game; equal scores are a draw.
+    const validation = validateLeagueScore(params.input.score1, params.input.score2);
+    if (!validation.ok) throw new CompleteMatchError(validation.code);
+    const winnerId = validation.outcome === "draw" ? null
+      : validation.outcome === "player1" ? params.player1Id : params.player2Id;
+    return {
+      resultType: "played",
+      score1: params.input.score1,
+      score2: params.input.score2,
+      winnerId,
+      loserId: winnerId == null ? null : winnerId === params.player1Id ? params.player2Id : params.player1Id,
+      reason: null,
+    };
+  }
   if (params.input.resultType === "played") {
     const validation = validatePlayedSeriesResult({
       resultType: "played",
@@ -277,6 +302,7 @@ export async function completeMatch(
       player1Id: match.player1Id,
       player2Id: match.player2Id,
       format: stage.format,
+      leagueRules: leagueRulesFromStorage(stage.leagueRules),
     });
 
     let downstreamMatch: typeof matchesTable.$inferSelect | null = null;
@@ -380,7 +406,7 @@ export async function completeMatch(
 
     const names = new Map(participants.map((player) => [player.id, player.name]));
     const description = result.resultType === "played"
-      ? `R${match.round}M${match.matchNumber}: ${names.get(match.player1Id)} ${result.score1}:${result.score2} ${names.get(match.player2Id)}`
+      ? `R${match.round}M${match.matchNumber}: ${names.get(match.player1Id)} ${result.score1}:${result.score2} ${names.get(match.player2Id)}${result.winnerId == null ? " (remis)" : ""}`
       : result.resultType === "walkover"
         ? `R${match.round}M${match.matchNumber}: walkower dla ${names.get(result.winnerId!)}`
         : `R${match.round}M${match.matchNumber}: no contest`;
@@ -498,6 +524,7 @@ export async function completeMatch(
           tournamentPlayers.map(player => ({ ...player, seed: seedByPlayerId.get(player.id)! })),
           allMatches,
           "round_robin",
+          leagueRulesFromStorage(stage.leagueRules),
         );
         if (winner) {
           await tx

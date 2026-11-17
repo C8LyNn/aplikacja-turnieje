@@ -1,4 +1,16 @@
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
+import {
+  parseLeagueRules,
+  validateLeagueRulesForStage,
+  type LeagueRules,
+  type LeagueRulesProblem,
+} from "../../domain/tournament/league-rules";
+import {
+  isValidTimeZone,
+  parseSchedulePlan,
+  roundRobinFacts,
+  type SchedulePlan,
+} from "../../domain/tournament/league-schedule";
 import {
   db,
   playersTable,
@@ -102,13 +114,33 @@ function persistedStage(
     randomRevealOrder: stage.randomRevealOrder,
     seedingAudit: null,
     roundRobinLegs: stage.format === "round_robin" && stage.legs === 2 ? 2 : 1,
+    leagueRules: (stage.format === "round_robin" || stage.format === "group_stage") && stage.leagueRules
+      ? stage.leagueRules
+      : null,
+    scheduleTimeZone: stage.format === "round_robin" || stage.format === "group_stage" ? stage.scheduleTimeZone ?? null : null,
+    schedulePlan: (stage.format === "round_robin" || stage.format === "group_stage") && stage.scheduleTimeZone && stage.schedulePlan
+      ? stage.schedulePlan
+      : null,
   };
+}
+
+/** V5.3: invalid top-level league rules for a tournament created without a stage plan. */
+export class LeagueRulesInputError extends Error {
+  constructor(public readonly problems: LeagueRulesProblem[]) {
+    super(problems.map((problem) => problem.message).join(" "));
+    this.name = "LeagueRulesInputError";
+  }
 }
 
 export async function createTournamentWithStagePlan(input: {
   tournament: typeof tournamentsTable.$inferInsert;
   stagePlan?: unknown;
   gameConfig?: unknown;
+  /** V5.3: rules for a single round_robin created without a stage plan (flexible participant count). */
+  leagueRules?: unknown;
+  /** V5.3: schedule zone and template for a single round_robin created without a stage plan. */
+  scheduleTimeZone?: unknown;
+  schedulePlan?: unknown;
 }): Promise<{
   tournament: typeof tournamentsTable.$inferSelect;
   gameConfig: SupportedTournamentGameConfig | null;
@@ -119,6 +151,48 @@ export async function createTournamentWithStagePlan(input: {
       : parseTournamentGameConfig(input.gameConfig);
   const marvelConfig =
     parsedGameConfig?.gameId === "marvel" ? parsedGameConfig.config : null;
+  if (input.leagueRules !== undefined && input.leagueRules !== null && input.stagePlan != null) {
+    throw new LeagueRulesInputError([{
+      code: "LEAGUE_RULES_FORMAT_UNSUPPORTED",
+      path: "leagueRules",
+      message: "Przy planie etapów podaj zasady ligi w etapie (stagePlan.stages[].leagueRules).",
+    }]);
+  }
+  const hasFlexibleSchedule = (input.scheduleTimeZone !== undefined && input.scheduleTimeZone !== null)
+    || (input.schedulePlan !== undefined && input.schedulePlan !== null);
+  if (hasFlexibleSchedule && input.stagePlan != null) {
+    throw new LeagueRulesInputError([{
+      code: "LEAGUE_RULES_FORMAT_UNSUPPORTED",
+      path: "schedulePlan",
+      message: "Przy planie etapów podaj terminarz w etapie (stagePlan.stages[].scheduleTimeZone i schedulePlan).",
+    }]);
+  }
+  let flexibleSchedule: { scheduleTimeZone: string; schedulePlan: SchedulePlan | null } | null = null;
+  if (input.stagePlan == null && hasFlexibleSchedule) {
+    if (input.tournament.format !== "round_robin") {
+      throw new LeagueRulesInputError([{ code: "LEAGUE_RULES_FORMAT_UNSUPPORTED", path: "schedulePlan", message: "Terminarz kolejek działa w lidze i w fazie grupowej." }]);
+    }
+    if (!isValidTimeZone(input.scheduleTimeZone)) {
+      throw new LeagueRulesInputError([{ code: "LEAGUE_RULES_FORMAT_UNSUPPORTED", path: "scheduleTimeZone", message: "Terminarz wymaga strefy czasowej (np. Europe/Warsaw)." }]);
+    }
+    const maxPlayers = typeof input.tournament.maxPlayers === "number" ? input.tournament.maxPlayers : 0;
+    const plan = parseSchedulePlan(input.schedulePlan, input.scheduleTimeZone, maxPlayers > 1 ? roundRobinFacts(maxPlayers, 1).rounds : null);
+    if (!plan.ok) {
+      throw new LeagueRulesInputError(plan.problems.map((problem) => ({ code: "LEAGUE_RULES_FORMAT_UNSUPPORTED" as const, path: problem.path, message: problem.message })));
+    }
+    flexibleSchedule = { scheduleTimeZone: input.scheduleTimeZone, schedulePlan: plan.value };
+  }
+  let flexibleLeagueRules: LeagueRules | null = null;
+  if (input.stagePlan == null && input.leagueRules !== undefined && input.leagueRules !== null) {
+    const parsed = parseLeagueRules(input.leagueRules);
+    if (!parsed.ok) throw new LeagueRulesInputError(parsed.problems);
+    const problems = validateLeagueRulesForStage(parsed.value, {
+      format: String(input.tournament.format),
+      bestOf: input.tournament.defaultBestOf ?? 1,
+    });
+    if (problems.length > 0) throw new LeagueRulesInputError(problems);
+    flexibleLeagueRules = parsed.value;
+  }
   if (input.stagePlan == null) {
     if (marvelConfig) {
       throw new TournamentGameConfigError(
@@ -131,6 +205,14 @@ export async function createTournamentWithStagePlan(input: {
         .insert(tournamentsTable)
         .values(input.tournament)
         .returning();
+      if (flexibleLeagueRules || flexibleSchedule) {
+        await tx.update(tournamentStagesTable)
+          .set({
+            ...(flexibleLeagueRules ? { leagueRules: flexibleLeagueRules } : {}),
+            ...(flexibleSchedule ? flexibleSchedule : {}),
+          })
+          .where(and(eq(tournamentStagesTable.tournamentId, created.id), eq(tournamentStagesTable.position, 1)));
+      }
       const gameConfig = input.gameConfig == null
         ? null
         : await replaceTournamentGameConfig(tx, created.id, input.gameConfig);
@@ -206,6 +288,9 @@ export async function createTournamentWithStagePlan(input: {
         bestOf: firstValues.bestOf,
         plannedRounds: firstValues.plannedRounds,
         roundRobinLegs: firstValues.roundRobinLegs,
+        leagueRules: firstValues.leagueRules,
+        scheduleTimeZone: firstValues.scheduleTimeZone,
+        schedulePlan: firstValues.schedulePlan,
         currentRound: null,
         totalRounds: null,
         rankingPolicy: firstValues.rankingPolicy,

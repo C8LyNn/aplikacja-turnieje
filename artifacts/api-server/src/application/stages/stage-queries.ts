@@ -7,6 +7,8 @@ import {
   tournamentStagesTable,
 } from "@workspace/db";
 import { StageLifecycleError } from "./stage-lifecycle";
+import { describeLeagueRules, leagueRulesFromStorage } from "../../domain/tournament/league-rules";
+import { schedulePlanFromStorage } from "../../domain/tournament/league-schedule";
 
 function iso(value: Date | null): string | null {
   return value?.toISOString() ?? null;
@@ -30,6 +32,18 @@ export function serializeTournamentStage(
     createdAt: stage.createdAt.toISOString(),
     startedAt: iso(stage.startedAt),
     completedAt: iso(stage.completedAt),
+    // V5.3: normalised rules plus a plain-language summary for every client (Stable and Experimental).
+    ...leagueFields(stage),
+  };
+}
+
+function leagueFields(stage: typeof tournamentStagesTable.$inferSelect) {
+  const rules = leagueRulesFromStorage(stage.leagueRules);
+  return {
+    leagueRules: rules,
+    leagueRulesSummary: rules ? describeLeagueRules(rules) : null,
+    scheduleTimeZone: stage.scheduleTimeZone ?? null,
+    schedulePlan: schedulePlanFromStorage(stage.schedulePlan, stage.scheduleTimeZone),
   };
 }
 

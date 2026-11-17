@@ -126,6 +126,17 @@ export const createTournamentBodyStagePlanStagesItemPositionMax = 10;
 export const createTournamentBodyStagePlanStagesItemParticipantCountMin = 2;
 
 
+export const createTournamentBodyStagePlanStagesItemLeagueRulesPointsWinMin = 0;
+export const createTournamentBodyStagePlanStagesItemLeagueRulesPointsWinMax = 99;
+
+export const createTournamentBodyStagePlanStagesItemLeagueRulesPointsDrawMin = 0;
+export const createTournamentBodyStagePlanStagesItemLeagueRulesPointsDrawMax = 99;
+
+export const createTournamentBodyStagePlanStagesItemLeagueRulesPointsLossMin = 0;
+export const createTournamentBodyStagePlanStagesItemLeagueRulesPointsLossMax = 99;
+
+export const createTournamentBodyStagePlanStagesItemSchedulePlanIntervalDaysMax = 60;
+
 export const createTournamentBodyStagePlanStagesItemAdvancingCountMin = 2;
 
 
@@ -137,6 +148,17 @@ export const createTournamentBodyStagePlanStagesItemRandomSeedMax = 200;
 
 export const createTournamentBodyStagePlanStagesItemRandomRevealOrderDefault = `instant`;
 export const createTournamentBodyStagePlanStagesMax = 10;
+
+export const createTournamentBodyLeagueRulesPointsWinMin = 0;
+export const createTournamentBodyLeagueRulesPointsWinMax = 99;
+
+export const createTournamentBodyLeagueRulesPointsDrawMin = 0;
+export const createTournamentBodyLeagueRulesPointsDrawMax = 99;
+
+export const createTournamentBodyLeagueRulesPointsLossMin = 0;
+export const createTournamentBodyLeagueRulesPointsLossMax = 99;
+
+export const createTournamentBodySchedulePlanIntervalDaysMax = 60;
 
 export const createTournamentBodyGameConfigOneConfigBansPerPlayerMin = 0;
 export const createTournamentBodyGameConfigOneConfigBansPerPlayerMax = 20;
@@ -179,6 +201,22 @@ export const CreateTournamentBody = zod.object({
   "bestOf": zod.union([zod.literal(1),zod.literal(3),zod.literal(5),zod.literal(7)]),
   "rounds": zod.number().min(1).optional(),
   "legs": zod.union([zod.literal(1),zod.literal(2)]).optional().describe('Round robin only. 2 = every pair plays twice (home and away).'),
+  "leagueRules": zod.object({
+  "version": zod.literal(1).optional(),
+  "allowDraws": zod.boolean().optional().describe('Draws need a single-game match (bestOf 1); the score is then goals\/points.'),
+  "points": zod.object({
+  "win": zod.number().min(createTournamentBodyStagePlanStagesItemLeagueRulesPointsWinMin).max(createTournamentBodyStagePlanStagesItemLeagueRulesPointsWinMax),
+  "draw": zod.number().min(createTournamentBodyStagePlanStagesItemLeagueRulesPointsDrawMin).max(createTournamentBodyStagePlanStagesItemLeagueRulesPointsDrawMax),
+  "loss": zod.number().min(createTournamentBodyStagePlanStagesItemLeagueRulesPointsLossMin).max(createTournamentBodyStagePlanStagesItemLeagueRulesPointsLossMax)
+}),
+  "tieBreakers": zod.array(zod.enum(['head_to_head', 'score_difference', 'scored', 'wins'])).optional()
+}).optional().describe('V5.3: round_robin and group_stage only. Omitted keeps ranking by match wins.'),
+  "scheduleTimeZone": zod.string().optional().describe('V5.3: round_robin and group_stage. IANA time zone of the schedule, e.g. Europe\/Warsaw.'),
+  "schedulePlan": zod.object({
+  "startDate": zod.string().describe('YYYY-MM-DD'),
+  "intervalDays": zod.number().min(1).max(createTournamentBodyStagePlanStagesItemSchedulePlanIntervalDaysMax),
+  "defaultTime": zod.string().describe('HH:MM')
+}).optional().describe('V5.3: round 1 on startDate, every next round intervalDays later, at defaultTime (local, in scheduleTimeZone).'),
   "advancingCount": zod.number().min(createTournamentBodyStagePlanStagesItemAdvancingCountMin).optional().describe('Required for every non-terminal Swiss, Round Robin, or Single Elimination stage. Must equal the next stage participantCount. For Single Elimination it must be a complete-round boundary of at least 2 (for example 16 participants may advance 8, 4, or 2). A terminal Single Elimination stage omits this field and implicitly finishes with one champion.'),
   "groupCount": zod.number().min(1).optional().describe('Number of balanced groups. Must not exceed floor(participantCount \/ 2).'),
   "participantsPerGroup": zod.number().min(createTournamentBodyStagePlanStagesItemParticipantsPerGroupMin).optional().describe('Derived largest group size, equal to ceil(participantCount \/ groupCount).'),
@@ -191,6 +229,22 @@ export const CreateTournamentBody = zod.object({
   "seedingMethod": zod.enum(['snake', 'random']).optional().describe('Compatibility alias for group placementMethod.')
 })).min(1).max(createTournamentBodyStagePlanStagesMax)
 }).optional().describe('Optional authoritative 1-10 stage plan. The legacy format fields remain a compatibility projection.'),
+  "leagueRules": zod.object({
+  "version": zod.literal(1).optional(),
+  "allowDraws": zod.boolean().optional().describe('Draws need a single-game match (bestOf 1); the score is then goals\/points.'),
+  "points": zod.object({
+  "win": zod.number().min(createTournamentBodyLeagueRulesPointsWinMin).max(createTournamentBodyLeagueRulesPointsWinMax),
+  "draw": zod.number().min(createTournamentBodyLeagueRulesPointsDrawMin).max(createTournamentBodyLeagueRulesPointsDrawMax),
+  "loss": zod.number().min(createTournamentBodyLeagueRulesPointsLossMin).max(createTournamentBodyLeagueRulesPointsLossMax)
+}),
+  "tieBreakers": zod.array(zod.enum(['head_to_head', 'score_difference', 'scored', 'wins'])).optional()
+}).optional().describe('V5.3: league rules for a single round_robin tournament created without a stage plan (flexible participant count).'),
+  "scheduleTimeZone": zod.string().optional().describe('V5.3: schedule time zone for a single round_robin created without a stage plan.'),
+  "schedulePlan": zod.object({
+  "startDate": zod.string().describe('YYYY-MM-DD'),
+  "intervalDays": zod.number().min(1).max(createTournamentBodySchedulePlanIntervalDaysMax),
+  "defaultTime": zod.string().describe('HH:MM')
+}).optional().describe('V5.3: round 1 on startDate, every next round intervalDays later, at defaultTime (local, in scheduleTimeZone).'),
   "gameConfig": zod.union([zod.object({
   "gameId": zod.literal("deadlock"),
   "configVersion": zod.number(),
@@ -240,6 +294,17 @@ export const previewTournamentPlanResponseStagePlanStagesItemPositionMax = 10;
 export const previewTournamentPlanResponseStagePlanStagesItemParticipantCountMin = 2;
 
 
+export const previewTournamentPlanResponseStagePlanStagesItemLeagueRulesPointsWinMin = 0;
+export const previewTournamentPlanResponseStagePlanStagesItemLeagueRulesPointsWinMax = 99;
+
+export const previewTournamentPlanResponseStagePlanStagesItemLeagueRulesPointsDrawMin = 0;
+export const previewTournamentPlanResponseStagePlanStagesItemLeagueRulesPointsDrawMax = 99;
+
+export const previewTournamentPlanResponseStagePlanStagesItemLeagueRulesPointsLossMin = 0;
+export const previewTournamentPlanResponseStagePlanStagesItemLeagueRulesPointsLossMax = 99;
+
+export const previewTournamentPlanResponseStagePlanStagesItemSchedulePlanIntervalDaysMax = 60;
+
 export const previewTournamentPlanResponseStagePlanStagesItemAdvancingCountMin = 2;
 
 
@@ -273,6 +338,22 @@ export const PreviewTournamentPlanResponse = zod.object({
   "bestOf": zod.union([zod.literal(1),zod.literal(3),zod.literal(5),zod.literal(7)]),
   "rounds": zod.number().min(1).optional(),
   "legs": zod.union([zod.literal(1),zod.literal(2)]).optional().describe('Round robin only. 2 = every pair plays twice (home and away).'),
+  "leagueRules": zod.object({
+  "version": zod.literal(1).optional(),
+  "allowDraws": zod.boolean().optional().describe('Draws need a single-game match (bestOf 1); the score is then goals\/points.'),
+  "points": zod.object({
+  "win": zod.number().min(previewTournamentPlanResponseStagePlanStagesItemLeagueRulesPointsWinMin).max(previewTournamentPlanResponseStagePlanStagesItemLeagueRulesPointsWinMax),
+  "draw": zod.number().min(previewTournamentPlanResponseStagePlanStagesItemLeagueRulesPointsDrawMin).max(previewTournamentPlanResponseStagePlanStagesItemLeagueRulesPointsDrawMax),
+  "loss": zod.number().min(previewTournamentPlanResponseStagePlanStagesItemLeagueRulesPointsLossMin).max(previewTournamentPlanResponseStagePlanStagesItemLeagueRulesPointsLossMax)
+}),
+  "tieBreakers": zod.array(zod.enum(['head_to_head', 'score_difference', 'scored', 'wins'])).optional()
+}).optional().describe('V5.3: round_robin and group_stage only. Omitted keeps ranking by match wins.'),
+  "scheduleTimeZone": zod.string().optional().describe('V5.3: round_robin and group_stage. IANA time zone of the schedule, e.g. Europe\/Warsaw.'),
+  "schedulePlan": zod.object({
+  "startDate": zod.string().describe('YYYY-MM-DD'),
+  "intervalDays": zod.number().min(1).max(previewTournamentPlanResponseStagePlanStagesItemSchedulePlanIntervalDaysMax),
+  "defaultTime": zod.string().describe('HH:MM')
+}).optional().describe('V5.3: round 1 on startDate, every next round intervalDays later, at defaultTime (local, in scheduleTimeZone).'),
   "advancingCount": zod.number().min(previewTournamentPlanResponseStagePlanStagesItemAdvancingCountMin).optional().describe('Required for every non-terminal Swiss, Round Robin, or Single Elimination stage. Must equal the next stage participantCount. For Single Elimination it must be a complete-round boundary of at least 2 (for example 16 participants may advance 8, 4, or 2). A terminal Single Elimination stage omits this field and implicitly finishes with one champion.'),
   "groupCount": zod.number().min(1).optional().describe('Number of balanced groups. Must not exceed floor(participantCount \/ 2).'),
   "participantsPerGroup": zod.number().min(previewTournamentPlanResponseStagePlanStagesItemParticipantsPerGroupMin).optional().describe('Derived largest group size, equal to ceil(participantCount \/ groupCount).'),
@@ -1127,6 +1208,19 @@ export const ListTournamentStagesParams = zod.object({
   "id": zod.coerce.number().min(1)
 })
 
+export const listTournamentStagesResponseLeagueRulesOnePointsWinMin = 0;
+export const listTournamentStagesResponseLeagueRulesOnePointsWinMax = 99;
+
+export const listTournamentStagesResponseLeagueRulesOnePointsDrawMin = 0;
+export const listTournamentStagesResponseLeagueRulesOnePointsDrawMax = 99;
+
+export const listTournamentStagesResponseLeagueRulesOnePointsLossMin = 0;
+export const listTournamentStagesResponseLeagueRulesOnePointsLossMax = 99;
+
+export const listTournamentStagesResponseSchedulePlanOneIntervalDaysMax = 60;
+
+
+
 export const ListTournamentStagesResponseItem = zod.object({
   "id": zod.number(),
   "tournamentId": zod.number(),
@@ -1139,6 +1233,23 @@ export const ListTournamentStagesResponseItem = zod.object({
   "bestOf": zod.number(),
   "plannedRounds": zod.number().nullish(),
   "roundRobinLegs": zod.union([zod.literal(1),zod.literal(2)]).optional().describe('2 = home and away (double round robin). Only round_robin stages may use 2.'),
+  "leagueRules": zod.union([zod.object({
+  "version": zod.literal(1).optional(),
+  "allowDraws": zod.boolean().optional().describe('Draws need a single-game match (bestOf 1); the score is then goals\/points.'),
+  "points": zod.object({
+  "win": zod.number().min(listTournamentStagesResponseLeagueRulesOnePointsWinMin).max(listTournamentStagesResponseLeagueRulesOnePointsWinMax),
+  "draw": zod.number().min(listTournamentStagesResponseLeagueRulesOnePointsDrawMin).max(listTournamentStagesResponseLeagueRulesOnePointsDrawMax),
+  "loss": zod.number().min(listTournamentStagesResponseLeagueRulesOnePointsLossMin).max(listTournamentStagesResponseLeagueRulesOnePointsLossMax)
+}),
+  "tieBreakers": zod.array(zod.enum(['head_to_head', 'score_difference', 'scored', 'wins'])).optional()
+}).describe('V5.3: draws, points and ordered tie-breakers for round_robin and group_stage stages.'),zod.null()]).optional().describe('V5.3: league rules; null keeps the pre-V5.3 ranking by match wins.'),
+  "leagueRulesSummary": zod.string().nullish().describe('V5.3: plain-language description of the league rules.'),
+  "scheduleTimeZone": zod.string().nullish().describe('V5.3: IANA time zone of the league schedule.'),
+  "schedulePlan": zod.union([zod.object({
+  "startDate": zod.string().describe('YYYY-MM-DD'),
+  "intervalDays": zod.number().min(1).max(listTournamentStagesResponseSchedulePlanOneIntervalDaysMax),
+  "defaultTime": zod.string().describe('HH:MM')
+}).describe('V5.3: round 1 on startDate, every next round intervalDays later, at defaultTime (local, in scheduleTimeZone).'),zod.null()]).optional().describe('V5.3: dates assigned automatically when the stage starts.'),
   "currentRound": zod.number().nullish(),
   "totalRounds": zod.number().nullish(),
   "rankingPolicy": zod.enum(['swiss_v1', 'round_robin_v1', 'group_v1', 'elimination_bracket_v1']),
@@ -1325,6 +1436,17 @@ export const GetTournamentStageParams = zod.object({
   "stageId": zod.coerce.number().min(1)
 })
 
+export const getTournamentStageResponseStageLeagueRulesOnePointsWinMin = 0;
+export const getTournamentStageResponseStageLeagueRulesOnePointsWinMax = 99;
+
+export const getTournamentStageResponseStageLeagueRulesOnePointsDrawMin = 0;
+export const getTournamentStageResponseStageLeagueRulesOnePointsDrawMax = 99;
+
+export const getTournamentStageResponseStageLeagueRulesOnePointsLossMin = 0;
+export const getTournamentStageResponseStageLeagueRulesOnePointsLossMax = 99;
+
+export const getTournamentStageResponseStageSchedulePlanOneIntervalDaysMax = 60;
+
 
 
 
@@ -1344,6 +1466,23 @@ export const GetTournamentStageResponse = zod.object({
   "bestOf": zod.number(),
   "plannedRounds": zod.number().nullish(),
   "roundRobinLegs": zod.union([zod.literal(1),zod.literal(2)]).optional().describe('2 = home and away (double round robin). Only round_robin stages may use 2.'),
+  "leagueRules": zod.union([zod.object({
+  "version": zod.literal(1).optional(),
+  "allowDraws": zod.boolean().optional().describe('Draws need a single-game match (bestOf 1); the score is then goals\/points.'),
+  "points": zod.object({
+  "win": zod.number().min(getTournamentStageResponseStageLeagueRulesOnePointsWinMin).max(getTournamentStageResponseStageLeagueRulesOnePointsWinMax),
+  "draw": zod.number().min(getTournamentStageResponseStageLeagueRulesOnePointsDrawMin).max(getTournamentStageResponseStageLeagueRulesOnePointsDrawMax),
+  "loss": zod.number().min(getTournamentStageResponseStageLeagueRulesOnePointsLossMin).max(getTournamentStageResponseStageLeagueRulesOnePointsLossMax)
+}),
+  "tieBreakers": zod.array(zod.enum(['head_to_head', 'score_difference', 'scored', 'wins'])).optional()
+}).describe('V5.3: draws, points and ordered tie-breakers for round_robin and group_stage stages.'),zod.null()]).optional().describe('V5.3: league rules; null keeps the pre-V5.3 ranking by match wins.'),
+  "leagueRulesSummary": zod.string().nullish().describe('V5.3: plain-language description of the league rules.'),
+  "scheduleTimeZone": zod.string().nullish().describe('V5.3: IANA time zone of the league schedule.'),
+  "schedulePlan": zod.union([zod.object({
+  "startDate": zod.string().describe('YYYY-MM-DD'),
+  "intervalDays": zod.number().min(1).max(getTournamentStageResponseStageSchedulePlanOneIntervalDaysMax),
+  "defaultTime": zod.string().describe('HH:MM')
+}).describe('V5.3: round 1 on startDate, every next round intervalDays later, at defaultTime (local, in scheduleTimeZone).'),zod.null()]).optional().describe('V5.3: dates assigned automatically when the stage starts.'),
   "currentRound": zod.number().nullish(),
   "totalRounds": zod.number().nullish(),
   "rankingPolicy": zod.enum(['swiss_v1', 'round_robin_v1', 'group_v1', 'elimination_bracket_v1']),
@@ -2169,6 +2308,19 @@ export const StartTournamentStageParams = zod.object({
   "stageId": zod.coerce.number().min(1)
 })
 
+export const startTournamentStageResponseLeagueRulesOnePointsWinMin = 0;
+export const startTournamentStageResponseLeagueRulesOnePointsWinMax = 99;
+
+export const startTournamentStageResponseLeagueRulesOnePointsDrawMin = 0;
+export const startTournamentStageResponseLeagueRulesOnePointsDrawMax = 99;
+
+export const startTournamentStageResponseLeagueRulesOnePointsLossMin = 0;
+export const startTournamentStageResponseLeagueRulesOnePointsLossMax = 99;
+
+export const startTournamentStageResponseSchedulePlanOneIntervalDaysMax = 60;
+
+
+
 export const StartTournamentStageResponse = zod.object({
   "id": zod.number(),
   "tournamentId": zod.number(),
@@ -2181,6 +2333,23 @@ export const StartTournamentStageResponse = zod.object({
   "bestOf": zod.number(),
   "plannedRounds": zod.number().nullish(),
   "roundRobinLegs": zod.union([zod.literal(1),zod.literal(2)]).optional().describe('2 = home and away (double round robin). Only round_robin stages may use 2.'),
+  "leagueRules": zod.union([zod.object({
+  "version": zod.literal(1).optional(),
+  "allowDraws": zod.boolean().optional().describe('Draws need a single-game match (bestOf 1); the score is then goals\/points.'),
+  "points": zod.object({
+  "win": zod.number().min(startTournamentStageResponseLeagueRulesOnePointsWinMin).max(startTournamentStageResponseLeagueRulesOnePointsWinMax),
+  "draw": zod.number().min(startTournamentStageResponseLeagueRulesOnePointsDrawMin).max(startTournamentStageResponseLeagueRulesOnePointsDrawMax),
+  "loss": zod.number().min(startTournamentStageResponseLeagueRulesOnePointsLossMin).max(startTournamentStageResponseLeagueRulesOnePointsLossMax)
+}),
+  "tieBreakers": zod.array(zod.enum(['head_to_head', 'score_difference', 'scored', 'wins'])).optional()
+}).describe('V5.3: draws, points and ordered tie-breakers for round_robin and group_stage stages.'),zod.null()]).optional().describe('V5.3: league rules; null keeps the pre-V5.3 ranking by match wins.'),
+  "leagueRulesSummary": zod.string().nullish().describe('V5.3: plain-language description of the league rules.'),
+  "scheduleTimeZone": zod.string().nullish().describe('V5.3: IANA time zone of the league schedule.'),
+  "schedulePlan": zod.union([zod.object({
+  "startDate": zod.string().describe('YYYY-MM-DD'),
+  "intervalDays": zod.number().min(1).max(startTournamentStageResponseSchedulePlanOneIntervalDaysMax),
+  "defaultTime": zod.string().describe('HH:MM')
+}).describe('V5.3: round 1 on startDate, every next round intervalDays later, at defaultTime (local, in scheduleTimeZone).'),zod.null()]).optional().describe('V5.3: dates assigned automatically when the stage starts.'),
   "currentRound": zod.number().nullish(),
   "totalRounds": zod.number().nullish(),
   "rankingPolicy": zod.enum(['swiss_v1', 'round_robin_v1', 'group_v1', 'elimination_bracket_v1']),
@@ -2200,6 +2369,247 @@ export const StartTournamentStageResponse = zod.object({
   "createdAt": zod.string(),
   "startedAt": zod.string().nullish(),
   "completedAt": zod.string().nullish()
+})
+
+
+/**
+ * @summary V5.3: set or clear league rules (draws, points, tie-breakers) of a stage that has not started
+ */
+
+
+
+
+export const UpdateStageLeagueRulesParams = zod.object({
+  "id": zod.coerce.number().min(1),
+  "stageId": zod.coerce.number().min(1)
+})
+
+export const updateStageLeagueRulesBodyLeagueRulesOnePointsWinMin = 0;
+export const updateStageLeagueRulesBodyLeagueRulesOnePointsWinMax = 99;
+
+export const updateStageLeagueRulesBodyLeagueRulesOnePointsDrawMin = 0;
+export const updateStageLeagueRulesBodyLeagueRulesOnePointsDrawMax = 99;
+
+export const updateStageLeagueRulesBodyLeagueRulesOnePointsLossMin = 0;
+export const updateStageLeagueRulesBodyLeagueRulesOnePointsLossMax = 99;
+
+
+
+
+export const UpdateStageLeagueRulesBody = zod.object({
+  "leagueRules": zod.union([zod.object({
+  "version": zod.literal(1).optional(),
+  "allowDraws": zod.boolean().optional().describe('Draws need a single-game match (bestOf 1); the score is then goals\/points.'),
+  "points": zod.object({
+  "win": zod.number().min(updateStageLeagueRulesBodyLeagueRulesOnePointsWinMin).max(updateStageLeagueRulesBodyLeagueRulesOnePointsWinMax),
+  "draw": zod.number().min(updateStageLeagueRulesBodyLeagueRulesOnePointsDrawMin).max(updateStageLeagueRulesBodyLeagueRulesOnePointsDrawMax),
+  "loss": zod.number().min(updateStageLeagueRulesBodyLeagueRulesOnePointsLossMin).max(updateStageLeagueRulesBodyLeagueRulesOnePointsLossMax)
+}),
+  "tieBreakers": zod.array(zod.enum(['head_to_head', 'score_difference', 'scored', 'wins'])).optional()
+}).describe('V5.3: draws, points and ordered tie-breakers for round_robin and group_stage stages.'),zod.null()]),
+  "expectedVersion": zod.number().min(1)
+})
+
+export const updateStageLeagueRulesResponseLeagueRulesOnePointsWinMin = 0;
+export const updateStageLeagueRulesResponseLeagueRulesOnePointsWinMax = 99;
+
+export const updateStageLeagueRulesResponseLeagueRulesOnePointsDrawMin = 0;
+export const updateStageLeagueRulesResponseLeagueRulesOnePointsDrawMax = 99;
+
+export const updateStageLeagueRulesResponseLeagueRulesOnePointsLossMin = 0;
+export const updateStageLeagueRulesResponseLeagueRulesOnePointsLossMax = 99;
+
+export const updateStageLeagueRulesResponseSchedulePlanOneIntervalDaysMax = 60;
+
+
+
+export const UpdateStageLeagueRulesResponse = zod.object({
+  "id": zod.number(),
+  "tournamentId": zod.number(),
+  "stageKey": zod.string(),
+  "position": zod.number(),
+  "name": zod.string(),
+  "format": zod.enum(['swiss', 'round_robin', 'group_stage', 'single_elimination', 'double_elimination']),
+  "status": zod.enum(['planned', 'active', 'completed']),
+  "participantCount": zod.number(),
+  "bestOf": zod.number(),
+  "plannedRounds": zod.number().nullish(),
+  "roundRobinLegs": zod.union([zod.literal(1),zod.literal(2)]).optional().describe('2 = home and away (double round robin). Only round_robin stages may use 2.'),
+  "leagueRules": zod.union([zod.object({
+  "version": zod.literal(1).optional(),
+  "allowDraws": zod.boolean().optional().describe('Draws need a single-game match (bestOf 1); the score is then goals\/points.'),
+  "points": zod.object({
+  "win": zod.number().min(updateStageLeagueRulesResponseLeagueRulesOnePointsWinMin).max(updateStageLeagueRulesResponseLeagueRulesOnePointsWinMax),
+  "draw": zod.number().min(updateStageLeagueRulesResponseLeagueRulesOnePointsDrawMin).max(updateStageLeagueRulesResponseLeagueRulesOnePointsDrawMax),
+  "loss": zod.number().min(updateStageLeagueRulesResponseLeagueRulesOnePointsLossMin).max(updateStageLeagueRulesResponseLeagueRulesOnePointsLossMax)
+}),
+  "tieBreakers": zod.array(zod.enum(['head_to_head', 'score_difference', 'scored', 'wins'])).optional()
+}).describe('V5.3: draws, points and ordered tie-breakers for round_robin and group_stage stages.'),zod.null()]).optional().describe('V5.3: league rules; null keeps the pre-V5.3 ranking by match wins.'),
+  "leagueRulesSummary": zod.string().nullish().describe('V5.3: plain-language description of the league rules.'),
+  "scheduleTimeZone": zod.string().nullish().describe('V5.3: IANA time zone of the league schedule.'),
+  "schedulePlan": zod.union([zod.object({
+  "startDate": zod.string().describe('YYYY-MM-DD'),
+  "intervalDays": zod.number().min(1).max(updateStageLeagueRulesResponseSchedulePlanOneIntervalDaysMax),
+  "defaultTime": zod.string().describe('HH:MM')
+}).describe('V5.3: round 1 on startDate, every next round intervalDays later, at defaultTime (local, in scheduleTimeZone).'),zod.null()]).optional().describe('V5.3: dates assigned automatically when the stage starts.'),
+  "currentRound": zod.number().nullish(),
+  "totalRounds": zod.number().nullish(),
+  "rankingPolicy": zod.enum(['swiss_v1', 'round_robin_v1', 'group_v1', 'elimination_bracket_v1']),
+  "qualificationMode": zod.enum(['none', 'top_n', 'top_n_per_group']),
+  "advancingCount": zod.number().nullish(),
+  "groupCount": zod.number().nullish(),
+  "participantsPerGroup": zod.number().nullish(),
+  "qualifiersPerGroup": zod.number().nullish(),
+  "seedingPolicy": zod.enum(['standings_order', 'snake_groups', 'cross_group', 'random_groups', 'standard_bracket', 'random_bracket']),
+  "entrySeedingPolicy": zod.enum(['preserve', 'registration_order', 'alphabetical', 'random', 'manual']),
+  "resultSeedingPolicy": zod.enum(['standings_order', 'rank_bands', 'global_ranking']),
+  "randomSeed": zod.string().nullish(),
+  "randomRevealOrder": zod.enum(['instant', 'sequential']),
+  "seedingAudit": zod.record(zod.string(), zod.unknown()).nullish(),
+  "winnerId": zod.number().nullish(),
+  "version": zod.number(),
+  "createdAt": zod.string(),
+  "startedAt": zod.string().nullish(),
+  "completedAt": zod.string().nullish()
+})
+
+
+/**
+ * @summary V5.3: league schedule by round (kolejka) with local dates, match states, resting participants and upcoming matches
+ */
+
+
+
+
+export const GetStageScheduleParams = zod.object({
+  "id": zod.coerce.number().min(1),
+  "stageId": zod.coerce.number().min(1)
+})
+
+export const GetStageScheduleResponse = zod.object({
+  "stageId": zod.number(),
+  "stageName": zod.string(),
+  "format": zod.string(),
+  "timeZone": zod.string(),
+  "timeZoneSource": zod.enum(['stage', 'default']),
+  "now": zod.coerce.date(),
+  "currentRound": zod.number().nullable().describe('Lowest round that still has unfinished matches'),
+  "rounds": zod.array(zod.object({
+  "round": zod.number(),
+  "matches": zod.array(zod.object({
+  "matchId": zod.number(),
+  "round": zod.number(),
+  "matchNumber": zod.number(),
+  "player1Id": zod.number().nullable(),
+  "player2Id": zod.number().nullable(),
+  "player1Name": zod.string().nullable(),
+  "player2Name": zod.string().nullable(),
+  "status": zod.enum(['pending', 'in_progress', 'postponed', 'completed', 'cancelled']),
+  "scheduleState": zod.enum(['completed', 'postponed', 'cancelled', 'in_progress', 'awaiting_result', 'scheduled', 'unscheduled']),
+  "scheduledAt": zod.coerce.date().nullable(),
+  "localDate": zod.string().nullable(),
+  "localTime": zod.string().nullable(),
+  "score1": zod.number().nullable(),
+  "score2": zod.number().nullable(),
+  "winnerId": zod.number().nullable(),
+  "isDraw": zod.boolean()
+})),
+  "resting": zod.array(zod.object({
+  "playerId": zod.number(),
+  "name": zod.string()
+})),
+  "completed": zod.number(),
+  "total": zod.number(),
+  "firstDate": zod.string().nullable()
+})),
+  "upcoming": zod.array(zod.object({
+  "matchId": zod.number(),
+  "round": zod.number(),
+  "matchNumber": zod.number(),
+  "player1Id": zod.number().nullable(),
+  "player2Id": zod.number().nullable(),
+  "player1Name": zod.string().nullable(),
+  "player2Name": zod.string().nullable(),
+  "status": zod.enum(['pending', 'in_progress', 'postponed', 'completed', 'cancelled']),
+  "scheduleState": zod.enum(['completed', 'postponed', 'cancelled', 'in_progress', 'awaiting_result', 'scheduled', 'unscheduled']),
+  "scheduledAt": zod.coerce.date().nullable(),
+  "localDate": zod.string().nullable(),
+  "localTime": zod.string().nullable(),
+  "score1": zod.number().nullable(),
+  "score2": zod.number().nullable(),
+  "winnerId": zod.number().nullable(),
+  "isDraw": zod.boolean()
+})),
+  "overdue": zod.array(zod.object({
+  "matchId": zod.number(),
+  "round": zod.number(),
+  "matchNumber": zod.number(),
+  "player1Id": zod.number().nullable(),
+  "player2Id": zod.number().nullable(),
+  "player1Name": zod.string().nullable(),
+  "player2Name": zod.string().nullable(),
+  "status": zod.enum(['pending', 'in_progress', 'postponed', 'completed', 'cancelled']),
+  "scheduleState": zod.enum(['completed', 'postponed', 'cancelled', 'in_progress', 'awaiting_result', 'scheduled', 'unscheduled']),
+  "scheduledAt": zod.coerce.date().nullable(),
+  "localDate": zod.string().nullable(),
+  "localTime": zod.string().nullable(),
+  "score1": zod.number().nullable(),
+  "score2": zod.number().nullable(),
+  "winnerId": zod.number().nullable(),
+  "isDraw": zod.boolean()
+})),
+  "counts": zod.object({
+  "scheduled": zod.number(),
+  "awaitingResult": zod.number(),
+  "completed": zod.number(),
+  "postponed": zod.number(),
+  "unscheduled": zod.number(),
+  "total": zod.number()
+})
+})
+
+
+/**
+ * @summary V5.3: preview or apply one date per round (start date, interval, default local time, time zone)
+ */
+
+
+
+
+export const GenerateStageScheduleParams = zod.object({
+  "id": zod.coerce.number().min(1),
+  "stageId": zod.coerce.number().min(1)
+})
+
+export const generateStageScheduleBodyIntervalDaysMax = 60;
+
+
+
+
+export const GenerateStageScheduleBody = zod.object({
+  "startDate": zod.string().describe('YYYY-MM-DD, local date of round 1'),
+  "intervalDays": zod.number().min(1).max(generateStageScheduleBodyIntervalDaysMax),
+  "defaultTime": zod.string().describe('HH:MM local time'),
+  "timeZone": zod.string().describe('IANA time zone, e.g. Europe\/Warsaw'),
+  "apply": zod.boolean(),
+  "onlyUnscheduled": zod.boolean().optional().describe('Keep dates the organizer already set; fill only matches without a date.'),
+  "expectedVersion": zod.number().min(1)
+})
+
+export const GenerateStageScheduleResponse = zod.object({
+  "applied": zod.boolean(),
+  "timeZone": zod.string(),
+  "rounds": zod.array(zod.object({
+  "round": zod.number(),
+  "date": zod.string(),
+  "time": zod.string(),
+  "scheduledAt": zod.coerce.date(),
+  "matchCount": zod.number()
+})),
+  "updatedMatches": zod.number(),
+  "skippedMatches": zod.number(),
+  "firstDate": zod.string().nullable(),
+  "lastDate": zod.string().nullable()
 })
 
 
@@ -2931,7 +3341,11 @@ export const GetTournamentStandingsResponseItem = zod.object({
   "gameWins": zod.number(),
   "gameLosses": zod.number(),
   "gameDiff": zod.number(),
-  "buchholz": zod.number().nullable()
+  "buchholz": zod.number().nullable(),
+  "matchDraws": zod.number().optional().describe('V5.3: draws (0 without league rules).'),
+  "points": zod.number().nullish().describe('V5.3: league points; null when the stage has no league rules.'),
+  "decidedBy": zod.union([zod.literal('points'),zod.literal('head_to_head'),zod.literal('score_difference'),zod.literal('scored'),zod.literal('wins'),zod.literal('seed'),zod.literal(null)]).nullish().describe('V5.3: what placed this row below the previous one.'),
+  "tiedAfterAllRules": zod.boolean().optional().describe('V5.3: every configured criterion left this row level; seeding decided.')
 })
 export const GetTournamentStandingsResponse = zod.array(GetTournamentStandingsResponseItem)
 
@@ -3028,6 +3442,17 @@ export const exportTournamentResponseTournamentGameConfigTwoConfigAdvancingCount
 export const exportTournamentResponseTournamentGameConfigTwoConfigKillLimitDefault = 20;
 
 export const exportTournamentResponseTournamentGameConfigTwoConfigRegroupingStrategyDefault = `paired_merge`;
+export const exportTournamentResponseStagesItemLeagueRulesPointsWinMin = 0;
+export const exportTournamentResponseStagesItemLeagueRulesPointsWinMax = 99;
+
+export const exportTournamentResponseStagesItemLeagueRulesPointsDrawMin = 0;
+export const exportTournamentResponseStagesItemLeagueRulesPointsDrawMax = 99;
+
+export const exportTournamentResponseStagesItemLeagueRulesPointsLossMin = 0;
+export const exportTournamentResponseStagesItemLeagueRulesPointsLossMax = 99;
+
+export const exportTournamentResponseStagesItemSchedulePlanIntervalDaysMax = 60;
+
 export const exportTournamentResponseStagesMax = 10;
 
 
@@ -3127,6 +3552,22 @@ export const ExportTournamentResponse = zod.object({
   "bestOf": zod.number(),
   "plannedRounds": zod.number().nullish(),
   "roundRobinLegs": zod.literal(2).optional().describe('V5: present only for home-and-away round robin stages.'),
+  "leagueRules": zod.object({
+  "version": zod.literal(1).optional(),
+  "allowDraws": zod.boolean().optional().describe('Draws need a single-game match (bestOf 1); the score is then goals\/points.'),
+  "points": zod.object({
+  "win": zod.number().min(exportTournamentResponseStagesItemLeagueRulesPointsWinMin).max(exportTournamentResponseStagesItemLeagueRulesPointsWinMax),
+  "draw": zod.number().min(exportTournamentResponseStagesItemLeagueRulesPointsDrawMin).max(exportTournamentResponseStagesItemLeagueRulesPointsDrawMax),
+  "loss": zod.number().min(exportTournamentResponseStagesItemLeagueRulesPointsLossMin).max(exportTournamentResponseStagesItemLeagueRulesPointsLossMax)
+}),
+  "tieBreakers": zod.array(zod.enum(['head_to_head', 'score_difference', 'scored', 'wins'])).optional()
+}).optional().describe('V5.3: present only when the stage has league rules (draws, points, tie-breakers).'),
+  "scheduleTimeZone": zod.string().optional().describe('V5.3: present only when the stage has a schedule time zone.'),
+  "schedulePlan": zod.object({
+  "startDate": zod.string().describe('YYYY-MM-DD'),
+  "intervalDays": zod.number().min(1).max(exportTournamentResponseStagesItemSchedulePlanIntervalDaysMax),
+  "defaultTime": zod.string().describe('HH:MM')
+}).optional().describe('V5.3: present only when the stage has a schedule template.'),
   "currentRound": zod.number().nullish(),
   "totalRounds": zod.number().nullish(),
   "rankingPolicy": zod.enum(['swiss_v1', 'round_robin_v1', 'group_v1', 'elimination_bracket_v1']),
@@ -3367,6 +3808,17 @@ export const importTournamentBodyBackupTwoTournamentGameConfigTwoConfigAdvancing
 export const importTournamentBodyBackupTwoTournamentGameConfigTwoConfigKillLimitDefault = 20;
 
 export const importTournamentBodyBackupTwoTournamentGameConfigTwoConfigRegroupingStrategyDefault = `paired_merge`;
+export const importTournamentBodyBackupTwoStagesItemLeagueRulesPointsWinMin = 0;
+export const importTournamentBodyBackupTwoStagesItemLeagueRulesPointsWinMax = 99;
+
+export const importTournamentBodyBackupTwoStagesItemLeagueRulesPointsDrawMin = 0;
+export const importTournamentBodyBackupTwoStagesItemLeagueRulesPointsDrawMax = 99;
+
+export const importTournamentBodyBackupTwoStagesItemLeagueRulesPointsLossMin = 0;
+export const importTournamentBodyBackupTwoStagesItemLeagueRulesPointsLossMax = 99;
+
+export const importTournamentBodyBackupTwoStagesItemSchedulePlanIntervalDaysMax = 60;
+
 export const importTournamentBodyBackupTwoStagesMax = 10;
 
 
@@ -3545,6 +3997,22 @@ export const ImportTournamentBody = zod.object({
   "bestOf": zod.number(),
   "plannedRounds": zod.number().nullish(),
   "roundRobinLegs": zod.literal(2).optional().describe('V5: present only for home-and-away round robin stages.'),
+  "leagueRules": zod.object({
+  "version": zod.literal(1).optional(),
+  "allowDraws": zod.boolean().optional().describe('Draws need a single-game match (bestOf 1); the score is then goals\/points.'),
+  "points": zod.object({
+  "win": zod.number().min(importTournamentBodyBackupTwoStagesItemLeagueRulesPointsWinMin).max(importTournamentBodyBackupTwoStagesItemLeagueRulesPointsWinMax),
+  "draw": zod.number().min(importTournamentBodyBackupTwoStagesItemLeagueRulesPointsDrawMin).max(importTournamentBodyBackupTwoStagesItemLeagueRulesPointsDrawMax),
+  "loss": zod.number().min(importTournamentBodyBackupTwoStagesItemLeagueRulesPointsLossMin).max(importTournamentBodyBackupTwoStagesItemLeagueRulesPointsLossMax)
+}),
+  "tieBreakers": zod.array(zod.enum(['head_to_head', 'score_difference', 'scored', 'wins'])).optional()
+}).optional().describe('V5.3: present only when the stage has league rules (draws, points, tie-breakers).'),
+  "scheduleTimeZone": zod.string().optional().describe('V5.3: present only when the stage has a schedule time zone.'),
+  "schedulePlan": zod.object({
+  "startDate": zod.string().describe('YYYY-MM-DD'),
+  "intervalDays": zod.number().min(1).max(importTournamentBodyBackupTwoStagesItemSchedulePlanIntervalDaysMax),
+  "defaultTime": zod.string().describe('HH:MM')
+}).optional().describe('V5.3: present only when the stage has a schedule template.'),
   "currentRound": zod.number().nullish(),
   "totalRounds": zod.number().nullish(),
   "rankingPolicy": zod.enum(['swiss_v1', 'round_robin_v1', 'group_v1', 'elimination_bracket_v1']),
@@ -4374,6 +4842,51 @@ export const UpdateMatchBody = zod.object({
 
 
 export const UpdateMatchResponse = zod.object({
+  "id": zod.number(),
+  "revision": zod.number().min(1),
+  "tournamentId": zod.number(),
+  "stageId": zod.number(),
+  "stageGroupId": zod.number().nullish(),
+  "routingMatchKey": zod.string().nullish(),
+  "round": zod.number(),
+  "matchNumber": zod.number(),
+  "player1Id": zod.number().nullish(),
+  "player2Id": zod.number().nullish(),
+  "player1Name": zod.string().nullish(),
+  "player2Name": zod.string().nullish(),
+  "score1": zod.number().nullish(),
+  "score2": zod.number().nullish(),
+  "winnerId": zod.number().nullish(),
+  "resultType": zod.union([zod.literal('played'),zod.literal('walkover'),zod.literal('bye'),zod.literal('no_contest'),zod.literal(null)]).nullish(),
+  "resultReason": zod.string().nullish(),
+  "bestOf": zod.number().min(1),
+  "note": zod.string().nullish(),
+  "status": zod.enum(['pending', 'in_progress', 'postponed', 'completed', 'cancelled']),
+  "nextMatchId": zod.number().nullish(),
+  "sortOrder": zod.number().nullish(),
+  "scheduledAt": zod.string().nullish(),
+  "completedAt": zod.string().nullish()
+})
+
+
+/**
+ * @summary V5.3: set or clear a match date as local date/time in the stage schedule time zone (result and history untouched)
+ */
+export const UpdateMatchScheduleParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const UpdateMatchScheduleBody = zod.object({
+  "date": zod.string().nullable().describe('YYYY-MM-DD in the stage time zone; null clears the date'),
+  "time": zod.string().optional().describe('HH:MM local time (required with a date)'),
+  "timeZone": zod.string().optional().describe('IANA zone; only used when the stage has none yet')
+})
+
+
+
+
+
+export const UpdateMatchScheduleResponse = zod.object({
   "id": zod.number(),
   "revision": zod.number().min(1),
   "tournamentId": zod.number(),

@@ -3,9 +3,13 @@
  * A preview is never permission to revert/complete a match. Real mutations must repeat
  * all transactional guards in revertMatch/completeMatch and their authorization checks.
  */
+import { parseLeagueRules, validateLeagueScore } from "../../domain/tournament/league-rules";
+
 export type StageFormat = "single_elimination" | "double_elimination" | "swiss" | "round_robin" | "group_stage";
 export type StageStatus = "planned" | "active" | "completed";
-export interface CorrectionStage { id: number; position: number; name: string; format: StageFormat; status: StageStatus; currentRound: number | null; totalRounds: number | null; }
+export interface CorrectionStage { id: number; position: number; name: string; format: StageFormat; status: StageStatus; currentRound: number | null; totalRounds: number | null;
+  /** V5.3: stored league rules (draw-enabled stages validate a free score). */
+  leagueRules?: unknown; }
 export interface CorrectionMatch {
   id: number; stageId: number; round: number; matchNumber: number; status: string;
   revision: number; resultType: string | null; resultReason: string | null;
@@ -59,14 +63,23 @@ export function deriveResultCorrectionPreflight(input: CorrectionPreviewInput): 
   const effect = (code: string, certainty: "confirmed" | "conditional", message: string) => effects.push({ code, certainty, message });
 
   let proposedWinnerId: number | null = null;
+  const parsedRules = parseLeagueRules(currentStage?.leagueRules);
+  const drawLeague = parsedRules.ok && parsedRules.value?.allowDraws === true;
   const winTarget = Math.floor(match.bestOf / 2) + 1;
-  const validProposedScore = Number.isSafeInteger(proposedScore1) && Number.isSafeInteger(proposedScore2)
+  const leagueScore = drawLeague ? validateLeagueScore(proposedScore1, proposedScore2) : null;
+  const validProposedScore = leagueScore ? leagueScore.ok : Number.isSafeInteger(proposedScore1) && Number.isSafeInteger(proposedScore2)
     && proposedScore1 >= 0 && proposedScore2 >= 0
     && Number.isSafeInteger(match.bestOf) && match.bestOf > 0 && match.bestOf % 2 === 1
     && proposedScore1 <= winTarget && proposedScore2 <= winTarget
     && ((proposedScore1 === winTarget) !== (proposedScore2 === winTarget));
-  if (!validProposedScore) block("INVALID_PROPOSED_RESULT", `Wynik musi rozstrzygać serię BO${match.bestOf} zgodnie z aktualnymi zasadami.`);
-  else proposedWinnerId = proposedScore1 === winTarget ? match.player1Id : match.player2Id;
+  if (!validProposedScore) {
+    block("INVALID_PROPOSED_RESULT", drawLeague
+      ? "Wynik musi składać się z dwóch liczb całkowitych od 0 do 999."
+      : `Wynik musi rozstrzygać serię BO${match.bestOf} zgodnie z aktualnymi zasadami.`);
+  } else if (leagueScore?.ok) {
+    proposedWinnerId = leagueScore.outcome === "draw" ? null
+      : leagueScore.outcome === "player1" ? match.player1Id : match.player2Id;
+  } else proposedWinnerId = proposedScore1 === winTarget ? match.player1Id : match.player2Id;
 
   if (!currentStage) block("STAGE_NOT_FOUND", "Nie znaleziono etapu meczu.");
   if (match.status !== "completed") block("MATCH_NOT_COMPLETED", "Tylko zakończony mecz można cofnąć w standardowej procedurze.");

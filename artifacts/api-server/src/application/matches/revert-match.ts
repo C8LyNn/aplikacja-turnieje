@@ -13,6 +13,11 @@ import {
   tournamentsTable,
 } from "@workspace/db";
 import { validatePlayedSeriesResult } from "../../domain/match/series-result";
+import {
+  leagueRulesFromStorage,
+  validateLeagueScore,
+  type LeagueRules,
+} from "../../domain/tournament/league-rules";
 import { stageMatchVersionVector } from "../operations/tournament-preview-coherence";
 import {
   revalidateTournamentMutationActor,
@@ -102,7 +107,10 @@ interface ConsistentResult {
   loserId: number | null;
 }
 
-function requireConsistentResult(match: typeof matchesTable.$inferSelect): ConsistentResult {
+function requireConsistentResult(
+  match: typeof matchesTable.$inferSelect,
+  leagueRules: LeagueRules | null,
+): ConsistentResult {
   if (match.completedAt == null || match.resultType == null) {
     throw new RevertMatchError("RESULT_INCONSISTENT");
   }
@@ -111,6 +119,24 @@ function requireConsistentResult(match: typeof matchesTable.$inferSelect): Consi
   }
   if (match.player1Id == null || match.player2Id == null || match.player1Id === match.player2Id) {
     throw new RevertMatchError("RESULT_INCONSISTENT");
+  }
+
+  if (match.resultType === "played" && leagueRules?.allowDraws) {
+    // V5.3 draw-enabled league: a free score; the stored winner must follow from it (null for a draw).
+    if (match.score1 == null || match.score2 == null || match.resultReason != null) {
+      throw new RevertMatchError("RESULT_INCONSISTENT");
+    }
+    const validation = validateLeagueScore(match.score1, match.score2);
+    if (!validation.ok) throw new RevertMatchError("RESULT_INCONSISTENT");
+    const expectedWinner = validation.outcome === "draw" ? null
+      : validation.outcome === "player1" ? match.player1Id : match.player2Id;
+    if (match.winnerId !== expectedWinner) throw new RevertMatchError("RESULT_INCONSISTENT");
+    return {
+      resultType: "played",
+      winnerId: expectedWinner,
+      loserId: expectedWinner == null ? null
+        : expectedWinner === match.player1Id ? match.player2Id : match.player1Id,
+    };
   }
 
   if (match.resultType === "played") {
@@ -297,7 +323,7 @@ export async function revertMatch(
         throw new RevertMatchError("CONCURRENT_MODIFICATION");
       }
     }
-    const result = requireConsistentResult(match);
+    const result = requireConsistentResult(match, leagueRulesFromStorage(stage.leagueRules));
 
     const participantIds = [match.player1Id, match.player2Id].filter(
       (playerId): playerId is number => playerId != null,

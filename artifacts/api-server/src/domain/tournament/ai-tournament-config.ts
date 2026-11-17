@@ -21,6 +21,22 @@ import {
 } from "./tournament-stage-plan";
 import { compileV1StagePlanToRoutingV2, doubleEliminationFormatEngineV2 } from "./v2";
 import {
+  LEAGUE_TIE_BREAKERS,
+  MAX_LEAGUE_POINTS,
+  describeLeagueRules,
+  parseLeagueRules,
+  validateLeagueRulesForStage,
+  type LeagueRules,
+} from "./league-rules";
+import {
+  DEFAULT_SCHEDULE_TIME_ZONE,
+  MAX_SCHEDULE_INTERVAL_DAYS,
+  generateRoundDates,
+  isValidTimeZone,
+  parseSchedulePlan,
+  roundRobinFacts,
+} from "./league-schedule";
+import {
   PLANNED_PRESETS,
   PRESET_DEFINITIONS,
   PRESET_IDS,
@@ -85,7 +101,16 @@ export interface AiTournamentConfigV1 {
   structure:
     | { type: "preset"; presetId: PresetId; params: PresetParams }
     | { type: "stages"; stages: AiStageV1[] };
+  /** V5.3: dates for the first league/group stage (one date per round). */
+  schedule?: AiScheduleV1;
   notes?: string;
+}
+
+export interface AiScheduleV1 {
+  timeZone: string;
+  startDate: string;
+  intervalDays: number;
+  defaultTime: string;
 }
 
 export interface AiStageV1 {
@@ -103,6 +128,8 @@ export interface AiStageV1 {
   entrySeedingMethod?: (typeof AI_ENTRY_SEEDING_METHODS)[number];
   /** round_robin only: 2 = home and away. */
   legs?: 1 | 2;
+  /** V5.3: round_robin and group_stage: draws, points and tie-breakers. */
+  leagueRules?: LeagueRules;
 }
 
 export type AiConfigValidation =
@@ -148,11 +175,11 @@ function collectForbidden(value: unknown, path: string, problems: AiConfigProble
   }
 }
 
-/** Plain-language reason for fields that describe features the engine does not have yet. */
+/** Plain-language reason for fields that are misplaced or describe features the engine does not have yet. */
 function unsupportedFieldHint(key: string): string | null {
   const k = key.toLowerCase();
-  if (/draw|remis|scor|point|punkt/.test(k)) return "remisy i punktacja (np. 3/1/0) nie są jeszcze obsługiwane — każdy mecz kończy się zwycięzcą.";
-  if (/schedul|date|time|calendar|termin|kolejk/.test(k)) return "daty, godziny i terminarz meczów nie są jeszcze obsługiwane.";
+  if (/draw|remis|scor|point|punkt/.test(k)) return "remisy i punktację podaj w presecie jako params (allowDraws, pointsWin, pointsDraw, pointsLoss) albo w etapie jako leagueRules.";
+  if (/schedul|date|time|calendar|termin|kolejk/.test(k)) return "terminarz podaj w polu schedule na najwyższym poziomie pliku (timeZone, startDate, intervalDays, defaultTime).";
   if (/division|promot|relegat|dywizj|spad/.test(k)) return "dywizje, awanse i spadki między ligami nie są jeszcze obsługiwane.";
   if (/roster|lineup|player|member|sklad|skład|team/.test(k)) return "zawodników, drużyny i składy dodajesz w aplikacji po utworzeniu turnieju.";
   return null;
@@ -196,8 +223,31 @@ function optionalInteger(record: Rec, key: string, path: string, problems: AiCon
 
 const STAGE_KEYS = [
   "label", "format", "bestOf", "participantCount", "rounds", "advancingCount", "groupCount",
-  "qualifiersPerGroup", "placementMethod", "resultSeedingMethod", "entrySeedingMethod", "legs",
+  "qualifiersPerGroup", "placementMethod", "resultSeedingMethod", "entrySeedingMethod", "legs", "leagueRules",
 ] as const;
+
+const SCHEDULE_KEYS = ["timeZone", "startDate", "intervalDays", "defaultTime"] as const;
+
+function parseSchedule(raw: unknown, problems: AiConfigProblem[]): AiScheduleV1 | undefined {
+  if (raw === undefined) return undefined;
+  if (!isRecord(raw)) {
+    problems.push({ path: "schedule", code: "NOT_AN_OBJECT", message: "schedule musi być obiektem (timeZone, startDate, intervalDays, defaultTime)." });
+    return undefined;
+  }
+  checkKeys(raw, SCHEDULE_KEYS, "schedule", problems);
+  const timeZone = raw.timeZone ?? DEFAULT_SCHEDULE_TIME_ZONE;
+  if (!isValidTimeZone(timeZone)) {
+    problems.push({ path: "schedule.timeZone", code: "INVALID_VALUE", message: "schedule.timeZone musi być strefą IANA, np. Europe/Warsaw." });
+    return undefined;
+  }
+  const { timeZone: _ignored, ...template } = raw;
+  const parsed = parseSchedulePlan(template, timeZone, null, "schedule");
+  if (!parsed.ok) {
+    for (const problem of parsed.problems) problems.push({ path: problem.path, code: "INVALID_VALUE", message: problem.message });
+    return undefined;
+  }
+  return { timeZone: timeZone as string, ...parsed.value! };
+}
 
 function parseStage(raw: unknown, index: number, problems: AiConfigProblem[]): AiStageV1 | null {
   const path = `structure.stages[${index}].`;
@@ -246,6 +296,21 @@ function parseStage(raw: unknown, index: number, problems: AiConfigProblem[]): A
     ...(resultSeedingMethod ? { resultSeedingMethod } : {}),
     ...(entry ? { entrySeedingMethod: entry } : {}),
   };
+  if (raw.leagueRules !== undefined) {
+    if (format !== "round_robin" && format !== "group_stage") {
+      problems.push({ path: `${path}leagueRules`, code: "INVALID_VALUE", message: "leagueRules (punktacja, remisy) dotyczy tylko round_robin i group_stage." });
+    } else {
+      const parsedRules = parseLeagueRules(raw.leagueRules, `${path}leagueRules`);
+      if (!parsedRules.ok) {
+        for (const problem of parsedRules.problems) problems.push({ path: problem.path, code: "INVALID_VALUE", message: problem.message });
+      } else if (parsedRules.value) {
+        for (const problem of validateLeagueRulesForStage(parsedRules.value, { format: format ?? "", bestOf: Number(bestOf) }, `${path}leagueRules`)) {
+          problems.push({ path: problem.path, code: "INVALID_VALUE", message: problem.message });
+        }
+        stage.leagueRules = parsedRules.value;
+      }
+    }
+  }
   if (raw.legs !== undefined) {
     if (format !== "round_robin") problems.push({ path: `${path}legs`, code: "INVALID_VALUE", message: "legs (mecz i rewanż) dotyczy tylko round_robin." });
     else if (raw.legs !== 1 && raw.legs !== 2) problems.push({ path: `${path}legs`, code: "INVALID_VALUE", message: "legs musi wynosić 1 albo 2." });
@@ -313,7 +378,8 @@ export function parseAiTournamentConfig(input: unknown): { config: AiTournamentC
     };
   }
   collectForbidden(input, "", problems);
-  checkKeys(input, ["$schema", "schemaVersion", "kind", "participants", "visibility", "structure", "notes"], "", problems);
+  checkKeys(input, ["$schema", "schemaVersion", "kind", "participants", "visibility", "structure", "schedule", "notes"], "", problems);
+  const schedule = parseSchedule(input.schedule, problems);
   if (input.$schema !== undefined && input.$schema !== AI_CONFIG_SCHEMA_ID) {
     problems.push({ path: "$schema", code: "INVALID_VALUE", message: `$schema (opcjonalne) musi wynosić ${AI_CONFIG_SCHEMA_ID}.` });
   }
@@ -364,6 +430,7 @@ export function parseAiTournamentConfig(input: unknown): { config: AiTournamentC
   return {
     config: {
       schemaVersion: 1, kind, participants, visibility, structure,
+      ...(schedule !== undefined ? { schedule } : {}),
       ...(notes !== undefined ? { notes } : {}),
     },
     problems,
@@ -441,6 +508,7 @@ export function buildCustomStagePlan(count: number, stages: readonly AiStageV1[]
     };
     if (stage.format === "swiss") record.rounds = stage.rounds;
     if (stage.format === "round_robin" && stage.legs === 2) record.legs = 2;
+    if ((stage.format === "round_robin" || stage.format === "group_stage") && stage.leagueRules) record.leagueRules = stage.leagueRules;
     if (stage.format === "group_stage") {
       record.groupCount = stage.groupCount;
       record.qualifiersPerGroup = stage.qualifiersPerGroup;
@@ -516,7 +584,14 @@ export function summarizeCustomPlan(plan: TournamentStagesPlan): PresetPreview {
       matchesPerParticipant: { min: 1, max: sum((stage) => stage.rounds.max) },
     },
     winnerRule: "Mistrzem zostaje zwycięzca ostatniego etapu.",
-    tieRules: ["Remisów nie ma: każdy mecz musi mieć zwycięzcę."],
+    tieRules: plan.stages.map((stage) => {
+      const rules = (stage.format === "round_robin" || stage.format === "group_stage") ? stage.leagueRules : undefined;
+      return rules
+        ? `${stage.name}: ${describeLeagueRules(rules)}`
+        : `${stage.name}: remisów nie ma — każdy mecz musi mieć zwycięzcę.`;
+    }),
+    leagueRules: plan.stages.map((stage) => (stage.format === "round_robin" || stage.format === "group_stage") ? stage.leagueRules ?? null : null).find((rules) => rules != null) ?? null,
+    schedule: null,
     requirements: [`Przed startem lista musi liczyć dokładnie ${plan.initialParticipantCount} uczestników.`],
     warnings: stages.filter((stage) => stage.byes > 0).map((stage) => `Etap „${stage.name}”: ${stage.byes} wolnych losów.`),
   };
@@ -539,16 +614,66 @@ export function validateAiTournamentConfigText(text: unknown): AiConfigValidatio
   return validateAiTournamentConfig(decoded);
 }
 
+/**
+ * V5.3: puts the schedule on the first league/group stage of a validated preview and checks every round date
+ * (a DST-skipped local time is reported here, before anything is created).
+ */
+export function attachScheduleToPreview(preview: PresetPreview, schedule: AiScheduleV1): { preview: PresetPreview; problem: AiConfigProblem | null } {
+  const targetIndex = preview.stagePlan.stages.findIndex((stage) => stage.format === "round_robin" || stage.format === "group_stage");
+  if (targetIndex < 0) {
+    return { preview, problem: { path: "schedule", code: "ENGINE_REJECTED", message: "Terminarz kolejek działa w lidze (każdy z każdym) i w fazie grupowej — ta struktura ich nie ma." } };
+  }
+  const target = preview.stagePlan.stages[targetIndex]!;
+  const groupSize = target.format === "group_stage" ? Math.max(...calculateBalancedGroupSizes(target.participantCount, target.groupCount)) : target.participantCount;
+  const rounds = roundRobinFacts(groupSize, target.format === "round_robin" && target.legs === 2 ? 2 : 1).rounds;
+  const generated = generateRoundDates(schedule, rounds);
+  if (!generated.ok) return { preview, problem: { path: "schedule", code: "ENGINE_REJECTED", message: generated.message } };
+  const plan = { startDate: schedule.startDate, intervalDays: schedule.intervalDays, defaultTime: schedule.defaultTime };
+  const stagePlan = {
+    ...preview.stagePlan,
+    stages: preview.stagePlan.stages.map((stage, index) => index === targetIndex
+      ? { ...stage, scheduleTimeZone: schedule.timeZone, schedulePlan: plan }
+      : stage),
+  } as TournamentStagesPlan;
+  const creation = preview.creation.stagePlan
+    ? { ...preview.creation, stagePlan }
+    : { ...preview.creation, scheduleTimeZone: schedule.timeZone, schedulePlan: plan };
+  return {
+    preview: {
+      ...preview,
+      creation,
+      stagePlan,
+      schedule: {
+        stageName: target.name,
+        timeZone: schedule.timeZone,
+        startDate: schedule.startDate,
+        intervalDays: schedule.intervalDays,
+        defaultTime: schedule.defaultTime,
+        rounds,
+        firstDate: generated.rounds[0]!.date,
+        lastDate: generated.rounds.at(-1)!.date,
+      },
+    },
+    problem: null,
+  };
+}
+
 export function validateAiTournamentConfig(decoded: unknown): AiConfigValidation {
   const { config, problems } = parseAiTournamentConfig(decoded);
   if (!config) return { valid: false, problems };
+  const withSchedule = (preview: PresetPreview, continueIn: "wizard" | "advanced"): AiConfigValidation => {
+    if (!config.schedule) return { valid: true, config, preview, continueIn, notes: config.notes ?? null };
+    const attached = attachScheduleToPreview(preview, config.schedule);
+    if (attached.problem) return { valid: false, problems: [attached.problem] };
+    return { valid: true, config, preview: attached.preview, continueIn, notes: config.notes ?? null };
+  };
   if (config.structure.type === "preset") {
     try {
       const preview = previewPreset({
         presetId: config.structure.presetId,
         params: { ...config.structure.params, participantCount: config.participants.count },
       });
-      return { valid: true, config, preview, continueIn: "wizard", notes: config.notes ?? null };
+      return withSchedule(preview, "wizard");
     } catch (error) {
       if (!(error instanceof PresetError)) throw error;
       return {
@@ -559,7 +684,7 @@ export function validateAiTournamentConfig(decoded: unknown): AiConfigValidation
   }
   const built = buildCustomStagePlan(config.participants.count, config.structure.stages);
   if (!built.plan) return { valid: false, problems: built.problems };
-  return { valid: true, config, preview: summarizeCustomPlan(built.plan), continueIn: "advanced", notes: config.notes ?? null };
+  return withSchedule(summarizeCustomPlan(built.plan), "advanced");
 }
 
 // ── specification generator ─────────────────────────────────────────────────
@@ -573,12 +698,17 @@ const PARAM_RANGES: Record<PresetParamKey, { minimum: number; maximum: number }>
   qualifiersPerGroup: { minimum: 1, maximum: 41 },
   advancingCount: { minimum: 2, maximum: 64 },
   legs: { minimum: 1, maximum: 2 },
+  allowDraws: { minimum: 0, maximum: 1 },
+  pointsWin: { minimum: 0, maximum: 10 },
+  pointsDraw: { minimum: 0, maximum: 10 },
+  pointsLoss: { minimum: 0, maximum: 10 },
 };
 
 function paramSchema(key: PresetParamKey): Rec {
   const text = PRESET_PARAM_TEXT[key];
   if (key === "bestOf" || key === "playoffBestOf") return { description: `${text.label}. ${text.help}`, enum: [...STAGE_BEST_OF_VALUES] };
   if (key === "legs") return { description: `${text.label}. ${text.help}`, enum: [1, 2] };
+  if (key === "allowDraws") return { description: `${text.label}. ${text.help}`, enum: [0, 1], default: 0 };
   if (key === "advancingCount") return { description: `${text.label}. ${text.help} Potęga dwójki mniejsza od liczby uczestników.`, enum: [2, 4, 8, 16, 32, 64] };
   return { description: `${text.label}. ${text.help}`, type: "integer", ...PARAM_RANGES[key] };
 }
@@ -616,6 +746,39 @@ export function buildAiConfigJsonSchema(): Rec {
       resultSeedingMethod: { enum: [...GROUP_RESULT_SEEDING_METHODS], description: "Tylko group_stage." },
       entrySeedingMethod: { enum: [...AI_ENTRY_SEEDING_METHODS], description: "Tylko pierwszy etap." },
       legs: { enum: [1, 2], description: "Tylko round_robin: 2 = mecz i rewanż (każda para gra dwa razy)." },
+      leagueRules: {
+        type: "object",
+        additionalProperties: false,
+        required: ["points"],
+        description: "Tylko round_robin i group_stage. Punktacja, remisy i kolejność kryteriów przy równej liczbie punktów. Pominięte = tabela według liczby zwycięstw.",
+        properties: {
+          allowDraws: { type: "boolean", default: false, description: "true wymaga bestOf: 1 — wynik meczu to wtedy np. gole lub punkty jednej gry." },
+          points: {
+            type: "object",
+            additionalProperties: false,
+            required: ["win", "draw", "loss"],
+            properties: {
+              win: { type: "integer", minimum: 0, maximum: MAX_LEAGUE_POINTS },
+              draw: { type: "integer", minimum: 0, maximum: MAX_LEAGUE_POINTS },
+              loss: { type: "integer", minimum: 0, maximum: MAX_LEAGUE_POINTS },
+            },
+            description: "win > loss; loss ≤ draw ≤ win. Klasycznie 3/1/0.",
+          },
+          tieBreakers: { type: "array", uniqueItems: true, items: { enum: [...LEAGUE_TIE_BREAKERS] }, description: "Kolejność kryteriów. Domyślnie: head_to_head, score_difference, scored, wins. Na końcu zawsze rozstawienie." },
+        },
+      },
+    },
+  };
+  const scheduleSchema = {
+    type: "object",
+    additionalProperties: false,
+    required: ["startDate", "intervalDays", "defaultTime"],
+    description: "Terminarz pierwszego etapu ligowego lub grupowego: kolejka 1 w startDate, każda następna co intervalDays dni, o defaultTime czasu lokalnego. Daty pojawiają się po starcie etapu; organizator może je potem zmieniać.",
+    properties: {
+      timeZone: { type: "string", default: DEFAULT_SCHEDULE_TIME_ZONE, description: "Strefa IANA, np. Europe/Warsaw." },
+      startDate: { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$", description: "RRRR-MM-DD" },
+      intervalDays: { type: "integer", minimum: 1, maximum: MAX_SCHEDULE_INTERVAL_DAYS, description: "7 = co tydzień." },
+      defaultTime: { type: "string", pattern: "^([01]\\d|2[0-3]):[0-5]\\d$", description: "GG:MM, czas lokalny. Godzina pominięta lub powtórzona przez zmianę czasu zostanie odrzucona." },
     },
   };
   return {
@@ -629,7 +792,7 @@ export function buildAiConfigJsonSchema(): Rec {
     properties: {
       $schema: { const: AI_CONFIG_SCHEMA_ID },
       schemaVersion: { const: AI_CONFIG_SCHEMA_VERSION },
-      kind: { enum: ["tournament", "league"], default: "tournament", description: "league = rozgrywki tabelowe (każdy z każdym), bez terminarza dat." },
+      kind: { enum: ["tournament", "league"], default: "tournament", description: "league = rozgrywki tabelowe (każdy z każdym), opcjonalnie z terminarzem (schedule)." },
       participants: {
         type: "object",
         additionalProperties: false,
@@ -641,6 +804,7 @@ export function buildAiConfigJsonSchema(): Rec {
       },
       visibility: { enum: ["public_online", "private_online", "private_offline"], default: "public_online", description: "private_online wymaga hasła widzów — użytkownik poda je w aplikacji." },
       structure: { oneOf: [...presetBranches, { type: "object", additionalProperties: false, required: ["type", "stages"], properties: { type: { const: "stages" }, stages: { type: "array", minItems: 1, maxItems: AI_CONFIG_MAX_STAGES, items: stageSchema } } }] },
+      schedule: scheduleSchema,
       notes: { type: "string", maxLength: AI_CONFIG_NOTES_MAX, description: "Krótkie wyjaśnienie dla organizatora. Wyświetlane jako zwykły tekst, nigdy nie zapisywane ani wykonywane." },
     },
   };
@@ -691,6 +855,31 @@ export const AI_CONFIG_EXAMPLES: Array<{ title: string; request: string; config:
       },
     },
   },
+  {
+    title: "Liga 12 drużyn: mecz i rewanż, remisy 3/1/0, co tydzień",
+    request: "Liga piłkarska dla 12 drużyn, mecz i rewanż, remisy możliwe, 3 punkty za wygraną, 1 za remis. Gramy w soboty o 18:00 od 5 grudnia.",
+    config: {
+      schemaVersion: 1, kind: "league",
+      participants: { type: "teams", count: 12 },
+      structure: { type: "preset", presetId: "round_robin", params: { legs: 2, bestOf: 1, allowDraws: 1, pointsWin: 3, pointsDraw: 1, pointsLoss: 0 } },
+      schedule: { timeZone: "Europe/Warsaw", startDate: "2026-12-05", intervalDays: 7, defaultTime: "18:00" },
+      notes: "132 mecze w 22 kolejkach, ostatnia kolejka 1 maja 2027.",
+    },
+  },
+  {
+    title: "Własna punktacja i kolejność kryteriów",
+    request: "8 graczy, każdy z każdym, 2 punkty za wygraną, bez remisów; przy równych punktach najpierw bilans, potem mecz bezpośredni.",
+    config: {
+      schemaVersion: 1, kind: "league",
+      participants: { type: "players", count: 8 },
+      structure: {
+        type: "stages",
+        stages: [
+          { label: "Liga", format: "round_robin", bestOf: 1, leagueRules: { allowDraws: false, points: { win: 2, draw: 1, loss: 0 }, tieBreakers: ["score_difference", "head_to_head", "wins"] } },
+        ],
+      },
+    },
+  },
 ];
 
 export interface AiSpecification {
@@ -707,8 +896,8 @@ export interface AiSpecification {
 }
 
 export const AI_UNSUPPORTED_FEATURES: readonly string[] = [
-  "Remisy i punkty za remis (np. 3/1/0) — każdy mecz kończy się zwycięzcą, tabela liczy zwycięstwa.",
-  "Daty i godziny meczów, terminarz kolejek i nowe terminy meczów przełożonych.",
+  "Remisy w drabinkach, systemie szwajcarskim i play-off — remis jest możliwy tylko w lidze i fazie grupowej z leagueRules.allowDraws.",
+  "Różne godziny meczów w jednej kolejce z pliku — schedule daje jedną godzinę na kolejkę; pojedyncze terminy organizator zmienia w aplikacji.",
   "Dywizje, awanse i spadki między ligami.",
   "Skład drużyny wystawiany na konkretny mecz (składy są na cały turniej i zmienia je organizator).",
   "Mecz i rewanż w fazie grupowej — `legs` działa tylko dla „każdy z każdym”.",
@@ -757,6 +946,7 @@ export function buildAiSpecificationMarkdown(): string {
     lines.push("");
   }
   lines.push("`legs` (presety round_robin i league_playoff): 1 = jeden mecz każdej pary, 2 = mecz i rewanż. ");
+  lines.push("Punktacja w presetach z tabelą (round_robin, league_playoff, groups_playoff): `pointsWin`, `pointsDraw`, `pointsLoss` (0–10, domyślnie 3/1/0) i `allowDraws` (0 albo 1, domyślnie 0). Remisy wymagają `bestOf: 1`. Przy równej liczbie punktów kolejno decydują: mecze bezpośrednie, różnica wyników, zdobyte, liczba zwycięstw, rozstawienie.");
   lines.push("Zasady parametrów: `bestOf`/`playoffBestOf` ∈ {1, 3, 5, 7}; `groupCount` od 2 do floor(uczestnicy/3); `qualifiersPerGroup` mniejsze od najmniejszej grupy; `advancingCount` to potęga dwójki mniejsza od liczby uczestników; `swissRounds` od 1 (2 w presecie z play-off) do min(uczestnicy−1, 15). Pominięty parametr = rozsądna wartość domyślna.", "");
   lines.push("## Własne etapy (`structure.type: \"stages\"`)", "");
   lines.push(`Do ${AI_CONFIG_MAX_STAGES} etapów rozgrywanych po kolei. Formaty: ${spec.stageFormats.map((item) => `\`${item.format}\` (${item.label})`).join(", ")}.`, "");
@@ -767,7 +957,10 @@ export function buildAiSpecificationMarkdown(): string {
   lines.push("- `group_stage` wymaga `groupCount` (1 … floor(n/2)) i `qualifiersPerGroup` (≤ największa grupa); grupy są wyrównywane automatycznie; nie może być ostatnim etapem.");
   lines.push("- `single_elimination` jako etap pośredni: `advancingCount` musi być granicą pełnej rundy (potęga dwójki < rozmiar drabinki).");
   lines.push("- `double_elimination` musi być ostatnim etapem; w planie wieloetapowym wymaga potęgi dwójki 4–64 uczestników.");
-  lines.push("- Ostatni etap nie ma `advancingCount`. Mecze zawsze mają zwycięzcę (brak remisów).", "");
+  lines.push("- `round_robin` i `group_stage` mogą mieć `leagueRules`: `{ \"allowDraws\": true, \"points\": { \"win\": 3, \"draw\": 1, \"loss\": 0 }, \"tieBreakers\": [\"head_to_head\", \"score_difference\", \"scored\", \"wins\"] }`. Bez `leagueRules` tabela liczy zwycięstwa, a remisów nie ma.");
+  lines.push("- Ostatni etap nie ma `advancingCount`. Poza ligą i grupami z remisami każdy mecz ma zwycięzcę.", "");
+  lines.push("## Terminarz (`schedule`)", "");
+  lines.push("Opcjonalne pole na najwyższym poziomie pliku. Dotyczy pierwszego etapu ligowego lub grupowego: kolejka 1 odbywa się `startDate`, każda następna `intervalDays` dni później, o godzinie `defaultTime` czasu lokalnego w strefie `timeZone` (domyślnie Europe/Warsaw). Godzina, która przez zmianę czasu nie istnieje albo występuje dwa razy, zostanie odrzucona. Daty pojawią się po starcie etapu, a organizator może je zmieniać i przekładać mecze.", "");
   lines.push("## Jeszcze nieobsługiwane (nie używaj)", "");
   for (const item of spec.planned) lines.push(`- ${item.label}: ${item.reason}`);
   for (const item of spec.unsupported) lines.push(`- ${item}`);

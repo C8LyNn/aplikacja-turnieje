@@ -7,6 +7,13 @@ import {
   singleEliminationAdvancingOptions,
 } from "./stage-placement";
 
+import {
+  parseLeagueRules,
+  validateLeagueRulesForStage,
+  type LeagueRules,
+} from "./league-rules";
+import { isValidTimeZone, parseSchedulePlan, roundRobinFacts, type SchedulePlan } from "./league-schedule";
+
 export const TOURNAMENT_STAGE_FORMATS = [
   "swiss",
   "round_robin",
@@ -80,6 +87,12 @@ export interface RoundRobinTournamentStagePlan extends BaseTournamentStagePlan {
   advancingCount?: number;
   /** V5: 2 = home and away. Omitted means one leg (V1-compatible shape). */
   legs?: 2;
+  /** V5.3: draws, points and tie-breakers. Omitted = pre-V5.3 ranking by match wins. */
+  leagueRules?: LeagueRules;
+  /** V5.3: IANA time zone of the league schedule. Omitted = league without a schedule zone. */
+  scheduleTimeZone?: string;
+  /** V5.3: dates assigned automatically at stage start (requires scheduleTimeZone). */
+  schedulePlan?: SchedulePlan;
 }
 
 export interface GroupTournamentStagePlan extends BaseTournamentStagePlan {
@@ -91,6 +104,11 @@ export interface GroupTournamentStagePlan extends BaseTournamentStagePlan {
   qualifiersPerGroup: number;
   placementMethod: GroupPlacementMethod;
   resultSeedingMethod: GroupResultSeedingMethod;
+  /** V5.3: draws, points and tie-breakers inside every group. */
+  leagueRules?: LeagueRules;
+  /** V5.3: schedule time zone and template for group rounds. */
+  scheduleTimeZone?: string;
+  schedulePlan?: SchedulePlan;
 }
 
 export interface SingleEliminationTournamentStagePlan extends BaseTournamentStagePlan {
@@ -118,6 +136,9 @@ export interface TournamentStagesPlan {
 }
 
 export type TournamentStagePlanProblemCode =
+  | "INVALID_LEAGUE_RULES"
+  | "INVALID_SCHEDULE_TIME_ZONE"
+  | "INVALID_SCHEDULE_PLAN"
   | "STAGE_COUNT_OUT_OF_RANGE"
   | "INVALID_INITIAL_PARTICIPANT_COUNT"
   | "INVALID_STAGE_KEY"
@@ -275,6 +296,37 @@ function validateFormatConfiguration(stages: readonly IndexedStage[], problems: 
     if (record.legs !== undefined && (record.format !== "round_robin" || (record.legs !== 1 && record.legs !== 2))) {
       addProblem(problems, "INVALID_ROUND_ROBIN_LEGS", `${path}.legs`, "legs is supported only by round_robin and must equal 1 or 2.");
     }
+    if (record.leagueRules !== undefined) {
+      const parsedRules = parseLeagueRules(record.leagueRules, `${path}.leagueRules`);
+      if (!parsedRules.ok) {
+        for (const problem of parsedRules.problems) addProblem(problems, "INVALID_LEAGUE_RULES", problem.path, problem.message);
+      } else {
+        for (const problem of validateLeagueRulesForStage(parsedRules.value, {
+          format: String(record.format),
+          bestOf: typeof record.bestOf === "number" ? record.bestOf : 1,
+        }, `${path}.leagueRules`)) {
+          addProblem(problems, "INVALID_LEAGUE_RULES", problem.path, problem.message);
+        }
+      }
+    }
+    const schedulable = record.format === "round_robin" || record.format === "group_stage";
+    if (record.scheduleTimeZone !== undefined && (!schedulable || !isValidTimeZone(record.scheduleTimeZone))) {
+      addProblem(problems, "INVALID_SCHEDULE_TIME_ZONE", `${path}.scheduleTimeZone`, "scheduleTimeZone is supported by round_robin and group_stage and must be an IANA time zone such as Europe/Warsaw.");
+    }
+    if (record.schedulePlan !== undefined) {
+      if (!schedulable) {
+        addProblem(problems, "INVALID_SCHEDULE_PLAN", `${path}.schedulePlan`, "schedulePlan is supported by round_robin and group_stage.");
+      } else {
+        const count = isPositiveInteger(record.participantCount) ? record.participantCount : 0;
+        const groupSize = record.format === "group_stage" && isPositiveInteger(record.groupCount) && record.groupCount > 0
+          ? Math.ceil(count / record.groupCount) : count;
+        const rounds = roundRobinFacts(groupSize, record.legs === 2 ? 2 : 1).rounds;
+        const parsedPlan = parseSchedulePlan(record.schedulePlan, record.scheduleTimeZone, rounds, `${path}.schedulePlan`);
+        if (!parsedPlan.ok) {
+          for (const problem of parsedPlan.problems) addProblem(problems, "INVALID_SCHEDULE_PLAN", problem.path.startsWith(path) ? problem.path : `${path}.${problem.path}`, problem.message);
+        }
+      }
+    }
     if (record.format === "swiss" && !isPositiveInteger(record.rounds)) {
       addProblem(problems, "INVALID_SWISS_ROUNDS", `${path}.rounds`, "Swiss rounds must be a positive integer.");
     }
@@ -391,6 +443,20 @@ function validateParticipantFlow(
   });
 }
 
+function leagueRulesField(record: UnknownRecord): { leagueRules?: LeagueRules } {
+  const parsed = parseLeagueRules(record.leagueRules);
+  return parsed.ok && parsed.value ? { leagueRules: parsed.value } : {};
+}
+
+function scheduleFields(record: UnknownRecord): { scheduleTimeZone?: string; schedulePlan?: SchedulePlan } {
+  if (typeof record.scheduleTimeZone !== "string") return {};
+  const plan = parseSchedulePlan(record.schedulePlan, record.scheduleTimeZone, null);
+  return {
+    scheduleTimeZone: record.scheduleTimeZone,
+    ...(plan.ok && plan.value ? { schedulePlan: plan.value } : {}),
+  };
+}
+
 function buildStage(record: UnknownRecord): TournamentStagePlan {
   const format = record.format as TournamentStageFormat;
   const common = {
@@ -407,7 +473,14 @@ function buildStage(record: UnknownRecord): TournamentStagePlan {
     case "swiss":
       return { ...common, format: "swiss", rounds: record.rounds as number, ...(record.advancingCount === undefined ? {} : { advancingCount: record.advancingCount as number }) };
     case "round_robin":
-      return { ...common, format: "round_robin", ...(record.advancingCount === undefined ? {} : { advancingCount: record.advancingCount as number }), ...(record.legs === 2 ? { legs: 2 as const } : {}) };
+      return {
+        ...common,
+        format: "round_robin",
+        ...(record.advancingCount === undefined ? {} : { advancingCount: record.advancingCount as number }),
+        ...(record.legs === 2 ? { legs: 2 as const } : {}),
+        ...leagueRulesField(record),
+        ...scheduleFields(record),
+      };
     case "group_stage": {
       const groupCount = record.groupCount as number;
       return {
@@ -418,6 +491,8 @@ function buildStage(record: UnknownRecord): TournamentStagePlan {
         qualifiersPerGroup: record.qualifiersPerGroup as number,
         placementMethod: normalizedGroupPlacement(record)!,
         resultSeedingMethod: normalizedGroupResultSeeding(record)!,
+        ...leagueRulesField(record),
+        ...scheduleFields(record),
       };
     }
     case "single_elimination":

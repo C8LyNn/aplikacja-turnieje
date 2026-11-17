@@ -5,6 +5,8 @@
  * Tournament Manager API
  * OpenAPI spec version: 0.1.0
  */
+import type { LeagueRules } from './leagueRules';
+import type { SchedulePlan } from './schedulePlan';
 import type { TournamentBackupV3StagesItemEntrySeedingPolicy } from './tournamentBackupV3StagesItemEntrySeedingPolicy';
 import type { TournamentBackupV3StagesItemFormat } from './tournamentBackupV3StagesItemFormat';
 import type { TournamentBackupV3StagesItemQualificationMode } from './tournamentBackupV3StagesItemQualificationMode';
@@ -29,6 +31,12 @@ export type TournamentBackupV3StagesItem = {
   plannedRounds?: number | null;
   /** V5: present only for home-and-away round robin stages. */
   roundRobinLegs?: TournamentBackupV3StagesItemRoundRobinLegs;
+  /** V5.3: present only when the stage has league rules (draws, points, tie-breakers). */
+  leagueRules?: LeagueRules;
+  /** V5.3: present only when the stage has a schedule time zone. */
+  scheduleTimeZone?: string;
+  /** V5.3: present only when the stage has a schedule template. */
+  schedulePlan?: SchedulePlan;
   /** @nullable */
   currentRound?: number | null;
   /** @nullable */

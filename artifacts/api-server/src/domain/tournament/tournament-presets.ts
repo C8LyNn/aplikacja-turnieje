@@ -8,6 +8,8 @@
  * Pure and deterministic — nothing here touches the database.
  */
 import { compileV1StagePlanToRoutingV2, doubleEliminationFormatEngineV2 } from "./v2";
+import { describeLeagueRules, parseLeagueRules, type LeagueRules } from "./league-rules";
+import type { SchedulePlan } from "./league-schedule";
 import { calculateBalancedGroupSizes, calculateGroupAdvancingCount } from "./group-stage";
 import { nextPowerOfTwo } from "./stage-placement";
 import {
@@ -48,7 +50,11 @@ export type PresetParamKey =
   | "groupCount"
   | "qualifiersPerGroup"
   | "advancingCount"
-  | "legs";
+  | "legs"
+  | "allowDraws"
+  | "pointsWin"
+  | "pointsDraw"
+  | "pointsLoss";
 
 export type PresetParams = Partial<Record<PresetParamKey, number>>;
 
@@ -95,7 +101,16 @@ export interface PresetPreview {
     defaultBestOf: StageBestOf;
     swissRounds?: number;
     stagePlan?: TournamentStagesPlan;
+    /** V5.3: league rules for a single flexible league (no stage plan). */
+    leagueRules?: LeagueRules;
+    /** V5.3: schedule for a single flexible league (no stage plan). */
+    scheduleTimeZone?: string;
+    schedulePlan?: SchedulePlan;
   };
+  /** V5.3: league rules of the table stage (null for formats without a league table). */
+  leagueRules: LeagueRules | null;
+  /** V5.3: planned dates of the first league/group stage (null without a schedule). */
+  schedule: PresetSchedulePreview | null;
   stagePlan: TournamentStagesPlan;
   stages: PresetStageSummary[];
   totals: {
@@ -107,6 +122,17 @@ export interface PresetPreview {
   tieRules: string[];
   requirements: string[];
   warnings: string[];
+}
+
+export interface PresetSchedulePreview {
+  stageName: string;
+  timeZone: string;
+  startDate: string;
+  intervalDays: number;
+  defaultTime: string;
+  rounds: number;
+  firstDate: string;
+  lastDate: string;
 }
 
 export class PresetError extends Error {
@@ -209,6 +235,10 @@ export const PRESET_PARAM_TEXT: Record<PresetParamKey, { label: string; help: st
   qualifiersPerGroup: { label: "Awans z każdej grupy", help: "Tylu najlepszych z każdej grupy zagra w play-off." },
   advancingCount: { label: "Awans do play-off", help: "Tylu najlepszych z tabeli zagra w drabince." },
   legs: { label: "Mecz i rewanż", help: "Każda para gra dwa razy — raz jako gospodarz, raz jako gość. Tabela jest pewniejsza, meczów jest dwa razy więcej." },
+  allowDraws: { label: "Remisy", help: "1 = mecz może zakończyć się remisem (wynik to np. gole lub punkty jednej gry). 0 = każdy mecz ma zwycięzcę. Remisy wymagają meczu na jedną grę." },
+  pointsWin: { label: "Punkty za zwycięstwo", help: "Klasycznie 3." },
+  pointsDraw: { label: "Punkty za remis", help: "Klasycznie 1. Nie mniej niż za porażkę i nie więcej niż za zwycięstwo." },
+  pointsLoss: { label: "Punkty za porażkę", help: "Klasycznie 0." },
 };
 
 /** Parameters a user (or an imported AI file) may set per preset; participantCount comes from the answers. */
@@ -216,10 +246,10 @@ export const PRESET_TUNABLE_PARAMS: Record<PresetId, PresetParamKey[]> = {
   single_elimination: ["bestOf"],
   double_elimination: ["bestOf"],
   swiss: ["bestOf", "swissRounds"],
-  round_robin: ["bestOf", "legs"],
-  groups_playoff: ["bestOf", "playoffBestOf", "groupCount", "qualifiersPerGroup"],
+  round_robin: ["bestOf", "legs", "allowDraws", "pointsWin", "pointsDraw", "pointsLoss"],
+  groups_playoff: ["bestOf", "playoffBestOf", "groupCount", "qualifiersPerGroup", "allowDraws", "pointsWin", "pointsDraw", "pointsLoss"],
   swiss_playoff: ["bestOf", "playoffBestOf", "swissRounds", "advancingCount"],
-  league_playoff: ["bestOf", "playoffBestOf", "advancingCount", "legs"],
+  league_playoff: ["bestOf", "playoffBestOf", "advancingCount", "legs", "allowDraws", "pointsWin", "pointsDraw", "pointsLoss"],
 };
 
 const range = (from: number, to: number): number[] =>
@@ -298,7 +328,39 @@ function seSummary(position: number, key: string, name: string, n: number, bestO
   };
 }
 
+const POINT_OPTIONS = range(0, 10);
+
+/**
+ * V5.3: league rules from preset params. Defaults: 3/1/0, draws off (draws need a single-game match).
+ * Every league-table preset gets explicit rules, so new leagues rank by points with documented tie-breakers.
+ */
+function leagueRulesFromParams(input: PresetParams, bestOf: StageBestOf, limits: PresetParamLimit[]): LeagueRules {
+  const allowDraws = pick(input.allowDraws, [0, 1], 0, "allowDraws");
+  limits.push(limit("allowDraws", [0, 1], allowDraws));
+  if (allowDraws === 1 && bestOf !== 1) {
+    throw new PresetError(
+      "PRESET_PARAM_OUT_OF_RANGE",
+      "Remisy są możliwe tylko przy meczu na jedną grę — ustaw długość meczu na 1 albo wyłącz remisy.",
+      "allowDraws",
+    );
+  }
+  const win = pick(input.pointsWin, POINT_OPTIONS, 3, "pointsWin");
+  const draw = pick(input.pointsDraw, POINT_OPTIONS, 1, "pointsDraw");
+  const loss = pick(input.pointsLoss, POINT_OPTIONS, 0, "pointsLoss");
+  limits.push(limit("pointsWin", POINT_OPTIONS, win), limit("pointsDraw", POINT_OPTIONS, draw), limit("pointsLoss", POINT_OPTIONS, loss));
+  const parsed = parseLeagueRules({ allowDraws: allowDraws === 1, points: { win, draw, loss } });
+  if (!parsed.ok || !parsed.value) {
+    throw new PresetError(
+      "PRESET_PARAM_OUT_OF_RANGE",
+      parsed.ok ? "Nieprawidłowa punktacja." : parsed.problems.map((problem) => problem.message).join(" "),
+      "pointsDraw",
+    );
+  }
+  return parsed.value;
+}
+
 interface Built {
+  leagueRules?: LeagueRules;
   params: PresetParams & { participantCount: number; bestOf: StageBestOf };
   paramLimits: PresetParamLimit[];
   stages: TournamentStagePlan[];
@@ -414,9 +476,11 @@ function build(presetId: PresetId, input: PresetParams, accurate: boolean): Buil
         warnings.push("Rewanże zaczynają się po pełnej pierwszej rundzie; w rewanżu gospodarz i gość zamieniają się miejscami.");
         requirements.push(`Mecz i rewanż używa stałego planu: przed startem lista musi liczyć dokładnie ${n} uczestników.`);
       }
+      const rules = leagueRulesFromParams(input, bestOf, limits);
       return {
-        params: { participantCount: n, bestOf, legs }, paramLimits: limits,
-        stages: [{ ...baseStage("league", 1, name, n, bestOf), format: "round_robin", ...(legs === 2 ? { legs: 2 as const } : {}) }],
+        leagueRules: rules,
+        params: { participantCount: n, bestOf, legs, allowDraws: rules.allowDraws ? 1 : 0, pointsWin: rules.points.win, pointsDraw: rules.points.draw, pointsLoss: rules.points.loss }, paramLimits: limits,
+        stages: [{ ...baseStage("league", 1, name, n, bestOf), format: "round_robin", ...(legs === 2 ? { legs: 2 as const } : {}), leagueRules: rules }],
         summaries: [{
           position: 1, key: "league", name, format: "round_robin", formatLabel: legs === 2 ? "Każdy z każdym ×2" : FORMAT_LABELS.round_robin,
           participantCount: n, bestOf, groupSizes: null, advancingCount: null,
@@ -427,7 +491,7 @@ function build(presetId: PresetId, input: PresetParams, accurate: boolean): Buil
         requiresStagePlan: legs === 2,
         perParticipant: { min: (n - 1) * legs, max: (n - 1) * legs },
         winnerRule: "Wygrywa lider tabeli po wszystkich meczach.",
-        tieRules: [TIE_TEXT.noDraws, TIE_TEXT.roundRobin], requirements, warnings,
+        tieRules: [describeLeagueRules(rules)], requirements, warnings,
       };
     }
     case "groups_playoff": {
@@ -446,11 +510,13 @@ function build(presetId: PresetId, input: PresetParams, accurate: boolean): Buil
       if (playoff.byes > 0) warnings.push(`Do play-off awansuje ${advancing} osób, więc ${playoff.byes} najlepiej rozstawionych dostanie wolny los w 1. rundzie drabinki.`);
       if (new Set(sizes).size > 1) warnings.push(`Grupy nie są równe (${sizes.join(", ")} osób) — w mniejszych grupach rozegra się mniej meczów.`);
       requirements.push(`Przed startem lista musi liczyć dokładnie ${n} uczestników.`);
+      const groupRules = leagueRulesFromParams(input, bestOf, limits);
       return {
-        params: { participantCount: n, bestOf, playoffBestOf: poBestOf, groupCount, qualifiersPerGroup }, paramLimits: limits,
+        leagueRules: groupRules,
+        params: { participantCount: n, bestOf, playoffBestOf: poBestOf, groupCount, qualifiersPerGroup, allowDraws: groupRules.allowDraws ? 1 : 0, pointsWin: groupRules.points.win, pointsDraw: groupRules.points.draw, pointsLoss: groupRules.points.loss }, paramLimits: limits,
         stages: [
           { ...baseStage("groups", 1, "Faza grupowa", n, bestOf), format: "group_stage", groupCount,
-            participantsPerGroup: Math.max(...sizes), qualifiersPerGroup, placementMethod: "snake", resultSeedingMethod: "rank_bands" },
+            participantsPerGroup: Math.max(...sizes), qualifiersPerGroup, placementMethod: "snake", resultSeedingMethod: "rank_bands", leagueRules: groupRules },
           { ...baseStage("playoff", 2, "Play-off", advancing, poBestOf), format: "single_elimination", placementMethod: "standard" },
         ],
         summaries: [
@@ -465,7 +531,7 @@ function build(presetId: PresetId, input: PresetParams, accurate: boolean): Buil
         singleStage: false,
         perParticipant: { min: smallest - 1, max: Math.max(...sizes) - 1 + playoff.rounds.max },
         winnerRule: "Mistrzem zostaje zwycięzca finału play-off.",
-        tieRules: [TIE_TEXT.noDraws, TIE_TEXT.group], requirements, warnings,
+        tieRules: [`W grupach — ${describeLeagueRules(groupRules)}`, "W play-off remisów nie ma: każdy mecz musi mieć zwycięzcę."], requirements, warnings,
       };
     }
     case "swiss_playoff": {
@@ -512,10 +578,12 @@ function build(presetId: PresetId, input: PresetParams, accurate: boolean): Buil
       if (matches > 120) warnings.push(`Faza tabeli to ${matches} meczów — rozważ grupy i play-off.`);
       requirements.push(`Przed startem lista musi liczyć dokładnie ${n} uczestników.`);
       const playoff = seSummary(2, "playoff", "Play-off", advancing, poBestOf);
+      const tableRules = leagueRulesFromParams(input, bestOf, limits);
       return {
-        params: { participantCount: n, bestOf, playoffBestOf: poBestOf, advancingCount: advancing, legs }, paramLimits: limits,
+        leagueRules: tableRules,
+        params: { participantCount: n, bestOf, playoffBestOf: poBestOf, advancingCount: advancing, legs, allowDraws: tableRules.allowDraws ? 1 : 0, pointsWin: tableRules.points.win, pointsDraw: tableRules.points.draw, pointsLoss: tableRules.points.loss }, paramLimits: limits,
         stages: [
-          { ...baseStage("table", 1, legs === 2 ? "Faza tabeli — mecz i rewanż" : "Faza tabeli", n, bestOf), format: "round_robin", advancingCount: advancing, ...(legs === 2 ? { legs: 2 as const } : {}) },
+          { ...baseStage("table", 1, legs === 2 ? "Faza tabeli — mecz i rewanż" : "Faza tabeli", n, bestOf), format: "round_robin", advancingCount: advancing, ...(legs === 2 ? { legs: 2 as const } : {}), leagueRules: tableRules },
           { ...baseStage("playoff", 2, "Play-off", advancing, poBestOf), format: "single_elimination", placementMethod: "standard" },
         ],
         summaries: [
@@ -530,7 +598,7 @@ function build(presetId: PresetId, input: PresetParams, accurate: boolean): Buil
         singleStage: false,
         perParticipant: { min: (n - 1) * legs, max: (n - 1) * legs + playoff.rounds.max },
         winnerRule: "Mistrzem zostaje zwycięzca finału play-off.",
-        tieRules: [TIE_TEXT.noDraws, TIE_TEXT.roundRobin], requirements, warnings,
+        tieRules: [`W tabeli — ${describeLeagueRules(tableRules)}`, "W play-off remisów nie ma: każdy mecz musi mieć zwycięzcę."], requirements, warnings,
       };
     }
   }
@@ -538,6 +606,7 @@ function build(presetId: PresetId, input: PresetParams, accurate: boolean): Buil
 
 const ALLOWED_PARAM_KEYS = new Set<PresetParamKey>([
   "participantCount", "bestOf", "playoffBestOf", "swissRounds", "groupCount", "qualifiersPerGroup", "advancingCount", "legs",
+  "allowDraws", "pointsWin", "pointsDraw", "pointsLoss",
 ]);
 
 export interface PresetPreviewRequest {
@@ -606,6 +675,7 @@ export function previewPreset(request: PresetPreviewRequest): PresetPreview {
         maxPlayers: n,
         defaultBestOf: built.params.bestOf,
         ...(first.format === "swiss" ? { swissRounds: first.rounds } : {}),
+        ...(built.leagueRules ? { leagueRules: built.leagueRules } : {}),
       }
     : {
         // Compatibility column only; the stage plan is authoritative for multi-stage tournaments.
@@ -638,6 +708,8 @@ export function previewPreset(request: PresetPreviewRequest): PresetPreview {
     tieRules: built.tieRules,
     requirements: built.requirements,
     warnings: built.warnings,
+    leagueRules: built.leagueRules ?? null,
+    schedule: null,
   };
 }
 

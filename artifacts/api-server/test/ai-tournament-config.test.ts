@@ -208,10 +208,14 @@ describe("V5-B: custom stage plans", () => {
 test("V5.1: the specification lists what the engine cannot do, for any AI", () => {
   const spec = buildAiSpecification();
   const md = buildAiSpecificationMarkdown();
-  for (const topic of [/remis/i, /terminarz/i, /dywizje, awanse i spadki/i, /konkretny mecz/i, /fazie grupowej/i]) {
+  for (const topic of [/remis/i, /jednej kolejce/i, /dywizje, awanse i spadki/i, /konkretny mecz/i, /fazie grupowej/i]) {
     assert.ok(spec.unsupported.some((item) => topic.test(item)), String(topic));
     assert.match(md, topic);
   }
+  // V5.3: draws, points and the schedule are implemented, so the spec must not call them unsupported.
+  assert.ok(!spec.unsupported.some((item) => /punkty za remis|terminarz kolejek/i.test(item)));
+  assert.match(md, /## Terminarz \(`schedule`\)/);
+  assert.match(md, /pointsWin/);
   assert.doesNotMatch(md, /(OpenAI|ChatGPT|Claude|Gemini|Copilot|Mistral)/, "no model vendor is assumed");
 });
 
@@ -223,9 +227,12 @@ test("V5.2: fields for features the engine lacks are explained in plain words, n
   });
   assert.equal(result.valid, false);
   const message = (path: string) => result.problems.find((p) => p.path === path)?.message ?? "";
-  assert.match(message("scoring"), /remisy i punktacja.*nie są jeszcze obsługiwane.*Usuń je z pliku/);
-  assert.match(message("schedule"), /terminarz meczów nie są jeszcze obsługiwane/);
+  // V5.3: points exist, but in their documented place — the hint says where.
+  assert.match(message("scoring"), /remisy i punktację podaj w presecie jako params \(allowDraws, pointsWin, pointsDraw, pointsLoss\).*Usuń je z pliku/);
+  // V5.3: schedule is a real field now; an incomplete one is explained field by field.
+  assert.match(message("schedule.intervalDays"), /Odstęp między kolejkami/);
+  assert.match(message("schedule.defaultTime"), /GG:MM/);
   assert.match(message("divisions"), /dywizje, awanse i spadki/);
   assert.match(message("mysteryOption"), /Nieznane pole „mysteryOption”\. Dozwolone:/);
-  assert.ok(result.problems.every((p) => p.code === "UNKNOWN_FIELD"), "codes stay stable for existing clients");
+  assert.ok(result.problems.filter((p) => !p.path.startsWith("schedule.")).every((p) => p.code === "UNKNOWN_FIELD"), "codes stay stable for existing clients");
 });

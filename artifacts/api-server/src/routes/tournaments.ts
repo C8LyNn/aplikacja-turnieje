@@ -110,6 +110,9 @@ import {
   getTargetStageInputArrivals,
 } from "../application/stages/stage-basket-route-execution";
 import { calculateMatchRecordStandings } from "../domain/tournament/standings";
+import { leagueRulesFromStorage } from "../domain/tournament/league-rules";
+import { LeagueRulesInputError } from "../application/stages/create-tournament-with-plan";
+import { applySchedulePlanAtStart } from "../application/stages/apply-schedule-plan";
 import { generateRoundRobinSchedule, normaliseRoundRobinLegs } from "../domain/tournament/round-robin";
 import { validateRosterSettings } from "../domain/tournament/team-rosters";
 import { findTeamRosterStartProblems } from "../application/teams/team-rosters";
@@ -455,7 +458,7 @@ function mapMatch(
   };
 }
 
-async function enrichMatches(matches: (typeof matchesTable.$inferSelect)[]) {
+export async function enrichMatches(matches: (typeof matchesTable.$inferSelect)[]) {
   if (matches.length === 0) return [];
   const playerIds = [
     ...new Set([
@@ -615,6 +618,7 @@ async function calculateStandings(
       players.filter(player => seeds.has(player.id)).map(player => ({ ...player, seed: seeds.get(player.id)! })),
       matches.filter(match => match.stageId === stage.id),
       stage.format,
+      leagueRulesFromStorage(stage.leagueRules),
     );
   }
   return calculateMatchRecordStandings(players, matches, tournament.format);
@@ -759,10 +763,32 @@ router.post("/tournaments", async (req, res): Promise<void> => {
     organizerPassword: rawOrganizerPassword,
     supportPassword,
     viewerPassword,
-    stagePlan,
+    stagePlan: parsedStagePlan,
     gameConfig,
+    leagueRules: _parsedLeagueRules,
+    scheduleTimeZone: _parsedScheduleTimeZone,
+    schedulePlan: _parsedSchedulePlan,
     ...rest
   } = parsed.data;
+  // V5.3: zod strips unknown keys; league rules are validated strictly by the domain parser on the raw input,
+  // so an unknown rule field is rejected instead of being dropped silently.
+  const rawStages = Array.isArray(requestBody?.stagePlan?.stages) ? requestBody.stagePlan.stages as unknown[] : [];
+  const stagePlan = parsedStagePlan == null ? parsedStagePlan : {
+    ...parsedStagePlan,
+    stages: parsedStagePlan.stages.map((stage, index) => {
+      const raw = rawStages[index];
+      if (!raw || typeof raw !== "object") return stage;
+      const source = raw as { leagueRules?: unknown; schedulePlan?: unknown };
+      return {
+        ...stage,
+        ...("leagueRules" in source ? { leagueRules: source.leagueRules } : {}),
+        ...("schedulePlan" in source ? { schedulePlan: source.schedulePlan } : {}),
+      };
+    }),
+  };
+  const rawLeagueRules = ownValue(requestBody, "leagueRules");
+  const rawScheduleTimeZone = ownValue(requestBody, "scheduleTimeZone");
+  const rawSchedulePlan = ownValue(requestBody, "schedulePlan");
   // group_stage cannot be a standalone single-stage tournament: it is structurally a
   // non-final format (GROUP_STAGE_CANNOT_BE_FINAL) and the DB constraint requires
   // groupCount/participantsPerGroup/qualifiersPerGroup which are not available here.
@@ -788,6 +814,9 @@ router.post("/tournaments", async (req, res): Promise<void> => {
       tournament: insertValues,
       stagePlan,
       gameConfig: rawGameConfig === undefined ? gameConfig : rawGameConfig,
+      leagueRules: rawLeagueRules,
+      scheduleTimeZone: rawScheduleTimeZone,
+      schedulePlan: rawSchedulePlan,
     });
     res.status(201).json({
       ...mapTournament(created.tournament, created.gameConfig),
@@ -803,6 +832,10 @@ router.post("/tournaments", async (req, res): Promise<void> => {
     }
     if (error instanceof TournamentGameConfigError) {
       res.status(400).json({ error: error.message, code: error.code });
+      return;
+    }
+    if (error instanceof LeagueRulesInputError) {
+      res.status(422).json({ error: error.message, code: "INVALID_LEAGUE_RULES", details: error.problems });
       return;
     }
     throw error;
@@ -1685,6 +1718,7 @@ router.post("/tournaments/:id/start", async (req, res): Promise<void> => {
           version: stage.version + 1,
         })
         .where(eq(tournamentStagesTable.id, stage.id));
+      await applySchedulePlanAtStart(tx, stage);
 
       const swissRounds = stage.format === "swiss" ? totalRounds : undefined;
       const [savedTournament] = await tx
@@ -2658,6 +2692,11 @@ router.patch("/matches/:id", async (req, res): Promise<void> => {
         if (lockedMatch.status !== "pending") {
           throw new Error("BEST_OF_CHANGE_NOT_ALLOWED");
         }
+        const [matchStage] = await tx.select({ leagueRules: tournamentStagesTable.leagueRules })
+          .from(tournamentStagesTable).where(eq(tournamentStagesTable.id, lockedMatch.stageId));
+        if (parsed.data.bestOf !== 1 && leagueRulesFromStorage(matchStage?.leagueRules)?.allowDraws) {
+          throw new Error("BEST_OF_FIXED_FOR_DRAWS");
+        }
       }
       const [saved] = await tx
         .update(matchesTable)
@@ -2709,6 +2748,11 @@ router.patch("/matches/:id", async (req, res): Promise<void> => {
         status: 422,
         error: "bestOf można zmienić tylko przed rozpoczęciem meczu.",
         code: "BEST_OF_CHANGE_NOT_ALLOWED",
+      },
+      BEST_OF_FIXED_FOR_DRAWS: {
+        status: 422,
+        error: "W lidze z remisami mecz to jedna gra — długości meczu nie można zmienić.",
+        code: "BEST_OF_FIXED_FOR_DRAWS",
       },
       MATCH_STATE_CHANGED: {
         status: 422,

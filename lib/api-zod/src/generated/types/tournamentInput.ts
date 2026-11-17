@@ -6,7 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { DeadlockTournamentGameConfig } from './deadlockTournamentGameConfig';
+import type { LeagueRules } from './leagueRules';
 import type { MarvelTournamentGameConfig } from './marvelTournamentGameConfig';
+import type { SchedulePlan } from './schedulePlan';
 import type { TournamentInputFormat } from './tournamentInputFormat';
 import type { TournamentInputParticipantType } from './tournamentInputParticipantType';
 import type { TournamentInputVisibility } from './tournamentInputVisibility';
@@ -54,5 +56,10 @@ export interface TournamentInput {
   teamRosterMax?: number;
   /** Optional authoritative 1-10 stage plan. The legacy format fields remain a compatibility projection. */
   stagePlan?: TournamentStagePlanInput;
+  /** V5.3: league rules for a single round_robin tournament created without a stage plan (flexible participant count). */
+  leagueRules?: LeagueRules;
+  /** V5.3: schedule time zone for a single round_robin created without a stage plan. */
+  scheduleTimeZone?: string;
+  schedulePlan?: SchedulePlan;
   gameConfig?: DeadlockTournamentGameConfig | MarvelTournamentGameConfig;
 }
