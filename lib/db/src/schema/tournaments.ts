@@ -279,6 +279,12 @@ export const tournamentStagesTable = pgTable(
     plannedRounds: integer("planned_rounds"),
     /** V5: 2 = home and away (double round robin); only for round_robin. */
     roundRobinLegs: smallint("round_robin_legs").notNull().default(1),
+    /** V5.3: league rules (draws, points, tie-breakers); null = pre-V5.3 ranking by match wins. */
+    leagueRules: jsonb("league_rules"),
+    /** V5.3: IANA time zone the league schedule is planned in; null = no schedule zone chosen. */
+    scheduleTimeZone: text("schedule_time_zone"),
+    /** V5.3: dates to assign at stage start ({ startDate, intervalDays, defaultTime }); null = none. */
+    schedulePlan: jsonb("schedule_plan"),
     currentRound: integer("current_round"),
     totalRounds: integer("total_rounds"),
     rankingPolicy: stageRankingPolicyEnum("ranking_policy").notNull(),
@@ -937,13 +943,14 @@ export const matchesTable = pgTable(
         )`,
     ),
     check(
-      "matches_result_shape",
+      // V5.3 (0043): a league draw is 'played' with equal scores and no winner.
+      "matches_result_shape_v53",
       sql`${table.resultType} IS NULL OR
         (${table.resultType} = 'played'
           AND ${table.player1Id} IS NOT NULL AND ${table.player2Id} IS NOT NULL
           AND ${table.player1Id} <> ${table.player2Id}
           AND ${table.score1} IS NOT NULL AND ${table.score2} IS NOT NULL
-          AND ${table.winnerId} IS NOT NULL
+          AND (${table.winnerId} IS NOT NULL OR ${table.score1} = ${table.score2})
           AND ${table.resultReason} IS NULL)
         OR (${table.resultType} = 'walkover'
           AND ${table.player1Id} IS NOT NULL AND ${table.player2Id} IS NOT NULL
