@@ -17,11 +17,9 @@ import { AI_CONFIG_EXAMPLES, validateAiTournamentConfigText } from "../../../../
 import CreateTournamentExperimental from "@/pages/experimental/tournaments/create-tournament-experimental";
 import CreateTournamentExperimentalAdvanced from "@/pages/experimental/tournaments/create-tournament-experimental-advanced";
 import {
-  ADVANCED_HANDOFF_KEY,
-  buildAdvancedHandoff,
   buildCreatePayload,
   clampCount,
-  readAdvancedHandoff,
+  readWizardDraft,
   reconcilePresetAfterAnswers,
   requestParams,
   sanitizeDraft,
@@ -216,19 +214,20 @@ test("going back keeps answers; a new answer refreshes recommendations", async (
   await waitFor(() => assert.equal(calls.filter((call) => call.url.includes("/recommend")).length, 2));
 });
 
-test("league answer explains current limits instead of pretending schedules exist", async () => {
+test("league answer describes what exists today (V5.4: no stale 'no draws / no dates' note)", async () => {
   installFetch();
   renderAt("/experimental/tournaments/new", CreateTournamentExperimental);
   fireEvent.click(screen.getByLabelText(/Liga/));
-  const leagueNote = screen.getByText(/daty i godziny kolejek, dywizje i awanse jeszcze nie są dostępne/);
+  const leagueNote = screen.getByText(/Remisy, punktację i terminy kolejek ustawisz/);
   assert.match(leagueNote.textContent ?? "", /mecz i rewanż/, "home and away is offered, not denied");
-  assert.match(leagueNote.textContent ?? "", /bez remisów/);
+  assert.doesNotMatch(leagueNote.textContent ?? "", /bez remisów|nie są dostępne/);
   fireEvent.click(screen.getByLabelText(/Drużyny/));
-  assert.ok(screen.getByText(/Każda drużyna ma własny skład/));
+  assert.ok(screen.getByText(/Każda drużyna ma skład/));
   fireEvent.click(screen.getByRole("button", { name: /Pokaż propozycje/ }));
   await screen.findByText("Polecany");
   fireEvent.click(screen.getByText("Dlaczego nie widzę innych formatów?"));
-  assert.ok(screen.getByText(/Liga z terminarzem i datami kolejek/));
+  assert.ok(screen.getByText(/Liga z dywizjami, awansami i spadkami/));
+  assert.equal(screen.queryByText(/Liga z terminarzem i datami kolejek/), null, "schedules exist since V5.3");
   assert.equal(screen.queryByText(/Liga: mecz i rewanż/), null, "home and away is a real option now, not a planned one");
 });
 
@@ -261,18 +260,19 @@ test("create error is shown and the wizard stays usable", async () => {
   assert.equal((screen.getByRole("button", { name: /Utwórz turniej/ }) as HTMLButtonElement).disabled, false);
 });
 
-test("advanced mode receives the tuned plan once", async () => {
+test("V5.4-001: advanced mode shows the wizard's preset, not a different single format", async () => {
   installFetch();
-  const preview = previewPreset({ presetId: "groups_playoff", params: { participantCount: 12, groupCount: 3 } }) as unknown as PresetPreview;
-  window.sessionStorage.setItem(ADVANCED_HANDOFF_KEY, JSON.stringify(buildAdvancedHandoff(preview, { name: "Z kreatora", description: "", visibility: "public_online" })));
-  assert.equal(readAdvancedHandoff(window.sessionStorage)?.presetId, "groups_playoff");
+  window.sessionStorage.setItem(WIZARD_DRAFT_KEY, JSON.stringify({ step: 2, maxVisitedStep: 2, presetId: "groups_playoff", name: "Z kreatora", answers: { participantCount: 12 }, params: { groupCount: 3 } }));
   renderAt("/experimental/tournaments/new/advanced", CreateTournamentExperimentalAdvanced);
-  assert.equal((screen.getByLabelText(/Nazwa turnieju/) as HTMLInputElement).value, "Z kreatora");
-  assert.ok(screen.getByText(/Wybrano:/).textContent?.includes("Grupy i play-off"));
-  await waitFor(() => assert.equal(window.sessionStorage.getItem(ADVANCED_HANDOFF_KEY), null));
+  await waitFor(() => assert.equal(screen.getByRole("radio", { name: "Grupy i play-off" }).getAttribute("aria-checked"), "true"));
+  assert.equal(screen.getByRole("radio", { name: "Każdy z każdym" }).getAttribute("aria-checked"), "false");
+  await waitFor(() => assert.ok(screen.getByLabelText("Podgląd rozgrywek").textContent?.includes("3 grupy po 4")));
+  const groups = document.querySelector(".experimental-wizard-param") as HTMLElement;
+  assert.ok(groups, "structure params are visible");
+  assert.equal(readWizardDraft(window.sessionStorage).name, "Z kreatora", "the shared draft is not consumed or cleared");
 });
 
-test("wizard button opens advanced mode with the current selection", async () => {
+test("wizard button opens advanced mode with the same draft (nothing converted)", async () => {
   installFetch();
   window.sessionStorage.setItem(WIZARD_DRAFT_KEY, JSON.stringify({ step: 2, maxVisitedStep: 2, presetId: "swiss", answers: { participantCount: 10 }, params: { swissRounds: 3 } }));
   const { location } = renderAt("/experimental/tournaments/new", CreateTournamentExperimental);
@@ -280,9 +280,41 @@ test("wizard button opens advanced mode with the current selection", async () =>
   await waitFor(() => assert.ok(screen.getByLabelText("Podgląd rozgrywek").textContent?.includes("15"), "10 players: 5 matches per round × 3 rounds"));
   fireEvent.click(screen.getByRole("button", { name: /Edytuj w trybie zaawansowanym/ }));
   assert.ok(location.history.includes("/experimental/tournaments/new/advanced"));
-  const handoff = JSON.parse(window.sessionStorage.getItem(ADVANCED_HANDOFF_KEY)!);
-  assert.equal(handoff.creation.swissRounds, 3);
-  assert.equal(handoff.creation.format, "swiss");
+  const draft = readWizardDraft(window.sessionStorage);
+  assert.equal(draft.presetId, "swiss");
+  assert.equal(draft.params.swissRounds, 3);
+  assert.equal(draft.answers.participantCount, 10);
+});
+
+test("advanced → simple keeps advanced-only settings and resumes on Dopasuj", async () => {
+  const calls = installFetch();
+  window.sessionStorage.setItem(WIZARD_DRAFT_KEY, JSON.stringify({ step: 1, maxVisitedStep: 1, presetId: "groups_playoff", answers: { participantCount: 16 }, params: { qualifierSeeding: 1, groupPlacement: 1 } }));
+  const { location } = renderAt("/experimental/tournaments/new/advanced", CreateTournamentExperimentalAdvanced);
+  await waitFor(() => assert.equal(screen.getByRole("radio", { name: "Grupy i play-off" }).getAttribute("aria-checked"), "true"));
+  await waitFor(() => assert.ok(calls.some((call) => call.url.includes("/presets/preview") && (call.body as { params: Record<string, number> }).params.qualifierSeeding === 1)));
+  fireEvent.click(screen.getByRole("button", { name: /Prosty kreator/ }));
+  assert.ok(location.history.includes("/experimental/tournaments/new"));
+  const draft = readWizardDraft(window.sessionStorage);
+  assert.equal(draft.step, 2, "resume on the adjust step");
+  assert.deepEqual([draft.params.qualifierSeeding, draft.params.groupPlacement], [1, 1], "seeding rules survive the simple wizard");
+});
+
+test("advanced create sends the preset plan with a fresh draw key, never the preview placeholder", async () => {
+  const calls = installFetch();
+  window.sessionStorage.setItem(WIZARD_DRAFT_KEY, JSON.stringify({ step: 2, maxVisitedStep: 2, presetId: "groups_playoff", name: "Losowane grupy", answers: { participantCount: 16 }, params: { groupPlacement: 1, playoffBestOf: 3 } }));
+  const { location } = renderAt("/experimental/tournaments/new/advanced", CreateTournamentExperimentalAdvanced);
+  await waitFor(() => assert.ok(screen.getByLabelText("Podgląd rozgrywek").textContent?.includes("Grupy i play-off")));
+  fireEvent.click(screen.getByRole("button", { name: /Nazwa i dostęp/ }));
+  fireEvent.change(screen.getByLabelText(/Hasło organizatora/), { target: { value: "organizer-pass-1" } });
+  await waitFor(() => assert.equal((screen.getByRole("button", { name: /Utwórz turniej/ }) as HTMLButtonElement).disabled, false));
+  fireEvent.click(screen.getByRole("button", { name: /Utwórz turniej/ }));
+  await waitFor(() => assert.ok(location.history.includes("/experimental/tournaments/77?tab=players")));
+  const create = calls.find((call) => call.url.endsWith("/api/tournaments"))!.body as Record<string, any>;
+  assert.equal(create.name, "Losowane grupy");
+  assert.equal(create.stagePlan.stages[0].placementMethod, "random");
+  assert.equal(create.stagePlan.stages[1].bestOf, 3);
+  assert.match(create.stagePlan.stages[0].randomSeed, /^draw-[0-9a-f]+/);
+  assert.equal(window.sessionStorage.getItem(WIZARD_DRAFT_KEY), null, "draft cleared after creation");
 });
 
 test("format step shows the recommendation plus two alternatives, the rest on demand", async () => {
@@ -356,9 +388,9 @@ test("AI import: a custom stage plan opens the advanced editor with the plan", a
   assert.ok(screen.getByText(/Rundy szwajcarskie → Grupy → Finały/));
   fireEvent.click(screen.getByRole("button", { name: /Użyj tej konfiguracji/ }));
   assert.ok(location.history.includes("/experimental/tournaments/new/advanced"));
-  const handoff = readAdvancedHandoff(window.sessionStorage)!;
-  assert.equal(handoff.presetId, "custom");
-  assert.deepEqual(handoff.creation.stagePlan?.stages.map((stage) => stage.participantCount), [32, 16, 8]);
+  const draft = readWizardDraft(window.sessionStorage);
+  assert.ok(draft.custom, "a custom plan travels unchanged in the shared draft");
+  assert.deepEqual(draft.custom!.preview.creation.stagePlan?.stages.map((stage) => stage.participantCount), [32, 16, 8]);
 });
 
 test("AI import: malformed JSON gets a helpful message", async () => {
@@ -375,7 +407,7 @@ test("AI import: malformed JSON gets a helpful message", async () => {
 test("contract: wizard tunable params match the server catalog", async () => {
   const { PRESET_IDS, PRESET_TUNABLE_PARAMS } = await import("../../../../api-server/src/domain/tournament/tournament-presets");
   const answers = { kind: "tournament" as const, participantType: "players" as const, participantCount: 16, grouping: "any" as const, priority: "short" as const };
-  const all = { bestOf: 3, playoffBestOf: 5, swissRounds: 4, groupCount: 4, qualifiersPerGroup: 2, advancingCount: 8, legs: 2, allowDraws: 0, pointsWin: 3, pointsDraw: 1, pointsLoss: 0 };
+  const all = { bestOf: 3, playoffBestOf: 5, swissRounds: 4, groupCount: 4, qualifiersPerGroup: 2, advancingCount: 8, legs: 2, allowDraws: 0, pointsWin: 3, pointsDraw: 1, pointsLoss: 0, entrySeeding: 1, groupPlacement: 1, qualifierSeeding: 1 };
   for (const id of PRESET_IDS) {
     const keys = Object.keys(requestParams(id, answers, all)).filter((key) => key !== "participantCount").sort();
     assert.deepEqual(keys, [...PRESET_TUNABLE_PARAMS[id]].sort(), id);

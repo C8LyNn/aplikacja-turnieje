@@ -6,7 +6,7 @@ import { ExperimentalTournamentShell } from "@/features/experimental-tournaments
 export default function CreateTournamentExperimental() {
   return (
     <ExperimentalOrganizerGuard>
-      <ExperimentalTournamentShell description="Kreator krok po kroku: kilka pytań, gotowy format i podgląd przed utworzeniem.">
+      <ExperimentalTournamentShell compact>
         <ExperimentalCreateWizard />
       </ExperimentalTournamentShell>
     </ExperimentalOrganizerGuard>

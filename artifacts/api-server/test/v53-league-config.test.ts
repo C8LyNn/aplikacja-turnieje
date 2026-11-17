@@ -110,7 +110,7 @@ test("presets: new leagues rank by points (3/1/0, no draws by default); draws ne
   assert.equal(league.leagueRules?.allowDraws, false);
   assert.equal(league.participants.mode, "up_to", "a single-leg league keeps its flexible participant count");
   assert.deepEqual(league.creation.leagueRules, league.leagueRules);
-  assert.deepEqual(league.params, { participantCount: 8, bestOf: 1, legs: 1, allowDraws: 0, pointsWin: 3, pointsDraw: 1, pointsLoss: 0 });
+  assert.deepEqual(league.params, { participantCount: 8, bestOf: 1, legs: 1, allowDraws: 0, pointsWin: 3, pointsDraw: 1, pointsLoss: 0, entrySeeding: 0 });
   const custom = previewPreset({ presetId: "round_robin", params: { participantCount: 8, allowDraws: 1, pointsWin: 2 } });
   assert.deepEqual(custom.leagueRules?.points, { win: 2, draw: 1, loss: 0 });
   assert.match(custom.tieRules[0]!, /zwycięstwo 2 pkt, remis 1 pkt/);

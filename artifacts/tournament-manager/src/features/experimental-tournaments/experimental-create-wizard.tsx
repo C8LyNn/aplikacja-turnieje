@@ -38,7 +38,6 @@ import {
 } from "@/lib/create-tournament-validation";
 import { getApiErrorMessage } from "@/lib/tournament-stages-ui";
 import {
-  buildAdvancedHandoff,
   buildCreatePayload,
   clampCount,
   COUNT_SHORTCUTS,
@@ -53,7 +52,8 @@ import {
   requestParams,
   WIZARD_DRAFT_KEY,
   WIZARD_STEPS,
-  writeAdvancedHandoff,
+  customPlanFromPreview,
+  stageChain,
   writeWizardDraft,
   type PresetParamKey,
   type PresetParamLimit,
@@ -74,6 +74,8 @@ import {
 import { ExperimentalAiImport, type AiImportResult } from "./experimental-ai-import";
 
 const ADVANCED_PATH = "/experimental/tournaments/new/advanced";
+/** V5.4: seeding rules live in the advanced editor; the simple wizard keeps the safe defaults. */
+export const ADVANCED_PARAM_KEYS: PresetParamKey[] = ["entrySeeding", "groupPlacement", "qualifierSeeding"];
 
 function safeSessionStorage(): Storage | null {
   try {
@@ -247,7 +249,7 @@ function PresetStats({ preview, teams = false }: { preview: PresetPreview; teams
   );
 }
 
-function StageFlow({ preview }: { preview: PresetPreview }) {
+export function StageFlow({ preview }: { preview: PresetPreview }) {
   return (
     <ol className="experimental-wizard-flow" aria-label="Układ etapów">
       {preview.stages.map((stage) => (
@@ -280,18 +282,21 @@ function StageFlow({ preview }: { preview: PresetPreview }) {
   );
 }
 
-function PreviewPanel({
+export function PreviewPanel({
   preview,
   noun,
   loading,
   stale,
   schedule = null,
+  compact = false,
 }: {
   preview: PresetPreview | null;
   noun: (n: number) => string;
   loading: boolean;
   stale: boolean;
   schedule?: WizardSchedule | null;
+  /** V5.4: rules and notes fold away (format step, final step); numbers and stages stay visible. */
+  compact?: boolean;
 }) {
   if (!preview) {
     return (
@@ -314,6 +319,26 @@ function PreviewPanel({
       </div>
       <PresetStats preview={preview} teams={noun(5) === "drużyn"} />
       <StageFlow preview={preview} />
+      {compact ? (
+        <details className="experimental-wizard-more experimental-wizard-preview-more">
+          <summary>
+            Zasady, kolejki i uwagi
+            {preview.requirements.length + preview.warnings.length > 0 && (
+              <span className="experimental-wizard-count-badge">{preview.requirements.length + preview.warnings.length}</span>
+            )}
+          </summary>
+          <PreviewRules preview={preview} schedule={schedule} />
+        </details>
+      ) : (
+        <PreviewRules preview={preview} schedule={schedule} />
+      )}
+    </aside>
+  );
+}
+
+function PreviewRules({ preview, schedule }: { preview: PresetPreview; schedule: WizardSchedule | null }) {
+  return (
+    <>
       <LeagueFacts preview={preview} schedule={schedule} />
       <section className="experimental-wizard-rules">
         <h4><Trophy className="h-4 w-4" aria-hidden="true" /> Zwycięzca</h4>
@@ -331,7 +356,7 @@ function PreviewPanel({
           ))}
         </ul>
       )}
-    </aside>
+    </>
   );
 }
 
@@ -400,7 +425,7 @@ function PresetCard({
   );
 }
 
-function ParamControl({
+export function ParamControl({
   limit,
   onChange,
   error,
@@ -413,8 +438,9 @@ function ParamControl({
   const isBestOf = limit.key === "bestOf" || limit.key === "playoffBestOf";
   const isLegs = limit.key === "legs";
   const index = limit.options.indexOf(limit.value);
-  const segmented = isBestOf || isLegs || limit.options.length <= 6;
-  const format = (value: number) => (isBestOf ? bestOfLabel(value) : isLegs ? (value === 2 ? "Mecz i rewanż" : "Jeden mecz") : String(value));
+  const labels = limit.optionLabels;
+  const segmented = isBestOf || isLegs || Boolean(labels) || limit.options.length <= 6;
+  const format = (value: number) => (labels ? labels[limit.options.indexOf(value)] ?? String(value) : isBestOf ? bestOfLabel(value) : isLegs ? (value === 2 ? "Mecz i rewanż" : "Jeden mecz") : String(value));
   return (
     <div className="experimental-wizard-param" data-invalid={error ? "true" : undefined}>
       <div className="experimental-wizard-param-head">
@@ -602,22 +628,19 @@ export function ExperimentalCreateWizard() {
   const applyImported = (result: Extract<AiImportResult, { valid: true }>) => {
     setImportOpen(false);
     const config = result.config;
-    if (result.continueIn === "advanced" || config.structure.type !== "preset") {
-      writeAdvancedHandoff(safeSessionStorage(), {
-        version: 1,
-        name: draft.name,
-        description: draft.description,
-        visibility: config.visibility,
-        presetId: "custom",
-        label: "Własna konfiguracja z pliku AI",
-        creation: result.preview.creation,
-      });
+    if (config.structure.type !== "preset") {
+      // A custom stage plan cannot be expressed by a preset: it is kept as-is and edited in the advanced editor.
+      const next: WizardDraft = { ...draft, visibility: config.visibility, custom: customPlanFromPreview(result.preview) };
+      writeWizardDraft(safeSessionStorage(), next);
+      setDraft(next);
       navigate(ADVANCED_PATH);
       return;
     }
     const structure = config.structure;
+    const continueInAdvanced = result.continueIn === "advanced";
     setDraft((current) => ({
       ...current,
+      custom: null,
       step: 2,
       maxVisitedStep: Math.max(current.maxVisitedStep, 2) as WizardStepIndex,
       answers: { ...current.answers, kind: config.kind, participantType: config.participants.type, participantCount: config.participants.count },
@@ -629,12 +652,12 @@ export function ExperimentalCreateWizard() {
         : current.schedule,
     }));
     setImported(true);
+    if (continueInAdvanced) navigate(ADVANCED_PATH);
   };
 
+  // V5.4: both modes edit the same persisted draft — nothing is converted or dropped on the way.
   const openAdvanced = () => {
-    if (shownPreview) {
-      writeAdvancedHandoff(safeSessionStorage(), buildAdvancedHandoff(shownPreview, draft));
-    }
+    writeWizardDraft(safeSessionStorage(), draft);
     navigate(ADVANCED_PATH);
   };
 
@@ -746,7 +769,7 @@ export function ExperimentalCreateWizard() {
               {answers.kind === "league" && (
                 <p className="experimental-wizard-note" data-tone="info">
                   <Info className="h-4 w-4 shrink-0" aria-hidden="true" />
-                  Liga to tabela „każdy z każdym”, także w wariancie mecz i rewanż, opcjonalnie z play-off. Każdy mecz kończy się zwycięzcą (bez remisów). Mecz można odłożyć na później w panelu prowadzącego, ale daty i godziny kolejek, dywizje i awanse jeszcze nie są dostępne.
+                  Liga to tabela „każdy z każdym” (także mecz i rewanż), opcjonalnie z play-off. Remisy, punktację i terminy kolejek ustawisz w kroku „Dopasuj”.
                 </p>
               )}
               <ChoiceGroup
@@ -761,7 +784,7 @@ export function ExperimentalCreateWizard() {
               {answers.participantType === "teams" && (
                 <p className="experimental-wizard-note" data-tone="info">
                   <Info className="h-4 w-4 shrink-0" aria-hidden="true" />
-                  Każda drużyna ma własny skład: kapitan, zawodnicy i rezerwowi. Dodasz ich po utworzeniu turnieju, a zmiany między meczami trafią do historii. Wyboru składu na konkretny mecz jeszcze nie ma.
+                  Każda drużyna ma skład: kapitan, zawodnicy i rezerwowi. Dodasz ich po utworzeniu turnieju.
                 </p>
               )}
               <CountField value={answers.participantCount} onChange={(participantCount) => setAnswers({ participantCount })} noun={noun} />
@@ -800,6 +823,15 @@ export function ExperimentalCreateWizard() {
 
           {!importOpen && step === 1 && (
             <div className="experimental-wizard-stack">
+              {draft.custom && (
+                <div className="experimental-wizard-note" data-tone="info" role="status">
+                  <Info className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  <span>
+                    Masz własny plan <strong>{draft.custom.label}</strong> ({draft.custom.preview.stages.length} {plural(draft.custom.preview.stages.length, "etap", "etapy", "etapów")}). Prosty kreator go nie edytuje — wybranie formatu poniżej go zastąpi.
+                    {" "}<button type="button" className="experimental-wizard-link" onClick={openAdvanced}>Wróć do własnego planu</button>
+                  </span>
+                </div>
+              )}
               {recommendations.status === "loading" && available.length === 0 && (
                 <p className="experimental-wizard-help" role="status"><Loader2 className="inline h-4 w-4 animate-spin" aria-hidden="true" /> Dobieram formaty…</p>
               )}
@@ -820,7 +852,7 @@ export function ExperimentalCreateWizard() {
                   <legend className="experimental-wizard-sr">Format rozgrywek</legend>
                   <div className="experimental-wizard-presets">
                     {visiblePresets.map((item) => (
-                      <PresetCard key={item.presetId} item={item} selected={item.presetId === presetId} onSelect={() => update({ presetId: item.presetId, params: {} })} />
+                      <PresetCard key={item.presetId} item={item} selected={!draft.custom && item.presetId === presetId} onSelect={() => update({ presetId: item.presetId, params: {}, custom: null })} />
                     ))}
                   </div>
                   {hiddenPresetCount > 0 && (
@@ -833,8 +865,8 @@ export function ExperimentalCreateWizard() {
               <button type="button" className="experimental-wizard-custom" onClick={openAdvanced}>
                 <Settings2 className="h-5 w-5 shrink-0" aria-hidden="true" />
                 <span>
-                  <span className="experimental-wizard-choice-label">Własna konfiguracja wieloetapowa</span>
-                  <span className="experimental-wizard-choice-hint">Do 10 etapów, rozstawienie i koszyki — w trybie zaawansowanym.</span>
+                  <span className="experimental-wizard-choice-label">Wszystkie ustawienia naraz</span>
+                  <span className="experimental-wizard-choice-hint">Tryb zaawansowany: rozstawienie, awanse, punktacja i dostęp na jednym ekranie.</span>
                 </span>
                 <ArrowRight className="h-4 w-4 shrink-0" aria-hidden="true" />
               </button>
@@ -888,7 +920,7 @@ export function ExperimentalCreateWizard() {
                     )}
                   </div>
                   {shownPreview.paramLimits
-                    .filter((limit) => limit.key !== "participantCount" && !LEAGUE_PARAM_KEYS.includes(limit.key))
+                    .filter((limit) => limit.key !== "participantCount" && !LEAGUE_PARAM_KEYS.includes(limit.key) && !ADVANCED_PARAM_KEYS.includes(limit.key))
                     .map((limit) => (
                       <ParamControl
                         key={limit.key}
@@ -1057,6 +1089,9 @@ export function ExperimentalCreateWizard() {
                     <strong>{draft.name.trim() || "Turniej bez nazwy"}</strong> · {shownPreview.label} ·{" "}
                     {shownPreview.participants.mode === "exact" ? "dokładnie" : "do"} {shownPreview.participants.count} {noun(shownPreview.participants.count)}
                   </p>
+                  <ol className="experimental-wizard-chain" aria-label="Etapy">
+                    {stageChain(shownPreview).map((item) => <li key={item}>{item}</li>)}
+                  </ol>
                   <p className="experimental-wizard-help">Następny krok: dodasz uczestników (możesz wkleić całą listę naraz).</p>
                 </div>
               )}
@@ -1079,7 +1114,7 @@ export function ExperimentalCreateWizard() {
         </section>
 
         {step >= 1 && !importOpen && (
-          <PreviewPanel preview={shownPreview} noun={noun} loading={preview.status === "loading" || recommendations.status === "loading"} stale={preview.status === "error"} schedule={draft.schedule} />
+          <PreviewPanel preview={shownPreview} noun={noun} loading={preview.status === "loading" || recommendations.status === "loading"} stale={preview.status === "error"} schedule={draft.schedule} compact={step !== 2} />
         )}
       </div>
 

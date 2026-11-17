@@ -32,7 +32,10 @@ export type PresetParamKey =
   | "allowDraws"
   | "pointsWin"
   | "pointsDraw"
-  | "pointsLoss";
+  | "pointsLoss"
+  | "entrySeeding"
+  | "groupPlacement"
+  | "qualifierSeeding";
 
 export type PresetParams = Partial<Record<PresetParamKey, number>>;
 
@@ -50,6 +53,8 @@ export interface PresetParamLimit {
   help: string;
   options: number[];
   value: number;
+  /** V5.4: labels of enumerated params, aligned with `options`. */
+  optionLabels?: string[];
 }
 
 export interface PresetStageSummary {
@@ -180,6 +185,8 @@ export interface WizardDraft {
   rosterMax: number | null;
   /** V5.3: league schedule (null = a league without dates). */
   schedule: WizardSchedule | null;
+  /** V5.4: a plan no preset can express (AI file); edited only in the advanced editor. */
+  custom: CustomPlan | null;
 }
 
 export const DEFAULT_DRAFT: WizardDraft = {
@@ -194,18 +201,17 @@ export const DEFAULT_DRAFT: WizardDraft = {
   rosterMin: null,
   rosterMax: null,
   schedule: null,
+  custom: null,
 };
 
 export const WIZARD_DRAFT_KEY = "tm_exp_wizard_draft_v1";
-/** One-shot hand-off consumed by the advanced form. */
-export const ADVANCED_HANDOFF_KEY = "tm_exp_create_handoff_v1";
 
 const PRESET_IDS: readonly PresetId[] = [
   "single_elimination", "double_elimination", "swiss", "round_robin", "groups_playoff", "swiss_playoff", "league_playoff",
 ];
 const PARAM_KEYS: readonly PresetParamKey[] = [
   "participantCount", "bestOf", "playoffBestOf", "swissRounds", "groupCount", "qualifiersPerGroup", "advancingCount", "legs",
-  "allowDraws", "pointsWin", "pointsDraw", "pointsLoss",
+  "allowDraws", "pointsWin", "pointsDraw", "pointsLoss", "entrySeeding", "groupPlacement", "qualifierSeeding",
 ];
 
 function oneOf<T extends string>(value: unknown, allowed: readonly T[], fallback: T): T {
@@ -252,6 +258,7 @@ export function sanitizeDraft(raw: unknown): WizardDraft {
     rosterMin: rosterLimit(record.rosterMin),
     rosterMax: rosterLimit(record.rosterMax),
     schedule: sanitizeSchedule(record.schedule),
+    custom: sanitizeCustomPlan(record.custom),
   };
 }
 
@@ -289,12 +296,12 @@ export function addDays(date: string, days: number): string {
 }
 
 /** True when every stage is a league table (rounds are "kolejki"). */
-export function isLeagueOnly(preview: PresetPreview): boolean {
+export function isLeagueOnly(preview: Pick<PresetPreview, "stages">): boolean {
   return preview.stages.length > 0 && preview.stages.every((stage) => stage.format === "round_robin");
 }
 
 /** The first league/group stage of a plan — the one a schedule applies to. */
-export function scheduleTargetStage(preview: PresetPreview): PresetStageSummary | null {
+export function scheduleTargetStage(preview: Pick<PresetPreview, "stages">): PresetStageSummary | null {
   return preview.stages.find((stage) => stage.format === "round_robin" || stage.format === "group_stage") ?? null;
 }
 
@@ -384,18 +391,49 @@ export function reconcilePresetAfterAnswers(
 
 /** Only the params the user can tune for this preset, with participant count from the answers. */
 export function requestParams(presetId: PresetId, answers: WizardAnswers, params: PresetParams): PresetParams {
-  const allowed: Record<PresetId, PresetParamKey[]> = {
-    single_elimination: ["bestOf"],
-    double_elimination: ["bestOf"],
-    swiss: ["bestOf", "swissRounds"],
-    round_robin: ["bestOf", "legs", "allowDraws", "pointsWin", "pointsDraw", "pointsLoss"],
-    groups_playoff: ["bestOf", "playoffBestOf", "groupCount", "qualifiersPerGroup", "allowDraws", "pointsWin", "pointsDraw", "pointsLoss"],
-    swiss_playoff: ["bestOf", "playoffBestOf", "swissRounds", "advancingCount"],
-    league_playoff: ["bestOf", "playoffBestOf", "advancingCount", "legs", "allowDraws", "pointsWin", "pointsDraw", "pointsLoss"],
-  };
   const result: PresetParams = { participantCount: answers.participantCount };
-  for (const key of allowed[presetId]) if (params[key] != null) result[key] = params[key];
+  for (const key of PRESET_PARAM_KEYS_BY_PRESET[presetId]) if (params[key] != null) result[key] = params[key];
   return result;
+}
+
+/** Mirrors the server's PRESET_TUNABLE_PARAMS (participantCount comes from the answers). */
+export const PRESET_PARAM_KEYS_BY_PRESET: Record<PresetId, PresetParamKey[]> = {
+  single_elimination: ["bestOf", "entrySeeding"],
+  double_elimination: ["bestOf", "entrySeeding"],
+  swiss: ["bestOf", "swissRounds", "entrySeeding"],
+  round_robin: ["bestOf", "legs", "allowDraws", "pointsWin", "pointsDraw", "pointsLoss", "entrySeeding"],
+  groups_playoff: ["bestOf", "playoffBestOf", "groupCount", "qualifiersPerGroup", "allowDraws", "pointsWin", "pointsDraw", "pointsLoss", "entrySeeding", "groupPlacement", "qualifierSeeding"],
+  swiss_playoff: ["bestOf", "playoffBestOf", "swissRounds", "advancingCount", "entrySeeding"],
+  league_playoff: ["bestOf", "playoffBestOf", "advancingCount", "legs", "allowDraws", "pointsWin", "pointsDraw", "pointsLoss", "entrySeeding"],
+};
+
+export const PRESET_LABELS: Record<PresetId, string> = {
+  single_elimination: "Drabinka pucharowa",
+  double_elimination: "Podwójna eliminacja",
+  swiss: "System szwajcarski",
+  round_robin: "Każdy z każdym",
+  groups_playoff: "Grupy i play-off",
+  swiss_playoff: "Szwajcarski i play-off",
+  league_playoff: "Tabela i play-off",
+};
+export const ALL_PRESET_IDS: readonly PresetId[] = PRESET_IDS;
+
+/** The preview's placeholder draw key (server PRESET_PREVIEW_RANDOM_SEED). */
+export const PRESET_PREVIEW_RANDOM_SEED = "preset-draw";
+
+/** A fresh, unpredictable draw key for one tournament (falls back to Math.random without Web Crypto). */
+export function freshDrawKey(): string {
+  try {
+    const bytes = new Uint8Array(12);
+    globalThis.crypto.getRandomValues(bytes);
+    return `draw-${Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
+  } catch {
+    return `draw-${Math.random().toString(16).slice(2)}${Date.now().toString(16)}`;
+  }
+}
+
+function withFreshDrawKeys<T extends { stages: Array<{ randomSeed?: string }> }>(plan: T, drawKey: () => string): T {
+  return { ...plan, stages: plan.stages.map((stage) => (stage.randomSeed === PRESET_PREVIEW_RANDOM_SEED ? { ...stage, randomSeed: drawKey() } : stage)) };
 }
 
 export interface CreateSecrets {
@@ -405,9 +443,10 @@ export interface CreateSecrets {
 }
 
 export function buildCreatePayload(
-  preview: PresetPreview,
+  preview: Pick<PresetPreview, "creation" | "stages">,
   details: { name: string; description: string; visibility: Visibility; participantType?: ParticipantType; rosterMin?: number | null; rosterMax?: number | null; schedule?: WizardSchedule | null },
   secrets: CreateSecrets,
+  drawKey: () => string = freshDrawKey,
 ): TournamentInput {
   const teams = details.participantType === "teams";
   // V5.3: a wizard schedule goes on the first league/group stage (plan) or on the flexible league itself.
@@ -441,7 +480,7 @@ export function buildCreatePayload(
     maxPlayers: preview.creation.maxPlayers,
     defaultBestOf: preview.creation.defaultBestOf,
     ...(preview.creation.swissRounds != null ? { swissRounds: preview.creation.swissRounds } : {}),
-    ...(stagePlan ? { stagePlan } : {}),
+    ...(stagePlan ? { stagePlan: withFreshDrawKeys(stagePlan, drawKey) } : {}),
     ...(!preview.creation.stagePlan && preview.creation.leagueRules ? { leagueRules: preview.creation.leagueRules } : {}),
     ...flexibleSchedule,
     organizerPassword: secrets.organizerPassword,
@@ -451,57 +490,67 @@ export function buildCreatePayload(
   };
 }
 
-export interface AdvancedHandoff {
-  version: 1;
-  name: string;
-  description: string;
-  visibility: Visibility;
-  /** A wizard preset, or "custom" for an imported multi-stage plan. */
-  presetId: PresetId | "custom";
+/**
+ * V5.4: the simple wizard and the advanced editor share ONE draft (WIZARD_DRAFT_KEY), so switching
+ * modes never re-derives or drops settings. A plan that no preset can express (an imported AI file
+ * with a custom stage plan) travels as `custom` and is edited only in the advanced editor.
+ */
+export interface CustomPlan {
   label: string;
-  creation: PresetPreview["creation"];
+  preview: Pick<PresetPreview, "label" | "creation" | "stages" | "totals" | "participants" | "warnings" | "requirements" | "winnerRule">;
 }
 
-export function buildAdvancedHandoff(
-  preview: PresetPreview,
-  details: { name: string; description: string; visibility: Visibility },
-): AdvancedHandoff {
+export function customPlanFromPreview(preview: PresetPreview, label = "Własna konfiguracja z pliku AI"): CustomPlan {
   return {
-    version: 1,
-    name: details.name,
-    description: details.description,
-    visibility: details.visibility,
-    presetId: preview.presetId,
-    label: preview.label,
-    creation: preview.creation,
+    label,
+    preview: {
+      label,
+      creation: preview.creation,
+      stages: preview.stages,
+      totals: preview.totals,
+      participants: preview.participants,
+      warnings: preview.warnings,
+      requirements: preview.requirements,
+      winnerRule: preview.winnerRule,
+    },
   };
 }
 
-/** Reads the hand-off (pure, safe for StrictMode double initialisers). Clear it with `clearAdvancedHandoff`. */
-export function readAdvancedHandoff(storage: Pick<Storage, "getItem"> | null): AdvancedHandoff | null {
-  try {
-    const raw = storage?.getItem(ADVANCED_HANDOFF_KEY);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as AdvancedHandoff;
-    if (parsed?.version !== 1 || typeof parsed.creation?.format !== "string" || !Number.isInteger(parsed.creation?.maxPlayers)) return null;
-    return parsed;
-  } catch {
-    return null;
-  }
+function sanitizeCustomPlan(value: unknown): CustomPlan | null {
+  if (typeof value !== "object" || value === null) return null;
+  const record = value as Record<string, unknown>;
+  const preview = record.preview as Record<string, unknown> | undefined;
+  const creation = preview?.creation as Record<string, unknown> | undefined;
+  if (typeof record.label !== "string" || !creation || typeof creation.format !== "string" || !Number.isInteger(creation.maxPlayers)) return null;
+  if (!Array.isArray(preview?.stages) || typeof preview?.totals !== "object" || typeof preview?.participants !== "object") return null;
+  return { label: record.label.slice(0, 120), preview: preview as unknown as CustomPlan["preview"] };
 }
 
-export function clearAdvancedHandoff(storage: Pick<Storage, "removeItem"> | null): void {
-  try {
-    storage?.removeItem(ADVANCED_HANDOFF_KEY);
-  } catch {
-    /* ignore */
-  }
+/** Which advanced-only settings the simple wizard cannot show (shown before leaving the advanced editor). */
+export function simpleWizardLimitations(draft: WizardDraft): string[] {
+  const notes: string[] = [];
+  if (draft.custom) notes.push(`Własny plan „${draft.custom.label}” nie da się edytować w prostym kreatorze — zostanie zachowany i wrócisz do niego w trybie zaawansowanym.`);
+  return notes;
 }
 
-export function writeAdvancedHandoff(storage: Pick<Storage, "setItem"> | null, handoff: AdvancedHandoff): void {
-  try {
-    storage?.setItem(ADVANCED_HANDOFF_KEY, JSON.stringify(handoff));
-  } catch {
-    /* ignore */
-  }
+/** The wizard step to resume on when coming back from the advanced editor. */
+export function resumeStep(draft: WizardDraft): WizardStepIndex {
+  if (draft.custom || draft.presetId == null) return draft.custom ? 1 : 0;
+  return 2;
+}
+
+/** V5.4: one short line per stage, e.g. "Faza grupowa · 4 grupy po 4 · awans 8" → "Play-off · 8 · BO3". */
+export function stageChain(preview: Pick<PresetPreview, "stages">): string[] {
+  return preview.stages.map((stage) => {
+    const parts = [stage.name];
+    if (stage.groupSizes && stage.groupSizes.length > 0) {
+      const sizes = [...new Set(stage.groupSizes)];
+      parts.push(`${stage.groupSizes.length} ${plural(stage.groupSizes.length, "grupa", "grupy", "grup")} po ${sizes.join("–")}`);
+    } else {
+      parts.push(`${stage.participantCount} ${plural(stage.participantCount, "uczestnik", "uczestników", "uczestników")}`);
+    }
+    parts.push(bestOfLabel(stage.bestOf));
+    if (stage.advancingCount != null) parts.push(`awans ${stage.advancingCount}`);
+    return parts.join(" · ");
+  });
 }

@@ -42,6 +42,7 @@ import {
   PRESET_IDS,
   PRESET_PARAM_TEXT,
   PRESET_TUNABLE_PARAMS,
+  PRESET_PARAM_OPTION_LABELS,
   PresetError,
   previewPreset,
   type PresetId,
@@ -702,6 +703,9 @@ const PARAM_RANGES: Record<PresetParamKey, { minimum: number; maximum: number }>
   pointsWin: { minimum: 0, maximum: 10 },
   pointsDraw: { minimum: 0, maximum: 10 },
   pointsLoss: { minimum: 0, maximum: 10 },
+  entrySeeding: { minimum: 0, maximum: 2 },
+  groupPlacement: { minimum: 0, maximum: 1 },
+  qualifierSeeding: { minimum: 0, maximum: 1 },
 };
 
 function paramSchema(key: PresetParamKey): Rec {
@@ -709,6 +713,8 @@ function paramSchema(key: PresetParamKey): Rec {
   if (key === "bestOf" || key === "playoffBestOf") return { description: `${text.label}. ${text.help}`, enum: [...STAGE_BEST_OF_VALUES] };
   if (key === "legs") return { description: `${text.label}. ${text.help}`, enum: [1, 2] };
   if (key === "allowDraws") return { description: `${text.label}. ${text.help}`, enum: [0, 1], default: 0 };
+  const labels = PRESET_PARAM_OPTION_LABELS[key];
+  if (labels) return { description: `${text.label}. ${text.help} ${labels.map((label, index) => `${index} = ${label}`).join(", ")}.`, enum: labels.map((_, index) => index), default: 0 };
   if (key === "advancingCount") return { description: `${text.label}. ${text.help} Potęga dwójki mniejsza od liczby uczestników.`, enum: [2, 4, 8, 16, 32, 64] };
   return { description: `${text.label}. ${text.help}`, type: "integer", ...PARAM_RANGES[key] };
 }

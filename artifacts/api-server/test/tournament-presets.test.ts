@@ -191,7 +191,7 @@ describe("V5 presets: recommendations", () => {
   });
   test("planned league features are listed as unavailable, never as presets", () => {
     const result = recommendPresets(parseWizardAnswers({ participantCount: 8, kind: "league" }));
-    assert.deepEqual(result.planned.map((item) => item.id), ["league_schedule"]);
+    assert.deepEqual(result.planned.map((item) => item.id), ["league_divisions"]);
     assert.ok(result.recommendations.every((item) => !String(item.presetId).startsWith("league_home")));
   });
 });

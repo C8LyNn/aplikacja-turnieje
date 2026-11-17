@@ -36,9 +36,9 @@ export type PresetId = (typeof PRESET_IDS)[number];
 /** Shown in the catalog so users see what is coming, but never selectable. */
 export const PLANNED_PRESETS = [
   {
-    id: "league_schedule",
-    label: "Liga z terminarzem i datami kolejek",
-    reason: "Terminarz z datami i godzinami spotkań oraz nowe terminy meczów przełożonych nie są jeszcze obsługiwane (mecz można tylko odłożyć na później w panelu prowadzącego).",
+    id: "league_divisions",
+    label: "Liga z dywizjami, awansami i spadkami",
+    reason: "Kilka dywizji w jednym sezonie oraz awanse i spadki między nimi nie są jeszcze obsługiwane. Terminarz z datami kolejek działa już w każdej lidze.",
   },
 ] as const;
 
@@ -54,7 +54,20 @@ export type PresetParamKey =
   | "allowDraws"
   | "pointsWin"
   | "pointsDraw"
-  | "pointsLoss";
+  | "pointsLoss"
+  /** V5.4: how the first stage orders entrants (0 registration order, 1 random draw, 2 manual seeds). */
+  | "entrySeeding"
+  /** V5.4: how seeds are spread into groups (0 snake by seed, 1 random). */
+  | "groupPlacement"
+  /** V5.4: how group qualifiers are seeded into the play-off (0 by group place, 1 by overall ranking). */
+  | "qualifierSeeding";
+
+/** V5.4: labels for enumerated params (index = value). */
+export const PRESET_PARAM_OPTION_LABELS: Partial<Record<PresetParamKey, string[]>> = {
+  entrySeeding: ["Kolejność zgłoszeń", "Losowanie", "Ręczne rozstawienie"],
+  groupPlacement: ["Wężykiem według rozstawienia", "Losowo"],
+  qualifierSeeding: ["Najpierw zwycięzcy grup, potem drugie miejsca", "Według łącznego rankingu"],
+};
 
 export type PresetParams = Partial<Record<PresetParamKey, number>>;
 
@@ -67,6 +80,8 @@ export interface PresetParamLimit {
   /** Allowed values for the current participant count, ascending. */
   options: number[];
   value: number;
+  /** V5.4: human labels for enumerated params, aligned with `options`. */
+  optionLabels?: string[];
 }
 
 export interface PresetStageSummary {
@@ -239,17 +254,20 @@ export const PRESET_PARAM_TEXT: Record<PresetParamKey, { label: string; help: st
   pointsWin: { label: "Punkty za zwycięstwo", help: "Klasycznie 3." },
   pointsDraw: { label: "Punkty za remis", help: "Klasycznie 1. Nie mniej niż za porażkę i nie więcej niż za zwycięstwo." },
   pointsLoss: { label: "Punkty za porażkę", help: "Klasycznie 0." },
+  entrySeeding: { label: "Kolejność na starcie", help: "Kolejność zgłoszeń, losowanie przed startem albo numery rozstawienia nadane ręcznie." },
+  groupPlacement: { label: "Podział do grup", help: "Wężykiem: najwyżej rozstawieni trafiają do różnych grup. Losowo: grupy z losowania." },
+  qualifierSeeding: { label: "Rozstawienie w play-off", help: "Zwycięzcy grup przed drugimi miejscami albo jeden ranking wszystkich awansujących." },
 };
 
 /** Parameters a user (or an imported AI file) may set per preset; participantCount comes from the answers. */
 export const PRESET_TUNABLE_PARAMS: Record<PresetId, PresetParamKey[]> = {
-  single_elimination: ["bestOf"],
-  double_elimination: ["bestOf"],
-  swiss: ["bestOf", "swissRounds"],
-  round_robin: ["bestOf", "legs", "allowDraws", "pointsWin", "pointsDraw", "pointsLoss"],
-  groups_playoff: ["bestOf", "playoffBestOf", "groupCount", "qualifiersPerGroup", "allowDraws", "pointsWin", "pointsDraw", "pointsLoss"],
-  swiss_playoff: ["bestOf", "playoffBestOf", "swissRounds", "advancingCount"],
-  league_playoff: ["bestOf", "playoffBestOf", "advancingCount", "legs", "allowDraws", "pointsWin", "pointsDraw", "pointsLoss"],
+  single_elimination: ["bestOf", "entrySeeding"],
+  double_elimination: ["bestOf", "entrySeeding"],
+  swiss: ["bestOf", "swissRounds", "entrySeeding"],
+  round_robin: ["bestOf", "legs", "allowDraws", "pointsWin", "pointsDraw", "pointsLoss", "entrySeeding"],
+  groups_playoff: ["bestOf", "playoffBestOf", "groupCount", "qualifiersPerGroup", "allowDraws", "pointsWin", "pointsDraw", "pointsLoss", "entrySeeding", "groupPlacement", "qualifierSeeding"],
+  swiss_playoff: ["bestOf", "playoffBestOf", "swissRounds", "advancingCount", "entrySeeding"],
+  league_playoff: ["bestOf", "playoffBestOf", "advancingCount", "legs", "allowDraws", "pointsWin", "pointsDraw", "pointsLoss", "entrySeeding"],
 };
 
 const range = (from: number, to: number): number[] =>
@@ -304,8 +322,13 @@ function describeOptions(options: number[]): string {
 }
 
 function limit(key: PresetParamKey, options: number[], value: number): PresetParamLimit {
-  return { key, ...PRESET_PARAM_TEXT[key], options, value };
+  const labels = PRESET_PARAM_OPTION_LABELS[key];
+  return { key, ...PRESET_PARAM_TEXT[key], options, value, ...(labels ? { optionLabels: options.map((option) => labels[option] ?? String(option)) } : {}) };
 }
+
+/** V5.4: placeholder draw key in previews; the creating client replaces it with a fresh random key. */
+export const PRESET_PREVIEW_RANDOM_SEED = "preset-draw";
+const ENTRY_SEEDING_METHODS = ["registration_order", "random", "manual"] as const;
 
 const BEST_OF_OPTIONS = [...STAGE_BEST_OF_VALUES];
 
@@ -387,7 +410,46 @@ function normaliseCount(presetId: PresetId, raw: unknown): number {
   return raw as number;
 }
 
+/**
+ * V5.4: seeding rules on top of the structure. They change only who meets whom, never the
+ * number of matches or qualifiers, so they are applied after the structure is built.
+ */
 function build(presetId: PresetId, input: PresetParams, accurate: boolean): Built {
+  const built = buildStructure(presetId, input, accurate);
+  const entry = pick(input.entrySeeding, [0, 1, 2], 0, "entrySeeding");
+  built.paramLimits.push(limit("entrySeeding", [0, 1, 2], entry));
+  built.params.entrySeeding = entry;
+  const usesRandom = (stage: TournamentStagePlan): boolean =>
+    stage.entrySeedingMethod === "random" || ("placementMethod" in stage && stage.placementMethod === "random");
+  built.stages = built.stages.map((stage) => (stage.position === 1 ? { ...stage, entrySeedingMethod: ENTRY_SEEDING_METHODS[entry] } : stage));
+  if (presetId === "groups_playoff") {
+    const placement = pick(input.groupPlacement, [0, 1], 0, "groupPlacement");
+    const qualifiers = pick(input.qualifierSeeding, [0, 1], 0, "qualifierSeeding");
+    built.paramLimits.push(limit("groupPlacement", [0, 1], placement), limit("qualifierSeeding", [0, 1], qualifiers));
+    built.params.groupPlacement = placement;
+    built.params.qualifierSeeding = qualifiers;
+    built.stages = built.stages.map((stage) => stage.format === "group_stage"
+      ? { ...stage, placementMethod: placement === 1 ? "random" : "snake", resultSeedingMethod: qualifiers === 1 ? "global_ranking" : "rank_bands" }
+      : stage);
+    const groups = built.summaries[0];
+    groups.advancementText = groups.advancementText.replace(
+      "Rozstawienie w drabince: zwycięzcy grup przed drugimi miejscami.",
+      qualifiers === 1 ? "Rozstawienie w drabince: według łącznego rankingu awansujących." : "Rozstawienie w drabince: zwycięzcy grup przed drugimi miejscami.",
+    );
+    if (placement === 1) built.requirements.push("Podział do grup zostanie wylosowany przy starcie fazy grupowej.");
+  }
+  built.stages = built.stages.map((stage) => (usesRandom(stage) ? { ...stage, randomSeed: PRESET_PREVIEW_RANDOM_SEED, randomRevealOrder: "sequential" as const } : stage));
+  // A flexible single stage has no plan to carry the seeding rule, so any non-default rule needs a fixed plan.
+  if (entry !== 0 && built.singleStage && !built.requiresStagePlan) {
+    built.requiresStagePlan = true;
+    built.requirements.push(`Losowanie lub ręczne rozstawienie używa stałego planu: przed startem lista musi liczyć dokładnie ${built.params.participantCount} uczestników.`);
+  }
+  if (entry === 1) built.requirements.push("Kolejność startowa zostanie wylosowana przed startem.");
+  if (entry === 2) built.requirements.push("Przed startem nadaj uczestnikom numery rozstawienia.");
+  return built;
+}
+
+function buildStructure(presetId: PresetId, input: PresetParams, accurate: boolean): Built {
   const n = normaliseCount(presetId, input.participantCount);
   const bestOfRaw = input.bestOf ?? 1;
   if (!isBestOf(bestOfRaw)) {
@@ -606,7 +668,7 @@ function build(presetId: PresetId, input: PresetParams, accurate: boolean): Buil
 
 const ALLOWED_PARAM_KEYS = new Set<PresetParamKey>([
   "participantCount", "bestOf", "playoffBestOf", "swissRounds", "groupCount", "qualifiersPerGroup", "advancingCount", "legs",
-  "allowDraws", "pointsWin", "pointsDraw", "pointsLoss",
+  "allowDraws", "pointsWin", "pointsDraw", "pointsLoss", "entrySeeding", "groupPlacement", "qualifierSeeding",
 ]);
 
 export interface PresetPreviewRequest {

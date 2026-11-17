@@ -15,7 +15,11 @@ test('Experimental /new renders the wizard; the full form moved to /new/advanced
   const wizard = app.indexOf('path="/experimental/tournaments/new"');
   assert.ok(advanced > 0 && wizard > advanced, 'advanced route is registered before the wizard route');
   assert.match(src('pages/experimental/tournaments/create-tournament-experimental.tsx'), /<ExperimentalCreateWizard \/>/);
-  assert.match(src('pages/experimental/tournaments/create-tournament-experimental-advanced.tsx'), /TournamentTemplatePlanner/);
+  // V5.4: the advanced editor shares the wizard draft and the server preset engine (one source of truth).
+  assert.match(src('pages/experimental/tournaments/create-tournament-experimental-advanced.tsx'), /ExperimentalAdvancedEditor/);
+  const editor = src('features/experimental-tournaments/experimental-advanced-editor.tsx');
+  assert.match(editor, /\/api\/tournaments\/presets\/preview/);
+  assert.match(editor, /readWizardDraft/);
 });
 
 test('Stable creation does not import the wizard or the preset API', () => {
