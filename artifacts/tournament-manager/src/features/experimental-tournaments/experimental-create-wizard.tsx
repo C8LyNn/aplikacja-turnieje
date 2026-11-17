@@ -64,6 +64,7 @@ import {
   type WizardDraft,
   type WizardStepIndex,
 } from "./experimental-create-wizard-model";
+import { ExperimentalAiImport, type AiImportResult } from "./experimental-ai-import";
 
 const ADVANCED_PATH = "/experimental/tournaments/new/advanced";
 
@@ -434,6 +435,8 @@ export function ExperimentalCreateWizard() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [apiStatus, setApiStatus] = useState<"checking" | "ready" | "unavailable">("checking");
   const [showAllPresets, setShowAllPresets] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
+  const [imported, setImported] = useState(false);
   const submitInFlight = useRef(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const nameRef = useRef<HTMLInputElement>(null);
@@ -555,6 +558,35 @@ export function ExperimentalCreateWizard() {
     setSubmitError(null);
   };
 
+  const applyImported = (result: Extract<AiImportResult, { valid: true }>) => {
+    setImportOpen(false);
+    const config = result.config;
+    if (result.continueIn === "advanced" || config.structure.type !== "preset") {
+      writeAdvancedHandoff(safeSessionStorage(), {
+        version: 1,
+        name: draft.name,
+        description: draft.description,
+        visibility: config.visibility,
+        presetId: "custom",
+        label: "Własna konfiguracja z pliku AI",
+        creation: result.preview.creation,
+      });
+      navigate(ADVANCED_PATH);
+      return;
+    }
+    const structure = config.structure;
+    setDraft((current) => ({
+      ...current,
+      step: 2,
+      maxVisitedStep: Math.max(current.maxVisitedStep, 2) as WizardStepIndex,
+      answers: { ...current.answers, kind: config.kind, participantType: config.participants.type, participantCount: config.participants.count },
+      presetId: structure.presetId,
+      params: { ...structure.params },
+      visibility: config.visibility,
+    }));
+    setImported(true);
+  };
+
   const openAdvanced = () => {
     if (shownPreview) {
       writeAdvancedHandoff(safeSessionStorage(), buildAdvancedHandoff(shownPreview, draft));
@@ -639,6 +671,9 @@ export function ExperimentalCreateWizard() {
           <p className="experimental-wizard-lead">{lead}</p>
         </div>
         <div className="experimental-wizard-top-actions">
+          <button type="button" className="experimental-v4-btn" data-variant="ghost" onClick={() => setImportOpen(true)} aria-expanded={importOpen}>
+            <Sparkles className="h-4 w-4" aria-hidden="true" /> Plik od AI
+          </button>
           <button type="button" className="experimental-v4-btn" data-variant="ghost" onClick={openAdvanced}>
             <Settings2 className="h-4 w-4" aria-hidden="true" /> Tryb zaawansowany
           </button>
@@ -649,9 +684,11 @@ export function ExperimentalCreateWizard() {
 
       <div className="experimental-wizard-body" data-has-preview={step >= 1 ? "true" : "false"}>
         <section className="experimental-wizard-main" aria-labelledby="experimental-wizard-section">
-          <h3 id="experimental-wizard-section" className="experimental-wizard-sr">{WIZARD_STEPS[step].label}</h3>
+          <h3 id="experimental-wizard-section" className="experimental-wizard-sr">{importOpen ? "Import z pliku AI" : WIZARD_STEPS[step].label}</h3>
 
-          {step === 0 && (
+          {importOpen && <ExperimentalAiImport onUse={applyImported} onClose={() => setImportOpen(false)} />}
+
+          {!importOpen && step === 0 && (
             <div className="experimental-wizard-stack">
               <ChoiceGroup
                 legend="Co organizujesz?"
@@ -707,10 +744,17 @@ export function ExperimentalCreateWizard() {
                   { value: "accurate", label: "Pewny zwycięzca", hint: "Mniej przypadku.", icon: <ShieldCheck className="h-5 w-5" /> },
                 ]}
               />
+              <button type="button" className="experimental-wizard-custom" onClick={() => setImportOpen(true)}>
+                <Sparkles className="h-5 w-5 shrink-0" aria-hidden="true" />
+                <span>
+                  <span className="experimental-wizard-choice-label">Masz gotowy plan od AI?</span>
+                  <span className="experimental-wizard-choice-hint">Pobierz specyfikację, poproś dowolną AI o plik i wczytaj go tutaj.</span>
+                </span>
+              </button>
             </div>
           )}
 
-          {step === 1 && (
+          {!importOpen && step === 1 && (
             <div className="experimental-wizard-stack">
               {recommendations.status === "loading" && available.length === 0 && (
                 <p className="experimental-wizard-help" role="status"><Loader2 className="inline h-4 w-4 animate-spin" aria-hidden="true" /> Dobieram formaty…</p>
@@ -760,10 +804,16 @@ export function ExperimentalCreateWizard() {
             </div>
           )}
 
-          {step === 2 && (
+          {!importOpen && step === 2 && (
             <div className="experimental-wizard-stack">
               {shownPreview ? (
                 <>
+                  {imported && (
+                    <p className="experimental-wizard-note" data-tone="info" role="status">
+                      <Sparkles className="h-4 w-4 shrink-0" aria-hidden="true" />
+                      Ustawienia wczytane z pliku AI. Sprawdź podgląd i popraw, co chcesz — nic nie jest jeszcze zapisane.
+                    </p>
+                  )}
                   <div className="experimental-wizard-param">
                     <div className="experimental-wizard-param-head">
                       <span className="experimental-wizard-legend">Liczba uczestników</span>
@@ -822,7 +872,7 @@ export function ExperimentalCreateWizard() {
             </div>
           )}
 
-          {step === 3 && (
+          {!importOpen && step === 3 && (
             <form
               className="experimental-wizard-stack"
               noValidate
@@ -944,12 +994,12 @@ export function ExperimentalCreateWizard() {
           )}
         </section>
 
-        {step >= 1 && (
+        {step >= 1 && !importOpen && (
           <PreviewPanel preview={shownPreview} noun={noun} loading={preview.status === "loading" || recommendations.status === "loading"} stale={preview.status === "error"} />
         )}
       </div>
 
-      <div className="experimental-wizard-actions">
+      {!importOpen && <div className="experimental-wizard-actions">
         {step >= 1 && shownPreview && (
           <p className="experimental-wizard-actions-summary" aria-live="polite">
             <strong>{shownPreview.label}</strong> · {rangeText(shownPreview.totals.matches)} {plural(shownPreview.totals.matches.max, "mecz", "mecze", "meczów")} · {rangeText(shownPreview.totals.rounds)} {plural(shownPreview.totals.rounds.max, "runda", "rundy", "rund")}
@@ -980,7 +1030,7 @@ export function ExperimentalCreateWizard() {
           {primary.label}
           {step < 3 ? <ArrowRight className="h-4 w-4" aria-hidden="true" /> : null}
         </button>
-      </div>
+      </div>}
     </div>
   );
 }

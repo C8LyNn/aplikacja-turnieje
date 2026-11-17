@@ -71,3 +71,22 @@ test('v5 CSS is scoped to Experimental create/shell and sits before the v4 block
     assert.match(selector, /^(\.experimental-tournament-shell |:is\(\.experimental-tournament-shell, \.experimental-tournament-create\) |:is\(\.experimental-tournament-create\) )/, `unscoped selector: ${selector}`);
   }
 });
+
+test('V5-B: AI import only sends the raw file to the read-only validator', () => {
+  const ui = src('features/experimental-tournaments/experimental-ai-import.tsx');
+  assert.match(ui, /fetch\("\/api\/tournaments\/ai-config\/validate"/);
+  assert.match(ui, /body: JSON\.stringify\(\{ text: raw \}\)/);
+  assert.doesNotMatch(ui, /\/api\/tournaments"\s*,|useCreateTournament|dangerouslySetInnerHTML/);
+  const wizard = src('features/experimental-tournaments/experimental-create-wizard.tsx');
+  const apply = wizard.slice(wizard.indexOf('const applyImported'), wizard.indexOf('const openAdvanced'));
+  assert.ok(apply.length > 100, 'applyImported exists');
+  assert.doesNotMatch(apply, /password/i, 'imported config never touches passwords');
+  assert.doesNotMatch(apply, /name: config|name: result/, 'imported config never sets the tournament name');
+});
+
+test('V5-B: AI routes are read-only and registered before the tournament id routes', () => {
+  const index = readFileSync(resolve(root, 'artifacts/api-server/src/routes/index.ts'), 'utf8');
+  assert.ok(index.indexOf('router.use(tournamentAiConfigRouter)') < index.indexOf('router.use(tournamentsRouter)'));
+  const routes = readFileSync(resolve(root, 'artifacts/api-server/src/routes/tournament-ai-config.ts'), 'utf8');
+  assert.doesNotMatch(routes, /\bdb\b|insert\(|update\(|delete\(/);
+});

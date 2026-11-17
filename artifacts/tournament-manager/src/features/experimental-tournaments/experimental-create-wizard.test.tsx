@@ -13,6 +13,7 @@ import {
   previewPreset,
   recommendPresets,
 } from "../../../../api-server/src/domain/tournament/tournament-presets";
+import { AI_CONFIG_EXAMPLES, validateAiTournamentConfigText } from "../../../../api-server/src/domain/tournament/ai-tournament-config";
 import CreateTournamentExperimental from "@/pages/experimental/tournaments/create-tournament-experimental";
 import CreateTournamentExperimentalAdvanced from "@/pages/experimental/tournaments/create-tournament-experimental-advanced";
 import {
@@ -50,6 +51,10 @@ function installFetch(options: { createStatus?: number } = {}) {
         const e = error as { code: string; message: string; param?: string };
         return json({ code: e.code, error: e.message, param: e.param }, 422);
       }
+    }
+    if (url.includes("/api/tournaments/ai-config/validate")) {
+      const result = validateAiTournamentConfigText((body as { text: string }).text);
+      return json(result, result.valid ? 200 : 422);
     }
     if (url.endsWith("/api/tournaments") && init?.method === "POST") {
       if (options.createStatus && options.createStatus !== 201) return json({ error: "Serwer odrzucił" }, options.createStatus);
@@ -270,4 +275,90 @@ test("format step shows the recommendation plus two alternatives, the rest on de
   assert.equal(document.querySelectorAll(".experimental-wizard-preset").length, 3);
   fireEvent.click(screen.getByRole("button", { name: /Pokaż pozostałe formaty \(4\)/ }));
   assert.equal(document.querySelectorAll(".experimental-wizard-preset").length, 7);
+});
+
+
+// ── V5-B: AI import ─────────────────────────────────────────────────────────
+
+test("AI import: forbidden fields are listed with paths and nothing is created", async () => {
+  const calls = installFetch();
+  renderAt("/experimental/tournaments/new", CreateTournamentExperimental);
+  fireEvent.click(screen.getByRole("button", { name: /Masz gotowy plan od AI/ }));
+  assert.ok(screen.getByRole("heading", { name: "Wczytaj plan przygotowany przez AI" }));
+  const spec = screen.getByRole("link", { name: /Specyfikacja dla AI/ }) as HTMLAnchorElement;
+  assert.equal(spec.getAttribute("href"), "/api/tournaments/ai-spec.md");
+  assert.ok(spec.hasAttribute("download"));
+  const bad = { ...AI_CONFIG_EXAMPLES[0].config, name: "Puchar od AI", organizerPassword: "from-ai" };
+  fireEvent.change(screen.getByLabelText("Plik JSON od AI"), { target: { value: JSON.stringify(bad) } });
+  fireEvent.click(screen.getByRole("button", { name: /Sprawdź plik/ }));
+  await screen.findByText(/Plik wymaga poprawek \(2\)/);
+  assert.ok(screen.getByText("organizerPassword"));
+  assert.equal(screen.queryByRole("button", { name: /Użyj tej konfiguracji/ }), null);
+  assert.equal(calls.some((call) => call.url.endsWith("/api/tournaments")), false);
+});
+
+test("AI import: a valid preset file lands in Tune, stays editable and never sets the name", async () => {
+  const calls = installFetch();
+  const { location } = renderAt("/experimental/tournaments/new", CreateTournamentExperimental);
+  fireEvent.click(screen.getByRole("button", { name: /Plik od AI/ }));
+  fireEvent.change(screen.getByLabelText("Plik JSON od AI"), { target: { value: JSON.stringify(AI_CONFIG_EXAMPLES[0].config) } });
+  fireEvent.click(screen.getByRole("button", { name: /Sprawdź plik/ }));
+  await screen.findByText("Plik jest poprawny");
+  assert.ok(screen.getByText(/tylko do przeczytania/));
+  assert.ok(screen.getByText(AI_CONFIG_EXAMPLES[0].config.notes as string));
+  fireEvent.click(screen.getByRole("button", { name: /Użyj tej konfiguracji/ }));
+  await screen.findByRole("heading", { name: "Dopasuj szczegóły" });
+  assert.ok(screen.getByText(/Ustawienia wczytane z pliku AI/));
+  await waitFor(() => assert.ok(screen.getByLabelText("Podgląd rozgrywek").textContent?.includes("4 grupy po 4")));
+  const playoffBo = screen.getByRole("radiogroup", { name: "Długość meczu w play-off" });
+  assert.equal(playoffBo.querySelector('[aria-checked="true"]')?.textContent, "BO3");
+  await waitFor(() => assert.equal((screen.getByRole("button", { name: /Dalej: nazwa/ }) as HTMLButtonElement).disabled, false));
+  fireEvent.click(screen.getByRole("button", { name: /Dalej: nazwa/ }));
+  await screen.findByRole("heading", { name: "Nazwij turniej i zabezpiecz go" });
+  assert.equal((screen.getByLabelText(/Nazwa turnieju/) as HTMLInputElement).value, "", "AI file cannot name the tournament");
+  fireEvent.change(screen.getByLabelText(/Nazwa turnieju/), { target: { value: "Mój turniej" } });
+  fireEvent.change(screen.getByLabelText(/Hasło organizatora/), { target: { value: "organizer-pass-1" } });
+  await waitFor(() => assert.equal((screen.getByRole("button", { name: /Utwórz turniej/ }) as HTMLButtonElement).disabled, false));
+  fireEvent.click(screen.getByRole("button", { name: /Utwórz turniej/ }));
+  await waitFor(() => assert.ok(location.history.includes("/experimental/tournaments/77?tab=players")));
+  const create = calls.find((call) => call.url.endsWith("/api/tournaments"))!.body as Record<string, any>;
+  assert.equal(create.name, "Mój turniej");
+  assert.equal(create.stagePlan.stages[1].bestOf, 3);
+  assert.equal(create.stagePlan.stages[0].groupCount, 4);
+});
+
+test("AI import: a custom stage plan opens the advanced editor with the plan", async () => {
+  installFetch();
+  const { location } = renderAt("/experimental/tournaments/new", CreateTournamentExperimental);
+  fireEvent.click(screen.getByRole("button", { name: /Plik od AI/ }));
+  fireEvent.change(screen.getByLabelText("Plik JSON od AI"), { target: { value: JSON.stringify(AI_CONFIG_EXAMPLES[3].config) } });
+  fireEvent.click(screen.getByRole("button", { name: /Sprawdź plik/ }));
+  await screen.findByText("Plik jest poprawny");
+  assert.ok(screen.getByText(/Rundy szwajcarskie → Grupy → Finały/));
+  fireEvent.click(screen.getByRole("button", { name: /Użyj tej konfiguracji/ }));
+  assert.ok(location.history.includes("/experimental/tournaments/new/advanced"));
+  const handoff = readAdvancedHandoff(window.sessionStorage)!;
+  assert.equal(handoff.presetId, "custom");
+  assert.deepEqual(handoff.creation.stagePlan?.stages.map((stage) => stage.participantCount), [32, 16, 8]);
+});
+
+test("AI import: malformed JSON gets a helpful message", async () => {
+  installFetch();
+  renderAt("/experimental/tournaments/new", CreateTournamentExperimental);
+  fireEvent.click(screen.getByRole("button", { name: /Plik od AI/ }));
+  fireEvent.change(screen.getByLabelText("Plik JSON od AI"), { target: { value: "Oto Twój plik: { schemaVersion: 1 }" } });
+  fireEvent.click(screen.getByRole("button", { name: /Sprawdź plik/ }));
+  await screen.findByText(/To nie jest poprawny JSON/);
+  fireEvent.click(screen.getByRole("button", { name: "Zamknij import" }));
+  assert.ok(screen.getByRole("heading", { name: "Jakie rozgrywki organizujesz?" }));
+});
+
+test("contract: wizard tunable params match the server catalog", async () => {
+  const { PRESET_IDS, PRESET_TUNABLE_PARAMS } = await import("../../../../api-server/src/domain/tournament/tournament-presets");
+  const answers = { kind: "tournament" as const, participantType: "players" as const, participantCount: 16, grouping: "any" as const, priority: "short" as const };
+  const all = { bestOf: 3, playoffBestOf: 5, swissRounds: 4, groupCount: 4, qualifiersPerGroup: 2, advancingCount: 8 };
+  for (const id of PRESET_IDS) {
+    const keys = Object.keys(requestParams(id, answers, all)).filter((key) => key !== "participantCount").sort();
+    assert.deepEqual(keys, [...PRESET_TUNABLE_PARAMS[id]].sort(), id);
+  }
 });

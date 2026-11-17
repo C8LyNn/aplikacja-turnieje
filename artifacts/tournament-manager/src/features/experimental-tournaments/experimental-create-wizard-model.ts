@@ -299,7 +299,8 @@ export interface AdvancedHandoff {
   name: string;
   description: string;
   visibility: Visibility;
-  presetId: PresetId;
+  /** A wizard preset, or "custom" for an imported multi-stage plan. */
+  presetId: PresetId | "custom";
   label: string;
   creation: PresetPreview["creation"];
 }

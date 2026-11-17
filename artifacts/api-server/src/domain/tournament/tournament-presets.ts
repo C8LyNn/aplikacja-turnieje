@@ -197,7 +197,7 @@ export const PRESET_DEFINITIONS: Record<PresetId, PresetDefinition> = {
   },
 };
 
-const PARAM_TEXT: Record<PresetParamKey, { label: string; help: string }> = {
+export const PRESET_PARAM_TEXT: Record<PresetParamKey, { label: string; help: string }> = {
   participantCount: { label: "Liczba uczestników", help: "Ilu graczy lub drużyn weźmie udział." },
   bestOf: { label: "Długość meczu", help: "BO3 oznacza, że wygrywa ten, kto pierwszy wygra 2 gry z 3." },
   playoffBestOf: { label: "Długość meczu w play-off", help: "Możesz wydłużyć mecze w decydującej fazie." },
@@ -205,6 +205,17 @@ const PARAM_TEXT: Record<PresetParamKey, { label: string; help: string }> = {
   groupCount: { label: "Liczba grup", help: "Uczestnicy zostaną rozdzieleni możliwie równo." },
   qualifiersPerGroup: { label: "Awans z każdej grupy", help: "Tylu najlepszych z każdej grupy zagra w play-off." },
   advancingCount: { label: "Awans do play-off", help: "Tylu najlepszych z tabeli zagra w drabince." },
+};
+
+/** Parameters a user (or an imported AI file) may set per preset; participantCount comes from the answers. */
+export const PRESET_TUNABLE_PARAMS: Record<PresetId, PresetParamKey[]> = {
+  single_elimination: ["bestOf"],
+  double_elimination: ["bestOf"],
+  swiss: ["bestOf", "swissRounds"],
+  round_robin: ["bestOf"],
+  groups_playoff: ["bestOf", "playoffBestOf", "groupCount", "qualifiersPerGroup"],
+  swiss_playoff: ["bestOf", "playoffBestOf", "swissRounds", "advancingCount"],
+  league_playoff: ["bestOf", "playoffBestOf", "advancingCount"],
 };
 
 const range = (from: number, to: number): number[] =>
@@ -245,7 +256,7 @@ function pick(value: number | undefined, options: number[], fallback: number, ke
   if (!options.includes(chosen)) {
     throw new PresetError(
       "PRESET_PARAM_OUT_OF_RANGE",
-      `${PARAM_TEXT[key].label}: dozwolone wartości to ${describeOptions(options)}.`,
+      `${PRESET_PARAM_TEXT[key].label}: dozwolone wartości to ${describeOptions(options)}.`,
       key,
     );
   }
@@ -259,7 +270,7 @@ function describeOptions(options: number[]): string {
 }
 
 function limit(key: PresetParamKey, options: number[], value: number): PresetParamLimit {
-  return { key, ...PARAM_TEXT[key], options, value };
+  return { key, ...PRESET_PARAM_TEXT[key], options, value };
 }
 
 const BEST_OF_OPTIONS = [...STAGE_BEST_OF_VALUES];
@@ -544,7 +555,7 @@ export function parsePresetPreviewRequest(input: unknown): PresetPreviewRequest 
     }
     if (value === null || value === undefined) continue;
     if (!Number.isInteger(value)) {
-      throw new PresetError("PRESET_PARAM_OUT_OF_RANGE", `${PARAM_TEXT[key as PresetParamKey].label} musi być liczbą całkowitą.`, key as PresetParamKey);
+      throw new PresetError("PRESET_PARAM_OUT_OF_RANGE", `${PRESET_PARAM_TEXT[key as PresetParamKey].label} musi być liczbą całkowitą.`, key as PresetParamKey);
     }
     parsed[key as PresetParamKey] = value as number;
   }
