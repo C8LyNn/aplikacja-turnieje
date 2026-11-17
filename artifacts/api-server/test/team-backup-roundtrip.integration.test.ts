@@ -89,7 +89,7 @@ function restoreInSeparateProcess(backup: Backup, target: { url: string; schema:
     const output = path.join(workDir, `${randomUUID()}.out.json`);
     await writeFile(input, JSON.stringify(backup));
     const child = fileURLToPath(new URL("./support/backup-restore-child.ts", import.meta.url));
-    const env = { ...process.env, RESTORE_DATABASE_URL: target.url, RESTORE_SCHEMA: target.schema };
+    const env: NodeJS.ProcessEnv = { ...process.env, RESTORE_DATABASE_URL: target.url, RESTORE_SCHEMA: target.schema };
     delete env.NODE_TEST_CONTEXT;
     const run = spawnSync(process.execPath, ["--import", "tsx", child, input, output], { env, encoding: "utf8", timeout: 120_000 });
     assert.equal(run.status, 0, `restore process failed: ${run.stderr.slice(-2000)}`);

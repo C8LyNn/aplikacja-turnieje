@@ -1,4 +1,4 @@
-import { Router, type IRouter } from "express";
+import { Router, type IRouter, type Response as ExpressResponse } from "express";
 import { lockLatestUndoableAction, UndoActionChangedError } from "../application/undo/latest-undo-action";
 import { assertCancelRestoreState, MatchLifecycleConflict } from "../application/matches/cancel-restore-policy";
 import { deriveTournamentOperations } from "../application/operations/tournament-operations";
@@ -990,11 +990,28 @@ router.post("/tournaments/:id/stages/:stageId/complete", async (req, res): Promi
   }
 });
 
+/**
+ * V5.1: one roster gate for every path that turns a draft team tournament into a
+ * running one (POST /start and starting the first stage directly).
+ */
+async function refuseIncompleteTeamRosters(tournamentId: number, res: ExpressResponse): Promise<boolean> {
+  const rosterProblems = await findTeamRosterStartProblems(tournamentId);
+  if (!rosterProblems) return false;
+  res.status(422).json({
+    error: `Składy wymagają uzupełnienia: ${rosterProblems.teams.map((team) => team.name).join(", ")}.`,
+    code: "TEAM_ROSTER_INCOMPLETE",
+    details: rosterProblems.teams,
+  });
+  return true;
+}
+
 router.post("/tournaments/:id/stages/:stageId/start", async (req, res): Promise<void> => {
   const params = StartTournamentStageParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
   const access = await requireOrganizer(req, res, params.data.id);
   if (!access) return;
+  const [stageTournament] = await db.select({ status: tournamentsTable.status }).from(tournamentsTable).where(eq(tournamentsTable.id, params.data.id));
+  if (stageTournament?.status === "draft" && await refuseIncompleteTeamRosters(params.data.id, res)) return;
   try {
     res.json(serializeTournamentStage(await startStage({ tournamentId: params.data.id, stageId: params.data.stageId, actor: getTournamentMutationActor(access) })));
   } catch (error) {
@@ -1473,17 +1490,7 @@ router.post("/tournaments/:id/start", async (req, res): Promise<void> => {
   if (!access) return;
   const mutationActor = getTournamentMutationActor(access);
 
-  if (tournament.status === "draft") {
-    const rosterProblems = await findTeamRosterStartProblems(tournament.id);
-    if (rosterProblems) {
-      res.status(422).json({
-        error: `Składy wymagają uzupełnienia: ${rosterProblems.teams.map((team) => team.name).join(", ")}.`,
-        code: "TEAM_ROSTER_INCOMPLETE",
-        details: rosterProblems.teams,
-      });
-      return;
-    }
-  }
+  if (tournament.status === "draft" && await refuseIncompleteTeamRosters(tournament.id, res)) return;
 
   const stages = await db
     .select({

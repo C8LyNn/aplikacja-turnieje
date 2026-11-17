@@ -366,7 +366,7 @@ export async function getStageStartReadiness(input: {
     }
   }
 
-  return evaluateStageStartReadiness({
+  const readiness = evaluateStageStartReadiness({
     tournament,
     stages,
     stage,
@@ -382,4 +382,20 @@ export async function getStageStartReadiness(input: {
     routingPlanStatus,
     ...(basketAuthority ? { participantFlowAuthority: "basket_v1" as const } : {}),
   });
+  // V5.1: starting the first stage of a draft team tournament also requires complete
+  // rosters (the same gate as POST /start), so the readiness shown in Stable and
+  // Experimental never says "ready" when the start would be refused.
+  if (readiness.ready && tournament.status === "draft" && tournament.participantType === "teams" && !previous) {
+    const { findTeamRosterStartProblems } = await import("../teams/team-rosters");
+    const problems = await findTeamRosterStartProblems(tournament.id);
+    if (problems) {
+      return {
+        ...readiness,
+        ready: false,
+        reasonCode: "TEAM_ROSTER_INCOMPLETE",
+        message: `Składy wymagają uzupełnienia: ${problems.teams.map((team) => team.name).join(", ")}.`,
+      };
+    }
+  }
+  return readiness;
 }

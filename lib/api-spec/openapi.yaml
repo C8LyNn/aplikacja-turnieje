@@ -2751,6 +2751,7 @@ components:
             - SEEDING_CEREMONY_REQUIRED
             - SEEDING_CEREMONY_INCOMPLETE
             - SEEDING_CEREMONY_STALE
+            - TEAM_ROSTER_INCOMPLETE
         message: { type: string }
         participantCount: { type: integer, minimum: 0 }
         requiredParticipantCount: { type: integer, minimum: 0 }

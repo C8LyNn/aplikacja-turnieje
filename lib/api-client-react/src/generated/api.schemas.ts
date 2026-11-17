@@ -316,6 +316,7 @@ export const StageStartReadinessReasonCode = {
   SEEDING_CEREMONY_REQUIRED: 'SEEDING_CEREMONY_REQUIRED',
   SEEDING_CEREMONY_INCOMPLETE: 'SEEDING_CEREMONY_INCOMPLETE',
   SEEDING_CEREMONY_STALE: 'SEEDING_CEREMONY_STALE',
+  TEAM_ROSTER_INCOMPLETE: 'TEAM_ROSTER_INCOMPLETE',
 } as const;
 
 export type StageStartReadinessFormat = typeof StageStartReadinessFormat[keyof typeof StageStartReadinessFormat];

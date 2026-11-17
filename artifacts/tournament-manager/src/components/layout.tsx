@@ -41,8 +41,8 @@ export function Layout({ children, deadlockTheme, colorPreset }: { children: Rea
         Przejdź do głównej treści
       </a>
       <header className="border-b border-border bg-card sticky top-0 z-10">
-        <div className="container mx-auto px-4 md:px-8 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="container mx-auto px-4 md:px-8 h-14 flex items-center justify-between gap-3">
+          <div className={`flex items-center gap-4 ${isExperimentalTournamentView ? "" : "min-w-0"}`}>
             <AppLogoLink fallbackHref={fallbackHref} className="text-xl" />
             {isExperimentalTournamentView && (
               <span className="experimental-mode-badge">
@@ -58,7 +58,8 @@ export function Layout({ children, deadlockTheme, colorPreset }: { children: Rea
               />
             )}
           </div>
-          <nav className="flex items-center gap-3 text-sm font-medium text-muted-foreground">{isExperimentalTournamentView && <ExperimentalAppearanceControl />}{isExperimentalTournamentView && <ExperimentalDensityControl />}
+          {/* V5.1: on narrow screens Stable's nav scrolls inside the header instead of widening the page. */}
+          <nav className={`flex items-center gap-3 text-sm font-medium text-muted-foreground ${isExperimentalTournamentView ? "" : "min-w-0 overflow-x-auto whitespace-nowrap [scrollbar-width:none]"}`}>{isExperimentalTournamentView && <ExperimentalAppearanceControl />}{isExperimentalTournamentView && <ExperimentalDensityControl />}
             {role && (
               <RoleSelectionLink className="border border-border rounded-full px-2.5 py-1 text-xs" />
             )}

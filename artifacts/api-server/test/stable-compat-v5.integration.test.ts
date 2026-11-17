@@ -151,6 +151,15 @@ describe("V5.1: Stable stays a working fallback", () => {
     assert.equal(blocked.body.code, "TEAM_ROSTER_INCOMPLETE");
     assert.match(blocked.body.error, /Składy wymagają uzupełnienia: Rysie, Sowy/);
     assert.equal((await rows<{ status: string }>("SELECT status FROM tournaments WHERE id = $1", [id]))[0].status, "draft");
+    // The direct first-stage start path enforces the same gate (V5.1 fix: it used to bypass it).
+    const [firstStage] = await rows<{ id: number }>("SELECT id FROM tournament_stages WHERE tournament_id = $1 AND position = 1", [id]);
+    const readiness = (await request(app).get(`/api/tournaments/${id}/stages/${firstStage.id}/readiness`).expect(200)).body;
+    assert.equal(readiness.ready, false, "readiness must not say ready while rosters are incomplete");
+    assert.equal(readiness.reasonCode, "TEAM_ROSTER_INCOMPLETE");
+    assert.match(readiness.message, /Rysie, Sowy/);
+    const viaStage = await request(app).post(`/api/tournaments/${id}/stages/${firstStage.id}/start`).set(headers).expect(422);
+    assert.equal(viaStage.body.code, "TEAM_ROSTER_INCOMPLETE");
+    assert.equal((await rows<{ status: string; matches: number }>("SELECT status, (SELECT count(*)::int FROM matches WHERE tournament_id = $1) AS matches FROM tournaments WHERE id = $1", [id]))[0].status, "draft");
 
     for (const entry of entries) {
       await request(app).post(`/api/tournaments/${id}/teams/${entry.id}/members`).set(headers).send({ name: `Kapitan ${entry.name}`, role: "captain" }).expect(201);
@@ -161,6 +170,7 @@ describe("V5.1: Stable stays a working fallback", () => {
     const overview = (await request(app).get(`/api/tournaments/${id}/teams`).expect(200)).body;
     assert.equal(overview.teams.find((team: { entryId: number }) => team.entryId === entries[0].id).name, "Rysie Kraków");
     assert.equal(overview.readyCount, 2);
+    assert.equal((await request(app).get(`/api/tournaments/${id}/stages/${firstStage.id}/readiness`).expect(200)).body.ready, true);
     await request(app).post(`/api/tournaments/${id}/start`).set(headers).expect(200);
     // Replacing all entries with a CSV import is refused once the roster is locked (no orphaned teams).
     const locked = await request(app).post(`/api/tournaments/${id}/players/import`).set(headers).send({ mode: "replace", csv: "name\nX" });

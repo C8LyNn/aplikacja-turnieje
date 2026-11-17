@@ -19,7 +19,8 @@ export type StageLifecycleErrorCode =
   | "STAGE_SEEDING_CONFIGURATION_INVALID"
   | "SEEDING_CEREMONY_REQUIRED"
   | "SEEDING_CEREMONY_INCOMPLETE"
-  | "SEEDING_CEREMONY_STALE";
+  | "SEEDING_CEREMONY_STALE"
+  | "TEAM_ROSTER_INCOMPLETE";
 
 const ERROR_MESSAGES: Record<StageLifecycleErrorCode, string> = {
   TOURNAMENT_NOT_FOUND: "Turniej nie istnieje.",
@@ -44,6 +45,7 @@ const ERROR_MESSAGES: Record<StageLifecycleErrorCode, string> = {
   SEEDING_CEREMONY_REQUIRED: "Przed uruchomieniem etapu trzeba przygotować i przeprowadzić zaplanowane losowanie.",
   SEEDING_CEREMONY_INCOMPLETE: "Losowanie nie zostało jeszcze w całości ujawnione.",
   SEEDING_CEREMONY_STALE: "Przygotowane losowanie nie odpowiada aktualnym uczestnikom lub ustawieniom etapu.",
+  TEAM_ROSTER_INCOMPLETE: "Składy drużyn wymagają uzupełnienia przed startem.",
 };
 
 export class StageLifecycleError extends Error {
