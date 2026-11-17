@@ -134,3 +134,14 @@ test('V5-E: appearance stays a viewer preference (no tournament writes)', () => 
   assert.doesNotMatch(ui, /fetch\(|useUpdateTournament|api-client-react/);
   assert.match(ui, /Nie zmienia ustawień turnieju/);
 });
+
+test('V5.1: lab pages are code-split, tournament pages (Stable fallback) stay in the main bundle', () => {
+  const app = src('App.tsx');
+  for (const page of ['TournamentDetail', 'TournamentHost', 'TournamentBracket', 'TournamentAudience', 'TournamentProjector', 'CreateTournament', 'TournamentsHome', 'Dashboard', 'Landing']) {
+    assert.match(app, new RegExp(`^import ${page} from "@/pages/`, 'm'), `${page} must stay eager`);
+  }
+  for (const page of ['RandomizerProperPage', 'GameCatalogAdminPage', 'StreamPage', 'MinigamesPage', 'LudologyPage']) {
+    assert.ok(app.includes(`const ${page} = lazy(() => import("`), `${page} must be lazy`);
+  }
+  assert.match(app, /<Suspense fallback=\{<RouteFallback \/>\}>/);
+});

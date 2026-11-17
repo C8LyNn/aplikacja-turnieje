@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
@@ -20,27 +21,30 @@ import TournamentProjector from "@/pages/tournament-projector";
 import HelpPage from "@/pages/help";
 import TournamentsHome from "@/pages/tournaments-home";
 import TournamentInterfaceChoice from "@/pages/tournament-interface-choice";
-import MinigamesPage from "@/pages/minigames";
-import EvolutionPrototypePage from "@/pages/evolution-prototype";
-import CoreClashPrototypePage from "@/pages/core-clash-prototype";
-import CoreClashShowcasePage from "@/pages/core-clash-v1495-showcase";
-import CoreClashUnityDemoPage from "@/pages/core-clash-unity-demo";
-import RandomizersPage from "@/pages/randomizers";
-import RandomizerProperPage from "@/pages/randomizer-proper";
-import WheelPrototypePage from "@/pages/randomizer-prototype-wheel";
-import PinballPrototypePage from "@/pages/randomizer-prototype-pinball";
-import CardsPrototypePage from "@/pages/randomizer-prototype-cards";
-import LudologyPage from "@/pages/ludology";
-import StatementClassificationPage from "@/pages/statement-classification";
-import GameCatalogAdminPage from "@/pages/game-catalog-admin";
-import StreamPage from "@/pages/stream";
-import MetaLabPage from "@/pages/meta-lab";
-import ResearchPage from "@/pages/research";
-import VenediResearchPage from "@/pages/venedi-research";
-import VenediDatabasePage from "@/pages/venedi-database";
-import VenediMapPage from "@/pages/venedi-map";
-import SfPage from "@/pages/sf";
-import CameraChatOverlay from "@/features/streaming/obs-lab/CameraChatOverlay";
+
+// V5.1: lab and research pages are loaded on demand; tournament pages (Stable and
+// Experimental) stay in the main bundle so the emergency path never waits for a chunk.
+const MinigamesPage = lazy(() => import("@/pages/minigames"));
+const EvolutionPrototypePage = lazy(() => import("@/pages/evolution-prototype"));
+const CoreClashPrototypePage = lazy(() => import("@/pages/core-clash-prototype"));
+const CoreClashShowcasePage = lazy(() => import("@/pages/core-clash-v1495-showcase"));
+const CoreClashUnityDemoPage = lazy(() => import("@/pages/core-clash-unity-demo"));
+const RandomizersPage = lazy(() => import("@/pages/randomizers"));
+const RandomizerProperPage = lazy(() => import("@/pages/randomizer-proper"));
+const WheelPrototypePage = lazy(() => import("@/pages/randomizer-prototype-wheel"));
+const PinballPrototypePage = lazy(() => import("@/pages/randomizer-prototype-pinball"));
+const CardsPrototypePage = lazy(() => import("@/pages/randomizer-prototype-cards"));
+const LudologyPage = lazy(() => import("@/pages/ludology"));
+const StatementClassificationPage = lazy(() => import("@/pages/statement-classification"));
+const GameCatalogAdminPage = lazy(() => import("@/pages/game-catalog-admin"));
+const StreamPage = lazy(() => import("@/pages/stream"));
+const MetaLabPage = lazy(() => import("@/pages/meta-lab"));
+const ResearchPage = lazy(() => import("@/pages/research"));
+const VenediResearchPage = lazy(() => import("@/pages/venedi-research"));
+const VenediDatabasePage = lazy(() => import("@/pages/venedi-database"));
+const VenediMapPage = lazy(() => import("@/pages/venedi-map"));
+const SfPage = lazy(() => import("@/pages/sf"));
+const CameraChatOverlay = lazy(() => import("@/features/streaming/obs-lab/CameraChatOverlay"));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -51,8 +55,17 @@ const queryClient = new QueryClient({
   },
 });
 
+function RouteFallback() {
+  return (
+    <div role="status" aria-live="polite" className="flex min-h-[40vh] items-center justify-center text-sm text-muted-foreground">
+      Ładowanie…
+    </div>
+  );
+}
+
 function Router() {
   return (
+    <Suspense fallback={<RouteFallback />}>
     <Switch>
       <Route path="/" component={Landing} />
 
@@ -165,6 +178,7 @@ function Router() {
       <Route path="/help" component={HelpPage} />
       <Route component={NotFound} />
     </Switch>
+    </Suspense>
   );
 }
 
