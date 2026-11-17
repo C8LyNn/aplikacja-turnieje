@@ -1027,7 +1027,7 @@ export default function TournamentDetail() {
                     <CardTitle>{teamEntries ? "Drużyny" : "Zawodnicy"} ({players?.length ?? "—"})</CardTitle>
                     {tournament.status === "draft" && capabilities.canManageParticipants && (
                       <Button variant="outline" size="sm" onClick={() => showCsvImport ? resetCsvImport() : setShowCsvImport(true)}>
-                        <Upload className="w-4 h-4 mr-2" /> {showCsvImport ? "Zamknij" : teamEntries ? "Wklej listę drużyn" : isExperimental ? "Wklej listę" : "Import CSV"}
+                        <Upload className="w-4 h-4 mr-2" /> {showCsvImport ? "Zamknij" : isExperimental ? "Wklej listę" : "Import CSV"}{!showCsvImport && teamEntries ? " drużyn" : ""}
                       </Button>
                     )}
                   </CardHeader>
