@@ -63,10 +63,14 @@ export function ordinalLabel(ordinal: number): string {
   return ORDINAL_LABELS[(ordinal - 1) % 4] ?? String(ordinal);
 }
 
+/**
+ * V5.4: plain names — an input basket is where participants start the stage ("Start A"), an output
+ * basket is a group of qualifiers leaving it ("Awans A").
+ */
 export function basketLabel(type: string, ordinal: number): string {
   return type === "input"
-    ? `Wejście ${ordinalLabel(ordinal)}`
-    : `Wyjście ${ordinalLabel(ordinal)}`;
+    ? `Start ${ordinalLabel(ordinal)}`
+    : `Awans ${ordinalLabel(ordinal)}`;
 }
 
 /** Returns the first ordinal in 1–4 not already present in the list. */
@@ -413,7 +417,7 @@ export function StageBlock({
             className="mt-2 text-xs text-muted-foreground"
             data-testid={`stage-flow-summary-${stage.id}`}
           >
-            Bezpośrednio: {flowCounts?.directParticipantCount ?? 0} · Z tras: {flowCounts?.incomingRouteQuota ?? 0} · Razem: {participantCount}
+            Z zapisów: {flowCounts?.directParticipantCount ?? 0} · Z awansu: {flowCounts?.incomingRouteQuota ?? 0} · Razem: {participantCount}
           </div>
         )}
       </div>
@@ -422,7 +426,7 @@ export function StageBlock({
       <div className="organizer-flow-stage-body grid grid-cols-2 flex-1">
         {/* Inputs */}
         <div className="space-y-1.5">
-          <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Wejścia</div>
+          <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide" title="Gdzie uczestnicy zaczynają ten etap">Start</div>
           {inputBaskets
             .slice()
             .sort((a, b) => a.ordinal - b.ordinal)
@@ -450,14 +454,14 @@ export function StageBlock({
               onClick={() => onAddInput?.(stage.id)}
               aria-label="Dodaj koszyk wejściowy"
             >
-              <Plus className="w-3 h-3 inline mr-1" />Dodaj wejście
+              <Plus className="w-3 h-3 inline mr-1" />Dodaj koszyk startowy
             </button>
           )}
         </div>
 
         {/* Outputs */}
         <div className="space-y-1.5">
-          <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Wyjścia</div>
+          <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide" title="Kto awansuje do kolejnego etapu">Awans</div>
           {outputBaskets
             .slice()
             .sort((a, b) => a.ordinal - b.ordinal)
@@ -484,7 +488,7 @@ export function StageBlock({
               onClick={() => onAddOutput?.(stage.id)}
               aria-label="Dodaj koszyk wyjściowy"
             >
-              <Plus className="w-3 h-3 inline mr-1" />Dodaj wyjście
+              <Plus className="w-3 h-3 inline mr-1" />Dodaj grupę awansu
             </button>
           )}
         </div>
@@ -723,6 +727,44 @@ interface StageBasketsProps {
   tournamentId: number;
   tournamentStatus: string;
   orgToken: string | null;
+}
+
+/**
+ * V5.4-004: the flow in one line per stage, planned vs actual, with mismatches spelled out
+ * (nobody is silently lost or duplicated: a gap is shown, not hidden).
+ */
+export function FlowSummary({
+  stages,
+  registered,
+  flowCountsByStage,
+}: {
+  stages: Array<{ id: number; name: string; position: number; participantCount: number; status: string }>;
+  registered: number | null;
+  flowCountsByStage?: Map<number, { directParticipantCount: number; incomingRouteQuota: number }>;
+}) {
+  const ordered = [...stages].sort((a, b) => a.position - b.position);
+  if (ordered.length === 0) return null;
+  return (
+    <ol className="organizer-flow-summary mt-3 space-y-1 text-sm" aria-label="Plan przepływu">
+      {ordered.map((stage, index) => {
+        const counts = flowCountsByStage?.get(stage.id);
+        const planned = stage.participantCount;
+        const first = index === 0;
+        const actual = first ? registered : counts ? counts.directParticipantCount + counts.incomingRouteQuota : null;
+        const gap = actual != null && planned > 0 && actual !== planned ? actual - planned : 0;
+        return (
+          <li key={stage.id} className="flex flex-wrap items-baseline gap-x-2" data-flow-gap={gap !== 0 ? "true" : undefined}>
+            <span className="font-medium">{stage.position}. {stage.name}</span>
+            <span className="text-muted-foreground">planowane: {planned}</span>
+            {actual != null && <span className="text-muted-foreground">{first ? "zapisanych" : "z koszyków"}: {actual}</span>}
+            {gap < 0 && <span className="font-medium text-amber-500">brakuje {-gap}</span>}
+            {gap > 0 && <span className="font-medium text-destructive">o {gap} za dużo</span>}
+            {!first && !counts && <span className="text-muted-foreground">(z awansu z etapu {ordered[index - 1].position})</span>}
+          </li>
+        );
+      })}
+    </ol>
+  );
 }
 
 export function StageBasketsPanel({ tournamentId, tournamentStatus, orgToken }: StageBasketsProps) {
@@ -977,7 +1019,7 @@ export function StageBasketsPanel({ tournamentId, tournamentStatus, orgToken }: 
           data-testid="explicit-basket-authority-banner"
         >
           <Info className="w-4 h-4 shrink-0" />
-          Liczby uczestników etapów i awansów wynikają z bezpośrednich przypisań, tras i limitów wyjść. Przepływem zarządzasz tutaj, w Koszykach.
+          Liczby uczestników wynikają z koszyków: kto zaczyna w danym etapie, kto przechodzi z poprzedniego i ilu awansuje dalej. Zmieniasz to tutaj.
         </div>
       )}
 
@@ -987,7 +1029,7 @@ export function StageBasketsPanel({ tournamentId, tournamentStatus, orgToken }: 
           data-testid="basket-authority-draft-preview-banner"
         >
           <Info className="w-4 h-4 shrink-0" />
-          Podgląd planowanych liczb z koszyków. Nowy model stanie się autorytatywny dopiero po poprawnym zapisie.
+          To podgląd: liczby z koszyków zaczną obowiązywać dopiero po zapisaniu.
         </div>
       )}
 
@@ -1015,10 +1057,11 @@ export function StageBasketsPanel({ tournamentId, tournamentStatus, orgToken }: 
       {/* Toolbar */}
       <div className="organizer-section-heading flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <h3 className="font-semibold">Mapa przepływu uczestników</h3>
+          <h3 className="font-semibold">Przepływ uczestników</h3>
           <p className="text-sm text-muted-foreground mt-1">
-            Konfiguracja podziału uczestników pomiędzy etapami turnieju.
+            Kto zaczyna w którym etapie i kto awansuje dalej.
           </p>
+          <FlowSummary stages={stages} registered={players?.length ?? null} flowCountsByStage={showDerivedFlow ? flowCountsByStage : undefined} />
         </div>
         {canEdit && !advancedMode && (
           <Button variant="outline" size="sm" onClick={enterAdvancedMode} data-testid="enter-advanced-btn">

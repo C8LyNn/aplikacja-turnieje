@@ -175,7 +175,7 @@ export function ExperimentalTournamentOverview({
           <ExperimentalSectionHeader
             eyebrow="Centrum turnieju"
             title="Stan rozgrywek w jednym miejscu"
-            description="Najważniejsze informacje operacyjne i skróty bez kopiowania reguł turnieju z backendu."
+            description="Najważniejsze informacje i skróty do codziennej obsługi turnieju."
           />
           <ExperimentalStatusPill tone={statusTone}>
             {STATUS_LABELS[status] ?? status}

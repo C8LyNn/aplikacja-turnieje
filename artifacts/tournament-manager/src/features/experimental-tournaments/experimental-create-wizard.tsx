@@ -724,7 +724,7 @@ export function ExperimentalCreateWizard() {
   const title = ["Jakie rozgrywki organizujesz?", "Wybierz format", "Dopasuj szczegóły", "Nazwij turniej i zabezpiecz go"][step];
   const lead = [
     "Odpowiedz na kilka pytań — zaproponujemy pasujące formaty. Domyślne odpowiedzi też są dobre.",
-    `Formaty dobrane do ${answers.participantCount} ${noun(answers.participantCount)}. Pokazujemy tylko te, które silnik potrafi w pełni rozegrać.`,
+    `Formaty dobrane do ${answers.participantCount} ${noun(answers.participantCount)}. Pokazujemy tylko formaty, które w pełni obsługujemy.`,
     "Zmiany od razu aktualizują podgląd. Jeśli coś nie pasuje, zobaczysz wyjaśnienie.",
     "Hasło organizatora chroni zarządzanie turniejem. Uczestników dodasz w następnym kroku.",
   ][step];

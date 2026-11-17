@@ -220,10 +220,10 @@ test("ordinalLabel converts 1-4 to A-D", () => {
 });
 
 test("basketLabel returns Polish label for type and ordinal", () => {
-  assert.equal(basketLabel("input",  1), "Wejście A");
-  assert.equal(basketLabel("input",  2), "Wejście B");
-  assert.equal(basketLabel("output", 1), "Wyjście A");
-  assert.equal(basketLabel("output", 2), "Wyjście B");
+  assert.equal(basketLabel("input",  1), "Start A");
+  assert.equal(basketLabel("input",  2), "Start B");
+  assert.equal(basketLabel("output", 1), "Awans A");
+  assert.equal(basketLabel("output", 2), "Awans B");
 });
 
 test("getColorStyle returns neutral style for null colorId", () => {
@@ -278,10 +278,10 @@ test("renders stage blocks and basket labels for explicit multi-basket config", 
 
   // Check basket labels are rendered
   const stageBlock1 = screen.getByTestId("stage-block-1");
-  assert.ok(within(stageBlock1).getByText("Wejście A"), "Wejście A rendered in stage 1");
-  assert.ok(within(stageBlock1).getByText("Wejście B"), "Wejście B rendered in stage 1");
-  assert.ok(within(stageBlock1).getByText("Wyjście A"), "Wyjście A rendered in stage 1");
-  assert.ok(within(stageBlock1).getByText("Wyjście B"), "Wyjście B rendered in stage 1");
+  assert.ok(within(stageBlock1).getByText("Start A"), "Start A rendered in stage 1");
+  assert.ok(within(stageBlock1).getByText("Start B"), "Start B rendered in stage 1");
+  assert.ok(within(stageBlock1).getByText("Awans A"), "Awans A rendered in stage 1");
+  assert.ok(within(stageBlock1).getByText("Awans B"), "Awans B rendered in stage 1");
 
   // Stage names appear in headers
   assert.ok(within(stageBlock1).getByText("Eliminacje"), "stage 1 name rendered in its block");
@@ -289,11 +289,11 @@ test("renders stage blocks and basket labels for explicit multi-basket config", 
   assert.ok(screen.getByTestId("explicit-basket-authority-banner"));
   assert.match(
     screen.getByTestId("stage-flow-summary-1").textContent ?? "",
-    /Bezpośrednio: 4.*Z tras: 0.*Razem: 4/,
+    /Z zapisów: 4.*Z awansu: 0.*Razem: 4/,
   );
   assert.match(
     screen.getByTestId("stage-flow-summary-2").textContent ?? "",
-    /Bezpośrednio: 0.*Z tras: 4.*Razem: 4/,
+    /Z zapisów: 0.*Z awansu: 4.*Razem: 4/,
   );
 });
 
@@ -379,11 +379,11 @@ for (const count of [0, 1, 4]) {
     assert.equal(items.length, count);
     items.forEach((item, index) => {
       const label = ordinalLabel(index + 1);
-      assert.equal(item.getAttribute("aria-label"), `Eliminacje: Wyjście ${label} → Finały: Wejście ${label}`);
+      assert.equal(item.getAttribute("aria-label"), `Eliminacje: Awans ${label} → Finały: Start ${label}`);
       assert.ok(within(item).getByText("Eliminacje"));
-      assert.ok(within(item).getByText(`Wyjście ${label}`));
+      assert.ok(within(item).getByText(`Awans ${label}`));
       assert.ok(within(item).getByText("Finały"));
-      assert.ok(within(item).getByText(`Wejście ${label}`));
+      assert.ok(within(item).getByText(`Start ${label}`));
       assert.ok(item.querySelector('svg[aria-hidden="true"]'), "direction arrow is decorative; the accessible label preserves direction");
       assert.equal(within(item).queryByRole("button"), null, "read-only view has no remove control");
     });
@@ -395,7 +395,7 @@ test("editing route cards still removes and adds the original source-target pair
   const user = userEvent.setup();
   await user.click(await screen.findByTestId("enter-advanced-btn"));
   const route = screen.getByTestId("route-r.s1out1.s2in1");
-  await user.click(within(route).getByRole("button", { name: "Usuń połączenie Wyjście A → Wejście A" }));
+  await user.click(within(route).getByRole("button", { name: "Usuń połączenie Awans A → Start A" }));
   assert.equal(screen.queryByTestId("route-r.s1out1.s2in1"), null);
   assert.ok(screen.getByTestId("route-r.s1out2.s2in2"));
   await user.click(screen.getByTestId("add-route-btn"));
@@ -405,7 +405,7 @@ test("editing route cards still removes and adds the original source-target pair
   await user.click(screen.getByRole("button", { name: "Połącz" }));
   const list = screen.getByRole("list", { name: "Połączenia między etapami" });
   assert.equal(within(list).getAllByRole("listitem").length, 2);
-  assert.ok(within(list).getByRole("listitem", { name: "Eliminacje: Wyjście A → Finały: Wejście A" }));
+  assert.ok(within(list).getByRole("listitem", { name: "Eliminacje: Awans A → Finały: Start A" }));
   assert.ok(screen.getByTestId("save-baskets-btn"));
 });
 

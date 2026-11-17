@@ -1150,6 +1150,9 @@ export default function TournamentDetail() {
                                 <p>SteelNova,,3</p>
                               </div>
                               <p className="text-[11px]">Separator: przecinek <code className="bg-muted px-1 rounded">,</code> lub średnik <code className="bg-muted px-1 rounded">;</code> — wykrywany automatycznie.</p>
+                              {isExperimental && participantFields.length > 0 && (
+                                <p className="text-[11px]">Kolumny nazwane jak dodatkowe pola (np. <code className="bg-muted px-1 rounded">{participantFields[0].label}</code>) wypełnią te pola; błędna wartość pomija cały wiersz z opisem przyczyny.</p>
+                              )}
                             </div>
                             <Button variant="ghost" size="sm" className="text-xs h-7 px-2 text-muted-foreground hover:text-foreground" onClick={handleDownloadSampleCsv}>
                               <Download className="w-3 h-3 mr-1.5" /> Pobierz przykładowy plik CSV
