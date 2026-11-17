@@ -6,6 +6,11 @@ import {
 } from "./deployment-task";
 
 async function startApi(): Promise<void> {
+  // V5.1: refuse to serve on a schema without the migrations this build reads.
+  const { pool } = await import("@workspace/db");
+  const { assertSchemaCompatible } = await import("./lib/schema-guard");
+  const schemaReport = await assertSchemaCompatible(pool);
+  logger.info({ schema: schemaReport.schema, migrations: schemaReport.migrations.map((m) => m.migration) }, "Database schema compatible");
   const { default: app } = await import("./app");
   const rawPort = process.env["PORT"];
 

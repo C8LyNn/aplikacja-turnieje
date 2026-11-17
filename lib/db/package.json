@@ -6,7 +6,8 @@
   "exports": {
     ".": "./src/index.ts",
     "./schema": "./src/schema/index.ts",
-    "./development-connection": "./src/development-database-connection.mjs"
+    "./development-connection": "./src/development-database-connection.mjs",
+    "./schema-requirements": "./src/schema-requirements.mjs"
   },
   "scripts": {
     "development:bootstrap": "node ./scripts/bootstrap-isolated-development.mjs --apply-to-empty-development-database",
@@ -43,7 +44,11 @@
     "test:game-catalog-preflight": "node --test ./test/game-catalog-preflight.test.mjs",
     "test:game-catalog-preflight:integration": "node --test ./test/game-catalog-preflight.integration.test.mjs",
     "audit:game-catalog-staging": "node ./scripts/audit-game-catalog-staging.mjs",
-    "test:game-catalog-staging-audit": "node --test ./test/game-catalog-staging-audit.test.mjs"
+    "test:game-catalog-staging-audit": "node --test ./test/game-catalog-staging-audit.test.mjs",
+    "migrate:v5:preflight": "node ./scripts/v5-schema-migrations.mjs preflight",
+    "migrate:v5": "node ./scripts/v5-schema-migrations.mjs apply",
+    "test:v5-migrations": "node --test ./test/bootstrap-migration-sequence.test.mjs",
+    "test:v5-migrations:integration": "node --test --test-concurrency=1 ./test/v5-schema-migrations.integration.test.mjs"
   },
   "dependencies": {
     "drizzle-orm": "catalog:",
