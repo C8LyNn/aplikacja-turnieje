@@ -15,6 +15,7 @@ import {
   parseTournamentBackupFile,
   type TournamentBackupFile,
 } from "@/lib/backup-file";
+import { inspectBackupV3, type BackupV3Preview } from "@/lib/backup-v3-preview";
 
 export function BackupRestoreDialog(props: {
   open: boolean;
@@ -33,6 +34,7 @@ export function BackupRestoreDialog(props: {
   const [viewerPassword, setViewerPassword] = useState("");
   const [supportPassword, setSupportPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [v3Preview, setV3Preview] = useState<BackupV3Preview | null>(null);
 
   if (!open) return null;
 
@@ -46,6 +48,7 @@ export function BackupRestoreDialog(props: {
     setViewerPassword("");
     setSupportPassword("");
     setError(null);
+    setV3Preview(null);
     if (fileInput.current) fileInput.current.value = "";
     onClose();
   };
@@ -53,12 +56,17 @@ export function BackupRestoreDialog(props: {
   const selectFile = (event: React.ChangeEvent<HTMLInputElement>) => {
     setError(null);
     setBackup(null);
+    setV3Preview(null);
     const file = event.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
     reader.onload = () => {
-      const parsed = parseTournamentBackupFile(String(reader.result ?? ""));
+      const text = String(reader.result ?? "");
+      const parsed = parseTournamentBackupFile(text);
       if (!parsed.ok) {
+        // V3 restore stays disabled: show what the file holds and whether it is complete.
+        const preview = inspectBackupV3(text);
+        if (preview) { setV3Preview(preview); return; }
         setError(parsed.error);
         return;
       }
@@ -148,6 +156,32 @@ export function BackupRestoreDialog(props: {
           )}
         </div>
 
+        {v3Preview && (
+          <section aria-label="Podgląd kopii V3" data-testid="backup-v3-preview" className="space-y-2 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm">
+            <p className="font-semibold">Kopia V3: „{v3Preview.name}”{v3Preview.exportedAt ? ` · zapisana ${new Date(v3Preview.exportedAt).toLocaleString("pl-PL")}` : ""}</p>
+            <ul className="grid grid-cols-2 gap-x-4 gap-y-1 text-xs text-muted-foreground">
+              <li>{v3Preview.participantType === "teams" ? "Drużyny" : "Uczestnicy"}: <strong className="text-foreground">{v3Preview.participants}</strong></li>
+              <li>Etapy: <strong className="text-foreground">{v3Preview.stages}</strong></li>
+              <li>Mecze rozegrane: <strong className="text-foreground">{v3Preview.matches.completed}/{v3Preview.matches.total}</strong></li>
+              <li>Historia wyników: <strong className="text-foreground">{v3Preview.resultHistory}</strong></li>
+              {v3Preview.teams && <li className="col-span-2">Składy — zawodnicy: <strong className="text-foreground">{v3Preview.teams.activeMembers}</strong>, drużyny ze składem: {v3Preview.teams.count}, wpisy historii: {v3Preview.teams.historyEntries}</li>}
+            </ul>
+            {v3Preview.problems.length ? (
+              <div role="alert" className="text-destructive">
+                <p className="font-semibold">Plik jest niekompletny lub niespójny:</p>
+                <ul className="list-disc pl-5">{v3Preview.problems.map((problem) => <li key={problem}>{problem}</li>)}</ul>
+              </div>
+            ) : (
+              <p className="text-green-400">Plik jest kompletny i spójny.</p>
+            )}
+            <p className="text-xs text-muted-foreground">
+              Przywracanie kopii V3 w aplikacji czeka na zatwierdzenie zabezpieczeń, więc nic nie zostanie zapisane.
+              Zachowaj ten plik — to pełna kopia turnieju. W razie awarii administrator odtworzy go według procedury odzyskiwania.
+            </p>
+          </section>
+        )}
+
+        {!v3Preview && <>
         <div className="space-y-2">
           <Label htmlFor="restore-organizer-password">Nowe hasło organizatora *</Label>
           <Input
@@ -185,12 +219,13 @@ export function BackupRestoreDialog(props: {
             Pozostaw puste, aby dostęp supportu był wyłączony.
           </p>
         </div>
+        </>}
 
         {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
 
         <div className="flex justify-end gap-2">
           <Button variant="outline" onClick={resetAndClose} disabled={importTournament.isPending}>Anuluj</Button>
-          <Button
+          {!v3Preview && <Button
             onClick={restore}
             disabled={
               !backup ||
@@ -202,7 +237,7 @@ export function BackupRestoreDialog(props: {
           >
             <FileUp className="mr-2 h-4 w-4" />
             {importTournament.isPending ? "Przywracanie…" : "Przywróć jako nowy turniej"}
-          </Button>
+          </Button>}
         </div>
       </div>
     </div>

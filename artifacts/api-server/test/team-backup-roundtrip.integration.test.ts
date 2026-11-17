@@ -232,15 +232,65 @@ describe("V5.1 P0: team tournament backup round trip", () => {
     assert.ok(active(backup)[1].includes("captain:Nowy kapitan Sów"));
   });
 
-  test("individual tournaments export exactly as before (no team fields)", async () => {
+  test("individual tournament: exports as before (no team fields) and a played, corrected bracket restores identically", async () => {
     const created = await request(app).post("/api/tournaments")
       .send({ name: `Solo ${randomUUID()}`, organizerPassword: "integration-organizer-password", format: "single_elimination" }).expect(201);
-    const headers = await headersFor(created.body.id);
-    await request(app).post(`/api/tournaments/${created.body.id}/players`).set(headers).send({ name: "A" }).expect(201);
-    const backup = (await request(app).get(`/api/tournaments/${created.body.id}/export`).set(headers).expect(200)).body as Backup;
+    const id = created.body.id as number;
+    const headers = await headersFor(id);
+    await request(app).post(`/api/tournaments/${id}/players/import`).set(headers)
+      .send({ mode: "replace", csv: "name,seed\nAda,1\nBen,2\nCeli,3\nDan,4\nEwa,5\nFil,6" }).expect(200);
+    await request(app).post(`/api/tournaments/${id}/start`).set(headers).expect(200);
+    const higherIdWins = (p1: number, p2: number) => Math.max(p1, p2);
+    await play(id, headers, higherIdWins, 2);
+    // Undo the last result, then revert-and-correct another one before finishing.
+    await request(app).post(`/api/tournaments/${id}/undo-last`).set(headers).send({}).expect(200);
+    const [done] = await rows<{ id: number; player1_id: number; player2_id: number; winner_id: number }>(
+      "SELECT id, player1_id, player2_id, winner_id FROM matches WHERE tournament_id = $1 AND status = 'completed' AND player2_id IS NOT NULL ORDER BY id LIMIT 1", [id]);
+    await request(app).post(`/api/matches/${done.id}/revert`).set(headers).expect(200);
+    const corrected = done.winner_id === done.player1_id ? done.player2_id : done.player1_id;
+    await request(app).post(`/api/matches/${done.id}/complete`).set(headers)
+      .send({ expectedRevision: await matchRevision(database, done.id), resultType: "played", score1: corrected === done.player1_id ? 1 : 0, score2: corrected === done.player2_id ? 1 : 0 })
+      .expect(200);
+    await play(id, headers, higherIdWins);
+    assert.equal((await rows<{ status: string }>("SELECT status FROM tournaments WHERE id = $1", [id]))[0].status, "completed");
+
+    const backup = (await request(app).get(`/api/tournaments/${id}/export`).set(headers).expect(200)).body as Backup;
     assert.equal("participantType" in backup.tournament, false);
     assert.equal("teamRosters" in backup, false);
     assert.doesNotThrow(() => validateBackupV3(backup as never));
+    assert.ok(backup.resultHistory.length > 0, "result history is exported");
+
+    const result = await restoreInSeparateProcess(backup, await restoreTarget());
+    assert.equal(result.rows.tournaments, 1);
+    assert.equal(result.rows.teams, 0);
+    const restored = result.reExported as Backup;
+    assert.equal("teamRosters" in restored, false);
+    assert.deepEqual(project(restored), project(backup));
+  });
+
+  test("team knockout (not a league): roster change mid-bracket survives restore", async () => {
+    const created = await request(app).post("/api/tournaments")
+      .send({ name: `Drabinka drużyn ${randomUUID()}`, organizerPassword: "integration-organizer-password", format: "single_elimination", participantType: "teams", teamRosterMin: 1, teamRosterMax: 3 })
+      .expect(201);
+    const id = created.body.id as number;
+    const headers = await headersFor(id);
+    const entries: number[] = [];
+    for (const teamName of ["Lwy", "Wilki", "Orły", "Foki"]) {
+      const entryId = (await request(app).post(`/api/tournaments/${id}/players`).set(headers).send({ name: teamName }).expect(201)).body.id as number;
+      entries.push(entryId);
+      await request(app).post(`/api/tournaments/${id}/teams/${entryId}/members`).set(headers).send({ name: `Kapitan ${teamName}`, role: "captain" }).expect(201);
+      await request(app).post(`/api/tournaments/${id}/teams/${entryId}/members`).set(headers).send({ name: `Rezerwa ${teamName}`, role: "reserve" }).expect(201);
+    }
+    await request(app).post(`/api/tournaments/${id}/start`).set(headers).expect(200);
+    const lowerIdWins = (p1: number, p2: number) => Math.min(p1, p2);
+    await play(id, headers, lowerIdWins, 1);
+    await request(app).post(`/api/tournaments/${id}/teams/${entries[0]}/members`).set(headers).send({ name: "Dołączył w trakcie" }).expect(201);
+    await play(id, headers, lowerIdWins);
+    const backup = (await request(app).get(`/api/tournaments/${id}/export`).set(headers).expect(200)).body as Backup;
+    assert.equal(backup.teamRosters.teams.length, 4);
+    const result = await restoreInSeparateProcess(backup, await restoreTarget());
+    assert.equal(result.rows.teams, 4);
+    assert.deepEqual(project(result.reExported as Backup), project(backup));
   });
 
   test("unsafe or incomplete team sections are rejected before anything is written", async () => {
