@@ -1,5 +1,9 @@
-# V5 schema migrations (0041, 0042, 0043): procedure and recovery
+# V5 schema migrations (0041–0044): procedure and recovery
 
+> **V5.4** adds `0044_participant_fields.sql` (participant field definitions on `tournaments`, values on
+> `players`; both nullable JSON objects with size limits) and renames the token to `apply-0041-0044`.
+> A V5.3 database (0001–0043) has exactly one pending migration: 0044. No existing row is rewritten.
+>
 > **V5.3** adds `0043_league_rules_and_schedule.sql` and renames the confirmation token to
 > `apply-0041-0043`, so an operator who approved only 0041/0042 cannot apply 0043 by habit.
 > A V5.2 database (0001–0042) has exactly one pending migration: 0043.
@@ -27,7 +31,7 @@ violate a new CHECK constraint, missing `players(tournament_id, id)` key.
 
 ## 3. Apply (one transaction, all or nothing)
 ```
-DATABASE_URL=... DATABASE_SCHEMA=public V5_MIGRATION_CONFIRM=apply-0041-0043 \
+DATABASE_URL=... DATABASE_SCHEMA=public V5_MIGRATION_CONFIRM=apply-0041-0044 \
   APP_COMMIT=<sha> DEPLOYMENT_ENVIRONMENT=<env> pnpm --filter @workspace/db migrate:v5
 ```
 Advisory lock, `lock_timeout 10s`, preflight inside the transaction, migration SQL, catalog
@@ -42,6 +46,12 @@ Run the preflight again: `"status": "applied"`. Start the API: the log line
 * **Apply failed** – nothing was changed (single transaction). Fix the reported blocker and rerun.
 * **API refuses to start** (`SchemaIncompatibleError`) – the schema lacks a migration; run steps 2–3,
   or roll the API back to the previous build (old builds ignore the new columns/tables).
+* **Need to undo V5.4 only (0044)** – roll the code back to V5.3 first. The V5.3 API ignores both columns, so
+  0044 can stay. To remove it (extra participant data is lost — export tournaments that use it with Backup V3
+  first; `SELECT count(*) FROM tournaments WHERE participant_fields IS NOT NULL`):
+  `ALTER TABLE players DROP CONSTRAINT IF EXISTS players_custom_fields_shape, DROP COLUMN IF EXISTS custom_fields;`
+  `ALTER TABLE tournaments DROP CONSTRAINT IF EXISTS tournaments_participant_fields_shape, DROP COLUMN IF EXISTS participant_fields;`
+  `DELETE FROM app_schema_migrations WHERE migration_key = 'v54_participant_fields_0044';`
 * **Need to undo V5.3 only (0043)** – roll the code back to V5.2 first. Then, only if no stage uses the new
   options and no draw is stored (`SELECT count(*) FROM matches WHERE result_type = 'played' AND winner_id IS NULL`
   and `SELECT count(*) FROM tournament_stages WHERE league_rules IS NOT NULL OR schedule_time_zone IS NOT NULL OR schedule_plan IS NOT NULL` are both 0):
