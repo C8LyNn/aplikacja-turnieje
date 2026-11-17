@@ -60,6 +60,8 @@ const nameKey = (name: string) => name.trim().toLocaleLowerCase("pl-PL");
 export function rosterHealth(
   players: ReadonlyArray<Pick<Player, "name" | "seed">> | null | undefined,
   maxPlayers: number | null | undefined,
+  /** Fixed multi-stage plans (V5 presets) start only with exactly this many participants. */
+  requiredCount?: number | null,
 ): RosterHealth {
   const list = players ?? [];
   const count = list.length;
@@ -67,10 +69,16 @@ export function rosterHealth(
   const freeSlots = max === null ? null : Math.max(0, max - count);
   const issues: RosterIssue[] = [];
 
-  if (count < 2) {
+  const exact = typeof requiredCount === "number" && requiredCount >= 2 ? requiredCount : null;
+  if (exact !== null && count < exact) {
+    const missingCount = exact - count;
+    issues.push({ key: "min", tone: "warning", label: `Plan wymaga dokładnie ${exact} — brakuje ${missingCount}` });
+  } else if (exact !== null && count > exact) {
+    issues.push({ key: "over", tone: "danger", label: `Za dużo uczestników: ${count}/${exact} (plan jest stały)` });
+  } else if (exact === null && count < 2) {
     issues.push({ key: "min", tone: "warning", label: count === 0 ? "Brak uczestników — potrzeba co najmniej 2" : "Potrzeba jeszcze 1 uczestnika" });
   }
-  if (max !== null && count > max) {
+  if (exact === null && max !== null && count > max) {
     issues.push({ key: "over", tone: "danger", label: `Przekroczony limit: ${count}/${max}` });
   }
 
@@ -95,7 +103,7 @@ export function rosterHealth(
     issues.push({ key: "seed-missing", tone: "info", label: missing === count ? "Rozstawienie zostanie nadane automatycznie" : `${missing} bez rozstawienia (nadane automatycznie)` });
   }
 
-  const ready = count >= 2 && !issues.some((i) => i.tone === "danger");
+  const ready = (exact !== null ? count === exact : count >= 2) && !issues.some((i) => i.tone === "danger");
   return { count, max, freeSlots, ready, issues };
 }
 

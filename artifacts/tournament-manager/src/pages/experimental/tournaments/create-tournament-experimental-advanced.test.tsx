@@ -7,7 +7,7 @@ import userEvent from "@testing-library/user-event";
 import { Router } from "wouter";
 import { memoryLocation } from "wouter/memory-location";
 import { AuthProvider } from "@/context/auth-context";
-import CreateTournamentExperimental from "./create-tournament-experimental";
+import CreateTournamentExperimental from "./create-tournament-experimental-advanced";
 
 const originalFetch = globalThis.fetch;
 const queryClients = new Set<QueryClient>();
@@ -72,7 +72,7 @@ function renderExperimental(
   queryClients.add(queryClient);
 
   const location = memoryLocation({
-    path: "/experimental/tournaments/new",
+    path: "/experimental/tournaments/new/advanced",
     record: true,
   });
 
@@ -235,7 +235,7 @@ test("API health failure disables create and offers retry", async () => {
     },
   });
   queryClients.add(queryClient);
-  const location = memoryLocation({ path: "/experimental/tournaments/new", record: true });
+  const location = memoryLocation({ path: "/experimental/tournaments/new/advanced", record: true });
 
   globalThis.fetch = async (input) => {
     const url = typeof input === "string" ? input : (input as Request).url;

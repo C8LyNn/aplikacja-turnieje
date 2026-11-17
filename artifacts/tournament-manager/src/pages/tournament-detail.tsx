@@ -989,7 +989,7 @@ export default function TournamentDetail() {
           </TabsContent>
 
           <TabsContent value="players" className={isExperimental ? "pt-6 experimental-players-surface" : "pt-6"}>
-            {isExperimental && <ExperimentalRosterHealth players={players} maxPlayers={tournament.maxPlayers} />}
+            {isExperimental && <ExperimentalRosterHealth players={players} maxPlayers={tournament.maxPlayers} requiredCount={tournament.status === "draft" && (stages?.length ?? 0) > 1 ? stages?.find((stage) => stage.position === 1)?.participantCount : undefined} />}
             {isExperimental && <ExperimentalPlayerToolbar query={playerSearch} onQueryChange={setPlayerSearch} status={playerStatusFilter} onStatusChange={setPlayerStatusFilter} sort={playerSort} onSortChange={setPlayerSort} total={players?.length ?? 0} visible={displayedPlayers.length} />}
             <div className={`grid md:grid-cols-3 gap-6 ${isExperimental ? "mt-4" : ""}`}>
               <div className="md:col-span-2 space-y-4">

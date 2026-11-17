@@ -16,7 +16,8 @@ export type TournamentTemplateId = keyof typeof TEMPLATE_LABELS;
 
 export type TemplatePlanSelection = {
   stagePlan: NonNullable<TournamentInput["stagePlan"]>;
-  templateId: TournamentTemplateId;
+  /** Legacy planner template, or a V5 wizard preset id handed over to the advanced form. */
+  templateId: TournamentTemplateId | (string & {});
   label: string;
   participantCount: number;
   bestOf: 1 | 3 | 5 | 7;

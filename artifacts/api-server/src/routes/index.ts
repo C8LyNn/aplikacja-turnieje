@@ -11,6 +11,7 @@ import atomicCorrectionRouter from "./tournament-atomic-correction";
 import qualificationRoutingPreviewRouter from "./tournament-qualification-routing-preview";
 import resultCorrectionPreviewRouter from "./tournament-result-correction-preview";
 import tournamentPlanPreviewRouter from "./tournament-plan-preview";
+import tournamentPresetsRouter from "./tournament-presets";
 import authRouter from "./auth";
 
 const router: IRouter = Router();
@@ -19,6 +20,7 @@ router.use(healthRouter);
 router.use(coreClashMultiplayerRouter);
 router.use(authRouter);
 router.use(tournamentPlanPreviewRouter);
+router.use(tournamentPresetsRouter);
 router.use(qualificationRoutingPreviewRouter);
 router.use(resultCorrectionPreviewRouter);
 router.use(tournamentSeCorrectionPreflightRouter);
