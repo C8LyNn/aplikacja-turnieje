@@ -60,11 +60,12 @@ import { deriveOrganizerCapabilities, managementRoleForCapabilities } from "@/li
 import { invalidateTournamentRosterQueries } from "@/lib/tournament-roster-cache";
 import { invalidateTournamentDependentQueries } from "@/lib/tournament-query-invalidation";
 import { stageLifecycleError } from "@/lib/stage-lifecycle-feedback";
-import { useVerifiedSupportSession } from "@/hooks/use-tournament-auth";
+import { useOrganizerTokenCheck, useVerifiedSupportSession } from "@/hooks/use-tournament-auth";
 import { usePresentationTheme, resolvePresentationSettings } from "@/lib/presentation-theme";
 import { MATCH_STATUS_LABELS } from "@/lib/match-operation-feedback";
 import { PLAYER_STATUS_LABELS, TOURNAMENT_STATUS_LABELS } from "@/lib/tournament-stages-ui";
 import { tournamentHref, useTournamentRoute } from "@/features/experimental-tournaments/experimental-tournament-routing";
+import { bestOfLabel } from "@/features/experimental-tournaments/experimental-create-wizard-model";
 import { ExperimentalTournamentContextBar } from "@/features/experimental-tournaments/experimental-tournament-context-bar";
 import { ExperimentalTournamentChecklist } from "@/features/experimental-tournaments/experimental-tournament-checklist";
 import { ExperimentalPlayerToolbar, type ExperimentalPlayerSort, type ExperimentalPlayerStatusFilter } from "@/features/experimental-tournaments/experimental-player-toolbar";
@@ -99,6 +100,7 @@ export default function TournamentDetail() {
   const storedSupportSession = getSupSession(id);
   const { supportSession: supSession, isChecking: isSupportChecking } =
     useVerifiedSupportSession(id, orgToken ? null : storedSupportSession);
+  useOrganizerTokenCheck(id, orgToken);
   const viewerToken = getViewerTok(id);
   const isAuthenticated = !!(orgToken || supSession);
   const hasReadAccess = (tournament: { visibility?: string } | null | undefined) =>
@@ -186,6 +188,7 @@ export default function TournamentDetail() {
   const teamOverview = useGetTournamentTeams(id, {
     query: { enabled: !!id && readOk && isExperimental && tournament?.participantType === "teams", retry: false } as never,
   });
+  const teamEntries = isExperimental && tournament?.participantType === "teams";
   const teamsNotReady = teamOverview.data && teamOverview.data.participantType === "teams"
     ? teamOverview.data.teams.filter((team) => team.entryStatus === "active" && !team.ready).length
     : undefined;
@@ -693,7 +696,7 @@ export default function TournamentDetail() {
             {tournament.description && <p className="text-muted-foreground">{tournament.description}</p>}
             <p className="text-sm text-muted-foreground mt-1">
               {operation.stage?.name} · {FORMAT_LABELS[operation.stage?.format ?? tournament.format] ?? operation.stage?.format}
-              {` · ${operation.summary.roundLabel} · BO${operation.stage?.bestOf ?? tournament.defaultBestOf}`}
+              {` · ${operation.summary.roundLabel} · ${isExperimental ? bestOfLabel(operation.stage?.bestOf ?? tournament.defaultBestOf ?? 1).toLowerCase() : `BO${operation.stage?.bestOf ?? tournament.defaultBestOf}`}`}
             </p>
             <div className="mt-2">
               <ForcedHeroBadge gameConfig={tournament.gameConfig} />
@@ -761,6 +764,7 @@ export default function TournamentDetail() {
           <TournamentOperationsOverview
             tournamentId={id}
             enabled={readOk && preparedAuthId === id}
+            collapsible={isExperimental}
           />
         )}
         {startError && <p role="alert" className="rounded-lg border border-destructive/40 p-3 text-sm text-destructive">{startError}</p>}
@@ -1008,16 +1012,22 @@ export default function TournamentDetail() {
                 </p>
               </div>
             )}
-            {isExperimental && <ExperimentalRosterHealth players={players} maxPlayers={tournament.maxPlayers} teamsNotReady={teamsNotReady} requiredCount={tournament.status === "draft" && (stages?.length ?? 0) > 1 ? stages?.find((stage) => stage.position === 1)?.participantCount : undefined} />}
+            {isExperimental && <ExperimentalRosterHealth players={players} maxPlayers={tournament.maxPlayers} teamsNotReady={teamsNotReady} nextHref={tournament.status === "draft" && capabilities.canManageLifecycle ? tournamentHref(tournament.id, true, "/host?tab=prowadzenie") : undefined} requiredCount={tournament.status === "draft" && (stages?.length ?? 0) > 1 ? stages?.find((stage) => stage.position === 1)?.participantCount : undefined} />}
             {isExperimental && <ExperimentalPlayerToolbar query={playerSearch} onQueryChange={setPlayerSearch} status={playerStatusFilter} onStatusChange={setPlayerStatusFilter} sort={playerSort} onSortChange={setPlayerSort} total={players?.length ?? 0} visible={displayedPlayers.length} />}
+            {teamEntries && tournament.status === "draft" && (
+              <p className="mt-4 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm" data-testid="team-entries-hint">
+                <strong>Turniej drużynowy.</strong> Najpierw dodaj <strong>drużyny</strong> — to one grają mecze i są w tabeli.
+                Kapitanów, zawodników i rezerwowych przypiszesz w sekcji <strong>Składy drużyn</strong> poniżej.
+              </p>
+            )}
             <div className={`grid md:grid-cols-3 gap-6 ${isExperimental ? "mt-4" : ""}`}>
               <div className="md:col-span-2 space-y-4">
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between">
-                    <CardTitle>Zawodnicy ({players?.length ?? "—"})</CardTitle>
+                    <CardTitle>{teamEntries ? "Drużyny" : "Zawodnicy"} ({players?.length ?? "—"})</CardTitle>
                     {tournament.status === "draft" && capabilities.canManageParticipants && (
                       <Button variant="outline" size="sm" onClick={() => showCsvImport ? resetCsvImport() : setShowCsvImport(true)}>
-                        <Upload className="w-4 h-4 mr-2" /> {showCsvImport ? "Zamknij" : isExperimental ? "Wklej listę" : "Import CSV"}
+                        <Upload className="w-4 h-4 mr-2" /> {showCsvImport ? "Zamknij" : teamEntries ? "Wklej listę drużyn" : isExperimental ? "Wklej listę" : "Import CSV"}
                       </Button>
                     )}
                   </CardHeader>
@@ -1354,7 +1364,9 @@ export default function TournamentDetail() {
                       </div>
                     ) : (
                       <div className={isExperimental ? "organizer-empty-state border border-dashed text-center py-8 text-muted-foreground" : "text-center py-8 text-muted-foreground"}>
-                        {capabilities.canManageParticipants
+                        {teamEntries && capabilities.canManageParticipants
+                          ? "Brak drużyn. Dodaj nazwy drużyn — zawodników przypiszesz niżej, w składach."
+                          : capabilities.canManageParticipants
                           ? "Brak graczy. Dodaj ręcznie lub importuj CSV."
                           : "Brak graczy w tym turnieju."}
                       </div>
@@ -1366,16 +1378,16 @@ export default function TournamentDetail() {
               <div>
                 {tournament.status === "draft" && capabilities.canManageParticipants && (
                   <Card>
-                    <CardHeader><CardTitle>Dodaj gracza</CardTitle></CardHeader>
+                    <CardHeader><CardTitle>{teamEntries ? "Dodaj drużynę" : "Dodaj gracza"}</CardTitle></CardHeader>
                     <CardContent>
                       <form onSubmit={handleAddPlayer} className="space-y-3">
                         <div className="space-y-1">
-                          <Label htmlFor={isExperimental ? "experimental-add-player-nick" : undefined}>Nick *</Label>
+                          <Label htmlFor={isExperimental ? "experimental-add-player-nick" : undefined}>{teamEntries ? "Nazwa drużyny *" : "Nick *"}</Label>
                           <Input
                             id={isExperimental ? "experimental-add-player-nick" : undefined}
                             value={newPlayerName}
                             onChange={(e) => { setNewPlayerName(e.target.value); setAddPlayerError(null); }}
-                            placeholder="Alias gracza"
+                            placeholder={teamEntries ? "Np. Orły" : "Alias gracza"}
                             required
                             className={addPlayerError ? "border-destructive focus-visible:ring-destructive" : ""}
                           />
@@ -1432,7 +1444,7 @@ export default function TournamentDetail() {
                         </div>
                           </>
                         )}
-                        <Button type="submit" className="w-full" disabled={addPlayer.isPending}>{isExperimental && addPlayer.isPending ? "Dodawanie…" : "Dodaj gracza"}</Button>
+                        <Button type="submit" className="w-full" disabled={addPlayer.isPending}>{isExperimental && addPlayer.isPending ? "Dodawanie…" : teamEntries ? "Dodaj drużynę" : "Dodaj gracza"}</Button>
                       </form>
                     </CardContent>
                   </Card>
@@ -1538,7 +1550,7 @@ export default function TournamentDetail() {
                           <th className="py-2 px-2 text-center">W</th>
                           <th className="py-2 px-2 text-center">P</th>
                           <th className="py-2 px-2 text-center">Gry</th>
-                          <th className="py-2 px-2 text-center">Buchh.</th>
+                          {(!isExperimental || standings.some((row) => row.buchholz != null)) && <th className="py-2 px-2 text-center" title="Buchholz: suma punktów rywali (system szwajcarski)">Buchh.</th>}
                           <th className="py-2 px-2 text-center">+/-</th>
                         </tr>
                       </thead>
@@ -1562,7 +1574,7 @@ export default function TournamentDetail() {
                             <td className="py-2 px-2 text-center text-green-400">{s.matchWins}</td>
                             <td className="py-2 px-2 text-center text-red-400">{s.matchLosses}</td>
                             <td className="py-2 px-2 text-center font-mono">{s.gameWins}:{s.gameLosses}</td>
-                            <td className="py-2 px-2 text-center text-muted-foreground">{s.buchholz ?? "—"}</td>
+                            {(!isExperimental || standings.some((row) => row.buchholz != null)) && <td className="py-2 px-2 text-center text-muted-foreground">{s.buchholz ?? "—"}</td>}
                             <td className="py-2 px-2 text-center text-muted-foreground">
                               <span className={s.gameDiff > 0 ? "text-green-400" : s.gameDiff < 0 ? "text-red-400" : ""}>
                                 {s.gameDiff > 0 ? "+" : ""}{s.gameDiff}

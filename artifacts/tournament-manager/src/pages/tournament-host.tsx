@@ -1551,7 +1551,9 @@ export default function TournamentHost() {
         <fieldset disabled={hostPending || dataLoading || dataError} className="contents">
         {nextStep && !tournamentCompleted && !dataLoading && !dataError && (
           <OrganizerNextStep
-            step={nextStep}
+            step={isExperimental && nextStep.actionHref?.includes("action=")
+              ? { ...nextStep, actionHref: `${nextStep.actionHref}&return=host` }
+              : nextStep}
             onAction={nextStep.kind === "swiss_round" ? handleGenerateRound : undefined}
             pending={generateNextRound.isPending}
           />

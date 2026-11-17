@@ -205,3 +205,11 @@ test("V5.1: recommendations explain answers that cannot be honoured", () => {
   assert.match(shortLeague.notes[0], /każdy gra z każdym \(45 meczów\).*„System szwajcarski”: 20 meczów/);
   assert.deepEqual(recommendPresets(parseWizardAnswers({ kind: "tournament", participantCount: 16, grouping: "yes" })).notes, []);
 });
+
+test("V5.2: recommendation notes use Polish plurals and no 'series' wording for a single game", () => {
+  const notes = recommendPresets(parseWizardAnswers({ kind: "league", participantCount: 4, priority: "short" })).notes;
+  assert.match(notes[0] ?? "", /każdy gra z każdym \(6 meczów\).*„System szwajcarski”: 4 mecze,/);
+  const single = JSON.stringify(previewPreset({ presetId: "single_elimination", params: { participantCount: 8 } }));
+  assert.match(single, /Remisów nie ma: każdy mecz musi mieć zwycięzcę./);
+  assert.doesNotMatch(single, /seria do przewagi/);
+});

@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 import type { StageStartReadiness } from "@workspace/api-client-react";
-import { stageLifecycleError, stageReadinessFeedback, stageReadinessMessages } from "./stage-lifecycle-feedback";
+import { firstStageNeedsEntrants, stageLifecycleError, stageReadinessFeedback, stageReadinessMessages } from "./stage-lifecycle-feedback";
 
 test("readiness presentation preserves unknown reasons and never turns equal counts into a shortage", () => {
   const readiness: StageStartReadiness = {
@@ -48,4 +48,19 @@ test("maps qualification and routing source-stage conflicts to operator actions"
   assert.match(routing, /zakończ etap źródłowy/);
   assert.match(routing, /wykonaj routing/);
   assert.match(staleRanking, /rankingu etapu/);
+});
+
+test("V5.2: an empty first stage asks for entrants instead of showing diagnostics", () => {
+  const readiness: StageStartReadiness = {
+    ready: false, reasonCode: "STAGE_PARTICIPANTS_INCONSISTENT", message: "Oczekiwana liczba uczestników: 16; dostępni uczestnicy: 0.",
+    participantCount: 0, requiredParticipantCount: 16, missingSeeds: [1, 2, 3], blockingMatches: 0, blockingGroups: 0,
+    format: "group_stage", basketValidation: { valid: true, problems: [] },
+  };
+  assert.equal(firstStageNeedsEntrants(readiness, true), true);
+  const first = stageReadinessFeedback(readiness, "Faza grupowa", { firstStage: true });
+  assert.equal(first.summary, "Faza grupowa: Brakuje uczestników: etap potrzebuje 16, na liście jest 0.");
+  assert.equal(first.action, "Dodaj jeszcze 16 w zakładce Gracze.");
+  // Later stages keep the routing diagnosis (their entrants come from qualification).
+  assert.equal(firstStageNeedsEntrants(readiness, false), false);
+  assert.equal(stageReadinessFeedback(readiness, "Finał").summary, "Finał: Liczba uczestników nie odpowiada wymaganiom etapu.");
 });

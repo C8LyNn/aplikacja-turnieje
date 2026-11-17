@@ -31,7 +31,16 @@ type OperationsView = {
   blockers: { code: string; message: string; severity: "blocking" | "warning" }[];
 };
 
-export function TournamentOperationsOverview({ tournamentId, enabled }: {tournamentId: number; enabled: boolean}) {
+/** Polish plural: 1 blokada, 2–4 blokady, 5+ blokad (12–14 blokad). */
+function blockerLabel(count: number): string {
+  const tens = count % 100;
+  const units = count % 10;
+  if (count === 1) return "1 blokada";
+  if (units >= 2 && units <= 4 && (tens < 12 || tens > 14)) return `${count} blokady`;
+  return `${count} blokad`;
+}
+
+export function TournamentOperationsOverview({ tournamentId, enabled, collapsible = false }: {tournamentId: number; enabled: boolean; collapsible?: boolean}) {
   const [location] = useLocation();
   const experimental = isExperimentalTournamentPath(location);
   const query = useGetTournamentAssistant(tournamentId, {
@@ -54,7 +63,7 @@ export function TournamentOperationsOverview({ tournamentId, enabled }: {tournam
   const target = tournamentModeHref(action.href, experimental);
   const blockerCount = blockers.filter(b => b.severity === "blocking").length;
 
-  return (
+  const content = (
     <section aria-label="Stan operacyjny turnieju" className="rounded-xl border border-border/80 bg-card/60 p-4 sm:p-5">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-2 font-semibold">
@@ -62,7 +71,7 @@ export function TournamentOperationsOverview({ tournamentId, enabled }: {tournam
           Stan operacyjny turnieju
         </div>
         <span className="text-xs text-muted-foreground" role="status">
-          {stale ? "Dane nieaktualne" : blockerCount > 0 ? `${blockerCount} blokad` : "Analiza backendu"}
+          {stale ? "Dane nieaktualne" : blockerCount > 0 ? blockerLabel(blockerCount) : "Analiza backendu"}
         </span>
       </div>
       {stale && (
@@ -125,7 +134,7 @@ export function TournamentOperationsOverview({ tournamentId, enabled }: {tournam
         <details className="mt-3 rounded-lg border border-border/70 bg-background/30 p-3">
           <summary className="cursor-pointer text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
             Podgląd kolejnej operacji: {preview.title}
-            {preview.availability === "blocked" ? ` · ${preview.blockers} blokad` : " · do weryfikacji"}
+            {preview.availability === "blocked" ? ` · ${blockerLabel(preview.blockers)}` : " · do weryfikacji"}
           </summary>
           <div className="mt-3 space-y-3 text-sm">
             <p className="text-xs text-muted-foreground">{preview.description}</p>
@@ -164,5 +173,17 @@ export function TournamentOperationsOverview({ tournamentId, enabled }: {tournam
         Wskazówki są orientacyjne. Serwer ponownie sprawdzi stan i uprawnienia przy każdej zmianie.
       </p>
     </section>
+  );
+  if (!collapsible) return content;
+  // Experimental: the "next step" card above already says what to do; details stay one click away
+  // and open by themselves when something blocks progress or the data is stale.
+  return (
+    <details className="experimental-ops-details rounded-xl border border-border/80 bg-card/40" open={stale || blockerCount > 0} data-testid="operations-details">
+      <summary className="cursor-pointer select-none px-4 py-3 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+        Szczegóły dla zaawansowanych: diagnostyka, korekty wyników, kwalifikacja
+        {blockerCount > 0 ? ` · ${blockerLabel(blockerCount)}` : ""}
+      </summary>
+      <div className="px-1 pb-1">{content}</div>
+    </details>
   );
 }

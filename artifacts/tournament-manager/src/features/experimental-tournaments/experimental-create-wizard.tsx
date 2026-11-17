@@ -156,7 +156,7 @@ function CountField({ value, onChange, noun }: { value: number; onChange: (value
   };
   return (
     <fieldset className="experimental-wizard-field">
-      <legend className="experimental-wizard-legend">Ilu {noun(5)} planujesz?</legend>
+      <legend className="experimental-wizard-legend">{noun(5) === "drużyn" ? "Ile" : "Ilu"} {noun(5)} planujesz?</legend>
       <p className="experimental-wizard-help">Wystarczy przybliżona liczba — zmienisz ją później w podglądzie.</p>
       <div className="experimental-wizard-count">
         <button type="button" className="experimental-wizard-step-btn" aria-label="Mniej" disabled={value <= MIN_PARTICIPANTS} onClick={() => onChange(value - 1)}>
@@ -228,13 +228,13 @@ function Stat({ label, value, hint }: { label: string; value: string; hint?: str
   );
 }
 
-function PresetStats({ preview }: { preview: PresetPreview }) {
+function PresetStats({ preview, teams = false }: { preview: PresetPreview; teams?: boolean }) {
   const per = preview.totals.matchesPerParticipant;
   return (
     <dl className="experimental-wizard-stats">
       <Stat label="Mecze" value={rangeText(preview.totals.matches)} />
       <Stat label="Rundy" value={rangeText(preview.totals.rounds)} hint="łącznie we wszystkich etapach" />
-      <Stat label="Mecze na osobę" value={per.min === per.max ? String(per.min) : `${per.min}–${per.max}`} hint={per.min === per.max ? "tyle samo dla każdego" : "zależnie od wyników"} />
+      <Stat label={teams ? "Mecze na drużynę" : "Mecze na osobę"} value={per.min === per.max ? String(per.min) : `${per.min}–${per.max}`} hint={per.min === per.max ? "tyle samo dla każdego" : "zależnie od wyników"} />
     </dl>
   );
 }
@@ -299,10 +299,10 @@ function PreviewPanel({
         <p className="experimental-wizard-chip-static" data-mode={people.mode}>
           {people.mode === "exact"
             ? `Dokładnie ${people.count} ${noun(people.count)}`
-            : `Od ${people.minimum} do ${people.count} ${noun(people.count)}`}
+            : `Od ${people.minimum} do ${people.count} ${noun(5)}`}
         </p>
       </div>
-      <PresetStats preview={preview} />
+      <PresetStats preview={preview} teams={noun(5) === "drużyn"} />
       <StageFlow preview={preview} />
       <section className="experimental-wizard-rules">
         <h4><Trophy className="h-4 w-4" aria-hidden="true" /> Zwycięzca</h4>
@@ -828,7 +828,7 @@ export function ExperimentalCreateWizard() {
                       <span className="experimental-wizard-help">
                         {shownPreview.participants.mode === "exact"
                           ? "Ten format ma stały plan etapów — przed startem lista musi być pełna."
-                          : "To limit miejsc. Turniej wystartuje także z mniejszą liczbą osób (min. 2)."}
+                          : `To limit miejsc. Turniej wystartuje także z mniejszą liczbą ${noun(5)} (min. 2).`}
                       </span>
                     </div>
                     <div className="experimental-wizard-count">

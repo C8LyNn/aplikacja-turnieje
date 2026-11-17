@@ -148,11 +148,24 @@ function collectForbidden(value: unknown, path: string, problems: AiConfigProble
   }
 }
 
+/** Plain-language reason for fields that describe features the engine does not have yet. */
+function unsupportedFieldHint(key: string): string | null {
+  const k = key.toLowerCase();
+  if (/draw|remis|scor|point|punkt/.test(k)) return "remisy i punktacja (np. 3/1/0) nie są jeszcze obsługiwane — każdy mecz kończy się zwycięzcą.";
+  if (/schedul|date|time|calendar|termin|kolejk/.test(k)) return "daty, godziny i terminarz meczów nie są jeszcze obsługiwane.";
+  if (/division|promot|relegat|dywizj|spad/.test(k)) return "dywizje, awanse i spadki między ligami nie są jeszcze obsługiwane.";
+  if (/roster|lineup|player|member|sklad|skład|team/.test(k)) return "zawodników, drużyny i składy dodajesz w aplikacji po utworzeniu turnieju.";
+  return null;
+}
+
 function checkKeys(record: Rec, allowed: readonly string[], path: string, problems: AiConfigProblem[]): void {
   for (const key of Object.keys(record)) {
     if (FORBIDDEN.has(key.toLowerCase())) continue; // already reported
     if (!allowed.includes(key)) {
-      problems.push({ path: path ? `${path}.${key}` : key, code: "UNKNOWN_FIELD", message: `Nieznane pole „${key}”. Dozwolone: ${allowed.join(", ")}.` });
+      const hint = unsupportedFieldHint(key);
+      problems.push({ path: path ? `${path}.${key}` : key, code: "UNKNOWN_FIELD", message: hint
+        ? `Pole „${key}”: ${hint} Usuń je z pliku.`
+        : `Nieznane pole „${key}”. Dozwolone: ${allowed.join(", ")}.` });
     }
   }
 }
@@ -503,7 +516,7 @@ export function summarizeCustomPlan(plan: TournamentStagesPlan): PresetPreview {
       matchesPerParticipant: { min: 1, max: sum((stage) => stage.rounds.max) },
     },
     winnerRule: "Mistrzem zostaje zwycięzca ostatniego etapu.",
-    tieRules: ["Remisów nie ma: każdy mecz kończy się zwycięzcą (seria do przewagi)."],
+    tieRules: ["Remisów nie ma: każdy mecz musi mieć zwycięzcę."],
     requirements: [`Przed startem lista musi liczyć dokładnie ${plan.initialParticipantCount} uczestników.`],
     warnings: stages.filter((stage) => stage.byes > 0).map((stage) => `Etap „${stage.name}”: ${stage.byes} wolnych losów.`),
   };

@@ -1,4 +1,11 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
+
+/** 1 rezerwowy, 2–4 rezerwowi, 0 / 5+ rezerwowych. */
+function reserveLabel(n: number): string {
+  const units = n % 10, tens = n % 100;
+  if (n === 1) return "1 rezerwowy";
+  return units >= 2 && units <= 4 && (tens < 12 || tens > 14) ? `${n} rezerwowi` : `${n} rezerwowych`;
+}
 import { useQueryClient } from "@tanstack/react-query";
 import { Crown, History, Loader2, Shield, UserMinus, UserPlus, Users } from "lucide-react";
 import {
@@ -61,7 +68,7 @@ function TeamCard({ tournamentId, team, canEdit }: { tournamentId: number; team:
         <div className="min-w-0">
           <h4>{team.name}</h4>
           <p className="experimental-wizard-help">
-            {team.starters} w podstawie · {team.members.length - team.starters} rezerwowych
+            {team.starters} w podstawie · {reserveLabel(team.members.length - team.starters)}
             {team.formerMemberCount > 0 ? ` · ${team.formerMemberCount} w historii` : ""}
           </p>
         </div>

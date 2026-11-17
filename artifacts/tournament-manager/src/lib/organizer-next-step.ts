@@ -170,7 +170,7 @@ export function deriveOrganizerNextStep(input: {
     return {
       kind: hasCompletedPredecessor ? "next_stage" : "planned_stage",
       title: planned.name,
-      description: `${formatLabels[planned.format] ?? planned.format} · Gotowy. Skład i konfiguracja potwierdzone przez serwer.`,
+      description: `${formatLabels[planned.format] ?? planned.format} · Wszystko gotowe — możesz zaczynać.`,
       actionLabel: mayAct
         ? "Rozpocznij etap"
         : undefined,

@@ -205,6 +205,18 @@ export async function apiVerifySupportSession(tournamentId: number, token: strin
   }
 }
 
+/** Read-only organizer check via an existing organizer-only GET; throws with the HTTP status. */
+export async function apiVerifyOrganizerToken(tournamentId: number, token: string): Promise<void> {
+  const res = await fetch(`${BASE}/api/tournaments/${tournamentId}/auth/support-sessions`, {
+    headers: { "X-Organizer-Token": token },
+  });
+  if (!res.ok) {
+    const error = new Error("Sesja organizatora jest nieważna") as Error & { status?: number };
+    error.status = res.status;
+    throw error;
+  }
+}
+
 export async function apiGetSupportSessions(tournamentId: number, token: string) {
   const res = await fetch(`${BASE}/api/tournaments/${tournamentId}/auth/support-sessions`, {
     headers: { "X-Organizer-Token": token },

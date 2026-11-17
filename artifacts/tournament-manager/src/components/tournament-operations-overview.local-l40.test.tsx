@@ -29,3 +29,31 @@ test('failed advisory refetch cannot leave a clickable stale recommendation',asy
   fireEvent.click(screen.getByRole('button',{name:'Ponów odczyt'}));
   await waitFor(()=>assert.ok(requests>before));
 });
+
+test('V5.2: Experimental folds the advisory panel and opens it by itself when something blocks', async () => {
+  const id = 75;
+  const clients: QueryClient[] = [];
+  const make = (blockers: { code: string; message: string; severity: 'blocking' | 'warning' }[]) => {
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });
+    clients.push(client);
+    client.setQueryData(getGetTournamentAssistantQueryKey(id), { operations: {
+      version: 1, advisory: true, progress: { completed: 0, total: 0, percent: null, inProgress: 0, pending: 0, postponed: 0, cancelled: 0 },
+      recommendedAction: { title: 'Dodaj uczestników', description: 'Brakuje graczy.', href: `/tournaments/${id}?tab=players`, availability: blockers.length ? 'blocked' : 'ready', requiresConfirmation: false },
+      blockers,
+    } });
+    globalThis.fetch = (async () => new Response('{}', { status: 200, headers: { 'content-type': 'application/json' } })) as typeof fetch;
+    const location = memoryLocation({ path: `/experimental/tournaments/${id}`, record: true });
+    return render(<QueryClientProvider client={client}><Router hook={location.hook}><TournamentOperationsOverview tournamentId={id} enabled collapsible /></Router></QueryClientProvider>);
+  };
+  make([]);
+  const quiet = screen.getByTestId('operations-details') as HTMLDetailsElement;
+  assert.equal(quiet.open, false);
+  assert.match(quiet.querySelector('summary')?.textContent ?? '', /Szczegóły dla zaawansowanych/);
+  cleanup();
+  make([{ code: 'NOT_ENOUGH', message: 'Dodaj jeszcze 2 uczestników.', severity: 'blocking' }]);
+  const blocked = screen.getByTestId('operations-details') as HTMLDetailsElement;
+  assert.equal(blocked.open, true);
+  assert.match(blocked.querySelector('summary')?.textContent ?? '', /1 blokada/);
+  cleanup();
+  for (const client of clients) client.clear();
+});

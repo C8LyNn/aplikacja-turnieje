@@ -129,7 +129,7 @@ const FORMAT_LABELS: Record<TournamentStagePlan["format"], string> = {
 };
 
 const TIE_TEXT = {
-  noDraws: "Remisów nie ma: każdy mecz kończy się zwycięzcą (seria do przewagi).",
+  noDraws: "Remisów nie ma: każdy mecz musi mieć zwycięzcę.",
   roundRobin:
     "Przy równej liczbie wygranych decyduje: bezpośredni mecz (gdy remisują dwie osoby), bilans gier, liczba wygranych gier, rozstawienie.",
   swiss:
@@ -192,6 +192,13 @@ export const PRESET_DEFINITIONS: Record<PresetId, PresetDefinition> = {
     participantRange: [4, 32],
   },
 };
+
+/** Polish plural for match counts: 1 mecz, 2–4 mecze, 5+ meczów (12–14 meczów). */
+function matchCount(n: number): string {
+  const units = n % 10, tens = n % 100;
+  if (n === 1) return "1 mecz";
+  return units >= 2 && units <= 4 && (tens < 12 || tens > 14) ? `${n} mecze` : `${n} meczów`;
+}
 
 export const PRESET_PARAM_TEXT: Record<PresetParamKey, { label: string; help: string }> = {
   participantCount: { label: "Liczba uczestników", help: "Ilu graczy lub drużyn weźmie udział." },
@@ -450,7 +457,7 @@ function build(presetId: PresetId, input: PresetParams, accurate: boolean): Buil
           {
             position: 1, key: "groups", name: "Faza grupowa", format: "group_stage", formatLabel: FORMAT_LABELS.group_stage,
             participantCount: n, bestOf, groupSizes: sizes, advancingCount: advancing,
-            advancementText: `Z każdej grupy awansuje ${qualifiersPerGroup} ${qualifiersPerGroup === 1 ? "najlepsza osoba" : "najlepsze osoby"} (razem ${advancing}). Rozstawienie w drabince: zwycięzcy grup przed drugimi miejscami.`,
+            advancementText: `Z każdej grupy ${qualifiersPerGroup === 1 ? "awansuje 1 najlepsza osoba" : `awansują ${qualifiersPerGroup} najlepsze osoby`} (razem ${advancing}). Rozstawienie w drabince: zwycięzcy grup przed drugimi miejscami.`,
             matches: { min: groupMatches, max: groupMatches }, rounds: { min: groupRounds, max: groupRounds }, byes: 0,
           },
           playoff,
@@ -739,7 +746,7 @@ function recommendationNotes(answers: WizardAnswers, results: readonly PresetRec
     const leagueMatches = roundRobin.preview.totals.matches.max;
     const swissMatches = swiss.preview.totals.matches.max;
     if (swissMatches < leagueMatches) {
-      notes.push(`W lidze każdy gra z każdym (${leagueMatches} meczów). Jeśli ma być krótko, wybierz „System szwajcarski”: ${swissMatches} meczów, też z tabelą na koniec.`);
+      notes.push(`W lidze każdy gra z każdym (${matchCount(leagueMatches)}). Jeśli ma być krótko, wybierz „System szwajcarski”: ${matchCount(swissMatches)}, też z tabelą na koniec.`);
     }
   }
   return notes;

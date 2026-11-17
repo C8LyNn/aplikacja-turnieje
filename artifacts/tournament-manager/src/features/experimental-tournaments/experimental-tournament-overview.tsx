@@ -19,6 +19,7 @@ import {
   ExperimentalStatusPill,
 } from "@/features/experimental-tournaments/experimental-ui";
 import { tournamentHref } from "@/features/experimental-tournaments/experimental-tournament-routing";
+import { bestOfLabel } from "@/features/experimental-tournaments/experimental-create-wizard-model";
 
 type OverviewPlayer = {
   id?: number;
@@ -213,7 +214,7 @@ export function ExperimentalTournamentOverview({
             label="Format"
             tone="info"
             value={formatLabel}
-            meta={`${stageName || "Etap"} · BO${bestOf ?? 1}`}
+            meta={`${stageName || "Etap"} · ${bestOfLabel(bestOf ?? 1).toLowerCase()}`}
             icon={Brackets}
           />
         </div>

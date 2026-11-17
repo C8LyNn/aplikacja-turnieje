@@ -82,7 +82,7 @@ export function ExperimentalResumeCard({ tournaments }: { tournaments: ReadonlyA
 
 const TONE_ICON: Record<HealthTone, typeof Info> = { success: CheckCircle2, info: Info, warning: CircleAlert, danger: CircleAlert };
 
-export function ExperimentalRosterHealth({ players, maxPlayers, requiredCount, teamsNotReady }: { players: ReadonlyArray<Player> | null | undefined; maxPlayers?: number | null; requiredCount?: number | null; teamsNotReady?: number | null }) {
+export function ExperimentalRosterHealth({ players, maxPlayers, requiredCount, teamsNotReady, nextHref }: { players: ReadonlyArray<Player> | null | undefined; maxPlayers?: number | null; requiredCount?: number | null; teamsNotReady?: number | null; nextHref?: string }) {
   const health = rosterHealth(players, maxPlayers, requiredCount, teamsNotReady);
   const fill = health.max ? Math.min(100, Math.round((health.count / health.max) * 100)) : null;
   return (
@@ -102,6 +102,13 @@ export function ExperimentalRosterHealth({ players, maxPlayers, requiredCount, t
       <ul className="experimental-v4-chips" role="list">
         {health.ready && !health.issues.some((i) => i.tone === "warning") ? (
           <li className="experimental-v4-chip" data-tone="success"><CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />Lista gotowa do startu</li>
+        ) : null}
+        {nextHref && health.ready && !health.issues.some((i) => i.tone === "warning") ? (
+          <li>
+            <Link href={nextHref} className="experimental-v4-chip" data-tone="action" data-testid="roster-next-step">
+              <PlayCircle className="h-3.5 w-3.5" aria-hidden="true" />Dalej: rozpocznij turniej<ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+            </Link>
+          </li>
         ) : null}
         {health.issues.map((issue) => {
           const Icon = TONE_ICON[issue.tone];
@@ -223,7 +230,7 @@ export function ExperimentalStageMap({
                     </li>
                   ))}
                   {node.eliminated !== null && node.eliminated > 0 ? (
-                    <li data-kind="out"><X className="h-3.5 w-3.5" aria-hidden="true" /><span>{node.eliminated} kończy turniej na tym etapie</span></li>
+                    <li data-kind="out"><X className="h-3.5 w-3.5" aria-hidden="true" /><span>{node.eliminated} odpada na tym etapie</span></li>
                   ) : null}
                 </ul>
               ) : null}

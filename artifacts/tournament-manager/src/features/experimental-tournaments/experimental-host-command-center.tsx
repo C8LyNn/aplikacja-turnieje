@@ -79,7 +79,7 @@ export function ExperimentalHostCommandCenter({
     >
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
         <div className="min-w-0">
-          <p className="experimental-host-overline">Bieżący etap</p>
+          <p className="experimental-host-overline">{isCompleted ? "Podsumowanie" : "Bieżący etap"}</p>
           <h2 className="mt-0.5 text-lg font-semibold leading-tight">{stageName}</h2>
           <p className="mt-0.5 text-sm text-muted-foreground">
             {isCompleted
@@ -114,7 +114,18 @@ export function ExperimentalHostCommandCenter({
         </div>
       )}
 
-      <div className="mt-4 grid grid-cols-2 gap-2 lg:grid-cols-4">
+      {isCompleted && (
+        <div className="mt-4 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm" data-testid="host-completed-summary">
+          <p className="font-semibold">Turniej zakończony{championName ? ` — wygrywa ${championName}` : ""}.</p>
+          <p className="mt-1 text-muted-foreground">Co dalej: sprawdź końcową tabelę, pokaż wyniki widzom i zapisz kopię zapasową.</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            <Link href={tournamentHref(tournamentId, true, "?tab=standings")} className={linkClass}><Trophy className="h-4 w-4" aria-hidden="true" />Końcowa tabela</Link>
+            <Link href={tournamentHref(tournamentId, true, "/audience")} className={linkClass}><Eye className="h-4 w-4" aria-hidden="true" />Widok widzów</Link>
+            <Link href={tournamentHref(tournamentId, true, "?tab=backup")} className={linkClass}><ListChecks className="h-4 w-4" aria-hidden="true" />Kopia zapasowa</Link>
+          </div>
+        </div>
+      )}
+      {!isCompleted && <div className="mt-4 grid grid-cols-2 gap-2 lg:grid-cols-4">
         <ExperimentalMetricCard
           label="Na żywo"
           tone="live"
@@ -143,7 +154,7 @@ export function ExperimentalHostCommandCenter({
           meta="pary bez kompletu graczy lub wstrzymane"
           icon={Clock3}
         />
-      </div>
+      </div>}
 
       <nav aria-label="Skróty prowadzenia" className="mt-3 flex flex-wrap gap-1 border-t pt-3">
         <Link href={tournamentHref(tournamentId, true, "/host?tab=wyniki")} className={linkClass}>

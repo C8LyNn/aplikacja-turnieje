@@ -4,7 +4,32 @@ import {
   setActiveSupportToken,
 } from "@workspace/api-client-react";
 import { useAuth } from "@/context/auth-context";
-import { apiVerifySupportSession } from "@/lib/auth";
+import { apiVerifyOrganizerToken, apiVerifySupportSession } from "@/lib/auth";
+import { toast } from "@/hooks/use-toast";
+
+/**
+ * Drops a stored organizer token that the server rejects (401/403) and tells the organizer to log in
+ * again. Network errors and other statuses keep the token: only an explicit refusal clears it.
+ */
+export function useOrganizerTokenCheck(tournamentId: number, orgToken: string | null | undefined) {
+  const { removeOrgToken } = useAuth();
+  useEffect(() => {
+    if (!orgToken || !(tournamentId > 0)) return;
+    let cancelled = false;
+    void apiVerifyOrganizerToken(tournamentId, orgToken).catch((error: unknown) => {
+      const status = (error as { status?: number }).status;
+      if (cancelled || (status !== 401 && status !== 403)) return;
+      removeOrgToken(tournamentId);
+      setActiveOrganizerToken(null);
+      toast({
+        title: "Sesja organizatora wygasła",
+        description: "Hasło organizatora mogło się zmienić. Zaloguj się ponownie, aby zarządzać turniejem.",
+        variant: "destructive",
+      });
+    });
+    return () => { cancelled = true; };
+  }, [orgToken, removeOrgToken, tournamentId]);
+}
 
 type SupportSession = { token: string; nick: string };
 
@@ -68,6 +93,7 @@ export function useSyncTournamentAuth(tournamentId: number) {
   const storedSupportSession = getSupSession(tournamentId);
   const { supportSession: supSession, isChecking: isSupportChecking } =
     useVerifiedSupportSession(tournamentId, orgToken ? null : storedSupportSession);
+  useOrganizerTokenCheck(tournamentId, orgToken);
 
   useEffect(() => {
     if (orgToken) {

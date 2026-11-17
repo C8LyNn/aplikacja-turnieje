@@ -3,7 +3,13 @@ import { getApiErrorMessage } from "./tournament-stages-ui";
 import { configurationProblemMessage, type ConfigurationContext } from "./stage-configuration-feedback";
 
 /** Presentation only: readiness and counts remain authoritative server values. */
-export function stageReadinessFeedback(readiness: StageStartReadiness, stageName: string) {
+/** True when the first stage simply has fewer entrants than it needs (the common beginner case). */
+export function firstStageNeedsEntrants(readiness: StageStartReadiness, firstStage: boolean): boolean {
+  return firstStage && !readiness.ready && readiness.reasonCode === "STAGE_PARTICIPANTS_INCONSISTENT"
+    && readiness.participantCount < readiness.requiredParticipantCount;
+}
+
+export function stageReadinessFeedback(readiness: StageStartReadiness, stageName: string, options: { firstStage?: boolean } = {}) {
   const messages: Record<string, [string, string]> = {
     STAGE_PARTICIPANTS_INCONSISTENT: ["Skład lub seedy etapu są niespójne.", "Sprawdź przypisania uczestników i seedy etapu."],
     STAGE_BASKET_CONFIGURATION_INVALID: ["Konfiguracja koszyków zawiera błędy.", "Sprawdź koszyki i dopływ uczestników."],
@@ -17,6 +23,11 @@ export function stageReadinessFeedback(readiness: StageStartReadiness, stageName
   if (readiness.reasonCode === "STAGE_PARTICIPANTS_INCONSISTENT" && readiness.requiredParticipantCount !== readiness.participantCount) {
     reason = "Liczba uczestników nie odpowiada wymaganiom etapu.";
     action = "Sprawdź przypisania i dopływ uczestników do etapu.";
+  }
+  if (firstStageNeedsEntrants(readiness, options.firstStage === true)) {
+    const missing = readiness.requiredParticipantCount - readiness.participantCount;
+    reason = `Brakuje uczestników: etap potrzebuje ${readiness.requiredParticipantCount}, na liście jest ${readiness.participantCount}.`;
+    action = `Dodaj jeszcze ${missing} w zakładce Gracze.`;
   }
   return {
     summary: `${stageName}: ${reason}`,

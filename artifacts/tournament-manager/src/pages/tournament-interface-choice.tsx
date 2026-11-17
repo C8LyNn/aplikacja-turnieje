@@ -17,7 +17,7 @@ export default function TournamentInterfaceChoice() {
         <ProjectCard
           code="TURN STABLE"
           title="Stabilny interfejs"
-          description="Dotychczasowa wersja modułu turniejowego. Wybór roli: Organizator, Pomoc lub Widz."
+          description="Wersja awaryjna: prostsza i sprawdzona. Użyj jej, jeśli w nowym interfejsie coś nie działa — oba pokazują te same turnieje."
           href="/tournaments/stable"
           icon={ShieldCheck}
           accent="primary"
@@ -28,7 +28,7 @@ export default function TournamentInterfaceChoice() {
         <ProjectCard
           code="TURN EXP"
           title="Nowy interfejs"
-          description="Równoległa wersja Experimental rozwijana niezależnie na tym samym backendzie."
+          description="Zalecany na start: kreator krok po kroku, panel prowadzenia meczów, ligi i drużyny."
           href="/experimental/tournaments"
           icon={FlaskConical}
           accent="primary"

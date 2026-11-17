@@ -214,3 +214,18 @@ test("V5.1: the specification lists what the engine cannot do, for any AI", () =
   }
   assert.doesNotMatch(md, /(OpenAI|ChatGPT|Claude|Gemini|Copilot|Mistral)/, "no model vendor is assumed");
 });
+
+test("V5.2: fields for features the engine lacks are explained in plain words, not just 'unknown'", () => {
+  const result = validateAiTournamentConfig({
+    schemaVersion: 1, kind: "league", participants: { count: 8 },
+    structure: { type: "preset", presetId: "round_robin", params: { legs: 1 } },
+    scoring: { win: 3, draw: 1 }, schedule: { startDate: "2026-12-01" }, divisions: 2, mysteryOption: true,
+  });
+  assert.equal(result.valid, false);
+  const message = (path: string) => result.problems.find((p) => p.path === path)?.message ?? "";
+  assert.match(message("scoring"), /remisy i punktacja.*nie są jeszcze obsługiwane.*Usuń je z pliku/);
+  assert.match(message("schedule"), /terminarz meczów nie są jeszcze obsługiwane/);
+  assert.match(message("divisions"), /dywizje, awanse i spadki/);
+  assert.match(message("mysteryOption"), /Nieznane pole „mysteryOption”\. Dozwolone:/);
+  assert.ok(result.problems.every((p) => p.code === "UNKNOWN_FIELD"), "codes stay stable for existing clients");
+});

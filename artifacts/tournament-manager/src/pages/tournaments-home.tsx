@@ -82,7 +82,7 @@ export default function TournamentsHome() {
           </h1>
           <p className="mt-3 text-base text-muted-foreground">
             {isExperimental
-              ? "Wybierz rolę. Cała dalsza ścieżka pozostanie w równoległym interfejsie Experimental."
+              ? "Kim jesteś? Organizator tworzy i prowadzi turniej, Pomoc wpisuje wyniki, Widz ogląda drabinkę i tabelę."
               : "Wybierz sposób wejścia do modułu turniejowego."}
           </p>
         </div>

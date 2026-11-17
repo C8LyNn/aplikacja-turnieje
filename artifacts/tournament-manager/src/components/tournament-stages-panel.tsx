@@ -3,6 +3,7 @@ import { Link, useLocation, useSearch } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   getGetTournamentStageQueryKey,
+  getGetTournamentStandingsQueryKey,
   getGetTournamentStageBasketsQueryKey,
   getGetTournamentStageReadinessQueryKey,
   getGetDoubleEliminationStageQueryKey,
@@ -26,6 +27,7 @@ import {
   useStartTournamentStage,
   useStartTournament,
   useGetStageSeedingCeremony,
+  useGetTournamentStandings,
 } from "@workspace/api-client-react";
 import { DoubleEliminationBracket } from "@/components/double-elimination-bracket";
 import { StageQualificationRouting } from "@/components/stage-qualification-routing";
@@ -34,7 +36,7 @@ import { DeadlockStageBansSummary } from "@/components/deadlock-stage-bans-edito
 import { availableStageStartReadiness } from "@/lib/organizer-next-step";
 import { organizerStageSummary } from "@/lib/organizer-stage-summary";
 import { invalidateTournamentDependentQueries } from "@/lib/tournament-query-invalidation";
-import { stageReadinessFeedback, stageReadinessMessages, stageLifecycleError } from "@/lib/stage-lifecycle-feedback";
+import { firstStageNeedsEntrants, stageReadinessFeedback, stageReadinessMessages, stageLifecycleError } from "@/lib/stage-lifecycle-feedback";
 import {
   CheckCircle2,
   Circle,
@@ -202,15 +204,20 @@ export function ParticipantTable({
   matches,
   title,
   groupMode = false,
+  officialRanks,
 }: {
   participants: StageParticipant[];
   matches: Match[];
   title?: string;
   groupMode?: boolean;
+  /** Places from the tournament classification, used when a finished stage stored none (V5.2). */
+  officialRanks?: ReadonlyMap<number, number>;
 }) {
+  const placeOf = (participant: StageParticipant) =>
+    (groupMode ? participant.groupRank : participant.finalRank) ?? officialRanks?.get(participant.playerId) ?? null;
   const ordered = [...participants].sort((a, b) => {
-    const rankA = groupMode ? a.groupRank : a.finalRank;
-    const rankB = groupMode ? b.groupRank : b.finalRank;
+    const rankA = placeOf(a);
+    const rankB = placeOf(b);
     return (
       (rankA ?? Number.MAX_SAFE_INTEGER) - (rankB ?? Number.MAX_SAFE_INTEGER) ||
       a.stageSeed - b.stageSeed
@@ -241,9 +248,7 @@ export function ParticipantTable({
           </thead>
           <tbody className="divide-y">
             {ordered.map((participant) => {
-              const rank = groupMode
-                ? participant.groupRank
-                : participant.finalRank;
+              const rank = placeOf(participant);
               const qualified =
                 participant.status === "qualified" ||
                 participant.status === "winner";
@@ -267,7 +272,7 @@ export function ParticipantTable({
                       </Badge>
                     ) : (
                       <span className="break-words text-xs text-muted-foreground">
-                        {{ active: "Aktywny", eliminated: "Wyeliminowany", pending: "Oczekuje", qualified: "Awans", winner: "Zwycięzca" }[participant.status]}
+                        {participant.status === "active" && officialRanks ? "Zakończył" : { active: "Aktywny", eliminated: "Wyeliminowany", pending: "Oczekuje", qualified: "Awans", winner: "Zwycięzca" }[participant.status]}
                       </span>
                     )}
                   </td>
@@ -551,6 +556,13 @@ export function TournamentStagesPanel({
   const searchParams = new URLSearchParams(search);
   const requestedStageId = Number(searchParams.get("stage")) || undefined;
   const requestedAction = searchParams.get("action");
+  // Set when the action was opened from the live host panel; that panel is where the organizer continues.
+  const returnToHost = useRef(false);
+  const backToHostAfterSuccess = () => {
+    if (!returnToHost.current) return;
+    returnToHost.current = false;
+    navigate(tournamentHref(tournamentId, isExperimental, "/host?tab=prowadzenie"));
+  };
   const [selectedStageId, setSelectedStageId] = useState<number>();
   useEffect(() => { if (requestedStageId && !requestedAction) setSelectedStageId(requestedStageId); }, [requestedStageId, requestedAction]);
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -734,6 +746,14 @@ export function TournamentStagesPanel({
     },
   } });
   const startMutation = useStartTournamentStage({ mutation: lifecycleFeedback });
+  // Single-stage tournaments finished by their last result keep no per-stage places; the
+  // classification computed by the engine is the source of truth for the final order.
+  const singleStageFinished = stages.length === 1 && stages[0]?.status === "completed";
+  const officialStandings = useGetTournamentStandings(tournamentId, { query: { enabled: singleStageFinished, queryKey: getGetTournamentStandingsQueryKey(tournamentId) } });
+  const officialRanks = useMemo(() => {
+    const rows = singleStageFinished && Array.isArray(officialStandings.data) ? officialStandings.data : [];
+    return rows.length ? new Map(rows.map((row) => [row.playerId, row.rank])) : undefined;
+  }, [singleStageFinished, officialStandings.data]);
   const firstStartMutation = useStartTournament({ mutation: lifecycleFeedback });
   const [qualificationPending, setQualificationPending] = useState(false);
 
@@ -773,13 +793,16 @@ export function TournamentStagesPanel({
     // Consume the action, so the same CTA can be used again after cancellation.
     // Selection remains navigation state, never the trigger or target of an action.
     const params = new URLSearchParams(search);
+    returnToHost.current = params.get("return") === "host";
     params.delete("action");
     params.delete("stage");
+    params.delete("return");
     navigate(`${location}?${params}`, { replace: true });
   }, [search, requestedAction, requestedStageId, stagesQuery.data, stages, openLifecycleAction, location, navigate]);
   const ceremonyReady = !selected || isSequentialCeremonyReady(selected, ceremonyState);
   const readinessFeedback = selected && readinessQuery.data
-    ? stageReadinessFeedback(readinessQuery.data, selected.name) : undefined;
+    ? stageReadinessFeedback(readinessQuery.data, selected.name, { firstStage: selected.position === 1 }) : undefined;
+  const needsEntrants = !!selected && !!readinessQuery.data && firstStageNeedsEntrants(readinessQuery.data, selected.position === 1);
   const startBlockedReason = readinessQuery.isError ? "Nie udało się sprawdzić gotowości. Ponów sprawdzenie."
     : readinessQuery.isFetching || !readinessQuery.data ? "Sprawdzanie gotowości etapu…"
     : !readinessQuery.data.ready ? stageReadinessFeedback(readinessQuery.data, selected?.name ?? "Etap").summary
@@ -834,6 +857,7 @@ export function TournamentStagesPanel({
       {
         onSuccess: () => {
           setActionSuccess(`Etap „${actionStage.name}” zakończony.${stages.some(stage => stage.position > actionStage.position) ? " Sprawdź kwalifikację i gotowość kolejnego etapu." : " Plan nie zawiera kolejnego etapu."}`);
+          backToHostAfterSuccess();
         },
       },
     );
@@ -845,7 +869,7 @@ export function TournamentStagesPanel({
     const verified = await verifyLifecycleStage("start");
     setLifecycleChecking(false);
     if (!verified) { mutationLock.current = false; return; }
-    const onSuccess = () => { setStartConfirmOpen(false); setActionSuccess(`Etap „${actionStage.name}” rozpoczęty.`); };
+    const onSuccess = () => { setStartConfirmOpen(false); setActionSuccess(`Etap „${actionStage.name}” rozpoczęty.`); backToHostAfterSuccess(); };
     if (tournamentStatus === "draft" && actionStage.position === 1) firstStartMutation.mutate({ id: tournamentId }, { onSuccess });
     else startMutation.mutate({ id: tournamentId, stageId: actionStage.id }, { onSuccess });
   };
@@ -963,12 +987,13 @@ export function TournamentStagesPanel({
                 <p className="text-sm font-medium tabular-nums">{readinessFeedback?.counts}</p>
                 {!readinessQuery.data.ready && <p className="text-sm">{readinessFeedback?.action}</p>}
                 {!ceremonyReady && <p className="text-sm">Dokończ ceremonię losowania przed rozpoczęciem etapu.</p>}
-                {(readinessQuery.data.missingSeeds.length > 0 || !ceremonyReady || readinessQuery.data.reasonCode.startsWith("SEEDING_")) &&
+                {needsEntrants && <Button asChild><Link href={tournamentHref(tournamentId, isExperimental, "?tab=players")}>Dodaj uczestników</Link></Button>}
+                {!needsEntrants && (readinessQuery.data.missingSeeds.length > 0 || !ceremonyReady || readinessQuery.data.reasonCode.startsWith("SEEDING_")) &&
                   <Button variant="outline" asChild><a href={stageHasRandomCeremony(selected) ? `#stage-ceremony-${selected.id}` : tournamentHref(tournamentId, isExperimental, "?tab=players")}>{stageHasRandomCeremony(selected) ? "Przejdź do losowania" : "Sprawdź seedy graczy"}</a></Button>}
-                {(!readinessQuery.data.basketValidation.valid || readinessQuery.data.reasonCode === "STAGE_PARTICIPANTS_INCONSISTENT" || readinessQuery.data.reasonCode === "QUALIFICATION_CONFIGURATION_INVALID") &&
+                {(!readinessQuery.data.basketValidation.valid || (!needsEntrants && readinessQuery.data.reasonCode === "STAGE_PARTICIPANTS_INCONSISTENT") || readinessQuery.data.reasonCode === "QUALIFICATION_CONFIGURATION_INVALID") &&
                   <Button variant="outline" asChild><Link href={tournamentHref(tournamentId, isExperimental, "?tab=baskets")}>Sprawdź koszyki i dopływ uczestników</Link></Button>}
                 {readinessQuery.data.reasonCode === "PREVIOUS_STAGE_NOT_COMPLETED" && <p className="text-sm">Wybierz poprzedni etap na liście i sprawdź jego zakończenie.</p>}
-                {!readinessQuery.data.ready && <section aria-label="Szczegóły diagnostyczne" className="pt-3 space-y-2">
+                {!readinessQuery.data.ready && !needsEntrants && <section aria-label="Szczegóły diagnostyczne" className="pt-3 space-y-2">
                   <h5 className="text-sm font-semibold">Szczegóły diagnostyczne</h5>
                   <ul className="list-disc pl-5 text-sm text-muted-foreground space-y-1">{stageReadinessMessages(readinessQuery.data, { stages, stageId: selected.id, baskets: basketConfigurationQuery.data?.baskets, routes: basketConfigurationQuery.data?.routes }).map(message => <li key={message}>{message}</li>)}</ul>
                   <p className="text-xs text-muted-foreground">Kod diagnostyczny: {readinessQuery.data.reasonCode}</p>
@@ -1050,6 +1075,7 @@ export function TournamentStagesPanel({
               <ParticipantTable
                 participants={detailQuery.data.participants}
                 matches={selectedMatches}
+                officialRanks={selected.status === "completed" ? officialRanks : undefined}
                 title={
                   selected.status === "completed"
                     ? "Zamrożony ranking"
@@ -1101,7 +1127,7 @@ export function TournamentStagesPanel({
               Ranking zostanie obliczony i zamrożony. {explicitBasketAuthority ? "Kwalifikację do koszyków trzeba następnie zatwierdzić i przekazać uczestników." : "System zapisze kwalifikantów zgodnie z konfiguracją."} Następny etap rozpoczyna się osobno, po sprawdzeniu gotowości. Cofnięcie wyniku może być zablokowane po rozpoczęciu kolejnego etapu.
             </DialogDescription>
           </DialogHeader>
-          {lifecycleModalStale && <p role="alert" className="text-sm text-destructive">{lifecycleStaleMessage}</p>}
+          {!pending && lifecycleModalStale && <p role="alert" className="text-sm text-destructive">{lifecycleStaleMessage}</p>}
           {!lifecycleModalStale && actionError && <p className="text-sm text-destructive">{actionError}</p>}
           {previewQuery.isLoading && (
             <div className="flex items-center gap-2 py-6 text-sm text-muted-foreground">
@@ -1150,8 +1176,8 @@ export function TournamentStagesPanel({
           <DialogHeader><DialogTitle>Rozpocząć etap „{actionStage?.name}”?</DialogTitle>
             <DialogDescription>System utrwali skład uczestników i przygotuje mecze tego etapu. Po rozpoczęciu zmiana składu i rozstawienia będzie ograniczona.</DialogDescription>
           </DialogHeader>
-          {lifecycleModalStale && <p role="alert" className="text-sm text-destructive">{lifecycleStaleMessage}</p>}
-          {actionStartBlockedReason && <p className="text-sm">{actionStartBlockedReason}</p>}
+          {!pending && lifecycleModalStale && <p role="alert" className="text-sm text-destructive">{lifecycleStaleMessage}</p>}
+          {pending ? <p role="status" className="text-sm text-muted-foreground">Uruchamianie etapu i przygotowanie meczów…</p> : actionStartBlockedReason && <p className="text-sm">{actionStartBlockedReason}</p>}
           {(actionReadiness.isError || actionCeremony.isError) && (
             <Button variant="outline" disabled={pending || actionReadiness.isFetching || actionCeremony.isFetching} onClick={() => {
               void actionReadiness.refetch();
