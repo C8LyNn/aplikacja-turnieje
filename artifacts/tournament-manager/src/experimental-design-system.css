@@ -1693,6 +1693,103 @@ html[data-x-skin="classic"] :is(.experimental-tournament-shell, .experimental-to
 .experimental-result-preview[data-complete="true"]::before { content: "🏆"; font-size: 1rem; }
 .experimental-result-preview strong { font-size: 1.0625rem; color: color-mix(in oklab, var(--x-gold) 55%, var(--x-text)); }
 
+/* v5 · appearance studio: tokens (viewer preference, Experimental roots only) */
+html[data-x-type="classic"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create, .experimental-tournament-public, .experimental-tournament-stage-view) {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --x-font-title: 700 2rem/1.1 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --x-font-section: 650 1.0625rem/1.3 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+html[data-x-type="technical"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create, .experimental-tournament-public, .experimental-tournament-stage-view) {
+  --x-font-title: 800 1.9rem/1.1 ui-monospace, "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+  --x-font-section: 700 1rem/1.3 ui-monospace, "JetBrains Mono", "Cascadia Code", Consolas, monospace;
+  font-variant-numeric: tabular-nums;
+}
+html[data-x-type="technical"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create, .experimental-tournament-public, .experimental-tournament-stage-view) :is(h1, h2, h3, h4) {
+  font-family: ui-monospace, "JetBrains Mono", "Cascadia Code", Consolas, monospace; letter-spacing: -.01em;
+}
+html[data-x-type="readable"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create, .experimental-tournament-public, .experimental-tournament-stage-view) {
+  font-size: 1.0625rem; line-height: 1.65; letter-spacing: .005em;
+}
+html[data-x-type="readable"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create, .experimental-tournament-public, .experimental-tournament-stage-view) :is(small, .text-xs) { font-size: .8125rem; }
+
+html[data-x-shape="sharp"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create, .experimental-tournament-public, .experimental-tournament-stage-view) {
+  --x-radius-xl: .35rem; --x-radius-lg: .3rem; --x-radius: .25rem; --x-radius-sm: .15rem;
+}
+html[data-x-shape="sharp"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create, .experimental-tournament-public, .experimental-tournament-stage-view) :is(.rounded-xl, .rounded-2xl, .rounded-lg) { border-radius: .3rem; }
+html[data-x-shape="round"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create, .experimental-tournament-public, .experimental-tournament-stage-view) {
+  --x-radius-xl: 1.75rem; --x-radius-lg: 1.4rem; --x-radius: 1.1rem; --x-radius-sm: .8rem;
+}
+html[data-x-shape="round"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create, .experimental-tournament-public, .experimental-tournament-stage-view) :is(.rounded-xl, .rounded-2xl) { border-radius: 1.4rem; }
+
+html[data-x-cards="solid"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create, .experimental-tournament-public, .experimental-tournament-stage-view) {
+  --x-card-top: color-mix(in oklab, hsl(var(--card)) 90%, hsl(var(--foreground)) 10%);
+  --x-card-bot: color-mix(in oklab, hsl(var(--card)) 96%, hsl(var(--foreground)) 4%);
+  --x-glass: color-mix(in oklab, hsl(var(--card)) 88%, hsl(var(--foreground)) 12%);
+  --x-glass-2: color-mix(in oklab, hsl(var(--card)) 82%, hsl(var(--foreground)) 18%);
+}
+html[data-x-cards="outline"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create, .experimental-tournament-public, .experimental-tournament-stage-view) {
+  --x-card-top: transparent;
+  --x-card-bot: color-mix(in oklab, hsl(var(--background)) 70%, transparent);
+  --x-glass: transparent;
+  --x-line: color-mix(in oklab, hsl(var(--foreground)) 20%, transparent);
+  --x-line-strong: color-mix(in oklab, hsl(var(--foreground)) 32%, transparent);
+}
+
+html[data-x-fx="subtle"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create, .experimental-tournament-public, .experimental-tournament-stage-view) {
+  --x-shadow: inset 0 1px 0 color-mix(in oklab, hsl(var(--foreground)) 5%, transparent), 0 8px 18px -16px rgb(0 0 0 / .6);
+  --x-shadow-hover: inset 0 1px 0 color-mix(in oklab, hsl(var(--foreground)) 7%, transparent), 0 10px 22px -16px rgb(0 0 0 / .65);
+}
+html[data-x-fx="off"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create, .experimental-tournament-public, .experimental-tournament-stage-view) {
+  --x-shadow: none;
+  --x-shadow-hover: none;
+}
+html[data-x-fx="off"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create, .experimental-tournament-public, .experimental-tournament-stage-view) *:not(:focus-visible) {
+  box-shadow: none !important; text-shadow: none !important;
+}
+
+html[data-x-contrast="high"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create, .experimental-tournament-public, .experimental-tournament-stage-view) {
+  --x-text-2: color-mix(in oklab, hsl(var(--foreground)) 86%, transparent);
+  --x-line: color-mix(in oklab, hsl(var(--foreground)) 30%, transparent);
+  --x-line-strong: color-mix(in oklab, hsl(var(--foreground)) 48%, transparent);
+  --muted-foreground: 0 0% 82%;
+}
+html[data-x-contrast="high"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create, .experimental-tournament-public, .experimental-tournament-stage-view) :is(a, button):focus-visible { outline: 3px solid hsl(var(--foreground)); outline-offset: 2px; }
+
+html[data-x-motion="reduced"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create, .experimental-tournament-public, .experimental-tournament-stage-view),
+html[data-x-motion="reduced"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create, .experimental-tournament-public, .experimental-tournament-stage-view) *,
+html[data-x-motion="reduced"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create, .experimental-tournament-public, .experimental-tournament-stage-view) *::before,
+html[data-x-motion="reduced"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create, .experimental-tournament-public, .experimental-tournament-stage-view) *::after {
+  animation-duration: .001ms !important; animation-iteration-count: 1 !important; transition-duration: .001ms !important; scroll-behavior: auto !important;
+}
+
+/* v5 · appearance studio: panel */
+.experimental-appearance-panel .experimental-appearance-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: .25rem; margin: .75rem 0 .5rem; padding: .25rem; border-radius: .7rem; background: color-mix(in oklab, hsl(var(--foreground)) 6%, transparent); }
+.experimental-appearance-panel .experimental-appearance-tabs button { min-height: 2.25rem; border-radius: .5rem; font-size: .8125rem; font-weight: 700; color: hsl(var(--muted-foreground)); }
+.experimental-appearance-panel .experimental-appearance-tabs button[aria-selected="true"] { background: var(--p); color: hsl(var(--primary-foreground)); }
+.experimental-appearance-panel .experimental-appearance-presets { display: grid; gap: .35rem; }
+.experimental-appearance-panel .experimental-appearance-preset {
+  display: flex; align-items: center; gap: .6rem; width: 100%; padding: .45rem .55rem; border-radius: .65rem; text-align: left;
+  border: 1px solid color-mix(in oklab, hsl(var(--foreground)) 12%, transparent); background: transparent; color: hsl(var(--foreground));
+}
+.experimental-appearance-panel .experimental-appearance-preset:hover { background: color-mix(in oklab, hsl(var(--foreground)) 6%, transparent); }
+.experimental-appearance-panel .experimental-appearance-preset[aria-pressed="true"] { border-color: color-mix(in oklab, var(--p) 70%, transparent); background: color-mix(in oklab, var(--p) 12%, transparent); }
+.experimental-appearance-panel .experimental-appearance-custom { display: grid; gap: .3rem; margin: 0 0 .5rem; padding: 0; list-style: none; }
+.experimental-appearance-panel .experimental-appearance-custom li { display: flex; gap: .3rem; }
+.experimental-appearance-panel .experimental-appearance-custom-apply { flex: 1; display: inline-flex; align-items: center; gap: .4rem; min-height: 2.25rem; padding: 0 .6rem; border-radius: .6rem; border: 1px solid color-mix(in oklab, hsl(var(--foreground)) 12%, transparent); font-size: .8125rem; font-weight: 600; text-align: left; color: hsl(var(--foreground)); }
+.experimental-appearance-panel .experimental-appearance-custom-apply[aria-pressed="true"] { border-color: color-mix(in oklab, var(--p) 70%, transparent); }
+.experimental-appearance-panel .experimental-appearance-custom-remove { display: inline-grid; place-items: center; width: 2.25rem; border-radius: .6rem; border: 1px solid color-mix(in oklab, hsl(var(--foreground)) 12%, transparent); color: hsl(var(--muted-foreground)); }
+.experimental-appearance-panel .experimental-appearance-save { display: flex; gap: .3rem; }
+.experimental-appearance-panel .experimental-appearance-save input { flex: 1; min-width: 0; min-height: 2.25rem; padding: 0 .6rem; border-radius: .6rem; border: 1px solid color-mix(in oklab, hsl(var(--foreground)) 16%, transparent); background: transparent; font-size: .8125rem; color: hsl(var(--foreground)); }
+.experimental-appearance-panel .experimental-appearance-save button { display: inline-flex; align-items: center; gap: .3rem; padding: 0 .7rem; border-radius: .6rem; border: 1px solid color-mix(in oklab, hsl(var(--foreground)) 16%, transparent); font-size: .78rem; font-weight: 700; color: hsl(var(--foreground)); white-space: nowrap; }
+.experimental-appearance-panel .experimental-appearance-footer { position: sticky; bottom: -1rem; margin: .75rem -1rem -1rem; padding: .6rem 1rem 1rem; background: hsl(var(--popover, var(--background))); border-top: 1px solid color-mix(in oklab, hsl(var(--foreground)) 10%, transparent); }
+.experimental-appearance-panel .experimental-appearance-actions { display: grid; grid-template-columns: 1fr auto auto; gap: .35rem; }
+.experimental-appearance-panel .experimental-appearance-actions .experimental-appearance-reset { margin-top: 0; }
+.experimental-appearance-panel .experimental-appearance-cancel,
+.experimental-appearance-panel .experimental-appearance-apply { min-height: 2.25rem; padding: 0 .8rem; border-radius: .6rem; font-size: .8125rem; font-weight: 700; }
+.experimental-appearance-panel .experimental-appearance-cancel { border: 1px solid color-mix(in oklab, hsl(var(--foreground)) 16%, transparent); color: hsl(var(--foreground)); }
+.experimental-appearance-panel .experimental-appearance-apply { background: var(--p); color: hsl(var(--primary-foreground)); }
+.experimental-appearance-panel :is(.experimental-appearance-cancel, .experimental-appearance-apply):disabled { opacity: .45; cursor: default; }
+
 /* v5 · guided creation wizard */
 :is(.experimental-tournament-shell, .experimental-tournament-create) .experimental-wizard { display: grid; gap: 1.25rem; padding-bottom: 5.5rem; }
 :is(.experimental-tournament-shell, .experimental-tournament-create) .experimental-wizard-sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }

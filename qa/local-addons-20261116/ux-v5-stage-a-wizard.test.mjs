@@ -101,3 +101,36 @@ test('V5-D: team roster panel renders only in Experimental team tournaments', ()
     assert.doesNotMatch(src(file), /ExperimentalTeamRosters|participantType/, `${file} stays unchanged`);
   }
 });
+
+test('V5-E: appearance studio CSS only targets Experimental roots or its own panel', () => {
+  const css = src('experimental-design-system.css');
+  const start = css.indexOf('/* v5 · appearance studio: tokens');
+  const end = css.indexOf('/* v5 · guided creation wizard */');
+  assert.ok(start > 0 && end > start, 'appearance block sits before the wizard block');
+  const selectors = [];
+  for (const line of css.slice(start, end).split(/\r?\n/)) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith('/*') || trimmed.startsWith('@') || trimmed.startsWith('--') || /^[a-z-]+:/.test(trimmed) || trimmed === '}') continue;
+    const head = trimmed.includes('{') ? trimmed.slice(0, trimmed.indexOf('{')) : trimmed;
+    let level = 0, current = '';
+    for (const ch of head) {
+      if (ch === '(') level += 1;
+      if (ch === ')') level -= 1;
+      if (ch === ',' && level === 0) { if (current.trim()) selectors.push(current.trim()); current = ''; } else current += ch;
+    }
+    if (current.trim()) selectors.push(current.trim());
+  }
+  assert.ok(selectors.length > 30, `found ${selectors.length}`);
+  const roots = ':is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create, .experimental-tournament-public, .experimental-tournament-stage-view)';
+  for (const selector of selectors) {
+    const ok = selector.startsWith('.experimental-appearance-panel ') ||
+      (/^html\[data-x-(type|shape|cards|fx|contrast|motion)="[a-z]+"\] /.test(selector) && selector.includes(roots));
+    assert.ok(ok, `unscoped selector: ${selector}`);
+  }
+});
+
+test('V5-E: appearance stays a viewer preference (no tournament writes)', () => {
+  const ui = src('features/experimental-tournaments/experimental-appearance.tsx');
+  assert.doesNotMatch(ui, /fetch\(|useUpdateTournament|api-client-react/);
+  assert.match(ui, /Nie zmienia ustawień turnieju/);
+});
