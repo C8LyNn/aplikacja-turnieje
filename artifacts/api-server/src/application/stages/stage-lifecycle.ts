@@ -351,7 +351,7 @@ function leagueProjectionRanking(
   };
 }
 
-function calculateGroupRanking(
+export function calculateGroupRanking(
   stage: typeof tournamentStagesTable.$inferSelect,
   groups: Array<typeof stageGroupsTable.$inferSelect>,
   memberships: Array<typeof stageParticipantsTable.$inferSelect>,

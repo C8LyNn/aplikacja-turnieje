@@ -1573,6 +1573,72 @@ export const GetTournamentStageResponse = zod.object({
 
 
 /**
+ * Ranked by the same engine as stage completion; a completed stage returns its stored places.
+ * @summary Live tables of a group, league or Swiss stage (V5.4)
+ */
+
+
+
+
+export const GetStageLiveStandingsParams = zod.object({
+  "id": zod.coerce.number().min(1),
+  "stageId": zod.coerce.number().min(1)
+})
+
+export const getStageLiveStandingsResponseLeagueRulesOnePointsWinMin = 0;
+export const getStageLiveStandingsResponseLeagueRulesOnePointsWinMax = 99;
+
+export const getStageLiveStandingsResponseLeagueRulesOnePointsDrawMin = 0;
+export const getStageLiveStandingsResponseLeagueRulesOnePointsDrawMax = 99;
+
+export const getStageLiveStandingsResponseLeagueRulesOnePointsLossMin = 0;
+export const getStageLiveStandingsResponseLeagueRulesOnePointsLossMax = 99;
+
+
+
+export const GetStageLiveStandingsResponse = zod.object({
+  "stageId": zod.number(),
+  "format": zod.string(),
+  "status": zod.string(),
+  "final": zod.boolean(),
+  "leagueRules": zod.union([zod.object({
+  "version": zod.literal(1).optional(),
+  "allowDraws": zod.boolean().optional().describe('Draws need a single-game match (bestOf 1); the score is then goals\/points.'),
+  "points": zod.object({
+  "win": zod.number().min(getStageLiveStandingsResponseLeagueRulesOnePointsWinMin).max(getStageLiveStandingsResponseLeagueRulesOnePointsWinMax),
+  "draw": zod.number().min(getStageLiveStandingsResponseLeagueRulesOnePointsDrawMin).max(getStageLiveStandingsResponseLeagueRulesOnePointsDrawMax),
+  "loss": zod.number().min(getStageLiveStandingsResponseLeagueRulesOnePointsLossMin).max(getStageLiveStandingsResponseLeagueRulesOnePointsLossMax)
+}),
+  "tieBreakers": zod.array(zod.enum(['head_to_head', 'score_difference', 'scored', 'wins'])).optional()
+}).describe('V5.3: draws, points and ordered tie-breakers for round_robin and group_stage stages.'),zod.null()]),
+  "rulesSummary": zod.string().nullable(),
+  "advancingPlaces": zod.number().nullable(),
+  "tables": zod.array(zod.object({
+  "groupId": zod.number().nullable(),
+  "label": zod.string(),
+  "matchesPlayed": zod.number(),
+  "matchesTotal": zod.number(),
+  "rows": zod.array(zod.object({
+  "playerId": zod.number(),
+  "playerName": zod.string(),
+  "rank": zod.number(),
+  "played": zod.number(),
+  "wins": zod.number(),
+  "draws": zod.number(),
+  "losses": zod.number(),
+  "points": zod.number().nullable(),
+  "scoreFor": zod.number(),
+  "scoreAgainst": zod.number(),
+  "diff": zod.number(),
+  "buchholz": zod.number().nullable(),
+  "decidedBy": zod.string().nullable(),
+  "zone": zod.union([zod.literal('qualify'),zod.literal('out'),zod.literal(null)]).nullable()
+}))
+}))
+})
+
+
+/**
  * @summary Read the persisted pre-stage seeding ceremony
  */
 

@@ -436,7 +436,7 @@ function build(presetId: PresetId, input: PresetParams, accurate: boolean): Buil
       "Rozstawienie w drabince: zwycięzcy grup przed drugimi miejscami.",
       qualifiers === 1 ? "Rozstawienie w drabince: według łącznego rankingu awansujących." : "Rozstawienie w drabince: zwycięzcy grup przed drugimi miejscami.",
     );
-    if (placement === 1) built.requirements.push("Podział do grup zostanie wylosowany przy starcie fazy grupowej.");
+    if (placement === 1) built.requirements.push("Przed startem przeprowadzisz losowanie grup (zakładka Etapy → „Przejdź do losowania”).");
   }
   built.stages = built.stages.map((stage) => (usesRandom(stage) ? { ...stage, randomSeed: PRESET_PREVIEW_RANDOM_SEED, randomRevealOrder: "sequential" as const } : stage));
   // A flexible single stage has no plan to carry the seeding rule, so any non-default rule needs a fixed plan.
@@ -444,7 +444,7 @@ function build(presetId: PresetId, input: PresetParams, accurate: boolean): Buil
     built.requiresStagePlan = true;
     built.requirements.push(`Losowanie lub ręczne rozstawienie używa stałego planu: przed startem lista musi liczyć dokładnie ${built.params.participantCount} uczestników.`);
   }
-  if (entry === 1) built.requirements.push("Kolejność startowa zostanie wylosowana przed startem.");
+  if (entry === 1) built.requirements.push("Przed startem przeprowadzisz losowanie kolejności (zakładka Etapy → „Przejdź do losowania”).");
   if (entry === 2) built.requirements.push("Przed startem nadaj uczestnikom numery rozstawienia.");
   return built;
 }

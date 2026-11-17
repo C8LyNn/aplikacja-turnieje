@@ -2115,6 +2115,60 @@ export interface MatchUpdate {
   bestOf?: number;
 }
 
+/**
+ * @nullable
+ */
+export type LiveStageTableRowZone = typeof LiveStageTableRowZone[keyof typeof LiveStageTableRowZone] | null;
+
+
+export const LiveStageTableRowZone = {
+  qualify: 'qualify',
+  out: 'out',
+} as const;
+
+export interface LiveStageTableRow {
+  playerId: number;
+  playerName: string;
+  rank: number;
+  played: number;
+  wins: number;
+  draws: number;
+  losses: number;
+  /** @nullable */
+  points: number | null;
+  scoreFor: number;
+  scoreAgainst: number;
+  diff: number;
+  /** @nullable */
+  buchholz: number | null;
+  /** @nullable */
+  decidedBy: string | null;
+  /** @nullable */
+  zone: LiveStageTableRowZone;
+}
+
+export interface LiveStageTable {
+  /** @nullable */
+  groupId: number | null;
+  label: string;
+  matchesPlayed: number;
+  matchesTotal: number;
+  rows: LiveStageTableRow[];
+}
+
+export interface LiveStageStandings {
+  stageId: number;
+  format: string;
+  status: string;
+  final: boolean;
+  leagueRules: LeagueRules | null;
+  /** @nullable */
+  rulesSummary: string | null;
+  /** @nullable */
+  advancingPlaces: number | null;
+  tables: LiveStageTable[];
+}
+
 export type MatchResult = {
   /** @minimum 1 */
   expectedRevision: number;

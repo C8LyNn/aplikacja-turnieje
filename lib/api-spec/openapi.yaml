@@ -596,6 +596,35 @@ paths:
               schema:
                 $ref: "#/components/schemas/DomainError"
 
+  /tournaments/{id}/stages/{stageId}/standings:
+    get:
+      operationId: getStageLiveStandings
+      tags: [tournaments]
+      summary: Live tables of a group, league or Swiss stage (V5.4)
+      description: Ranked by the same engine as stage completion; a completed stage returns its stored places.
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+        - $ref: "#/components/parameters/StageId"
+      responses:
+        "200":
+          description: Live stage tables
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LiveStageStandings"
+        "403":
+          description: Tournament is not visible to the current actor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "404":
+          description: Tournament or stage not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+
   /tournaments/{id}/stages/{stageId}/seeding-ceremony:
     get:
       operationId: getStageSeedingCeremony
@@ -4235,6 +4264,56 @@ components:
           type: integer
           minimum: 1
 
+    LiveStageStandings:
+      type: object
+      required: [stageId, format, status, final, leagueRules, rulesSummary, advancingPlaces, tables]
+      properties:
+        stageId: { type: integer }
+        format: { type: string }
+        status: { type: string }
+        final: { type: boolean }
+        leagueRules:
+          oneOf:
+            - $ref: "#/components/schemas/LeagueRules"
+            - type: "null"
+        rulesSummary: { type: [string, "null"] }
+        advancingPlaces: { type: [integer, "null"] }
+        tables:
+          type: array
+          items:
+            $ref: "#/components/schemas/LiveStageTable"
+    LiveStageTable:
+      type: object
+      required: [groupId, label, rows, matchesPlayed, matchesTotal]
+      properties:
+        groupId: { type: [integer, "null"] }
+        label: { type: string }
+        matchesPlayed: { type: integer }
+        matchesTotal: { type: integer }
+        rows:
+          type: array
+          items:
+            $ref: "#/components/schemas/LiveStageTableRow"
+    LiveStageTableRow:
+      type: object
+      required: [playerId, playerName, rank, played, wins, draws, losses, points, scoreFor, scoreAgainst, diff, buchholz, decidedBy, zone]
+      properties:
+        playerId: { type: integer }
+        playerName: { type: string }
+        rank: { type: integer }
+        played: { type: integer }
+        wins: { type: integer }
+        draws: { type: integer }
+        losses: { type: integer }
+        points: { type: [integer, "null"] }
+        scoreFor: { type: integer }
+        scoreAgainst: { type: integer }
+        diff: { type: integer }
+        buchholz: { type: [number, "null"] }
+        decidedBy: { type: [string, "null"] }
+        zone:
+          type: [string, "null"]
+          enum: [qualify, out, null]
     MatchResult:
       oneOf:
         - type: object

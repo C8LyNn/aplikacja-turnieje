@@ -45,6 +45,7 @@ import type {
   HealthStatus,
   ImportResult,
   LegacyOrganizerUpgradeInput,
+  LiveStageStandings,
   MarvelEliminationStageError,
   MarvelEliminationStageState,
   MarvelGroupResultInput,
@@ -1594,6 +1595,89 @@ export function useGetTournamentStage<TData = Awaited<ReturnType<typeof getTourn
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getGetTournamentStageQueryOptions(id,stageId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetStageLiveStandingsUrl = (id: number,
+    stageId: number,) => {
+
+
+
+
+  return `/api/tournaments/${id}/stages/${stageId}/standings`
+}
+
+/**
+ * Ranked by the same engine as stage completion; a completed stage returns its stored places.
+ * @summary Live tables of a group, league or Swiss stage (V5.4)
+ */
+export const getStageLiveStandings = async (id: number,
+    stageId: number, options?: RequestInit): Promise<LiveStageStandings> => {
+
+  return customFetch<LiveStageStandings>(getGetStageLiveStandingsUrl(id,stageId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetStageLiveStandingsQueryKey = (id: number,
+    stageId: number,) => {
+    return [
+    `/api/tournaments/${id}/stages/${stageId}/standings`
+    ] as const;
+    }
+
+
+export const getGetStageLiveStandingsQueryOptions = <TData = Awaited<ReturnType<typeof getStageLiveStandings>>, TError = ErrorType<DomainError>>(id: number,
+    stageId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getStageLiveStandings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetStageLiveStandingsQueryKey(id,stageId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getStageLiveStandings>>> = ({ signal }) => getStageLiveStandings(id,stageId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id && stageId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getStageLiveStandings>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetStageLiveStandingsQueryResult = NonNullable<Awaited<ReturnType<typeof getStageLiveStandings>>>
+export type GetStageLiveStandingsQueryError = ErrorType<DomainError>
+
+
+/**
+ * @summary Live tables of a group, league or Swiss stage (V5.4)
+ */
+
+export function useGetStageLiveStandings<TData = Awaited<ReturnType<typeof getStageLiveStandings>>, TError = ErrorType<DomainError>>(
+ id: number,
+    stageId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getStageLiveStandings>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetStageLiveStandingsQueryOptions(id,stageId,options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

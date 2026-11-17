@@ -68,6 +68,9 @@ import { deriveStageBasketFlowCounts } from "@workspace/stage-basket-flow";
 import { isExperimentalTournamentPath, tournamentHref } from "@/features/experimental-tournaments/experimental-tournament-routing";
 import { bestOfLabel } from "@/features/experimental-tournaments/experimental-create-wizard-model";
 import type { SeedingCeremonyState } from "@/lib/seeding-ceremony-api";
+import { LiveTablesLegend, StageLiveTables, useStageLiveStandings } from "@/components/stage-live-tables";
+import { stageHasTable } from "@/lib/audience-views";
+import type { LiveStageStandings } from "@workspace/api-client-react";
 import {
   isSequentialCeremonyReady,
   stageHasRandomCeremony,
@@ -331,9 +334,12 @@ function MatchList({ matches }: { matches: Match[] }) {
 export function StageGroupTables({
   details,
   matches,
+  live,
 }: {
   details: TournamentStageDetails;
   matches: Match[];
+  /** V5.4: engine-ranked tables (points, draws, advancing places); falls back to match records. */
+  live?: LiveStageStandings;
 }) {
   return (
     <div
@@ -353,12 +359,16 @@ export function StageGroupTables({
             className="min-w-0 space-y-3"
             aria-label={`Grupa ${group.groupKey}`}
           >
-            <ParticipantTable
-              participants={participants}
-              matches={groupMatches}
-              title={`Grupa ${group.groupKey}`}
-              groupMode
-            />
+            {live?.tables.some((table) => table.groupId === group.id) ? (
+              <StageLiveTables data={live} groupId={group.id} />
+            ) : (
+              <ParticipantTable
+                participants={participants}
+                matches={groupMatches}
+                title={`Grupa ${group.groupKey}`}
+                groupMode
+              />
+            )}
             <div>
               <h5 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Mecze grupy
@@ -661,6 +671,11 @@ export function TournamentStagesPanel({
     },
   );
   const selected = stages.find((stage) => stage.id === selectedStageId);
+  // V5.4-006: engine-ranked tables for group / league / Swiss stages (same order as stage completion).
+  const liveStandingsQuery = useStageLiveStandings(tournamentId, selected?.id, {
+    enabled: !!selected && selected.status !== "planned" && stageHasTable(selected.format),
+    refetchInterval: audience ? 8000 : 5000,
+  });
   const actionStage = stages.find((stage) => stage.id === actionStageId);
   const lifecycleModalStale = !!actionSnapshot && (
     actionSnapshot.tournamentId !== tournamentId ||
@@ -1069,29 +1084,37 @@ export function TournamentStagesPanel({
               />
             ) : null
           ) : selected.format === "group_stage" ? (
-            <StageGroupTables
-              details={detailQuery.data}
-              matches={selectedMatches}
-            />
+            <div className="space-y-3">
+              <StageGroupTables
+                details={detailQuery.data}
+                matches={selectedMatches}
+                live={liveStandingsQuery.data}
+              />
+              {liveStandingsQuery.data && <LiveTablesLegend data={liveStandingsQuery.data} />}
+            </div>
           ) : (
             <div className="space-y-5">
-              <ParticipantTable
-                participants={detailQuery.data.participants}
-                matches={selectedMatches}
-                officialRanks={selected.status === "completed" ? officialRanks : undefined}
-                title={
-                  selected.status === "completed"
-                    ? "Zamrożony ranking"
-                    : "Ranking etapu"
-                }
-              />
+              {liveStandingsQuery.data && liveStandingsQuery.data.tables.length > 0 ? (
+                <StageLiveTables data={liveStandingsQuery.data} />
+              ) : (
+                <ParticipantTable
+                  participants={detailQuery.data.participants}
+                  matches={selectedMatches}
+                  officialRanks={selected.status === "completed" ? officialRanks : undefined}
+                  title={
+                    selected.status === "completed"
+                      ? "Zamrożony ranking"
+                      : "Ranking etapu"
+                  }
+                />
+              )}
               <div>
                 <h4 className="mb-3 font-semibold">Mecze etapu</h4>
                 <MatchList matches={selectedMatches} />
               </div>
             </div>
           )}
-          {selected.status === "active" && selected.id === activeStageId && (
+          {selected.status === "active" && selected.id === activeStageId && !liveStandingsQuery.data && (
             <p className="text-xs text-muted-foreground">
               Bilans obejmuje wyłącznie mecze tego etapu; ostateczna pozycja
               zostanie zamrożona przez serwer przy jego zakończeniu.

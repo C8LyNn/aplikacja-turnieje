@@ -27,6 +27,16 @@ function mount(view: keyof typeof views, initialStages = [stage(1, "completed", 
     const url = String(input);
     requested.push(url);
     const deId = url.match(/\/stages\/(\d+)\/double-elimination$/)?.[1];
+    // V5.4: the viewer's table comes from the stage's live standings endpoint.
+    const standingsId = url.match(/\/stages\/(\d+)\/standings$/)?.[1];
+    if (standingsId) {
+      const rows = state.matches.filter((item) => item.stageId === Number(standingsId)).flatMap((item, index) => [
+        { playerId: item.player1Id, playerName: item.player1Name, rank: index * 2 + 1, played: 1, wins: 1, draws: 0, losses: 0, points: null, scoreFor: 1, scoreAgainst: 0, diff: 1, buchholz: null, decidedBy: null, zone: null },
+        { playerId: item.player2Id, playerName: item.player2Name, rank: index * 2 + 2, played: 1, wins: 0, draws: 0, losses: 1, points: null, scoreFor: 0, scoreAgainst: 1, diff: -1, buchholz: null, decidedBy: null, zone: null },
+      ]);
+      const owner = state.stages.find((item) => item.id === Number(standingsId));
+      return new Response(JSON.stringify({ stageId: Number(standingsId), format: owner?.format ?? "round_robin", status: owner?.status ?? "active", final: false, leagueRules: null, rulesSummary: null, advancingPlaces: null, tables: [{ groupId: null, label: owner?.name ?? "Etap", rows, matchesPlayed: 1, matchesTotal: 1 }] }), { headers: { "content-type": "application/json" } });
+    }
     const body = deId ? deState(Number(deId)) : url.endsWith("/stages") ? state.stages : url.endsWith("/bracket") ? { tournament: state.tournament, rounds: [{ round: 1, matches: state.matches }] } : url.endsWith("/matches") ? state.matches : url.endsWith("/tournaments/1") ? state.tournament : [];
     return new Response(JSON.stringify(body), { headers: { "content-type": "application/json" } });
   };
@@ -72,7 +82,7 @@ for (const view of Object.keys(views) as (keyof typeof views)[]) {
     mount(view);
     await screen.findAllByText("Etap2 Alpha");
     assert.ok(!screen.queryByText("Etap1 Alpha"), "Historical Stage 1 match leaked into the current bracket");
-    assert.ok(screen.getByText(/Finał szkoleniowy/));
+    assert.ok(screen.getAllByText(/Finał szkoleniowy/).length > 0);
   });
   test(`${view}: transition follows refreshed stages even before tournament metadata catches up`, async () => {
     const { state, client } = mount(view, [stage(2, "planned"), stage(1, "active", "round_robin")]);
@@ -85,7 +95,7 @@ for (const view of Object.keys(views) as (keyof typeof views)[]) {
     assert.ok(!screen.queryByText("Etap1 Alpha"));
     state.tournament.activeStageId = 2;
     await refresh(client);
-    await waitFor(() => assert.ok(screen.getByText(/Finał szkoleniowy/)));
+    await waitFor(() => assert.ok(screen.getAllByText(/Finał szkoleniowy/).length > 0));
     assert.ok(!screen.queryByText("Etap1 Alpha"));
   });
   test(`${view}: only planned stages do not expose preloaded matches`, async () => {

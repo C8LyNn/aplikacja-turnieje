@@ -41,7 +41,7 @@ test("groups and play-off: random groups and overall ranking change seeding only
   assert.deepEqual(tuned.totals, base.totals, "same number of matches and rounds");
   assert.equal(tuned.stages[1].participantCount, base.stages[1].participantCount, "same number of qualifiers");
   assert.match(tuned.stages[0].advancementText, /łącznego rankingu/);
-  assert.ok(tuned.requirements.some((line) => /wylosowany/.test(line)));
+  assert.ok(tuned.requirements.some((line) => /losowanie grup/.test(line)));
   assert.equal(validateTournamentStagePlan(tuned.creation.stagePlan!).valid, true);
 });
 

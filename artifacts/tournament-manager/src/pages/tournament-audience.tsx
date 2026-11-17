@@ -50,6 +50,16 @@ import {
 } from "@/lib/presentation-theme";
 import { tournamentHref, useTournamentRoute } from "@/features/experimental-tournaments/experimental-tournament-routing";
 import { STAGE_FORMAT_LABELS } from "@/lib/tournament-stages-ui";
+import {
+  audienceSectionsFor,
+  chooseViewStage,
+  resolveAudienceSection,
+  roundHeading,
+  stageHasTable,
+  STAGE_STATE_LABELS,
+  type AudienceSectionId,
+} from "@/lib/audience-views";
+import { LiveTablesLegend, StageLiveTables, useStageLiveStandings } from "@/components/stage-live-tables";
 
 const FORMAT_LABELS: Record<string, string> = {
   single_elimination: "Drabinka eliminacyjna",
@@ -63,16 +73,6 @@ const STATUS_LABELS: Record<string, string> = {
   completed: "ZAKOŃCZONY",
 };
 
-type AudienceSection = "live" | "stages" | "matches" | "standings" | "players" | "bracket";
-
-const AUDIENCE_SECTIONS: Array<{ id: AudienceSection; label: string }> = [
-  { id: "live", label: "Na żywo" },
-  { id: "stages", label: "Etapy" },
-  { id: "matches", label: "Mecze" },
-  { id: "standings", label: "Tabela" },
-  { id: "players", label: "Gracze" },
-  { id: "bracket", label: "Drabinka" },
-];
 
 const MATCH_STATUS_LABELS: Record<string, string> = {
   pending: "Oczekuje",
@@ -107,9 +107,7 @@ export default function TournamentAudience() {
   const [showViewerModal, setShowViewerModal] = useState(false);
   const [preparedAuthId, setPreparedAuthId] = useState<number | null>(null);
   const requestedSection = searchParams.get("section");
-  const activeSection: AudienceSection = AUDIENCE_SECTIONS.some((section) => section.id === requestedSection)
-    ? requestedSection as AudienceSection
-    : "live";
+  const requestedStageId = Number.parseInt(searchParams.get("stage") ?? "", 10) || null;
 
   const organizerToken = getOrgToken(id);
   const storedSupportSession = getSupSession(id);
@@ -189,7 +187,15 @@ export default function TournamentAudience() {
   const stageScopeUnknown = stages === undefined || stagesQuery.isError;
   const hasMultipleStages = !stageScopeUnknown && (stages?.length ?? 0) > 1;
   const standingsInformational = hasMultipleStages || stageScopeUnknown;
-  const publicStage = selectPublicStage(stages, tournament?.activeStageId);
+  // V5.4-006: the shown stage (URL, else active, else last finished) decides which views exist.
+  const publicStage = chooseViewStage(stages, requestedStageId, tournament?.activeStageId) ?? selectPublicStage(stages, tournament?.activeStageId);
+  const stagePlanned = publicStage?.status === "planned";
+  const liveStandingsQuery = useStageLiveStandings(id, publicStage?.id, {
+    enabled: fetchPhase >= 2 && !!publicStage && !stagePlanned && stageHasTable(publicStage.format),
+    refetchInterval: 9000,
+  });
+  const liveStandings = liveStandingsQuery.data;
+  const groupLabelById = new Map((liveStandings?.tables ?? []).flatMap((table) => (table.groupId == null ? [] : [[table.groupId, table.label] as const])));
   const bracket = publicStageBracket(tournamentBracket, publicStage);
   const doubleEliminationStage = publicStage?.format === "double_elimination" ? publicStage : undefined;
   const marvelStage =
@@ -243,6 +249,18 @@ export default function TournamentAudience() {
   const heroMatch = featuredMatch ?? matches?.find((m) => m.status === "in_progress") ?? null;
 
   const isHeroLive = heroMatch?.status === "in_progress";
+  // Before stages load, the tournament's own format stands in, so tabs do not jump.
+  const sectionStage = publicStage ?? (tournament ? { format: tournament.format } : undefined);
+  const activeSection: AudienceSectionId = resolveAudienceSection(requestedSection, sectionStage, isHeroLive || !!featuredMatch);
+  const audienceSections = audienceSectionsFor(sectionStage);
+  const noStageStarted = !!stages && stages.length > 0 && stages.every((stage) => stage.status === "planned");
+  const sectionHref = (section: AudienceSectionId, stageId: number | null = requestedStageId) => {
+    const query = new URLSearchParams();
+    if (section !== "live") query.set("section", section);
+    if (stageId != null) query.set("stage", String(stageId));
+    const text = query.toString();
+    return tournamentHref(id, isExperimental, text ? `/audience?${text}` : "/audience");
+  };
   const isHeroDone = heroMatch?.status === "completed";
   const isHeroFeatured = !!featuredMatch && !isHeroLive;
 
@@ -417,11 +435,9 @@ export default function TournamentAudience() {
         className="min-w-0 max-w-full flex-none border-b border-white/8 bg-card/80 px-4 sm:px-6"
       >
         <div className="mx-auto flex min-w-0 w-full max-w-5xl items-center gap-1 overflow-x-auto py-2">
-          {AUDIENCE_SECTIONS.map((section) => {
+          {audienceSections.map((section) => {
             const isActive = activeSection === section.id;
-            const href = section.id === "live"
-              ? tournamentHref(id, isExperimental, "/audience")
-              : tournamentHref(id, isExperimental, `/audience?section=${section.id}`);
+            const href = sectionHref(section.id);
             return (
               <Link
                 key={section.id}
@@ -433,11 +449,36 @@ export default function TournamentAudience() {
                     : "text-white/55 hover:bg-white/5 hover:text-white"
                 }`}
               >
-                {section.id === "standings" && (standingsInformational || tournament?.format === "single_elimination") ? "Bilans" : section.label}
+                {section.label}
               </Link>
             );
           })}
         </div>
+        {hasMultipleStages && stages && (
+          <div className="mx-auto flex min-w-0 w-full max-w-5xl items-center gap-2 overflow-x-auto pb-2" role="list" aria-label="Etapy turnieju">
+            {[...stages].sort((a, b) => a.position - b.position).map((stage) => {
+              const current = stage.id === publicStage?.id;
+              return (
+                <Link
+                  key={stage.id}
+                  role="listitem"
+                  href={sectionHref(resolveAudienceSection(activeSection, stage, false), stage.id)}
+                  aria-current={current ? "true" : undefined}
+                  data-stage-state={stage.status}
+                  className={`audience-stage-chip inline-flex shrink-0 items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 ${
+                    current ? "border-cyan-400/60 bg-cyan-500/15 text-white" : "border-white/10 text-white/60 hover:text-white"
+                  }`}
+                >
+                  <span className="font-mono text-white/40">{stage.position}</span>
+                  <span>{stage.name}</span>
+                  <span className="audience-stage-state rounded-full px-1.5 py-px text-[10px] uppercase tracking-wide" data-state={stage.status}>
+                    {STAGE_STATE_LABELS[stage.status] ?? stage.status}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        )}
       </nav>
 
       {/* ── MAIN CONTENT ── */}
@@ -584,8 +625,8 @@ export default function TournamentAudience() {
               <div className="w-20 h-20 rounded-full border-2 border-white/15 flex items-center justify-center bg-white/5">
                 <span className="text-4xl">⏸</span>
               </div>
-              <h2 className="text-3xl font-bold text-white/50 tracking-tight">Przerwa</h2>
-              <p className="text-white/30">Mecze wznowią się wkrótce</p>
+              <h2 className="text-3xl font-bold text-white/50 tracking-tight">{hasNextMatches ? "Teraz nie trwa żaden mecz" : "Przerwa"}</h2>
+              <p className="text-white/30">{hasNextMatches ? "Kolejne mecze znajdziesz poniżej." : "Mecze wznowią się wkrótce"}</p>
               {tournament?.currentRound && tournament?.totalRounds && (
                 <Badge className="bg-white/5 text-white/40 border-white/10">
                   Runda {tournament.currentRound}/{tournament.totalRounds}
@@ -596,7 +637,7 @@ export default function TournamentAudience() {
         )}
 
         {/* ══ BOTTOM PANELS ══ */}
-        {(hasNextMatches || hasResults || hasStandings || hasRound) && (
+        {(hasNextMatches || hasResults || hasStandings || hasRound || (liveStandings?.tables.length ?? 0) > 0) && (
           <div className="w-full max-w-5xl grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
 
             {/* ── KOLEJNE MECZE ── */}
@@ -640,8 +681,18 @@ export default function TournamentAudience() {
               </Panel>
             )}
 
+            {/* ── TABELA ETAPU (V5.4: engine-ranked, stage-scoped) ── */}
+            {liveStandings && liveStandings.tables.length > 0 && (
+              <Panel title={liveStandings.tables.length > 1 ? `${publicStage?.name ?? "Etap"} — czołówka grup` : publicStage?.format === "swiss" ? "Ranking" : "Tabela"} className={!hasNextMatches && !hasResults ? "lg:col-span-3" : ""}>
+                <div className="audience-live-tables space-y-3 text-foreground">
+                  <StageLiveTables data={liveStandings} compact rowLimit={liveStandings.tables.length > 1 ? Math.max(2, liveStandings.advancingPlaces ?? 2) : 8} />
+                </div>
+                <Link href={sectionHref("table")} className="mt-3 inline-block text-xs font-medium text-cyan-300 hover:underline">Pełna tabela</Link>
+              </Panel>
+            )}
+
             {/* ── KLASYFIKACJA ── */}
-            {hasStandings && (
+            {hasStandings && !(liveStandings && liveStandings.tables.length > 0) && (
               <Panel title={hasMultipleStages ? "Bilans łączny meczów — wszystkie etapy" : stageScopeUnknown ? "Bilans informacyjny — zakres etapów niepotwierdzony" : "Klasyfikacja"} className={!hasNextMatches && !hasResults ? "lg:col-span-3" : ""}>
                 {standingsInformational && (
                   <p className="mb-3 text-xs text-white/55">
@@ -707,9 +758,9 @@ export default function TournamentAudience() {
         )}
 
         {/* Format label at the very bottom */}
-        {tournament?.format && (
+        {(publicStage?.format ?? tournament?.format) && (
           <p className="text-[11px] text-white/15 uppercase tracking-widest font-mono mt-2">
-            {(isExperimental ? (STAGE_FORMAT_LABELS as Record<string, string>)[tournament.format] : undefined) ?? FORMAT_LABELS[tournament.format] ?? tournament.format}
+            {(() => { const format = publicStage?.format ?? tournament!.format; return (STAGE_FORMAT_LABELS as Record<string, string>)[format] ?? FORMAT_LABELS[format] ?? format; })()}
           </p>
         )}
         </ReadQueryState>
@@ -725,8 +776,32 @@ export default function TournamentAudience() {
             audience
           />
         )}
-        {activeSection === "matches" && <ReadQueryState query={matchesQuery} loadingMessage="Ładowanie meczów…" errorMessage="Nie udało się pobrać meczów."><PublicMatchesSection matches={matches ?? []} /></ReadQueryState>}
-        {activeSection === "standings" && <ReadQueryState query={standingsQuery} loadingMessage="Ładowanie klasyfikacji…" errorMessage="Nie udało się pobrać klasyfikacji."><PublicStandingsSection standings={standings ?? []} format={tournament?.format ?? "single_elimination"} aggregate={hasMultipleStages} unknownScope={stageScopeUnknown} /></ReadQueryState>}
+        {activeSection === "matches" && <ReadQueryState query={matchesQuery} loadingMessage="Ładowanie meczów…" errorMessage="Nie udało się pobrać meczów.">
+          <PublicMatchesSection
+            matches={(matches ?? []).filter((match) => !publicStage || match.stageId === publicStage.id)}
+            format={publicStage?.format}
+            stageLabel={hasMultipleStages && publicStage ? publicStage.name : undefined}
+            planned={stagePlanned}
+            groupLabelById={groupLabelById}
+          />
+        </ReadQueryState>}
+        {activeSection === "table" && (
+          <AudienceSectionShell
+            title={publicStage?.format === "group_stage" ? "Grupy" : publicStage?.format === "swiss" ? "Ranking" : "Tabela"}
+            description={publicStage ? `${hasMultipleStages ? `${publicStage.name} · ` : ""}${STAGE_STATE_LABELS[publicStage.status] ?? publicStage.status}` : "Brak etapu."}
+          >
+            {stagePlanned ? (
+              <EmptyAudienceSection>{noStageStarted ? "Brak rozpoczętego etapu." : "Ten etap jeszcze się nie zaczął — tabela pojawi się po jego starcie."}</EmptyAudienceSection>
+            ) : (
+              <ReadQueryState query={liveStandingsQuery} loadingMessage="Ładowanie tabeli…" errorMessage="Nie udało się pobrać tabeli.">
+                {liveStandings && liveStandings.tables.length > 0
+                  ? <div className="audience-live-tables text-foreground"><StageLiveTables data={liveStandings} /></div>
+                  : <EmptyAudienceSection>Tabela pojawi się po pierwszych meczach.</EmptyAudienceSection>}
+              </ReadQueryState>
+            )}
+          </AudienceSectionShell>
+        )}
+        {activeSection === "stats" && <ReadQueryState query={standingsQuery} loadingMessage="Ładowanie statystyk…" errorMessage="Nie udało się pobrać statystyk."><PublicStandingsSection standings={standings ?? []} format={tournament?.format ?? "single_elimination"} aggregate={hasMultipleStages} unknownScope={stageScopeUnknown} /></ReadQueryState>}
         {activeSection === "players" && (
           <ReadQueryState query={playersQuery} loadingMessage="Ładowanie listy graczy…" errorMessage="Nie udało się pobrać listy graczy.">
           <ReadQueryState query={standingsQuery} loadingMessage="Ładowanie statystyk graczy…" errorMessage="Nie udało się pobrać statystyk graczy." />
@@ -740,8 +815,10 @@ export default function TournamentAudience() {
           </ReadQueryState>
         )}
         {activeSection === "bracket" && <ReadQueryState query={stagesQuery} loadingMessage="Ładowanie etapów…" errorMessage="Nie udało się pobrać etapów.">
-          {!publicStage ? (
-            <AudienceSectionShell title="Drabinka" description={stages ? "Brak rozpoczętego etapu." : "Ładowanie etapów…"}><EmptyAudienceSection>Drabinka nie jest jeszcze dostępna.</EmptyAudienceSection></AudienceSectionShell>
+          {!publicStage || stagePlanned ? (
+            <AudienceSectionShell title="Drabinka" description={publicStage && !noStageStarted ? `${publicStage.name} · ${STAGE_STATE_LABELS.planned}` : stages ? "Brak rozpoczętego etapu." : "Ładowanie etapów…"}>
+              <EmptyAudienceSection>{publicStage && !noStageStarted ? "Drabinka powstanie, gdy zakończy się poprzedni etap i znani będą awansujący." : "Drabinka nie jest jeszcze dostępna."}</EmptyAudienceSection>
+            </AudienceSectionShell>
           ) : marvelStage ? (
             <AudienceSectionShell
               title="Drabinka"
@@ -820,40 +897,68 @@ function EmptyAudienceSection({ children }: { children: React.ReactNode }) {
   );
 }
 
-function PublicMatchesSection({ matches }: { matches: Match[] }) {
+function PublicMatchesSection({
+  matches,
+  format,
+  stageLabel,
+  planned = false,
+  groupLabelById,
+}: {
+  matches: Match[];
+  format?: string;
+  stageLabel?: string;
+  planned?: boolean;
+  groupLabelById?: ReadonlyMap<number, string>;
+}) {
+  // V5.4-006: matches of the shown stage, grouped by round ("Kolejka" in a league), group shown per match.
+  const rounds = new Map<number, Match[]>();
+  for (const match of [...matches].sort((a, b) => a.round - b.round || (a.stageGroupId ?? 0) - (b.stageGroupId ?? 0) || a.matchNumber - b.matchNumber)) {
+    rounds.set(match.round, [...(rounds.get(match.round) ?? []), match]);
+  }
+  const title = format === "round_robin" ? "Terminarz" : format === "swiss" ? "Rundy" : format === "group_stage" ? "Mecze grup" : "Mecze";
   return (
-    <AudienceSectionShell title="Mecze" description="Pełny harmonogram i wyniki wszystkich rund.">
+    <AudienceSectionShell title={title} description={stageLabel ? `${stageLabel} · wyniki i nadchodzące mecze` : "Wyniki i nadchodzące mecze."}>
       {matches.length === 0 ? (
-        <EmptyAudienceSection>Brak meczów do wyświetlenia.</EmptyAudienceSection>
+        <EmptyAudienceSection>{planned ? "Mecze tego etapu pojawią się po jego starcie." : "Brak meczów do wyświetlenia."}</EmptyAudienceSection>
       ) : (
-        <div className="space-y-2">
-          {matches.map((match) => {
-            const showsScore = match.score1 != null || match.score2 != null;
-            return (
-              <article key={match.id} data-exp-match-state={match.status} className="experimental-public-match-card grid min-w-0 grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[8rem_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 rounded-xl border border-white/8 bg-card px-3 py-2.5 md:px-4">
-                <div className="min-w-0 text-xs">
-                  <span className="font-mono text-white/35">Runda {match.round} · Mecz {match.matchNumber}</span>
-                </div>
-                <div className="flex flex-wrap items-center justify-end gap-2 text-xs md:col-start-3 md:row-start-1">
-                  {match.bestOf && match.bestOf > 1 && <span className="font-mono text-cyan-400/60">BO{match.bestOf}</span>}
-                  <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-white/55">
-                    {MATCH_STATUS_LABELS[match.status] ?? match.status}
-                  </span>
-                </div>
-                <div className="col-span-2 grid min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 md:col-span-1 md:col-start-2 md:row-start-1 md:gap-3">
-                  <span title={match.player1Name || "TBD"} className={`truncate text-right font-semibold ${match.winnerId === match.player1Id ? "text-cyan-300" : "text-white/75"}`}>
-                    {match.player1Name || "TBD"}
-                  </span>
-                  <span className="min-w-12 rounded-md bg-black/20 px-2 py-1 text-center font-mono font-bold tabular-nums text-white">
-                    {showsScore ? `${match.score1 ?? 0}:${match.score2 ?? 0}` : "vs"}
-                  </span>
-                  <span title={match.player2Name || "TBD"} className={`truncate font-semibold ${match.winnerId === match.player2Id ? "text-cyan-300" : "text-white/75"}`}>
-                    {match.player2Name || "TBD"}
-                  </span>
-                </div>
-              </article>
-            );
-          })}
+        <div className="space-y-5">
+          {[...rounds.entries()].map(([round, list]) => (
+            <section key={round} aria-label={roundHeading(format, round)}>
+              <h3 className="mb-2 text-xs font-semibold uppercase tracking-wider text-white/45">{roundHeading(format, round)}</h3>
+              <div className="space-y-2">
+                {list.map((match) => {
+                  const showsScore = match.status === "completed" || match.status === "in_progress";
+                  const groupLabel = match.stageGroupId != null ? groupLabelById?.get(match.stageGroupId) : undefined;
+                  const when = match.scheduledAt ? new Date(match.scheduledAt).toLocaleString("pl-PL", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : null;
+                  return (
+                    <article key={match.id} data-exp-match-state={match.status} className="experimental-public-match-card grid min-w-0 grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[9rem_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 rounded-xl border border-white/8 bg-card px-3 py-2.5 md:px-4">
+                      <div className="min-w-0 text-xs text-white/40">
+                        {groupLabel ?? `Mecz ${match.matchNumber}`}
+                        {when && <span className="block text-white/55">{when}</span>}
+                      </div>
+                      <div className="flex flex-wrap items-center justify-end gap-2 text-xs md:col-start-3 md:row-start-1">
+                        {match.bestOf && match.bestOf > 1 && <span className="font-mono text-cyan-400/60">BO{match.bestOf}</span>}
+                        <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-white/55">
+                          {MATCH_STATUS_LABELS[match.status] ?? match.status}
+                        </span>
+                      </div>
+                      <div className="col-span-2 grid min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 md:col-span-1 md:col-start-2 md:row-start-1 md:gap-3">
+                        <span title={match.player1Name || "TBD"} className={`truncate text-right font-semibold ${match.winnerId === match.player1Id ? "text-cyan-300" : "text-white/75"}`}>
+                          {match.player1Name || "TBD"}
+                        </span>
+                        <span className="min-w-12 rounded-md bg-black/20 px-2 py-1 text-center font-mono font-bold tabular-nums text-white">
+                          {showsScore ? matchResultLabel(match) : "vs"}
+                        </span>
+                        <span title={match.player2Name || "TBD"} className={`truncate font-semibold ${match.winnerId === match.player2Id ? "text-cyan-300" : "text-white/75"}`}>
+                          {match.player2Name || "TBD"}
+                        </span>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
+          ))}
         </div>
       )}
     </AudienceSectionShell>
@@ -863,8 +968,8 @@ function PublicMatchesSection({ matches }: { matches: Match[] }) {
 function PublicStandingsSection({ standings, format, aggregate, unknownScope }: { standings: Standing[]; format: string; aggregate: boolean; unknownScope: boolean }) {
   return (
     <AudienceSectionShell
-      title={aggregate ? "Bilans łączny meczów — wszystkie etapy" : unknownScope ? "Bilans informacyjny — zakres etapów niepotwierdzony" : format === "single_elimination" ? "Bilans informacyjny" : "Klasyfikacja"}
-      description={aggregate ? "To zbiorcze statystyki meczów, nie klasyfikacja etapu. Awans i zwycięzcę wyznaczają wyniki etapów — zobacz Etapy i Drabinka." : unknownScope ? "Liczba etapów nie została potwierdzona. Ten bilans nie jest podstawą awansu ani wyłonienia zwycięzcy." : format === "single_elimination" ? "Awans wynika wyłącznie z drabinki; bilans służy informacyjnie." : "Klasyfikacja obliczana z rozstrzygniętych meczów."}
+      title={aggregate ? "Statystyki meczów — wszystkie etapy" : unknownScope ? "Bilans informacyjny — zakres etapów niepotwierdzony" : format === "single_elimination" ? "Bilans informacyjny" : "Klasyfikacja"}
+      description={aggregate ? "Suma meczów ze wszystkich etapów — to nie jest klasyfikacja. Miejsca i awanse pokazują tabele i drabinki etapów." : unknownScope ? "Liczba etapów nie została potwierdzona. Ten bilans nie jest podstawą awansu ani wyłonienia zwycięzcy." : format === "single_elimination" ? "Awans wynika wyłącznie z drabinki; bilans służy informacyjnie." : "Klasyfikacja obliczana z rozstrzygniętych meczów."}
     >
       {standings.length === 0 ? (
         <EmptyAudienceSection>Tabela nie jest jeszcze dostępna.</EmptyAudienceSection>

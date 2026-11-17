@@ -1,3 +1,4 @@
+import { getLiveStageStandings } from "../application/stages/live-stage-standings";
 import { Router, type IRouter, type Response as ExpressResponse } from "express";
 import { lockLatestUndoableAction, UndoActionChangedError } from "../application/undo/latest-undo-action";
 import { assertCancelRestoreState, MatchLifecycleConflict } from "../application/matches/cancel-restore-policy";
@@ -906,6 +907,19 @@ router.get("/tournaments/:id/stages/:stageId", async (req, res): Promise<void> =
   if (!await requireTournamentRead(req, res, params.data.id)) return;
   try {
     res.json(await getTournamentStageDetails({ tournamentId: params.data.id, stageId: params.data.stageId }));
+  } catch (error) {
+    if (error instanceof StageLifecycleError) { sendStageLifecycleError(error, res); return; }
+    throw error;
+  }
+});
+
+// V5.4-006: live tables of a group / league / Swiss stage, ranked by the same engine as stage completion.
+router.get("/tournaments/:id/stages/:stageId/standings", async (req, res): Promise<void> => {
+  const params = GetTournamentStageParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (!await requireTournamentRead(req, res, params.data.id)) return;
+  try {
+    res.json(await getLiveStageStandings({ tournamentId: params.data.id, stageId: params.data.stageId }));
   } catch (error) {
     if (error instanceof StageLifecycleError) { sendStageLifecycleError(error, res); return; }
     throw error;

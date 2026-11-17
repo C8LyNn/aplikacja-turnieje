@@ -108,8 +108,9 @@ test("public match rows stay compact without changing order, scores or statuses"
     { status: "pending", resultType: null, score1: null, score2: null, label: "Oczekuje", score: "vs" },
     { status: "in_progress", resultType: null, score1: 1, score2: 0, label: "W trakcie", score: "1:0" },
     { status: "completed", resultType: "played", score1: 2, score2: 1, label: "Zakończony", score: "2:1" },
-    { status: "completed", resultType: "walkover", score1: null, score2: null, label: "Zakończony", score: "vs" },
-    { status: "completed", resultType: "no_contest", score1: null, score2: null, label: "Zakończony", score: "vs" },
+    // V5.4: a finished walkover / no contest says so instead of a misleading "vs".
+    { status: "completed", resultType: "walkover", score1: null, score2: null, label: "Zakończony", score: "W.O." },
+    { status: "completed", resultType: "no_contest", score1: null, score2: null, label: "Zakończony", score: "N/C" },
   ];
   const matches = variants.map((variant, i) => ({ ...variant, id: i + 1, revision: 1, tournamentId: 1,
     round: 1, matchNumber: 5 - i, bestOf: 3, player1Id: i * 2 + 1, player2Id: i * 2 + 2,
@@ -123,10 +124,12 @@ test("public match rows stay compact without changing order, scores or statuses"
   }, undefined, "matches");
   const section = await screen.findByRole("region", { name: "Mecze" });
   await waitFor(() => assert.equal(within(section).getAllByRole("article").length, 5));
-  within(section).getAllByRole("article").forEach((row, i) => {
-    assert.ok(row.classList.contains("md:grid-cols-[8rem_minmax(0,1fr)_auto]"));
+  assert.ok(within(section).getByRole("heading", { name: "Runda 1" }), "V5.4: matches are grouped under a round heading");
+  const rows = within(section).getAllByRole("article");
+  assert.deepEqual(rows.map((row) => within(row).getByText(/^Mecz \d+$/).textContent), ["Mecz 1", "Mecz 2", "Mecz 3", "Mecz 4", "Mecz 5"], "ordered by match number inside the round");
+  [...rows].reverse().forEach((row, i) => {
+    assert.ok(row.classList.contains("md:grid-cols-[9rem_minmax(0,1fr)_auto]"));
     assert.ok(row.classList.contains("py-2.5"));
-    assert.ok(within(row).getByText(`Runda 1 · Mecz ${5 - i}`));
     assert.ok(within(row).getByText(variants[i].label));
     assert.ok(within(row).getByText(variants[i].score));
     assert.ok(within(row).getByText("BO3"));
@@ -157,7 +160,8 @@ test("public header can wrap its actions and keeps all navigation links with a l
   assert.ok(panel.parentElement?.classList.contains("flex-wrap"));
   assert.ok(within(header).getByRole("link", { name: "Wróć do dashboardu" }));
   const nav = screen.getByRole("navigation", { name: "Sekcje publicznego widoku turnieju" });
-  assert.equal(within(nav).getAllByRole("link").length, 6);
+  // V5.4: tabs follow the stage kind — a bracket gets Na żywo, Drabinka, Mecze, Uczestnicy, Statystyki.
+  assert.deepEqual(within(nav).getAllByRole("link").map((link) => link.textContent), ["Na żywo", "Drabinka", "Mecze", "Uczestnicy", "Statystyki"]);
   assert.ok(nav.firstElementChild?.classList.contains("overflow-x-auto"));
   assert.ok(nav.classList.contains("min-w-0"));
 });
@@ -197,8 +201,8 @@ test("multi-stage aggregate balance has no ranking column", async () => {
     if (url.endsWith("/bracket")) return jsonResponse({ rounds: [], winner: null });
     return jsonResponse([]);
   }, undefined, "standings");
-  const panel = await screen.findByRole("region", { name: "Bilans łączny meczów — wszystkie etapy" }, { timeout: 4000 });
-  assert.match(panel.textContent ?? "", /Awans i zwycięzcę wyznaczają wyniki etapów/);
+  const panel = await screen.findByRole("region", { name: "Statystyki meczów — wszystkie etapy" }, { timeout: 4000 });
+  assert.match(panel.textContent ?? "", /to nie jest klasyfikacja/);
   assert.equal(within(panel).queryByRole("columnheader", { name: "Miejsce" }), null);
 });
 
