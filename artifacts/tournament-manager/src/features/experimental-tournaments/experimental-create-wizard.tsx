@@ -63,6 +63,7 @@ import {
   type WizardAnswers,
   type WizardDraft,
   type WizardStepIndex,
+  bestOfLabel,
 } from "./experimental-create-wizard-model";
 import { ExperimentalAiImport, type AiImportResult } from "./experimental-ai-import";
 
@@ -247,7 +248,7 @@ function StageFlow({ preview }: { preview: PresetPreview }) {
             <span className="experimental-wizard-flow-index">{stage.position}</span>
             <div className="min-w-0">
               <p className="experimental-wizard-flow-name">{stage.name}</p>
-              <p className="experimental-wizard-flow-format">{stage.formatLabel} · BO{stage.bestOf}</p>
+              <p className="experimental-wizard-flow-format">{stage.formatLabel} · {bestOfLabel(stage.bestOf).toLowerCase()}{stage.bestOf > 1 ? ` (BO${stage.bestOf})` : " na mecz"}</p>
             </div>
           </div>
           <ul className="experimental-wizard-flow-facts">
@@ -374,7 +375,7 @@ function ParamControl({
   const isLegs = limit.key === "legs";
   const index = limit.options.indexOf(limit.value);
   const segmented = isBestOf || isLegs || limit.options.length <= 6;
-  const format = (value: number) => (isBestOf ? `BO${value}` : isLegs ? (value === 2 ? "Mecz i rewanż" : "Jeden mecz") : String(value));
+  const format = (value: number) => (isBestOf ? bestOfLabel(value) : isLegs ? (value === 2 ? "Mecz i rewanż" : "Jeden mecz") : String(value));
   return (
     <div className="experimental-wizard-param" data-invalid={error ? "true" : undefined}>
       <div className="experimental-wizard-param-head">
@@ -703,7 +704,7 @@ export function ExperimentalCreateWizard() {
               {answers.kind === "league" && (
                 <p className="experimental-wizard-note" data-tone="info">
                   <Info className="h-4 w-4 shrink-0" aria-hidden="true" />
-                  Liga działa teraz jako tabela „każdy z każdym” (opcjonalnie z play-off). Daty kolejek i rewanże jeszcze nie są dostępne.
+                  Liga to tabela „każdy z każdym”, także w wariancie mecz i rewanż, opcjonalnie z play-off. Każdy mecz kończy się zwycięzcą (bez remisów). Mecz można odłożyć na później w panelu prowadzącego, ale daty i godziny kolejek, dywizje i awanse jeszcze nie są dostępne.
                 </p>
               )}
               <ChoiceGroup
@@ -718,7 +719,7 @@ export function ExperimentalCreateWizard() {
               {answers.participantType === "teams" && (
                 <p className="experimental-wizard-note" data-tone="info">
                   <Info className="h-4 w-4 shrink-0" aria-hidden="true" />
-                  Każda drużyna ma własny skład: kapitan, zawodnicy i rezerwowi. Dodasz ich po utworzeniu turnieju, a zmiany między meczami trafią do historii.
+                  Każda drużyna ma własny skład: kapitan, zawodnicy i rezerwowi. Dodasz ich po utworzeniu turnieju, a zmiany między meczami trafią do historii. Wyboru składu na konkretny mecz jeszcze nie ma.
                 </p>
               )}
               <CountField value={answers.participantCount} onChange={(participantCount) => setAnswers({ participantCount })} noun={noun} />
@@ -766,6 +767,12 @@ export function ExperimentalCreateWizard() {
                   Nie udało się pobrać propozycji: {recommendations.error}
                 </p>
               )}
+              {(recommendations.data?.notes ?? []).map((note) => (
+                <p key={note} className="experimental-wizard-note" data-tone="info" role="note">
+                  <Info className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  {note}
+                </p>
+              ))}
               {available.length > 0 && (
                 <fieldset className="experimental-wizard-field">
                   <legend className="experimental-wizard-sr">Format rozgrywek</legend>

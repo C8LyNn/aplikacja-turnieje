@@ -204,3 +204,13 @@ describe("V5-B: custom stage plans", () => {
     assert.ok(problemsOf(base({ type: "stages", stages })).some((p) => p.path === "structure.stages"));
   });
 });
+
+test("V5.1: the specification lists what the engine cannot do, for any AI", () => {
+  const spec = buildAiSpecification();
+  const md = buildAiSpecificationMarkdown();
+  for (const topic of [/remis/i, /terminarz/i, /dywizje, awanse i spadki/i, /konkretny mecz/i, /fazie grupowej/i]) {
+    assert.ok(spec.unsupported.some((item) => topic.test(item)), String(topic));
+    assert.match(md, topic);
+  }
+  assert.doesNotMatch(md, /(OpenAI|ChatGPT|Claude|Gemini|Copilot|Mistral)/, "no model vendor is assumed");
+});

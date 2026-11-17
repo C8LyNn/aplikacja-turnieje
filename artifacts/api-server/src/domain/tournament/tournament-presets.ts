@@ -36,7 +36,7 @@ export const PLANNED_PRESETS = [
   {
     id: "league_schedule",
     label: "Liga z terminarzem i datami kolejek",
-    reason: "Terminarz, daty spotkań i mecze przełożone nie są jeszcze obsługiwane.",
+    reason: "Terminarz z datami i godzinami spotkań oraz nowe terminy meczów przełożonych nie są jeszcze obsługiwane (mecz można tylko odłożyć na później w panelu prowadzącego).",
   },
 ] as const;
 
@@ -195,7 +195,7 @@ export const PRESET_DEFINITIONS: Record<PresetId, PresetDefinition> = {
 
 export const PRESET_PARAM_TEXT: Record<PresetParamKey, { label: string; help: string }> = {
   participantCount: { label: "Liczba uczestników", help: "Ilu graczy lub drużyn weźmie udział." },
-  bestOf: { label: "Długość meczu", help: "BO3 oznacza, że wygrywa ten, kto pierwszy wygra 2 gry z 3." },
+  bestOf: { label: "Długość meczu", help: "Ile gier składa się na jeden mecz. „Do 2 wygranych” = kto pierwszy wygra 2 gry (seria BO3)." },
   playoffBestOf: { label: "Długość meczu w play-off", help: "Możesz wydłużyć mecze w decydującej fazie." },
   swissRounds: { label: "Liczba rund", help: "Każdy uczestnik rozegra tyle meczów (nieparzysta liczba osób oznacza wolny los)." },
   groupCount: { label: "Liczba grup", help: "Uczestnicy zostaną rozdzieleni możliwie równo." },
@@ -666,6 +666,8 @@ export interface RecommendationResult {
   answers: WizardAnswers;
   recommendations: PresetRecommendation[];
   planned: Array<{ id: string; label: string; reason: string }>;
+  /** V5.1: plain-language notes when an answer could not be honoured as asked. */
+  notes: string[];
 }
 
 export function parseWizardAnswers(input: unknown): WizardAnswers {
@@ -719,6 +721,29 @@ const PRIORITY_REASONS: Record<Priority, Partial<Record<PresetId, string>>> = {
     league_playoff: "Tabela i play-off: forma i wytrzymałość.",
   },
 };
+
+function recommendationNotes(answers: WizardAnswers, results: readonly PresetRecommendation[]): string[] {
+  const notes: string[] = [];
+  const n = answers.participantCount;
+  const byId = new Map(results.map((item) => [item.presetId, item]));
+  const groups = byId.get("groups_playoff");
+  if (answers.grouping === "yes" && groups && !groups.available) {
+    const [min] = PRESET_DEFINITIONS.groups_playoff.participantRange;
+    notes.push(n < min
+      ? `Podział na grupy jest możliwy od ${min} uczestników. Przy ${n} pokazujemy formaty bez grup.`
+      : `Podziału na grupy nie da się ułożyć dla ${n} uczestników. Pokazujemy formaty bez grup.`);
+  }
+  const roundRobin = byId.get("round_robin");
+  const swiss = byId.get("swiss");
+  if (answers.kind === "league" && answers.priority === "short" && roundRobin?.preview && swiss?.preview) {
+    const leagueMatches = roundRobin.preview.totals.matches.max;
+    const swissMatches = swiss.preview.totals.matches.max;
+    if (swissMatches < leagueMatches) {
+      notes.push(`W lidze każdy gra z każdym (${leagueMatches} meczów). Jeśli ma być krótko, wybierz „System szwajcarski”: ${swissMatches} meczów, też z tabelą na koniec.`);
+    }
+  }
+  return notes;
+}
 
 export function recommendPresets(answers: WizardAnswers): RecommendationResult {
   const n = answers.participantCount;
@@ -775,5 +800,6 @@ export function recommendPresets(answers: WizardAnswers): RecommendationResult {
     answers,
     recommendations: results,
     planned: PLANNED_PRESETS.map((item) => ({ ...item })),
+    notes: recommendationNotes(answers, results),
   };
 }

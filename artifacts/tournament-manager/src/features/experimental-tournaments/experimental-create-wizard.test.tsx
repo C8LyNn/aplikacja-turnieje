@@ -220,7 +220,9 @@ test("league answer explains current limits instead of pretending schedules exis
   installFetch();
   renderAt("/experimental/tournaments/new", CreateTournamentExperimental);
   fireEvent.click(screen.getByLabelText(/Liga/));
-  assert.ok(screen.getByText(/Daty kolejek i rewanże jeszcze nie są dostępne/));
+  const leagueNote = screen.getByText(/daty i godziny kolejek, dywizje i awanse jeszcze nie są dostępne/);
+  assert.match(leagueNote.textContent ?? "", /mecz i rewanż/, "home and away is offered, not denied");
+  assert.match(leagueNote.textContent ?? "", /bez remisów/);
   fireEvent.click(screen.getByLabelText(/Drużyny/));
   assert.ok(screen.getByText(/Każda drużyna ma własny skład/));
   fireEvent.click(screen.getByRole("button", { name: /Pokaż propozycje/ }));
@@ -328,7 +330,7 @@ test("AI import: a valid preset file lands in Tune, stays editable and never set
   assert.ok(screen.getByText(/Ustawienia wczytane z pliku AI/));
   await waitFor(() => assert.ok(screen.getByLabelText("Podgląd rozgrywek").textContent?.includes("4 grupy po 4")));
   const playoffBo = screen.getByRole("radiogroup", { name: "Długość meczu w play-off" });
-  assert.equal(playoffBo.querySelector('[aria-checked="true"]')?.textContent, "BO3");
+  assert.equal(playoffBo.querySelector('[aria-checked="true"]')?.textContent, "Do 2 wygranych");
   await waitFor(() => assert.equal((screen.getByRole("button", { name: /Dalej: nazwa/ }) as HTMLButtonElement).disabled, false));
   fireEvent.click(screen.getByRole("button", { name: /Dalej: nazwa/ }));
   await screen.findByRole("heading", { name: "Nazwij turniej i zabezpiecz go" });
@@ -392,4 +394,18 @@ test("teams: payload carries participant type and roster limits; players never d
   const players = buildCreatePayload(preview, { name: "Y", description: "", visibility: "public_online", participantType: "players", rosterMin: 3, rosterMax: 5 }, secrets);
   assert.equal("participantType" in players, false);
   assert.equal("teamRosterMin" in players, false);
+});
+
+test("answers that cannot be honoured are explained in plain words (V5.1)", async () => {
+  installFetch();
+  renderAt("/experimental/tournaments/new", CreateTournamentExperimental);
+  fireEvent.click(screen.getByLabelText(/Liga/));
+  fireEvent.click(screen.getByLabelText(/Krótko/));
+  fireEvent.click(screen.getByRole("button", { name: /Pokaż propozycje/ }));
+  const note = await screen.findByText(/Jeśli ma być krótko, wybierz „System szwajcarski”/);
+  assert.match(note.textContent ?? "", /28 meczów/);
+  assert.equal(note.closest("[role=note]") !== null, true);
+  // Match length is described without jargon in the format preview.
+  assert.ok(screen.getAllByText(/jedna gra na mecz/).length > 0);
+  assert.equal(screen.queryByText(/· BO1/), null);
 });

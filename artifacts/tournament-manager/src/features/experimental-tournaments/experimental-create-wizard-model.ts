@@ -111,6 +111,13 @@ export interface RecommendationResult {
   answers: WizardAnswers;
   recommendations: PresetRecommendation[];
   planned: Array<{ id: string; label: string; reason: string }>;
+  /** Plain-language notes when an answer could not be honoured (older APIs omit it). */
+  notes?: string[];
+}
+
+/** Match length without jargon: "Jedna gra" / "Do 2 wygranych" (BO3). */
+export function bestOfLabel(bestOf: number): string {
+  return bestOf <= 1 ? "Jedna gra" : `Do ${Math.ceil(bestOf / 2)} wygranych`;
 }
 
 export const WIZARD_STEPS = [

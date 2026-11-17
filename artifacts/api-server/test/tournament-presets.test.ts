@@ -195,3 +195,13 @@ describe("V5 presets: recommendations", () => {
     assert.ok(result.recommendations.every((item) => !String(item.presetId).startsWith("league_home")));
   });
 });
+
+test("V5.1: recommendations explain answers that cannot be honoured", () => {
+  const groups = recommendPresets(parseWizardAnswers({ kind: "tournament", participantCount: 5, grouping: "yes", priority: "short" }));
+  assert.equal(groups.recommendations.find((item) => item.presetId === "groups_playoff")?.available, false);
+  assert.deepEqual(groups.notes, ["Podział na grupy jest możliwy od 6 uczestników. Przy 5 pokazujemy formaty bez grup."]);
+  const shortLeague = recommendPresets(parseWizardAnswers({ kind: "league", participantCount: 10, priority: "short" }));
+  assert.equal(shortLeague.recommendations[0].presetId, "round_robin");
+  assert.match(shortLeague.notes[0], /każdy gra z każdym \(45 meczów\).*„System szwajcarski”: 20 meczów/);
+  assert.deepEqual(recommendPresets(parseWizardAnswers({ kind: "tournament", participantCount: 16, grouping: "yes" })).notes, []);
+});

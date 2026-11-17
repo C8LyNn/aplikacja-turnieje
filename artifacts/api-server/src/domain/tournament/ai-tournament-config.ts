@@ -688,8 +688,19 @@ export interface AiSpecification {
   stageFormats: Array<{ format: TournamentStagePlan["format"]; label: string }>;
   planned: Array<{ id: string; label: string; reason: string }>;
   forbiddenFields: string[];
+  /** V5.1: features the engine does not have, so an AI never promises them. */
+  unsupported: string[];
   examples: typeof AI_CONFIG_EXAMPLES;
 }
+
+export const AI_UNSUPPORTED_FEATURES: readonly string[] = [
+  "Remisy i punkty za remis (np. 3/1/0) — każdy mecz kończy się zwycięzcą, tabela liczy zwycięstwa.",
+  "Daty i godziny meczów, terminarz kolejek i nowe terminy meczów przełożonych.",
+  "Dywizje, awanse i spadki między ligami.",
+  "Skład drużyny wystawiany na konkretny mecz (składy są na cały turniej i zmienia je organizator).",
+  "Mecz i rewanż w fazie grupowej — `legs` działa tylko dla „każdy z każdym”.",
+  "Losowe rozstawienie z importu, listy zawodników i składy w pliku — organizator dodaje je w aplikacji.",
+];
 
 export function buildAiSpecification(): AiSpecification {
   return {
@@ -706,6 +717,7 @@ export function buildAiSpecification(): AiSpecification {
     stageFormats: TOURNAMENT_STAGE_FORMATS.map((format) => ({ format, label: FORMAT_LABELS[format] })),
     planned: PLANNED_PRESETS.map((item) => ({ ...item })),
     forbiddenFields: [...AI_FORBIDDEN_KEYS],
+    unsupported: [...AI_UNSUPPORTED_FEATURES],
     examples: AI_CONFIG_EXAMPLES,
   };
 }
@@ -745,7 +757,8 @@ export function buildAiSpecificationMarkdown(): string {
   lines.push("- Ostatni etap nie ma `advancingCount`. Mecze zawsze mają zwycięzcę (brak remisów).", "");
   lines.push("## Jeszcze nieobsługiwane (nie używaj)", "");
   for (const item of spec.planned) lines.push(`- ${item.label}: ${item.reason}`);
-  lines.push("- Daty i godziny meczów, losowe rozstawienie z importu, listy zawodników i składy w pliku (organizator dodaje je w aplikacji).", "");
+  for (const item of spec.unsupported) lines.push(`- ${item}`);
+  lines.push("");
   lines.push("## JSON Schema", "", "```json", JSON.stringify(spec.schema, null, 2), "```", "");
   lines.push("## Przykłady", "");
   for (const example of spec.examples) {
