@@ -175,9 +175,15 @@ export const tournamentsTable = pgTable(
     participantType: text("participant_type").$type<"players" | "teams">().notNull().default("players"),
     teamRosterMin: smallint("team_roster_min"),
     teamRosterMax: smallint("team_roster_max"),
+    /** V5.4: participant field definitions ({ version: 1, fields }); null = no extra fields. */
+    participantFields: jsonb("participant_fields"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (table) => [
+    check(
+      "tournaments_participant_fields_shape",
+      sql`${table.participantFields} IS NULL OR (jsonb_typeof(${table.participantFields}) = 'object' AND pg_column_size(${table.participantFields}) <= 65536)`,
+    ),
     check(
       "tournaments_default_best_of_positive_odd",
       sql`${table.defaultBestOf} > 0 AND ${table.defaultBestOf} % 2 = 1`,
@@ -253,9 +259,15 @@ export const playersTable = pgTable(
     teamName: text("team_name"),
     seed: integer("seed"),
     status: playerStatusEnum("status").notNull().default("active"),
+    /** V5.4: values of the tournament's participant fields; never used by ranking, results or seeding. */
+    customFields: jsonb("custom_fields"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (table) => [
+    check(
+      "players_custom_fields_shape",
+      sql`${table.customFields} IS NULL OR (jsonb_typeof(${table.customFields}) = 'object' AND pg_column_size(${table.customFields}) <= 32768)`,
+    ),
     uniqueIndex("players_tournament_id_id_unique").on(table.tournamentId, table.id),
     index("players_tournament_seed_idx").on(table.tournamentId, table.seed),
     check("players_seed_positive", sql`${table.seed} IS NULL OR ${table.seed} > 0`),

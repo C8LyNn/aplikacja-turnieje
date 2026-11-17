@@ -5,6 +5,7 @@
  * Tournament Manager API
  * OpenAPI spec version: 0.1.0
  */
+import type { PlayerCustomFields } from './playerCustomFields';
 import type { PlayerStatus } from './playerStatus';
 
 export interface Player {
@@ -20,5 +21,10 @@ export interface Player {
   /** @nullable */
   seed?: number | null;
   status?: PlayerStatus;
+  /**
+     * V5.4 values of the tournament's participant fields, filtered by the caller's role.
+     * @nullable
+     */
+  customFields?: PlayerCustomFields;
   createdAt: string;
 }

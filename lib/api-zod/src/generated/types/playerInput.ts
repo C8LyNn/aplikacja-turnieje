@@ -5,6 +5,7 @@
  * Tournament Manager API
  * OpenAPI spec version: 0.1.0
  */
+import type { PlayerInputCustomFields } from './playerInputCustomFields';
 
 export interface PlayerInput {
   /** @minLength 1 */
@@ -13,4 +14,6 @@ export interface PlayerInput {
   country?: string;
   teamName?: string;
   seed?: number;
+  /** V5.4 values of participant fields (validated against the tournament's definitions). */
+  customFields?: PlayerInputCustomFields;
 }

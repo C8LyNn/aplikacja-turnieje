@@ -12,6 +12,14 @@ import {
 import { addPlayerWithStagePlanCompatibilityInTransaction } from "../stages/create-tournament-with-plan";
 import { parseRosterUndoPayload } from "./roster-undo-payload";
 import { lockLatestUndoableAction, UndoActionChangedError } from "../undo/latest-undo-action";
+import {
+  fieldForCsvHeader,
+  participantFieldsFromStorage,
+  validateFieldValues,
+  type ParticipantFieldAudience,
+  type ParticipantFieldSet,
+} from "../../domain/tournament/participant-fields";
+import { ParticipantFieldsError } from "./participant-fields-service";
 
 export type TournamentRosterErrorCode =
   | "TOURNAMENT_NOT_FOUND"
@@ -102,9 +110,19 @@ export async function addTournamentPlayer(input: {
   tournamentId: number;
   player: PlayerInsert;
   actor?: TournamentMutationActor;
+  /** V5.4: values of the tournament's participant fields (validated here; required fields enforced). */
+  customFields?: unknown;
+  fieldAudience?: ParticipantFieldAudience;
 }) {
   return db.transaction(async (tx) => {
     const tournament = await lockDraftTournament(tx, input.tournamentId, input.actor);
+    const fieldSet = participantFieldsFromStorage(tournament.participantFields);
+    const checkedFields = validateFieldValues(fieldSet, input.customFields, {
+      audience: input.fieldAudience ?? "organizer",
+      enforceRequired: true,
+      applyDefaults: true,
+    });
+    if (!checkedFields.ok) throw new ParticipantFieldsError("INVALID_FIELD_VALUES", { problems: checkedFields.problems });
     const name = String(input.player.name).trim();
     await assertUniqueName(tx, input.tournamentId, name);
     const [{ playerCount }] = await tx
@@ -118,6 +136,7 @@ export async function addTournamentPlayer(input: {
       ...input.player,
       tournamentId: input.tournamentId,
       name,
+      customFields: checkedFields.values,
     });
     await tx.insert(actionLogTable).values({
       tournamentId: input.tournamentId,
@@ -306,9 +325,11 @@ interface ParsedCsvRow {
   seed?: number;
   teamName?: string;
   country?: string;
+  /** V5.4: validated values of participant fields from extra CSV columns. */
+  customFields?: Record<string, unknown> | null;
 }
 
-function parseCsvRows(csv: string): {
+function parseCsvRows(csv: string, fieldSet: ParticipantFieldSet | null = null): {
   rawDataRows: number;
   rows: ParsedCsvRow[];
   errors: CsvRowError[];
@@ -317,6 +338,13 @@ function parseCsvRows(csv: string): {
   const rawLines = csv.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n");
   const separator = rawLines[0]?.includes(";") ? ";" : ",";
   const headers = rawLines[0]?.split(separator).map((value) => value.trim().toLowerCase()) ?? [];
+  // V5.4: extra columns named like a participant field (key or label) fill that field.
+  const BUILT_IN = new Set(["name", "nick", "seed", "rank", "ranga", "team", "druzyna", "country", "kraj"]);
+  const fieldColumns = headers.flatMap((header, column) => {
+    if (BUILT_IN.has(header)) return [];
+    const field = fieldForCsvHeader(fieldSet, header);
+    return field ? [{ column, field }] : [];
+  });
   const nameIndex = headers.includes("name") ? headers.indexOf("name") : headers.indexOf("nick");
   const rows: ParsedCsvRow[] = [];
   const errors: CsvRowError[] = [];
@@ -355,6 +383,17 @@ function parseCsvRows(csv: string): {
         continue;
       }
     }
+    let customFields: Record<string, unknown> | null = null;
+    if (fieldColumns.length) {
+      const submitted: Record<string, unknown> = {};
+      for (const { column, field } of fieldColumns) if (values[column]) submitted[field.key] = values[column];
+      const checked = validateFieldValues(fieldSet, submitted, { audience: "organizer", enforceRequired: false, applyDefaults: true });
+      if (!checked.ok) {
+        errors.push({ line, content: raw, reason: checked.problems.map((problem) => problem.message).join(" ") });
+        continue;
+      }
+      customFields = checked.values;
+    }
     rows.push({
       lineNum: line,
       name,
@@ -362,6 +401,7 @@ function parseCsvRows(csv: string): {
       seed,
       teamName: get("team", "druzyna") || undefined,
       country: get("country", "kraj") || undefined,
+      customFields,
     });
   }
   return {
@@ -391,7 +431,7 @@ export async function importTournamentPlayers(input: {
       .from(playersTable)
       .where(eq(playersTable.tournamentId, input.tournamentId))
       .orderBy(asc(playersTable.createdAt));
-    const parsed = parseCsvRows(input.csv);
+    const parsed = parseCsvRows(input.csv, participantFieldsFromStorage(tournament.participantFields));
     if (!parsed.hasValidHeader)
       throw new TournamentRosterError("CSV_INVALID_HEADER");
     const existingNames = new Set(
@@ -448,6 +488,7 @@ export async function importTournamentPlayers(input: {
             seed: row.seed ?? null,
             teamName: row.teamName ?? null,
             country: row.country ?? null,
+            customFields: row.customFields ?? null,
           })))
           .returning();
 

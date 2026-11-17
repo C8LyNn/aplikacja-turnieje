@@ -5,6 +5,7 @@
  * Tournament Manager API
  * OpenAPI spec version: 0.1.0
  */
+import type { TournamentBackupV3PlayersItemCustomFields } from './tournamentBackupV3PlayersItemCustomFields';
 import type { TournamentBackupV3PlayersItemStatus } from './tournamentBackupV3PlayersItemStatus';
 
 export type TournamentBackupV3PlayersItem = {
@@ -19,4 +20,6 @@ export type TournamentBackupV3PlayersItem = {
   /** @nullable */
   seed?: number | null;
   status: TournamentBackupV3PlayersItemStatus;
+  /** V5.4: present only when the participant has field values. */
+  customFields?: TournamentBackupV3PlayersItemCustomFields;
 };

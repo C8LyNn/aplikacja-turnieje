@@ -1950,6 +1950,12 @@ export const PlayerStatus = {
   winner: 'winner',
 } as const;
 
+/**
+ * V5.4 values of the tournament's participant fields, filtered by the caller's role.
+ * @nullable
+ */
+export type PlayerCustomFields = { [key: string]: unknown } | null;
+
 export interface Player {
   id: number;
   tournamentId: number;
@@ -1963,8 +1969,18 @@ export interface Player {
   /** @nullable */
   seed?: number | null;
   status?: PlayerStatus;
+  /**
+     * V5.4 values of the tournament's participant fields, filtered by the caller's role.
+     * @nullable
+     */
+  customFields?: PlayerCustomFields;
   createdAt: string;
 }
+
+/**
+ * V5.4 values of participant fields (validated against the tournament's definitions).
+ */
+export type PlayerInputCustomFields = { [key: string]: unknown };
 
 export interface PlayerInput {
   /** @minLength 1 */
@@ -1973,6 +1989,8 @@ export interface PlayerInput {
   country?: string;
   teamName?: string;
   seed?: number;
+  /** V5.4 values of participant fields (validated against the tournament's definitions). */
+  customFields?: PlayerInputCustomFields;
 }
 
 export type PlayerUpdateStatus = typeof PlayerUpdateStatus[keyof typeof PlayerUpdateStatus];
@@ -2113,6 +2131,114 @@ export interface MatchUpdate {
   note?: string;
   /** @minimum 1 */
   bestOf?: number;
+}
+
+export type ParticipantFieldDefinitionType = typeof ParticipantFieldDefinitionType[keyof typeof ParticipantFieldDefinitionType];
+
+
+export const ParticipantFieldDefinitionType = {
+  short_text: 'short_text',
+  long_text: 'long_text',
+  number: 'number',
+  select: 'select',
+  multi_select: 'multi_select',
+  boolean: 'boolean',
+  date: 'date',
+  color: 'color',
+  url: 'url',
+} as const;
+
+export type ParticipantFieldDefinitionCategory = typeof ParticipantFieldDefinitionCategory[keyof typeof ParticipantFieldDefinitionCategory];
+
+
+export const ParticipantFieldDefinitionCategory = {
+  identity: 'identity',
+  gaming: 'gaming',
+  ranking: 'ranking',
+  team: 'team',
+  location: 'location',
+  contact: 'contact',
+  organization: 'organization',
+  interests: 'interests',
+  other: 'other',
+} as const;
+
+export type ParticipantFieldDefinitionKind = typeof ParticipantFieldDefinitionKind[keyof typeof ParticipantFieldDefinitionKind];
+
+
+export const ParticipantFieldDefinitionKind = {
+  profile: 'profile',
+  entry: 'entry',
+} as const;
+
+export type ParticipantFieldDefinitionVisibility = typeof ParticipantFieldDefinitionVisibility[keyof typeof ParticipantFieldDefinitionVisibility];
+
+
+export const ParticipantFieldDefinitionVisibility = {
+  organizer: 'organizer',
+  staff: 'staff',
+  public: 'public',
+} as const;
+
+export interface ParticipantFieldDefinition {
+  key: string;
+  label: string;
+  type: ParticipantFieldDefinitionType;
+  category: ParticipantFieldDefinitionCategory;
+  kind: ParticipantFieldDefinitionKind;
+  description?: string;
+  required: boolean;
+  visibility: ParticipantFieldDefinitionVisibility;
+  options?: string[];
+  min?: number;
+  max?: number;
+  maxLength?: number;
+  defaultValue?: unknown;
+  libraryId?: string;
+}
+
+export type ParticipantFieldSetVersion = typeof ParticipantFieldSetVersion[keyof typeof ParticipantFieldSetVersion];
+
+
+export const ParticipantFieldSetVersion = {
+  NUMBER_1: 1,
+} as const;
+
+export interface ParticipantFieldSet {
+  version: ParticipantFieldSetVersion;
+  fields: ParticipantFieldDefinition[];
+}
+
+export interface ParticipantFieldsResponse {
+  fields: ParticipantFieldSet | null;
+  prunedParticipants?: number;
+}
+
+export interface ParticipantFieldsInput {
+  fields: unknown[];
+  confirmDropValues?: boolean;
+}
+
+export type ParticipantFieldValuesInputValues = { [key: string]: unknown };
+
+export interface ParticipantFieldValuesInput {
+  values: ParticipantFieldValuesInputValues;
+}
+
+export type ParticipantFieldLibraryCategoriesItem = {
+  id: string;
+  label: string;
+};
+
+export type ParticipantFieldLibraryTypesItem = {
+  id: string;
+  label: string;
+};
+
+export interface ParticipantFieldLibrary {
+  categories: ParticipantFieldLibraryCategoriesItem[];
+  types: ParticipantFieldLibraryTypesItem[];
+  fields: ParticipantFieldDefinition[];
 }
 
 /**
@@ -3441,6 +3567,8 @@ export type TournamentBackupV3Tournament = {
   teamRosterMin?: number | null;
   /** @nullable */
   teamRosterMax?: number | null;
+  /** V5.4: present only when the tournament defines participant fields. */
+  participantFields?: ParticipantFieldSet;
   gameConfig?: DeadlockTournamentGameConfig | MarvelTournamentGameConfig;
 };
 
@@ -3452,6 +3580,11 @@ export const TournamentBackupV3PlayersItemStatus = {
   eliminated: 'eliminated',
   winner: 'winner',
 } as const;
+
+/**
+ * V5.4: present only when the participant has field values.
+ */
+export type TournamentBackupV3PlayersItemCustomFields = { [key: string]: unknown };
 
 export type TournamentBackupV3PlayersItem = {
   backupId: number;
@@ -3465,6 +3598,8 @@ export type TournamentBackupV3PlayersItem = {
   /** @nullable */
   seed?: number | null;
   status: TournamentBackupV3PlayersItemStatus;
+  /** V5.4: present only when the participant has field values. */
+  customFields?: TournamentBackupV3PlayersItemCustomFields;
 };
 
 export type TournamentBackupV3StagesItemFormat = typeof TournamentBackupV3StagesItemFormat[keyof typeof TournamentBackupV3StagesItemFormat];

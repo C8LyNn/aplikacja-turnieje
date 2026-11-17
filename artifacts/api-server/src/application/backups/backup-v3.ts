@@ -1,3 +1,4 @@
+import { parseParticipantFieldSet, participantFieldsFromStorage, validateFieldValues, type ParticipantFieldSet } from "../../domain/tournament/participant-fields";
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import {
   actionLogTable,
@@ -384,6 +385,10 @@ export async function exportBackupV3(
       visibility:
         tournament.visibility as TournamentBackupV3["tournament"]["visibility"],
       ...tournamentTeamFields(tournament),
+      // V5.4: participant field definitions travel with the tournament (omitted when none).
+      ...(participantFieldsFromStorage(tournament.participantFields)
+        ? { participantFields: participantFieldsFromStorage(tournament.participantFields)! }
+        : {}),
       ...(parsedGameConfig
         ? { gameConfig: parsedGameConfig }
         : {}),
@@ -396,6 +401,9 @@ export async function exportBackupV3(
       teamName: player.teamName ?? null,
       seed: player.seed ?? null,
       status: player.status,
+      ...(player.customFields != null && typeof player.customFields === "object" && Object.keys(player.customFields as object).length > 0
+        ? { customFields: player.customFields as Record<string, unknown> }
+        : {}),
     })),
     stages: stages.map((stage) => ({
       backupId: stage.id,
@@ -717,6 +725,19 @@ export function validateBackupV3(backup: TournamentBackupV3): void {
   };
   const playerIds = unique(backup.players, "Player");
   validateTeamRosters(backup, playerIds, errors);
+  // V5.4: participant fields — definitions must parse, every stored value must fit its definition.
+  let backupFieldSet: ParticipantFieldSet | null = null;
+  if (backup.tournament.participantFields !== undefined) {
+    const parsed = parseParticipantFieldSet(backup.tournament.participantFields);
+    if (!parsed.ok) errors.push(`Participant fields are invalid: ${parsed.problems.map((problem) => `${problem.path} ${problem.message}`).join("; ")}`);
+    else backupFieldSet = parsed.value;
+  }
+  for (const player of backup.players) {
+    if (player.customFields === undefined) continue;
+    if (!backupFieldSet) { errors.push(`Player ${player.backupId} has field values but the tournament defines no participant fields.`); continue; }
+    const checked = validateFieldValues(backupFieldSet, player.customFields, { audience: "organizer", enforceRequired: false });
+    if (!checked.ok) errors.push(`Player ${player.backupId} field values are invalid: ${checked.problems.map((problem) => problem.message).join(" ")}`);
+  }
   const stageIds = unique(backup.stages, "Stage");
   const groupIds = unique(backup.groups, "Group");
   const membershipIds = unique(backup.stageParticipants, "Stage participant");
@@ -1833,6 +1854,9 @@ export async function importBackupV3(
         participantType: backup.tournament.participantType ?? "players",
         teamRosterMin: backup.tournament.teamRosterMin ?? null,
         teamRosterMax: backup.tournament.teamRosterMax ?? null,
+        participantFields: backup.tournament.participantFields
+          ? (() => { const parsed = parseParticipantFieldSet(backup.tournament.participantFields); return parsed.ok && parsed.value.fields.length ? parsed.value : null; })()
+          : null,
         ...credentials,
       })
       .returning();
@@ -2000,6 +2024,7 @@ export async function importBackupV3(
                 teamName: player.teamName ?? null,
                 seed: player.seed ?? null,
                 status: player.status,
+                customFields: player.customFields && Object.keys(player.customFields).length ? player.customFields : null,
               })),
             )
             .returning();

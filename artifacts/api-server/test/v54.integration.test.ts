@@ -186,3 +186,132 @@ describe("V5.4 seeding rules from presets", () => {
     assert.equal((await rows("SELECT 1 FROM stage_participants WHERE stage_id = $1", [playoff.id])).length, 4);
   });
 });
+
+describe("V5.4 participant fields", () => {
+  const FIELDS = [
+    { key: "nick_gry", label: "Nick w grze", type: "short_text", visibility: "public", required: true },
+    { key: "discord", label: "Discord", type: "short_text", visibility: "staff", libraryId: "discord" },
+    { key: "telefon", label: "Telefon", type: "short_text", visibility: "organizer" },
+    { key: "mmr", label: "MMR", type: "number", min: 0, max: 5000, visibility: "public" },
+    { key: "status_zgloszenia", label: "Status zgłoszenia", type: "select", options: ["Zgłoszony", "Potwierdzony"], defaultValue: "Zgłoszony", visibility: "staff", kind: "entry" },
+  ];
+
+  async function tournamentWithSupport() {
+    const preview = (await request(app).post("/api/tournaments/presets/preview").send({ presetId: "single_elimination", params: { participantCount: 4 } }).expect(200)).body;
+    const created = await request(app).post("/api/tournaments")
+      .send({ name: `Pola ${randomUUID().slice(0, 6)}`, organizerPassword: "integration-organizer-password", supportPassword: "integration-support-password", ...preview.creation })
+      .expect(201);
+    const tournamentId = created.body.id as number;
+    const organizer = await headersFor(tournamentId);
+    const supportLogin = await request(app).post(`/api/tournaments/${tournamentId}/auth/support-login`).send({ password: "integration-support-password", nick: "Pomoc" }).expect(200);
+    return { tournamentId, organizer, support: { "x-support-token": supportLogin.body.sessionToken as string } };
+  }
+
+  test("only the organiser defines fields; values are validated, defaulted and filtered by role", async () => {
+    const { tournamentId, organizer, support } = await tournamentWithSupport();
+    await request(app).put(`/api/tournaments/${tournamentId}/participant-fields`).set(support).send({ fields: FIELDS }).expect(403);
+    await request(app).put(`/api/tournaments/${tournamentId}/participant-fields`).send({ fields: FIELDS }).expect(403);
+    const bad = await request(app).put(`/api/tournaments/${tournamentId}/participant-fields`).set(organizer).send({ fields: [{ key: "token", label: "X", type: "short_text" }] }).expect(422);
+    assert.equal(bad.body.code, "INVALID_PARTICIPANT_FIELDS");
+    const saved = await request(app).put(`/api/tournaments/${tournamentId}/participant-fields`).set(organizer).send({ fields: FIELDS }).expect(200);
+    assert.equal(saved.body.fields.fields.length, 5);
+
+    const missing = await request(app).post(`/api/tournaments/${tournamentId}/players`).set(organizer).send({ name: "Bez nicku" }).expect(422);
+    assert.equal(missing.body.code, "INVALID_FIELD_VALUES");
+    const added = await request(app).post(`/api/tournaments/${tournamentId}/players`).set(organizer)
+      .send({ name: "Ala", customFields: { nick_gry: "AlaPro", discord: "ala#1", telefon: "600100200", mmr: "2100" } }).expect(201);
+    assert.deepEqual(added.body.customFields, { nick_gry: "AlaPro", discord: "ala#1", telefon: "600100200", mmr: 2100, status_zgloszenia: "Zgłoszony" });
+    await request(app).post(`/api/tournaments/${tournamentId}/players`).set(organizer).send({ name: "Zły", customFields: { nick_gry: "x", mmr: 99999 } }).expect(422);
+    await request(app).post(`/api/tournaments/${tournamentId}/players`).set(support).send({ name: "Przez pomoc", customFields: { nick_gry: "P", telefon: "1" } }).expect(422);
+
+    const asPublic = (await request(app).get(`/api/tournaments/${tournamentId}/players`).expect(200)).body as Json[];
+    assert.deepEqual(asPublic[0].customFields, { nick_gry: "AlaPro", mmr: 2100 }, "viewers see public fields only");
+    const asSupport = (await request(app).get(`/api/tournaments/${tournamentId}/players`).set(support).expect(200)).body as Json[];
+    assert.deepEqual(Object.keys(asSupport[0].customFields).sort(), ["discord", "mmr", "nick_gry", "status_zgloszenia"]);
+    const asOrganizer = (await request(app).get(`/api/tournaments/${tournamentId}/players`).set(organizer).expect(200)).body as Json[];
+    assert.equal(asOrganizer[0].customFields.telefon, "600100200");
+    const publicDefs = (await request(app).get(`/api/tournaments/${tournamentId}/participant-fields`).expect(200)).body;
+    assert.deepEqual(publicDefs.fields.fields.map((field: Json) => field.key), ["nick_gry", "mmr"]);
+    const tournamentBody = (await request(app).get(`/api/tournaments/${tournamentId}`).expect(200)).body;
+    assert.equal("participantFields" in tournamentBody, false, "definitions are not leaked through the tournament object");
+    const [raw] = await rows<{ custom_fields: Json }>("SELECT custom_fields FROM players WHERE tournament_id = $1", [tournamentId]);
+    assert.equal(raw!.custom_fields.telefon, "600100200");
+  });
+
+  test("values stay editable after the start and never change results; helpers edit only non-private fields", async () => {
+    const { tournamentId, organizer, support } = await tournamentWithSupport();
+    await request(app).put(`/api/tournaments/${tournamentId}/participant-fields`).set(organizer).send({ fields: FIELDS }).expect(200);
+    const ids: number[] = [];
+    for (const name of ["A", "B", "C", "D"]) {
+      ids.push((await request(app).post(`/api/tournaments/${tournamentId}/players`).set(organizer).send({ name, customFields: { nick_gry: name } }).expect(201)).body.id);
+    }
+    await request(app).post(`/api/tournaments/${tournamentId}/start`).set(organizer).expect(200);
+    const matchesBefore = await rows("SELECT id, player1_id, player2_id, status, winner_id FROM matches WHERE tournament_id = $1 ORDER BY id", [tournamentId]);
+    const updated = await request(app).put(`/api/players/${ids[0]}/custom-fields`).set(support).send({ values: { status_zgloszenia: "Potwierdzony" } }).expect(200);
+    assert.equal(updated.body.customFields.status_zgloszenia, "Potwierdzony");
+    assert.equal("telefon" in updated.body.customFields, false);
+    const denied = await request(app).put(`/api/players/${ids[0]}/custom-fields`).set(support).send({ values: { telefon: "1" } }).expect(422);
+    assert.equal(denied.body.code, "INVALID_FIELD_VALUES");
+    await request(app).put(`/api/players/${ids[0]}/custom-fields`).send({ values: { mmr: 1 } }).expect(403);
+    await request(app).put(`/api/players/${ids[0]}/custom-fields`).set(organizer).send({ values: { telefon: "500" } }).expect(200);
+    assert.deepEqual(await rows("SELECT id, player1_id, player2_id, status, winner_id FROM matches WHERE tournament_id = $1 ORDER BY id", [tournamentId]), matchesBefore, "results untouched");
+    const log = await rows<{ description: string }>("SELECT description FROM action_logs WHERE tournament_id = $1 AND action_type = 'participant_field_values_updated'", [tournamentId]).catch(async () =>
+      rows<{ description: string }>("SELECT description FROM action_log WHERE tournament_id = $1 AND action_type = 'participant_field_values_updated'", [tournamentId]));
+    assert.ok(log.length >= 2);
+    assert.ok(log.every((row) => !row.description.includes("500")), "the log never contains values");
+  });
+
+  test("removing or retyping a field with values needs confirmation; then values are pruned", async () => {
+    const { tournamentId, organizer } = await tournamentWithSupport();
+    await request(app).put(`/api/tournaments/${tournamentId}/participant-fields`).set(organizer).send({ fields: FIELDS }).expect(200);
+    await request(app).post(`/api/tournaments/${tournamentId}/players`).set(organizer).send({ name: "A", customFields: { nick_gry: "A", mmr: 100, telefon: "1" } }).expect(201);
+    const next = FIELDS.filter((field) => field.key !== "telefon").map((field) => (field.key === "mmr" ? { ...field, type: "short_text", min: undefined, max: undefined } : field));
+    const refused = await request(app).put(`/api/tournaments/${tournamentId}/participant-fields`).set(organizer).send({ fields: next }).expect(409);
+    assert.equal(refused.body.code, "PARTICIPANT_FIELD_VALUES_AFFECTED");
+    assert.deepEqual(refused.body.impact.removedWithValues.map((item: Json) => item.key), ["telefon"]);
+    assert.deepEqual(refused.body.impact.retypedWithValues.map((item: Json) => item.key), ["mmr"]);
+    const [unchanged] = await rows<{ custom_fields: Json }>("SELECT custom_fields FROM players WHERE tournament_id = $1", [tournamentId]);
+    assert.equal(unchanged!.custom_fields.telefon, "1", "nothing changed before confirmation");
+    const confirmed = await request(app).put(`/api/tournaments/${tournamentId}/participant-fields`).set(organizer).send({ fields: next, confirmDropValues: true }).expect(200);
+    assert.equal(confirmed.body.prunedParticipants, 1);
+    const [after] = await rows<{ custom_fields: Json }>("SELECT custom_fields FROM players WHERE tournament_id = $1", [tournamentId]);
+    assert.deepEqual(after!.custom_fields, { nick_gry: "A", status_zgloszenia: "Zgłoszony" }, "the number 100 is not silently turned into text");
+  });
+
+  test("CSV import fills fields by label; bad values skip the row with a reason", async () => {
+    const { tournamentId, organizer } = await tournamentWithSupport();
+    await request(app).put(`/api/tournaments/${tournamentId}/participant-fields`).set(organizer).send({ fields: FIELDS }).expect(200);
+    const csv = "name;Nick w grze;MMR;Discord\nAla;AlaPro;2100;ala#1\nOla;OlaX;nie-liczba;ola#2\nEla;;;\n";
+    const result = (await request(app).post(`/api/tournaments/${tournamentId}/players/import`).set(organizer).send({ csv, mode: "append" }).expect(200)).body;
+    assert.equal(result.imported, 2);
+    assert.ok(result.errors.some((error: Json) => /MMR/.test(error.reason)));
+    const players = (await request(app).get(`/api/tournaments/${tournamentId}/players`).set(organizer).expect(200)).body as Json[];
+    const ala = players.find((player) => player.name === "Ala");
+    assert.deepEqual(ala.customFields, { nick_gry: "AlaPro", discord: "ala#1", mmr: 2100, status_zgloszenia: "Zgłoszony" });
+  });
+
+  test("Backup V3 exports, validates and restores definitions and values", async () => {
+    const { tournamentId, organizer } = await tournamentWithSupport();
+    await request(app).put(`/api/tournaments/${tournamentId}/participant-fields`).set(organizer).send({ fields: FIELDS }).expect(200);
+    await request(app).post(`/api/tournaments/${tournamentId}/players`).set(organizer).send({ name: "Ala", customFields: { nick_gry: "AlaPro", telefon: "600" } }).expect(201);
+    const { exportBackupV3, importBackupV3, validateBackupV3 } = await import("../src/application/backups/backup-v3");
+    const backup = (await exportBackupV3(tournamentId))!;
+    assert.equal(backup.tournament.participantFields?.fields.length, 5);
+    assert.deepEqual(backup.players[0].customFields, { nick_gry: "AlaPro", telefon: "600", status_zgloszenia: "Zgłoszony" });
+    validateBackupV3(backup);
+    const tampered = structuredClone(backup);
+    tampered.players[0].customFields = { mmr: "dużo" } as never;
+    const hasError = (pattern: RegExp) => (error: unknown) => Array.isArray((error as { details?: string[] }).details) && (error as { details: string[] }).details.some((text) => pattern.test(text));
+    assert.throws(() => validateBackupV3(tampered), hasError(/field values are invalid/));
+    const orphan = structuredClone(backup);
+    delete (orphan.tournament as { participantFields?: unknown }).participantFields;
+    assert.throws(() => validateBackupV3(orphan), hasError(/defines no participant fields/));
+    const [hash] = await rows<{ organizer_password_hash: string }>("SELECT organizer_password_hash FROM tournaments WHERE id = $1", [tournamentId]);
+    const restored = await importBackupV3(backup, { organizerPasswordHash: hash!.organizer_password_hash } as never) as Json;
+    const restoredId = (restored.id ?? restored.tournamentId ?? restored.tournament?.id) as number;
+    const [copy] = await rows<{ participant_fields: Json }>("SELECT participant_fields FROM tournaments WHERE id = $1", [restoredId]);
+    assert.equal(copy!.participant_fields.fields.length, 5);
+    const [copiedPlayer] = await rows<{ custom_fields: Json }>("SELECT custom_fields FROM players WHERE tournament_id = $1", [restoredId]);
+    assert.deepEqual(copiedPlayer!.custom_fields, { nick_gry: "AlaPro", telefon: "600", status_zgloszenia: "Zgłoszony" });
+  });
+});

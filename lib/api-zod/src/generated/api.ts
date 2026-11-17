@@ -1573,6 +1573,136 @@ export const GetTournamentStageResponse = zod.object({
 
 
 /**
+ * @summary Ready-made participant fields grouped by category (V5.4)
+ */
+export const GetParticipantFieldLibraryResponse = zod.object({
+  "categories": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})),
+  "types": zod.array(zod.object({
+  "id": zod.string(),
+  "label": zod.string()
+})),
+  "fields": zod.array(zod.object({
+  "key": zod.string(),
+  "label": zod.string(),
+  "type": zod.enum(['short_text', 'long_text', 'number', 'select', 'multi_select', 'boolean', 'date', 'color', 'url']),
+  "category": zod.enum(['identity', 'gaming', 'ranking', 'team', 'location', 'contact', 'organization', 'interests', 'other']),
+  "kind": zod.enum(['profile', 'entry']),
+  "description": zod.string().optional(),
+  "required": zod.boolean(),
+  "visibility": zod.enum(['organizer', 'staff', 'public']),
+  "options": zod.array(zod.string()).optional(),
+  "min": zod.number().optional(),
+  "max": zod.number().optional(),
+  "maxLength": zod.number().optional(),
+  "defaultValue": zod.unknown().optional(),
+  "libraryId": zod.string().optional()
+}))
+})
+
+
+/**
+ * @summary Participant field definitions visible to the caller (V5.4)
+ */
+
+
+
+export const GetParticipantFieldsParams = zod.object({
+  "id": zod.coerce.number().min(1)
+})
+
+export const GetParticipantFieldsResponse = zod.object({
+  "fields": zod.union([zod.object({
+  "version": zod.literal(1),
+  "fields": zod.array(zod.object({
+  "key": zod.string(),
+  "label": zod.string(),
+  "type": zod.enum(['short_text', 'long_text', 'number', 'select', 'multi_select', 'boolean', 'date', 'color', 'url']),
+  "category": zod.enum(['identity', 'gaming', 'ranking', 'team', 'location', 'contact', 'organization', 'interests', 'other']),
+  "kind": zod.enum(['profile', 'entry']),
+  "description": zod.string().optional(),
+  "required": zod.boolean(),
+  "visibility": zod.enum(['organizer', 'staff', 'public']),
+  "options": zod.array(zod.string()).optional(),
+  "min": zod.number().optional(),
+  "max": zod.number().optional(),
+  "maxLength": zod.number().optional(),
+  "defaultValue": zod.unknown().optional(),
+  "libraryId": zod.string().optional()
+}))
+}),zod.null()]),
+  "prunedParticipants": zod.number().optional()
+})
+
+
+/**
+ * Refused with 409 PARTICIPANT_FIELD_VALUES_AFFECTED when stored values would be dropped or reinterpreted, unless confirmDropValues is true.
+ * @summary Replace participant field definitions (organiser only, V5.4)
+ */
+
+
+
+export const SaveParticipantFieldsParams = zod.object({
+  "id": zod.coerce.number().min(1)
+})
+
+export const SaveParticipantFieldsBody = zod.object({
+  "fields": zod.array(zod.unknown()),
+  "confirmDropValues": zod.boolean().optional()
+})
+
+export const SaveParticipantFieldsResponse = zod.object({
+  "fields": zod.union([zod.object({
+  "version": zod.literal(1),
+  "fields": zod.array(zod.object({
+  "key": zod.string(),
+  "label": zod.string(),
+  "type": zod.enum(['short_text', 'long_text', 'number', 'select', 'multi_select', 'boolean', 'date', 'color', 'url']),
+  "category": zod.enum(['identity', 'gaming', 'ranking', 'team', 'location', 'contact', 'organization', 'interests', 'other']),
+  "kind": zod.enum(['profile', 'entry']),
+  "description": zod.string().optional(),
+  "required": zod.boolean(),
+  "visibility": zod.enum(['organizer', 'staff', 'public']),
+  "options": zod.array(zod.string()).optional(),
+  "min": zod.number().optional(),
+  "max": zod.number().optional(),
+  "maxLength": zod.number().optional(),
+  "defaultValue": zod.unknown().optional(),
+  "libraryId": zod.string().optional()
+}))
+}),zod.null()]),
+  "prunedParticipants": zod.number().optional()
+})
+
+
+/**
+ * @summary Set participant field values (any tournament state; never affects results, V5.4)
+ */
+export const SetPlayerCustomFieldsParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const SetPlayerCustomFieldsBody = zod.object({
+  "values": zod.record(zod.string(), zod.unknown())
+})
+
+export const SetPlayerCustomFieldsResponse = zod.object({
+  "id": zod.number(),
+  "tournamentId": zod.number(),
+  "name": zod.string(),
+  "rank": zod.string().nullish(),
+  "country": zod.string().nullish(),
+  "teamName": zod.string().nullish(),
+  "seed": zod.number().nullish(),
+  "status": zod.enum(['active', 'eliminated', 'winner']).optional(),
+  "customFields": zod.record(zod.string(), zod.unknown()).nullish().describe('V5.4 values of the tournament\'s participant fields, filtered by the caller\'s role.'),
+  "createdAt": zod.string()
+})
+
+
+/**
  * Ranked by the same engine as stage completion; a completed stage returns its stored places.
  * @summary Live tables of a group, league or Swiss stage (V5.4)
  */
@@ -3575,6 +3705,25 @@ export const ExportTournamentResponse = zod.object({
   "participantType": zod.enum(['players', 'teams']).optional().describe('V5.1. Omitted for individual tournaments (backward compatible); \"teams\" requires the teamRosters section.'),
   "teamRosterMin": zod.number().nullish(),
   "teamRosterMax": zod.number().nullish(),
+  "participantFields": zod.object({
+  "version": zod.literal(1),
+  "fields": zod.array(zod.object({
+  "key": zod.string(),
+  "label": zod.string(),
+  "type": zod.enum(['short_text', 'long_text', 'number', 'select', 'multi_select', 'boolean', 'date', 'color', 'url']),
+  "category": zod.enum(['identity', 'gaming', 'ranking', 'team', 'location', 'contact', 'organization', 'interests', 'other']),
+  "kind": zod.enum(['profile', 'entry']),
+  "description": zod.string().optional(),
+  "required": zod.boolean(),
+  "visibility": zod.enum(['organizer', 'staff', 'public']),
+  "options": zod.array(zod.string()).optional(),
+  "min": zod.number().optional(),
+  "max": zod.number().optional(),
+  "maxLength": zod.number().optional(),
+  "defaultValue": zod.unknown().optional(),
+  "libraryId": zod.string().optional()
+}))
+}).optional().describe('V5.4: present only when the tournament defines participant fields.'),
   "gameConfig": zod.union([zod.object({
   "gameId": zod.literal("deadlock"),
   "configVersion": zod.number(),
@@ -3605,7 +3754,8 @@ export const ExportTournamentResponse = zod.object({
   "country": zod.string().nullish(),
   "teamName": zod.string().nullish(),
   "seed": zod.number().nullish(),
-  "status": zod.enum(['active', 'eliminated', 'winner'])
+  "status": zod.enum(['active', 'eliminated', 'winner']),
+  "customFields": zod.record(zod.string(), zod.unknown()).optional().describe('V5.4: present only when the participant has field values.')
 })),
   "stages": zod.array(zod.object({
   "backupId": zod.number(),
@@ -4020,6 +4170,25 @@ export const ImportTournamentBody = zod.object({
   "participantType": zod.enum(['players', 'teams']).optional().describe('V5.1. Omitted for individual tournaments (backward compatible); \"teams\" requires the teamRosters section.'),
   "teamRosterMin": zod.number().nullish(),
   "teamRosterMax": zod.number().nullish(),
+  "participantFields": zod.object({
+  "version": zod.literal(1),
+  "fields": zod.array(zod.object({
+  "key": zod.string(),
+  "label": zod.string(),
+  "type": zod.enum(['short_text', 'long_text', 'number', 'select', 'multi_select', 'boolean', 'date', 'color', 'url']),
+  "category": zod.enum(['identity', 'gaming', 'ranking', 'team', 'location', 'contact', 'organization', 'interests', 'other']),
+  "kind": zod.enum(['profile', 'entry']),
+  "description": zod.string().optional(),
+  "required": zod.boolean(),
+  "visibility": zod.enum(['organizer', 'staff', 'public']),
+  "options": zod.array(zod.string()).optional(),
+  "min": zod.number().optional(),
+  "max": zod.number().optional(),
+  "maxLength": zod.number().optional(),
+  "defaultValue": zod.unknown().optional(),
+  "libraryId": zod.string().optional()
+}))
+}).optional().describe('V5.4: present only when the tournament defines participant fields.'),
   "gameConfig": zod.union([zod.object({
   "gameId": zod.literal("deadlock"),
   "configVersion": zod.number(),
@@ -4050,7 +4219,8 @@ export const ImportTournamentBody = zod.object({
   "country": zod.string().nullish(),
   "teamName": zod.string().nullish(),
   "seed": zod.number().nullish(),
-  "status": zod.enum(['active', 'eliminated', 'winner'])
+  "status": zod.enum(['active', 'eliminated', 'winner']),
+  "customFields": zod.record(zod.string(), zod.unknown()).optional().describe('V5.4: present only when the participant has field values.')
 })),
   "stages": zod.array(zod.object({
   "backupId": zod.number(),
@@ -4727,6 +4897,7 @@ export const ListPlayersResponseItem = zod.object({
   "teamName": zod.string().nullish(),
   "seed": zod.number().nullish(),
   "status": zod.enum(['active', 'eliminated', 'winner']).optional(),
+  "customFields": zod.record(zod.string(), zod.unknown()).nullish().describe('V5.4 values of the tournament\'s participant fields, filtered by the caller\'s role.'),
   "createdAt": zod.string()
 })
 export const ListPlayersResponse = zod.array(ListPlayersResponseItem)
@@ -4744,7 +4915,8 @@ export const AddPlayerBody = zod.object({
   "rank": zod.string().optional(),
   "country": zod.string().optional(),
   "teamName": zod.string().optional(),
-  "seed": zod.number().optional()
+  "seed": zod.number().optional(),
+  "customFields": zod.record(zod.string(), zod.unknown()).optional().describe('V5.4 values of participant fields (validated against the tournament\'s definitions).')
 })
 
 
@@ -4776,6 +4948,7 @@ export const ImportPlayersResponse = zod.object({
   "teamName": zod.string().nullish(),
   "seed": zod.number().nullish(),
   "status": zod.enum(['active', 'eliminated', 'winner']).optional(),
+  "customFields": zod.record(zod.string(), zod.unknown()).nullish().describe('V5.4 values of the tournament\'s participant fields, filtered by the caller\'s role.'),
   "createdAt": zod.string()
 })),
   "errors": zod.array(zod.object({
@@ -4808,6 +4981,7 @@ export const UpdatePlayerResponse = zod.object({
   "teamName": zod.string().nullish(),
   "seed": zod.number().nullish(),
   "status": zod.enum(['active', 'eliminated', 'winner']).optional(),
+  "customFields": zod.record(zod.string(), zod.unknown()).nullish().describe('V5.4 values of the tournament\'s participant fields, filtered by the caller\'s role.'),
   "createdAt": zod.string()
 })
 

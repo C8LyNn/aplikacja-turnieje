@@ -1,3 +1,16 @@
+import {
+  PARTICIPANT_FIELD_CATEGORIES,
+  PARTICIPANT_FIELD_CATEGORY_LABELS,
+  PARTICIPANT_FIELD_LIBRARY,
+  PARTICIPANT_FIELD_TYPES,
+  PARTICIPANT_FIELD_TYPE_LABELS,
+  participantFieldsFromStorage,
+  visibleFieldSet,
+  visibleFieldValues,
+  type ParticipantFieldAudience,
+  type ParticipantFieldSet,
+} from "../domain/tournament/participant-fields";
+import { ParticipantFieldsError, saveParticipantFields, setParticipantFieldValues } from "../application/players/participant-fields-service";
 import { getLiveStageStandings } from "../application/stages/live-stage-standings";
 import { Router, type IRouter, type Response as ExpressResponse } from "express";
 import { lockLatestUndoableAction, UndoActionChangedError } from "../application/undo/latest-undo-action";
@@ -379,6 +392,8 @@ function mapTournament(
     supportPasswordVersion: _spv,
     viewerPasswordHash: _vph,
     viewerPasswordVersion: _vpv,
+    // V5.4: definitions are served by /participant-fields, filtered by role.
+    participantFields: _participantFields,
     ...rest
   } = t;
   return {
@@ -423,9 +438,24 @@ async function checkViewerReadAuth(req: import("express").Request, res: import("
   return (await requireTournamentRead(req, res, tournamentId)) !== null;
 }
 
-function mapPlayer(p: typeof playersTable.$inferSelect) {
+/** V5.4: which participant fields a caller may see. */
+function fieldAudienceOf(actor: { type: string } | undefined): ParticipantFieldAudience {
+  return actor?.type === "organizer" ? "organizer" : actor?.type === "support" ? "staff" : "public";
+}
+
+/**
+ * Player for the API. Raw custom_fields are never spread: only values of defined fields the caller may
+ * see are returned (organiser-only values stay with the organiser).
+ */
+function mapPlayer(
+  p: typeof playersTable.$inferSelect,
+  fieldSet: ParticipantFieldSet | null = null,
+  audience: ParticipantFieldAudience = "public",
+) {
+  const { customFields: _stored, ...player } = p;
   return {
-    ...p,
+    ...player,
+    customFields: visibleFieldValues(fieldSet, p.customFields, audience),
     rank: p.rank ?? null,
     country: p.country ?? null,
     teamName: p.teamName ?? null,
@@ -2181,13 +2211,82 @@ router.get("/tournaments/:id/assistant", async (req, res): Promise<void> => {
 router.get("/tournaments/:id/players", async (req, res): Promise<void> => {
   const params = ListPlayersParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
-  if (!await checkViewerReadAuth(req, res, params.data.id)) return;
+  const access = await requireTournamentRead(req, res, params.data.id);
+  if (!access) return;
   const players = await db
     .select()
     .from(playersTable)
     .where(eq(playersTable.tournamentId, params.data.id))
     .orderBy(playersTable.seed, playersTable.createdAt);
-  res.json(players.map(mapPlayer));
+  const fieldSet = participantFieldsFromStorage(access.tournament.participantFields);
+  const audience = fieldAudienceOf(access.actor);
+  res.json(players.map((player) => mapPlayer(player, fieldSet, audience)));
+});
+
+// V5.4-005: participant fields — library, definitions (role-filtered) and values.
+router.get("/participant-field-library", (_req, res): void => {
+  res.json({
+    categories: PARTICIPANT_FIELD_CATEGORIES.map((id) => ({ id, label: PARTICIPANT_FIELD_CATEGORY_LABELS[id] })),
+    types: PARTICIPANT_FIELD_TYPES.map((id) => ({ id, label: PARTICIPANT_FIELD_TYPE_LABELS[id] })),
+    fields: PARTICIPANT_FIELD_LIBRARY.map((entry) => ({ ...entry, required: false })),
+  });
+});
+
+router.get("/tournaments/:id/participant-fields", async (req, res): Promise<void> => {
+  const params = ListPlayersParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
+  const access = await requireTournamentRead(req, res, params.data.id);
+  if (!access) return;
+  res.json({ fields: visibleFieldSet(participantFieldsFromStorage(access.tournament.participantFields), fieldAudienceOf(access.actor)) });
+});
+
+function sendParticipantFieldsError(error: ParticipantFieldsError, res: import("express").Response): void {
+  const status = error.code === "TOURNAMENT_NOT_FOUND" || error.code === "PLAYER_NOT_FOUND" ? 404
+    : error.code === "PARTICIPANT_FIELD_VALUES_AFFECTED" ? 409 : 422;
+  res.status(status).json({ error: error.message, code: error.code, ...error.details });
+}
+
+router.put("/tournaments/:id/participant-fields", async (req, res): Promise<void> => {
+  const params = ListPlayersParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
+  const body = (typeof req.body === "object" && req.body !== null ? req.body : {}) as { fields?: unknown; confirmDropValues?: unknown };
+  const access = await requireOrganizer(req, res, params.data.id);
+  if (!access) return;
+  try {
+    const result = await saveParticipantFields({
+      tournamentId: params.data.id,
+      definitions: { version: 1, fields: body.fields },
+      confirmDropValues: body.confirmDropValues === true,
+      actor: getTournamentMutationActor(access),
+    });
+    res.json(result);
+  } catch (error) {
+    if (error instanceof ParticipantFieldsError) { sendParticipantFieldsError(error, res); return; }
+    throw error;
+  }
+});
+
+router.put("/players/:id/custom-fields", async (req, res): Promise<void> => {
+  const params = UpdatePlayerParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
+  const [existing] = await db.select({ tournamentId: playersTable.tournamentId }).from(playersTable).where(eq(playersTable.id, params.data.id));
+  if (!existing) { res.status(404).json({ error: "Player not found" }); return; }
+  const access = await requireTournamentWrite(req, res, existing.tournamentId);
+  if (!access) return;
+  const audience = fieldAudienceOf(access.actor);
+  try {
+    const { player, set } = await setParticipantFieldValues({
+      tournamentId: existing.tournamentId,
+      playerId: params.data.id,
+      values: (req.body as { values?: unknown } | undefined)?.values,
+      audience,
+      actor: getTournamentMutationActor(access),
+    });
+    res.json(mapPlayer(player, set, audience));
+  } catch (error) {
+    if (error instanceof ParticipantFieldsError) { sendParticipantFieldsError(error, res); return; }
+    throw error;
+  }
 });
 
 router.post("/tournaments/:id/players", async (req, res): Promise<void> => {
@@ -2203,18 +2302,23 @@ router.post("/tournaments/:id/players", async (req, res): Promise<void> => {
   }
   const access = await requireTournamentWrite(req, res, params.data.id);
   if (!access) return;
+  const audience = fieldAudienceOf(access.actor);
   try {
+    const { customFields, ...playerInput } = parsed.data;
     const player = await addTournamentPlayer({
       tournamentId: params.data.id,
-      player: parsed.data,
+      player: playerInput,
+      customFields,
+      fieldAudience: audience,
       actor: getTournamentMutationActor(access),
     });
-    res.status(201).json(mapPlayer(player));
+    res.status(201).json(mapPlayer(player, participantFieldsFromStorage(access.tournament.participantFields), audience));
   } catch (error) {
     if (error instanceof TournamentRosterError) {
       sendTournamentRosterError(error, res);
       return;
     }
+    if (error instanceof ParticipantFieldsError) { sendParticipantFieldsError(error, res); return; }
     throw error;
   }
 });
@@ -2240,7 +2344,9 @@ router.post("/tournaments/:id/players/import", async (req, res): Promise<void> =
       mode: parsed.data.mode === "replace" ? "replace" : "append",
       actor: getTournamentMutationActor(access),
     });
-    res.json({ ...result, players: result.players.map(mapPlayer) });
+    const fieldSet = participantFieldsFromStorage(access.tournament.participantFields);
+    const audience = fieldAudienceOf(access.actor);
+    res.json({ ...result, players: result.players.map((player) => mapPlayer(player, fieldSet, audience)) });
   } catch (error) {
     if (error instanceof TournamentRosterError) {
       sendTournamentRosterError(error, res);
@@ -2275,7 +2381,7 @@ router.patch("/players/:id", async (req, res): Promise<void> => {
       changes: parsed.data,
       actor: getTournamentMutationActor(access),
     });
-    res.json(mapPlayer(player));
+    res.json(mapPlayer(player, participantFieldsFromStorage(access.tournament.participantFields), fieldAudienceOf(access.actor)));
   } catch (error) {
     if (error instanceof TournamentRosterError) {
       sendTournamentRosterError(error, res);

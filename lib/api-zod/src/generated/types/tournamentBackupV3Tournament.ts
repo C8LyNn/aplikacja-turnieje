@@ -7,6 +7,7 @@
  */
 import type { DeadlockTournamentGameConfig } from './deadlockTournamentGameConfig';
 import type { MarvelTournamentGameConfig } from './marvelTournamentGameConfig';
+import type { ParticipantFieldSet } from './participantFieldSet';
 import type { TournamentBackupV3TournamentBasketFlowAuthorityVersion } from './tournamentBackupV3TournamentBasketFlowAuthorityVersion';
 import type { TournamentBackupV3TournamentParticipantType } from './tournamentBackupV3TournamentParticipantType';
 import type { TournamentBackupV3TournamentStatus } from './tournamentBackupV3TournamentStatus';
@@ -34,5 +35,7 @@ export type TournamentBackupV3Tournament = {
   teamRosterMin?: number | null;
   /** @nullable */
   teamRosterMax?: number | null;
+  /** V5.4: present only when the tournament defines participant fields. */
+  participantFields?: ParticipantFieldSet;
   gameConfig?: DeadlockTournamentGameConfig | MarvelTournamentGameConfig;
 };

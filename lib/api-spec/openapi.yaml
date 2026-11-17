@@ -596,6 +596,103 @@ paths:
               schema:
                 $ref: "#/components/schemas/DomainError"
 
+  /participant-field-library:
+    get:
+      operationId: getParticipantFieldLibrary
+      tags: [tournaments]
+      summary: Ready-made participant fields grouped by category (V5.4)
+      responses:
+        "200":
+          description: Library
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ParticipantFieldLibrary"
+
+  /tournaments/{id}/participant-fields:
+    get:
+      operationId: getParticipantFields
+      tags: [tournaments]
+      summary: Participant field definitions visible to the caller (V5.4)
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+      responses:
+        "200":
+          description: Definitions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ParticipantFieldsResponse"
+        "403":
+          description: Not visible
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+    put:
+      operationId: saveParticipantFields
+      tags: [tournaments]
+      summary: Replace participant field definitions (organiser only, V5.4)
+      description: Refused with 409 PARTICIPANT_FIELD_VALUES_AFFECTED when stored values would be dropped or reinterpreted, unless confirmDropValues is true.
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ParticipantFieldsInput"
+      responses:
+        "200":
+          description: Saved definitions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ParticipantFieldsResponse"
+        "409":
+          description: Stored values would be affected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "422":
+          description: Invalid definitions
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+
+  /players/{id}/custom-fields:
+    put:
+      operationId: setPlayerCustomFields
+      tags: [players]
+      summary: Set participant field values (any tournament state; never affects results, V5.4)
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ParticipantFieldValuesInput"
+      responses:
+        "200":
+          description: Updated participant
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Player"
+        "422":
+          description: Invalid values
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+
   /tournaments/{id}/stages/{stageId}/standings:
     get:
       operationId: getStageLiveStandings
@@ -4101,6 +4198,10 @@ components:
         status:
           type: string
           enum: [active, eliminated, winner]
+        customFields:
+          description: V5.4 values of the tournament's participant fields, filtered by the caller's role.
+          type: ["object", "null"]
+          additionalProperties: true
         createdAt:
           type: string
 
@@ -4119,6 +4220,10 @@ components:
           type: string
         seed:
           type: integer
+        customFields:
+          description: V5.4 values of participant fields (validated against the tournament's definitions).
+          type: object
+          additionalProperties: true
 
     PlayerUpdate:
       type: object
@@ -4264,6 +4369,81 @@ components:
           type: integer
           minimum: 1
 
+    ParticipantFieldDefinition:
+      type: object
+      required: [key, label, type, category, kind, required, visibility]
+      properties:
+        key: { type: string }
+        label: { type: string }
+        type: { type: string, enum: [short_text, long_text, number, select, multi_select, boolean, date, color, url] }
+        category: { type: string, enum: [identity, gaming, ranking, team, location, contact, organization, interests, other] }
+        kind: { type: string, enum: [profile, entry] }
+        description: { type: string }
+        required: { type: boolean }
+        visibility: { type: string, enum: [organizer, staff, public] }
+        options: { type: array, items: { type: string } }
+        min: { type: number }
+        max: { type: number }
+        maxLength: { type: integer }
+        defaultValue: {}
+        libraryId: { type: string }
+    ParticipantFieldSet:
+      type: object
+      required: [version, fields]
+      properties:
+        version: { type: integer, enum: [1] }
+        fields:
+          type: array
+          items:
+            $ref: "#/components/schemas/ParticipantFieldDefinition"
+    ParticipantFieldsResponse:
+      type: object
+      required: [fields]
+      properties:
+        fields:
+          oneOf:
+            - $ref: "#/components/schemas/ParticipantFieldSet"
+            - type: "null"
+        prunedParticipants: { type: integer }
+    ParticipantFieldsInput:
+      type: object
+      required: [fields]
+      properties:
+        fields:
+          type: array
+          items: {}
+        confirmDropValues: { type: boolean }
+    ParticipantFieldValuesInput:
+      type: object
+      required: [values]
+      properties:
+        values:
+          type: object
+          additionalProperties: true
+    ParticipantFieldLibrary:
+      type: object
+      required: [categories, types, fields]
+      properties:
+        categories:
+          type: array
+          items:
+            type: object
+            required: [id, label]
+            properties:
+              id: { type: string }
+              label: { type: string }
+        types:
+          type: array
+          items:
+            type: object
+            required: [id, label]
+            properties:
+              id: { type: string }
+              label: { type: string }
+        fields:
+          type: array
+          items:
+            $ref: "#/components/schemas/ParticipantFieldDefinition"
     LiveStageStandings:
       type: object
       required: [stageId, format, status, final, leagueRules, rulesSummary, advancingPlaces, tables]
@@ -5381,6 +5561,9 @@ components:
               description: V5.1. Omitted for individual tournaments (backward compatible); "teams" requires the teamRosters section.
             teamRosterMin: { type: ["integer", "null"] }
             teamRosterMax: { type: ["integer", "null"] }
+            participantFields:
+              $ref: "#/components/schemas/ParticipantFieldSet"
+              description: "V5.4: present only when the tournament defines participant fields."
             gameConfig:
               oneOf:
                 - $ref: "#/components/schemas/DeadlockTournamentGameConfig"
@@ -5399,6 +5582,10 @@ components:
               teamName: { type: ["string", "null"] }
               seed: { type: ["integer", "null"] }
               status: { type: string, enum: [active, eliminated, winner] }
+              customFields:
+                type: object
+                additionalProperties: true
+                description: "V5.4: present only when the participant has field values."
         stages:
           type: array
           minItems: 1

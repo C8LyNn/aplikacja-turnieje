@@ -58,6 +58,10 @@ import type {
   OrganizerCredentialState,
   OrganizerPasswordAlreadySetError,
   OrganizerTokenResponse,
+  ParticipantFieldLibrary,
+  ParticipantFieldValuesInput,
+  ParticipantFieldsInput,
+  ParticipantFieldsResponse,
   Player,
   PlayerInput,
   PlayerUpdate,
@@ -1606,6 +1610,305 @@ export function useGetTournamentStage<TData = Awaited<ReturnType<typeof getTourn
 
 
 
+
+export const getGetParticipantFieldLibraryUrl = () => {
+
+
+
+
+  return `/api/participant-field-library`
+}
+
+/**
+ * @summary Ready-made participant fields grouped by category (V5.4)
+ */
+export const getParticipantFieldLibrary = async ( options?: RequestInit): Promise<ParticipantFieldLibrary> => {
+
+  return customFetch<ParticipantFieldLibrary>(getGetParticipantFieldLibraryUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetParticipantFieldLibraryQueryKey = () => {
+    return [
+    `/api/participant-field-library`
+    ] as const;
+    }
+
+
+export const getGetParticipantFieldLibraryQueryOptions = <TData = Awaited<ReturnType<typeof getParticipantFieldLibrary>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getParticipantFieldLibrary>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetParticipantFieldLibraryQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getParticipantFieldLibrary>>> = ({ signal }) => getParticipantFieldLibrary({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getParticipantFieldLibrary>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetParticipantFieldLibraryQueryResult = NonNullable<Awaited<ReturnType<typeof getParticipantFieldLibrary>>>
+export type GetParticipantFieldLibraryQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Ready-made participant fields grouped by category (V5.4)
+ */
+
+export function useGetParticipantFieldLibrary<TData = Awaited<ReturnType<typeof getParticipantFieldLibrary>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getParticipantFieldLibrary>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetParticipantFieldLibraryQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetParticipantFieldsUrl = (id: number,) => {
+
+
+
+
+  return `/api/tournaments/${id}/participant-fields`
+}
+
+/**
+ * @summary Participant field definitions visible to the caller (V5.4)
+ */
+export const getParticipantFields = async (id: number, options?: RequestInit): Promise<ParticipantFieldsResponse> => {
+
+  return customFetch<ParticipantFieldsResponse>(getGetParticipantFieldsUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetParticipantFieldsQueryKey = (id: number,) => {
+    return [
+    `/api/tournaments/${id}/participant-fields`
+    ] as const;
+    }
+
+
+export const getGetParticipantFieldsQueryOptions = <TData = Awaited<ReturnType<typeof getParticipantFields>>, TError = ErrorType<DomainError>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getParticipantFields>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetParticipantFieldsQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getParticipantFields>>> = ({ signal }) => getParticipantFields(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getParticipantFields>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetParticipantFieldsQueryResult = NonNullable<Awaited<ReturnType<typeof getParticipantFields>>>
+export type GetParticipantFieldsQueryError = ErrorType<DomainError>
+
+
+/**
+ * @summary Participant field definitions visible to the caller (V5.4)
+ */
+
+export function useGetParticipantFields<TData = Awaited<ReturnType<typeof getParticipantFields>>, TError = ErrorType<DomainError>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getParticipantFields>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetParticipantFieldsQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getSaveParticipantFieldsUrl = (id: number,) => {
+
+
+
+
+  return `/api/tournaments/${id}/participant-fields`
+}
+
+/**
+ * Refused with 409 PARTICIPANT_FIELD_VALUES_AFFECTED when stored values would be dropped or reinterpreted, unless confirmDropValues is true.
+ * @summary Replace participant field definitions (organiser only, V5.4)
+ */
+export const saveParticipantFields = async (id: number,
+    participantFieldsInput: ParticipantFieldsInput, options?: RequestInit): Promise<ParticipantFieldsResponse> => {
+
+  return customFetch<ParticipantFieldsResponse>(getSaveParticipantFieldsUrl(id),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      participantFieldsInput,)
+  }
+);}
+
+
+
+
+export const getSaveParticipantFieldsMutationOptions = <TError = ErrorType<DomainError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveParticipantFields>>, TError,{id: number;data: BodyType<ParticipantFieldsInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof saveParticipantFields>>, TError,{id: number;data: BodyType<ParticipantFieldsInput>}, TContext> => {
+
+const mutationKey = ['saveParticipantFields'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof saveParticipantFields>>, {id: number;data: BodyType<ParticipantFieldsInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  saveParticipantFields(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SaveParticipantFieldsMutationResult = NonNullable<Awaited<ReturnType<typeof saveParticipantFields>>>
+    export type SaveParticipantFieldsMutationBody = BodyType<ParticipantFieldsInput>
+    export type SaveParticipantFieldsMutationError = ErrorType<DomainError>
+
+    /**
+ * @summary Replace participant field definitions (organiser only, V5.4)
+ */
+export const useSaveParticipantFields = <TError = ErrorType<DomainError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveParticipantFields>>, TError,{id: number;data: BodyType<ParticipantFieldsInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof saveParticipantFields>>,
+        TError,
+        {id: number;data: BodyType<ParticipantFieldsInput>},
+        TContext
+      > => {
+      return useMutation(getSaveParticipantFieldsMutationOptions(options));
+    }
+
+export const getSetPlayerCustomFieldsUrl = (id: number,) => {
+
+
+
+
+  return `/api/players/${id}/custom-fields`
+}
+
+/**
+ * @summary Set participant field values (any tournament state; never affects results, V5.4)
+ */
+export const setPlayerCustomFields = async (id: number,
+    participantFieldValuesInput: ParticipantFieldValuesInput, options?: RequestInit): Promise<Player> => {
+
+  return customFetch<Player>(getSetPlayerCustomFieldsUrl(id),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      participantFieldValuesInput,)
+  }
+);}
+
+
+
+
+export const getSetPlayerCustomFieldsMutationOptions = <TError = ErrorType<DomainError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setPlayerCustomFields>>, TError,{id: number;data: BodyType<ParticipantFieldValuesInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof setPlayerCustomFields>>, TError,{id: number;data: BodyType<ParticipantFieldValuesInput>}, TContext> => {
+
+const mutationKey = ['setPlayerCustomFields'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof setPlayerCustomFields>>, {id: number;data: BodyType<ParticipantFieldValuesInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  setPlayerCustomFields(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SetPlayerCustomFieldsMutationResult = NonNullable<Awaited<ReturnType<typeof setPlayerCustomFields>>>
+    export type SetPlayerCustomFieldsMutationBody = BodyType<ParticipantFieldValuesInput>
+    export type SetPlayerCustomFieldsMutationError = ErrorType<DomainError>
+
+    /**
+ * @summary Set participant field values (any tournament state; never affects results, V5.4)
+ */
+export const useSetPlayerCustomFields = <TError = ErrorType<DomainError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof setPlayerCustomFields>>, TError,{id: number;data: BodyType<ParticipantFieldValuesInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof setPlayerCustomFields>>,
+        TError,
+        {id: number;data: BodyType<ParticipantFieldValuesInput>},
+        TContext
+      > => {
+      return useMutation(getSetPlayerCustomFieldsMutationOptions(options));
+    }
 
 export const getGetStageLiveStandingsUrl = (id: number,
     stageId: number,) => {
