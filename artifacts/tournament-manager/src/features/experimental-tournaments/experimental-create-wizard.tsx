@@ -1,3 +1,4 @@
+import { LEAGUE_PARAM_KEYS, LeagueOptions } from "./experimental-league-options";
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import {
@@ -64,6 +65,11 @@ import {
   type WizardDraft,
   type WizardStepIndex,
   bestOfLabel,
+  formatLocalDate,
+  scheduleOutline,
+  isLeagueOnly,
+  scheduleTargetStage,
+  type WizardSchedule,
 } from "./experimental-create-wizard-model";
 import { ExperimentalAiImport, type AiImportResult } from "./experimental-ai-import";
 
@@ -233,7 +239,9 @@ function PresetStats({ preview, teams = false }: { preview: PresetPreview; teams
   return (
     <dl className="experimental-wizard-stats">
       <Stat label="Mecze" value={rangeText(preview.totals.matches)} />
-      <Stat label="Rundy" value={rangeText(preview.totals.rounds)} hint="łącznie we wszystkich etapach" />
+      {isLeagueOnly(preview)
+        ? <Stat label="Kolejki" value={rangeText(preview.totals.rounds)} hint="każdy gra najwyżej raz w kolejce" />
+        : <Stat label="Rundy" value={rangeText(preview.totals.rounds)} hint="łącznie we wszystkich etapach" />}
       <Stat label={teams ? "Mecze na drużynę" : "Mecze na osobę"} value={per.min === per.max ? String(per.min) : `${per.min}–${per.max}`} hint={per.min === per.max ? "tyle samo dla każdego" : "zależnie od wyników"} />
     </dl>
   );
@@ -277,11 +285,13 @@ function PreviewPanel({
   noun,
   loading,
   stale,
+  schedule = null,
 }: {
   preview: PresetPreview | null;
   noun: (n: number) => string;
   loading: boolean;
   stale: boolean;
+  schedule?: WizardSchedule | null;
 }) {
   if (!preview) {
     return (
@@ -304,6 +314,7 @@ function PreviewPanel({
       </div>
       <PresetStats preview={preview} teams={noun(5) === "drużyn"} />
       <StageFlow preview={preview} />
+      <LeagueFacts preview={preview} schedule={schedule} />
       <section className="experimental-wizard-rules">
         <h4><Trophy className="h-4 w-4" aria-hidden="true" /> Zwycięzca</h4>
         <p>{preview.winnerRule}</p>
@@ -321,6 +332,34 @@ function PreviewPanel({
         </ul>
       )}
     </aside>
+  );
+}
+
+/**
+ * V5.3: rounds, resting participants and dates in plain words. Scoring is explained once, under
+ * "Remisy i równe miejsca" (the server's own description of the rules).
+ */
+function LeagueFacts({ preview, schedule }: { preview: PresetPreview; schedule: WizardSchedule | null }) {
+  const outline = scheduleOutline(preview, schedule) ?? (preview.schedule
+    ? { stageName: preview.schedule.stageName, rounds: preview.schedule.rounds, firstDate: preview.schedule.firstDate, lastDate: preview.schedule.lastDate, weeks: 0 }
+    : null);
+  const target = scheduleTargetStage(preview);
+  if (!target) return null;
+  return (
+    <section className="experimental-wizard-rules" data-testid="league-facts">
+      {(
+        <>
+          <h4><CalendarDays className="h-4 w-4" aria-hidden="true" /> Kolejki i terminy</h4>
+          <p>
+            {target.rounds.max} {plural(target.rounds.max, "kolejka", "kolejki", "kolejek")}
+            {target.byes > 0 || target.participantCount % 2 === 1 ? " — w każdej kolejce jeden uczestnik pauzuje" : ""}.{" "}
+            {outline
+              ? `Od ${formatLocalDate(outline.firstDate)} do ${formatLocalDate(outline.lastDate)}.`
+              : "Bez terminarza — daty możesz dodać teraz albo później w panelu prowadzącego."}
+          </p>
+        </>
+      )}
+    </section>
   );
 }
 
@@ -585,6 +624,9 @@ export function ExperimentalCreateWizard() {
       presetId: structure.presetId,
       params: { ...structure.params },
       visibility: config.visibility,
+      schedule: config.schedule
+        ? { timeZone: config.schedule.timeZone ?? "Europe/Warsaw", startDate: config.schedule.startDate, intervalDays: config.schedule.intervalDays, defaultTime: config.schedule.defaultTime }
+        : current.schedule,
     }));
     setImported(true);
   };
@@ -846,7 +888,7 @@ export function ExperimentalCreateWizard() {
                     )}
                   </div>
                   {shownPreview.paramLimits
-                    .filter((limit) => limit.key !== "participantCount")
+                    .filter((limit) => limit.key !== "participantCount" && !LEAGUE_PARAM_KEYS.includes(limit.key))
                     .map((limit) => (
                       <ParamControl
                         key={limit.key}
@@ -855,18 +897,26 @@ export function ExperimentalCreateWizard() {
                         onChange={(value) => update({ params: { ...params, [limit.key]: value } })}
                       />
                     ))}
+                  <LeagueOptions
+                    preview={shownPreview}
+                    params={params}
+                    onParams={(next) => update({ params: next })}
+                    schedule={draft.schedule}
+                    onSchedule={(schedule) => update({ schedule })}
+                    error={preview.status === "error" ? { param: preview.param, message: preview.error } : null}
+                  />
                   {preview.status === "error" && !preview.param && (
                     <p role="alert" className="experimental-wizard-note" data-tone="danger">
                       <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />{preview.error}
                     </p>
                   )}
-                  {preview.status === "error" && preview.param && !shownPreview.paramLimits.some((limit) => limit.key === preview.param) && (
+                  {preview.status === "error" && preview.param && !LEAGUE_PARAM_KEYS.includes(preview.param) && !shownPreview.paramLimits.some((limit) => limit.key === preview.param) && (
                     <p role="alert" className="experimental-wizard-note" data-tone="danger">
                       <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />{preview.error}
                     </p>
                   )}
                   <div className="experimental-wizard-inline-actions">
-                    <button type="button" className="experimental-v4-btn" data-variant="ghost" onClick={() => update({ params: {} })} disabled={Object.keys(params).length === 0}>
+                    <button type="button" className="experimental-v4-btn" data-variant="ghost" onClick={() => update({ params: {}, schedule: null })} disabled={Object.keys(params).length === 0 && draft.schedule == null}>
                       Przywróć proponowane
                     </button>
                     <button type="button" className="experimental-v4-btn" data-variant="ghost" onClick={openAdvanced}>
@@ -1029,7 +1079,7 @@ export function ExperimentalCreateWizard() {
         </section>
 
         {step >= 1 && !importOpen && (
-          <PreviewPanel preview={shownPreview} noun={noun} loading={preview.status === "loading" || recommendations.status === "loading"} stale={preview.status === "error"} />
+          <PreviewPanel preview={shownPreview} noun={noun} loading={preview.status === "loading" || recommendations.status === "loading"} stale={preview.status === "error"} schedule={draft.schedule} />
         )}
       </div>
 

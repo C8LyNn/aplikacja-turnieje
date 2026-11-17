@@ -1,3 +1,7 @@
+import { ExperimentalLeaguePanel } from "@/features/experimental-tournaments/experimental-league-panel";
+import { LeagueTableNotes } from "@/components/league-table-notes";
+import { standingsHavePoints } from "@/lib/league-results";
+import { checkScore, matchResultLabel, scoreCap, scoreEntryHint, stageAllowsDraws } from "@/lib/league-results";
 import { useSearch, useLocation, Link } from "wouter";
 import { Layout } from "@/components/layout";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
@@ -391,8 +395,8 @@ export default function TournamentHost() {
   const adjustScore = (matchId: number, player: 1 | 2, delta: number, bo: number) => {
     if (!capabilities.canWriteTournamentResults) return;
     setSelectedMatchId(matchId);
-    const max = Math.ceil(bo / 2);
     const match = matches?.find((entry) => entry.id === matchId);
+    const max = scoreCap(bo, stageAllowsDraws(stages?.find((stage) => stage.id === match?.stageId)));
     if (!match || resultDrafts.isStale(match)) return;
     resultDrafts.capture(match);
     const cur = getS(matchId, player, player === 1 ? match?.score1 : match?.score2);
@@ -616,16 +620,9 @@ export default function TournamentHost() {
     if (scores[matchId]?.baseline && scores[matchId].baseline !== scoreBaseline(match)) return;
     const s1 = getS(matchId, 1, match.score1);
     const s2 = getS(matchId, 2, match.score2);
-    const winsRequired = Math.floor((match.bestOf ?? 1) / 2) + 1;
-    const isCompleteSeries =
-      (s1 === winsRequired && s2 < winsRequired) ||
-      (s2 === winsRequired && s1 < winsRequired);
-    if (!isCompleteSeries) {
-      toast({
-        title: "Seria nie jest zakończona",
-        description: `W BO${match.bestOf ?? 1} jedna strona musi osiągnąć ${winsRequired} wygranych gier/map.`,
-        variant: "destructive",
-      });
+    const check = checkScore(s1, s2, match.bestOf, stageAllowsDraws(stages?.find((stage) => stage.id === match.stageId)));
+    if (!check.ok) {
+      toast({ title: check.title, description: check.description, variant: "destructive" });
       return;
     }
     if (resultDrafts.isStale(match)) return;
@@ -928,7 +925,8 @@ export default function TournamentHost() {
     }
 
     const bo = focusedMatch.bestOf ?? 1;
-    const maxScore = Math.ceil(bo / 2);
+    const allowDraws = stageAllowsDraws(focusedStage);
+    const maxScore = scoreCap(bo, allowDraws);
     const staleDraft = resultDrafts.isStale(focusedMatch) || (!!scores[focusedMatch.id]?.baseline && scores[focusedMatch.id].baseline !== scoreBaseline(focusedMatch));
     const conflictedDraft = resultDrafts.hasConflict(focusedMatch.id);
     const originalMatch = resultDrafts.drafts[focusedMatch.id];
@@ -945,14 +943,11 @@ export default function TournamentHost() {
     const isShowingSwap = swapConfirm === focusedMatch.id;
     const isShowingWalkover = walkoverConfirm === focusedMatch.id;
     const isShowingNoContest = noContestConfirm === focusedMatch.id;
-    const isCompleteSeries =
-      (s1 === maxScore && s2 < maxScore) ||
-      (s2 === maxScore && s1 < maxScore);
-    const completedResultLabel = focusedMatch.resultType === "played"
-      ? `${focusedMatch.score1}:${focusedMatch.score2}`
-      : focusedMatch.resultType === "walkover"
-        ? "W.O."
-        : "N/C";
+    // In a draw league 0:0 is a valid result, so saving needs at least one entered score (no accidental 0:0).
+    const isCompleteSeries = allowDraws
+      ? !!scores[focusedMatch.id] && checkScore(s1, s2, bo, true).ok
+      : checkScore(s1, s2, bo, false).ok;
+    const completedResultLabel = matchResultLabel(focusedMatch);
 
     return (
       <div data-exp-match-state={isExperimental ? focusedMatch.status : undefined} onFocusCapture={() => { if (!hostPending && !dataError) setSelectedMatchId(focusedMatch.id); }} onPointerDownCapture={() => { if (!hostPending && !dataError) setSelectedMatchId(focusedMatch.id); }} className={`${isExperimental ? "experimental-host-primary" : ""} rounded-xl border-2 overflow-hidden transition-colors ${
@@ -993,7 +988,10 @@ export default function TournamentHost() {
 
           <div className="flex items-center gap-2 shrink-0">
             {capabilities.canUseLegacyMatchTools && <>
-            {/* BO selector */}
+            {/* BO selector — hidden in a draw league: a draw needs a single game (V5.3) */}
+            {allowDraws ? (
+              <span className="text-xs text-muted-foreground" title="W lidze z remisami mecz to jedna gra (wynik: gole lub punkty).">jedna gra · remis możliwy</span>
+            ) : (
             <div className="flex items-center gap-0.5 bg-background border rounded p-0.5">
               {([1, 3, 5, 7] as const).map((n) => (
                 <button
@@ -1010,6 +1008,7 @@ export default function TournamentHost() {
                 </button>
               ))}
             </div>
+            )}
             {/* Featured toggle */}
             <Button
               variant="ghost"
@@ -1104,10 +1103,13 @@ export default function TournamentHost() {
             {/* Center divider */}
             <div className="flex flex-col items-center gap-1 shrink-0">
               <span className="text-2xl font-bold text-muted-foreground/30">:</span>
-              {bo > 1 && (
+              {!allowDraws && bo > 1 && (
                 <span className="text-[10px] text-muted-foreground/50 text-center">
                   do {maxScore} wyg.
                 </span>
+              )}
+              {allowDraws && (
+                <span className="text-[10px] text-muted-foreground/60 text-center">remis możliwy</span>
               )}
             </div>
 
@@ -1406,16 +1408,19 @@ export default function TournamentHost() {
             <p className="mt-3 text-sm text-muted-foreground">
               {scores[focusedMatch.id]
                 ? "Wynik roboczy — nie jest jeszcze zapisany. Zapisz go po zakończeniu meczu."
-                : `Do wygrania meczu potrzeba ${maxScore} ${maxScore === 1 ? "wygranej" : "wygranych"}. Ustaw wynik przyciskami + i −.`}
+                : scoreEntryHint(bo, allowDraws)}
             </p>
           )}
           {isExperimental && !isDone && !isCancelled && !conflictedDraft && scores[focusedMatch.id] && (() => {
             const draft = scores[focusedMatch.id]!;
             const winnerName = draft.s1 > draft.s2 ? focusedMatch.player1Name : focusedMatch.player2Name;
+            const draw = allowDraws && draft.s1 === draft.s2;
             return (
               <p role="status" className="experimental-result-preview" data-complete={isCompleteSeries ? "true" : "false"}>
                 {isCompleteSeries
-                  ? <>Po zapisie wygrywa: <strong>{winnerName ?? "—"}</strong> <span className="tabular-nums">({draft.s1}:{draft.s2})</span></>
+                  ? draw
+                    ? <>Po zapisie: <strong>remis</strong> <span className="tabular-nums">({draft.s1}:{draft.s2})</span></>
+                    : <>Po zapisie wygrywa: <strong>{winnerName ?? "—"}</strong> <span className="tabular-nums">({draft.s1}:{draft.s2})</span></>
                   : `Aby zapisać, jedna strona musi mieć ${maxScore} ${maxScore === 1 ? "wygraną" : "wygrane"}. Teraz: ${draft.s1}:${draft.s2}.`}
               </p>
             );
@@ -1617,6 +1622,16 @@ export default function TournamentHost() {
           <TabsContent value="prowadzenie" className="pt-4 space-y-4">
             {/* Big active match panel */}
             {!dataLoading && !dataError && renderActiveMatchPanel()}
+            {isExperimental && !dataLoading && !dataError && activeStage && (activeStage.format === "round_robin" || activeStage.format === "group_stage") && (
+              <ExperimentalLeaguePanel
+                tournamentId={id}
+                stage={activeStage}
+                refreshKey={(operationalMatches ?? []).map((match) => `${match.id}:${match.status}:${match.revision ?? 0}`).join(",")}
+                canPlan={capabilities.canManageLifecycle}
+                canEditDates={capabilities.canUseLegacyMatchTools}
+                onSelectMatch={(matchId) => setSelectedMatchId(matchId)}
+              />
+            )}
             {isExperimental && !dataLoading && !dataError && (
               <ExperimentalMatchFlow matches={operationalMatches} allMatches={matches} stageNames={new Map((stages ?? []).map((stage) => [stage.id, stage.name]))} focusedMatchId={focusedMatchId} onSelect={setSelectedMatchId} disabled={hostPending} />
             )}
@@ -1744,7 +1759,7 @@ export default function TournamentHost() {
                                 {m.player1Name}
                               </span>
                               <span className="font-mono text-sm bg-muted px-2 py-0.5 rounded shrink-0 tabular-nums">
-                                {m.resultType === "played" ? `${m.score1}:${m.score2}` : m.resultType === "walkover" ? "W.O." : "N/C"}
+                                {matchResultLabel(m)}
                               </span>
                               <span
                                 className={`text-sm truncate flex-1 ${
@@ -1855,7 +1870,7 @@ export default function TournamentHost() {
                           <span className={match.winnerId && match.winnerId === match.player1Id ? "font-bold text-primary" : ""}>{match.player1Name ?? "Oczekuje na gracza"}</span>
                           {" – "}<span className={match.winnerId && match.winnerId === match.player2Id ? "font-bold text-primary" : ""}>{match.player2Name ?? "Oczekuje na gracza"}</span>
                         </span>
-                        <span className="font-mono tabular-nums">{match.resultType === "walkover" ? "W.O." : match.resultType === "bye" ? "BYE" : match.resultType === "no_contest" ? "N/C" : `${match.score1 ?? 0}:${match.score2 ?? 0}`}</span>
+                        <span className="font-mono tabular-nums">{match.status === "completed" ? matchResultLabel(match) : `${match.score1 ?? 0}:${match.score2 ?? 0}`}</span>
                         <Badge variant="outline" className={match.status === "in_progress" ? "text-secondary border-secondary" : ""}>{MATCH_STATUS_LABELS[match.status] ?? "Nieznany"}</Badge>
                         {capabilities.canWriteTournamentResults && match.status === "completed" && match.resultType !== "bye" ?
                           <Button variant="outline" size="sm" aria-label={`Popraw wynik: ${match.player1Name} – ${match.player2Name}`} onClick={() => openCorrection(match.id)}>Popraw wynik</Button>
@@ -1903,11 +1918,13 @@ export default function TournamentHost() {
                     <tr className="border-b text-left text-xs text-muted-foreground">
                       <th className="py-2 px-3">#</th>
                       <th className="py-2 px-3">Gracz</th>
+                      {standingsHavePoints(standings) && <th className="py-2 px-3 text-center" title="Punkty ligowe">Pkt</th>}
                       <th className="py-2 px-3 text-center">Mecze</th>
                       <th className="py-2 px-3 text-center">W</th>
+                      {standingsHavePoints(standings) && <th className="py-2 px-3 text-center" title="Remisy">R</th>}
                       <th className="py-2 px-3 text-center">P</th>
-                      <th className="py-2 px-3 text-center">Gry</th>
-                      <th className="py-2 px-3 text-center">Buchh.</th>
+                      <th className="py-2 px-3 text-center">{standingsHavePoints(standings) ? "Bilans" : "Gry"}</th>
+                      {(!isExperimental || standings.some((row) => row.buchholz != null)) && <th className="py-2 px-3 text-center">Buchh.</th>}
                       <th className="py-2 px-3 text-center">+/−</th>
                     </tr>
                   </thead>
@@ -1935,11 +1952,13 @@ export default function TournamentHost() {
                             </div>
                           )}
                         </td>
+                        {standingsHavePoints(standings) && <td className="py-2 px-3 text-center font-bold tabular-nums">{s.points ?? 0}</td>}
                         <td className="py-2 px-3 text-center">{s.matchesPlayed}</td>
                         <td className="py-2 px-3 text-center text-green-400">{s.matchWins}</td>
+                        {standingsHavePoints(standings) && <td className="py-2 px-3 text-center text-muted-foreground">{s.matchDraws ?? 0}</td>}
                         <td className="py-2 px-3 text-center text-red-400">{s.matchLosses}</td>
                         <td className="py-2 px-3 text-center font-mono">{s.gameWins}:{s.gameLosses}</td>
-                        <td className="py-2 px-3 text-center text-muted-foreground">{s.buchholz ?? "—"}</td>
+                        {(!isExperimental || standings.some((row) => row.buchholz != null)) && <td className="py-2 px-3 text-center text-muted-foreground">{s.buchholz ?? "—"}</td>}
                         <td className="py-2 px-3 text-center">
                           <span
                             className={
@@ -1958,6 +1977,7 @@ export default function TournamentHost() {
                     ))}
                   </tbody>
                 </table>
+                <LeagueTableNotes standings={standings} rulesSummary={standingsHavePoints(standings) ? activeStage?.leagueRulesSummary ?? null : null} />
               </div>
             )}
           </TabsContent>
@@ -2090,7 +2110,7 @@ export default function TournamentHost() {
               <DialogHeader>
                 <DialogTitle>Cofnąć wynik meczu {match?.player1Name} – {match?.player2Name}?</DialogTitle>
                 <DialogDescription>
-                  Zapisany wynik: {match?.resultType === "played" ? `${match.score1}:${match.score2}` : match?.resultType === "walkover" ? "W.O." : "N/C"}.
+                  Zapisany wynik: {match ? matchResultLabel(match) : "N/C"}.
                   {" "}Po cofnięciu wpiszesz i zapiszesz poprawny wynik. Ranking i awans zostaną przeliczone.
                   {downstream !== undefined && downstream > 0
                     ? ` Cofnięcie unieważni także ${downstream} późniejszych wyników i powiązane wybory postaci.`

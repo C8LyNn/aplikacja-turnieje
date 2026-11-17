@@ -10,6 +10,8 @@ export interface ImportedAiConfig {
   participants: { type: ParticipantType; count: number };
   visibility: Visibility;
   structure: { type: "preset"; presetId: PresetId; params: PresetParams } | { type: "stages"; stages: unknown[] };
+  /** V5.3: league schedule for the first league/group stage. */
+  schedule?: { timeZone?: string; startDate: string; intervalDays: number; defaultTime: string };
   notes?: string;
 }
 

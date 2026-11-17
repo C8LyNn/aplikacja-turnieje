@@ -3,7 +3,7 @@
  * The preset catalog lives on the server (`/api/tournaments/presets/*`); this module
  * mirrors its response types and owns draft persistence and payload assembly.
  */
-import type { TournamentInput } from "@workspace/api-client-react";
+import type { LeagueRules, TournamentInput } from "@workspace/api-client-react";
 
 export type WizardKind = "tournament" | "league";
 export type ParticipantType = "players" | "teams";
@@ -28,7 +28,11 @@ export type PresetParamKey =
   | "groupCount"
   | "qualifiersPerGroup"
   | "advancingCount"
-  | "legs";
+  | "legs"
+  | "allowDraws"
+  | "pointsWin"
+  | "pointsDraw"
+  | "pointsLoss";
 
 export type PresetParams = Partial<Record<PresetParamKey, number>>;
 
@@ -78,8 +82,16 @@ export interface PresetPreview {
     defaultBestOf: 1 | 3 | 5 | 7;
     swissRounds?: number;
     stagePlan?: NonNullable<TournamentInput["stagePlan"]>;
+    /** V5.3: rules and schedule of a flexible single league (no stage plan). */
+    leagueRules?: PresetLeagueRules;
+    scheduleTimeZone?: string;
+    schedulePlan?: WizardSchedulePlan;
   };
   stagePlan: NonNullable<TournamentInput["stagePlan"]>;
+  /** V5.3: league rules of the table stage; null/absent for formats without a points table. */
+  leagueRules?: PresetLeagueRules | null;
+  /** V5.3: planned dates (from an AI file); the wizard computes its own from WizardDraft.schedule. */
+  schedule?: { stageName: string; timeZone: string; startDate: string; intervalDays: number; defaultTime: string; rounds: number; firstDate: string; lastDate: string } | null;
   stages: PresetStageSummary[];
   totals: {
     matches: { min: number; max: number };
@@ -90,6 +102,20 @@ export interface PresetPreview {
   tieRules: string[];
   requirements: string[];
   warnings: string[];
+}
+
+/** V5.3: the API's league rules (draws, points, ordered tie-breakers). */
+export type PresetLeagueRules = LeagueRules;
+
+export interface WizardSchedulePlan {
+  startDate: string;
+  intervalDays: number;
+  defaultTime: string;
+}
+
+/** V5.3: optional league schedule chosen in the wizard. */
+export interface WizardSchedule extends WizardSchedulePlan {
+  timeZone: string;
 }
 
 export interface PresetRecommendation {
@@ -152,6 +178,8 @@ export interface WizardDraft {
   /** Teams only: minimum starters and maximum roster (null = no limit). */
   rosterMin: number | null;
   rosterMax: number | null;
+  /** V5.3: league schedule (null = a league without dates). */
+  schedule: WizardSchedule | null;
 }
 
 export const DEFAULT_DRAFT: WizardDraft = {
@@ -165,6 +193,7 @@ export const DEFAULT_DRAFT: WizardDraft = {
   visibility: "public_online",
   rosterMin: null,
   rosterMax: null,
+  schedule: null,
 };
 
 export const WIZARD_DRAFT_KEY = "tm_exp_wizard_draft_v1";
@@ -176,6 +205,7 @@ const PRESET_IDS: readonly PresetId[] = [
 ];
 const PARAM_KEYS: readonly PresetParamKey[] = [
   "participantCount", "bestOf", "playoffBestOf", "swissRounds", "groupCount", "qualifiersPerGroup", "advancingCount", "legs",
+  "allowDraws", "pointsWin", "pointsDraw", "pointsLoss",
 ];
 
 function oneOf<T extends string>(value: unknown, allowed: readonly T[], fallback: T): T {
@@ -221,7 +251,88 @@ export function sanitizeDraft(raw: unknown): WizardDraft {
     visibility: oneOf(record.visibility, ["public_online", "private_online", "private_offline"], "public_online"),
     rosterMin: rosterLimit(record.rosterMin),
     rosterMax: rosterLimit(record.rosterMax),
+    schedule: sanitizeSchedule(record.schedule),
   };
+}
+
+const LOCAL_DATE = /^\d{4}-\d{2}-\d{2}$/;
+const LOCAL_TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
+
+function sanitizeSchedule(value: unknown): WizardSchedule | null {
+  if (typeof value !== "object" || value === null) return null;
+  const record = value as Record<string, unknown>;
+  if (typeof record.startDate !== "string" || !LOCAL_DATE.test(record.startDate)) return null;
+  if (typeof record.defaultTime !== "string" || !LOCAL_TIME.test(record.defaultTime)) return null;
+  if (!Number.isInteger(record.intervalDays) || (record.intervalDays as number) < 1 || (record.intervalDays as number) > 60) return null;
+  if (typeof record.timeZone !== "string" || record.timeZone.length === 0 || record.timeZone.length > 64) return null;
+  return { startDate: record.startDate, intervalDays: record.intervalDays as number, defaultTime: record.defaultTime, timeZone: record.timeZone };
+}
+
+/** The browser's IANA zone (falls back to Europe/Warsaw). */
+export function browserTimeZone(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || "Europe/Warsaw";
+  } catch {
+    return "Europe/Warsaw";
+  }
+}
+
+export function defaultWizardSchedule(today = new Date()): WizardSchedule {
+  const next = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate() + 7));
+  return { startDate: next.toISOString().slice(0, 10), intervalDays: 7, defaultTime: "18:00", timeZone: browserTimeZone() };
+}
+
+/** Calendar date + n days (independent of DST). */
+export function addDays(date: string, days: number): string {
+  const [year, month, day] = date.split("-").map(Number);
+  return new Date(Date.UTC(year!, month! - 1, day! + days)).toISOString().slice(0, 10);
+}
+
+/** True when every stage is a league table (rounds are "kolejki"). */
+export function isLeagueOnly(preview: PresetPreview): boolean {
+  return preview.stages.length > 0 && preview.stages.every((stage) => stage.format === "round_robin");
+}
+
+/** The first league/group stage of a plan — the one a schedule applies to. */
+export function scheduleTargetStage(preview: PresetPreview): PresetStageSummary | null {
+  return preview.stages.find((stage) => stage.format === "round_robin" || stage.format === "group_stage") ?? null;
+}
+
+export interface ScheduleOutline {
+  stageName: string;
+  rounds: number;
+  firstDate: string;
+  lastDate: string;
+  weeks: number;
+}
+
+/** First and last match day of the league part; the server repeats this check (DST included) on create. */
+export function scheduleOutline(preview: PresetPreview, schedule: WizardSchedulePlan | null): ScheduleOutline | null {
+  const stage = scheduleTargetStage(preview);
+  if (!stage || !schedule) return null;
+  const rounds = stage.rounds.max;
+  const lastDate = addDays(schedule.startDate, (rounds - 1) * schedule.intervalDays);
+  return {
+    stageName: stage.name,
+    rounds,
+    firstDate: schedule.startDate,
+    lastDate,
+    weeks: Math.max(1, Math.ceil(((rounds - 1) * schedule.intervalDays + 1) / 7)),
+  };
+}
+
+/** "5 grudnia 2026" — local calendar date (genitive month) without time-zone shifts. */
+export function formatLocalDate(date: string): string {
+  const [year, month, day] = date.split("-").map(Number);
+  const months = ["stycznia", "lutego", "marca", "kwietnia", "maja", "czerwca", "lipca", "sierpnia", "września", "października", "listopada", "grudnia"];
+  return `${day} ${months[(month ?? 1) - 1]} ${year}`;
+}
+
+/** One sentence describing the points system. */
+export function leagueRulesSentence(rules: PresetLeagueRules | null | undefined): string | null {
+  if (!rules) return null;
+  const draw = rules.allowDraws ? `, remis ${rules.points.draw} pkt` : "";
+  return `Zwycięstwo ${rules.points.win} pkt${draw}, porażka ${rules.points.loss} pkt. ${rules.allowDraws ? "Mecz może skończyć się remisem." : "Każdy mecz ma zwycięzcę."}`;
 }
 
 function rosterLimit(value: unknown): number | null {
@@ -277,10 +388,10 @@ export function requestParams(presetId: PresetId, answers: WizardAnswers, params
     single_elimination: ["bestOf"],
     double_elimination: ["bestOf"],
     swiss: ["bestOf", "swissRounds"],
-    round_robin: ["bestOf", "legs"],
-    groups_playoff: ["bestOf", "playoffBestOf", "groupCount", "qualifiersPerGroup"],
+    round_robin: ["bestOf", "legs", "allowDraws", "pointsWin", "pointsDraw", "pointsLoss"],
+    groups_playoff: ["bestOf", "playoffBestOf", "groupCount", "qualifiersPerGroup", "allowDraws", "pointsWin", "pointsDraw", "pointsLoss"],
     swiss_playoff: ["bestOf", "playoffBestOf", "swissRounds", "advancingCount"],
-    league_playoff: ["bestOf", "playoffBestOf", "advancingCount", "legs"],
+    league_playoff: ["bestOf", "playoffBestOf", "advancingCount", "legs", "allowDraws", "pointsWin", "pointsDraw", "pointsLoss"],
   };
   const result: PresetParams = { participantCount: answers.participantCount };
   for (const key of allowed[presetId]) if (params[key] != null) result[key] = params[key];
@@ -295,10 +406,29 @@ export interface CreateSecrets {
 
 export function buildCreatePayload(
   preview: PresetPreview,
-  details: { name: string; description: string; visibility: Visibility; participantType?: ParticipantType; rosterMin?: number | null; rosterMax?: number | null },
+  details: { name: string; description: string; visibility: Visibility; participantType?: ParticipantType; rosterMin?: number | null; rosterMax?: number | null; schedule?: WizardSchedule | null },
   secrets: CreateSecrets,
 ): TournamentInput {
   const teams = details.participantType === "teams";
+  // V5.3: a wizard schedule goes on the first league/group stage (plan) or on the flexible league itself.
+  const schedule = details.schedule && scheduleTargetStage(preview) ? details.schedule : null;
+  const plan = { startDate: schedule?.startDate ?? "", intervalDays: schedule?.intervalDays ?? 7, defaultTime: schedule?.defaultTime ?? "" };
+  let scheduled = false;
+  const stagePlan = preview.creation.stagePlan && schedule
+    ? {
+        ...preview.creation.stagePlan,
+        stages: preview.creation.stagePlan.stages.map((stage) => {
+          if (scheduled || (stage.format !== "round_robin" && stage.format !== "group_stage")) return stage;
+          scheduled = true;
+          return { ...stage, scheduleTimeZone: schedule.timeZone, schedulePlan: plan };
+        }),
+      }
+    : preview.creation.stagePlan;
+  const flexibleSchedule = !preview.creation.stagePlan && schedule && preview.creation.format === "round_robin"
+    ? { scheduleTimeZone: schedule.timeZone, schedulePlan: plan }
+    : preview.creation.scheduleTimeZone && preview.creation.schedulePlan
+      ? { scheduleTimeZone: preview.creation.scheduleTimeZone, schedulePlan: preview.creation.schedulePlan }
+      : {};
   const rosterMin = teams ? details.rosterMin ?? null : null;
   const rosterMax = teams ? details.rosterMax ?? null : null;
   return {
@@ -311,7 +441,9 @@ export function buildCreatePayload(
     maxPlayers: preview.creation.maxPlayers,
     defaultBestOf: preview.creation.defaultBestOf,
     ...(preview.creation.swissRounds != null ? { swissRounds: preview.creation.swissRounds } : {}),
-    ...(preview.creation.stagePlan ? { stagePlan: preview.creation.stagePlan } : {}),
+    ...(stagePlan ? { stagePlan } : {}),
+    ...(!preview.creation.stagePlan && preview.creation.leagueRules ? { leagueRules: preview.creation.leagueRules } : {}),
+    ...flexibleSchedule,
     organizerPassword: secrets.organizerPassword,
     supportPassword: secrets.supportPassword.trim() || undefined,
     viewerPassword: details.visibility === "private_online" ? secrets.viewerPassword.trim() || undefined : undefined,

@@ -1,3 +1,5 @@
+import { LeagueTableNotes } from "@/components/league-table-notes";
+import { standingsHavePoints } from "@/lib/league-results";
 import { ReadQueryState } from "@/components/read-query-state";
 import { useSearch, Link } from "wouter";
 import { Layout } from "@/components/layout";
@@ -1531,7 +1533,7 @@ export default function TournamentDetail() {
                             <Badge variant="outline">{PLAYER_STATUS_LABELS[s.status] ?? "Nieznany"}</Badge>
                           </div>
                           <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs text-muted-foreground">
-                            <div><strong className="block text-base text-foreground">{s.matchWins}-{s.matchLosses}</strong>Mecze</div>
+                            <div><strong className="block text-base text-foreground">{s.points != null ? `${s.points} pkt` : `${s.matchWins}-${s.matchLosses}`}</strong>{s.points != null ? `${s.matchWins}-${s.matchDraws ?? 0}-${s.matchLosses}` : "Mecze"}</div>
                             <div><strong className="block text-base text-foreground">{s.gameWins}:{s.gameLosses}</strong>Gry</div>
                             <div><strong className="block text-base text-foreground">{s.gameDiff > 0 ? "+" : ""}{s.gameDiff}</strong>Różnica</div>
                           </div>
@@ -1546,10 +1548,12 @@ export default function TournamentDetail() {
                         <tr className="border-b text-left text-muted-foreground">
                           {!standingsInformational && <th className="py-2 px-2 w-8">#</th>}
                           <th className="py-2 px-2">Gracz</th>
+                          {standingsHavePoints(standings) && <th className="py-2 px-2 text-center" title="Punkty ligowe">Pkt</th>}
                           <th className="py-2 px-2 text-center">Mecze</th>
                           <th className="py-2 px-2 text-center">W</th>
+                          {standingsHavePoints(standings) && <th className="py-2 px-2 text-center" title="Remisy">R</th>}
                           <th className="py-2 px-2 text-center">P</th>
-                          <th className="py-2 px-2 text-center">Gry</th>
+                          <th className="py-2 px-2 text-center">{standingsHavePoints(standings) ? "Bilans" : "Gry"}</th>
                           {(!isExperimental || standings.some((row) => row.buchholz != null)) && <th className="py-2 px-2 text-center" title="Buchholz: suma punktów rywali (system szwajcarski)">Buchh.</th>}
                           <th className="py-2 px-2 text-center">+/-</th>
                         </tr>
@@ -1570,8 +1574,10 @@ export default function TournamentDetail() {
                                 {s.country && <span>{s.country}</span>}
                               </div>
                             </td>
+                            {standingsHavePoints(standings) && <td className="py-2 px-2 text-center font-bold tabular-nums">{s.points ?? 0}</td>}
                             <td className="py-2 px-2 text-center">{s.matchesPlayed}</td>
                             <td className="py-2 px-2 text-center text-green-400">{s.matchWins}</td>
+                            {standingsHavePoints(standings) && <td className="py-2 px-2 text-center text-muted-foreground">{s.matchDraws ?? 0}</td>}
                             <td className="py-2 px-2 text-center text-red-400">{s.matchLosses}</td>
                             <td className="py-2 px-2 text-center font-mono">{s.gameWins}:{s.gameLosses}</td>
                             {(!isExperimental || standings.some((row) => row.buchholz != null)) && <td className="py-2 px-2 text-center text-muted-foreground">{s.buchholz ?? "—"}</td>}
@@ -1584,6 +1590,10 @@ export default function TournamentDetail() {
                         ))}
                       </tbody>
                     </table>
+                    <LeagueTableNotes
+                      standings={standings}
+                      rulesSummary={standingsHavePoints(standings) ? (stages?.find((stage) => stage.status === "active") ?? stages?.at(-1))?.leagueRulesSummary ?? null : null}
+                    />
                   </div>
                 )}
               </CardContent>

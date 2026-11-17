@@ -1,3 +1,5 @@
+import { isDrawResult } from "@/lib/league-results";
+import { standingsHavePoints } from "@/lib/league-results";
 import { Bracket, Match, Standing } from "@workspace/api-client-react";
 
 interface RoundRobinViewProps {
@@ -68,8 +70,10 @@ export function RoundRobinView({ bracket, standings, hideStandings }: RoundRobin
                   <tr className="border-b border-border/40 bg-muted/20 text-muted-foreground">
                     <th scope="col" className="py-2 px-2 text-left w-6">#</th>
                     <th scope="col" className="py-2 px-2 text-left">Gracz</th>
+                    {standingsHavePoints(standings) && <th scope="col" aria-label="Punkty ligowe" className="py-2 px-2 text-center">Pkt</th>}
                     <th scope="col" aria-label="Rozegrane mecze" className="py-2 px-2 text-center">M</th>
                     <th scope="col" aria-label="Wygrane mecze" className="py-2 px-2 text-center">W</th>
+                    {standingsHavePoints(standings) && <th scope="col" aria-label="Remisy" className="py-2 px-2 text-center">R</th>}
                     <th scope="col" aria-label="Przegrane mecze" className="py-2 px-2 text-center">P</th>
                     <th scope="col" aria-label="Wygrane i przegrane gry" className="py-2 px-2 text-center">Gry</th>
                     <th scope="col" aria-label="Bilans gier" className="py-2 px-2 text-center">+/−</th>
@@ -93,8 +97,10 @@ export function RoundRobinView({ bracket, standings, hideStandings }: RoundRobin
                             <div className="text-[9px] text-muted-foreground">{s.teamName}{s.teamName && s.country ? " · " : ""}{s.country}</div>
                           )}
                         </td>
+                        {standingsHavePoints(standings) && <td className="py-2 px-2 text-center font-bold tabular-nums">{s.points ?? 0}</td>}
                         <td className="py-2 px-2 text-center">{s.matchesPlayed}</td>
                         <td className="py-2 px-2 text-center text-green-400">{s.matchWins}</td>
+                        {standingsHavePoints(standings) && <td className="py-2 px-2 text-center text-muted-foreground">{s.matchDraws ?? 0}</td>}
                         <td className="py-2 px-2 text-center text-red-400">{s.matchLosses}</td>
                         <td className="py-2 px-2 text-center font-mono text-[10px]">{s.gameWins}:{s.gameLosses}</td>
                         <td className={`py-2 px-2 text-center font-mono text-[10px] ${
@@ -108,7 +114,7 @@ export function RoundRobinView({ bracket, standings, hideStandings }: RoundRobin
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={7} className="py-6 text-center text-muted-foreground">
+                      <td colSpan={standingsHavePoints(standings) ? 9 : 7} className="py-6 text-center text-muted-foreground">
                         Brak danych
                       </td>
                     </tr>
@@ -143,7 +149,7 @@ function RRMatchCard({ match }: { match: Match }) {
         )}
         {isDone && (
           <span className="text-[8px] text-green-400">
-            {match.resultType === "walkover" ? "walkower" : match.resultType === "no_contest" ? "bez rozstrzygnięcia" : <><span aria-hidden="true">✓</span><span className="sr-only">Mecz zakończony</span></>}
+            {match.resultType === "walkover" ? "walkower" : match.resultType === "no_contest" ? "bez rozstrzygnięcia" : isDrawResult(match) ? "remis" : <><span aria-hidden="true">✓</span><span className="sr-only">Mecz zakończony</span></>}
           </span>
         )}
         {!isDone && !isLive && (

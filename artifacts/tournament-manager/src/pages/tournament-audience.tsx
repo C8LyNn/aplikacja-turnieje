@@ -1,3 +1,4 @@
+import { matchResultLabel } from "@/lib/league-results";
 import { ReadQueryState } from "@/components/read-query-state";
 import { Link, useSearchParams } from "wouter";
 import {
@@ -628,7 +629,7 @@ export default function TournamentAudience() {
                         {m.player1Name}
                       </span>
                       <span className="font-mono text-sm font-bold text-white/70 bg-white/6 px-2 py-0.5 rounded shrink-0 tabular-nums">
-                        {m.resultType === "played" ? `${m.score1}:${m.score2}` : m.resultType === "walkover" ? "W.O." : m.resultType === "bye" ? "BYE" : "N/C"}
+                        {matchResultLabel(m)}
                       </span>
                       <span className={`text-sm flex-1 truncate text-right ${m.winnerId === m.player2Id ? "font-bold text-white" : "text-white/40"}`}>
                         {m.player2Name}
