@@ -16,7 +16,18 @@ async function findTests(directory) {
   return nested.flat();
 }
 
-const tests = (await findTests(sourceRoot)).sort();
+// Optional file filters (`pnpm test -- src/components/x.test.tsx`) run selected files with the exact same
+// loader, DOM setup and tsconfig as the full suite. Running `node --test file` directly skips
+// TSX_TSCONFIG_PATH and fails with "React is not defined".
+const filters = process.argv.slice(2).filter((arg) => arg !== "--").map((arg) => path.resolve(packageRoot, arg));
+const allTests = (await findTests(sourceRoot)).sort();
+const tests = filters.length === 0
+  ? allTests
+  : allTests.filter((file) => filters.some((filter) => file === filter || file.startsWith(filter + path.sep)));
+if (filters.length > 0 && tests.length === 0) {
+  console.error(`No frontend test files match: ${process.argv.slice(2).join(" ")}`);
+  process.exit(1);
+}
 console.log(`Detected ${tests.length} frontend test files:`);
 for (const file of tests) console.log(`- ${path.relative(packageRoot, file)}`);
 if (tests.length === 0) process.exit(1);
