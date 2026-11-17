@@ -49,6 +49,12 @@ import {
   validateStageBasketConfiguration,
 } from "../../domain/tournament/stage-baskets";
 import { computeRankingFingerprint } from "../../domain/tournament/stage-basket-qualification";
+import {
+  exportTeamRosters,
+  restoreTeamRosters,
+  tournamentTeamFields,
+  validateTeamRosters,
+} from "./backup-team-rosters";
 
 export class BackupV3ValidationError extends Error {
   constructor(public readonly details: string[]) {
@@ -343,6 +349,7 @@ export async function exportBackupV3(
       .where(eq(tournamentRoutingExecutionsTable.planId, routingPlan.planId))
       .orderBy(asc(tournamentRoutingExecutionsTable.stageKey));
   const stageBackupIdByKey = new Map(stages.map((stage) => [stage.stageKey, stage.id]));
+  const teamRosters = await exportTeamRosters(db, tournament);
   const parsedGameConfig = gameConfig
     ? parseTournamentGameConfig({
         gameId: gameConfig.gameId,
@@ -368,6 +375,7 @@ export async function exportBackupV3(
       featuredMatchBackupId: tournament.featuredMatchId ?? null,
       visibility:
         tournament.visibility as TournamentBackupV3["tournament"]["visibility"],
+      ...tournamentTeamFields(tournament),
       ...(parsedGameConfig
         ? { gameConfig: parsedGameConfig }
         : {}),
@@ -651,6 +659,7 @@ export async function exportBackupV3(
             };
           }),
         }),
+    ...teamRosters,
   };
 }
 
@@ -693,6 +702,7 @@ export function validateBackupV3(backup: TournamentBackupV3): void {
     return ids;
   };
   const playerIds = unique(backup.players, "Player");
+  validateTeamRosters(backup, playerIds, errors);
   const stageIds = unique(backup.stages, "Stage");
   const groupIds = unique(backup.groups, "Group");
   const membershipIds = unique(backup.stageParticipants, "Stage participant");
@@ -1754,6 +1764,9 @@ export async function importBackupV3(
         swissRounds: first.format === "swiss" ? first.plannedRounds : null,
         defaultBestOf: first.bestOf,
         visibility: backup.tournament.visibility,
+        participantType: backup.tournament.participantType ?? "players",
+        teamRosterMin: backup.tournament.teamRosterMin ?? null,
+        teamRosterMax: backup.tournament.teamRosterMax ?? null,
         ...credentials,
       })
       .returning();
@@ -1921,6 +1934,7 @@ export async function importBackupV3(
     for (let index = 0; index < backup.players.length; index += 1) {
       playerIds.set(backup.players[index].backupId, createdPlayers[index].id);
     }
+    const teamRosters = await restoreTeamRosters(tx, backup, tournament.id, playerIds);
     const marvelRoundIds = new Map<number, number>();
     for (const round of [...(backup.marvelRounds ?? [])].sort(
       (left, right) => left.roundNumber - right.roundNumber,
@@ -2484,8 +2498,24 @@ export async function importBackupV3(
           backup.tournament.featuredMatchBackupId == null
             ? null
             : matchIds.get(backup.tournament.featuredMatchBackupId)!,
+        // V5.1: the single-stage compatibility trigger copies these legacy columns
+        // into the stage; keep them equal to the restored stage instead of NULL.
+        ...(orderedStages.length === 1
+          ? { currentRound: first.currentRound ?? null, totalRounds: first.totalRounds ?? null }
+          : {}),
       })
       .where(eq(tournamentsTable.id, tournament.id));
+    // V5.1: the trigger above may also bump the stage version; restore the exported values.
+    for (const stage of orderedStages) {
+      await tx
+        .update(tournamentStagesTable)
+        .set({
+          currentRound: stage.currentRound ?? null,
+          totalRounds: stage.totalRounds ?? null,
+          version: stage.version,
+        })
+        .where(eq(tournamentStagesTable.id, stageIds.get(stage.backupId)!));
+    }
     const [restored] = await tx
       .select()
       .from(tournamentsTable)
@@ -2495,6 +2525,8 @@ export async function importBackupV3(
       gameConfig,
       playersImported: playerIds.size,
       matchesImported: matchIds.size,
+      teamsImported: teamRosters.teams,
+      teamMembersImported: teamRosters.members,
     };
   });
 }

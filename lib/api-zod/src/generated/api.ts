@@ -3060,6 +3060,10 @@ export const exportTournamentResponseStageBasketRoutesItemIdRegExp = new RegExp(
 
 
 
+export const exportTournamentResponseTeamRostersTeamsItemMembersMax = 2000;
+
+export const exportTournamentResponseTeamRostersTeamsMax = 512;
+
 
 
 export const ExportTournamentResponse = zod.object({
@@ -3077,6 +3081,9 @@ export const ExportTournamentResponse = zod.object({
   "winnerBackupId": zod.number().nullish(),
   "featuredMatchBackupId": zod.number().nullish(),
   "visibility": zod.enum(['public_online', 'private_online', 'private_offline']),
+  "participantType": zod.enum(['players', 'teams']).optional().describe('V5.1. Omitted for individual tournaments (backward compatible); \"teams\" requires the teamRosters section.'),
+  "teamRosterMin": zod.number().nullish(),
+  "teamRosterMax": zod.number().nullish(),
   "gameConfig": zod.union([zod.object({
   "gameId": zod.literal("deadlock"),
   "configVersion": zod.number(),
@@ -3319,7 +3326,24 @@ export const ExportTournamentResponse = zod.object({
   "sourceFinalRank": zod.number().min(1),
   "sourceBasketPosition": zod.number().nullable()
 }))
-})).optional().describe('Materialised basket route executions. Present only when at least one route has been executed.')
+})).optional().describe('Materialised basket route executions. Present only when at least one route has been executed.'),
+  "teamRosters": zod.object({
+  "formatVersion": zod.number(),
+  "teams": zod.array(zod.object({
+  "backupId": zod.number(),
+  "playerBackupId": zod.number().describe('The engine entry (players row) this team plays as.'),
+  "shortCode": zod.string().nullable(),
+  "createdAt": zod.string(),
+  "members": zod.array(zod.object({
+  "backupId": zod.number(),
+  "name": zod.string(),
+  "role": zod.enum(['captain', 'player', 'reserve']),
+  "joinedAt": zod.string(),
+  "leftAt": zod.string().nullable(),
+  "leftReason": zod.union([zod.literal('removed'),zod.literal('role_change'),zod.literal(null)]).nullable()
+})).max(exportTournamentResponseTeamRostersTeamsItemMembersMax).describe('Every membership period, including closed ones (the roster history).')
+})).max(exportTournamentResponseTeamRostersTeamsMax)
+}).optional().describe('V5.1 team rosters (format 1). Present only for tournaments with participantType \"teams\". Older importers reject the unknown field instead of silently dropping rosters.')
 })
 
 
@@ -3374,6 +3398,10 @@ export const importTournamentBodyBackupTwoStageBasketRoutesItemIdRegExp = new Re
 
 
 
+
+export const importTournamentBodyBackupTwoTeamRostersTeamsItemMembersMax = 2000;
+
+export const importTournamentBodyBackupTwoTeamRostersTeamsMax = 512;
 
 export const importTournamentBodyOrganizerPasswordMin = 8;
 
@@ -3471,6 +3499,9 @@ export const ImportTournamentBody = zod.object({
   "winnerBackupId": zod.number().nullish(),
   "featuredMatchBackupId": zod.number().nullish(),
   "visibility": zod.enum(['public_online', 'private_online', 'private_offline']),
+  "participantType": zod.enum(['players', 'teams']).optional().describe('V5.1. Omitted for individual tournaments (backward compatible); \"teams\" requires the teamRosters section.'),
+  "teamRosterMin": zod.number().nullish(),
+  "teamRosterMax": zod.number().nullish(),
   "gameConfig": zod.union([zod.object({
   "gameId": zod.literal("deadlock"),
   "configVersion": zod.number(),
@@ -3713,7 +3744,24 @@ export const ImportTournamentBody = zod.object({
   "sourceFinalRank": zod.number().min(1),
   "sourceBasketPosition": zod.number().nullable()
 }))
-})).optional().describe('Materialised basket route executions. Present only when at least one route has been executed.')
+})).optional().describe('Materialised basket route executions. Present only when at least one route has been executed.'),
+  "teamRosters": zod.object({
+  "formatVersion": zod.number(),
+  "teams": zod.array(zod.object({
+  "backupId": zod.number(),
+  "playerBackupId": zod.number().describe('The engine entry (players row) this team plays as.'),
+  "shortCode": zod.string().nullable(),
+  "createdAt": zod.string(),
+  "members": zod.array(zod.object({
+  "backupId": zod.number(),
+  "name": zod.string(),
+  "role": zod.enum(['captain', 'player', 'reserve']),
+  "joinedAt": zod.string(),
+  "leftAt": zod.string().nullable(),
+  "leftReason": zod.union([zod.literal('removed'),zod.literal('role_change'),zod.literal(null)]).nullable()
+})).max(importTournamentBodyBackupTwoTeamRostersTeamsItemMembersMax).describe('Every membership period, including closed ones (the roster history).')
+})).max(importTournamentBodyBackupTwoTeamRostersTeamsMax)
+}).optional().describe('V5.1 team rosters (format 1). Present only for tournaments with participantType \"teams\". Older importers reject the unknown field instead of silently dropping rosters.')
 })]),
   "organizerPassword": zod.string().min(importTournamentBodyOrganizerPasswordMin).describe('New organizer password. Credentials are never read from the backup.'),
   "viewerPassword": zod.string().min(importTournamentBodyViewerPasswordMin).optional().describe('New viewer password, required when the restored tournament is private_online.'),

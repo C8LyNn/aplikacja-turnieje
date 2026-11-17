@@ -23,6 +23,7 @@ import type { TournamentBackupV3StageBasketRoutesItem } from './tournamentBackup
 import type { TournamentBackupV3StageBasketsItem } from './tournamentBackupV3StageBasketsItem';
 import type { TournamentBackupV3StageParticipantsItem } from './tournamentBackupV3StageParticipantsItem';
 import type { TournamentBackupV3StagesItem } from './tournamentBackupV3StagesItem';
+import type { TournamentBackupV3TeamRosters } from './tournamentBackupV3TeamRosters';
 import type { TournamentBackupV3Tournament } from './tournamentBackupV3Tournament';
 
 export interface TournamentBackupV3 {
@@ -65,4 +66,6 @@ export interface TournamentBackupV3 {
   qualificationProposals?: TournamentBackupV3QualificationProposalsItem[];
   /** Materialised basket route executions. Present only when at least one route has been executed. */
   routeExecutions?: TournamentBackupV3RouteExecutionsItem[];
+  /** V5.1 team rosters (format 1). Present only for tournaments with participantType "teams". Older importers reject the unknown field instead of silently dropping rosters. */
+  teamRosters?: TournamentBackupV3TeamRosters;
 }

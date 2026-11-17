@@ -3078,6 +3078,17 @@ export const TournamentBackupV3TournamentVisibility = {
   private_offline: 'private_offline',
 } as const;
 
+/**
+ * V5.1. Omitted for individual tournaments (backward compatible); "teams" requires the teamRosters section.
+ */
+export type TournamentBackupV3TournamentParticipantType = typeof TournamentBackupV3TournamentParticipantType[keyof typeof TournamentBackupV3TournamentParticipantType];
+
+
+export const TournamentBackupV3TournamentParticipantType = {
+  players: 'players',
+  teams: 'teams',
+} as const;
+
 export type TournamentBackupV3Tournament = {
   name: string;
   /** @nullable */
@@ -3094,6 +3105,12 @@ export type TournamentBackupV3Tournament = {
   /** @nullable */
   featuredMatchBackupId?: number | null;
   visibility: TournamentBackupV3TournamentVisibility;
+  /** V5.1. Omitted for individual tournaments (backward compatible); "teams" requires the teamRosters section. */
+  participantType?: TournamentBackupV3TournamentParticipantType;
+  /** @nullable */
+  teamRosterMin?: number | null;
+  /** @nullable */
+  teamRosterMax?: number | null;
   gameConfig?: DeadlockTournamentGameConfig | MarvelTournamentGameConfig;
 };
 
@@ -3665,6 +3682,60 @@ export type TournamentBackupV3RouteExecutionsItem = {
   entries: TournamentBackupV3RouteExecutionsItemEntriesItem[];
 };
 
+export type TournamentBackupV3TeamRostersTeamsItemMembersItemRole = typeof TournamentBackupV3TeamRostersTeamsItemMembersItemRole[keyof typeof TournamentBackupV3TeamRostersTeamsItemMembersItemRole];
+
+
+export const TournamentBackupV3TeamRostersTeamsItemMembersItemRole = {
+  captain: 'captain',
+  player: 'player',
+  reserve: 'reserve',
+} as const;
+
+/**
+ * @nullable
+ */
+export type TournamentBackupV3TeamRostersTeamsItemMembersItemLeftReason = typeof TournamentBackupV3TeamRostersTeamsItemMembersItemLeftReason[keyof typeof TournamentBackupV3TeamRostersTeamsItemMembersItemLeftReason] | null;
+
+
+export const TournamentBackupV3TeamRostersTeamsItemMembersItemLeftReason = {
+  removed: 'removed',
+  role_change: 'role_change',
+} as const;
+
+export type TournamentBackupV3TeamRostersTeamsItemMembersItem = {
+  backupId: number;
+  name: string;
+  role: TournamentBackupV3TeamRostersTeamsItemMembersItemRole;
+  joinedAt: string;
+  /** @nullable */
+  leftAt: string | null;
+  /** @nullable */
+  leftReason: TournamentBackupV3TeamRostersTeamsItemMembersItemLeftReason;
+};
+
+export type TournamentBackupV3TeamRostersTeamsItem = {
+  backupId: number;
+  /** The engine entry (players row) this team plays as. */
+  playerBackupId: number;
+  /** @nullable */
+  shortCode: string | null;
+  createdAt: string;
+  /**
+     * Every membership period, including closed ones (the roster history).
+     * @maxItems 2000
+     */
+  members: TournamentBackupV3TeamRostersTeamsItemMembersItem[];
+};
+
+/**
+ * V5.1 team rosters (format 1). Present only for tournaments with participantType "teams". Older importers reject the unknown field instead of silently dropping rosters.
+ */
+export type TournamentBackupV3TeamRosters = {
+  formatVersion: 1;
+  /** @maxItems 512 */
+  teams: TournamentBackupV3TeamRostersTeamsItem[];
+};
+
 export interface TournamentBackupV3 {
   schemaVersion: 3;
   resultModelVersion: 'series_v1';
@@ -3705,6 +3776,8 @@ export interface TournamentBackupV3 {
   qualificationProposals?: TournamentBackupV3QualificationProposalsItem[];
   /** Materialised basket route executions. Present only when at least one route has been executed. */
   routeExecutions?: TournamentBackupV3RouteExecutionsItem[];
+  /** V5.1 team rosters (format 1). Present only for tournaments with participantType "teams". Older importers reject the unknown field instead of silently dropping rosters. */
+  teamRosters?: TournamentBackupV3TeamRosters;
 }
 
 export type BasketRouteExecutionEntriesItem = {

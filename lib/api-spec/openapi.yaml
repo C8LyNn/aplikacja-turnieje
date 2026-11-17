@@ -4931,6 +4931,12 @@ components:
             winnerBackupId: { type: ["integer", "null"] }
             featuredMatchBackupId: { type: ["integer", "null"] }
             visibility: { type: string, enum: [public_online, private_online, private_offline] }
+            participantType:
+              type: string
+              enum: [players, teams]
+              description: V5.1. Omitted for individual tournaments (backward compatible); "teams" requires the teamRosters section.
+            teamRosterMin: { type: ["integer", "null"] }
+            teamRosterMax: { type: ["integer", "null"] }
             gameConfig:
               oneOf:
                 - $ref: "#/components/schemas/DeadlockTournamentGameConfig"
@@ -5286,6 +5292,40 @@ components:
                     sourceBasketId: { type: string }
                     sourceFinalRank: { type: integer, minimum: 1 }
                     sourceBasketPosition: { type: ["integer", "null"] }
+        teamRosters:
+          type: object
+          additionalProperties: false
+          description: V5.1 team rosters (format 1). Present only for tournaments with participantType "teams". Older importers reject the unknown field instead of silently dropping rosters.
+          required: [formatVersion, teams]
+          properties:
+            formatVersion: { type: integer, const: 1 }
+            teams:
+              type: array
+              maxItems: 512
+              items:
+                type: object
+                additionalProperties: false
+                required: [backupId, playerBackupId, shortCode, createdAt, members]
+                properties:
+                  backupId: { type: integer }
+                  playerBackupId: { type: integer, description: The engine entry (players row) this team plays as. }
+                  shortCode: { type: ["string", "null"] }
+                  createdAt: { type: string }
+                  members:
+                    type: array
+                    maxItems: 2000
+                    description: Every membership period, including closed ones (the roster history).
+                    items:
+                      type: object
+                      additionalProperties: false
+                      required: [backupId, name, role, joinedAt, leftAt, leftReason]
+                      properties:
+                        backupId: { type: integer }
+                        name: { type: string }
+                        role: { type: string, enum: [captain, player, reserve] }
+                        joinedAt: { type: string }
+                        leftAt: { type: ["string", "null"] }
+                        leftReason: { type: ["string", "null"], enum: [removed, role_change, null] }
 
     BasketRouteExecution:
       type: object
