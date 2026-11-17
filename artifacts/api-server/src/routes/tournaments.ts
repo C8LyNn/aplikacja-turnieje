@@ -111,6 +111,8 @@ import {
 } from "../application/stages/stage-basket-route-execution";
 import { calculateMatchRecordStandings } from "../domain/tournament/standings";
 import { generateRoundRobinSchedule, normaliseRoundRobinLegs } from "../domain/tournament/round-robin";
+import { validateRosterSettings } from "../domain/tournament/team-rosters";
+import { findTeamRosterStartProblems } from "../application/teams/team-rosters";
 import { generateSwissPairings } from "../domain/tournament/swiss";
 import { BACKUP_V3_IMPORT_DISABLED, BACKUP_V2_CONTAINS_V3_FIELDS, hasV3OnlyFieldsInV2, isBackupV3Import } from "../application/backups/backup-import-policy";
 import { buildStandardSeededBracket } from "../domain/tournament/stage-placement";
@@ -770,6 +772,11 @@ router.post("/tournaments", async (req, res): Promise<void> => {
       error: "Format Faza grupowa wymaga wieloetapowego planu — użyj trybu etapowego i podaj konfigurację grup.",
       code: "STAGE_FORMAT_NOT_SUPPORTED",
     });
+    return;
+  }
+  const rosterSettings = validateRosterSettings(rest.participantType, rest.teamRosterMin, rest.teamRosterMax);
+  if (!rosterSettings.ok) {
+    res.status(422).json({ error: rosterSettings.message, code: "INVALID_TEAM_SETTINGS" });
     return;
   }
   const insertValues: any = { ...rest };
@@ -1442,6 +1449,18 @@ router.post("/tournaments/:id/start", async (req, res): Promise<void> => {
   const access = await requireTournamentWrite(req, res, tournament.id);
   if (!access) return;
   const mutationActor = getTournamentMutationActor(access);
+
+  if (tournament.status === "draft") {
+    const rosterProblems = await findTeamRosterStartProblems(tournament.id);
+    if (rosterProblems) {
+      res.status(422).json({
+        error: `Składy wymagają uzupełnienia: ${rosterProblems.teams.map((team) => team.name).join(", ")}.`,
+        code: "TEAM_ROSTER_INCOMPLETE",
+        details: rosterProblems.teams,
+      });
+      return;
+    }
+  }
 
   const stages = await db
     .select({

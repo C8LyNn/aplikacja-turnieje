@@ -13,6 +13,7 @@ import resultCorrectionPreviewRouter from "./tournament-result-correction-previe
 import tournamentPlanPreviewRouter from "./tournament-plan-preview";
 import tournamentPresetsRouter from "./tournament-presets";
 import tournamentAiConfigRouter from "./tournament-ai-config";
+import tournamentTeamsRouter from "./tournament-teams";
 import authRouter from "./auth";
 
 const router: IRouter = Router();
@@ -23,6 +24,7 @@ router.use(authRouter);
 router.use(tournamentPlanPreviewRouter);
 router.use(tournamentPresetsRouter);
 router.use(tournamentAiConfigRouter);
+router.use(tournamentTeamsRouter);
 router.use(qualificationRoutingPreviewRouter);
 router.use(resultCorrectionPreviewRouter);
 router.use(tournamentSeCorrectionPreflightRouter);

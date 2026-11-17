@@ -9,6 +9,7 @@ import type { DeadlockTournamentGameConfig } from './deadlockTournamentGameConfi
 import type { MarvelTournamentGameConfig } from './marvelTournamentGameConfig';
 import type { TournamentActivity } from './tournamentActivity';
 import type { TournamentFormat } from './tournamentFormat';
+import type { TournamentParticipantType } from './tournamentParticipantType';
 import type { TournamentPresentationSettings } from './tournamentPresentationSettings';
 import type { TournamentRankingPolicy } from './tournamentRankingPolicy';
 import type { TournamentResultModelVersion } from './tournamentResultModelVersion';
@@ -50,6 +51,12 @@ export interface Tournament {
   hasViewerPassword?: boolean;
   /** public_online=no viewer password; private_online=viewer needs password; private_offline=not listed, org/support only */
   visibility?: TournamentVisibility;
+  /** V5. teams = entries are teams with rosters. */
+  participantType?: TournamentParticipantType;
+  /** @nullable */
+  teamRosterMin?: number | null;
+  /** @nullable */
+  teamRosterMax?: number | null;
   createdAt: string;
   activity?: TournamentActivity;
   gameConfig?: DeadlockTournamentGameConfig | MarvelTournamentGameConfig | null;

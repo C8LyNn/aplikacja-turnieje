@@ -171,6 +171,10 @@ export const tournamentsTable = pgTable(
     viewerPasswordHash: text("viewer_password_hash"),
     viewerPasswordVersion: integer("viewer_password_version").notNull().default(1),
     visibility: text("visibility").notNull().default("public_online"),
+    /** V5: "teams" = entries are teams with rosters (tournament_teams / team_members). */
+    participantType: text("participant_type").$type<"players" | "teams">().notNull().default("players"),
+    teamRosterMin: smallint("team_roster_min"),
+    teamRosterMax: smallint("team_roster_max"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (table) => [

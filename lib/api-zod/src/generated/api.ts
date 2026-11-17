@@ -64,6 +64,9 @@ export const ListTournamentsResponseItem = zod.object({
   "hasSupportPassword": zod.boolean().optional().describe('Whether a support password has been set'),
   "hasViewerPassword": zod.boolean().optional().describe('Whether a viewer password has been set (private_online mode)'),
   "visibility": zod.enum(['public_online', 'private_online', 'private_offline']).optional().describe('public_online=no viewer password; private_online=viewer needs password; private_offline=not listed, org\/support only'),
+  "participantType": zod.enum(['players', 'teams']).optional().describe('V5. teams = entries are teams with rosters.'),
+  "teamRosterMin": zod.number().nullish(),
+  "teamRosterMax": zod.number().nullish(),
   "createdAt": zod.string(),
   "activity": zod.object({
   "playerCount": zod.number().min(listTournamentsResponseActivityPlayerCountMin),
@@ -109,6 +112,10 @@ export const createTournamentBodyOrganizerPasswordMin = 8;
 export const createTournamentBodySupportPasswordMin = 8;
 
 export const createTournamentBodyViewerPasswordMin = 8;
+
+export const createTournamentBodyTeamRosterMinMax = 50;
+
+export const createTournamentBodyTeamRosterMaxMax = 50;
 
 export const createTournamentBodyStagePlanInitialParticipantCountMin = 2;
 
@@ -158,6 +165,9 @@ export const CreateTournamentBody = zod.object({
   "supportPassword": zod.string().min(createTournamentBodySupportPasswordMin).optional().describe('Optional password for support staff access'),
   "viewerPassword": zod.string().min(createTournamentBodyViewerPasswordMin).optional().describe('Password for viewer access; required when visibility=private_online.'),
   "visibility": zod.enum(['public_online', 'private_online', 'private_offline']).optional().describe('Tournament visibility mode'),
+  "participantType": zod.enum(['players', 'teams']).optional().describe('V5. Defaults to players. teams enables rosters (captain, players, reserves) with history.'),
+  "teamRosterMin": zod.number().min(1).max(createTournamentBodyTeamRosterMinMax).optional().describe('Teams only. Minimum starters (captain + players) required to start.'),
+  "teamRosterMax": zod.number().min(1).max(createTournamentBodyTeamRosterMaxMax).optional().describe('Teams only. Maximum members including reserves.'),
   "stagePlan": zod.object({
   "initialParticipantCount": zod.number().min(createTournamentBodyStagePlanInitialParticipantCountMin),
   "stages": zod.array(zod.object({
@@ -665,6 +675,9 @@ export const GetTournamentResponse = zod.object({
   "hasSupportPassword": zod.boolean().optional().describe('Whether a support password has been set'),
   "hasViewerPassword": zod.boolean().optional().describe('Whether a viewer password has been set (private_online mode)'),
   "visibility": zod.enum(['public_online', 'private_online', 'private_offline']).optional().describe('public_online=no viewer password; private_online=viewer needs password; private_offline=not listed, org\/support only'),
+  "participantType": zod.enum(['players', 'teams']).optional().describe('V5. teams = entries are teams with rosters.'),
+  "teamRosterMin": zod.number().nullish(),
+  "teamRosterMax": zod.number().nullish(),
   "createdAt": zod.string(),
   "activity": zod.object({
   "playerCount": zod.number().min(getTournamentResponseActivityPlayerCountMin),
@@ -802,6 +815,9 @@ export const UpdateTournamentResponse = zod.object({
   "hasSupportPassword": zod.boolean().optional().describe('Whether a support password has been set'),
   "hasViewerPassword": zod.boolean().optional().describe('Whether a viewer password has been set (private_online mode)'),
   "visibility": zod.enum(['public_online', 'private_online', 'private_offline']).optional().describe('public_online=no viewer password; private_online=viewer needs password; private_offline=not listed, org\/support only'),
+  "participantType": zod.enum(['players', 'teams']).optional().describe('V5. teams = entries are teams with rosters.'),
+  "teamRosterMin": zod.number().nullish(),
+  "teamRosterMax": zod.number().nullish(),
   "createdAt": zod.string(),
   "activity": zod.object({
   "playerCount": zod.number().min(updateTournamentResponseActivityPlayerCountMin),
@@ -838,6 +854,266 @@ export const UpdateTournamentResponse = zod.object({
 
 export const DeleteTournamentParams = zod.object({
   "id": zod.coerce.number()
+})
+
+
+/**
+ * @summary Team rosters of a team tournament (empty list for player tournaments)
+ */
+
+
+
+export const GetTournamentTeamsParams = zod.object({
+  "id": zod.coerce.number().min(1)
+})
+
+export const GetTournamentTeamsResponse = zod.object({
+  "tournamentId": zod.number(),
+  "participantType": zod.enum(['players', 'teams']),
+  "rosterMin": zod.number().nullable(),
+  "rosterMax": zod.number().nullable(),
+  "readyCount": zod.number(),
+  "teams": zod.array(zod.object({
+  "entryId": zod.number(),
+  "teamId": zod.number().nullable(),
+  "name": zod.string(),
+  "seed": zod.number().nullable(),
+  "entryStatus": zod.string(),
+  "shortCode": zod.string().nullable(),
+  "members": zod.array(zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "role": zod.enum(['captain', 'player', 'reserve']),
+  "roleLabel": zod.string(),
+  "joinedAt": zod.string()
+})),
+  "starters": zod.number(),
+  "formerMemberCount": zod.number(),
+  "ready": zod.boolean(),
+  "issues": zod.array(zod.object({
+  "code": zod.enum(['ROSTER_TOO_SMALL', 'ROSTER_TOO_LARGE', 'NO_CAPTAIN']),
+  "tone": zod.enum(['danger', 'info']),
+  "message": zod.string()
+}))
+}))
+})
+
+
+/**
+ * @summary Full membership history of one team (every period of every member)
+ */
+
+
+
+export const GetTournamentTeamHistoryParams = zod.object({
+  "id": zod.coerce.number().min(1),
+  "entryId": zod.coerce.number().describe('Engine entry (players row) that represents the team in this tournament.')
+})
+
+export const GetTournamentTeamHistoryResponse = zod.object({
+  "entryId": zod.number(),
+  "name": zod.string(),
+  "history": zod.array(zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "role": zod.enum(['captain', 'player', 'reserve']),
+  "roleLabel": zod.string(),
+  "joinedAt": zod.string(),
+  "leftAt": zod.string().nullable(),
+  "leftReason": zod.union([zod.literal('removed'),zod.literal('role_change'),zod.literal(null)]).nullable()
+}))
+})
+
+
+/**
+ * @summary Roster limits of a team tournament (organizer, draft only)
+ */
+
+
+
+export const UpdateTournamentTeamSettingsParams = zod.object({
+  "id": zod.coerce.number().min(1)
+})
+
+export const updateTournamentTeamSettingsBodyRosterMinMax = 50;
+
+export const updateTournamentTeamSettingsBodyRosterMaxMax = 50;
+
+
+
+export const UpdateTournamentTeamSettingsBody = zod.object({
+  "rosterMin": zod.number().min(1).max(updateTournamentTeamSettingsBodyRosterMinMax).nullish(),
+  "rosterMax": zod.number().min(1).max(updateTournamentTeamSettingsBodyRosterMaxMax).nullish()
+})
+
+export const UpdateTournamentTeamSettingsResponse = zod.object({
+  "tournamentId": zod.number(),
+  "participantType": zod.enum(['players', 'teams']),
+  "rosterMin": zod.number().nullable(),
+  "rosterMax": zod.number().nullable(),
+  "readyCount": zod.number(),
+  "teams": zod.array(zod.object({
+  "entryId": zod.number(),
+  "teamId": zod.number().nullable(),
+  "name": zod.string(),
+  "seed": zod.number().nullable(),
+  "entryStatus": zod.string(),
+  "shortCode": zod.string().nullable(),
+  "members": zod.array(zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "role": zod.enum(['captain', 'player', 'reserve']),
+  "roleLabel": zod.string(),
+  "joinedAt": zod.string()
+})),
+  "starters": zod.number(),
+  "formerMemberCount": zod.number(),
+  "ready": zod.boolean(),
+  "issues": zod.array(zod.object({
+  "code": zod.enum(['ROSTER_TOO_SMALL', 'ROSTER_TOO_LARGE', 'NO_CAPTAIN']),
+  "tone": zod.enum(['danger', 'info']),
+  "message": zod.string()
+}))
+}))
+})
+
+
+/**
+ * @summary Update team details (short code)
+ */
+
+
+
+export const UpdateTournamentTeamParams = zod.object({
+  "id": zod.coerce.number().min(1),
+  "entryId": zod.coerce.number().describe('Engine entry (players row) that represents the team in this tournament.')
+})
+
+export const UpdateTournamentTeamBody = zod.object({
+  "shortCode": zod.string().nullish()
+})
+
+export const UpdateTournamentTeamResponse = zod.object({
+  "entryId": zod.number(),
+  "teamId": zod.number().nullable(),
+  "name": zod.string(),
+  "seed": zod.number().nullable(),
+  "entryStatus": zod.string(),
+  "shortCode": zod.string().nullable(),
+  "members": zod.array(zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "role": zod.enum(['captain', 'player', 'reserve']),
+  "roleLabel": zod.string(),
+  "joinedAt": zod.string()
+})),
+  "starters": zod.number(),
+  "formerMemberCount": zod.number(),
+  "ready": zod.boolean(),
+  "issues": zod.array(zod.object({
+  "code": zod.enum(['ROSTER_TOO_SMALL', 'ROSTER_TOO_LARGE', 'NO_CAPTAIN']),
+  "tone": zod.enum(['danger', 'info']),
+  "message": zod.string()
+}))
+})
+
+
+/**
+ * @summary Add a member to a team roster (a captain demotes the previous captain)
+ */
+
+
+
+export const AddTournamentTeamMemberParams = zod.object({
+  "id": zod.coerce.number().min(1),
+  "entryId": zod.coerce.number().describe('Engine entry (players row) that represents the team in this tournament.')
+})
+
+export const addTournamentTeamMemberBodyNameMax = 100;
+
+
+
+export const AddTournamentTeamMemberBody = zod.object({
+  "name": zod.string().min(1).max(addTournamentTeamMemberBodyNameMax),
+  "role": zod.enum(['captain', 'player', 'reserve']).optional()
+})
+
+
+/**
+ * @summary Change a member role; the previous membership period is closed and kept in history
+ */
+
+
+
+export const ChangeTournamentTeamMemberRoleParams = zod.object({
+  "id": zod.coerce.number().min(1),
+  "entryId": zod.coerce.number().describe('Engine entry (players row) that represents the team in this tournament.'),
+  "memberId": zod.coerce.number()
+})
+
+export const ChangeTournamentTeamMemberRoleBody = zod.object({
+  "role": zod.enum(['captain', 'player', 'reserve'])
+})
+
+export const ChangeTournamentTeamMemberRoleResponse = zod.object({
+  "entryId": zod.number(),
+  "teamId": zod.number().nullable(),
+  "name": zod.string(),
+  "seed": zod.number().nullable(),
+  "entryStatus": zod.string(),
+  "shortCode": zod.string().nullable(),
+  "members": zod.array(zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "role": zod.enum(['captain', 'player', 'reserve']),
+  "roleLabel": zod.string(),
+  "joinedAt": zod.string()
+})),
+  "starters": zod.number(),
+  "formerMemberCount": zod.number(),
+  "ready": zod.boolean(),
+  "issues": zod.array(zod.object({
+  "code": zod.enum(['ROSTER_TOO_SMALL', 'ROSTER_TOO_LARGE', 'NO_CAPTAIN']),
+  "tone": zod.enum(['danger', 'info']),
+  "message": zod.string()
+}))
+})
+
+
+/**
+ * @summary Remove a member from the active roster (history is kept)
+ */
+
+
+
+export const RemoveTournamentTeamMemberParams = zod.object({
+  "id": zod.coerce.number().min(1),
+  "entryId": zod.coerce.number().describe('Engine entry (players row) that represents the team in this tournament.'),
+  "memberId": zod.coerce.number()
+})
+
+export const RemoveTournamentTeamMemberResponse = zod.object({
+  "entryId": zod.number(),
+  "teamId": zod.number().nullable(),
+  "name": zod.string(),
+  "seed": zod.number().nullable(),
+  "entryStatus": zod.string(),
+  "shortCode": zod.string().nullable(),
+  "members": zod.array(zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "role": zod.enum(['captain', 'player', 'reserve']),
+  "roleLabel": zod.string(),
+  "joinedAt": zod.string()
+})),
+  "starters": zod.number(),
+  "formerMemberCount": zod.number(),
+  "ready": zod.boolean(),
+  "issues": zod.array(zod.object({
+  "code": zod.enum(['ROSTER_TOO_SMALL', 'ROSTER_TOO_LARGE', 'NO_CAPTAIN']),
+  "tone": zod.enum(['danger', 'info']),
+  "message": zod.string()
+}))
 })
 
 
@@ -2305,6 +2581,9 @@ export const StartTournamentResponse = zod.object({
   "hasSupportPassword": zod.boolean().optional().describe('Whether a support password has been set'),
   "hasViewerPassword": zod.boolean().optional().describe('Whether a viewer password has been set (private_online mode)'),
   "visibility": zod.enum(['public_online', 'private_online', 'private_offline']).optional().describe('public_online=no viewer password; private_online=viewer needs password; private_offline=not listed, org\/support only'),
+  "participantType": zod.enum(['players', 'teams']).optional().describe('V5. teams = entries are teams with rosters.'),
+  "teamRosterMin": zod.number().nullish(),
+  "teamRosterMax": zod.number().nullish(),
   "createdAt": zod.string(),
   "activity": zod.object({
   "playerCount": zod.number().min(startTournamentResponseActivityPlayerCountMin),
@@ -2449,6 +2728,9 @@ export const GenerateNextRoundResponse = zod.object({
   "hasSupportPassword": zod.boolean().optional().describe('Whether a support password has been set'),
   "hasViewerPassword": zod.boolean().optional().describe('Whether a viewer password has been set (private_online mode)'),
   "visibility": zod.enum(['public_online', 'private_online', 'private_offline']).optional().describe('public_online=no viewer password; private_online=viewer needs password; private_offline=not listed, org\/support only'),
+  "participantType": zod.enum(['players', 'teams']).optional().describe('V5. teams = entries are teams with rosters.'),
+  "teamRosterMin": zod.number().nullish(),
+  "teamRosterMax": zod.number().nullish(),
   "createdAt": zod.string(),
   "activity": zod.object({
   "playerCount": zod.number().min(generateNextRoundResponseActivityPlayerCountMin),
@@ -2534,6 +2816,9 @@ export const GetTournamentBracketResponse = zod.object({
   "hasSupportPassword": zod.boolean().optional().describe('Whether a support password has been set'),
   "hasViewerPassword": zod.boolean().optional().describe('Whether a viewer password has been set (private_online mode)'),
   "visibility": zod.enum(['public_online', 'private_online', 'private_offline']).optional().describe('public_online=no viewer password; private_online=viewer needs password; private_offline=not listed, org\/support only'),
+  "participantType": zod.enum(['players', 'teams']).optional().describe('V5. teams = entries are teams with rosters.'),
+  "teamRosterMin": zod.number().nullish(),
+  "teamRosterMax": zod.number().nullish(),
   "createdAt": zod.string(),
   "activity": zod.object({
   "playerCount": zod.number().min(getTournamentBracketResponseTournamentActivityPlayerCountMin),

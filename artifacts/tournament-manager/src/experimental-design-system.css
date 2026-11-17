@@ -1941,6 +1941,44 @@ html[data-x-skin="classic"] :is(.experimental-tournament-shell, .experimental-to
 :is(.experimental-tournament-shell, .experimental-tournament-create) .experimental-ai-import-notes { margin: 0; padding: .6rem .8rem; border-radius: .8rem; background: var(--x-glass); border: 1px dashed var(--x-line-strong); }
 :is(.experimental-tournament-shell, .experimental-tournament-create) .experimental-ai-import-notes figcaption { font-size: .7rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--x-text-2); }
 :is(.experimental-tournament-shell, .experimental-tournament-create) .experimental-ai-import-notes blockquote { margin: .3rem 0 0; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--x-text); }
+/* v5 · team rosters */
+:is(.experimental-tournament-shell, .experimental-tournament-create) .experimental-wizard-roster-limit { display: grid; gap: .3rem; font-size: .8125rem; font-weight: 600; color: var(--x-text-2); }
+:is(.experimental-tournament-shell, .experimental-tournament-create) .experimental-wizard-roster-limit select,
+:is(.experimental-tournament-shell, .experimental-tournament-create) .experimental-team-add select,
+:is(.experimental-tournament-shell, .experimental-tournament-create) .experimental-team-member-actions select {
+  min-height: 2.5rem; padding: 0 .6rem; border-radius: .7rem; border: 1px solid var(--x-line-strong); background: var(--x-glass-2); color: var(--x-text); font-size: .8125rem;
+}
+:is(.experimental-tournament-shell, .experimental-tournament-create) .experimental-team-rosters { display: grid; gap: 1rem; padding: 1.1rem 1.2rem; border-radius: var(--x-radius-xl, 1.25rem); border: 1px solid var(--x-line); background: linear-gradient(180deg, var(--x-card-top), var(--x-card-bot)); }
+:is(.experimental-tournament-shell, .experimental-tournament-create) .experimental-team-rosters-head { display: flex; align-items: flex-start; gap: .7rem; color: var(--x-a2); }
+:is(.experimental-tournament-shell, .experimental-tournament-create) .experimental-team-rosters-head h3 { margin: 0; font-size: 1.1rem; font-weight: 800; color: var(--x-text); }
+:is(.experimental-tournament-shell, .experimental-tournament-create) .experimental-team-grid { display: grid; gap: .8rem; margin: 0; padding: 0; list-style: none; grid-template-columns: repeat(auto-fill, minmax(min(100%, 19rem), 1fr)); }
+:is(.experimental-tournament-shell, .experimental-tournament-create) .experimental-team-card {
+  --tone: hsl(var(--x-ready));
+  display: grid; gap: .65rem; align-content: start; padding: .9rem 1rem; border-radius: 1rem;
+  border: 1px solid color-mix(in oklab, var(--tone) 40%, var(--x-line)); background: linear-gradient(180deg, color-mix(in oklab, var(--tone) 8%, transparent), transparent 70%), var(--x-glass);
+}
+:is(.experimental-tournament-shell, .experimental-tournament-create) .experimental-team-card[data-ready="true"] { --tone: hsl(var(--x-live)); }
+:is(.experimental-tournament-shell, .experimental-tournament-create) .experimental-team-head { display: flex; align-items: center; gap: .65rem; }
+:is(.experimental-tournament-shell, .experimental-tournament-create) .experimental-team-head h4 { margin: 0; font-size: .975rem; font-weight: 800; color: var(--x-text); overflow-wrap: anywhere; }
+:is(.experimental-tournament-shell, .experimental-tournament-create) .experimental-team-badge { display: inline-grid; place-items: center; flex: 0 0 2.4rem; height: 2.4rem; border-radius: .8rem; font-size: .75rem; font-weight: 800; letter-spacing: .03em; background: linear-gradient(135deg, var(--x-a1), var(--x-a2)); color: hsl(var(--primary-foreground)); }
+:is(.experimental-tournament-shell, .experimental-tournament-create) .experimental-team-state { margin-left: auto; padding: .2rem .6rem; border-radius: 999px; font-size: .7rem; font-weight: 800; white-space: nowrap; background: color-mix(in oklab, var(--tone) 20%, transparent); color: var(--x-text); }
+:is(.experimental-tournament-shell, .experimental-tournament-create) .experimental-team-issues { display: grid; gap: .3rem; margin: 0; padding: 0; list-style: none; font-size: .78rem; color: var(--x-text); }
+:is(.experimental-tournament-shell, .experimental-tournament-create) .experimental-team-issues li[data-tone="danger"] { color: color-mix(in oklab, hsl(var(--x-danger)) 70%, var(--x-text)); }
+:is(.experimental-tournament-shell, .experimental-tournament-create) .experimental-team-issues li[data-tone="info"] { color: var(--x-text-2); }
+:is(.experimental-tournament-shell, .experimental-tournament-create) .experimental-team-members { display: grid; gap: .35rem; margin: 0; padding: 0; list-style: none; }
+:is(.experimental-tournament-shell, .experimental-tournament-create) .experimental-team-members li { display: flex; flex-wrap: wrap; align-items: center; gap: .45rem; padding: .35rem .5rem; border-radius: .7rem; background: var(--x-glass-2); font-size: .85rem; color: var(--x-text); }
+:is(.experimental-tournament-shell, .experimental-tournament-create) .experimental-team-members li[data-role="captain"] svg { color: var(--x-gold); }
+:is(.experimental-tournament-shell, .experimental-tournament-create) .experimental-team-members li[data-role="reserve"] { opacity: .85; }
+:is(.experimental-tournament-shell, .experimental-tournament-create) .experimental-team-member-name { font-weight: 700; min-width: 0; overflow-wrap: anywhere; }
+:is(.experimental-tournament-shell, .experimental-tournament-create) .experimental-team-member-role { font-size: .72rem; color: var(--x-text-2); }
+:is(.experimental-tournament-shell, .experimental-tournament-create) .experimental-team-member-actions { display: inline-flex; align-items: center; gap: .3rem; margin-left: auto; }
+:is(.experimental-tournament-shell, .experimental-tournament-create) .experimental-team-member-actions button { display: inline-grid; place-items: center; width: 2.25rem; height: 2.25rem; border-radius: 999px; border: 1px solid var(--x-line); background: transparent; color: var(--x-text-2); }
+:is(.experimental-tournament-shell, .experimental-tournament-create) .experimental-team-member-actions button:hover:not(:disabled) { color: hsl(var(--x-danger)); border-color: color-mix(in oklab, hsl(var(--x-danger)) 50%, transparent); }
+:is(.experimental-tournament-shell, .experimental-tournament-create) .experimental-team-add { display: flex; flex-wrap: wrap; gap: .4rem; }
+:is(.experimental-tournament-shell, .experimental-tournament-create) .experimental-team-add input { flex: 1 1 9rem; min-width: 0; min-height: 2.5rem; padding: 0 .75rem; border-radius: .7rem; border: 1px solid var(--x-line-strong); background: var(--x-glass-2); color: var(--x-text); font-size: .85rem; }
+:is(.experimental-tournament-shell, .experimental-tournament-create) .experimental-team-history-toggle { display: inline-flex; align-items: center; gap: .35rem; justify-self: start; min-height: 2rem; padding: 0; border: 0; background: transparent; font-size: .78rem; font-weight: 700; color: var(--x-a2); }
+:is(.experimental-tournament-shell, .experimental-tournament-create) .experimental-team-history { display: grid; gap: .3rem; margin: 0; padding-left: 1.1rem; font-size: .78rem; color: var(--x-text); }
+:is(.experimental-tournament-shell, .experimental-tournament-create) .experimental-team-history li[data-left="true"] { color: var(--x-text-2); }
 /* v5 · shared V4 button on the create screen */
 :is(.experimental-tournament-create) .experimental-v4-btn { display: inline-flex; align-items: center; gap: .4rem; min-height: var(--x-tap, 2.75rem); padding-inline: 1rem; border: 1px solid var(--x-line-strong); border-radius: 999px; background: var(--x-glass); color: var(--x-text); font-weight: 600; font-size: .875rem; text-decoration: none; transition: background 140ms var(--x-ease), border-color 140ms var(--x-ease); }
 :is(.experimental-tournament-create) .experimental-v4-btn:hover:not(:disabled) { background: var(--x-glass-2); }

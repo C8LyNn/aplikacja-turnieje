@@ -52,6 +52,8 @@ import { OrganizerNextStep } from "@/components/organizer-next-step";
 import { experimentalNextStep } from "@/features/experimental-tournaments/experimental-next-step";
 import { ExperimentalRosterHealth, ExperimentalStageMap } from "@/features/experimental-tournaments/experimental-v4-panels";
 import { ExperimentalBulkPaste, type BulkImportOutcome } from "@/features/experimental-tournaments/experimental-v4-bulk-paste";
+import { ExperimentalTeamRosters } from "@/features/experimental-tournaments/experimental-team-rosters";
+import { useGetTournamentTeams } from "@workspace/api-client-react";
 import { TournamentOperationsOverview } from "@/components/tournament-operations-overview";
 import { useOrganizerOperation } from "@/hooks/use-organizer-operation";
 import { deriveOrganizerCapabilities, managementRoleForCapabilities } from "@/lib/organizer-capabilities";
@@ -181,6 +183,12 @@ export default function TournamentDetail() {
     query: { enabled: !!id && readOk, queryKey: getListTournamentStagesQueryKey(id), refetchInterval: 5000 },
   });
   const { data: stages } = stagesQuery;
+  const teamOverview = useGetTournamentTeams(id, {
+    query: { enabled: !!id && readOk && isExperimental && tournament?.participantType === "teams", retry: false } as never,
+  });
+  const teamsNotReady = teamOverview.data && teamOverview.data.participantType === "teams"
+    ? teamOverview.data.teams.filter((team) => team.entryStatus === "active" && !team.ready).length
+    : undefined;
   // A failed refresh invalidates scope even when the cache still contains stages.
   const stageScopeUnknown = stages === undefined || stagesQuery.isError;
   const hasMultipleStages = !stageScopeUnknown && (stages?.length ?? 0) > 1;
@@ -989,7 +997,7 @@ export default function TournamentDetail() {
           </TabsContent>
 
           <TabsContent value="players" className={isExperimental ? "pt-6 experimental-players-surface" : "pt-6"}>
-            {isExperimental && <ExperimentalRosterHealth players={players} maxPlayers={tournament.maxPlayers} requiredCount={tournament.status === "draft" && (stages?.length ?? 0) > 1 ? stages?.find((stage) => stage.position === 1)?.participantCount : undefined} />}
+            {isExperimental && <ExperimentalRosterHealth players={players} maxPlayers={tournament.maxPlayers} teamsNotReady={teamsNotReady} requiredCount={tournament.status === "draft" && (stages?.length ?? 0) > 1 ? stages?.find((stage) => stage.position === 1)?.participantCount : undefined} />}
             {isExperimental && <ExperimentalPlayerToolbar query={playerSearch} onQueryChange={setPlayerSearch} status={playerStatusFilter} onStatusChange={setPlayerStatusFilter} sort={playerSort} onSortChange={setPlayerSort} total={players?.length ?? 0} visible={displayedPlayers.length} />}
             <div className={`grid md:grid-cols-3 gap-6 ${isExperimental ? "mt-4" : ""}`}>
               <div className="md:col-span-2 space-y-4">
@@ -1420,6 +1428,9 @@ export default function TournamentDetail() {
                 )}
               </div>
             </div>
+            {isExperimental && tournament.participantType === "teams" && (
+              <div className="mt-6"><ExperimentalTeamRosters tournamentId={tournament.id} canEdit={capabilities.canManageParticipants} entriesSignature={(players ?? []).map((player) => `${player.id}:${player.name}`).join("|")} /></div>
+            )}
           </TabsContent>
 
           <TabsContent value="matches" className="pt-6">

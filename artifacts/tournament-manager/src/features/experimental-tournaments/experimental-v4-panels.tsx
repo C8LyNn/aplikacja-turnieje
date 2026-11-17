@@ -82,8 +82,8 @@ export function ExperimentalResumeCard({ tournaments }: { tournaments: ReadonlyA
 
 const TONE_ICON: Record<HealthTone, typeof Info> = { success: CheckCircle2, info: Info, warning: CircleAlert, danger: CircleAlert };
 
-export function ExperimentalRosterHealth({ players, maxPlayers, requiredCount }: { players: ReadonlyArray<Player> | null | undefined; maxPlayers?: number | null; requiredCount?: number | null }) {
-  const health = rosterHealth(players, maxPlayers, requiredCount);
+export function ExperimentalRosterHealth({ players, maxPlayers, requiredCount, teamsNotReady }: { players: ReadonlyArray<Player> | null | undefined; maxPlayers?: number | null; requiredCount?: number | null; teamsNotReady?: number | null }) {
+  const health = rosterHealth(players, maxPlayers, requiredCount, teamsNotReady);
   const fill = health.max ? Math.min(100, Math.round((health.count / health.max) * 100)) : null;
   return (
     <section className="experimental-v4-roster" data-ready={health.ready ? "true" : "false"} aria-label="Stan listy uczestników">

@@ -90,3 +90,14 @@ test('V5-B: AI routes are read-only and registered before the tournament id rout
   const routes = readFileSync(resolve(root, 'artifacts/api-server/src/routes/tournament-ai-config.ts'), 'utf8');
   assert.doesNotMatch(routes, /\bdb\b|insert\(|update\(|delete\(/);
 });
+
+test('V5-D: team roster panel renders only in Experimental team tournaments', () => {
+  const detail = src('pages/tournament-detail.tsx');
+  const parts = detail.split('<ExperimentalTeamRosters');
+  assert.equal(parts.length, 2, 'used exactly once');
+  const before = parts[0].slice(parts[0].lastIndexOf('{isExperimental'));
+  assert.ok(before.startsWith('{isExperimental && tournament.participantType === "teams" && ('), 'guarded by Experimental and team mode');
+  for (const file of ['pages/create-tournament.tsx', 'pages/tournament-create-choice.tsx']) {
+    assert.doesNotMatch(src(file), /ExperimentalTeamRosters|participantType/, `${file} stays unchanged`);
+  }
+});

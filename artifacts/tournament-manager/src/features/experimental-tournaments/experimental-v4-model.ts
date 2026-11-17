@@ -62,6 +62,8 @@ export function rosterHealth(
   maxPlayers: number | null | undefined,
   /** Fixed multi-stage plans (V5 presets) start only with exactly this many participants. */
   requiredCount?: number | null,
+  /** V5: team tournaments — teams whose roster blocks the start. */
+  teamsNotReady?: number | null,
 ): RosterHealth {
   const list = players ?? [];
   const count = list.length;
@@ -103,6 +105,9 @@ export function rosterHealth(
     issues.push({ key: "seed-missing", tone: "info", label: missing === count ? "Rozstawienie zostanie nadane automatycznie" : `${missing} bez rozstawienia (nadane automatycznie)` });
   }
 
+  if (typeof teamsNotReady === "number" && teamsNotReady > 0) {
+    issues.push({ key: "team-roster", tone: "danger", label: teamsNotReady === 1 ? "1 drużyna bez pełnego składu" : `${teamsNotReady} drużyn bez pełnego składu` });
+  }
   const ready = (exact !== null ? count === exact : count >= 2) && !issues.some((i) => i.tone === "danger");
   return { count, max, freeSlots, ready, issues };
 }

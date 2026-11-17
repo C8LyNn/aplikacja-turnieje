@@ -236,6 +236,239 @@ paths:
         "204":
           description: Deleted
 
+  /tournaments/{id}/teams:
+    get:
+      operationId: getTournamentTeams
+      tags: [tournaments]
+      summary: Team rosters of a team tournament (empty list for player tournaments)
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+      responses:
+        "200":
+          description: Teams with active rosters and readiness
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeamsOverview"
+        "403":
+          description: Not visible to the current actor
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "404":
+          description: Tournament not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+
+  /tournaments/{id}/teams/{entryId}/history:
+    get:
+      operationId: getTournamentTeamHistory
+      tags: [tournaments]
+      summary: Full membership history of one team (every period of every member)
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+        - name: entryId
+          in: path
+          required: true
+          schema: { type: integer }
+          description: Engine entry (players row) that represents the team in this tournament.
+      responses:
+        "200":
+          description: Membership history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeamHistory"
+        "404":
+          description: Team not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "409":
+          description: Not a team tournament
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+
+  /tournaments/{id}/team-settings:
+    put:
+      operationId: updateTournamentTeamSettings
+      tags: [tournaments]
+      summary: Roster limits of a team tournament (organizer, draft only)
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TeamSettingsInput"
+      responses:
+        "200":
+          description: Updated overview
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeamsOverview"
+        "409":
+          description: Already started or not a team tournament
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "422":
+          description: Invalid limits
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+
+  /tournaments/{id}/teams/{entryId}:
+    patch:
+      operationId: updateTournamentTeam
+      tags: [tournaments]
+      summary: Update team details (short code)
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+        - name: entryId
+          in: path
+          required: true
+          schema: { type: integer }
+          description: Engine entry (players row) that represents the team in this tournament.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TeamUpdateInput"
+      responses:
+        "200":
+          description: Updated team
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeamSummary"
+        "404":
+          description: Team not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "422":
+          description: Invalid short code
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+
+  /tournaments/{id}/teams/{entryId}/members:
+    post:
+      operationId: addTournamentTeamMember
+      tags: [tournaments]
+      summary: Add a member to a team roster (a captain demotes the previous captain)
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+        - name: entryId
+          in: path
+          required: true
+          schema: { type: integer }
+          description: Engine entry (players row) that represents the team in this tournament.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TeamMemberInput"
+      responses:
+        "201":
+          description: Updated team
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeamSummary"
+        "409":
+          description: Duplicate member, full roster or not a team tournament
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "422":
+          description: Invalid member
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+
+  /tournaments/{id}/teams/{entryId}/members/{memberId}:
+    patch:
+      operationId: changeTournamentTeamMemberRole
+      tags: [tournaments]
+      summary: Change a member role; the previous membership period is closed and kept in history
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+        - name: entryId
+          in: path
+          required: true
+          schema: { type: integer }
+          description: Engine entry (players row) that represents the team in this tournament.
+        - name: memberId
+          in: path
+          required: true
+          schema: { type: integer }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TeamMemberRoleInput"
+      responses:
+        "200":
+          description: Updated team
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeamSummary"
+        "404":
+          description: Member not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+
+    delete:
+      operationId: removeTournamentTeamMember
+      tags: [tournaments]
+      summary: Remove a member from the active roster (history is kept)
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+        - name: entryId
+          in: path
+          required: true
+          schema: { type: integer }
+          description: Engine entry (players row) that represents the team in this tournament.
+        - name: memberId
+          in: path
+          required: true
+          schema: { type: integer }
+      responses:
+        "200":
+          description: Updated team
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TeamSummary"
+        "404":
+          description: Member not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+
   /tournaments/{id}/stages:
     get:
       operationId: listTournamentStages
@@ -2809,6 +3042,12 @@ components:
           type: string
           enum: [public_online, private_online, private_offline]
           description: "public_online=no viewer password; private_online=viewer needs password; private_offline=not listed, org/support only"
+        participantType:
+          type: string
+          enum: [players, teams]
+          description: V5. teams = entries are teams with rosters.
+        teamRosterMin: { type: ["integer", "null"] }
+        teamRosterMax: { type: ["integer", "null"] }
         createdAt:
           type: string
         activity:
@@ -2919,6 +3158,20 @@ components:
           type: string
           enum: [public_online, private_online, private_offline]
           description: Tournament visibility mode
+        participantType:
+          type: string
+          enum: [players, teams]
+          description: V5. Defaults to players. teams enables rosters (captain, players, reserves) with history.
+        teamRosterMin:
+          type: integer
+          minimum: 1
+          maximum: 50
+          description: Teams only. Minimum starters (captain + players) required to start.
+        teamRosterMax:
+          type: integer
+          minimum: 1
+          maximum: 50
+          description: Teams only. Maximum members including reserves.
         stagePlan:
           $ref: "#/components/schemas/TournamentStagePlanInput"
           description: Optional authoritative 1-10 stage plan. The legacy format fields remain a compatibility projection.
@@ -2936,6 +3189,100 @@ components:
             organizerToken:
               type: string
               description: Tournament-scoped organizer session issued only to the creator.
+
+    TeamRole:
+      type: string
+      enum: [captain, player, reserve]
+    TeamMember:
+      type: object
+      required: [id, name, role, roleLabel, joinedAt]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        role: { $ref: "#/components/schemas/TeamRole" }
+        roleLabel: { type: string }
+        joinedAt: { type: string }
+    TeamRosterIssue:
+      type: object
+      required: [code, tone, message]
+      properties:
+        code: { type: string, enum: [ROSTER_TOO_SMALL, ROSTER_TOO_LARGE, NO_CAPTAIN] }
+        tone: { type: string, enum: [danger, info] }
+        message: { type: string }
+    TeamSummary:
+      type: object
+      required: [entryId, teamId, name, seed, entryStatus, shortCode, members, starters, formerMemberCount, ready, issues]
+      properties:
+        entryId: { type: integer }
+        teamId: { type: ["integer", "null"] }
+        name: { type: string }
+        seed: { type: ["integer", "null"] }
+        entryStatus: { type: string }
+        shortCode: { type: ["string", "null"] }
+        members:
+          type: array
+          items: { $ref: "#/components/schemas/TeamMember" }
+        starters: { type: integer }
+        formerMemberCount: { type: integer }
+        ready: { type: boolean }
+        issues:
+          type: array
+          items: { $ref: "#/components/schemas/TeamRosterIssue" }
+    TeamsOverview:
+      type: object
+      required: [tournamentId, participantType, rosterMin, rosterMax, teams, readyCount]
+      properties:
+        tournamentId: { type: integer }
+        participantType: { type: string, enum: [players, teams] }
+        rosterMin: { type: ["integer", "null"] }
+        rosterMax: { type: ["integer", "null"] }
+        readyCount: { type: integer }
+        teams:
+          type: array
+          items: { $ref: "#/components/schemas/TeamSummary" }
+    TeamHistory:
+      type: object
+      required: [entryId, name, history]
+      properties:
+        entryId: { type: integer }
+        name: { type: string }
+        history:
+          type: array
+          items:
+            type: object
+            required: [id, name, role, roleLabel, joinedAt, leftAt, leftReason]
+            properties:
+              id: { type: integer }
+              name: { type: string }
+              role: { $ref: "#/components/schemas/TeamRole" }
+              roleLabel: { type: string }
+              joinedAt: { type: string }
+              leftAt: { type: ["string", "null"] }
+              leftReason: { type: ["string", "null"], enum: [removed, role_change, null] }
+    TeamSettingsInput:
+      type: object
+      additionalProperties: false
+      properties:
+        rosterMin: { type: ["integer", "null"], minimum: 1, maximum: 50 }
+        rosterMax: { type: ["integer", "null"], minimum: 1, maximum: 50 }
+    TeamUpdateInput:
+      type: object
+      additionalProperties: false
+      properties:
+        shortCode: { type: ["string", "null"] }
+    TeamMemberInput:
+      type: object
+      additionalProperties: false
+      required: [name]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 100 }
+        role: { $ref: "#/components/schemas/TeamRole" }
+    TeamMemberRoleInput:
+      type: object
+      additionalProperties: false
+      required: [role]
+      properties:
+        role: { $ref: "#/components/schemas/TeamRole" }
 
     TournamentStagePlanInput:
       type: object

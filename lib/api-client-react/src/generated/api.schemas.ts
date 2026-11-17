@@ -718,6 +718,17 @@ export const TournamentVisibility = {
 } as const;
 
 /**
+ * V5. teams = entries are teams with rosters.
+ */
+export type TournamentParticipantType = typeof TournamentParticipantType[keyof typeof TournamentParticipantType];
+
+
+export const TournamentParticipantType = {
+  players: 'players',
+  teams: 'teams',
+} as const;
+
+/**
  * Read-only workload summary, present only in the tournament list. Clients must treat it as optional.
  */
 export interface TournamentActivity {
@@ -775,6 +786,12 @@ export interface Tournament {
   hasViewerPassword?: boolean;
   /** public_online=no viewer password; private_online=viewer needs password; private_offline=not listed, org/support only */
   visibility?: TournamentVisibility;
+  /** V5. teams = entries are teams with rosters. */
+  participantType?: TournamentParticipantType;
+  /** @nullable */
+  teamRosterMin?: number | null;
+  /** @nullable */
+  teamRosterMax?: number | null;
   createdAt: string;
   activity?: TournamentActivity;
   gameConfig?: DeadlockTournamentGameConfig | MarvelTournamentGameConfig | null;
@@ -1043,6 +1060,17 @@ export const TournamentInputVisibility = {
   private_offline: 'private_offline',
 } as const;
 
+/**
+ * V5. Defaults to players. teams enables rosters (captain, players, reserves) with history.
+ */
+export type TournamentInputParticipantType = typeof TournamentInputParticipantType[keyof typeof TournamentInputParticipantType];
+
+
+export const TournamentInputParticipantType = {
+  players: 'players',
+  teams: 'teams',
+} as const;
+
 export interface TournamentInput {
   /** @minLength 1 */
   name: string;
@@ -1069,6 +1097,20 @@ export interface TournamentInput {
   viewerPassword?: string;
   /** Tournament visibility mode */
   visibility?: TournamentInputVisibility;
+  /** V5. Defaults to players. teams enables rosters (captain, players, reserves) with history. */
+  participantType?: TournamentInputParticipantType;
+  /**
+     * Teams only. Minimum starters (captain + players) required to start.
+     * @minimum 1
+     * @maximum 50
+     */
+  teamRosterMin?: number;
+  /**
+     * Teams only. Maximum members including reserves.
+     * @minimum 1
+     * @maximum 50
+     */
+  teamRosterMax?: number;
   /** Optional authoritative 1-10 stage plan. The legacy format fields remain a compatibility projection. */
   stagePlan?: TournamentStagePlanInput;
   gameConfig?: DeadlockTournamentGameConfig | MarvelTournamentGameConfig;
@@ -1078,6 +1120,144 @@ export type TournamentCreationResponse = Tournament & {
   /** Tournament-scoped organizer session issued only to the creator. */
   organizerToken: string;
 };
+
+export type TeamRole = typeof TeamRole[keyof typeof TeamRole];
+
+
+export const TeamRole = {
+  captain: 'captain',
+  player: 'player',
+  reserve: 'reserve',
+} as const;
+
+export interface TeamMember {
+  id: number;
+  name: string;
+  role: TeamRole;
+  roleLabel: string;
+  joinedAt: string;
+}
+
+export type TeamRosterIssueCode = typeof TeamRosterIssueCode[keyof typeof TeamRosterIssueCode];
+
+
+export const TeamRosterIssueCode = {
+  ROSTER_TOO_SMALL: 'ROSTER_TOO_SMALL',
+  ROSTER_TOO_LARGE: 'ROSTER_TOO_LARGE',
+  NO_CAPTAIN: 'NO_CAPTAIN',
+} as const;
+
+export type TeamRosterIssueTone = typeof TeamRosterIssueTone[keyof typeof TeamRosterIssueTone];
+
+
+export const TeamRosterIssueTone = {
+  danger: 'danger',
+  info: 'info',
+} as const;
+
+export interface TeamRosterIssue {
+  code: TeamRosterIssueCode;
+  tone: TeamRosterIssueTone;
+  message: string;
+}
+
+export interface TeamSummary {
+  entryId: number;
+  /** @nullable */
+  teamId: number | null;
+  name: string;
+  /** @nullable */
+  seed: number | null;
+  entryStatus: string;
+  /** @nullable */
+  shortCode: string | null;
+  members: TeamMember[];
+  starters: number;
+  formerMemberCount: number;
+  ready: boolean;
+  issues: TeamRosterIssue[];
+}
+
+export type TeamsOverviewParticipantType = typeof TeamsOverviewParticipantType[keyof typeof TeamsOverviewParticipantType];
+
+
+export const TeamsOverviewParticipantType = {
+  players: 'players',
+  teams: 'teams',
+} as const;
+
+export interface TeamsOverview {
+  tournamentId: number;
+  participantType: TeamsOverviewParticipantType;
+  /** @nullable */
+  rosterMin: number | null;
+  /** @nullable */
+  rosterMax: number | null;
+  readyCount: number;
+  teams: TeamSummary[];
+}
+
+/**
+ * @nullable
+ */
+export type TeamHistoryHistoryItemLeftReason = typeof TeamHistoryHistoryItemLeftReason[keyof typeof TeamHistoryHistoryItemLeftReason] | null;
+
+
+export const TeamHistoryHistoryItemLeftReason = {
+  removed: 'removed',
+  role_change: 'role_change',
+} as const;
+
+export type TeamHistoryHistoryItem = {
+  id: number;
+  name: string;
+  role: TeamRole;
+  roleLabel: string;
+  joinedAt: string;
+  /** @nullable */
+  leftAt: string | null;
+  /** @nullable */
+  leftReason: TeamHistoryHistoryItemLeftReason;
+};
+
+export interface TeamHistory {
+  entryId: number;
+  name: string;
+  history: TeamHistoryHistoryItem[];
+}
+
+export interface TeamSettingsInput {
+  /**
+     * @minimum 1
+     * @maximum 50
+     * @nullable
+     */
+  rosterMin?: number | null;
+  /**
+     * @minimum 1
+     * @maximum 50
+     * @nullable
+     */
+  rosterMax?: number | null;
+}
+
+export interface TeamUpdateInput {
+  /** @nullable */
+  shortCode?: string | null;
+}
+
+export interface TeamMemberInput {
+  /**
+     * @minLength 1
+     * @maxLength 100
+     */
+  name: string;
+  role?: TeamRole;
+}
+
+export interface TeamMemberRoleInput {
+  role: TeamRole;
+}
 
 export type TournamentStageFormat = typeof TournamentStageFormat[keyof typeof TournamentStageFormat];
 

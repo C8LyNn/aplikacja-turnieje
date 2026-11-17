@@ -80,6 +80,13 @@ import type {
   StageStartReadiness,
   Standing,
   TargetStageInputArrivals,
+  TeamHistory,
+  TeamMemberInput,
+  TeamMemberRoleInput,
+  TeamSettingsInput,
+  TeamSummary,
+  TeamUpdateInput,
+  TeamsOverview,
   Tournament,
   TournamentBackupV3,
   TournamentCreationResponse,
@@ -755,6 +762,535 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return useMutation(getDeleteTournamentMutationOptions(options));
+    }
+
+export const getGetTournamentTeamsUrl = (id: number,) => {
+
+
+
+
+  return `/api/tournaments/${id}/teams`
+}
+
+/**
+ * @summary Team rosters of a team tournament (empty list for player tournaments)
+ */
+export const getTournamentTeams = async (id: number, options?: RequestInit): Promise<TeamsOverview> => {
+
+  return customFetch<TeamsOverview>(getGetTournamentTeamsUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetTournamentTeamsQueryKey = (id: number,) => {
+    return [
+    `/api/tournaments/${id}/teams`
+    ] as const;
+    }
+
+
+export const getGetTournamentTeamsQueryOptions = <TData = Awaited<ReturnType<typeof getTournamentTeams>>, TError = ErrorType<DomainError>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getTournamentTeams>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetTournamentTeamsQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getTournamentTeams>>> = ({ signal }) => getTournamentTeams(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getTournamentTeams>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetTournamentTeamsQueryResult = NonNullable<Awaited<ReturnType<typeof getTournamentTeams>>>
+export type GetTournamentTeamsQueryError = ErrorType<DomainError>
+
+
+/**
+ * @summary Team rosters of a team tournament (empty list for player tournaments)
+ */
+
+export function useGetTournamentTeams<TData = Awaited<ReturnType<typeof getTournamentTeams>>, TError = ErrorType<DomainError>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getTournamentTeams>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetTournamentTeamsQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getGetTournamentTeamHistoryUrl = (id: number,
+    entryId: number,) => {
+
+
+
+
+  return `/api/tournaments/${id}/teams/${entryId}/history`
+}
+
+/**
+ * @summary Full membership history of one team (every period of every member)
+ */
+export const getTournamentTeamHistory = async (id: number,
+    entryId: number, options?: RequestInit): Promise<TeamHistory> => {
+
+  return customFetch<TeamHistory>(getGetTournamentTeamHistoryUrl(id,entryId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetTournamentTeamHistoryQueryKey = (id: number,
+    entryId: number,) => {
+    return [
+    `/api/tournaments/${id}/teams/${entryId}/history`
+    ] as const;
+    }
+
+
+export const getGetTournamentTeamHistoryQueryOptions = <TData = Awaited<ReturnType<typeof getTournamentTeamHistory>>, TError = ErrorType<DomainError>>(id: number,
+    entryId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getTournamentTeamHistory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetTournamentTeamHistoryQueryKey(id,entryId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getTournamentTeamHistory>>> = ({ signal }) => getTournamentTeamHistory(id,entryId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id && entryId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getTournamentTeamHistory>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetTournamentTeamHistoryQueryResult = NonNullable<Awaited<ReturnType<typeof getTournamentTeamHistory>>>
+export type GetTournamentTeamHistoryQueryError = ErrorType<DomainError>
+
+
+/**
+ * @summary Full membership history of one team (every period of every member)
+ */
+
+export function useGetTournamentTeamHistory<TData = Awaited<ReturnType<typeof getTournamentTeamHistory>>, TError = ErrorType<DomainError>>(
+ id: number,
+    entryId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getTournamentTeamHistory>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetTournamentTeamHistoryQueryOptions(id,entryId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getUpdateTournamentTeamSettingsUrl = (id: number,) => {
+
+
+
+
+  return `/api/tournaments/${id}/team-settings`
+}
+
+/**
+ * @summary Roster limits of a team tournament (organizer, draft only)
+ */
+export const updateTournamentTeamSettings = async (id: number,
+    teamSettingsInput: TeamSettingsInput, options?: RequestInit): Promise<TeamsOverview> => {
+
+  return customFetch<TeamsOverview>(getUpdateTournamentTeamSettingsUrl(id),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      teamSettingsInput,)
+  }
+);}
+
+
+
+
+export const getUpdateTournamentTeamSettingsMutationOptions = <TError = ErrorType<DomainError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateTournamentTeamSettings>>, TError,{id: number;data: BodyType<TeamSettingsInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateTournamentTeamSettings>>, TError,{id: number;data: BodyType<TeamSettingsInput>}, TContext> => {
+
+const mutationKey = ['updateTournamentTeamSettings'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateTournamentTeamSettings>>, {id: number;data: BodyType<TeamSettingsInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  updateTournamentTeamSettings(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateTournamentTeamSettingsMutationResult = NonNullable<Awaited<ReturnType<typeof updateTournamentTeamSettings>>>
+    export type UpdateTournamentTeamSettingsMutationBody = BodyType<TeamSettingsInput>
+    export type UpdateTournamentTeamSettingsMutationError = ErrorType<DomainError>
+
+    /**
+ * @summary Roster limits of a team tournament (organizer, draft only)
+ */
+export const useUpdateTournamentTeamSettings = <TError = ErrorType<DomainError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateTournamentTeamSettings>>, TError,{id: number;data: BodyType<TeamSettingsInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateTournamentTeamSettings>>,
+        TError,
+        {id: number;data: BodyType<TeamSettingsInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateTournamentTeamSettingsMutationOptions(options));
+    }
+
+export const getUpdateTournamentTeamUrl = (id: number,
+    entryId: number,) => {
+
+
+
+
+  return `/api/tournaments/${id}/teams/${entryId}`
+}
+
+/**
+ * @summary Update team details (short code)
+ */
+export const updateTournamentTeam = async (id: number,
+    entryId: number,
+    teamUpdateInput: TeamUpdateInput, options?: RequestInit): Promise<TeamSummary> => {
+
+  return customFetch<TeamSummary>(getUpdateTournamentTeamUrl(id,entryId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      teamUpdateInput,)
+  }
+);}
+
+
+
+
+export const getUpdateTournamentTeamMutationOptions = <TError = ErrorType<DomainError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateTournamentTeam>>, TError,{id: number;entryId: number;data: BodyType<TeamUpdateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateTournamentTeam>>, TError,{id: number;entryId: number;data: BodyType<TeamUpdateInput>}, TContext> => {
+
+const mutationKey = ['updateTournamentTeam'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateTournamentTeam>>, {id: number;entryId: number;data: BodyType<TeamUpdateInput>}> = (props) => {
+          const {id,entryId,data} = props ?? {};
+
+          return  updateTournamentTeam(id,entryId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateTournamentTeamMutationResult = NonNullable<Awaited<ReturnType<typeof updateTournamentTeam>>>
+    export type UpdateTournamentTeamMutationBody = BodyType<TeamUpdateInput>
+    export type UpdateTournamentTeamMutationError = ErrorType<DomainError>
+
+    /**
+ * @summary Update team details (short code)
+ */
+export const useUpdateTournamentTeam = <TError = ErrorType<DomainError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateTournamentTeam>>, TError,{id: number;entryId: number;data: BodyType<TeamUpdateInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateTournamentTeam>>,
+        TError,
+        {id: number;entryId: number;data: BodyType<TeamUpdateInput>},
+        TContext
+      > => {
+      return useMutation(getUpdateTournamentTeamMutationOptions(options));
+    }
+
+export const getAddTournamentTeamMemberUrl = (id: number,
+    entryId: number,) => {
+
+
+
+
+  return `/api/tournaments/${id}/teams/${entryId}/members`
+}
+
+/**
+ * @summary Add a member to a team roster (a captain demotes the previous captain)
+ */
+export const addTournamentTeamMember = async (id: number,
+    entryId: number,
+    teamMemberInput: TeamMemberInput, options?: RequestInit): Promise<TeamSummary> => {
+
+  return customFetch<TeamSummary>(getAddTournamentTeamMemberUrl(id,entryId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      teamMemberInput,)
+  }
+);}
+
+
+
+
+export const getAddTournamentTeamMemberMutationOptions = <TError = ErrorType<DomainError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addTournamentTeamMember>>, TError,{id: number;entryId: number;data: BodyType<TeamMemberInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof addTournamentTeamMember>>, TError,{id: number;entryId: number;data: BodyType<TeamMemberInput>}, TContext> => {
+
+const mutationKey = ['addTournamentTeamMember'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof addTournamentTeamMember>>, {id: number;entryId: number;data: BodyType<TeamMemberInput>}> = (props) => {
+          const {id,entryId,data} = props ?? {};
+
+          return  addTournamentTeamMember(id,entryId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AddTournamentTeamMemberMutationResult = NonNullable<Awaited<ReturnType<typeof addTournamentTeamMember>>>
+    export type AddTournamentTeamMemberMutationBody = BodyType<TeamMemberInput>
+    export type AddTournamentTeamMemberMutationError = ErrorType<DomainError>
+
+    /**
+ * @summary Add a member to a team roster (a captain demotes the previous captain)
+ */
+export const useAddTournamentTeamMember = <TError = ErrorType<DomainError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addTournamentTeamMember>>, TError,{id: number;entryId: number;data: BodyType<TeamMemberInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof addTournamentTeamMember>>,
+        TError,
+        {id: number;entryId: number;data: BodyType<TeamMemberInput>},
+        TContext
+      > => {
+      return useMutation(getAddTournamentTeamMemberMutationOptions(options));
+    }
+
+export const getChangeTournamentTeamMemberRoleUrl = (id: number,
+    entryId: number,
+    memberId: number,) => {
+
+
+
+
+  return `/api/tournaments/${id}/teams/${entryId}/members/${memberId}`
+}
+
+/**
+ * @summary Change a member role; the previous membership period is closed and kept in history
+ */
+export const changeTournamentTeamMemberRole = async (id: number,
+    entryId: number,
+    memberId: number,
+    teamMemberRoleInput: TeamMemberRoleInput, options?: RequestInit): Promise<TeamSummary> => {
+
+  return customFetch<TeamSummary>(getChangeTournamentTeamMemberRoleUrl(id,entryId,memberId),
+  {
+    ...options,
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      teamMemberRoleInput,)
+  }
+);}
+
+
+
+
+export const getChangeTournamentTeamMemberRoleMutationOptions = <TError = ErrorType<DomainError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof changeTournamentTeamMemberRole>>, TError,{id: number;entryId: number;memberId: number;data: BodyType<TeamMemberRoleInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof changeTournamentTeamMemberRole>>, TError,{id: number;entryId: number;memberId: number;data: BodyType<TeamMemberRoleInput>}, TContext> => {
+
+const mutationKey = ['changeTournamentTeamMemberRole'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof changeTournamentTeamMemberRole>>, {id: number;entryId: number;memberId: number;data: BodyType<TeamMemberRoleInput>}> = (props) => {
+          const {id,entryId,memberId,data} = props ?? {};
+
+          return  changeTournamentTeamMemberRole(id,entryId,memberId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ChangeTournamentTeamMemberRoleMutationResult = NonNullable<Awaited<ReturnType<typeof changeTournamentTeamMemberRole>>>
+    export type ChangeTournamentTeamMemberRoleMutationBody = BodyType<TeamMemberRoleInput>
+    export type ChangeTournamentTeamMemberRoleMutationError = ErrorType<DomainError>
+
+    /**
+ * @summary Change a member role; the previous membership period is closed and kept in history
+ */
+export const useChangeTournamentTeamMemberRole = <TError = ErrorType<DomainError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof changeTournamentTeamMemberRole>>, TError,{id: number;entryId: number;memberId: number;data: BodyType<TeamMemberRoleInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof changeTournamentTeamMemberRole>>,
+        TError,
+        {id: number;entryId: number;memberId: number;data: BodyType<TeamMemberRoleInput>},
+        TContext
+      > => {
+      return useMutation(getChangeTournamentTeamMemberRoleMutationOptions(options));
+    }
+
+export const getRemoveTournamentTeamMemberUrl = (id: number,
+    entryId: number,
+    memberId: number,) => {
+
+
+
+
+  return `/api/tournaments/${id}/teams/${entryId}/members/${memberId}`
+}
+
+/**
+ * @summary Remove a member from the active roster (history is kept)
+ */
+export const removeTournamentTeamMember = async (id: number,
+    entryId: number,
+    memberId: number, options?: RequestInit): Promise<TeamSummary> => {
+
+  return customFetch<TeamSummary>(getRemoveTournamentTeamMemberUrl(id,entryId,memberId),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getRemoveTournamentTeamMemberMutationOptions = <TError = ErrorType<DomainError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeTournamentTeamMember>>, TError,{id: number;entryId: number;memberId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof removeTournamentTeamMember>>, TError,{id: number;entryId: number;memberId: number}, TContext> => {
+
+const mutationKey = ['removeTournamentTeamMember'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof removeTournamentTeamMember>>, {id: number;entryId: number;memberId: number}> = (props) => {
+          const {id,entryId,memberId} = props ?? {};
+
+          return  removeTournamentTeamMember(id,entryId,memberId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RemoveTournamentTeamMemberMutationResult = NonNullable<Awaited<ReturnType<typeof removeTournamentTeamMember>>>
+
+    export type RemoveTournamentTeamMemberMutationError = ErrorType<DomainError>
+
+    /**
+ * @summary Remove a member from the active roster (history is kept)
+ */
+export const useRemoveTournamentTeamMember = <TError = ErrorType<DomainError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof removeTournamentTeamMember>>, TError,{id: number;entryId: number;memberId: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof removeTournamentTeamMember>>,
+        TError,
+        {id: number;entryId: number;memberId: number},
+        TContext
+      > => {
+      return useMutation(getRemoveTournamentTeamMemberMutationOptions(options));
     }
 
 export const getListTournamentStagesUrl = (id: number,) => {

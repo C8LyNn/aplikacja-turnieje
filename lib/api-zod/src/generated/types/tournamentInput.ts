@@ -8,6 +8,7 @@
 import type { DeadlockTournamentGameConfig } from './deadlockTournamentGameConfig';
 import type { MarvelTournamentGameConfig } from './marvelTournamentGameConfig';
 import type { TournamentInputFormat } from './tournamentInputFormat';
+import type { TournamentInputParticipantType } from './tournamentInputParticipantType';
 import type { TournamentInputVisibility } from './tournamentInputVisibility';
 import type { TournamentStagePlanInput } from './tournamentStagePlanInput';
 
@@ -37,6 +38,20 @@ export interface TournamentInput {
   viewerPassword?: string;
   /** Tournament visibility mode */
   visibility?: TournamentInputVisibility;
+  /** V5. Defaults to players. teams enables rosters (captain, players, reserves) with history. */
+  participantType?: TournamentInputParticipantType;
+  /**
+     * Teams only. Minimum starters (captain + players) required to start.
+     * @minimum 1
+     * @maximum 50
+     */
+  teamRosterMin?: number;
+  /**
+     * Teams only. Maximum members including reserves.
+     * @minimum 1
+     * @maximum 50
+     */
+  teamRosterMax?: number;
   /** Optional authoritative 1-10 stage plan. The legacy format fields remain a compatibility projection. */
   stagePlan?: TournamentStagePlanInput;
   gameConfig?: DeadlockTournamentGameConfig | MarvelTournamentGameConfig;

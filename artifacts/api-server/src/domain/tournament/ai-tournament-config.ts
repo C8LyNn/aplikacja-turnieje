@@ -622,7 +622,7 @@ export function buildAiConfigJsonSchema(): Rec {
         additionalProperties: false,
         required: ["count"],
         properties: {
-          type: { enum: ["players", "teams"], default: "players", description: "teams: każda drużyna jest jednym uczestnikiem (bez składów)." },
+          type: { enum: ["players", "teams"], default: "players", description: "teams: turniej drużynowy. Składy (kapitan, zawodnicy, rezerwowi) organizator uzupełnia w aplikacji — nie w pliku." },
           count: { type: "integer", minimum: AI_CONFIG_MIN_PARTICIPANTS, maximum: AI_CONFIG_MAX_PARTICIPANTS },
         },
       },
@@ -745,7 +745,7 @@ export function buildAiSpecificationMarkdown(): string {
   lines.push("- Ostatni etap nie ma `advancingCount`. Mecze zawsze mają zwycięzcę (brak remisów).", "");
   lines.push("## Jeszcze nieobsługiwane (nie używaj)", "");
   for (const item of spec.planned) lines.push(`- ${item.label}: ${item.reason}`);
-  lines.push("- Daty i godziny meczów, składy drużyn, losowe rozstawienie z importu.", "");
+  lines.push("- Daty i godziny meczów, losowe rozstawienie z importu, listy zawodników i składy w pliku (organizator dodaje je w aplikacji).", "");
   lines.push("## JSON Schema", "", "```json", JSON.stringify(spec.schema, null, 2), "```", "");
   lines.push("## Przykłady", "");
   for (const example of spec.examples) {

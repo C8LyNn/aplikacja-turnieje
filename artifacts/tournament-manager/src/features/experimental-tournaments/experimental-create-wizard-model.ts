@@ -142,6 +142,9 @@ export interface WizardDraft {
   name: string;
   description: string;
   visibility: Visibility;
+  /** Teams only: minimum starters and maximum roster (null = no limit). */
+  rosterMin: number | null;
+  rosterMax: number | null;
 }
 
 export const DEFAULT_DRAFT: WizardDraft = {
@@ -153,6 +156,8 @@ export const DEFAULT_DRAFT: WizardDraft = {
   name: "",
   description: "",
   visibility: "public_online",
+  rosterMin: null,
+  rosterMax: null,
 };
 
 export const WIZARD_DRAFT_KEY = "tm_exp_wizard_draft_v1";
@@ -207,7 +212,13 @@ export function sanitizeDraft(raw: unknown): WizardDraft {
     name: typeof record.name === "string" ? record.name.slice(0, 200) : "",
     description: typeof record.description === "string" ? record.description.slice(0, 2000) : "",
     visibility: oneOf(record.visibility, ["public_online", "private_online", "private_offline"], "public_online"),
+    rosterMin: rosterLimit(record.rosterMin),
+    rosterMax: rosterLimit(record.rosterMax),
   };
+}
+
+function rosterLimit(value: unknown): number | null {
+  return Number.isInteger(value) && (value as number) >= 1 && (value as number) <= 50 ? value as number : null;
 }
 
 export function readWizardDraft(storage: Pick<Storage, "getItem"> | null): WizardDraft {
@@ -277,10 +288,16 @@ export interface CreateSecrets {
 
 export function buildCreatePayload(
   preview: PresetPreview,
-  details: { name: string; description: string; visibility: Visibility },
+  details: { name: string; description: string; visibility: Visibility; participantType?: ParticipantType; rosterMin?: number | null; rosterMax?: number | null },
   secrets: CreateSecrets,
 ): TournamentInput {
+  const teams = details.participantType === "teams";
+  const rosterMin = teams ? details.rosterMin ?? null : null;
+  const rosterMax = teams ? details.rosterMax ?? null : null;
   return {
+    ...(teams ? { participantType: "teams" as const } : {}),
+    ...(rosterMin != null ? { teamRosterMin: rosterMin } : {}),
+    ...(rosterMax != null && (rosterMin == null || rosterMax >= rosterMin) ? { teamRosterMax: rosterMax } : {}),
     name: details.name.trim(),
     description: details.description.trim() || undefined,
     format: preview.creation.format,

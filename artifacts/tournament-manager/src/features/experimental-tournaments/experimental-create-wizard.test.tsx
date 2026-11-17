@@ -222,7 +222,7 @@ test("league answer explains current limits instead of pretending schedules exis
   fireEvent.click(screen.getByLabelText(/Liga/));
   assert.ok(screen.getByText(/Daty kolejek i rewanże jeszcze nie są dostępne/));
   fireEvent.click(screen.getByLabelText(/Drużyny/));
-  assert.ok(screen.getByText(/Składy zawodników dodamy w kolejnej wersji/));
+  assert.ok(screen.getByText(/Każda drużyna ma własny skład/));
   fireEvent.click(screen.getByRole("button", { name: /Pokaż propozycje/ }));
   await screen.findByText("Polecany");
   fireEvent.click(screen.getByText("Dlaczego nie widzę innych formatów?"));
@@ -378,4 +378,18 @@ test("contract: wizard tunable params match the server catalog", async () => {
     const keys = Object.keys(requestParams(id, answers, all)).filter((key) => key !== "participantCount").sort();
     assert.deepEqual(keys, [...PRESET_TUNABLE_PARAMS[id]].sort(), id);
   }
+});
+
+test("teams: payload carries participant type and roster limits; players never do", async () => {
+  const preview = previewPreset({ presetId: "single_elimination", params: { participantCount: 8 } }) as unknown as PresetPreview;
+  const secrets = { organizerPassword: "password-123", supportPassword: "", viewerPassword: "" };
+  const teams = buildCreatePayload(preview, { name: "Liga drużyn", description: "", visibility: "public_online", participantType: "teams", rosterMin: 3, rosterMax: 5 }, secrets);
+  assert.equal(teams.participantType, "teams");
+  assert.equal(teams.teamRosterMin, 3);
+  assert.equal(teams.teamRosterMax, 5);
+  const inverted = buildCreatePayload(preview, { name: "X", description: "", visibility: "public_online", participantType: "teams", rosterMin: 5, rosterMax: 3 }, secrets);
+  assert.equal(inverted.teamRosterMax, undefined, "an impossible maximum is dropped instead of failing on the server");
+  const players = buildCreatePayload(preview, { name: "Y", description: "", visibility: "public_online", participantType: "players", rosterMin: 3, rosterMax: 5 }, secrets);
+  assert.equal("participantType" in players, false);
+  assert.equal("teamRosterMin" in players, false);
 });

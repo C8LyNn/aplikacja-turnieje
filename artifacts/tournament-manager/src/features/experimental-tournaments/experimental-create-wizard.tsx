@@ -615,7 +615,7 @@ export function ExperimentalCreateWizard() {
     submitInFlight.current = true;
     createTournament.mutate(
       {
-        data: buildCreatePayload(currentPreview, draft, {
+        data: buildCreatePayload(currentPreview, { ...draft, participantType: answers.participantType }, {
           organizerPassword,
           supportPassword,
           viewerPassword,
@@ -718,7 +718,7 @@ export function ExperimentalCreateWizard() {
               {answers.participantType === "teams" && (
                 <p className="experimental-wizard-note" data-tone="info">
                   <Info className="h-4 w-4 shrink-0" aria-hidden="true" />
-                  Każda drużyna będzie jedną pozycją na liście (nazwa drużyny). Składy zawodników dodamy w kolejnej wersji.
+                  Każda drużyna ma własny skład: kapitan, zawodnicy i rezerwowi. Dodasz ich po utworzeniu turnieju, a zmiany między meczami trafią do historii.
                 </p>
               )}
               <CountField value={answers.participantCount} onChange={(participantCount) => setAnswers({ participantCount })} noun={noun} />
@@ -937,6 +937,32 @@ export function ExperimentalCreateWizard() {
                   minLength={ORGANIZER_PASSWORD_MIN_LENGTH}
                   error={showValidation ? viewerProblem ?? undefined : undefined}
                 />
+              )}
+
+              {answers.participantType === "teams" && (
+                <fieldset className="experimental-wizard-field">
+                  <legend className="experimental-wizard-legend">Skład drużyny (opcjonalnie)</legend>
+                  <p className="experimental-wizard-help">Turniej wystartuje dopiero, gdy każda drużyna ma tylu zawodników w podstawie. Rezerwowi się nie liczą.</p>
+                  <div className="experimental-wizard-inline-actions">
+                    <label className="experimental-wizard-roster-limit">
+                      <span>Minimum w podstawie</span>
+                      <select aria-label="Minimum zawodników w podstawie" value={draft.rosterMin ?? ""} onChange={(event) => update({ rosterMin: event.target.value ? Number(event.target.value) : null })}>
+                        <option value="">bez limitu</option>
+                        {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((value) => <option key={value} value={value}>{value}</option>)}
+                      </select>
+                    </label>
+                    <label className="experimental-wizard-roster-limit">
+                      <span>Maksimum w składzie</span>
+                      <select aria-label="Maksimum osób w składzie" value={draft.rosterMax ?? ""} onChange={(event) => update({ rosterMax: event.target.value ? Number(event.target.value) : null })}>
+                        <option value="">bez limitu</option>
+                        {[2, 3, 4, 5, 6, 7, 8, 10, 12, 15, 20, 25].map((value) => <option key={value} value={value}>{value}</option>)}
+                      </select>
+                    </label>
+                  </div>
+                  {draft.rosterMin != null && draft.rosterMax != null && draft.rosterMax < draft.rosterMin && (
+                    <p role="alert" className="experimental-wizard-error">Maksimum nie może być mniejsze od minimum — maksimum zostanie pominięte.</p>
+                  )}
+                </fieldset>
               )}
 
               <details className="experimental-wizard-more" open={Boolean(supportPassword || draft.description) || undefined}>
