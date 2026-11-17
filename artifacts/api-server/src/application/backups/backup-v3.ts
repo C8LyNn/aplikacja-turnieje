@@ -32,6 +32,14 @@ import {
 import type { BackupRestoreCredentials } from "./backup-credentials";
 import { validatePlayedSeriesResult } from "../../domain/match/series-result";
 import {
+  leagueRulesFromStorage,
+  parseLeagueRules,
+  validateLeagueRulesForStage,
+  validateLeagueScore,
+  type LeagueRules,
+} from "../../domain/tournament/league-rules";
+import { isValidTimeZone, parseSchedulePlan, schedulePlanFromStorage } from "../../domain/tournament/league-schedule";
+import {
   calculateBalancedGroupSizes,
   calculateGroupAdvancingCount,
   calculateGroupQualifierCounts,
@@ -400,6 +408,12 @@ export async function exportBackupV3(
       bestOf: stage.bestOf,
       plannedRounds: stage.plannedRounds ?? null,
       ...(stage.roundRobinLegs === 2 ? { roundRobinLegs: 2 as const } : {}),
+      // V5.3: present only when set, so pre-V5.3 tournaments export exactly as before.
+      ...(stage.leagueRules != null ? { leagueRules: leagueRulesFromStorage(stage.leagueRules)! } : {}),
+      ...(stage.scheduleTimeZone != null ? { scheduleTimeZone: stage.scheduleTimeZone } : {}),
+      ...(schedulePlanFromStorage(stage.schedulePlan, stage.scheduleTimeZone) != null
+        ? { schedulePlan: schedulePlanFromStorage(stage.schedulePlan, stage.scheduleTimeZone)! }
+        : {}),
       currentRound: stage.currentRound ?? null,
       totalRounds: stage.totalRounds ?? null,
       rankingPolicy: stage.rankingPolicy,
@@ -710,6 +724,28 @@ export function validateBackupV3(backup: TournamentBackupV3): void {
   const stageById = new Map(
     backup.stages.map((stage) => [stage.backupId, stage]),
   );
+  // V5.3: league rules decide how a played result is validated (free score and draws vs. series_v1).
+  const leagueRulesByStage = new Map<number, LeagueRules | null>();
+  for (const stage of backup.stages) {
+    const parsed = parseLeagueRules(stage.leagueRules);
+    if (!parsed.ok) {
+      errors.push(`Stage ${stage.backupId} has invalid league rules.`);
+      leagueRulesByStage.set(stage.backupId, null);
+      continue;
+    }
+    if (validateLeagueRulesForStage(parsed.value, stage).length > 0) {
+      errors.push(`Stage ${stage.backupId} league rules do not fit its format.`);
+    }
+    leagueRulesByStage.set(stage.backupId, parsed.value);
+    if (stage.scheduleTimeZone !== undefined && (!isValidTimeZone(stage.scheduleTimeZone) || !["round_robin", "group_stage"].includes(stage.format))) {
+      errors.push(`Stage ${stage.backupId} has an invalid schedule time zone.`);
+    }
+    if (stage.schedulePlan !== undefined) {
+      const plan = parseSchedulePlan(stage.schedulePlan, stage.scheduleTimeZone, null);
+      if (!plan.ok || !["round_robin", "group_stage"].includes(stage.format)) errors.push(`Stage ${stage.backupId} has an invalid schedule plan.`);
+    }
+  }
+  const drawLeague = (stageBackupId: number) => leagueRulesByStage.get(stageBackupId)?.allowDraws === true;
   const groupById = new Map(
     backup.groups.map((group) => [group.backupId, group]),
   );
@@ -974,6 +1010,8 @@ export function validateBackupV3(backup: TournamentBackupV3): void {
         bestOf: stage.bestOf,
         ...(stage.format === "swiss" ? { rounds: stage.plannedRounds } : {}),
         ...(stage.format === "round_robin" && stage.roundRobinLegs === 2 ? { legs: 2 } : {}),
+        ...(stage.leagueRules !== undefined ? { leagueRules: stage.leagueRules } : {}),
+        ...(stage.scheduleTimeZone !== undefined ? { scheduleTimeZone: stage.scheduleTimeZone } : {}),
         ...((stage.format === "swiss" || stage.format === "round_robin") &&
         stage.advancingCount != null
           ? { advancingCount: stage.advancingCount }
@@ -1472,6 +1510,20 @@ export function validateBackupV3(backup: TournamentBackupV3): void {
       match.player1BackupId != null &&
       match.player2BackupId != null &&
       match.score1 != null &&
+      match.score2 != null &&
+      drawLeague(match.stageBackupId)
+    ) {
+      const league = validateLeagueScore(match.score1, match.score2);
+      const expected = !league.ok ? undefined
+        : league.outcome === "draw" ? null
+          : league.outcome === "player1" ? match.player1BackupId : match.player2BackupId;
+      if (!league.ok || (match.winnerBackupId ?? null) !== expected || match.resultReason != null)
+        errors.push(`Played match ${match.backupId} is invalid.`);
+    } else if (
+      match.resultType === "played" &&
+      match.player1BackupId != null &&
+      match.player2BackupId != null &&
+      match.score1 != null &&
       match.score2 != null
     ) {
       const result = validatePlayedSeriesResult({
@@ -1565,6 +1617,20 @@ export function validateBackupV3(backup: TournamentBackupV3): void {
     if (!positive(history.bestOf) || history.bestOf % 2 === 0)
       errors.push(`History ${key} has an invalid bestOf.`);
     if (
+      history.resultType === "played" &&
+      history.player1BackupId != null &&
+      history.player2BackupId != null &&
+      history.score1 != null &&
+      history.score2 != null &&
+      drawLeague(history.stageBackupId)
+    ) {
+      const league = validateLeagueScore(history.score1, history.score2);
+      const expected = !league.ok ? undefined
+        : league.outcome === "draw" ? null
+          : league.outcome === "player1" ? history.player1BackupId : history.player2BackupId;
+      if (!league.ok || (history.winnerBackupId ?? null) !== expected || history.resultReason != null)
+        errors.push(`Played history ${key} is invalid.`);
+    } else if (
       history.resultType === "played" &&
       history.player1BackupId != null &&
       history.player2BackupId != null &&
@@ -1786,6 +1852,12 @@ export async function importBackupV3(
       bestOf: stage.bestOf,
       plannedRounds: stage.plannedRounds ?? null,
       roundRobinLegs: stage.format === "round_robin" && stage.roundRobinLegs === 2 ? 2 : 1,
+      leagueRules: (() => {
+        const parsed = parseLeagueRules(stage.leagueRules);
+        return parsed.ok ? parsed.value : null;
+      })(),
+      scheduleTimeZone: stage.scheduleTimeZone ?? null,
+      schedulePlan: stage.schedulePlan && stage.scheduleTimeZone ? stage.schedulePlan : null,
       currentRound: stage.currentRound ?? null,
       totalRounds: stage.totalRounds ?? null,
       rankingPolicy: stage.rankingPolicy,
