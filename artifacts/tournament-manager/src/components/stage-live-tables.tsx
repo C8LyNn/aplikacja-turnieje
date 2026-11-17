@@ -20,6 +20,8 @@ export function useStageLiveStandings(tournamentId: number, stageId: number | un
       staleTime: Math.max(0, (options.refetchInterval ?? 8000) - 500),
       refetchOnWindowFocus: false,
       retry: false,
+      // An older API (or an unexpected body) must not break the stage view: only a well-formed table is used.
+      select: (data: LiveStageStandings) => (data && Array.isArray((data as { tables?: unknown }).tables) ? data : (undefined as unknown as LiveStageStandings)),
     },
   });
 }

@@ -60,6 +60,7 @@ import {
   type AudienceSectionId,
 } from "@/lib/audience-views";
 import { LiveTablesLegend, StageLiveTables, useStageLiveStandings } from "@/components/stage-live-tables";
+import { ParticipantFieldChips, useParticipantFields } from "@/features/experimental-tournaments/experimental-participant-fields";
 
 const FORMAT_LABELS: Record<string, string> = {
   single_elimination: "Drabinka eliminacyjna",
@@ -195,6 +196,8 @@ export default function TournamentAudience() {
     refetchInterval: 9000,
   });
   const liveStandings = liveStandingsQuery.data;
+  // V5.4-005: public participant fields (the API returns only what this viewer may see).
+  const publicFields = useParticipantFields(id, isExperimental && !!tournament && fetchPhase >= 4);
   const groupLabelById = new Map((liveStandings?.tables ?? []).flatMap((table) => (table.groupId == null ? [] : [[table.groupId, table.label] as const])));
   const bracket = publicStageBracket(tournamentBracket, publicStage);
   const doubleEliminationStage = publicStage?.format === "double_elimination" ? publicStage : undefined;
@@ -251,8 +254,11 @@ export default function TournamentAudience() {
   const isHeroLive = heroMatch?.status === "in_progress";
   // Before stages load, the tournament's own format stands in, so tabs do not jump.
   const sectionStage = publicStage ?? (tournament ? { format: tournament.format } : undefined);
-  const activeSection: AudienceSectionId = resolveAudienceSection(requestedSection, sectionStage, isHeroLive || !!featuredMatch);
+  const activeSection: AudienceSectionId = resolveAudienceSection(requestedSection, publicStage, isHeroLive || !!featuredMatch);
   const audienceSections = audienceSectionsFor(sectionStage);
+  if (!audienceSections.some((section) => section.id === activeSection) && activeSection !== "stages") {
+    audienceSections.splice(1, 0, { id: activeSection, label: activeSection === "bracket" ? "Drabinka" : activeSection === "table" ? "Tabela" : activeSection });
+  }
   const noStageStarted = !!stages && stages.length > 0 && stages.every((stage) => stage.status === "planned");
   const sectionHref = (section: AudienceSectionId, stageId: number | null = requestedStageId) => {
     const query = new URLSearchParams();
@@ -790,7 +796,11 @@ export default function TournamentAudience() {
             title={publicStage?.format === "group_stage" ? "Grupy" : publicStage?.format === "swiss" ? "Ranking" : "Tabela"}
             description={publicStage ? `${hasMultipleStages ? `${publicStage.name} · ` : ""}${STAGE_STATE_LABELS[publicStage.status] ?? publicStage.status}` : "Brak etapu."}
           >
-            {stagePlanned ? (
+            {!publicStage ? (
+              <ReadQueryState query={stagesQuery} loadingMessage="Ładowanie etapów…" errorMessage="Nie udało się pobrać etapów.">
+                <EmptyAudienceSection>Brak rozpoczętego etapu.</EmptyAudienceSection>
+              </ReadQueryState>
+            ) : stagePlanned ? (
               <EmptyAudienceSection>{noStageStarted ? "Brak rozpoczętego etapu." : "Ten etap jeszcze się nie zaczął — tabela pojawi się po jego starcie."}</EmptyAudienceSection>
             ) : (
               <ReadQueryState query={liveStandingsQuery} loadingMessage="Ładowanie tabeli…" errorMessage="Nie udało się pobrać tabeli.">
@@ -806,6 +816,7 @@ export default function TournamentAudience() {
           <ReadQueryState query={playersQuery} loadingMessage="Ładowanie listy graczy…" errorMessage="Nie udało się pobrać listy graczy.">
           <ReadQueryState query={standingsQuery} loadingMessage="Ładowanie statystyk graczy…" errorMessage="Nie udało się pobrać statystyk graczy." />
           <PublicPlayersSection
+            fields={publicFields}
             players={players ?? []}
             standings={standings}
             playerBansMap={isDeadlock ? audienceBansMap : undefined}
@@ -1031,12 +1042,14 @@ function PublicStandingsSection({ standings, format, aggregate, unknownScope }: 
 }
 
 function PublicPlayersSection({
+  fields = [],
   players,
   standings,
   playerBansMap,
   isDeadlock,
   bansPerPlayer = 5,
 }: {
+  fields?: Parameters<typeof ParticipantFieldChips>[0]["fields"];
   players: Player[];
   standings: Standing[] | undefined;
   playerBansMap?: Map<number, string[]>;
@@ -1044,7 +1057,7 @@ function PublicPlayersSection({
   bansPerPlayer?: number;
 }) {
   return (
-    <AudienceSectionShell title="Gracze" description="Publiczna lista uczestników i ich aktualne statystyki.">
+    <AudienceSectionShell title="Uczestnicy" description="Lista uczestników z ich statystykami.">
       {players.length === 0 ? (
         <EmptyAudienceSection>Nie dodano jeszcze uczestników.</EmptyAudienceSection>
       ) : (
@@ -1058,6 +1071,7 @@ function PublicPlayersSection({
                   <div className="min-w-0">
                     <h3 className="truncate font-semibold text-white">{player.name}</h3>
                     {player.teamName && <p className="mt-0.5 truncate text-xs text-white/40">{player.teamName}</p>}
+                    <ParticipantFieldChips fields={fields} values={player.customFields as Record<string, unknown> | null | undefined} limit={6} />
                   </div>
                   {player.seed != null && <span className="rounded-full border border-white/10 px-2 py-0.5 text-xs text-white/40">#{player.seed}</span>}
                 </div>

@@ -1,5 +1,6 @@
 "use client"
 
+import { useExperimentalPortalContainer } from "@/lib/experimental-portal"
 import * as React from "react"
 import * as SelectPrimitive from "@radix-ui/react-select"
 import { Check, ChevronDown, ChevronUp } from "lucide-react"
@@ -71,7 +72,7 @@ const SelectContent = React.forwardRef<
   React.ElementRef<typeof SelectPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof SelectPrimitive.Content>
 >(({ className, children, position = "popper", ...props }, ref) => (
-  <SelectPrimitive.Portal>
+  <SelectPrimitive.Portal container={useExperimentalPortalContainer()}>
     <SelectPrimitive.Content
       ref={ref}
       className={cn(

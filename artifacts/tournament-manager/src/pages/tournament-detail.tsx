@@ -1,3 +1,11 @@
+import {
+  ParticipantFieldChips,
+  ParticipantFieldInputs,
+  ParticipantFieldValuesEditor,
+  ParticipantFieldsManager,
+  useParticipantFields,
+} from "@/features/experimental-tournaments/experimental-participant-fields";
+import { formValuesToPayload, missingRequired } from "@/features/experimental-tournaments/participant-fields-model";
 import { LeagueTableNotes } from "@/components/league-table-notes";
 import { standingsHavePoints } from "@/lib/league-results";
 import { ReadQueryState } from "@/components/read-query-state";
@@ -266,6 +274,9 @@ export default function TournamentDetail() {
   const [newPlayerRank, setNewPlayerRank] = useState("");
   const [newPlayerCountry, setNewPlayerCountry] = useState("");
   const [newPlayerTeam, setNewPlayerTeam] = useState("");
+  // V5.4-005: values of the tournament's participant fields in the add form (Experimental only).
+  const [newPlayerFields, setNewPlayerFields] = useState<Record<string, unknown>>({});
+  const [editingFieldsPlayerId, setEditingFieldsPlayerId] = useState<number | null>(null);
   // CSV import state
   const [showCsvImport, setShowCsvImport] = useState(false);
   const [showChecklist, setShowChecklist] = useState(false);
@@ -305,6 +316,9 @@ export default function TournamentDetail() {
   const activeArea = organizerAreaForDetailTab(activeDetailTab);
   // Experimental: work tabs (players, baskets, matches…) open straight on their content; the
   // tournament-wide next step and operations overview stay on the stage panel and the overview.
+  const participantFields = useParticipantFields(id, isExperimental && !!tournament && readOk);
+  const requiredParticipantFields = participantFields.filter((field) => field.required);
+  const optionalParticipantFields = participantFields.filter((field) => !field.required);
   const experimentalWorkTab = isExperimental && activeDetailTab !== "stages" && activeDetailTab !== "overview";
   const operation = useOrganizerOperation({ tournament, stages, matches: tournament?.status === "draft" ? [] : matches,
     capabilities, surface: "details", enabled: !!managementRole && readOk });
@@ -470,6 +484,12 @@ export default function TournamentDetail() {
       return;
     }
 
+    const fieldsMissing = isExperimental ? missingRequired(participantFields, newPlayerFields) : [];
+    if (fieldsMissing.length) {
+      setAddPlayerError(`Uzupełnij: ${fieldsMissing.map((field) => field.label).join(", ")}.`);
+      return;
+    }
+
     addPlayer.mutate({
       id,
       data: {
@@ -478,16 +498,21 @@ export default function TournamentDetail() {
         rank: newPlayerRank || undefined,
         country: newPlayerCountry || undefined,
         teamName: newPlayerTeam || undefined,
+        ...(isExperimental && participantFields.length ? { customFields: formValuesToPayload(participantFields, newPlayerFields) } : {}),
       },
     }, {
       onSuccess: () => {
         setNewPlayerName(""); setNewPlayerSeed(""); setNewPlayerRank(""); setNewPlayerCountry(""); setNewPlayerTeam("");
+        setNewPlayerFields({});
         setAddPlayerError(null);
         void invalidateRoster();
       },
       onError: (err: any) => {
         const msg: string = err?.data?.error ?? err?.message ?? "Błąd podczas dodawania gracza";
-        if (err?.status === 409 || msg.toLowerCase().includes("już istnieje")) {
+        const problems: Array<{ message: string }> | undefined = err?.data?.problems;
+        if (problems?.length) {
+          setAddPlayerError(problems.map((problem) => problem.message).join(" "));
+        } else if (err?.status === 409 || msg.toLowerCase().includes("już istnieje")) {
           setAddPlayerError(msg);
         } else {
           handleMutationError(err);
@@ -1014,6 +1039,7 @@ export default function TournamentDetail() {
                 </p>
               </div>
             )}
+            {isExperimental && capabilities.canManageOrganizerSettings && <ParticipantFieldsManager tournamentId={tournament.id} participantNoun={teamEntries ? "drużyn" : "graczy"} />}
             {isExperimental && <ExperimentalRosterHealth players={players} maxPlayers={tournament.maxPlayers} teamsNotReady={teamsNotReady} nextHref={tournament.status === "draft" && capabilities.canManageLifecycle ? tournamentHref(tournament.id, true, "/host?tab=prowadzenie") : undefined} requiredCount={tournament.status === "draft" && (stages?.length ?? 0) > 1 ? stages?.find((stage) => stage.position === 1)?.participantCount : undefined} />}
             {isExperimental && <ExperimentalPlayerToolbar query={playerSearch} onQueryChange={setPlayerSearch} status={playerStatusFilter} onStatusChange={setPlayerStatusFilter} sort={playerSort} onSortChange={setPlayerSort} total={players?.length ?? 0} visible={displayedPlayers.length} />}
             {teamEntries && tournament.status === "draft" && (
@@ -1264,6 +1290,7 @@ export default function TournamentDetail() {
                                     {p.teamName && <span className="text-xs text-muted-foreground">{p.teamName}</span>}
                                     {p.country && <span className="text-xs text-muted-foreground">{p.country}</span>}
                                   </div>
+                                  {isExperimental && <ParticipantFieldChips fields={participantFields} values={p.customFields as Record<string, unknown> | null | undefined} />}
                                   {isDeadlock && ((tournament.gameConfig as any)?.config?.bansPerPlayer ?? 5) > 0 && (
                                     <div className="mt-1">
                                       <PlayerBansRow bannedHeroIds={playerBansMap.get(p.id) ?? []} size={22} maxBans={(tournament.gameConfig as any)?.config?.bansPerPlayer ?? 5} />
@@ -1295,7 +1322,12 @@ export default function TournamentDetail() {
                                       {p.id === editingBansPlayerId ? "Zamknij" : "Bany"}
                                     </Button>
                                   )}
-                                  {capabilities.canManageParticipants && (
+                                  {isExperimental && capabilities.canManageParticipants && participantFields.length > 0 && (
+                                    <Button variant="ghost" size="sm" className="h-8 text-xs" aria-expanded={editingFieldsPlayerId === p.id} onClick={() => setEditingFieldsPlayerId(editingFieldsPlayerId === p.id ? null : p.id)} title="Dodatkowe dane — można je zmieniać także w trakcie turnieju">
+                                      Dane
+                                    </Button>
+                                  )}
+                                  {capabilities.canManageParticipants && (tournament.status === "draft" || !isExperimental) && (
                                     <Button variant="ghost" size="icon" onClick={() => handleStartEdit(p)} className="text-muted-foreground hover:text-foreground h-8 w-8" aria-label={isExperimental ? `Edytuj gracza ${p.name}` : undefined} title={isExperimental ? "Edytuj gracza" : undefined}>
                                       <Pencil className="w-3.5 h-3.5" />
                                     </Button>
@@ -1318,6 +1350,11 @@ export default function TournamentDetail() {
                                   )}
                                 </div>
                               </div>
+                              {isExperimental && editingFieldsPlayerId === p.id && (
+                                <div className="border-t bg-muted/10 p-3">
+                                  <ParticipantFieldValuesEditor tournamentId={tournament.id} playerId={p.id} fields={participantFields} values={p.customFields as Record<string, unknown> | null | undefined} onDone={() => setEditingFieldsPlayerId(null)} />
+                                </div>
+                              )}
                               {/* Deadlock ban editor */}
                               {isDeadlock && editingBansPlayerId === p.id && (
                                 <div className="border-t bg-muted/10 p-3">
@@ -1400,10 +1437,16 @@ export default function TournamentDetail() {
                             </p>
                           )}
                         </div>
+                        {isExperimental && requiredParticipantFields.length > 0 && (
+                          <ParticipantFieldInputs fields={requiredParticipantFields} values={newPlayerFields} idPrefix="experimental-add-player-field" onChange={(key, value) => { setNewPlayerFields((current) => ({ ...current, [key]: value })); setAddPlayerError(null); }} />
+                        )}
                         {isExperimental ? (
                           <details className="experimental-add-player-more">
-                            <summary>Więcej danych (ranga, drużyna, kraj, rozstawienie)</summary>
+                            <summary>{optionalParticipantFields.length ? `Więcej danych (${optionalParticipantFields.length + 4})` : "Więcej danych (ranga, drużyna, kraj, rozstawienie)"}</summary>
                             <div className="space-y-3 pt-3">
+                        {optionalParticipantFields.length > 0 && (
+                          <ParticipantFieldInputs fields={optionalParticipantFields} values={newPlayerFields} idPrefix="experimental-add-player-field" onChange={(key, value) => setNewPlayerFields((current) => ({ ...current, [key]: value }))} />
+                        )}
                         <div className="space-y-1">
                           <Label>Ranga</Label>
                           <Input value={newPlayerRank} onChange={(e) => setNewPlayerRank(e.target.value)} placeholder="np. GM, Diamond" />

@@ -49,12 +49,84 @@ export const EXPERIMENTAL_TYPOGRAPHY = [
   { value: "classic", label: "Systemowy", hint: "Krój Twojego systemu" },
   { value: "technical", label: "Techniczny", hint: "Cyfry i nagłówki jak na tablicy wyników" },
   { value: "readable", label: "Czytelny", hint: "Większy tekst i odstępy" },
+  { value: "display", label: "Sportowy", hint: "Wąskie, wersalikowe nagłówki jak na stadionie" },
+  { value: "elegant", label: "Elegancki", hint: "Szeryfowe tytuły, spokojny tekst" },
 ] as const;
 
 export const EXPERIMENTAL_SHAPES = [
   { value: "arena", label: "Arena", hint: "Łagodne zaokrąglenia" },
   { value: "sharp", label: "Ostre", hint: "Proste, techniczne krawędzie" },
   { value: "round", label: "Okrągłe", hint: "Miękkie, duże zaokrąglenia" },
+  { value: "cut", label: "Ścięte", hint: "Ścięte narożniki jak w interfejsie gry" },
+] as const;
+
+// V5.4 · more categories. Every option changes the look of real components, not only colours.
+export const EXPERIMENTAL_DENSITY = [
+  { value: "comfortable", label: "Wygodna", hint: "Domyślne odstępy" },
+  { value: "compact", label: "Zwarta", hint: "Więcej treści na ekranie" },
+  { value: "spacious", label: "Przestronna", hint: "Duże odstępy, spokojny układ" },
+] as const;
+
+export const EXPERIMENTAL_BUTTONS = [
+  { value: "arena", label: "Arena", hint: "Gradient i miękki blask" },
+  { value: "solid", label: "Pełne", hint: "Jednolity kolor, bez efektów" },
+  { value: "outline", label: "Kontur", hint: "Przezroczyste z wyraźną ramką" },
+  { value: "pill", label: "Pigułki", hint: "W pełni zaokrąglone" },
+  { value: "beveled", label: "Ścięte", hint: "Ścięte rogi, wersaliki" },
+] as const;
+
+export const EXPERIMENTAL_CONTROLS = [
+  { value: "arena", label: "Arena", hint: "Ciemne pola z ramką" },
+  { value: "filled", label: "Wypełnione", hint: "Jasne tło pola, bez ramki" },
+  { value: "underline", label: "Podkreślone", hint: "Tylko linia pod polem" },
+  { value: "outlined", label: "Grube ramki", hint: "Wyraźne, kontrastowe obramowanie" },
+] as const;
+
+export const EXPERIMENTAL_BORDERS = [
+  { value: "arena", label: "Arena", hint: "Cienkie linie i miękkie cienie" },
+  { value: "none", label: "Bez ramek", hint: "Panele oddzielone tylko tłem" },
+  { value: "bold", label: "Wyraźne", hint: "Grube linie w kolorze akcentu" },
+  { value: "deep", label: "Głębokie cienie", hint: "Panele unoszą się nad tłem" },
+] as const;
+
+export const EXPERIMENTAL_GLOW = [
+  { value: "soft", label: "Delikatne", hint: "Lekka poświata akcentów" },
+  { value: "neon", label: "Neon", hint: "Świecące tytuły i ramki" },
+  { value: "none", label: "Bez światła", hint: "Bez poświat" },
+] as const;
+
+export const EXPERIMENTAL_NAV = [
+  { value: "arena", label: "Arena", hint: "Zakładki w panelu" },
+  { value: "underline", label: "Podkreślenie", hint: "Linia pod aktywną zakładką" },
+  { value: "blocks", label: "Bloki", hint: "Wyraźne, pełne przyciski" },
+  { value: "pills", label: "Pigułki", hint: "Zaokrąglone zakładki" },
+] as const;
+
+export const EXPERIMENTAL_TABLES = [
+  { value: "arena", label: "Arena", hint: "Delikatne linie" },
+  { value: "striped", label: "Pasy", hint: "Naprzemienne tło wierszy" },
+  { value: "lined", label: "Linie", hint: "Mocne linie, wersalikowe nagłówki" },
+  { value: "spacious", label: "Przestronne", hint: "Wyższe wiersze, łatwe na telefonie" },
+] as const;
+
+export const EXPERIMENTAL_BRACKETS = [
+  { value: "arena", label: "Arena", hint: "Spokojne linie i karty" },
+  { value: "neon", label: "Neon", hint: "Świecące połączenia" },
+  { value: "minimal", label: "Minimalna", hint: "Cienkie linie, bez tła kart" },
+  { value: "broadcast", label: "Transmisja", hint: "Grube linie, kontrastowe karty" },
+] as const;
+
+export const EXPERIMENTAL_MATCH_CARDS = [
+  { value: "arena", label: "Arena", hint: "Domyślne karty" },
+  { value: "scoreboard", label: "Tablica wyników", hint: "Duże cyfry, ciemny pas wyniku" },
+  { value: "compact", label: "Zwarte", hint: "Mniej miejsca na mecz" },
+] as const;
+
+export const EXPERIMENTAL_DECOR = [
+  { value: "none", label: "Brak", hint: "Bez dodatków" },
+  { value: "corners", label: "Narożniki", hint: "Znaczniki w rogach paneli" },
+  { value: "scanlines", label: "Linie ekranu", hint: "Delikatny efekt monitora" },
+  { value: "noise", label: "Ziarno", hint: "Subtelna faktura tła" },
 ] as const;
 
 export const EXPERIMENTAL_CARD_STYLES = [
@@ -89,6 +161,16 @@ export type ExperimentalCardStyle = Values<typeof EXPERIMENTAL_CARD_STYLES>;
 export type ExperimentalEffects = Values<typeof EXPERIMENTAL_EFFECTS>;
 export type ExperimentalMotion = Values<typeof EXPERIMENTAL_MOTION>;
 export type ExperimentalContrast = Values<typeof EXPERIMENTAL_CONTRAST>;
+export type ExperimentalDensity = Values<typeof EXPERIMENTAL_DENSITY>;
+export type ExperimentalButtons = Values<typeof EXPERIMENTAL_BUTTONS>;
+export type ExperimentalControls = Values<typeof EXPERIMENTAL_CONTROLS>;
+export type ExperimentalBorders = Values<typeof EXPERIMENTAL_BORDERS>;
+export type ExperimentalGlow = Values<typeof EXPERIMENTAL_GLOW>;
+export type ExperimentalNav = Values<typeof EXPERIMENTAL_NAV>;
+export type ExperimentalTables = Values<typeof EXPERIMENTAL_TABLES>;
+export type ExperimentalBrackets = Values<typeof EXPERIMENTAL_BRACKETS>;
+export type ExperimentalMatchCards = Values<typeof EXPERIMENTAL_MATCH_CARDS>;
+export type ExperimentalDecor = Values<typeof EXPERIMENTAL_DECOR>;
 
 export interface ExperimentalAppearance {
   skin: ExperimentalSkin;
@@ -100,11 +182,23 @@ export interface ExperimentalAppearance {
   effects: ExperimentalEffects;
   motion: ExperimentalMotion;
   contrast: ExperimentalContrast;
+  density: ExperimentalDensity;
+  buttons: ExperimentalButtons;
+  controls: ExperimentalControls;
+  borders: ExperimentalBorders;
+  glow: ExperimentalGlow;
+  nav: ExperimentalNav;
+  tables: ExperimentalTables;
+  brackets: ExperimentalBrackets;
+  matchCards: ExperimentalMatchCards;
+  decor: ExperimentalDecor;
 }
 
 export const DEFAULT_EXPERIMENTAL_APPEARANCE: ExperimentalAppearance = {
   skin: "tournament", background: "theme", palette: "theme",
   typography: "arena", shape: "arena", cards: "glass", effects: "full", motion: "system", contrast: "standard",
+  density: "comfortable", buttons: "arena", controls: "arena", borders: "arena", glow: "soft",
+  nav: "arena", tables: "arena", brackets: "arena", matchCards: "arena", decor: "none",
 };
 export const EXPERIMENTAL_APPEARANCE_STORAGE_KEY = "tm_exp_appearance_v1";
 export const EXPERIMENTAL_APPEARANCE_CUSTOM_KEY = "tm_exp_appearance_custom_v1";
@@ -120,6 +214,16 @@ const CATEGORY_OPTIONS = {
   effects: EXPERIMENTAL_EFFECTS,
   motion: EXPERIMENTAL_MOTION,
   contrast: EXPERIMENTAL_CONTRAST,
+  density: EXPERIMENTAL_DENSITY,
+  buttons: EXPERIMENTAL_BUTTONS,
+  controls: EXPERIMENTAL_CONTROLS,
+  borders: EXPERIMENTAL_BORDERS,
+  glow: EXPERIMENTAL_GLOW,
+  nav: EXPERIMENTAL_NAV,
+  tables: EXPERIMENTAL_TABLES,
+  brackets: EXPERIMENTAL_BRACKETS,
+  matchCards: EXPERIMENTAL_MATCH_CARDS,
+  decor: EXPERIMENTAL_DECOR,
 } as const;
 type Category = keyof typeof CATEGORY_OPTIONS;
 const CATEGORIES = Object.keys(CATEGORY_OPTIONS) as Category[];
@@ -132,6 +236,15 @@ export const EXPERIMENTAL_APPEARANCE_PRESETS: Array<{ id: string; label: string;
   { id: "pro", label: "Minimal pro", hint: "Ostre krawędzie, bez efektów", values: { background: "solid", palette: "mono", shape: "sharp", cards: "outline", effects: "off" } },
   { id: "neon", label: "Neon", hint: "Siatka areny i mocny kontrast kolorów", values: { background: "grid", palette: "contrast", cards: "glass", effects: "full" } },
   { id: "calm", label: "Spokojny", hint: "Miękkie barwy, bez animacji", values: { background: "aura", palette: "analog", motion: "reduced", effects: "subtle" } },
+  // V5.4 · styles that differ in shape, type, buttons, tables and brackets — not only in colour.
+  { id: "esport", label: "Futurystyczny e-sport", hint: "Siatka, ścięte rogi, neonowa drabinka", values: { skin: "abyssal", background: "grid", palette: "triad", typography: "technical", shape: "cut", cards: "glass", effects: "full", glow: "neon", buttons: "beveled", nav: "pills", tables: "lined", brackets: "neon", matchCards: "scoreboard", decor: "corners" } },
+  { id: "minimal", label: "Minimalistyczny profesjonalny", hint: "Zwarty, ostry, bez efektów", values: { skin: "obsidian", background: "solid", palette: "mono", typography: "classic", shape: "sharp", cards: "outline", effects: "off", glow: "none", density: "compact", buttons: "outline", controls: "underline", nav: "underline", tables: "lined", brackets: "minimal", matchCards: "compact", borders: "arena" } },
+  { id: "arcade", label: "Energetyczny arcade", hint: "Pigułki, grube ramki, linie ekranu", values: { skin: "toxic", background: "grid", palette: "triad", typography: "display", shape: "round", cards: "solid", effects: "full", glow: "neon", buttons: "pill", controls: "outlined", borders: "bold", nav: "pills", tables: "striped", matchCards: "scoreboard", decor: "scanlines" } },
+  { id: "cyberpunk", label: "Cyberpunk", hint: "Róż i cyjan, ścięte panele, neon", values: { skin: "midnight-rose", background: "nebula", palette: "contrast", typography: "technical", shape: "cut", cards: "outline", effects: "full", glow: "neon", buttons: "beveled", controls: "outlined", borders: "bold", nav: "blocks", tables: "lined", brackets: "neon", matchCards: "scoreboard", decor: "scanlines" } },
+  { id: "sport", label: "Klasyczny sport", hint: "Tablica wyników, pasy w tabeli", values: { skin: "classic", background: "solid", palette: "harmony", typography: "display", shape: "sharp", cards: "solid", effects: "subtle", glow: "none", buttons: "solid", controls: "filled", borders: "arena", nav: "blocks", tables: "striped", brackets: "arena", matchCards: "scoreboard", decor: "none" } },
+  { id: "broadcast", label: "Transmisja TV", hint: "Mocny kontrast, duże wyniki, przestrzeń", values: { skin: "crimson-vault", background: "carbon", palette: "contrast", typography: "display", shape: "sharp", cards: "solid", effects: "subtle", glow: "soft", density: "spacious", buttons: "solid", nav: "underline", tables: "spacious", brackets: "broadcast", matchCards: "scoreboard", borders: "deep", decor: "corners" } },
+  { id: "premium", label: "Elegancki premium", hint: "Złoto, szeryfy, dużo powietrza", values: { skin: "sandstorm", background: "aura", palette: "analog", typography: "elegant", shape: "round", cards: "glass", effects: "subtle", glow: "soft", density: "spacious", buttons: "outline", controls: "underline", borders: "deep", nav: "underline", tables: "spacious", brackets: "minimal", matchCards: "arena", decor: "noise" } },
+  { id: "scifi", label: "Techniczny sci-fi", hint: "Chłodne kolory, siatka, znaczniki", values: { skin: "glacier", background: "grid", palette: "analog", typography: "technical", shape: "cut", cards: "outline", effects: "subtle", glow: "soft", density: "compact", buttons: "outline", controls: "outlined", borders: "bold", nav: "underline", tables: "lined", brackets: "minimal", matchCards: "compact", decor: "corners" } },
 ];
 
 function optionValues(category: Category): readonly string[] {
@@ -151,6 +264,8 @@ export function normalizeExperimentalAppearance(input: Partial<Record<Category, 
   if (result.contrast === "high") {
     if (result.cards === "glass") result.cards = "solid";
     if (result.effects === "full") result.effects = "subtle";
+    if (result.glow === "neon") result.glow = "soft";
+    if (result.decor === "scanlines" || result.decor === "noise") result.decor = "none";
   }
   return result as unknown as ExperimentalAppearance;
 }
@@ -207,6 +322,16 @@ const ATTRIBUTES: Record<Exclude<Category, "skin">, string> = {
   effects: "data-x-fx",
   motion: "data-x-motion",
   contrast: "data-x-contrast",
+  density: "data-x-density",
+  buttons: "data-x-buttons",
+  controls: "data-x-controls",
+  borders: "data-x-borders",
+  glow: "data-x-glow",
+  nav: "data-x-nav",
+  tables: "data-x-tables",
+  brackets: "data-x-brackets",
+  matchCards: "data-x-matchcards",
+  decor: "data-x-decor",
 };
 
 /**
@@ -333,6 +458,7 @@ export function ExperimentalAppearanceControl() {
               <div className="experimental-appearance-presets">
                 {EXPERIMENTAL_APPEARANCE_PRESETS.map((preset) => {
                   const values = normalizeExperimentalAppearance({ ...DEFAULT_EXPERIMENTAL_APPEARANCE, skin: draft.skin, ...preset.values });
+                  // (a preset with its own skin overrides the current one; others keep it)
                   const active = same(values, draft);
                   return (
                     <button key={preset.id} type="button" className="experimental-appearance-preset" aria-pressed={active} data-x-bg-option={values.background} onClick={() => setDraft(values)}>
@@ -389,15 +515,41 @@ export function ExperimentalAppearanceControl() {
                 ))}
               </div>
             </fieldset>
-            <OptionGroup category="background" legend="Tło" value={draft.background} onChange={(background) => update({ background })} swatch="bg" />
-            <OptionGroup category="palette" legend="System kolorów" value={draft.palette} onChange={(palette) => update({ palette })} swatch="palette" />
-            <OptionGroup category="typography" legend="Typografia" value={draft.typography} onChange={(typography) => update({ typography })} />
-            <OptionGroup category="shape" legend="Kształty" value={draft.shape} onChange={(shape) => update({ shape })} />
-            <OptionGroup category="cards" legend="Karty i panele" value={draft.cards} onChange={(cards) => update({ cards })} />
-            <OptionGroup category="effects" legend="Efekty" value={draft.effects} onChange={(effects) => update({ effects })} />
-            <OptionGroup category="contrast" legend="Kontrast" value={draft.contrast} onChange={(contrast) => update({ contrast })} />
-            {highContrastNote && <p className="experimental-appearance-note" role="status">Wysoki kontrast zamienia szkło na pełne karty i ogranicza efekty — tak tekst zawsze pozostaje czytelny.</p>}
-            <OptionGroup category="motion" legend="Ruch" value={draft.motion} onChange={(motion) => update({ motion })} />
+            <details className="experimental-appearance-section" open>
+              <summary>Kolory, tło i faktura</summary>
+              <OptionGroup category="background" legend="Tło" value={draft.background} onChange={(background) => update({ background })} swatch="bg" />
+              <OptionGroup category="palette" legend="System kolorów" value={draft.palette} onChange={(palette) => update({ palette })} swatch="palette" />
+              <OptionGroup category="decor" legend="Dodatki" value={draft.decor} onChange={(decor) => update({ decor })} />
+            </details>
+            <details className="experimental-appearance-section">
+              <summary>Tekst, układ i kształty</summary>
+              <OptionGroup category="typography" legend="Typografia" value={draft.typography} onChange={(typography) => update({ typography })} />
+              <OptionGroup category="density" legend="Gęstość" value={draft.density} onChange={(density) => update({ density })} />
+              <OptionGroup category="shape" legend="Kształty" value={draft.shape} onChange={(shape) => update({ shape })} />
+              <OptionGroup category="cards" legend="Karty i panele" value={draft.cards} onChange={(cards) => update({ cards })} />
+              <OptionGroup category="borders" legend="Obramowania i cienie" value={draft.borders} onChange={(borders) => update({ borders })} />
+            </details>
+            <details className="experimental-appearance-section">
+              <summary>Przyciski, pola i nawigacja</summary>
+              <OptionGroup category="buttons" legend="Przyciski" value={draft.buttons} onChange={(buttons) => update({ buttons })} />
+              <OptionGroup category="controls" legend="Pola formularzy" value={draft.controls} onChange={(controls) => update({ controls })} />
+              <OptionGroup category="nav" legend="Nawigacja" value={draft.nav} onChange={(nav) => update({ nav })} />
+            </details>
+            <details className="experimental-appearance-section">
+              <summary>Tabele, drabinki i mecze</summary>
+              <OptionGroup category="tables" legend="Tabele" value={draft.tables} onChange={(tables) => update({ tables })} />
+              <OptionGroup category="brackets" legend="Drabinki" value={draft.brackets} onChange={(brackets) => update({ brackets })} />
+              <OptionGroup category="matchCards" legend="Karty meczów i wyniki" value={draft.matchCards} onChange={(matchCards) => update({ matchCards })} />
+            </details>
+            <details className="experimental-appearance-section">
+              <summary>Światło, ruch i kontrast</summary>
+              <OptionGroup category="effects" legend="Efekty" value={draft.effects} onChange={(effects) => update({ effects })} />
+              <OptionGroup category="glow" legend="Efekty świetlne" value={draft.glow} onChange={(glow) => update({ glow })} />
+              <OptionGroup category="contrast" legend="Kontrast" value={draft.contrast} onChange={(contrast) => update({ contrast })} />
+              {highContrastNote && <p className="experimental-appearance-note" role="status">Wysoki kontrast zamienia szkło na pełne karty, ogranicza efekty i dodatki — tak tekst zawsze pozostaje czytelny.</p>}
+              <OptionGroup category="motion" legend="Ruch" value={draft.motion} onChange={(motion) => update({ motion })} />
+            </details>
+            <p className="experimental-appearance-note">Barwy i logo turnieju ustala organizator (skórka „Według turnieju”). Te ustawienia zmieniają tylko Twój widok.</p>
           </div>
         )}
 

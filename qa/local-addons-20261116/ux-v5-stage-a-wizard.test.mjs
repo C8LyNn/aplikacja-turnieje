@@ -149,3 +149,27 @@ test('V5.1: lab pages are code-split, tournament pages (Stable fallback) stay in
   }
   assert.match(app, /<Suspense fallback=\{<RouteFallback \/>\}>/);
 });
+
+test('V5.4: new appearance categories only target Experimental roots or the panel', () => {
+  const css = src('experimental-design-system.css');
+  const start = css.indexOf('/* v5.4 · appearance studio: categories');
+  const end = css.indexOf('/* end v5.4 appearance categories */');
+  assert.ok(start > 0 && end > start, 'V5.4 appearance block present');
+  const roots = ':is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create, .experimental-tournament-public, .experimental-tournament-stage-view)';
+  const rules = css.slice(start, end).split(/\r?\n/).filter((line) => line.includes('{'));
+  assert.ok(rules.length > 40, `found ${rules.length}`);
+  for (const rule of rules) {
+    const head = rule.slice(0, rule.indexOf('{')).trim();
+    const ok = head.startsWith('.experimental-appearance-panel ') ||
+      (/^html\[data-x-(type|shape|density|buttons|controls|borders|glow|nav|tables|brackets|matchcards|decor)="[a-z]+"\] /.test(head) && head.includes(roots));
+    assert.ok(ok, `unscoped selector: ${head}`);
+  }
+});
+
+test('V5.4: dialogs, popovers, menus and tooltips mount inside the Experimental root (themed); Stable keeps body', () => {
+  const helper = src('lib/experimental-portal.ts');
+  assert.match(helper, /experimental-tournament-shell/);
+  for (const file of ['dialog', 'alert-dialog', 'popover', 'select', 'tooltip', 'dropdown-menu', 'sheet']) {
+    assert.match(src(`components/ui/${file}.tsx`), /container=\{useExperimentalPortalContainer\(\)\}/, file);
+  }
+});

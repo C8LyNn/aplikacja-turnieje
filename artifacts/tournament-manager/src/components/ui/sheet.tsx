@@ -1,5 +1,6 @@
 "use client"
 
+import { useExperimentalPortalContainer } from "@/lib/experimental-portal"
 import * as React from "react"
 import * as SheetPrimitive from "@radix-ui/react-dialog"
 import { cva, type VariantProps } from "class-variance-authority"
@@ -57,7 +58,7 @@ const SheetContent = React.forwardRef<
   React.ElementRef<typeof SheetPrimitive.Content>,
   SheetContentProps
 >(({ side = "right", className, children, ...props }, ref) => (
-  <SheetPortal>
+  <SheetPortal container={useExperimentalPortalContainer()}>
     <SheetOverlay />
     <SheetPrimitive.Content
       ref={ref}

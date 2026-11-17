@@ -903,3 +903,9 @@ html[data-x-skin="sandstorm"] :is(.experimental-tournament-shell, .experimental-
 .audience-stage-state[data-state="active"] { background: rgb(34 197 94 / .18); color: rgb(134 239 172); }
 .audience-stage-state[data-state="completed"] { background: rgb(255 255 255 / .08); color: rgb(255 255 255 / .6); }
 .audience-stage-state[data-state="planned"] { background: rgb(56 189 248 / .12); color: rgb(125 211 252); }
+
+/* V5.4-005 · public participant field values on the viewer page */
+.experimental-tournament-public .participant-field-chips { display: flex; flex-wrap: wrap; gap: .3rem; margin: .4rem 0 0; padding: 0; list-style: none; }
+.experimental-tournament-public .participant-field-chips li { display: inline-flex; align-items: center; gap: .3rem; max-width: 14rem; padding: .1rem .5rem; border-radius: 999px; background: rgb(255 255 255 / .06); font-size: .75rem; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.experimental-tournament-public .participant-field-chip-label { opacity: .6; }
+.experimental-tournament-public .participant-field-swatch { display: inline-block; width: .8rem; height: .8rem; border-radius: 3px; border: 1px solid rgb(255 255 255 / .2); }

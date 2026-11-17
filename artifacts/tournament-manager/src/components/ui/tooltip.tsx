@@ -1,5 +1,6 @@
 "use client"
 
+import { useExperimentalPortalContainer } from "@/lib/experimental-portal"
 import * as React from "react"
 import * as TooltipPrimitive from "@radix-ui/react-tooltip"
 
@@ -15,7 +16,7 @@ const TooltipContent = React.forwardRef<
   React.ElementRef<typeof TooltipPrimitive.Content>,
   React.ComponentPropsWithoutRef<typeof TooltipPrimitive.Content>
 >(({ className, sideOffset = 4, ...props }, ref) => (
-  <TooltipPrimitive.Portal>
+  <TooltipPrimitive.Portal container={useExperimentalPortalContainer()}>
     <TooltipPrimitive.Content
       ref={ref}
       sideOffset={sideOffset}

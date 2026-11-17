@@ -53,6 +53,9 @@ export function resolveAudienceSection(
   const sections = audienceSectionsFor(stage).map((section) => section.id);
   if (requested === "stages") return "stages";
   if (requested === "standings") return "stats";
+  // Stage not known yet (loading or a failed read): keep the requested view, never guess from the
+  // tournament's compatibility format.
+  if (!stage) return requested && (["live", "table", "bracket", "matches", "players", "stats"] as string[]).includes(requested) ? requested as AudienceSectionId : "live";
   if (requested === "bracket" && stage && stageHasTable(stage.format)) return "table";
   if (requested && (sections as string[]).includes(requested)) return requested as AudienceSectionId;
   return primarySectionFor(stage, hasLiveMatch);
