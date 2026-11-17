@@ -66,6 +66,7 @@ import {
 import { SeedingCeremony } from "@/components/seeding-ceremony";
 import { deriveStageBasketFlowCounts } from "@workspace/stage-basket-flow";
 import { isExperimentalTournamentPath, tournamentHref } from "@/features/experimental-tournaments/experimental-tournament-routing";
+import { bestOfLabel } from "@/features/experimental-tournaments/experimental-create-wizard-model";
 import type { SeedingCeremonyState } from "@/lib/seeding-ceremony-api";
 import {
   isSequentialCeremonyReady,
@@ -130,6 +131,8 @@ export function StageNavigation({
   onSelect: (stageId: number) => void;
   participantCounts?: ReadonlyMap<number, number>;
 }) {
+  const [navigationLocation] = useLocation();
+  const matchLength = (bestOf: number) => isExperimentalTournamentPath(navigationLocation) ? bestOfLabel(bestOf).toLowerCase() : `BO${bestOf}`;
   return (
     <div
       className="organizer-stage-navigation grid gap-3"
@@ -172,7 +175,7 @@ export function StageNavigation({
               <span>{stage.name}</span>
             </div>
             <p className="mt-1 text-xs text-muted-foreground">
-              {STAGE_FORMAT_LABELS[stage.format]} · BO{stage.bestOf} ·{" "}
+              {STAGE_FORMAT_LABELS[stage.format]} · {matchLength(stage.bestOf)} ·{" "}
               {(stage.status === "planned" ? participantCounts?.get(stage.id) : undefined) ?? stage.participantCount} graczy{stage.status === "planned" ? " (plan)" : ""}
             </p>
           </button>
@@ -805,7 +808,7 @@ export function TournamentStagesPanel({
   const needsEntrants = !!selected && !!readinessQuery.data && firstStageNeedsEntrants(readinessQuery.data, selected.position === 1);
   const startBlockedReason = readinessQuery.isError ? "Nie udało się sprawdzić gotowości. Ponów sprawdzenie."
     : readinessQuery.isFetching || !readinessQuery.data ? "Sprawdzanie gotowości etapu…"
-    : !readinessQuery.data.ready ? stageReadinessFeedback(readinessQuery.data, selected?.name ?? "Etap").summary
+    : !readinessQuery.data.ready ? stageReadinessFeedback(readinessQuery.data, selected?.name ?? "Etap", { firstStage: selected?.position === 1 }).summary
     : !ceremonyReady ? "Dokończ ceremonię losowania przed rozpoczęciem etapu." : undefined;
   const actionStartBlockedReason = actionReadiness.isError || actionCeremony.isError
     ? "Nie udało się sprawdzić gotowości. Ponów sprawdzenie."
@@ -961,7 +964,7 @@ export function TournamentStagesPanel({
                   )}
                 </div>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  {STAGE_FORMAT_LABELS[selected.format]} · BO{selected.bestOf} ·{" "}
+                  {STAGE_FORMAT_LABELS[selected.format]} · {isExperimental ? bestOfLabel(selected.bestOf).toLowerCase() : `BO${selected.bestOf}`} ·{" "}
                   {selected.status === "planned" ? readinessQuery.data?.participantCount ?? "—" : detailQuery.data.participants.length} uczestników
                   {` · ${organizerStageSummary(selected, matches).roundLabel}`}
                 </p>
