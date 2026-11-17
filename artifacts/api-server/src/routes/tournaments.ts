@@ -1246,6 +1246,14 @@ router.get("/tournaments/:id/stages/:stageId/basket-input-arrivals", async (req,
   }
 });
 
+class RoundRobinLegsFormatLockedError extends Error {
+  readonly code = "ROUND_ROBIN_LEGS_FORMAT_LOCKED";
+  constructor() {
+    super("Ta liga gra mecz i rewanż, więc jej formatu nie można zmienić na inny niż „każdy z każdym”. Utwórz nowy turniej w kreatorze, jeśli potrzebujesz innego formatu.");
+    this.name = "RoundRobinLegsFormatLockedError";
+  }
+}
+
 router.patch("/tournaments/:id", async (req, res): Promise<void> => {
   const params = UpdateTournamentParams.safeParse(req.params);
   if (!params.success) {
@@ -1327,6 +1335,17 @@ router.patch("/tournaments/:id", async (req, res): Promise<void> => {
         if (hasGameConfig && prevT.status !== "draft") {
           throw new TournamentGameConfigImmutableError();
         }
+        // V5.1: a home-and-away stage exists only in round robin; changing the
+        // format (e.g. from Stable or an old client) must be refused clearly
+        // instead of failing on the database constraint.
+        if (tournamentUpdate.format !== undefined && tournamentUpdate.format !== "round_robin") {
+          const [twoLegStage] = await tx
+            .select({ id: tournamentStagesTable.id })
+            .from(tournamentStagesTable)
+            .where(and(eq(tournamentStagesTable.tournamentId, params.data.id), eq(tournamentStagesTable.roundRobinLegs, 2)))
+            .limit(1);
+          if (twoLegStage) throw new RoundRobinLegsFormatLockedError();
+        }
       const updated = Object.keys(tournamentUpdate).length === 0
         ? prevT
         : (
@@ -1402,6 +1421,10 @@ router.patch("/tournaments/:id", async (req, res): Promise<void> => {
     );
   } catch (error) {
     if (error instanceof TournamentGameConfigImmutableError) {
+      res.status(409).json({ error: error.message, code: error.code });
+      return;
+    }
+    if (error instanceof RoundRobinLegsFormatLockedError) {
       res.status(409).json({ error: error.message, code: error.code });
       return;
     }

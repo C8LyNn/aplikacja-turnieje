@@ -997,6 +997,17 @@ export default function TournamentDetail() {
           </TabsContent>
 
           <TabsContent value="players" className={isExperimental ? "pt-6 experimental-players-surface" : "pt-6"}>
+            {!isExperimental && tournament.participantType === "teams" && (
+              <div role="note" data-testid="stable-team-mode-note" className="mb-4 flex gap-2 rounded-lg border border-border bg-muted/40 p-3 text-sm">
+                <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+                <p>
+                  <strong>Turniej drużynowy.</strong> Każda pozycja na tej liście to drużyna — mecze, wyniki i tabela działają tu normalnie.
+                  {" "}Składy (kapitan, zawodnicy, rezerwowi) i ich historię edytujesz w{" "}
+                  <Link href={`/experimental/tournaments/${id}?tab=players`} className="font-medium underline underline-offset-2">widoku Experimental</Link>.
+                  {tournament.status === "draft" && " Start jest możliwy dopiero, gdy każda drużyna ma pełny skład."}
+                </p>
+              </div>
+            )}
             {isExperimental && <ExperimentalRosterHealth players={players} maxPlayers={tournament.maxPlayers} teamsNotReady={teamsNotReady} requiredCount={tournament.status === "draft" && (stages?.length ?? 0) > 1 ? stages?.find((stage) => stage.position === 1)?.participantCount : undefined} />}
             {isExperimental && <ExperimentalPlayerToolbar query={playerSearch} onQueryChange={setPlayerSearch} status={playerStatusFilter} onStatusChange={setPlayerStatusFilter} sort={playerSort} onSortChange={setPlayerSort} total={players?.length ?? 0} visible={displayedPlayers.length} />}
             <div className={`grid md:grid-cols-3 gap-6 ${isExperimental ? "mt-4" : ""}`}>
