@@ -2308,3 +2308,22 @@ html[data-x-motion="reduced"] :is(.experimental-tournament-shell, .experimental-
   border-color: var(--x-line); background: transparent; color: var(--muted-foreground);
 }
 .experimental-support-entry .experimental-support-tournament-card[data-support-available="false"]::before { opacity: .25; }
+
+/* v5.3 · league panel (host): own container — the v4 flow grid has a narrow first column */
+.experimental-tournament-shell .experimental-league-panel {
+  display: grid; gap: .875rem; padding: .875rem 1.125rem;
+  border: 1px solid var(--x-line); border-radius: var(--x-radius-lg); background: linear-gradient(180deg, var(--x-card-top), var(--x-card-bot));
+}
+.experimental-tournament-shell .experimental-league-panel .experimental-v4-resume { margin-bottom: 0; }
+.experimental-tournament-shell .experimental-league-panel .experimental-v4-resume-title { white-space: normal; }
+.experimental-tournament-shell .experimental-league-columns { display: grid; gap: .875rem; grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr)); }
+.experimental-tournament-shell .experimental-league-list { display: grid; gap: .375rem; margin: .375rem 0 0; padding: 0; list-style: none; }
+.experimental-tournament-shell .experimental-league-row { flex-wrap: wrap; row-gap: .25rem; }
+.experimental-tournament-shell .experimental-league-row .experimental-v4-flow-names { flex: 1 1 9rem; white-space: normal; }
+.experimental-tournament-shell .experimental-league-row-meta { color: var(--x-text-2); font-size: .75rem; font-variant-numeric: tabular-nums; }
+.experimental-tournament-shell .experimental-league-row-actions { display: flex; flex-wrap: wrap; gap: .25rem; margin-left: auto; }
+.experimental-tournament-shell .experimental-league-row-actions .experimental-v4-btn { min-height: 2.25rem; padding-inline: .75rem; }
+@media (max-width: 767px) {
+  .experimental-tournament-shell .experimental-league-panel { padding: .75rem; }
+  .experimental-tournament-shell .experimental-league-columns { grid-template-columns: minmax(0, 1fr); }
+}

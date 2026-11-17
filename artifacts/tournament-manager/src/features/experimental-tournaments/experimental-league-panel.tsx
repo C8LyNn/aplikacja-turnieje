@@ -132,18 +132,20 @@ export function ExperimentalLeaguePanel({
   const postponed = schedule.rounds.flatMap((round) => round.matches).filter((match) => match.scheduleState === "postponed");
   const current = schedule.rounds.find((round) => round.round === schedule.currentRound) ?? null;
   const row = (match: StageScheduleMatch, cta: string) => (
-    <li key={match.matchId} className="experimental-v4-flow-match" data-state={match.scheduleState}>
+    <li key={match.matchId} className="experimental-v4-flow-match experimental-league-row" data-state={match.scheduleState}>
       <span className="experimental-v4-flow-names">{matchTitle(match)}</span>
-      <span className="experimental-v4-muted text-xs">{formatSlot(match)}</span>
-      <button type="button" className="experimental-v4-btn" data-variant="ghost" onClick={() => onSelectMatch(match.matchId)}>{cta}</button>
-      {canEditDates && match.scheduleState !== "completed" && (
-        <button type="button" className="experimental-v4-btn" data-variant="ghost" onClick={() => setEditing(editing === match.matchId ? null : match.matchId)}>Zmień termin</button>
-      )}
+      <span className="experimental-league-row-meta">{formatSlot(match)}</span>
+      <span className="experimental-league-row-actions">
+        <button type="button" className="experimental-v4-btn" data-variant="ghost" onClick={() => onSelectMatch(match.matchId)}>{cta}</button>
+        {canEditDates && match.scheduleState !== "completed" && (
+          <button type="button" className="experimental-v4-btn" data-variant="ghost" onClick={() => setEditing(editing === match.matchId ? null : match.matchId)}>Zmień termin</button>
+        )}
+      </span>
       {editing === match.matchId && <SlotEditor match={match} timeZone={schedule.timeZone} onDone={refresh} />}
     </li>
   );
   return (
-    <section className="experimental-v4-flow space-y-3" aria-label="Liga: kolejki i terminy" data-testid="league-panel">
+    <section className="experimental-league-panel" aria-label="Liga: kolejki i terminy" data-testid="league-panel">
       <div className="experimental-v4-resume">
         <span className="experimental-v4-resume-icon" aria-hidden="true"><ListChecks className="h-5 w-5" /></span>
         <div className="experimental-v4-resume-body">
@@ -161,24 +163,26 @@ export function ExperimentalLeaguePanel({
         )}
       </div>
 
-      {schedule.overdue.length > 0 && (
-        <div>
-          <p className="experimental-v4-kicker"><Clock className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />Czekają na wynik ({schedule.overdue.length})</p>
-          <ul className="space-y-1">{schedule.overdue.slice(0, 6).map((match) => row(match, "Wpisz wynik"))}</ul>
-        </div>
-      )}
-      {postponed.length > 0 && (
-        <div>
-          <p className="experimental-v4-kicker"><PauseCircle className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />Przełożone ({postponed.length})</p>
-          <ul className="space-y-1">{postponed.map((match) => row(match, "Pokaż mecz"))}</ul>
-        </div>
-      )}
-      {schedule.upcoming.length > 0 && (
-        <div>
-          <p className="experimental-v4-kicker"><CalendarDays className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />Najbliższe mecze</p>
-          <ul className="space-y-1">{schedule.upcoming.slice(0, 4).map((match) => row(match, "Pokaż mecz"))}</ul>
-        </div>
-      )}
+      <div className="experimental-league-columns">
+        {schedule.overdue.length > 0 && (
+          <div>
+            <p className="experimental-v4-kicker"><Clock className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />Czekają na wynik ({schedule.overdue.length})</p>
+            <ul className="experimental-league-list">{schedule.overdue.slice(0, 6).map((match) => row(match, "Wpisz wynik"))}</ul>
+          </div>
+        )}
+        {postponed.length > 0 && (
+          <div>
+            <p className="experimental-v4-kicker"><PauseCircle className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />Przełożone ({postponed.length})</p>
+            <ul className="experimental-league-list">{postponed.map((match) => row(match, "Pokaż mecz"))}</ul>
+          </div>
+        )}
+        {schedule.upcoming.length > 0 && (
+          <div>
+            <p className="experimental-v4-kicker"><CalendarDays className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />Najbliższe mecze</p>
+            <ul className="experimental-league-list">{schedule.upcoming.slice(0, 4).map((match) => row(match, "Pokaż mecz"))}</ul>
+          </div>
+        )}
+      </div>
 
       <details>
         <summary className="cursor-pointer text-sm font-semibold">
@@ -187,23 +191,25 @@ export function ExperimentalLeaguePanel({
         </summary>
         <ol className="mt-2 space-y-2">
           {schedule.rounds.map((round) => (
-            <li key={round.round} className="experimental-v4-flow-round" data-current={round.round === schedule.currentRound ? "true" : undefined}>
+            <li key={round.round} data-current={round.round === schedule.currentRound ? "true" : undefined}>
               <p className="text-xs font-semibold">
                 Kolejka {round.round}{round.firstDate ? ` · ${formatLocalDate(round.firstDate)}` : ""} · {round.completed}/{round.total}
                 {round.resting.length > 0 ? ` · pauzuje: ${round.resting.map((entry) => entry.name).join(", ")}` : ""}
               </p>
-              <ul className="space-y-1">
+              <ul className="experimental-league-list">
                 {round.matches.map((match) => (
-                  <li key={match.matchId} className="experimental-v4-flow-match" data-state={match.scheduleState}>
+                  <li key={match.matchId} className="experimental-v4-flow-match experimental-league-row" data-state={match.scheduleState}>
                     <span className="experimental-v4-flow-names">{matchTitle(match)}</span>
-                    <span className="experimental-v4-flow-state">
+                    <span className="experimental-league-row-meta">
                       {match.scheduleState === "completed"
                         ? matchResultLabel({ resultType: "played", score1: match.score1, score2: match.score2, winnerId: match.winnerId ?? (match.isDraw ? null : -1) })
                         : SCHEDULE_STATE_LABELS[match.scheduleState]}
+                      {" · "}{formatSlot(match)}
                     </span>
-                    <span className="experimental-v4-muted text-xs">{formatSlot(match)}</span>
                     {canEditDates && match.scheduleState !== "completed" && match.scheduleState !== "cancelled" && (
-                      <button type="button" className="experimental-v4-btn" data-variant="ghost" onClick={() => setEditing(editing === match.matchId ? null : match.matchId)}>Zmień termin</button>
+                      <span className="experimental-league-row-actions">
+                        <button type="button" className="experimental-v4-btn" data-variant="ghost" onClick={() => setEditing(editing === match.matchId ? null : match.matchId)}>Zmień termin</button>
+                      </span>
                     )}
                     {editing === match.matchId && <SlotEditor match={match} timeZone={schedule.timeZone} onDone={refresh} />}
                   </li>
