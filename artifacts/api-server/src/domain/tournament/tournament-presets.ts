@@ -34,11 +34,6 @@ export type PresetId = (typeof PRESET_IDS)[number];
 /** Shown in the catalog so users see what is coming, but never selectable. */
 export const PLANNED_PRESETS = [
   {
-    id: "league_home_away",
-    label: "Liga: mecz i rewanż",
-    reason: "Silnik nie generuje jeszcze rewanżów (każda para gra raz).",
-  },
-  {
     id: "league_schedule",
     label: "Liga z terminarzem i datami kolejek",
     reason: "Terminarz, daty spotkań i mecze przełożone nie są jeszcze obsługiwane.",
@@ -52,7 +47,8 @@ export type PresetParamKey =
   | "swissRounds"
   | "groupCount"
   | "qualifiersPerGroup"
-  | "advancingCount";
+  | "advancingCount"
+  | "legs";
 
 export type PresetParams = Partial<Record<PresetParamKey, number>>;
 
@@ -205,6 +201,7 @@ export const PRESET_PARAM_TEXT: Record<PresetParamKey, { label: string; help: st
   groupCount: { label: "Liczba grup", help: "Uczestnicy zostaną rozdzieleni możliwie równo." },
   qualifiersPerGroup: { label: "Awans z każdej grupy", help: "Tylu najlepszych z każdej grupy zagra w play-off." },
   advancingCount: { label: "Awans do play-off", help: "Tylu najlepszych z tabeli zagra w drabince." },
+  legs: { label: "Mecz i rewanż", help: "Każda para gra dwa razy — raz jako gospodarz, raz jako gość. Tabela jest pewniejsza, meczów jest dwa razy więcej." },
 };
 
 /** Parameters a user (or an imported AI file) may set per preset; participantCount comes from the answers. */
@@ -212,10 +209,10 @@ export const PRESET_TUNABLE_PARAMS: Record<PresetId, PresetParamKey[]> = {
   single_elimination: ["bestOf"],
   double_elimination: ["bestOf"],
   swiss: ["bestOf", "swissRounds"],
-  round_robin: ["bestOf"],
+  round_robin: ["bestOf", "legs"],
   groups_playoff: ["bestOf", "playoffBestOf", "groupCount", "qualifiersPerGroup"],
   swiss_playoff: ["bestOf", "playoffBestOf", "swissRounds", "advancingCount"],
-  league_playoff: ["bestOf", "playoffBestOf", "advancingCount"],
+  league_playoff: ["bestOf", "playoffBestOf", "advancingCount", "legs"],
 };
 
 const range = (from: number, to: number): number[] =>
@@ -300,6 +297,8 @@ interface Built {
   stages: TournamentStagePlan[];
   summaries: PresetStageSummary[];
   singleStage: boolean;
+  /** A single stage that still needs a fixed stage plan (e.g. home and away). */
+  requiresStagePlan?: boolean;
   perParticipant: { min: number; max: number };
   winnerRule: string;
   tieRules: string[];
@@ -398,20 +397,28 @@ function build(presetId: PresetId, input: PresetParams, accurate: boolean): Buil
       };
     }
     case "round_robin": {
-      const matches = rrMatches(n);
-      if (n > 16) warnings.push(`To aż ${matches} meczów — rozważ grupy i play-off.`);
+      const legs = pick(input.legs, [1, 2], 1, "legs") as 1 | 2;
+      limits.push(limit("legs", [1, 2], legs));
+      const matches = rrMatches(n) * legs;
+      const name = legs === 2 ? "Każdy z każdym — mecz i rewanż" : "Każdy z każdym";
+      if (matches > 120) warnings.push(`To aż ${matches} meczów — rozważ grupy i play-off.`);
       if (n % 2 === 1) warnings.push("Przy nieparzystej liczbie uczestników w każdej kolejce jedna osoba pauzuje.");
+      if (legs === 2) {
+        warnings.push("Rewanże zaczynają się po pełnej pierwszej rundzie; w rewanżu gospodarz i gość zamieniają się miejscami.");
+        requirements.push(`Mecz i rewanż używa stałego planu: przed startem lista musi liczyć dokładnie ${n} uczestników.`);
+      }
       return {
-        params: { participantCount: n, bestOf }, paramLimits: limits,
-        stages: [{ ...baseStage("league", 1, "Każdy z każdym", n, bestOf), format: "round_robin" }],
+        params: { participantCount: n, bestOf, legs }, paramLimits: limits,
+        stages: [{ ...baseStage("league", 1, name, n, bestOf), format: "round_robin", ...(legs === 2 ? { legs: 2 as const } : {}) }],
         summaries: [{
-          position: 1, key: "league", name: "Każdy z każdym", format: "round_robin", formatLabel: FORMAT_LABELS.round_robin,
+          position: 1, key: "league", name, format: "round_robin", formatLabel: legs === 2 ? "Każdy z każdym ×2" : FORMAT_LABELS.round_robin,
           participantCount: n, bestOf, groupSizes: null, advancingCount: null,
           advancementText: "Zwycięzcą jest lider tabeli.",
-          matches: { min: matches, max: matches }, rounds: { min: rrRounds(n), max: rrRounds(n) }, byes: 0,
+          matches: { min: matches, max: matches }, rounds: { min: rrRounds(n) * legs, max: rrRounds(n) * legs }, byes: 0,
         }],
         singleStage: true,
-        perParticipant: { min: n - 1, max: n - 1 },
+        requiresStagePlan: legs === 2,
+        perParticipant: { min: (n - 1) * legs, max: (n - 1) * legs },
         winnerRule: "Wygrywa lider tabeli po wszystkich meczach.",
         tieRules: [TIE_TEXT.noDraws, TIE_TEXT.roundRobin], requirements, warnings,
       };
@@ -488,31 +495,33 @@ function build(presetId: PresetId, input: PresetParams, accurate: boolean): Buil
       };
     }
     case "league_playoff": {
+      const legs = pick(input.legs, [1, 2], 1, "legs") as 1 | 2;
       const options = playoffOptions(n);
       const advancing = pick(input.advancingCount, options, n >= 6 ? 4 : 2, "advancingCount");
       limits.push(limit("advancingCount", options, advancing));
       const poBestOf = playoffBestOf();
-      const matches = rrMatches(n);
-      if (n > 16) warnings.push(`Faza tabeli to ${matches} meczów — rozważ grupy i play-off.`);
+      limits.push(limit("legs", [1, 2], legs));
+      const matches = rrMatches(n) * legs;
+      if (matches > 120) warnings.push(`Faza tabeli to ${matches} meczów — rozważ grupy i play-off.`);
       requirements.push(`Przed startem lista musi liczyć dokładnie ${n} uczestników.`);
       const playoff = seSummary(2, "playoff", "Play-off", advancing, poBestOf);
       return {
-        params: { participantCount: n, bestOf, playoffBestOf: poBestOf, advancingCount: advancing }, paramLimits: limits,
+        params: { participantCount: n, bestOf, playoffBestOf: poBestOf, advancingCount: advancing, legs }, paramLimits: limits,
         stages: [
-          { ...baseStage("table", 1, "Faza tabeli", n, bestOf), format: "round_robin", advancingCount: advancing },
+          { ...baseStage("table", 1, legs === 2 ? "Faza tabeli — mecz i rewanż" : "Faza tabeli", n, bestOf), format: "round_robin", advancingCount: advancing, ...(legs === 2 ? { legs: 2 as const } : {}) },
           { ...baseStage("playoff", 2, "Play-off", advancing, poBestOf), format: "single_elimination", placementMethod: "standard" },
         ],
         summaries: [
           {
-            position: 1, key: "table", name: "Faza tabeli", format: "round_robin", formatLabel: FORMAT_LABELS.round_robin,
+            position: 1, key: "table", name: legs === 2 ? "Faza tabeli — mecz i rewanż" : "Faza tabeli", format: "round_robin", formatLabel: legs === 2 ? "Każdy z każdym ×2" : FORMAT_LABELS.round_robin,
             participantCount: n, bestOf, groupSizes: null, advancingCount: advancing,
             advancementText: `${advancing} najlepszych z tabeli awansuje do play-off.`,
-            matches: { min: matches, max: matches }, rounds: { min: rrRounds(n), max: rrRounds(n) }, byes: 0,
+            matches: { min: matches, max: matches }, rounds: { min: rrRounds(n) * legs, max: rrRounds(n) * legs }, byes: 0,
           },
           playoff,
         ],
         singleStage: false,
-        perParticipant: { min: n - 1, max: n - 1 + playoff.rounds.max },
+        perParticipant: { min: (n - 1) * legs, max: (n - 1) * legs + playoff.rounds.max },
         winnerRule: "Mistrzem zostaje zwycięzca finału play-off.",
         tieRules: [TIE_TEXT.noDraws, TIE_TEXT.roundRobin], requirements, warnings,
       };
@@ -521,7 +530,7 @@ function build(presetId: PresetId, input: PresetParams, accurate: boolean): Buil
 }
 
 const ALLOWED_PARAM_KEYS = new Set<PresetParamKey>([
-  "participantCount", "bestOf", "playoffBestOf", "swissRounds", "groupCount", "qualifiersPerGroup", "advancingCount",
+  "participantCount", "bestOf", "playoffBestOf", "swissRounds", "groupCount", "qualifiersPerGroup", "advancingCount", "legs",
 ]);
 
 export interface PresetPreviewRequest {
@@ -583,7 +592,8 @@ export function previewPreset(request: PresetPreviewRequest): PresetPreview {
     if (!compiled.valid) throw new PresetError("PRESET_REJECTED_BY_ENGINE", "Silnik drabinki podwójnej eliminacji nie przyjął tej konfiguracji.");
   }
   const first = validation.value.stages[0];
-  const creation: PresetPreview["creation"] = built.singleStage
+  const flexible = built.singleStage && !built.requiresStagePlan;
+  const creation: PresetPreview["creation"] = flexible
     ? {
         format: first.format as PresetPreview["creation"]["format"],
         maxPlayers: n,
@@ -606,7 +616,7 @@ export function previewPreset(request: PresetPreviewRequest): PresetPreview {
     family: definition.family,
     params: built.params,
     paramLimits: built.paramLimits,
-    participants: built.singleStage
+    participants: flexible
       ? { mode: "up_to", count: n, minimum: 2 }
       : { mode: "exact", count: n, minimum: n },
     creation,
@@ -729,6 +739,7 @@ export function recommendPresets(answers: WizardAnswers): RecommendationResult {
     if (answers.kind === "league") {
       if (presetId === "round_robin") { score += 8; reasons.unshift("Klasyczna liga: każdy z każdym i tabela."); }
       if (presetId === "league_playoff") { score += 6; reasons.unshift("Liga zakończona play-offami."); }
+      if (presetId === "round_robin" || presetId === "league_playoff") reasons.push("Możesz włączyć mecz i rewanż.");
       if (definition.family === "elimination") score -= 6;
     }
     if (presetId === "round_robin" || presetId === "league_playoff") {

@@ -391,6 +391,7 @@ export async function exportBackupV3(
       participantCount: stage.participantCount,
       bestOf: stage.bestOf,
       plannedRounds: stage.plannedRounds ?? null,
+      ...(stage.roundRobinLegs === 2 ? { roundRobinLegs: 2 as const } : {}),
       currentRound: stage.currentRound ?? null,
       totalRounds: stage.totalRounds ?? null,
       rankingPolicy: stage.rankingPolicy,
@@ -962,6 +963,7 @@ export function validateBackupV3(backup: TournamentBackupV3): void {
         participantCount: stage.participantCount,
         bestOf: stage.bestOf,
         ...(stage.format === "swiss" ? { rounds: stage.plannedRounds } : {}),
+        ...(stage.format === "round_robin" && stage.roundRobinLegs === 2 ? { legs: 2 } : {}),
         ...((stage.format === "swiss" || stage.format === "round_robin") &&
         stage.advancingCount != null
           ? { advancingCount: stage.advancingCount }
@@ -1770,6 +1772,7 @@ export async function importBackupV3(
       participantCount: stage.participantCount,
       bestOf: stage.bestOf,
       plannedRounds: stage.plannedRounds ?? null,
+      roundRobinLegs: stage.format === "round_robin" && stage.roundRobinLegs === 2 ? 2 : 1,
       currentRound: stage.currentRound ?? null,
       totalRounds: stage.totalRounds ?? null,
       rankingPolicy: stage.rankingPolicy,

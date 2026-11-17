@@ -130,7 +130,9 @@ function decisiveH2H(
       m.winnerId != null &&
       (m.winnerId === playerA || m.winnerId === playerB),
   );
-  return decisive.length === 1 ? decisive[0].winnerId! : null;
+  const winsA = decisive.filter((m) => m.winnerId === playerA).length;
+  const winsB = decisive.length - winsA;
+  return winsA === winsB ? null : winsA > winsB ? playerA : playerB;
 }
 
 /**

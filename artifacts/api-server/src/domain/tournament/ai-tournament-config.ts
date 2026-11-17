@@ -101,6 +101,8 @@ export interface AiStageV1 {
   placementMethod?: string;
   resultSeedingMethod?: string;
   entrySeedingMethod?: (typeof AI_ENTRY_SEEDING_METHODS)[number];
+  /** round_robin only: 2 = home and away. */
+  legs?: 1 | 2;
 }
 
 export type AiConfigValidation =
@@ -181,7 +183,7 @@ function optionalInteger(record: Rec, key: string, path: string, problems: AiCon
 
 const STAGE_KEYS = [
   "label", "format", "bestOf", "participantCount", "rounds", "advancingCount", "groupCount",
-  "qualifiersPerGroup", "placementMethod", "resultSeedingMethod", "entrySeedingMethod",
+  "qualifiersPerGroup", "placementMethod", "resultSeedingMethod", "entrySeedingMethod", "legs",
 ] as const;
 
 function parseStage(raw: unknown, index: number, problems: AiConfigProblem[]): AiStageV1 | null {
@@ -231,6 +233,11 @@ function parseStage(raw: unknown, index: number, problems: AiConfigProblem[]): A
     ...(resultSeedingMethod ? { resultSeedingMethod } : {}),
     ...(entry ? { entrySeedingMethod: entry } : {}),
   };
+  if (raw.legs !== undefined) {
+    if (format !== "round_robin") problems.push({ path: `${path}legs`, code: "INVALID_VALUE", message: "legs (mecz i rewanż) dotyczy tylko round_robin." });
+    else if (raw.legs !== 1 && raw.legs !== 2) problems.push({ path: `${path}legs`, code: "INVALID_VALUE", message: "legs musi wynosić 1 albo 2." });
+    else stage.legs = raw.legs;
+  }
   if (format === "swiss" && stage.rounds === undefined) {
     problems.push({ path: `${path}rounds`, code: "MISSING_FIELD", message: "System szwajcarski wymaga liczby rund (rounds)." });
   }
@@ -360,8 +367,9 @@ function stageMatches(stage: TournamentStagePlan, advancing: number | null): { m
       return { min: matches, max: matches, rounds: { min: stage.rounds, max: stage.rounds }, byes: n % 2 === 1 ? stage.rounds : 0, groupSizes: null };
     }
     case "round_robin": {
-      const matches = (n * (n - 1)) / 2;
-      const rounds = n % 2 === 0 ? n - 1 : n;
+      const legs = stage.legs === 2 ? 2 : 1;
+      const matches = legs * (n * (n - 1)) / 2;
+      const rounds = legs * (n % 2 === 0 ? n - 1 : n);
       return { min: matches, max: matches, rounds: { min: rounds, max: rounds }, byes: 0, groupSizes: null };
     }
     case "group_stage": {
@@ -419,6 +427,7 @@ export function buildCustomStagePlan(count: number, stages: readonly AiStageV1[]
       randomRevealOrder: "instant",
     };
     if (stage.format === "swiss") record.rounds = stage.rounds;
+    if (stage.format === "round_robin" && stage.legs === 2) record.legs = 2;
     if (stage.format === "group_stage") {
       record.groupCount = stage.groupCount;
       record.qualifiersPerGroup = stage.qualifiersPerGroup;
@@ -550,11 +559,13 @@ const PARAM_RANGES: Record<PresetParamKey, { minimum: number; maximum: number }>
   groupCount: { minimum: 2, maximum: 42 },
   qualifiersPerGroup: { minimum: 1, maximum: 41 },
   advancingCount: { minimum: 2, maximum: 64 },
+  legs: { minimum: 1, maximum: 2 },
 };
 
 function paramSchema(key: PresetParamKey): Rec {
   const text = PRESET_PARAM_TEXT[key];
   if (key === "bestOf" || key === "playoffBestOf") return { description: `${text.label}. ${text.help}`, enum: [...STAGE_BEST_OF_VALUES] };
+  if (key === "legs") return { description: `${text.label}. ${text.help}`, enum: [1, 2] };
   if (key === "advancingCount") return { description: `${text.label}. ${text.help} Potęga dwójki mniejsza od liczby uczestników.`, enum: [2, 4, 8, 16, 32, 64] };
   return { description: `${text.label}. ${text.help}`, type: "integer", ...PARAM_RANGES[key] };
 }
@@ -591,6 +602,7 @@ export function buildAiConfigJsonSchema(): Rec {
       placementMethod: { enum: ["snake", "standard"], description: "group_stage: snake; drabinki: standard." },
       resultSeedingMethod: { enum: [...GROUP_RESULT_SEEDING_METHODS], description: "Tylko group_stage." },
       entrySeedingMethod: { enum: [...AI_ENTRY_SEEDING_METHODS], description: "Tylko pierwszy etap." },
+      legs: { enum: [1, 2], description: "Tylko round_robin: 2 = mecz i rewanż (każda para gra dwa razy)." },
     },
   };
   return {
@@ -719,13 +731,14 @@ export function buildAiSpecificationMarkdown(): string {
     for (const param of preset.params) lines.push(`- \`${param.key}\` — ${param.label}. ${param.help}`);
     lines.push("");
   }
+  lines.push("`legs` (presety round_robin i league_playoff): 1 = jeden mecz każdej pary, 2 = mecz i rewanż. ");
   lines.push("Zasady parametrów: `bestOf`/`playoffBestOf` ∈ {1, 3, 5, 7}; `groupCount` od 2 do floor(uczestnicy/3); `qualifiersPerGroup` mniejsze od najmniejszej grupy; `advancingCount` to potęga dwójki mniejsza od liczby uczestników; `swissRounds` od 1 (2 w presecie z play-off) do min(uczestnicy−1, 15). Pominięty parametr = rozsądna wartość domyślna.", "");
   lines.push("## Własne etapy (`structure.type: \"stages\"`)", "");
   lines.push(`Do ${AI_CONFIG_MAX_STAGES} etapów rozgrywanych po kolei. Formaty: ${spec.stageFormats.map((item) => `\`${item.format}\` (${item.label})`).join(", ")}.`, "");
   lines.push("- Każdy etap ma `label` (nazwa etapu w aplikacji) i `format`. Pola `name` nie używaj nigdzie.");
   lines.push("- Liczba uczestników etapu jest wyliczana automatycznie: pierwszy etap = `participants.count`, każdy kolejny = awans z poprzedniego.");
   lines.push("- `swiss` wymaga `rounds`; awans przez `advancingCount` (2 … uczestnicy).");
-  lines.push("- `round_robin` (każdy z każdym): awans przez `advancingCount`.");
+  lines.push("- `round_robin` (każdy z każdym): awans przez `advancingCount`; `legs: 2` = mecz i rewanż.");
   lines.push("- `group_stage` wymaga `groupCount` (1 … floor(n/2)) i `qualifiersPerGroup` (≤ największa grupa); grupy są wyrównywane automatycznie; nie może być ostatnim etapem.");
   lines.push("- `single_elimination` jako etap pośredni: `advancingCount` musi być granicą pełnej rundy (potęga dwójki < rozmiar drabinki).");
   lines.push("- `double_elimination` musi być ostatnim etapem; w planie wieloetapowym wymaga potęgi dwójki 4–64 uczestników.");

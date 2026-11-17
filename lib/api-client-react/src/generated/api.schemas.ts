@@ -869,6 +869,17 @@ export const TournamentStagePlanItemInputBestOf = {
 } as const;
 
 /**
+ * Round robin only. 2 = every pair plays twice (home and away).
+ */
+export type TournamentStagePlanItemInputLegs = typeof TournamentStagePlanItemInputLegs[keyof typeof TournamentStagePlanItemInputLegs];
+
+
+export const TournamentStagePlanItemInputLegs = {
+  NUMBER_1: 1,
+  NUMBER_2: 2,
+} as const;
+
+/**
  * How incoming participants are converted into stage seeds.
  */
 export type TournamentStagePlanItemInputEntrySeedingMethod = typeof TournamentStagePlanItemInputEntrySeedingMethod[keyof typeof TournamentStagePlanItemInputEntrySeedingMethod];
@@ -942,6 +953,8 @@ export interface TournamentStagePlanItemInput {
   bestOf: TournamentStagePlanItemInputBestOf;
   /** @minimum 1 */
   rounds?: number;
+  /** Round robin only. 2 = every pair plays twice (home and away). */
+  legs?: TournamentStagePlanItemInputLegs;
   /**
      * Required for every non-terminal Swiss, Round Robin, or Single Elimination stage. Must equal the next stage participantCount. For Single Elimination it must be a complete-round boundary of at least 2 (for example 16 participants may advance 8, 4, or 2). A terminal Single Elimination stage omits this field and implicitly finishes with one champion.
      * @minimum 2
@@ -1086,6 +1099,17 @@ export const TournamentStageStatus = {
   completed: 'completed',
 } as const;
 
+/**
+ * 2 = home and away (double round robin). Only round_robin stages may use 2.
+ */
+export type TournamentStageRoundRobinLegs = typeof TournamentStageRoundRobinLegs[keyof typeof TournamentStageRoundRobinLegs];
+
+
+export const TournamentStageRoundRobinLegs = {
+  NUMBER_1: 1,
+  NUMBER_2: 2,
+} as const;
+
 export type TournamentStageRankingPolicy = typeof TournamentStageRankingPolicy[keyof typeof TournamentStageRankingPolicy];
 
 
@@ -1162,6 +1186,8 @@ export interface TournamentStage {
   bestOf: number;
   /** @nullable */
   plannedRounds?: number | null;
+  /** 2 = home and away (double round robin). Only round_robin stages may use 2. */
+  roundRobinLegs?: TournamentStageRoundRobinLegs;
   /** @nullable */
   currentRound?: number | null;
   /** @nullable */
@@ -2934,6 +2960,16 @@ export const TournamentBackupV3StagesItemStatus = {
   completed: 'completed',
 } as const;
 
+/**
+ * V5: present only for home-and-away round robin stages.
+ */
+export type TournamentBackupV3StagesItemRoundRobinLegs = typeof TournamentBackupV3StagesItemRoundRobinLegs[keyof typeof TournamentBackupV3StagesItemRoundRobinLegs];
+
+
+export const TournamentBackupV3StagesItemRoundRobinLegs = {
+  NUMBER_2: 2,
+} as const;
+
 export type TournamentBackupV3StagesItemRankingPolicy = typeof TournamentBackupV3StagesItemRankingPolicy[keyof typeof TournamentBackupV3StagesItemRankingPolicy];
 
 
@@ -3009,6 +3045,8 @@ export type TournamentBackupV3StagesItem = {
   bestOf: number;
   /** @nullable */
   plannedRounds?: number | null;
+  /** V5: present only for home-and-away round robin stages. */
+  roundRobinLegs?: TournamentBackupV3StagesItemRoundRobinLegs;
   /** @nullable */
   currentRound?: number | null;
   /** @nullable */

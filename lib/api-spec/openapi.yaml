@@ -2979,6 +2979,10 @@ components:
         rounds:
           type: integer
           minimum: 1
+        legs:
+          type: integer
+          enum: [1, 2]
+          description: Round robin only. 2 = every pair plays twice (home and away).
         advancingCount:
           type: integer
           minimum: 2
@@ -3046,6 +3050,10 @@ components:
         participantCount: { type: integer }
         bestOf: { type: integer }
         plannedRounds: { type: ["integer", "null"] }
+        roundRobinLegs:
+          type: integer
+          enum: [1, 2]
+          description: 2 = home and away (double round robin). Only round_robin stages may use 2.
         currentRound: { type: ["integer", "null"] }
         totalRounds: { type: ["integer", "null"] }
         rankingPolicy:
@@ -4612,6 +4620,7 @@ components:
               participantCount: { type: integer }
               bestOf: { type: integer }
               plannedRounds: { type: ["integer", "null"] }
+              roundRobinLegs: { type: integer, enum: [2], description: "V5: present only for home-and-away round robin stages." }
               currentRound: { type: ["integer", "null"] }
               totalRounds: { type: ["integer", "null"] }
               rankingPolicy: { type: string, enum: [swiss_v1, round_robin_v1, group_v1, elimination_bracket_v1] }

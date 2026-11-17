@@ -110,6 +110,9 @@ const PRESERVE_STARTED_MEMBERSHIPS_MIGRATION_URL = new URL(
   "../../../lib/db/migrations/0027_preserve_started_stage_memberships.sql",
   import.meta.url,
 );
+const ROUND_ROBIN_LEGS_MIGRATION_URL = new URL(
+  "../../../lib/db/migrations/0041_round_robin_legs.sql", import.meta.url,
+);
 const MATCH_REVISION_MIGRATION_URL = new URL(
   "../../../lib/db/migrations/0028_match_revision.sql", import.meta.url,
 );
@@ -408,6 +411,11 @@ export async function resetTestSchema(pool: TestPool, schema: string): Promise<v
       );
       await pool.query(matchRevisionSql);
       await pool.query(matchRevisionSql);
+      const roundRobinLegsSql = renderSeriesV1MigrationForTestSchema(
+        await readFile(ROUND_ROBIN_LEGS_MIGRATION_URL, "utf8"), schema,
+      );
+      await pool.query(roundRobinLegsSql);
+      await pool.query(roundRobinLegsSql);
       await pool.query("COMMIT");
     } catch (error) {
       await pool.query("ROLLBACK");

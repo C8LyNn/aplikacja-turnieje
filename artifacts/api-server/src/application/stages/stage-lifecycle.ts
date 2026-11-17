@@ -19,7 +19,7 @@ import {
   seedQualifiedGroupEntries,
   seedQualifiedGroupEntriesGlobally,
 } from "../../domain/tournament/group-stage";
-import { generateRoundRobinSchedule } from "../../domain/tournament/round-robin";
+import { generateRoundRobinSchedule, normaliseRoundRobinLegs } from "../../domain/tournament/round-robin";
 import {
   buildRandomBracket,
   buildRandomGroupPlacements,
@@ -126,7 +126,8 @@ function assertStageComplete(
   }
 
   if (stage.format === "round_robin") {
-    if (matches.length !== (participantCount * (participantCount - 1)) / 2) {
+    const legs = normaliseRoundRobinLegs(stage.roundRobinLegs);
+    if (matches.length !== legs * (participantCount * (participantCount - 1)) / 2) {
       throw new StageLifecycleError("STAGE_INCOMPLETE");
     }
     return;
@@ -807,7 +808,7 @@ function generateStageMatches(params: {
 }): { values: Array<typeof matchesTable.$inferInsert>; totalRounds: number } {
   const { tournamentId, stageId, stage, players } = params;
   if (stage.format === "round_robin") {
-    const pairings = generateRoundRobinSchedule(players);
+    const pairings = generateRoundRobinSchedule(players, normaliseRoundRobinLegs(stage.roundRobinLegs));
     return {
       values: pairings.map((pairing) => ({
         tournamentId, stageId, round: pairing.round, matchNumber: pairing.matchNumber,

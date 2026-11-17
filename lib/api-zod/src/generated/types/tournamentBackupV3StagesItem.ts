@@ -11,6 +11,7 @@ import type { TournamentBackupV3StagesItemQualificationMode } from './tournament
 import type { TournamentBackupV3StagesItemRandomRevealOrder } from './tournamentBackupV3StagesItemRandomRevealOrder';
 import type { TournamentBackupV3StagesItemRankingPolicy } from './tournamentBackupV3StagesItemRankingPolicy';
 import type { TournamentBackupV3StagesItemResultSeedingPolicy } from './tournamentBackupV3StagesItemResultSeedingPolicy';
+import type { TournamentBackupV3StagesItemRoundRobinLegs } from './tournamentBackupV3StagesItemRoundRobinLegs';
 import type { TournamentBackupV3StagesItemSeedingAudit } from './tournamentBackupV3StagesItemSeedingAudit';
 import type { TournamentBackupV3StagesItemSeedingPolicy } from './tournamentBackupV3StagesItemSeedingPolicy';
 import type { TournamentBackupV3StagesItemStatus } from './tournamentBackupV3StagesItemStatus';
@@ -26,6 +27,8 @@ export type TournamentBackupV3StagesItem = {
   bestOf: number;
   /** @nullable */
   plannedRounds?: number | null;
+  /** V5: present only for home-and-away round robin stages. */
+  roundRobinLegs?: TournamentBackupV3StagesItemRoundRobinLegs;
   /** @nullable */
   currentRound?: number | null;
   /** @nullable */

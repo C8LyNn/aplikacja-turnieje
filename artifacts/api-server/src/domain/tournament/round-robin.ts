@@ -10,9 +10,13 @@ export interface RoundRobinPairing {
   player2Id: number;
 }
 
-/** Standard circle-method schedule. A null slot represents a rest round. */
+/**
+ * Standard circle-method schedule. A null slot represents a rest round.
+ * legs = 2 appends a second leg (rematches) with the same order and swapped sides.
+ */
 export function generateRoundRobinSchedule(
   participants: RoundRobinParticipant[],
+  legs: 1 | 2 = 1,
 ): RoundRobinPairing[] {
   const ordered = [...participants].sort(
     (left, right) => (left.seed ?? Number.MAX_SAFE_INTEGER) - (right.seed ?? Number.MAX_SAFE_INTEGER)
@@ -44,5 +48,20 @@ export function generateRoundRobinSchedule(
     tail.unshift(tail.pop()!);
     rotation.splice(0, rotation.length, fixed, ...tail);
   }
+  if (legs === 2) {
+    const firstLeg = [...pairings];
+    for (const pairing of firstLeg) {
+      pairings.push({
+        round: pairing.round + rounds,
+        matchNumber: pairing.matchNumber,
+        player1Id: pairing.player2Id,
+        player2Id: pairing.player1Id,
+      });
+    }
+  }
   return pairings;
+}
+
+export function normaliseRoundRobinLegs(value: unknown): 1 | 2 {
+  return value === 2 ? 2 : 1;
 }

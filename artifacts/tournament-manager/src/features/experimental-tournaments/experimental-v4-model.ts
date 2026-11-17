@@ -393,7 +393,7 @@ export function searchMatches<M extends Pick<Match, "id" | "round" | "matchNumbe
 /* ── Stages: map of stages, baskets, qualification and advancement ─────── */
 
 type MapStage = Pick<TournamentStage, "id" | "name" | "format" | "status" | "position" | "currentRound" | "totalRounds" | "plannedRounds"
-  | "participantCount" | "qualificationMode" | "advancingCount" | "groupCount" | "qualifiersPerGroup">;
+  | "participantCount" | "qualificationMode" | "advancingCount" | "groupCount" | "qualifiersPerGroup"> & { roundRobinLegs?: number | null };
 export type MapBasket = { id: string; stageId: number; type: "input" | "output"; ordinal: number; participantIds: readonly number[]; qualifierCount: number | null };
 export type MapRoute = { sourceBasketId: string; targetBasketId: string };
 
@@ -411,6 +411,8 @@ export interface StageMapNode extends StageRailItem {
   outgoing: StageMapLink[];
   /** Participants that end their run in this stage, when every outgoing link has a known count. */
   eliminated: number | null;
+  /** V5: round robin played home and away. */
+  homeAndAway: boolean;
 }
 
 export function stageMap(
@@ -473,6 +475,6 @@ export function stageMap(
       s.participantCount > 0 && outgoing.length > 0 && outgoing.every((l) => l.count !== null)
         ? Math.max(0, s.participantCount - routedOut)
         : null;
-    return { ...item, participants: s.participantCount, groups: s.groupCount ?? null, qualification, inputs, outgoing, eliminated };
+    return { ...item, participants: s.participantCount, groups: s.groupCount ?? null, qualification, inputs, outgoing, eliminated, homeAndAway: s.format === "round_robin" && s.roundRobinLegs === 2 };
   });
 }

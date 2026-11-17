@@ -8,6 +8,7 @@
 import type { TournamentStagePlanItemInputBestOf } from './tournamentStagePlanItemInputBestOf';
 import type { TournamentStagePlanItemInputEntrySeedingMethod } from './tournamentStagePlanItemInputEntrySeedingMethod';
 import type { TournamentStagePlanItemInputFormat } from './tournamentStagePlanItemInputFormat';
+import type { TournamentStagePlanItemInputLegs } from './tournamentStagePlanItemInputLegs';
 import type { TournamentStagePlanItemInputPlacementMethod } from './tournamentStagePlanItemInputPlacementMethod';
 import type { TournamentStagePlanItemInputRandomRevealOrder } from './tournamentStagePlanItemInputRandomRevealOrder';
 import type { TournamentStagePlanItemInputResultSeedingMethod } from './tournamentStagePlanItemInputResultSeedingMethod';
@@ -29,6 +30,8 @@ export interface TournamentStagePlanItemInput {
   bestOf: TournamentStagePlanItemInputBestOf;
   /** @minimum 1 */
   rounds?: number;
+  /** Round robin only. 2 = every pair plays twice (home and away). */
+  legs?: TournamentStagePlanItemInputLegs;
   /**
      * Required for every non-terminal Swiss, Round Robin, or Single Elimination stage. Must equal the next stage participantCount. For Single Elimination it must be a complete-round boundary of at least 2 (for example 16 participants may advance 8, 4, or 2). A terminal Single Elimination stage omits this field and implicitly finishes with one champion.
      * @minimum 2

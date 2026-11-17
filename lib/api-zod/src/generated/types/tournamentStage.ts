@@ -11,6 +11,7 @@ import type { TournamentStageQualificationMode } from './tournamentStageQualific
 import type { TournamentStageRandomRevealOrder } from './tournamentStageRandomRevealOrder';
 import type { TournamentStageRankingPolicy } from './tournamentStageRankingPolicy';
 import type { TournamentStageResultSeedingPolicy } from './tournamentStageResultSeedingPolicy';
+import type { TournamentStageRoundRobinLegs } from './tournamentStageRoundRobinLegs';
 import type { TournamentStageSeedingAudit } from './tournamentStageSeedingAudit';
 import type { TournamentStageSeedingPolicy } from './tournamentStageSeedingPolicy';
 import type { TournamentStageStatus } from './tournamentStageStatus';
@@ -27,6 +28,8 @@ export interface TournamentStage {
   bestOf: number;
   /** @nullable */
   plannedRounds?: number | null;
+  /** 2 = home and away (double round robin). Only round_robin stages may use 2. */
+  roundRobinLegs?: TournamentStageRoundRobinLegs;
   /** @nullable */
   currentRound?: number | null;
   /** @nullable */

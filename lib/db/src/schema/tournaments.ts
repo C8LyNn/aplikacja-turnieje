@@ -10,6 +10,7 @@ import {
   pgTable,
   primaryKey,
   serial,
+  smallint,
   text,
   timestamp,
   unique,
@@ -272,6 +273,8 @@ export const tournamentStagesTable = pgTable(
     participantCount: integer("participant_count").notNull().default(0),
     bestOf: integer("best_of").notNull().default(1),
     plannedRounds: integer("planned_rounds"),
+    /** V5: 2 = home and away (double round robin); only for round_robin. */
+    roundRobinLegs: smallint("round_robin_legs").notNull().default(1),
     currentRound: integer("current_round"),
     totalRounds: integer("total_rounds"),
     rankingPolicy: stageRankingPolicyEnum("ranking_policy").notNull(),
@@ -351,6 +354,7 @@ export const tournamentStagesTable = pgTable(
     check("tournament_stages_seeding_audit_shape", sql`
       ${table.seedingAudit} IS NULL OR jsonb_typeof(${table.seedingAudit}) = 'object'`),
     check("tournament_stages_version_positive", sql`${table.version} > 0`),
+    check("tournament_stages_round_robin_legs_supported", sql`${table.roundRobinLegs} = 1 OR (${table.roundRobinLegs} = 2 AND ${table.format} = 'round_robin')`),
     check("tournament_stages_lifecycle_timestamps", sql`
       (${table.status} = 'planned' AND ${table.startedAt} IS NULL AND ${table.completedAt} IS NULL)
       OR (${table.status} = 'active' AND ${table.completedAt} IS NULL)

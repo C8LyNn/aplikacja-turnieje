@@ -78,6 +78,8 @@ export interface SwissTournamentStagePlan extends BaseTournamentStagePlan {
 export interface RoundRobinTournamentStagePlan extends BaseTournamentStagePlan {
   format: "round_robin";
   advancingCount?: number;
+  /** V5: 2 = home and away. Omitted means one leg (V1-compatible shape). */
+  legs?: 2;
 }
 
 export interface GroupTournamentStagePlan extends BaseTournamentStagePlan {
@@ -139,7 +141,8 @@ export type TournamentStagePlanProblemCode =
   | "INVALID_RANDOM_REVEAL_ORDER"
   | "RANDOM_SEED_REQUIRED"
   | "INVALID_RANDOM_SEED"
-  | "INVALID_GROUP_QUALIFIER_COUNT";
+  | "INVALID_GROUP_QUALIFIER_COUNT"
+  | "INVALID_ROUND_ROBIN_LEGS";
 
 export interface TournamentStagePlanProblem {
   code: TournamentStagePlanProblemCode;
@@ -269,6 +272,9 @@ function validateFormatConfiguration(stages: readonly IndexedStage[], problems: 
   for (const stage of stages) {
     const { index, record } = stage;
     const path = `stages[${index}]`;
+    if (record.legs !== undefined && (record.format !== "round_robin" || (record.legs !== 1 && record.legs !== 2))) {
+      addProblem(problems, "INVALID_ROUND_ROBIN_LEGS", `${path}.legs`, "legs is supported only by round_robin and must equal 1 or 2.");
+    }
     if (record.format === "swiss" && !isPositiveInteger(record.rounds)) {
       addProblem(problems, "INVALID_SWISS_ROUNDS", `${path}.rounds`, "Swiss rounds must be a positive integer.");
     }
@@ -401,7 +407,7 @@ function buildStage(record: UnknownRecord): TournamentStagePlan {
     case "swiss":
       return { ...common, format: "swiss", rounds: record.rounds as number, ...(record.advancingCount === undefined ? {} : { advancingCount: record.advancingCount as number }) };
     case "round_robin":
-      return { ...common, format: "round_robin", ...(record.advancingCount === undefined ? {} : { advancingCount: record.advancingCount as number }) };
+      return { ...common, format: "round_robin", ...(record.advancingCount === undefined ? {} : { advancingCount: record.advancingCount as number }), ...(record.legs === 2 ? { legs: 2 as const } : {}) };
     case "group_stage": {
       const groupCount = record.groupCount as number;
       return {

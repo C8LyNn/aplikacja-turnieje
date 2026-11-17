@@ -27,7 +27,8 @@ export type PresetParamKey =
   | "swissRounds"
   | "groupCount"
   | "qualifiersPerGroup"
-  | "advancingCount";
+  | "advancingCount"
+  | "legs";
 
 export type PresetParams = Partial<Record<PresetParamKey, number>>;
 
@@ -162,7 +163,7 @@ const PRESET_IDS: readonly PresetId[] = [
   "single_elimination", "double_elimination", "swiss", "round_robin", "groups_playoff", "swiss_playoff", "league_playoff",
 ];
 const PARAM_KEYS: readonly PresetParamKey[] = [
-  "participantCount", "bestOf", "playoffBestOf", "swissRounds", "groupCount", "qualifiersPerGroup", "advancingCount",
+  "participantCount", "bestOf", "playoffBestOf", "swissRounds", "groupCount", "qualifiersPerGroup", "advancingCount", "legs",
 ];
 
 function oneOf<T extends string>(value: unknown, allowed: readonly T[], fallback: T): T {
@@ -258,10 +259,10 @@ export function requestParams(presetId: PresetId, answers: WizardAnswers, params
     single_elimination: ["bestOf"],
     double_elimination: ["bestOf"],
     swiss: ["bestOf", "swissRounds"],
-    round_robin: ["bestOf"],
+    round_robin: ["bestOf", "legs"],
     groups_playoff: ["bestOf", "playoffBestOf", "groupCount", "qualifiersPerGroup"],
     swiss_playoff: ["bestOf", "playoffBestOf", "swissRounds", "advancingCount"],
-    league_playoff: ["bestOf", "playoffBestOf", "advancingCount"],
+    league_playoff: ["bestOf", "playoffBestOf", "advancingCount", "legs"],
   };
   const result: PresetParams = { participantCount: answers.participantCount };
   for (const key of allowed[presetId]) if (params[key] != null) result[key] = params[key];

@@ -371,9 +371,10 @@ function ParamControl({
 }) {
   const id = useId();
   const isBestOf = limit.key === "bestOf" || limit.key === "playoffBestOf";
+  const isLegs = limit.key === "legs";
   const index = limit.options.indexOf(limit.value);
-  const segmented = isBestOf || limit.options.length <= 6;
-  const format = (value: number) => (isBestOf ? `BO${value}` : String(value));
+  const segmented = isBestOf || isLegs || limit.options.length <= 6;
+  const format = (value: number) => (isBestOf ? `BO${value}` : isLegs ? (value === 2 ? "Mecz i rewanż" : "Jeden mecz") : String(value));
   return (
     <div className="experimental-wizard-param" data-invalid={error ? "true" : undefined}>
       <div className="experimental-wizard-param-head">

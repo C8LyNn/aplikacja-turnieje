@@ -152,7 +152,10 @@ function decisiveHeadToHeadWinner(
       (result.resultType === "played" || result.resultType === "walkover") &&
       (result.winnerKey === participant1Key || result.winnerKey === participant2Key),
   );
-  return decisiveResults.length === 1 ? decisiveResults[0].winnerKey! : null;
+  // One leg: the single result decides. Two legs: the participant with more wins decides; 1–1 is no separator.
+  const wins1 = decisiveResults.filter((result) => result.winnerKey === participant1Key).length;
+  const wins2 = decisiveResults.length - wins1;
+  return wins1 === wins2 ? null : wins1 > wins2 ? participant1Key : participant2Key;
 }
 
 export function rankRoundRobinOrGroup(

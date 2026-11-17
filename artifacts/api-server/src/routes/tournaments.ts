@@ -110,7 +110,7 @@ import {
   getTargetStageInputArrivals,
 } from "../application/stages/stage-basket-route-execution";
 import { calculateMatchRecordStandings } from "../domain/tournament/standings";
-import { generateRoundRobinSchedule } from "../domain/tournament/round-robin";
+import { generateRoundRobinSchedule, normaliseRoundRobinLegs } from "../domain/tournament/round-robin";
 import { generateSwissPairings } from "../domain/tournament/swiss";
 import { BACKUP_V3_IMPORT_DISABLED, BACKUP_V2_CONTAINS_V3_FIELDS, hasV3OnlyFieldsInV2, isBackupV3Import } from "../application/backups/backup-import-policy";
 import { buildStandardSeededBracket } from "../domain/tournament/stage-placement";
@@ -547,8 +547,9 @@ function generateRoundRobin(
   players: (typeof playersTable.$inferSelect)[],
   tournamentId: number,
   defaultBestOf: number,
+  legs: 1 | 2 = 1,
 ) {
-  const schedule = generateRoundRobinSchedule(players);
+  const schedule = generateRoundRobinSchedule(players, legs);
   const matches: (typeof matchesTable.$inferInsert)[] = schedule.map((pairing) => ({
     tournamentId,
     round: pairing.round,
@@ -1557,7 +1558,7 @@ router.post("/tournaments/:id/start", async (req, res): Promise<void> => {
       let generatedMatches: (typeof matchesTable.$inferInsert)[];
       let totalRounds: number;
       if (stage.format === "round_robin") {
-        const generated = generateRoundRobin(stagePlayers, lockedTournament.id, bestOf);
+        const generated = generateRoundRobin(stagePlayers, lockedTournament.id, bestOf, normaliseRoundRobinLegs(stage.roundRobinLegs));
         generatedMatches = generated.matches;
         totalRounds = generated.totalRounds;
       } else if (stage.format === "swiss") {

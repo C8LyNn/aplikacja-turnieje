@@ -226,7 +226,24 @@ test("league answer explains current limits instead of pretending schedules exis
   fireEvent.click(screen.getByRole("button", { name: /Pokaż propozycje/ }));
   await screen.findByText("Polecany");
   fireEvent.click(screen.getByText("Dlaczego nie widzę innych formatów?"));
-  assert.ok(screen.getByText(/Liga: mecz i rewanż/));
+  assert.ok(screen.getByText(/Liga z terminarzem i datami kolejek/));
+  assert.equal(screen.queryByText(/Liga: mecz i rewanż/), null, "home and away is a real option now, not a planned one");
+});
+
+test("league home and away: the legs switch doubles the table and requires a full roster", async () => {
+  const calls = installFetch();
+  renderAt("/experimental/tournaments/new", CreateTournamentExperimental);
+  fireEvent.click(screen.getByLabelText(/Liga/));
+  fireEvent.click(screen.getByRole("button", { name: "8" }));
+  fireEvent.click(screen.getByRole("button", { name: /Pokaż propozycje/ }));
+  await screen.findByText("Polecany");
+  fireEvent.click(screen.getByRole("button", { name: /Dalej: dopasuj/ }));
+  const legs = await screen.findByRole("radiogroup", { name: "Mecz i rewanż" });
+  fireEvent.click(Array.from(legs.querySelectorAll("button")).find((button) => button.textContent === "Mecz i rewanż")!);
+  await waitFor(() => assert.ok(screen.getByLabelText("Podgląd rozgrywek").textContent?.includes("Dokładnie 8")));
+  assert.ok(screen.getByLabelText("Podgląd rozgrywek").textContent?.includes("56"));
+  const last = calls.filter((call) => call.url.includes("/preview")).at(-1)!;
+  assert.equal((last.body as { params: { legs: number } }).params.legs, 2);
 });
 
 test("create error is shown and the wizard stays usable", async () => {
@@ -356,7 +373,7 @@ test("AI import: malformed JSON gets a helpful message", async () => {
 test("contract: wizard tunable params match the server catalog", async () => {
   const { PRESET_IDS, PRESET_TUNABLE_PARAMS } = await import("../../../../api-server/src/domain/tournament/tournament-presets");
   const answers = { kind: "tournament" as const, participantType: "players" as const, participantCount: 16, grouping: "any" as const, priority: "short" as const };
-  const all = { bestOf: 3, playoffBestOf: 5, swissRounds: 4, groupCount: 4, qualifiersPerGroup: 2, advancingCount: 8 };
+  const all = { bestOf: 3, playoffBestOf: 5, swissRounds: 4, groupCount: 4, qualifiersPerGroup: 2, advancingCount: 8, legs: 2 };
   for (const id of PRESET_IDS) {
     const keys = Object.keys(requestParams(id, answers, all)).filter((key) => key !== "participantCount").sort();
     assert.deepEqual(keys, [...PRESET_TUNABLE_PARAMS[id]].sort(), id);

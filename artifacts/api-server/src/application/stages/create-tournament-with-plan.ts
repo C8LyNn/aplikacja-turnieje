@@ -101,6 +101,7 @@ function persistedStage(
     randomSeed: stage.randomSeed ?? null,
     randomRevealOrder: stage.randomRevealOrder,
     seedingAudit: null,
+    roundRobinLegs: stage.format === "round_robin" && stage.legs === 2 ? 2 : 1,
   };
 }
 
@@ -204,6 +205,7 @@ export async function createTournamentWithStagePlan(input: {
         participantCount: firstValues.participantCount,
         bestOf: firstValues.bestOf,
         plannedRounds: firstValues.plannedRounds,
+        roundRobinLegs: firstValues.roundRobinLegs,
         currentRound: null,
         totalRounds: null,
         rankingPolicy: firstValues.rankingPolicy,

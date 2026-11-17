@@ -224,3 +224,14 @@ test("stage map component renders without basket data (query disabled for one st
   unmount();
   client.clear();
 });
+
+test("V5-C: stage map marks home-and-away round robin stages", async () => {
+  const { stageMap } = await import("@/features/experimental-tournaments/experimental-v4-model");
+  const base = { status: "planned", currentRound: null, totalRounds: null, plannedRounds: null, qualificationMode: "none", advancingCount: null, groupCount: null, qualifiersPerGroup: null } as const;
+  const nodes = stageMap([
+    { ...base, id: 1, name: "Liga", format: "round_robin", position: 1, participantCount: 6, qualificationMode: "top_n", advancingCount: 4, roundRobinLegs: 2 },
+    { ...base, id: 2, name: "Finały", format: "single_elimination", position: 2, participantCount: 4 },
+  ] as never, [], null, null);
+  assert.equal(nodes[0].homeAndAway, true);
+  assert.equal(nodes[1].homeAndAway, false);
+});

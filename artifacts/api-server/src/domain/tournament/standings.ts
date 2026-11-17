@@ -74,7 +74,8 @@ export function calculateMatchRecordStandings(
     });
   }
 
-  const headToHead = new Map<string, number>();
+  // pairKey -> wins per player (a home-and-away league can have two results per pair).
+  const headToHead = new Map<string, Map<number, number>>();
   for (const match of matches) {
     if (match.status !== "completed" || !match.resultType || !match.player1Id) continue;
     const player1 = records.get(match.player1Id);
@@ -104,7 +105,9 @@ export function calculateMatchRecordStandings(
     loser.matchLosses += 1;
 
     const pairKey = [match.player1Id, match.player2Id].sort((a, b) => a - b).join(":");
-    headToHead.set(pairKey, match.winnerId);
+    const pairWins = headToHead.get(pairKey) ?? new Map<number, number>();
+    pairWins.set(match.winnerId, (pairWins.get(match.winnerId) ?? 0) + 1);
+    headToHead.set(pairKey, pairWins);
 
     if (match.resultType === "played" && match.score1 != null && match.score2 != null) {
       player1.gameWins += match.score1;
@@ -155,9 +158,11 @@ export function calculateMatchRecordStandings(
       const tied = winsGroups.get(left.matchWins) ?? [];
       if (tied.length === 2 && tied.includes(left.playerId) && tied.includes(right.playerId)) {
         const pairKey = [left.playerId, right.playerId].sort((a, b) => a - b).join(":");
-        const winner = headToHead.get(pairKey);
-        if (winner === left.playerId) return -1;
-        if (winner === right.playerId) return 1;
+        const pairWins = headToHead.get(pairKey);
+        const leftWins = pairWins?.get(left.playerId) ?? 0;
+        const rightWins = pairWins?.get(right.playerId) ?? 0;
+        if (leftWins > rightWins) return -1;
+        if (rightWins > leftWins) return 1;
       }
     }
 

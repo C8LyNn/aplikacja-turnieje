@@ -185,7 +185,7 @@ export function ExperimentalStageMap({
                 <span className="experimental-v4-rail-text">
                   <strong>{node.name}</strong>
                   <span className="experimental-v4-muted">
-                    {STAGE_FORMAT_LABELS[node.format] ?? node.format} · {STAGE_STATUS_LABEL[node.status] ?? node.status}
+                    {STAGE_FORMAT_LABELS[node.format] ?? node.format}{node.homeAndAway ? " · mecz i rewanż" : ""} · {STAGE_STATUS_LABEL[node.status] ?? node.status}
                     {node.roundLabel ? ` · ${node.roundLabel}` : ""}
                   </span>
                 </span>
