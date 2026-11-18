@@ -75,7 +75,7 @@ import { usePresentationTheme, resolvePresentationSettings } from "@/lib/present
 import { MATCH_STATUS_LABELS } from "@/lib/match-operation-feedback";
 import { PLAYER_STATUS_LABELS, TOURNAMENT_STATUS_LABELS } from "@/lib/tournament-stages-ui";
 import { tournamentHref, useTournamentRoute } from "@/features/experimental-tournaments/experimental-tournament-routing";
-import { matchLengthText } from "@/features/experimental-tournaments/experimental-create-wizard-model";
+import { bestOfLabel, matchLengthText } from "@/features/experimental-tournaments/experimental-create-wizard-model";
 import { setsText } from "@/components/set-score-editor";
 import { ExperimentalTournamentContextBar } from "@/features/experimental-tournaments/experimental-tournament-context-bar";
 import { ExperimentalTournamentChecklist } from "@/features/experimental-tournaments/experimental-tournament-checklist";
@@ -724,7 +724,7 @@ export default function TournamentDetail() {
             {tournament.description && <p className="text-muted-foreground">{tournament.description}</p>}
             <p className="text-sm text-muted-foreground mt-1">
               {operation.stage?.name} · {FORMAT_LABELS[operation.stage?.format ?? tournament.format] ?? operation.stage?.format}
-              {` · ${operation.summary.roundLabel} · ${matchLengthText(operation.stage ?? { bestOf: tournament.defaultBestOf }, isExperimental)}`}
+              {` · ${operation.summary.roundLabel} · ${operation.stage?.matchRules ? matchLengthText(operation.stage, isExperimental) : isExperimental ? bestOfLabel(operation.stage?.bestOf ?? tournament.defaultBestOf ?? 1).toLowerCase() : `BO${operation.stage?.bestOf ?? tournament.defaultBestOf}`}`}
             </p>
             <div className="mt-2">
               <ForcedHeroBadge gameConfig={tournament.gameConfig} />
