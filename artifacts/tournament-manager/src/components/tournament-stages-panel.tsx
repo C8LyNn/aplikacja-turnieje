@@ -1107,7 +1107,7 @@ export function TournamentStagesPanel({
                   officialRanks={selected.status === "completed" ? officialRanks : undefined}
                   title={
                     selected.status === "completed"
-                      ? "Zamrożony ranking"
+                      ? "Końcowe miejsca etapu"
                       : "Ranking etapu"
                   }
                 />

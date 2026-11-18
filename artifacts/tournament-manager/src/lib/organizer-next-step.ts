@@ -70,7 +70,7 @@ export function deriveOrganizerNextStep(input: {
     return {
       kind: "completed",
       title: "Turniej zakończony",
-      description: "Wszystkie etapy są zakończone. Wyniki są gotowe do udostępnienia i backupu.",
+      description: "Wszystkie etapy są zakończone. Wyniki są gotowe do pokazania widzom i zapisania w kopii zapasowej.",
     };
   }
   if (stages.length === 0) {

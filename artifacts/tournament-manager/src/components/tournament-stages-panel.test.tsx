@@ -81,7 +81,7 @@ for (const completed of [false, true]) {
       assert.equal(screen.queryByText("Brak aktywnego etapu"), null);
       assert.equal(screen.queryByText(/Wybierz kolejny planowany etap/), null);
       assert.equal(screen.queryByRole("button", { name: /Rozpocznij etap|Zatwierdź kwalifikację|Wykonaj routing/ }), null);
-      assert.ok(screen.getByRole("heading", { name: "Zamrożony ranking" }));
+      assert.ok(screen.getByRole("heading", { name: "Końcowe miejsca etapu" }));
       assert.ok(screen.getByRole("heading", { name: "Mecze etapu" }));
     });
   }

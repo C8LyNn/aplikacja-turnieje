@@ -122,8 +122,9 @@ export function ExperimentalHostCommandCenter({
 
       {isCompleted && (
         <div className="mt-4 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm" data-testid="host-completed-summary">
-          <p className="font-semibold">Turniej zakończony{championName ? ` — wygrywa ${championName}` : ""}.</p>
-          <p className="mt-1 text-muted-foreground">Co dalej: sprawdź końcową tabelę, pokaż wyniki widzom i zapisz kopię zapasową.</p>
+          {/* V5.6: the winner is named once, in the heading above. */}
+          <p className="font-semibold">Co dalej</p>
+          <p className="mt-1 text-muted-foreground">Sprawdź końcową tabelę, pokaż wyniki widzom i zapisz kopię zapasową.</p>
           <div className="mt-2 flex flex-wrap gap-2">
             <Link href={tournamentHref(tournamentId, true, "?tab=standings")} className={linkClass}><Trophy className="h-4 w-4" aria-hidden="true" />Końcowa tabela</Link>
             <Link href={tournamentHref(tournamentId, true, "/audience")} className={linkClass}><Eye className="h-4 w-4" aria-hidden="true" />Widok widzów</Link>

@@ -252,7 +252,7 @@ export function StageProgressView({
                   matches={selectedMatches}
                   title={
                     selected.status === "completed"
-                      ? "Zamrożony ranking etapu"
+                      ? "Końcowe miejsca etapu"
                       : "Ranking bieżący etapu"
                   }
                 />
