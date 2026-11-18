@@ -134,7 +134,7 @@ export function buildLiveStageStandings(input: {
     status: stage.status,
     final,
     leagueRules: rules,
-    rulesSummary: rules ? describeLeagueRules(rules) : null,
+    rulesSummary: rules ? describeLeagueRules(rules, { sets: matchRules != null }) : null,
     matchRules,
     matchRulesSummary: describeMatchRules(matchRules, { bestOf: stage.bestOf, allowDraws: !!rules?.allowDraws }),
   };
@@ -192,7 +192,7 @@ export async function getLiveStageStandings(input: { tournamentId: number; stage
     const matchRules = matchRulesFromStorage(stage.matchRules);
     return {
       stageId: stage.id, format: stage.format, status: stage.status, final: false,
-      leagueRules: rules, rulesSummary: rules ? describeLeagueRules(rules) : null,
+      leagueRules: rules, rulesSummary: rules ? describeLeagueRules(rules, { sets: matchRules != null }) : null,
       matchRules, matchRulesSummary: describeMatchRules(matchRules, { bestOf: stage.bestOf, allowDraws: !!rules?.allowDraws }),
       advancingPlaces: stage.format === "group_stage" ? stage.qualifiersPerGroup ?? null : stage.advancingCount ?? null,
       tables: [],

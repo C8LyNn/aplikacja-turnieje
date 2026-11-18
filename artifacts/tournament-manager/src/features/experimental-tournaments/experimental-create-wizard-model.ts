@@ -161,6 +161,14 @@ export function bestOfLabel(bestOf: number): string {
   return bestOf <= 1 ? "Jedna gra" : `Do ${Math.ceil(bestOf / 2)} wygranych`;
 }
 
+/** V5.7: match length of a stage — sets when it plays sets; otherwise games (Experimental) or BO (Stable). */
+export function matchLengthText(stage: { bestOf?: number | null; matchRules?: MatchRules | null } | null | undefined, experimental: boolean): string {
+  const rules = stage?.matchRules;
+  if (rules?.kind === "sets") return experimental ? `do ${rules.setsToWin} wygranych setów` : `sety do ${rules.setsToWin}`;
+  const bestOf = stage?.bestOf ?? 1;
+  return experimental ? bestOfLabel(bestOf).toLowerCase() : `BO${bestOf}`;
+}
+
 export const WIZARD_STEPS = [
   { id: "needs", label: "Rozgrywki" },
   { id: "format", label: "Format" },
@@ -495,6 +503,8 @@ export function buildCreatePayload(
     ...(preview.creation.swissRounds != null ? { swissRounds: preview.creation.swissRounds } : {}),
     ...(stagePlan ? { stagePlan: withFreshDrawKeys(stagePlan, drawKey) } : {}),
     ...(!preview.creation.stagePlan && preview.creation.leagueRules ? { leagueRules: preview.creation.leagueRules } : {}),
+    // V5.7: a single-stage (flexible) tournament carries its match rules directly; a plan has them per stage.
+    ...(!preview.creation.stagePlan && preview.creation.matchRules ? { matchRules: preview.creation.matchRules } : {}),
     ...flexibleSchedule,
     organizerPassword: secrets.organizerPassword,
     supportPassword: secrets.supportPassword.trim() || undefined,

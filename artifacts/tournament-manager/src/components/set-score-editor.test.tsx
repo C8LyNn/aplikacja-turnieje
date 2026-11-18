@@ -26,7 +26,7 @@ test("keyboard entry: typing sets shows the tally, what is missing and the winne
   const b1 = screen.getByRole("spinbutton", { name: "Set 1 — Lwy" });
   await user.clear(b1); await user.type(b1, "7");
   assert.match(editor.textContent ?? "", /Sety1:0/);
-  assert.match(editor.textContent ?? "", /zawodnikowi A — 1 set, zawodnikowi B — 2 sety/);
+  assert.match(editor.textContent ?? "", /Do zwycięstwa brakuje: Wilki — 1 set, Lwy — 2 sety/);
   await user.click(screen.getByRole("button", { name: "Dodaj set 2" }));
   const a2 = screen.getByRole("spinbutton", { name: "Set 2 — Wilki" });
   await user.clear(a2); await user.type(a2, "12");

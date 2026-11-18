@@ -28,7 +28,7 @@ export function SetScoreEditor({
   onChange?: (sets: SetScore[]) => void;
 }) {
   const id = useId();
-  const progress = setMatchProgress(sets, rules);
+  const progress = setMatchProgress(sets, rules, { player1: player1Name, player2: player2Name });
   const value = progress.ok ? progress.value : null;
   const change = (index: number, side: 1 | 2, next: number) => {
     if (!onChange) return;
@@ -43,6 +43,13 @@ export function SetScoreEditor({
         <strong className="set-score-editor-tally-value tabular-nums">{value ? `${value.setsWon1}:${value.setsWon2}` : "–"}</strong>
         {value && (value.points1 > 0 || value.points2 > 0) && <span className="set-score-editor-points tabular-nums">małe punkty {value.points1}:{value.points2}</span>}
       </div>
+      {sets.length > 0 && (
+        <div className="set-score-editor-head" aria-hidden="true">
+          <span />
+          <span title={player1Name}>{player1Name}</span>
+          <span title={player2Name}>{player2Name}</span>
+        </div>
+      )}
       <ol className="set-score-editor-list">
         {sets.map((set, index) => {
           const state = setState(set, rules, index);

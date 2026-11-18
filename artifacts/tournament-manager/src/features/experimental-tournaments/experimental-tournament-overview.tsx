@@ -19,7 +19,8 @@ import {
   ExperimentalStatusPill,
 } from "@/features/experimental-tournaments/experimental-ui";
 import { tournamentHref } from "@/features/experimental-tournaments/experimental-tournament-routing";
-import { bestOfLabel } from "@/features/experimental-tournaments/experimental-create-wizard-model";
+import { matchLengthText } from "@/features/experimental-tournaments/experimental-create-wizard-model";
+import type { MatchRules } from "@workspace/match-rules";
 
 type OverviewPlayer = {
   id?: number;
@@ -96,6 +97,7 @@ export function ExperimentalTournamentOverview({
   stageName,
   roundLabel,
   bestOf,
+  matchRules,
   stats,
   statsLoading,
   statsError,
@@ -109,6 +111,8 @@ export function ExperimentalTournamentOverview({
   stageName?: string | null;
   roundLabel: string;
   bestOf?: number | null;
+  /** V5.7: set stages show their set length. */
+  matchRules?: MatchRules | null;
   stats?: OverviewStats;
   statsLoading: boolean;
   statsError: boolean;
@@ -214,7 +218,7 @@ export function ExperimentalTournamentOverview({
             label="Format"
             tone="info"
             value={formatLabel}
-            meta={`${stageName || "Etap"} · ${bestOfLabel(bestOf ?? 1).toLowerCase()}`}
+            meta={`${stageName || "Etap"} · ${matchLengthText({ bestOf, matchRules }, true)}`}
             icon={Brackets}
           />
         </div>

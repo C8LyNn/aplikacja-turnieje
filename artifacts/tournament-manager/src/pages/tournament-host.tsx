@@ -537,7 +537,7 @@ export default function TournamentHost() {
   const markSaveFailed = (matchId: number, label: string, error: unknown) => {
     const kind = saveFailureKind(error);
     const message = kind === "session"
-      ? `Sesja wygasła albo nie masz już uprawnień — nic nie zapisano. Zaloguj się ponownie; ${label} czeka w tym formularzu, także po odświeżeniu strony.`
+      ? `Sesja wygasła albo nie masz już uprawnień — nic nie zapisano. Zaloguj się ponownie. ${label} czeka w tym formularzu, także po odświeżeniu strony.`
       : kind === "network"
         ? `Nie udało się potwierdzić zapisu (brak połączenia albo błąd serwera). ${label} został w formularzu — spróbuj ponownie. Ponowienie nie zapisze wyniku drugi raz.`
         : matchOperationError(error).message;
@@ -802,6 +802,12 @@ export default function TournamentHost() {
         },
       },
     );
+  };
+
+  /** V5.7: list tag for match length — sets for set stages, BO for series. */
+  const matchLengthTag = (m: { stageId?: number | null; bestOf?: number | null }) => {
+    const rules = stages?.find((stage) => stage.id === m.stageId)?.matchRules;
+    return rules ? `sety do ${rules.setsToWin}` : `BO${m.bestOf}`;
   };
 
   const handleTryComplete = (matchId: number, match: any) => {
@@ -1232,6 +1238,8 @@ export default function TournamentHost() {
             {/* BO selector — hidden in a draw league: a draw needs a single game (V5.3) */}
             {allowDraws ? (
               <span className="text-xs text-muted-foreground" title="W lidze z remisami mecz to jedna gra (wynik: gole lub punkty).">jedna gra · remis możliwy</span>
+            ) : setRules ? (
+              <span className="text-xs text-muted-foreground" title="Długość meczu wynika z zasad etapu i zmienia się tylko przed jego startem.">do {setRules.setsToWin} wygranych setów</span>
             ) : (
             <div className="flex items-center gap-0.5 bg-background border rounded p-0.5" role={isExperimental ? "group" : undefined} aria-label={isExperimental ? "Długość meczu" : undefined}>
               {([1, 3, 5, 7] as const).map((n) => (
@@ -1302,10 +1310,10 @@ export default function TournamentHost() {
             <p className="text-sm">Twój wynik roboczy dotyczy starszej wersji meczu — w międzyczasie mecz zmienił się (np. w innym oknie albo u innej osoby). Sprawdź aktualnych zawodników i wynik, a potem zacznij od nowa.</p>
             <div className="rounded-md border bg-background p-3 text-sm">
               <p className="font-semibold">Aktualny stan meczu</p>
-              <p>{focusedMatch.player1Name ?? "Oczekuje na gracza"} – {focusedMatch.player2Name ?? "Oczekuje na gracza"} · {isExperimental ? bestOfLabel(bo).toLowerCase() : `BO${bo}`} · {MATCH_STATUS_LABELS[focusedMatch.status] ?? "Nieznany"}</p>
-              <p>Aktualny wynik: {isDone ? completedResultLabel : `${focusedMatch.score1 ?? 0}:${focusedMatch.score2 ?? 0}`}</p>
+              <p>{focusedMatch.player1Name ?? "Oczekuje na gracza"} – {focusedMatch.player2Name ?? "Oczekuje na gracza"} · {setRules ? `do ${setRules.setsToWin} wygranych setów` : isExperimental ? bestOfLabel(bo).toLowerCase() : `BO${bo}`} · {MATCH_STATUS_LABELS[focusedMatch.status] ?? "Nieznany"}</p>
+              <p>Aktualny wynik: {isDone ? completedResultLabel : `${focusedMatch.score1 ?? 0}:${focusedMatch.score2 ?? 0}`}{focusedMatch.sets?.length ? ` (sety ${setsText(focusedMatch.sets)})` : ""}</p>
             </div>
-            <p className="text-sm text-muted-foreground">Nieaktualny wynik roboczy (niezapisany): {originalMatch?.player1Name} – {originalMatch?.player2Name}. {walkoverConfirm === focusedMatch.id ? "Walkower." : noContestConfirm === focusedMatch.id ? "No contest." : `Twój wynik roboczy: ${scores[focusedMatch.id]?.s1 ?? 0}:${scores[focusedMatch.id]?.s2 ?? 0}.`}</p>
+            <p className="text-sm text-muted-foreground">Nieaktualny wynik roboczy (niezapisany): {originalMatch?.player1Name} – {originalMatch?.player2Name}. {walkoverConfirm === focusedMatch.id ? "Walkower." : noContestConfirm === focusedMatch.id ? "No contest." : scores[focusedMatch.id]?.sets ? `Twój wynik roboczy: sety ${setsText(scores[focusedMatch.id]!.sets) || "–"}.` : `Twój wynik roboczy: ${scores[focusedMatch.id]?.s1 ?? 0}:${scores[focusedMatch.id]?.s2 ?? 0}.`}</p>
             <p role="status" className="text-sm">{hostPending || matchesQuery.isFetching ? "Odświeżanie aktualnego meczu…" : "Aktualny mecz został odświeżony. Stary wynik nie zostanie przeniesiony do nowej edycji."}</p>
             <Button className="h-auto whitespace-normal text-left" disabled={hostPending || matchesQuery.isFetching || !matchesQuery.isSuccess} onClick={() => {
               if (hostPending || matchesQuery.isFetching || !matchesQuery.isSuccess) return;
@@ -1716,7 +1724,7 @@ export default function TournamentHost() {
               </div>
             );
           })()}
-          {!isDone && !isCancelled && !conflictedDraft && (scores[focusedMatch.id] || !isExperimental) && (
+          {!isDone && !isCancelled && !conflictedDraft && (scores[focusedMatch.id] || (!isExperimental && !setRules)) && (
             <p className="mt-3 text-sm text-muted-foreground">
               {scores[focusedMatch.id]
                 ? isExperimental
@@ -2054,7 +2062,7 @@ export default function TournamentHost() {
                                 </Badge>
                                 <span className="text-xs text-muted-foreground">M{m.matchNumber}</span>
                                 {m.bestOf && m.bestOf > 1 && (
-                                  <span className="text-[10px] text-muted-foreground/60">BO{m.bestOf}</span>
+                                  <span className="text-[10px] text-muted-foreground/60">{matchLengthTag(m)}</span>
                                 )}
                               </div>
                               <div className="text-sm font-medium truncate">
@@ -2155,6 +2163,7 @@ export default function TournamentHost() {
                               </span>
                             </div>
                           )}
+                          {m.sets?.length ? <p className="mt-1 text-center text-xs text-muted-foreground tabular-nums" title="Wyniki setów">Sety: {setsText(m.sets)}</p> : null}
                           {capabilities.canWriteTournamentResults && m.resultType !== "bye" && <Button variant="ghost" size="sm" className="mt-1" aria-label={`Popraw wynik: ${m.player1Name} – ${m.player2Name}`} onClick={() => openCorrection(m.id)}>Popraw wynik</Button>}
                         </div>
                       ))}
@@ -2177,7 +2186,7 @@ export default function TournamentHost() {
                         <div className="flex items-center gap-1.5">
                           <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-orange-500/30 text-orange-400/70 shrink-0">R{m.round}</Badge>
                           <span className="text-xs text-muted-foreground">M{m.matchNumber}</span>
-                          {m.bestOf && m.bestOf > 1 && <span className="text-[10px] text-muted-foreground/60">BO{m.bestOf}</span>}
+                          {m.bestOf && m.bestOf > 1 && <span className="text-[10px] text-muted-foreground/60">{matchLengthTag(m)}</span>}
                         </div>
                         <div className="text-sm truncate">
                           {m.player1Name || "TBD"} <span className="text-muted-foreground">vs</span> {m.player2Name || "TBD"}
@@ -2210,7 +2219,7 @@ export default function TournamentHost() {
                         <div className="flex items-center gap-1.5">
                           <Badge variant="outline" className="text-[10px] px-1.5 py-0 border-destructive/30 text-destructive/60 shrink-0">R{m.round}</Badge>
                           <span className="text-xs text-muted-foreground">M{m.matchNumber}</span>
-                          {m.bestOf && m.bestOf > 1 && <span className="text-[10px] text-muted-foreground/60">BO{m.bestOf}</span>}
+                          {m.bestOf && m.bestOf > 1 && <span className="text-[10px] text-muted-foreground/60">{matchLengthTag(m)}</span>}
                         </div>
                         <div className="text-sm truncate">
                           {m.player1Name || "TBD"} <span className="text-muted-foreground">vs</span> {m.player2Name || "TBD"}
@@ -2498,7 +2507,7 @@ export default function TournamentHost() {
               <DialogHeader>
                 <DialogTitle>Cofnąć wynik meczu {match?.player1Name} – {match?.player2Name}?</DialogTitle>
                 <DialogDescription>
-                  Zapisany wynik: {match ? matchResultLabel(match) : "N/C"}.
+                  Zapisany wynik: {match ? matchResultLabel(match) : "N/C"}{match?.sets?.length ? ` (sety ${setsText(match.sets)})` : ""}.
                   {" "}Po cofnięciu wpiszesz i zapiszesz poprawny wynik. Ranking i awans zostaną przeliczone.
                   {downstream !== undefined && downstream > 0
                     ? ` Cofnięcie unieważni także ${downstream} późniejszych wyników i powiązane wybory postaci.`

@@ -83,6 +83,8 @@ export interface StandingLike {
   matchDraws?: number;
   decidedBy?: string | null;
   tiedAfterAllRules?: boolean;
+  /** V5.7: set stages report set points (null otherwise). */
+  setPointsFor?: number | null;
 }
 
 /** True when the table is ranked by league points (V5.3 league rules). */
@@ -98,14 +100,27 @@ export const DECIDED_BY_LABELS: Readonly<Record<string, string>> = Object.freeze
   seed: "rozstawienie (remis po wszystkich kryteriach)",
 });
 
+/** V5.7: in a set stage the match score counts sets. */
+export const DECIDED_BY_SET_LABELS: Readonly<Record<string, string>> = Object.freeze({
+  ...DECIDED_BY_LABELS,
+  score_difference: "różnica setów",
+  scored: "więcej wygranych setów",
+});
+
+/** True when the rows come from a set stage. */
+export function standingsHaveSets(rows: readonly StandingLike[] | null | undefined): boolean {
+  return !!rows && rows.some((row) => row.setPointsFor != null);
+}
+
 /** Plain sentences explaining every place decided by something other than points. */
 export function standingsTieNotes(rows: readonly StandingLike[] | null | undefined): string[] {
   if (!rows || !standingsHavePoints(rows)) return [];
   const notes: string[] = [];
+  const labels = standingsHaveSets(rows) ? DECIDED_BY_SET_LABELS : DECIDED_BY_LABELS;
   rows.forEach((row, index) => {
     if (index === 0 || !row.decidedBy || row.decidedBy === "points") return;
     const above = rows[index - 1]!;
-    notes.push(`${above.playerName} przed ${row.playerName} (po ${row.points ?? 0} pkt): ${DECIDED_BY_LABELS[row.decidedBy] ?? row.decidedBy}.`);
+    notes.push(`${above.playerName} przed ${row.playerName} (po ${row.points ?? 0} pkt): ${labels[row.decidedBy] ?? row.decidedBy}.`);
   });
   return notes;
 }

@@ -604,7 +604,7 @@ export function summarizeCustomPlan(plan: TournamentStagesPlan): PresetPreview {
     tieRules: plan.stages.map((stage) => {
       const rules = (stage.format === "round_robin" || stage.format === "group_stage") ? stage.leagueRules : undefined;
       return rules
-        ? `${stage.name}: ${describeLeagueRules(rules)}`
+        ? `${stage.name}: ${describeLeagueRules(rules, { sets: stage.matchRules != null })}`
         : `${stage.name}: remisów nie ma — każdy mecz musi mieć zwycięzcę.`;
     }),
     leagueRules: plan.stages.map((stage) => (stage.format === "round_robin" || stage.format === "group_stage") ? stage.leagueRules ?? null : null).find((rules) => rules != null) ?? null,

@@ -216,12 +216,28 @@ export const LEAGUE_TIE_BREAKER_LABELS: Readonly<Record<LeagueTieBreaker, string
   wins: "liczba zwycięstw",
 });
 
+/** V5.7: in a set stage the match score counts sets, so the same tie-breakers read as sets (no new rule). */
+export const SET_TIE_BREAKER_LABELS: Readonly<Record<LeagueTieBreaker, string>> = Object.freeze({
+  head_to_head: "mecze bezpośrednie",
+  score_difference: "różnica setów",
+  scored: "wygrane sety",
+  wins: "liczba zwycięstw",
+});
+
+/** Rewrites a describeLeagueRules sentence for a set stage (used where the sentence is built before the rules). */
+export function withSetTieWording(text: string): string {
+  let out = text;
+  for (const key of Object.keys(LEAGUE_TIE_BREAKER_LABELS) as LeagueTieBreaker[]) out = out.replace(LEAGUE_TIE_BREAKER_LABELS[key], SET_TIE_BREAKER_LABELS[key]);
+  return out;
+}
+
 /** One-line, plain-language description used by the API (`explanation`) and the UI. */
-export function describeLeagueRules(rules: LeagueRules): string {
+export function describeLeagueRules(rules: LeagueRules, options: { sets?: boolean } = {}): string {
+  const labels = options.sets ? SET_TIE_BREAKER_LABELS : LEAGUE_TIE_BREAKER_LABELS;
   const points = `zwycięstwo ${rules.points.win} pkt${rules.allowDraws ? `, remis ${rules.points.draw} pkt` : ""}, porażka ${rules.points.loss} pkt`;
   const draws = rules.allowDraws ? "Remisy dozwolone." : "Bez remisów — każdy mecz ma zwycięzcę.";
   const order = rules.tieBreakers.length > 0
-    ? `Przy równej liczbie punktów decydują kolejno: ${rules.tieBreakers.map((entry) => LEAGUE_TIE_BREAKER_LABELS[entry]).join(", ")}; na końcu rozstawienie.`
+    ? `Przy równej liczbie punktów decydują kolejno: ${rules.tieBreakers.map((entry) => labels[entry]).join(", ")}; na końcu rozstawienie.`
     : "Przy równej liczbie punktów decyduje rozstawienie.";
   return `Punktacja: ${points}. ${draws} ${order}`;
 }

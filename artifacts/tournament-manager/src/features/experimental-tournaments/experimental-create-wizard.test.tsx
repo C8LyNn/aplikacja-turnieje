@@ -486,3 +486,13 @@ test("V5.7: a beginner picks set rules in Tune, sees the plain summary, goes bac
     assert.equal(stage.bestOf, 3);
   }
 });
+
+test("V5.7 payload: a single-stage set preset sends its match rules; presets without sets send none", () => {
+  const cup = previewPreset({ presetId: "single_elimination", params: { participantCount: 8, setsToWin: 3, setPoints: 25, setWinBy: 2 } }) as unknown as PresetPreview;
+  const payload = buildCreatePayload(cup, { name: "Puchar setowy", description: "", visibility: "public_online" }, { organizerPassword: "password-123", supportPassword: "", viewerPassword: "" });
+  assert.deepEqual(payload.matchRules, { version: 1, kind: "sets", setsToWin: 3, pointsPerSet: 25, winBy: 2 });
+  assert.equal(payload.defaultBestOf, 5, "match length follows the sets");
+  const plain = previewPreset({ presetId: "single_elimination", params: { participantCount: 8, bestOf: 3 } }) as unknown as PresetPreview;
+  const plainPayload = buildCreatePayload(plain, { name: "Puchar", description: "", visibility: "public_online" }, { organizerPassword: "password-123", supportPassword: "", viewerPassword: "" });
+  assert.equal("matchRules" in plainPayload, false);
+});

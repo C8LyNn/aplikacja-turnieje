@@ -9,7 +9,7 @@ import {
   type LiveStageStandings,
   type LiveStageTable,
 } from "@workspace/api-client-react";
-import { DECIDED_BY_LABELS } from "@/lib/league-results";
+import { DECIDED_BY_LABELS, DECIDED_BY_SET_LABELS } from "@/lib/league-results";
 
 export function useStageLiveStandings(tournamentId: number, stageId: number | undefined, options: { enabled?: boolean; refetchInterval?: number } = {}) {
   return useGetStageLiveStandings(tournamentId, stageId ?? 0, {
@@ -57,7 +57,7 @@ export function LiveTable({
     ? table.rows.flatMap((row, index) => {
         if (index === 0 || !row.decidedBy || row.decidedBy === "points") return [];
         const above = table.rows[index - 1];
-        return [`${above.playerName} przed ${row.playerName}: ${DECIDED_BY_LABELS[row.decidedBy] ?? row.decidedBy}.`];
+        return [`${above.playerName} przed ${row.playerName}: ${(sets ? DECIDED_BY_SET_LABELS : DECIDED_BY_LABELS)[row.decidedBy] ?? row.decidedBy}.`];
       })
     : [];
   return (

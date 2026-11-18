@@ -46,7 +46,7 @@ function leagueFields(stage: typeof tournamentStagesTable.$inferSelect) {
   const matchRules = matchRulesFromStorage(stage.matchRules);
   return {
     leagueRules: rules,
-    leagueRulesSummary: rules ? describeLeagueRules(rules) : null,
+    leagueRulesSummary: rules ? describeLeagueRules(rules, { sets: matchRules != null }) : null,
     // V5.7: what decides a match, in plain words for every stage (also the existing series / draw meaning).
     matchRules,
     matchRulesSummary: describeMatchRules(matchRules, { bestOf: stage.bestOf, allowDraws: !!rules?.allowDraws }),

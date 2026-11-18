@@ -80,3 +80,19 @@ test("rules parse strictly, describe themselves plainly and fit the stage", () =
   // Preset names describe the rules, never a sport.
   for (const preset of MATCH_RULE_PRESETS) assert.doesNotMatch(preset.label, /siatk|tenis|badminton|squash|ping|volley/i);
 });
+
+test("a set stage reads the same tie-breakers as sets; the order and the rules stay as they are", async () => {
+  const { describeLeagueRules, withSetTieWording, LEAGUE_TIE_BREAKER_LABELS } = await import("../src/domain/tournament/league-rules");
+  const { previewPreset } = await import("../src/domain/tournament/tournament-presets");
+  const rules = { version: 1 as const, allowDraws: false, points: { win: 3, draw: 1, loss: 0 }, tieBreakers: ["head_to_head", "score_difference", "scored", "wins"] as const };
+  const plain = describeLeagueRules({ ...rules, tieBreakers: [...rules.tieBreakers] });
+  const sets = describeLeagueRules({ ...rules, tieBreakers: [...rules.tieBreakers] }, { sets: true });
+  assert.match(plain, /mecze bezpośrednie, różnica wyników, zdobyte \(gole\/punkty\), liczba zwycięstw/);
+  assert.match(sets, /mecze bezpośrednie, różnica setów, wygrane sety, liczba zwycięstw/);
+  assert.equal(withSetTieWording(plain), sets);
+  assert.equal(LEAGUE_TIE_BREAKER_LABELS.score_difference, "różnica wyników", "older stages keep their wording");
+  const withSets = previewPreset({ presetId: "round_robin", params: { participantCount: 6, setsToWin: 2 } });
+  assert.match(withSets.tieRules.join(" "), /różnica setów, wygrane sety/);
+  const without = previewPreset({ presetId: "round_robin", params: { participantCount: 6 } });
+  assert.match(without.tieRules.join(" "), /różnica wyników, zdobyte \(gole\/punkty\)/);
+});

@@ -7,7 +7,7 @@ import {
 } from "@/features/experimental-tournaments/experimental-participant-fields";
 import { formValuesToPayload, missingRequired } from "@/features/experimental-tournaments/participant-fields-model";
 import { LeagueTableNotes } from "@/components/league-table-notes";
-import { standingsHavePoints } from "@/lib/league-results";
+import { standingsHavePoints, standingsHaveSets } from "@/lib/league-results";
 import { ReadQueryState } from "@/components/read-query-state";
 import { useSearch, Link } from "wouter";
 import { Layout } from "@/components/layout";
@@ -75,7 +75,7 @@ import { usePresentationTheme, resolvePresentationSettings } from "@/lib/present
 import { MATCH_STATUS_LABELS } from "@/lib/match-operation-feedback";
 import { PLAYER_STATUS_LABELS, TOURNAMENT_STATUS_LABELS } from "@/lib/tournament-stages-ui";
 import { tournamentHref, useTournamentRoute } from "@/features/experimental-tournaments/experimental-tournament-routing";
-import { bestOfLabel } from "@/features/experimental-tournaments/experimental-create-wizard-model";
+import { matchLengthText } from "@/features/experimental-tournaments/experimental-create-wizard-model";
 import { ExperimentalTournamentContextBar } from "@/features/experimental-tournaments/experimental-tournament-context-bar";
 import { ExperimentalTournamentChecklist } from "@/features/experimental-tournaments/experimental-tournament-checklist";
 import { ExperimentalPlayerToolbar, type ExperimentalPlayerSort, type ExperimentalPlayerStatusFilter } from "@/features/experimental-tournaments/experimental-player-toolbar";
@@ -723,7 +723,7 @@ export default function TournamentDetail() {
             {tournament.description && <p className="text-muted-foreground">{tournament.description}</p>}
             <p className="text-sm text-muted-foreground mt-1">
               {operation.stage?.name} · {FORMAT_LABELS[operation.stage?.format ?? tournament.format] ?? operation.stage?.format}
-              {` · ${operation.summary.roundLabel} · ${isExperimental ? bestOfLabel(operation.stage?.bestOf ?? tournament.defaultBestOf ?? 1).toLowerCase() : `BO${operation.stage?.bestOf ?? tournament.defaultBestOf}`}`}
+              {` · ${operation.summary.roundLabel} · ${matchLengthText(operation.stage ?? { bestOf: tournament.defaultBestOf }, isExperimental)}`}
             </p>
             <div className="mt-2">
               <ForcedHeroBadge gameConfig={tournament.gameConfig} />
@@ -930,6 +930,7 @@ export default function TournamentDetail() {
                 stageName={operation.stage?.name}
                 roundLabel={operation.summary.roundLabel}
                 bestOf={operation.stage?.bestOf ?? tournament.defaultBestOf}
+                matchRules={operation.stage?.matchRules ?? null}
                 stats={stats}
                 statsLoading={statsQuery.isLoading}
                 statsError={statsQuery.isError}
@@ -1580,7 +1581,7 @@ export default function TournamentDetail() {
                           </div>
                           <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs text-muted-foreground">
                             <div><strong className="block text-base text-foreground">{s.points != null ? `${s.points} pkt` : `${s.matchWins}-${s.matchLosses}`}</strong>{s.points != null ? `${s.matchWins}-${s.matchDraws ?? 0}-${s.matchLosses}` : "Mecze"}</div>
-                            <div><strong className="block text-base text-foreground">{s.gameWins}:{s.gameLosses}</strong>Gry</div>
+                            <div><strong className="block text-base text-foreground">{s.gameWins}:{s.gameLosses}</strong>{standingsHaveSets(standings) ? "Sety" : "Gry"}</div>
                             <div><strong className="block text-base text-foreground">{s.gameDiff > 0 ? "+" : ""}{s.gameDiff}</strong>Różnica</div>
                           </div>
                         </div>
@@ -1599,9 +1600,10 @@ export default function TournamentDetail() {
                           <th className="py-2 px-2 text-center">W</th>
                           {standingsHavePoints(standings) && <th className="py-2 px-2 text-center" title="Remisy">R</th>}
                           <th className="py-2 px-2 text-center">P</th>
-                          <th className="py-2 px-2 text-center">{standingsHavePoints(standings) ? "Bilans" : "Gry"}</th>
+                          <th className="py-2 px-2 text-center" title={standingsHaveSets(standings) ? "Wygrane i przegrane sety" : undefined}>{standingsHaveSets(standings) ? "Sety" : standingsHavePoints(standings) ? "Bilans" : "Gry"}</th>
+                          {standingsHaveSets(standings) && <th className="py-2 px-2 text-center" title="Małe punkty: suma punktów zdobytych i straconych w setach (informacyjnie, nie rozstrzyga miejsc)">Małe pkt</th>}
                           {(!isExperimental || standings.some((row) => row.buchholz != null)) && <th className="py-2 px-2 text-center" title="Buchholz: suma punktów rywali (system szwajcarski)">Buchh.</th>}
-                          <th className="py-2 px-2 text-center">+/-</th>
+                          <th className="py-2 px-2 text-center" title={standingsHaveSets(standings) ? "Różnica setów" : undefined}>+/-</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1626,6 +1628,7 @@ export default function TournamentDetail() {
                             {standingsHavePoints(standings) && <td className="py-2 px-2 text-center text-muted-foreground">{s.matchDraws ?? 0}</td>}
                             <td className="py-2 px-2 text-center text-red-400">{s.matchLosses}</td>
                             <td className="py-2 px-2 text-center font-mono">{s.gameWins}:{s.gameLosses}</td>
+                            {standingsHaveSets(standings) && <td className="py-2 px-2 text-center font-mono text-muted-foreground">{s.setPointsFor ?? 0}:{s.setPointsAgainst ?? 0}</td>}
                             {(!isExperimental || standings.some((row) => row.buchholz != null)) && <td className="py-2 px-2 text-center text-muted-foreground">{s.buchholz ?? "—"}</td>}
                             <td className="py-2 px-2 text-center text-muted-foreground">
                               <span className={s.gameDiff > 0 ? "text-green-400" : s.gameDiff < 0 ? "text-red-400" : ""}>

@@ -9,7 +9,7 @@ import { describeMatchRules, type MatchRules } from "@workspace/match-rules";
  * Pure and deterministic — nothing here touches the database.
  */
 import { compileV1StagePlanToRoutingV2, doubleEliminationFormatEngineV2 } from "./v2";
-import { describeLeagueRules, parseLeagueRules, type LeagueRules } from "./league-rules";
+import { describeLeagueRules, parseLeagueRules, withSetTieWording, type LeagueRules } from "./league-rules";
 import type { SchedulePlan } from "./league-schedule";
 import { calculateBalancedGroupSizes, calculateGroupAdvancingCount } from "./group-stage";
 import { nextPowerOfTwo } from "./stage-placement";
@@ -272,7 +272,7 @@ export const PRESET_PARAM_TEXT: Record<PresetParamKey, { label: string; help: st
   entrySeeding: { label: "Kolejność na starcie", help: "Kolejność zgłoszeń, losowanie przed startem albo numery rozstawienia nadane ręcznie." },
   groupPlacement: { label: "Podział do grup", help: "Wężykiem: najwyżej rozstawieni trafiają do różnych grup. Losowo: grupy z losowania." },
   qualifierSeeding: { label: "Rozstawienie w play-off", help: "Zwycięzcy grup przed drugimi miejscami albo jeden ranking wszystkich awansujących." },
-  setsToWin: { label: "Mecz na sety", help: "0 = bez setów (seria gier albo jedna gra). Inaczej: ile setów trzeba wygrać, aby wygrać mecz. Długość meczu wynika wtedy z setów." },
+  setsToWin: { label: "Mecz na sety", help: "Ile setów trzeba wygrać, aby wygrać mecz. Długość meczu wynika wtedy z setów; „Bez setów” wraca do zwykłego meczu (jedna gra albo seria gier)." },
   setPoints: { label: "Set do … punktów", help: "Ile punktów trzeba zdobyć, aby wygrać set." },
   setWinBy: { label: "Przewaga w secie", help: "2 = przy remisie blisko końca seta gra się dalej, aż ktoś zdobędzie 2 punkty przewagi." },
 };
@@ -448,7 +448,7 @@ function build(presetId: PresetId, rawInput: PresetParams, accurate: boolean): B
     const derived = (2 * setsToWin - 1) as StageBestOf;
     for (const key of ["bestOf", "playoffBestOf"] as const) {
       if (rawInput[key] != null && rawInput[key] !== derived) {
-        throw new PresetError("PRESET_PARAM_CONFLICT", `${PRESET_PARAM_TEXT[key].label} wynika z zasad setów: do ${setsToWin} wygranych setów to najwyżej ${derived} setów. Usuń to ustawienie albo wybierz mecz bez setów.`, key);
+        throw new PresetError("PRESET_PARAM_CONFLICT", `${PRESET_PARAM_TEXT[key].label} wynika z zasad setów: do ${setsToWin} wygranych setów to najwyżej ${derived} ${derived === 1 ? "set" : derived <= 4 ? "sety" : "setów"}. Usuń to ustawienie albo wybierz mecz bez setów.`, key);
       }
     }
     if (rawInput.allowDraws === 1) {
@@ -466,6 +466,7 @@ function build(presetId: PresetId, rawInput: PresetParams, accurate: boolean): B
     built.params.setWinBy = setWinBy;
     built.matchRules = matchRules;
     built.stages = built.stages.map((stage) => ({ ...stage, matchRules: matchRules! }));
+    built.tieRules = built.tieRules.map(withSetTieWording);
   }
   const entry = pick(input.entrySeeding, [0, 1, 2], 0, "entrySeeding");
   built.paramLimits.push(limit("entrySeeding", [0, 1, 2], entry));

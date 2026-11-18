@@ -66,7 +66,8 @@ import {
 import { SeedingCeremony } from "@/components/seeding-ceremony";
 import { deriveStageBasketFlowCounts } from "@workspace/stage-basket-flow";
 import { isExperimentalTournamentPath, tournamentHref } from "@/features/experimental-tournaments/experimental-tournament-routing";
-import { bestOfLabel } from "@/features/experimental-tournaments/experimental-create-wizard-model";
+import { matchLengthText } from "@/features/experimental-tournaments/experimental-create-wizard-model";
+import type { MatchRules } from "@workspace/match-rules";
 import type { SeedingCeremonyState } from "@/lib/seeding-ceremony-api";
 import { LiveTablesLegend, StageLiveTables, useStageLiveStandings } from "@/components/stage-live-tables";
 import { stageHasTable } from "@/lib/audience-views";
@@ -135,7 +136,7 @@ export function StageNavigation({
   participantCounts?: ReadonlyMap<number, number>;
 }) {
   const [navigationLocation] = useLocation();
-  const matchLength = (bestOf: number) => isExperimentalTournamentPath(navigationLocation) ? bestOfLabel(bestOf).toLowerCase() : `BO${bestOf}`;
+  const matchLength = (stage: TournamentStage) => matchLengthText(stage, isExperimentalTournamentPath(navigationLocation));
   return (
     <div
       className="organizer-stage-navigation grid gap-3"
@@ -178,7 +179,7 @@ export function StageNavigation({
               <span>{stage.name}</span>
             </div>
             <p className="mt-1 text-xs text-muted-foreground">
-              {STAGE_FORMAT_LABELS[stage.format]} · {matchLength(stage.bestOf)} ·{" "}
+              {STAGE_FORMAT_LABELS[stage.format]} · {matchLength(stage)} ·{" "}
               {(stage.status === "planned" ? participantCounts?.get(stage.id) : undefined) ?? stage.participantCount} graczy{stage.status === "planned" ? " (plan)" : ""}
             </p>
           </button>
@@ -292,10 +293,10 @@ export function ParticipantTable({
   );
 }
 
-function MatchList({ matches }: { matches: Match[] }) {
-  // V5.6: Experimental says "jedna gra / do 2 wygranych" everywhere, Stable keeps BO.
+function MatchList({ matches, matchRules }: { matches: Match[]; matchRules?: MatchRules | null }) {
+  // V5.6: Experimental says "jedna gra / do 2 wygranych" everywhere, Stable keeps BO; V5.7: set stages say sets.
   const [navigationLocation] = useLocation();
-  const matchLength = (bestOf: number) => isExperimentalTournamentPath(navigationLocation) ? bestOfLabel(bestOf).toLowerCase() : `BO${bestOf}`;
+  const matchLength = (bestOf: number) => matchLengthText({ bestOf, matchRules }, isExperimentalTournamentPath(navigationLocation));
   if (matches.length === 0) {
     return (
       <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
@@ -376,7 +377,7 @@ export function StageGroupTables({
               <h5 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Mecze grupy
               </h5>
-              <MatchList matches={groupMatches} />
+              <MatchList matches={groupMatches} matchRules={live?.matchRules} />
             </div>
           </section>
         );
@@ -982,7 +983,7 @@ export function TournamentStagesPanel({
                   )}
                 </div>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  {STAGE_FORMAT_LABELS[selected.format]} · {isExperimental ? bestOfLabel(selected.bestOf).toLowerCase() : `BO${selected.bestOf}`} ·{" "}
+                  {STAGE_FORMAT_LABELS[selected.format]} · {matchLengthText(selected, isExperimental)} ·{" "}
                   {selected.status === "planned" ? readinessQuery.data?.participantCount ?? "—" : detailQuery.data.participants.length} uczestników
                   {` · ${organizerStageSummary(selected, matches).roundLabel}`}
                 </p>
@@ -1115,7 +1116,7 @@ export function TournamentStagesPanel({
               )}
               <div>
                 <h4 className="mb-3 font-semibold">Mecze etapu</h4>
-                <MatchList matches={selectedMatches} />
+                <MatchList matches={selectedMatches} matchRules={selected.matchRules} />
               </div>
             </div>
           )}

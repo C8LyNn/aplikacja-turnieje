@@ -86,7 +86,12 @@ const pluralSets = (n: number) => (n === 1 ? "set" : n >= 2 && n <= 4 ? "sety" :
  * Progress of a set list in which the last set may still be under way (for the editor preview).
  * Earlier sets must be finished. Returns the first problem when the list cannot be right.
  */
-export function setMatchProgress(sets: readonly SetScore[], rules: SetMatchRules): { ok: true; value: SetMatchProgress } | { ok: false; problem: SetProblem } {
+export function setMatchProgress(
+  sets: readonly SetScore[],
+  rules: SetMatchRules,
+  /** Shown in the "what is missing" sentence; without them the sides are called A and B. */
+  names?: { player1: string; player2: string },
+): { ok: true; value: SetMatchProgress } | { ok: false; problem: SetProblem } {
   let won1 = 0;
   let won2 = 0;
   let points1 = 0;
@@ -117,7 +122,9 @@ export function setMatchProgress(sets: readonly SetScore[], rules: SetMatchRules
   const missing = decided ? ""
     : lastInProgress
       ? `Set ${sets.length} trwa (${sets[sets.length - 1]!.score1}:${sets[sets.length - 1]!.score2}) — kończy się przy ${rules.pointsPerSet} pkt${rules.winBy > 1 ? ` z przewagą ${rules.winBy}` : ""}.`
-      : `Do zwycięstwa brakuje: zawodnikowi A — ${need1} ${pluralSets(need1)}, zawodnikowi B — ${need2} ${pluralSets(need2)}.`;
+      : names
+        ? `Do zwycięstwa brakuje: ${names.player1} — ${need1} ${pluralSets(need1)}, ${names.player2} — ${need2} ${pluralSets(need2)}.`
+        : `Do zwycięstwa brakuje: zawodnikowi A — ${need1} ${pluralSets(need1)}, zawodnikowi B — ${need2} ${pluralSets(need2)}.`;
   return {
     ok: true,
     value: {

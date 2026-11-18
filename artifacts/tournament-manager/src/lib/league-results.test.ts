@@ -47,3 +47,16 @@ test("tie notes explain places decided by a tie-breaker or by seeding", async ()
   ]);
   assert.deepEqual(standingsTieNotes([{ playerId: 1, playerName: "A", points: null }]), []);
 });
+
+test("V5.7: tie notes of a set table name sets, older tables keep their words", async () => {
+  const { standingsTieNotes, standingsHaveSets } = await import("./league-results");
+  const rows = [
+    { playerId: 1, playerName: "Ada", points: 3, decidedBy: "points", setPointsFor: 33, setPointsAgainst: 21 },
+    { playerId: 2, playerName: "Celina", points: 3, decidedBy: "score_difference", setPointsFor: 40, setPointsAgainst: 38 },
+  ];
+  assert.equal(standingsHaveSets(rows), true);
+  assert.deepEqual(standingsTieNotes(rows), ["Ada przed Celina (po 3 pkt): różnica setów."]);
+  const older = rows.map(({ setPointsFor: _a, setPointsAgainst: _b, ...row }) => row);
+  assert.equal(standingsHaveSets(older), false);
+  assert.deepEqual(standingsTieNotes(older), ["Ada przed Celina (po 3 pkt): różnica wyników."]);
+});

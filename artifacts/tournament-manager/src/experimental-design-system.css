@@ -2213,6 +2213,7 @@ html[data-x-motion="reduced"] :is(.experimental-tournament-shell, .experimental-
 .experimental-tournament-shell .set-score-editor-tally-value { font-family: ui-monospace, monospace; font-size: 2.25rem; font-weight: 900; line-height: 1; color: var(--x-text); text-shadow: 0 0 24px color-mix(in oklab, var(--x-a1) 55%, transparent); }
 .experimental-tournament-shell .set-score-editor-points { font-size: .8125rem; color: var(--x-text-2); }
 .experimental-tournament-shell .set-score-editor-list { display: grid; gap: .5rem; margin: 0; padding: 0; list-style: none; }
+.experimental-tournament-shell .set-score-editor-head { color: var(--x-text-2); }
 .experimental-tournament-shell .set-score-editor-row { display: grid; grid-template-columns: 4.5rem minmax(0, 1fr) minmax(0, 1fr); align-items: center; gap: .5rem .75rem; padding: .5rem .65rem; border: 1px solid var(--x-line); border-radius: var(--x-radius, .75rem); background: var(--x-glass); }
 .experimental-tournament-shell .set-score-editor-row[data-state="finished"] { border-color: color-mix(in oklab, hsl(var(--x-live)) 40%, var(--x-line)); }
 .experimental-tournament-shell .set-score-editor-row[data-state="invalid"] { border-color: hsl(var(--x-danger)); }
@@ -2230,15 +2231,10 @@ html[data-x-motion="reduced"] :is(.experimental-tournament-shell, .experimental-
 .experimental-tournament-shell .set-score-editor-status { margin: 0; font-size: .875rem; }
 .experimental-tournament-shell .set-score-editor-status[data-tone="error"] { color: hsl(var(--x-danger)); font-weight: 600; }
 .experimental-tournament-shell .set-score-editor-status[data-tone="done"] { color: hsl(var(--x-live)); font-weight: 600; }
-@media (max-width: 640px) { .experimental-tournament-shell .set-score-editor-row { grid-template-columns: 1fr 1fr; } .experimental-tournament-shell .set-score-editor-set { grid-column: 1 / -1; } .experimental-tournament-shell .set-score-editor-note { grid-column: 1 / -1; } }
-.experimental-tournament-shell .experimental-match-rules-options { flex-wrap: wrap; }
-.experimental-tournament-shell .experimental-match-rules-summary { margin: .5rem 0 0; padding: .55rem .75rem; border-left: 3px solid var(--x-a1); border-radius: var(--x-radius-sm, .4rem); background: var(--x-glass); font-size: .875rem; color: var(--x-text); }
-.experimental-tournament-shell .experimental-match-rules-details summary { font-weight: 600; color: var(--x-text-2); }
-.experimental-tournament-shell .experimental-toast { --toast-tone: var(--x-a1); align-items: flex-start; gap: .75rem; border: 1px solid var(--x-line-strong) !important; border-left: 4px solid var(--toast-tone) !important; border-radius: var(--x-radius, .75rem) !important; background: linear-gradient(180deg, var(--x-card-top), var(--x-card-bot)) !important; color: var(--x-text) !important; box-shadow: var(--x-shadow) !important; }
-.experimental-tournament-shell .experimental-toast[data-toast-kind="success"] { --toast-tone: hsl(var(--x-live)); }
-.experimental-tournament-shell .experimental-toast[data-toast-kind="warning"] { --toast-tone: hsl(var(--x-ready)); }
-.experimental-tournament-shell .experimental-toast[data-toast-kind="destructive"] { --toast-tone: hsl(var(--x-danger)); }
-.experimental-tournament-shell .experimental-toast .experimental-toast-icon { color: var(--toast-tone); margin-top: .1rem; }
+@media (max-width: 640px) { .experimental-tournament-shell .set-score-editor-row { grid-template-columns: 1fr 1fr; } .experimental-tournament-shell .set-score-editor-set { grid-column: 1 / -1; } .experimental-tournament-shell .set-score-editor-note { grid-column: 1 / -1; } .experimental-tournament-shell .set-score-editor-input { gap: .2rem; } .experimental-tournament-shell .set-score-editor-input input { width: 3rem; } }
+:is(.experimental-tournament-shell, .experimental-tournament-create) .experimental-match-rules-options { flex-wrap: wrap; }
+:is(.experimental-tournament-shell, .experimental-tournament-create) .experimental-match-rules-summary { margin: .5rem 0 0; padding: .55rem .75rem; border-left: 3px solid var(--x-a1); border-radius: var(--x-radius-sm, .4rem); background: var(--x-glass); font-size: .875rem; color: var(--x-text); }
+:is(.experimental-tournament-shell, .experimental-tournament-create) .experimental-match-rules-details summary { font-weight: 600; color: var(--x-text-2); }
 
 /* v5 · shared V4 button on the create screen */
 :is(.experimental-tournament-create) .experimental-v4-btn { display: inline-flex; align-items: center; gap: .4rem; min-height: var(--x-tap, 2.75rem); padding-inline: 1rem; border: 1px solid var(--x-line-strong); border-radius: 999px; background: var(--x-glass); color: var(--x-text); font-weight: 600; font-size: .875rem; text-decoration: none; transition: background 140ms var(--x-ease), border-color 140ms var(--x-ease); }
@@ -2580,3 +2576,11 @@ html[data-x-matchcards="compact"] :is(.experimental-tournament-shell, .experimen
 html[data-x-shape="cut"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create, .experimental-tournament-public, .experimental-tournament-stage-view) .set-score-editor-row { border-radius: 0; clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px); }
 html[data-x-type="display"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create, .experimental-tournament-public, .experimental-tournament-stage-view) .set-score-editor-tally-value { font-family: Bahnschrift, "Arial Narrow", "Roboto Condensed", sans-serif; }
 /* end v5.4 appearance categories */
+
+/* v5.7 · themed notifications: every Experimental root (portalled there by the toaster) */
+:is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create, .experimental-tournament-public, .experimental-tournament-stage-view) .experimental-toast { --toast-tone: var(--x-a1); align-items: flex-start; gap: .75rem; border: 1px solid var(--x-line-strong) !important; border-left: 4px solid var(--toast-tone) !important; border-radius: var(--x-radius, .75rem) !important; background: linear-gradient(180deg, var(--x-card-top), var(--x-card-bot)), var(--x-deep, #0b1020) !important; color: var(--x-text) !important; box-shadow: var(--x-shadow) !important; }
+:is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create, .experimental-tournament-public, .experimental-tournament-stage-view) .experimental-toast[data-toast-kind="success"] { --toast-tone: hsl(var(--x-live)); }
+:is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create, .experimental-tournament-public, .experimental-tournament-stage-view) .experimental-toast[data-toast-kind="warning"] { --toast-tone: hsl(var(--x-ready)); }
+:is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create, .experimental-tournament-public, .experimental-tournament-stage-view) .experimental-toast[data-toast-kind="destructive"] { --toast-tone: hsl(var(--x-danger)); }
+:is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create, .experimental-tournament-public, .experimental-tournament-stage-view) .experimental-toast .experimental-toast-icon { color: var(--toast-tone); margin-top: .1rem; }
+/* end v5.7 notifications */
