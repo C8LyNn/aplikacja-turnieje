@@ -73,8 +73,9 @@ test("the overlay follows 'Na ekranie' or a pinned match, and says why it shows 
   assert.match((pickOverlayMatch({ match: 99 }, tournament, matches) as { reason: string }).reason, /nie ma w tym turnieju/);
 });
 
-test("upcoming queue keeps the organizer's order and skips finished or incomplete pairings", () => {
-  const list = [match({ id: 1, status: "completed" }), match({ id: 2, round: 2 }), match({ id: 3, round: 1, sortOrder: 5 }), match({ id: 4, round: 1, player2Name: null }), match({ id: 5, round: 1 }), match({ id: 6, stageId: 2 })];
+test("upcoming queue keeps the organizer's order and skips finished, postponed, cancelled or incomplete pairings", () => {
+  const list = [match({ id: 1, status: "completed" }), match({ id: 2, round: 2 }), match({ id: 3, round: 1, sortOrder: 5 }), match({ id: 4, round: 1, player2Name: null }), match({ id: 5, round: 1 }), match({ id: 6, stageId: 2 }),
+    match({ id: 7, round: 1, status: "postponed" }), match({ id: 8, round: 1, status: "cancelled" })];
   assert.deepEqual(upcomingQueue(list[0], list).map((m) => m.id), [3, 5, 2]);
   assert.equal(scheduleText(null, null), null);
   assert.match(scheduleText("2026-11-26T17:00:00.000Z", "Europe/Warsaw") ?? "", /26 lis.*18:00/);

@@ -353,11 +353,14 @@ export function pickOverlayMatch(config: Pick<OverlayConfig, "match">, tournamen
   return match ? { match } : { match: null, reason: "Wybranego meczu nie ma w tym turnieju." };
 }
 
-/** Next matches of the same stage that are not finished, in the organizer's order (as in the host queue). */
+/**
+ * Next matches of the same stage that are still to be played, in the organizer's order (as in the host queue).
+ * V5.9.1: postponed and cancelled matches are left out — on air "Kolejne mecze" must not list a match without a date.
+ */
 export function upcomingQueue(current: PublicMatch | null, matches: readonly PublicMatch[], limit = 3): PublicMatch[] {
   const stageId = current?.stageId;
   return matches
-    .filter((m) => (stageId == null || m.stageId === stageId) && m.id !== current?.id && (m.status === "pending" || m.status === "postponed") && m.player1Name && m.player2Name)
+    .filter((m) => (stageId == null || m.stageId === stageId) && m.id !== current?.id && m.status === "pending" && m.player1Name && m.player2Name)
     .sort((a, b) => (a.sortOrder ?? Number.MAX_SAFE_INTEGER) - (b.sortOrder ?? Number.MAX_SAFE_INTEGER) || a.round - b.round || a.matchNumber - b.matchNumber || a.id - b.id)
     .slice(0, limit);
 }
