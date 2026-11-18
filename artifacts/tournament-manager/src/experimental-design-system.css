@@ -418,7 +418,7 @@
   position: relative;
   border-width: 1px !important;
   border-color: color-mix(in oklab, var(--tone) 40%, transparent) !important;
-  border-radius: 1.25rem !important;
+  border-radius: var(--x-radius-xl, 1.25rem) !important;
   background:
     radial-gradient(50% 110% at 0% 60%, color-mix(in oklab, var(--x-a1) 24%, transparent), transparent 72%),
     radial-gradient(50% 110% at 100% 60%, color-mix(in oklab, var(--x-a3) 22%, transparent), transparent 72%),
@@ -2524,4 +2524,15 @@ html[data-x-decor="noise"] :is(.experimental-tournament-shell, .experimental-tou
 .experimental-appearance-panel .experimental-appearance-section { border-top: 1px solid var(--x-line, hsl(var(--border))); padding-top: .5rem; margin-top: .5rem; }
 .experimental-appearance-panel .experimental-appearance-section > summary { cursor: pointer; font-weight: 700; font-size: .875rem; padding: .25rem 0; }
 .experimental-appearance-panel .experimental-appearance-presets { max-height: 22rem; overflow-y: auto; }
+/* v5.6 · the organiser's match editor and work queue follow the preset (shape, density, match cards) */
+html[data-x-shape="cut"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create, .experimental-tournament-public, .experimental-tournament-stage-view) .experimental-host-primary { border-radius: .15rem !important; clip-path: polygon(16px 0, 100% 0, 100% calc(100% - 16px), calc(100% - 16px) 100%, 0 100%, 0 16px); }
+html[data-x-density="compact"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create, .experimental-tournament-public, .experimental-tournament-stage-view) .experimental-host-secondary ol > li > button { padding-block: .3rem; }
+html[data-x-density="compact"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create, .experimental-tournament-public, .experimental-tournament-stage-view) .experimental-host-primary .md\:p-5 { padding: .75rem 1rem; }
+html[data-x-density="compact"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create, .experimental-tournament-public, .experimental-tournament-stage-view) .experimental-match-context { padding-block: .4rem; gap: .3rem; }
+html[data-x-density="spacious"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create, .experimental-tournament-public, .experimental-tournament-stage-view) .experimental-host-secondary ol > li > button { padding-block: .8rem; }
+html[data-x-density="spacious"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create, .experimental-tournament-public, .experimental-tournament-stage-view) .experimental-host-primary .md\:p-5 { padding: 1.75rem 2rem; }
+html[data-x-density="spacious"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create, .experimental-tournament-public, .experimental-tournament-stage-view) .experimental-match-context { padding: .9rem 1.5rem; gap: .75rem; }
+html[data-x-matchcards="scoreboard"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create, .experimental-tournament-public, .experimental-tournament-stage-view) .experimental-host-primary .font-mono.text-5xl { width: auto; min-width: 5.5rem; padding: .1rem .6rem; border: 1px solid color-mix(in oklab, var(--side, var(--x-a1)) 45%, transparent); border-radius: var(--x-radius-sm, .4rem); background: color-mix(in oklab, var(--side, var(--x-a1)) 12%, var(--x-deep, #050810)); }
+html[data-x-matchcards="compact"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create, .experimental-tournament-public, .experimental-tournament-stage-view) .experimental-host-primary .font-mono.text-5xl { font-size: 2.5rem; line-height: 1; }
+html[data-x-matchcards="compact"] :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create, .experimental-tournament-public, .experimental-tournament-stage-view) .experimental-host-primary .flex-1 { gap: .5rem; }
 /* end v5.4 appearance categories */
