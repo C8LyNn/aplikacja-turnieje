@@ -364,7 +364,7 @@ export function DoubleEliminationBracket({
                   onRevert={() => revertCanonicalMatch(match)}
                 />
                 {stale && <div role="status" className="text-sm">
-                  <p>Nieaktualny draft: {draft?.player1Name} – {draft?.player2Name}, {scores[match.matchId!]?.[0] ?? 0}:{scores[match.matchId!]?.[1] ?? 0}. Sprawdź aktualny mecz przed nową edycją.</p>
+                  <p>Nieaktualny wynik roboczy: {draft?.player1Name} – {draft?.player2Name}, {scores[match.matchId!]?.[0] ?? 0}:{scores[match.matchId!]?.[1] ?? 0}. Sprawdź aktualny mecz przed nową edycją.</p>
                   <Button disabled={pending || canonical.isError} onClick={() => {
                     resultDrafts.discard(current.id);
                     setScores(previous => { const next = { ...previous }; delete next[match.matchId!]; return next; });

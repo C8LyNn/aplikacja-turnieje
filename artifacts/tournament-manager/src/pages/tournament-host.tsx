@@ -1210,13 +1210,13 @@ export default function TournamentHost() {
         <div className="p-4 md:p-5">
           {conflictedDraft && <section aria-label="Konflikt zapisu wyniku" className="organizer-notice mb-5 space-y-3 rounded-lg border border-orange-500/50 bg-orange-500/10 p-4">
             <h3 className="flex items-center gap-2 font-semibold"><AlertTriangle className="h-5 w-5 shrink-0" /> Wynik nie został zapisany</h3>
-            <p className="text-sm">Twój draft pochodzi ze starej wersji meczu. Przed kolejnym zapisem sprawdź aktualnych zawodników i rozpocznij nową edycję.</p>
+            <p className="text-sm">Twój wynik roboczy dotyczy starszej wersji meczu — w międzyczasie mecz zmienił się (np. w innym oknie albo u innej osoby). Sprawdź aktualnych zawodników i wynik, a potem zacznij od nowa.</p>
             <div className="rounded-md border bg-background p-3 text-sm">
               <p className="font-semibold">Aktualny stan meczu</p>
               <p>{focusedMatch.player1Name ?? "Oczekuje na gracza"} – {focusedMatch.player2Name ?? "Oczekuje na gracza"} · BO{bo} · {MATCH_STATUS_LABELS[focusedMatch.status] ?? "Nieznany"}</p>
               <p>Aktualny wynik: {isDone ? completedResultLabel : `${focusedMatch.score1 ?? 0}:${focusedMatch.score2 ?? 0}`}</p>
             </div>
-            <p className="text-sm text-muted-foreground">Nieaktualny draft (niezapisany): {originalMatch?.player1Name} – {originalMatch?.player2Name}. {walkoverConfirm === focusedMatch.id ? "Walkower." : noContestConfirm === focusedMatch.id ? "No contest." : `Twój wynik roboczy: ${scores[focusedMatch.id]?.s1 ?? 0}:${scores[focusedMatch.id]?.s2 ?? 0}.`}</p>
+            <p className="text-sm text-muted-foreground">Nieaktualny wynik roboczy (niezapisany): {originalMatch?.player1Name} – {originalMatch?.player2Name}. {walkoverConfirm === focusedMatch.id ? "Walkower." : noContestConfirm === focusedMatch.id ? "No contest." : `Twój wynik roboczy: ${scores[focusedMatch.id]?.s1 ?? 0}:${scores[focusedMatch.id]?.s2 ?? 0}.`}</p>
             <p role="status" className="text-sm">{hostPending || matchesQuery.isFetching ? "Odświeżanie aktualnego meczu…" : "Aktualny mecz został odświeżony. Stary wynik nie zostanie przeniesiony do nowej edycji."}</p>
             <Button className="h-auto whitespace-normal text-left" disabled={hostPending || matchesQuery.isFetching || !matchesQuery.isSuccess} onClick={() => {
               if (hostPending || matchesQuery.isFetching || !matchesQuery.isSuccess) return;
@@ -1225,7 +1225,7 @@ export default function TournamentHost() {
               setWalkoverConfirm(null); setNoContestConfirm(null); setResultReason("");
               setScores(previous => { const next = { ...previous }; delete next[focusedMatch.id]; return next; });
               setActionError(previous => previous?.code === "CONCURRENT_MODIFICATION" ? null : previous);
-            }}>Odrzuć stary draft i rozpocznij nową edycję</Button>
+            }}>Odrzuć stary wynik roboczy i zacznij od aktualnego</Button>
           </section>}
           <p className="mb-4 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">Wygrane gry / mapy</p>
           <div className="flex items-center justify-center gap-3 md:gap-6">
@@ -1629,7 +1629,7 @@ export default function TournamentHost() {
             );
           })()}
           {isDone && <p className="mt-3 text-sm text-muted-foreground">Wynik zapisany: {completedResultLabel}. Aby go zmienić, wybierz „Popraw wynik”.</p>}
-          {staleDraft && !conflictedDraft && <p className="mt-3 text-sm text-orange-400">Stan meczu zmienił się od rozpoczęcia edycji. Twój wynik roboczy: {scores[focusedMatch.id]?.s1 ?? 0}:{scores[focusedMatch.id]?.s2 ?? 0}. Aktualny wynik: {focusedMatch.score1 ?? 0}:{focusedMatch.score2 ?? 0}. Odrzuć wynik roboczy i sprawdź mecz przed kolejnym zapisem. Draft dotyczy: {resultDrafts.drafts[focusedMatch.id]?.player1Name} – {resultDrafts.drafts[focusedMatch.id]?.player2Name}.</p>}
+          {staleDraft && !conflictedDraft && <p className="mt-3 text-sm text-orange-400">Stan meczu zmienił się od rozpoczęcia edycji. Twój wynik roboczy: {scores[focusedMatch.id]?.s1 ?? 0}:{scores[focusedMatch.id]?.s2 ?? 0}. Aktualny wynik: {focusedMatch.score1 ?? 0}:{focusedMatch.score2 ?? 0}. Odrzuć wynik roboczy i sprawdź mecz przed kolejnym zapisem. Wynik roboczy dotyczy meczu: {resultDrafts.drafts[focusedMatch.id]?.player1Name} – {resultDrafts.drafts[focusedMatch.id]?.player2Name}.</p>}
           {!conflictedDraft && (scores[focusedMatch.id] || staleDraft) && <Button variant="ghost" size="sm" className="mt-2" onClick={() => {
             resultDrafts.discard(focusedMatch.id);
             setWalkoverConfirm(null); setNoContestConfirm(null); setResultReason("");

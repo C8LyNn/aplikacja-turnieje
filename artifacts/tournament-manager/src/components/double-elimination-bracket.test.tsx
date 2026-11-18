@@ -97,7 +97,7 @@ test("DE freezes canonical revision, rejects stale played without retry, and req
   await act(async () => { await Promise.all([...clients].map(client => client.invalidateQueries())); });
   await user.click(screen.getByRole("button", { name: "Zapisz wynik" }));
   await screen.findByRole("alert");
-  await screen.findByText(/Nieaktualny draft: Alpha – Bravo, 2:0/);
+  await screen.findByText(/Nieaktualny wynik roboczy: Alpha – Bravo, 2:0/);
   assert.equal(writes.length, 1);
   assert.deepEqual(writes[0], { resultType: "played", expectedRevision: 7, score1: 2, score2: 0 });
   assert.match(screen.getByRole("alert").textContent ?? "", /Mecz zmienił się od czasu rozpoczęcia edycji/);
@@ -123,7 +123,7 @@ test("DE polling cannot rebase a canonical draft after an ABA change", async () 
   await act(async () => { await Promise.all([...clients].map(client => client.invalidateQueries())); });
   await waitFor(() => assert.ok(input.matches(":disabled")));
   assert.ok(screen.getByRole("button", { name: "Zapisz wynik" }).matches(":disabled"));
-  assert.ok(screen.getByText(/Nieaktualny draft: Alpha – Bravo, 2:0/));
+  assert.ok(screen.getByText(/Nieaktualny wynik roboczy: Alpha – Bravo, 2:0/));
 });
 
 test("DE does not transfer a draft to a replacement canonical match with the same bracket key", async () => {

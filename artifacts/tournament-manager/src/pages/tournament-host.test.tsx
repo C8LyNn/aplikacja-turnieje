@@ -193,7 +193,7 @@ for (const resultType of ["played", "walkover", "no_contest"] as const) {
     assert.match(conflict.textContent ?? "", /nie został zapisany/);
     assert.match(conflict.textContent ?? "", /Aktualny mecz został odświeżony/);
     assert.match(conflict.textContent ?? "", /Gracz B1 – Gracz A1 · BO3 · Oczekuje/);
-    assert.match(conflict.textContent ?? "", /Nieaktualny draft.*Gracz A1 – Gracz B1/);
+    assert.match(conflict.textContent ?? "", /Nieaktualny wynik roboczy.*Gracz A1 – Gracz B1/);
     if (resultType === "played") {
       assert.match(conflict.textContent ?? "", /2:0/);
       const save = screen.getByRole("button", { name: "Zapisz wynik" });
@@ -201,7 +201,7 @@ for (const resultType of ["played", "walkover", "no_contest"] as const) {
       await user.click(save);
       assert.equal(requests.length, 1);
     }
-    await user.click(within(conflict).getByRole("button", { name: "Odrzuć stary draft i rozpocznij nową edycję" }));
+    await user.click(within(conflict).getByRole("button", { name: "Odrzuć stary wynik roboczy i zacznij od aktualnego" }));
     assert.equal(screen.queryByRole("region", { name: "Konflikt zapisu wyniku" }), null);
     assert.equal(screen.queryByRole("alert"), null);
     assert.ok(screen.getByRole("button", { name: "Zapisz wynik" }).matches(":disabled"), "old score must not enter the fresh form");
@@ -227,7 +227,7 @@ test("Host recovery captures the current revision immediately, before the next s
   const plus = await screen.findByRole("button", { name: "Zwiększ wynik: Gracz A1" });
   await user.click(plus); await user.click(plus);
   await user.click(screen.getByRole("button", { name: "Zapisz wynik" }));
-  const recovery = await screen.findByRole("button", { name: "Odrzuć stary draft i rozpocznij nową edycję" });
+  const recovery = await screen.findByRole("button", { name: "Odrzuć stary wynik roboczy i zacznij od aktualnego" });
   await waitFor(() => assert.ok(!recovery.matches(":disabled")));
   await user.click(recovery);
   assert.equal(screen.queryByRole("region", { name: "Konflikt zapisu wyniku" }), null);
