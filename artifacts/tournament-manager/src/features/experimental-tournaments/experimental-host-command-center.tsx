@@ -106,7 +106,7 @@ export function ExperimentalHostCommandCenter({
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <ExperimentalStatusPill tone={stateTone}>{stateLabel}</ExperimentalStatusPill>
-          {!isCompleted && (
+          {!isCompleted && totalCount > 0 && (
             <Link href={tournamentHref(tournamentId, true, "/host?tab=wyniki")} className={linkClass}>
               <Trophy className="h-4 w-4" aria-hidden="true" />
               Wszystkie wyniki

@@ -1169,7 +1169,9 @@ export default function TournamentHost() {
           {canGenerateRound
             ? "Runda zakończona — wygeneruj kolejną rundę Swiss powyżej."
             : activeStage ? "Brak meczów gotowych do rozegrania. Sprawdź stan etapu i oczekujące pary."
-                : "Przygotuj najbliższy etap w zakładce Etapy. Po jego rozpoczęciu pojawi się tutaj kolejka meczów."}
+                : tournament.status === "draft"
+                  ? "Kolejka meczów pojawi się tutaj po rozpoczęciu turnieju."
+                  : "Przygotuj najbliższy etap w zakładce Etapy. Po jego rozpoczęciu pojawi się tutaj kolejka meczów."}
         </div>
       );
     }

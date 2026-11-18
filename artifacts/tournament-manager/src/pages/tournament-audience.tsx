@@ -476,9 +476,9 @@ export default function TournamentAudience() {
             {[...stages].sort((a, b) => a.position - b.position).map((stage) => {
               const current = stage.id === publicStage?.id;
               return (
+                // V5.8: the list item wraps the link, so the chip is still announced (and usable) as a link.
+                <span key={stage.id} role="listitem" className="contents">
                 <Link
-                  key={stage.id}
-                  role="listitem"
                   href={sectionHref(resolveAudienceSection(activeSection, stage, false), stage.id)}
                   aria-current={current ? "true" : undefined}
                   data-stage-state={stage.status}
@@ -492,6 +492,7 @@ export default function TournamentAudience() {
                     {STAGE_STATE_LABELS[stage.status] ?? stage.status}
                   </span>
                 </Link>
+                </span>
               );
             })}
           </div>

@@ -170,7 +170,10 @@ export function deriveOrganizerNextStep(input: {
     return {
       kind: hasCompletedPredecessor ? "next_stage" : "planned_stage",
       title: planned.name,
-      description: `${formatLabels[planned.format] ?? planned.format} · Wszystko gotowe — możesz zaczynać.`,
+      // V5.8: the format is named only when the stage name does not already say it ("Faza grupowa").
+      description: (formatLabels[planned.format] ?? planned.format) === planned.name
+        ? "Wszystko gotowe — możesz zaczynać."
+        : `${formatLabels[planned.format] ?? planned.format} · Wszystko gotowe — możesz zaczynać.`,
       actionLabel: mayAct
         ? "Rozpocznij etap"
         : undefined,
