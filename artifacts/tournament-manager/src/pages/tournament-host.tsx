@@ -1129,7 +1129,7 @@ export default function TournamentHost() {
             {isDone && (
               <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs shrink-0">✓ Zakończony</Badge>
             )}
-            {!isLive && !isDone && !isPostponed && !isCancelled && <Badge variant="outline">Oczekuje</Badge>}
+            {!isExperimental && !isLive && !isDone && !isPostponed && !isCancelled && <Badge variant="outline">Oczekuje</Badge>}
             {isPostponed && (
               <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30 text-xs shrink-0">⏸ Przełożony</Badge>
             )}
@@ -1550,7 +1550,7 @@ export default function TournamentHost() {
             <div className="mt-5 pt-4 border-t flex flex-wrap items-center justify-between gap-2">
               <div className="flex gap-2 flex-wrap">
                 {!conflictedDraft && capabilities.canUseLegacyMatchTools && !isLive && !isDone && (
-                  <Button variant={editingResult ? "outline" : "default"} onClick={() => handleSetInProgress(focusedMatch.id)} disabled={updateMatch.isPending}>
+                  <Button variant={editingResult || (isExperimental && matchWorkState(focusedMatch, { timeZone: focusedStage?.scheduleTimeZone }).state === "needs_result") ? "outline" : "default"} onClick={() => handleSetInProgress(focusedMatch.id)} disabled={updateMatch.isPending}>
                     <Play className="w-4 h-4 mr-2" /> Rozpocznij mecz
                   </Button>
                 )}
@@ -1696,8 +1696,10 @@ export default function TournamentHost() {
             stageName={activeStage?.name ?? plannedStage?.name ?? tournament.name}
             formatLabel={activeStage ? STAGE_FORMAT_LABELS[activeStage.format] : undefined}
             roundLabel={operation.summary.roundLabel}
-            liveCount={operationalMatches?.filter((match) => match.status === "in_progress").length ?? 0}
-            readyCount={pendingQueue.length}
+            liveCount={workCounts.in_progress}
+            needsResultCount={workCounts.needs_result}
+            readyCount={workCounts.ready + workCounts.due}
+            dueCount={workCounts.due}
             completedCount={completedMatches.length}
             otherCount={Math.max(0, (operationalMatches?.length ?? 0) - queueMatches.length - completedMatches.length)}
             totalCount={operationalMatches?.length ?? 0}

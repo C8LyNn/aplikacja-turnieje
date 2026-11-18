@@ -24,7 +24,11 @@ export function matchOperationError(error: unknown) {
   const knownMessage = code && Object.prototype.hasOwnProperty.call(messages, code)
     ? messages[code]
     : undefined;
-  const message = knownMessage || (serverError && detail.trim() && !/^[A-Z_\d]+$/.test(detail) ? detail
+  // V5.6: an expired or missing session is said in plain words, never as the server's English status text.
+  const sessionMessage = response?.status === 401 || response?.status === 403
+    ? "Sesja wygasła albo nie masz uprawnień do tej operacji. Zaloguj się ponownie — nic nie zostało zapisane."
+    : undefined;
+  const message = knownMessage || sessionMessage || (serverError && detail.trim() && !/^[A-Z_\d]+$/.test(detail) ? detail
     : conflict ? "Stan meczu nie pozwala na tę operację. Sprawdź aktualne dane przed ponowieniem."
     : "Nie udało się potwierdzić zapisu. Sprawdź połączenie i aktualny stan przed ponowieniem. Wpisany wynik pozostaje w formularzu.");
   return { message, code, conflict };

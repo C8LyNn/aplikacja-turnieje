@@ -1,10 +1,10 @@
 import {
   Activity,
-  CircleCheck,
   CircleDot,
   Clock3,
   Eye,
   ListChecks,
+  PenLine,
   Trophy,
 } from "lucide-react";
 import { Link } from "wouter";
@@ -24,6 +24,8 @@ export function ExperimentalHostCommandCenter({
   completedCount,
   otherCount,
   totalCount,
+  needsResultCount = 0,
+  dueCount = 0,
   nextStepTitle,
   championName,
   isCompleted,
@@ -39,6 +41,10 @@ export function ExperimentalHostCommandCenter({
   completedCount: number;
   otherCount: number;
   totalCount: number;
+  /** V5.6: the same work states as the queue — matches whose day is over without a result. */
+  needsResultCount?: number;
+  /** V5.6: ready matches whose planned start has passed (start them or postpone them). */
+  dueCount?: number;
   nextStepTitle?: string | null;
   championName?: string | null;
   isCompleted: boolean;
@@ -133,25 +139,26 @@ export function ExperimentalHostCommandCenter({
           meta="mecze w trakcie"
           icon={Activity}
         />
+        {/* V5.6: the same states and words as the work queue; finished matches are in the progress line above. */}
+        <ExperimentalMetricCard
+          label="Czeka na wynik"
+          tone={needsResultCount > 0 ? "danger" : "neutral"}
+          value={dataLoading ? "…" : needsResultCount}
+          meta="dzień meczu minął, brak wyniku"
+          icon={PenLine}
+        />
         <ExperimentalMetricCard
           label="Gotowe"
           tone="warning"
           value={dataLoading ? "…" : readyCount}
-          meta="czekają na start"
+          meta={dueCount > 0 ? `czekają na start · ${dueCount} po planowanym starcie` : "czekają na start"}
           icon={CircleDot}
-        />
-        <ExperimentalMetricCard
-          label="Zakończone"
-          tone="primary"
-          value={dataLoading ? "…" : completedCount}
-          meta={totalCount ? `z ${totalCount} w etapie` : "w bieżącym etapie"}
-          icon={CircleCheck}
         />
         <ExperimentalMetricCard
           label="Pozostałe"
           tone="neutral"
           value={dataLoading ? "…" : otherCount}
-          meta="pary bez kompletu graczy lub wstrzymane"
+          meta="przełożone lub bez kompletu par"
           icon={Clock3}
         />
       </div>}
