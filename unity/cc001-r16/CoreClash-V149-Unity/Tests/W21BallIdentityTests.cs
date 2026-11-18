@@ -53,6 +53,10 @@ public static partial class Program
             True(renamed>0&&renamed<=BallIcons.BatchSize);
             Eq(13,renamed);
             Eq("Deathspore",BallIcons.Name(catalog.Ball("vector")));Eq("Rootstrike",BallIcons.Name(catalog.Ball("briarheart")));
+            Eq("Deathcast",BallIcons.Name(catalog.Ball("agony")));Eq("Agony",catalog.Ball("agony").name);
+            Eq("Snapback",BallIcons.Name(catalog.Ball("paradox")));Eq("Paradox",catalog.Ball("paradox").name);
+            var owner=new Dictionary<string,string>{{"blightpool","Tox Pool"},{"vector","Deathspore"},{"septiccore","Tox Burst"},{"consecrator","Sanctum"},{"penitent","Scapegoat"},{"briarheart","Rootstrike"},{"gatekeeper","Portal"},{"agony","Deathcast"},{"reclaimer","Reviver"},{"doppelganger","Copycat"},{"timeshift","Swap"},{"chronomancer","Rewind"},{"paradox","Snapback"}};
+            foreach(var ball in catalog.Data.balls)Eq(owner.TryGetValue(ball.id,out var approved)?approved:ball.name,BallIcons.Name(ball));
             Eq("Portal",BallIcons.Name(catalog.Ball("gatekeeper")));Eq("Gatekeeper",catalog.Ball("gatekeeper").name);
             Eq("Standard",BallIcons.Name(catalog.Ball("normal")));
         });
