@@ -440,7 +440,7 @@ router.put("/matches/:id/schedule", async (req, res): Promise<void> => {
       });
       return updated!;
     });
-    const [enriched] = await enrichMatches([saved]);
+    const [enriched] = await enrichMatches([saved], "organizer");
     res.json(enriched);
   } catch (error) {
     sendError(res, error);

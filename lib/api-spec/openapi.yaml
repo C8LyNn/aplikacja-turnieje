@@ -4514,6 +4514,7 @@ components:
           minimum: 1
         note:
           type: ["string", "null"]
+          description: "V5.10: organizer's free-text note — returned only to the organizer and support staff, never to viewers."
         status:
           type: string
           enum: [pending, in_progress, postponed, completed, cancelled]

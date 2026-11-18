@@ -1606,7 +1606,7 @@ export default function TournamentHost() {
                 className="mb-3"
                 value={resultReason}
                 onChange={(event) => setResultReason(event.target.value)}
-                placeholder="Powód (opcjonalnie)"
+                placeholder="Powód (opcjonalnie, widoczny dla widzów)"
               />
               <div className="flex flex-wrap gap-2">
                 <Button variant="outline" size="sm" onClick={() => setWalkoverConfirm(null)}>Anuluj</Button>
@@ -1640,7 +1640,7 @@ export default function TournamentHost() {
                 className="mb-3"
                 value={resultReason}
                 onChange={(event) => setResultReason(event.target.value)}
-                placeholder="Powód (opcjonalnie)"
+                placeholder="Powód (opcjonalnie, widoczny dla widzów)"
               />
               <div className="flex gap-2">
                 <Button variant="outline" size="sm" onClick={() => setNoContestConfirm(null)}>Anuluj</Button>

@@ -139,6 +139,7 @@ import { generateSwissPairings } from "../domain/tournament/swiss";
 import { BACKUP_V3_IMPORT_DISABLED, BACKUP_V2_CONTAINS_V3_FIELDS, hasV3OnlyFieldsInV2, isBackupV3Import } from "../application/backups/backup-import-policy";
 import { buildStandardSeededBracket } from "../domain/tournament/stage-placement";
 import { validatePlayedSeriesResult } from "../domain/match/series-result";
+import { matchAudienceOf, toMatchView, type MatchAudience } from "../application/matches/match-view";
 import {
   loadTournamentGameConfig,
   loadTournamentGameConfigMap,
@@ -469,35 +470,18 @@ function mapPlayer(
   };
 }
 
+/** V5.10 (P0): explicit field list per audience — the organizer's free-text `note` is never sent to viewers. */
 function mapMatch(
   match: typeof matchesTable.$inferSelect,
-  player1Name?: string | null,
-  player2Name?: string | null,
+  player1Name: string | null | undefined,
+  player2Name: string | null | undefined,
+  audience: MatchAudience,
 ) {
-  // V5.7: set scores are exposed as `sets` ({ score1, score2 } per set), never as the raw column.
-  const { setScores, ...m } = match;
-  return {
-    ...m,
-    sets: setsFromStorage(setScores),
-    player1Id: m.player1Id ?? null,
-    player2Id: m.player2Id ?? null,
-    player1Name: player1Name ?? null,
-    player2Name: player2Name ?? null,
-    score1: m.score1 ?? null,
-    score2: m.score2 ?? null,
-    winnerId: m.winnerId ?? null,
-    bestOf: m.bestOf,
-    resultType: m.resultType ?? null,
-    resultReason: m.resultReason ?? null,
-    note: m.note ?? null,
-    nextMatchId: m.nextMatchId ?? null,
-    sortOrder: m.sortOrder ?? null,
-    scheduledAt: formatDate(m.scheduledAt),
-    completedAt: formatDate(m.completedAt),
-  };
+  return toMatchView(match, { player1Name, player2Name }, audience);
 }
 
-export async function enrichMatches(matches: (typeof matchesTable.$inferSelect)[]) {
+/** Matches with player names. `audience` defaults to "public" so a forgotten argument never leaks organizer fields. */
+export async function enrichMatches(matches: (typeof matchesTable.$inferSelect)[], audience: MatchAudience = "public") {
   if (matches.length === 0) return [];
   const playerIds = [
     ...new Set([
@@ -520,6 +504,7 @@ export async function enrichMatches(matches: (typeof matchesTable.$inferSelect)[
       m,
       playerMap.get(m.player1Id!) ?? null,
       playerMap.get(m.player2Id!) ?? null,
+      audience,
     ),
   );
 }
@@ -2039,7 +2024,8 @@ router.post("/tournaments/:id/generate-round", async (req, res): Promise<void> =
 router.get("/tournaments/:id/bracket", async (req, res): Promise<void> => {
   const params = GetTournamentBracketParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
-  if (!await checkViewerReadAuth(req, res, params.data.id)) return;
+  const bracketAccess = await requireTournamentRead(req, res, params.data.id);
+  if (!bracketAccess) return;
 
   const [tournament] = await db
     .select()
@@ -2056,7 +2042,7 @@ router.get("/tournaments/:id/bracket", async (req, res): Promise<void> => {
     .where(eq(matchesTable.tournamentId, params.data.id))
     .orderBy(matchesTable.round, matchesTable.matchNumber);
 
-  const enriched = await enrichMatches(matches);
+  const enriched = await enrichMatches(matches, matchAudienceOf(bracketAccess.actor));
 
   const roundNumbers = [
     ...new Set(enriched.map((m) => m.round)),
@@ -2792,13 +2778,14 @@ router.post("/tournaments/:id/undo-last", async (req, res): Promise<void> => {
 router.get("/tournaments/:id/matches", async (req, res): Promise<void> => {
   const params = ListMatchesParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
-  if (!await checkViewerReadAuth(req, res, params.data.id)) return;
+  const access = await requireTournamentRead(req, res, params.data.id);
+  if (!access) return;
   const matches = await db
     .select()
     .from(matchesTable)
     .where(eq(matchesTable.tournamentId, params.data.id))
     .orderBy(matchesTable.round, matchesTable.matchNumber);
-  const enriched = await enrichMatches(matches);
+  const enriched = await enrichMatches(matches, matchAudienceOf(access.actor));
   res.json(enriched);
 });
 
@@ -2816,8 +2803,9 @@ router.get("/matches/:id", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Match not found" });
     return;
   }
-  if (!await requireTournamentRead(req, res, match.tournamentId)) return;
-  const [enriched] = await enrichMatches([match]);
+  const access = await requireTournamentRead(req, res, match.tournamentId);
+  if (!access) return;
+  const [enriched] = await enrichMatches([match], matchAudienceOf(access.actor));
   res.json(enriched);
 });
 
@@ -2998,7 +2986,7 @@ router.patch("/matches/:id", async (req, res): Promise<void> => {
     return null;
   });
   if (!match) return;
-  const [enriched] = await enrichMatches([match]);
+  const [enriched] = await enrichMatches([match], "organizer");
   res.json(enriched);
 });
 
@@ -3031,7 +3019,7 @@ router.post("/matches/:id/complete", async (req, res): Promise<void> => {
       ...parsed.data,
       actor: getTournamentMutationActor(access),
     });
-    const [enriched] = await enrichMatches([updatedMatch]);
+    const [enriched] = await enrichMatches([updatedMatch], "organizer");
     res.json(enriched);
   } catch (error) {
     if (error instanceof CompleteMatchError) {
@@ -3082,7 +3070,7 @@ router.post("/matches/:id/revert", async (req, res): Promise<void> => {
       expectedMatchRevision: expectedRevision,
       actor: getTournamentMutationActor(access),
     });
-    const [enriched] = await enrichMatches([result.match]);
+    const [enriched] = await enrichMatches([result.match], "organizer");
     res.json(enriched);
   } catch (error) {
     if (error instanceof RevertMatchError) {
@@ -3186,7 +3174,7 @@ router.post("/matches/:id/cancel", async (req, res): Promise<void> => {
     throw error;
   });
   if (!updated) return;
-  const [enriched] = await enrichMatches([updated]);
+  const [enriched] = await enrichMatches([updated], "organizer");
   res.json(enriched);
 });
 
@@ -3256,7 +3244,7 @@ router.post("/matches/:id/restore-cancelled", async (req, res): Promise<void> =>
     throw error;
   });
   if (!updated) return;
-  const [enriched] = await enrichMatches([updated]);
+  const [enriched] = await enrichMatches([updated], "organizer");
   res.json(enriched);
 });
 
@@ -3344,7 +3332,7 @@ router.post("/matches/:id/swap-players", async (req, res): Promise<void> => {
     throw error;
   });
   if (!updated) return;
-  const [enriched] = await enrichMatches([updated]);
+  const [enriched] = await enrichMatches([updated], "organizer");
   res.json(enriched);
 });
 
@@ -3389,7 +3377,7 @@ router.post("/tournaments/:id/reorder-matches", async (req, res): Promise<void> 
     },
   );
   const all = await db.select().from(matchesTable).where(eq(matchesTable.tournamentId, params.data.id)).orderBy(matchesTable.round, matchesTable.matchNumber);
-  const enriched = await enrichMatches(all);
+  const enriched = await enrichMatches(all, "organizer");
   res.json(enriched);
 });
 
