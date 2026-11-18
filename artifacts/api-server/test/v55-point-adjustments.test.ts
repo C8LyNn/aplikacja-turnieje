@@ -15,7 +15,7 @@ const played = (id: number, p1: number, p2: number, s1: number, s2: number) => (
   id, player1Id: p1, player2Id: p2, status: "completed", resultType: "played", score1: s1, score2: s2,
   winnerId: s1 > s2 ? p1 : s2 > s1 ? p2 : null, bestOf: 1,
 }) as never;
-const rules = classicLeagueRules({ allowDraws: true });
+const rules = classicLeagueRules();
 const matches = [played(1, 1, 2, 2, 0), played(2, 2, 3, 1, 0), played(3, 1, 3, 1, 1)];
 
 test("adjustments change only points; tie-breakers still decide and score columns stay as played", () => {
