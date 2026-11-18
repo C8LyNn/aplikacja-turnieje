@@ -101,7 +101,7 @@ namespace CoreClash.Presentation
                 var d=roster[i];bool picked=custom.Contains(d.id);var r=new Rect((i%columns)*(cardW+10),(i/columns)*(cardH+10),cardW,cardH);Draw.Surface(r,Draw.Panel,picked?team:Draw.Edge);
                 if(GUI.Button(new Rect(r.x,r.y,r.width-62,r.height),GUIContent.none,GUIStyle.none)){if(picked)custom.Remove(d.id);else if(custom.Count<9)custom.Add(d.id);}
                 var cl=RosterReadinessLayout.Card(new UiBox(r.x,r.y,r.width,r.height),shortView);
-                BallView.Preview(RectOf(cl.Preview),d,builderOwner,picked);Draw.Text(RectOf(cl.Name),d.name,14,Color.white,TextAnchor.MiddleLeft,true);Draw.Text(RectOf(cl.Stats),d.hp+" HP  /  "+d.size,11,Draw.Muted);
+                BallView.Preview(RectOf(cl.Preview),d,builderOwner,picked);Draw.Text(RectOf(cl.Name),BallIcons.Name(d),14,Color.white,TextAnchor.MiddleLeft,true);Draw.Text(RectOf(cl.Stats),d.hp+" HP  /  "+d.size,11,Draw.Muted);
                 ReadinessChip(RectOf(cl.Badge),RosterReadiness.Badge(Catalog,d.id));
                 if(Draw.Button(RectOf(cl.Info),"i",size:15))ShowBallDetails(d.id);
             }GUI.EndScrollView();

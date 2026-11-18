@@ -48,7 +48,7 @@ namespace CoreClash.Presentation
         {
             search=search??"";
             return catalog.Data.balls.Where(b=>!b.hidden&&b.id!="normal"&&
-                (b.name.IndexOf(search,StringComparison.OrdinalIgnoreCase)>=0||b.archetype.IndexOf(search,StringComparison.OrdinalIgnoreCase)>=0)&&
+                (b.name.IndexOf(search,StringComparison.OrdinalIgnoreCase)>=0||BallIcons.Name(b).IndexOf(search,StringComparison.OrdinalIgnoreCase)>=0||b.archetype.IndexOf(search,StringComparison.OrdinalIgnoreCase)>=0)&&
                 Passes(catalog,b.id,filter)).ToArray();
         }
 

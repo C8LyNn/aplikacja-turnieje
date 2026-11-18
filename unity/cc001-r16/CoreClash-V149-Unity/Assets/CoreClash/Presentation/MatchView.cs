@@ -52,7 +52,7 @@ namespace CoreClash.Presentation
             float orb=strip.height-(rows.Tight?20:24);
             BallView.Preview(new Rect(strip.x+15,strip.y+(strip.height-orb)/2,orb,orb),d,visualOwner,true);
             float textX=strip.x+orb+32,textWidth=strip.width-orb-42;
-            Draw.Text(new Rect(textX,strip.y+(rows.Tight?5:7),textWidth,22),d.name,rows.Tight?16:19,Theme.Text,TextAnchor.MiddleLeft,true);
+            Draw.Text(new Rect(textX,strip.y+(rows.Tight?5:7),textWidth,22),BallIcons.Name(d),rows.Tight?16:19,Theme.Text,TextAnchor.MiddleLeft,true);
             string stockText=selected=="normal"?"UNLIMITED":LocalDeckContent.StockLabel(Simulation,displayOwner,selected);
             string facts=(string.IsNullOrEmpty(d.archetype)||d.archetype=="base"?"":d.archetype.ToUpperInvariant()+"  ·  ")+d.hp+" HP  ·  "+stockText;
             Draw.Text(new Rect(textX,strip.y+(rows.Tight?27:30),textWidth,16),facts,Theme.FontSmall,Theme.Select,TextAnchor.MiddleLeft,true);
@@ -142,7 +142,7 @@ namespace CoreClash.Presentation
             Draw.Text(new Rect(turnX+3,hud.y+22,cellW-6,19),phase,12,Color.white,TextAnchor.MiddleCenter,true);
 
             Draw.Surface(choice,Draw.PanelLight);
-            string name=state.phase==MatchPhase.Over?TurnText():Catalog.Ball(selected).name;
+            string name=state.phase==MatchPhase.Over?TurnText():BallIcons.Name(Catalog.Ball(selected));
             Draw.Text(new Rect(choice.x+8,choice.y+2,choice.width-138,22),name,14,Color.white,TextAnchor.MiddleLeft,true);
             string hint=state.phase==MatchPhase.Over?state.resultReason:
                 boardInspection?"TAP BALL TO INSPECT":
@@ -196,7 +196,7 @@ namespace CoreClash.Presentation
             GUI.enabled=prior;
             float orb=Math.Min(32,r.height-12);
             BallView.Preview(new Rect(r.x+5,r.y+(r.height-orb)/2,orb,orb),Catalog.Ball(id),owner,picked);
-            Draw.Text(new Rect(r.x+orb+9,r.y+4,r.width-orb-13,Math.Min(36,r.height-29)),Catalog.Ball(id).name,10,available?Color.white:Draw.Muted,TextAnchor.MiddleLeft,true);
+            Draw.Text(new Rect(r.x+orb+9,r.y+4,r.width-orb-13,Math.Min(36,r.height-29)),BallIcons.Name(Catalog.Ball(id)),10,available?Color.white:Draw.Muted,TextAnchor.MiddleLeft,true);
             bool handReady=source==BallSelectionSource.Hand;
             Draw.Text(new Rect(r.x+orb+9,r.yMax-19,r.width-orb-13,17),LocalDeckContent.StockLabel(Simulation,owner,id),handReady?9:11,handReady?Draw.Gold:available?tint:Draw.Muted,TextAnchor.MiddleLeft,true);
         }
@@ -206,7 +206,7 @@ namespace CoreClash.Presentation
             if(shortTray){matchScroll=Draw.ScrollView(inner,matchScroll,new Rect(0,0,inner.width-20,180));inner=new Rect(0,0,inner.width-20,180);}
             float w=inner.width,y=inner.y;int owner=LocalDeckContent.DisplayOwner(Simulation.State.turn,NetworkLink==null?(int?)null:NetworkLink.LocalOwner);
             int tintOwner=owner>=0?owner:Simulation.State.turn;
-            Draw.Text(new Rect(inner.x,y,w-128,44),owner<0?"DECK UNAVAILABLE":Catalog.Ball(selected).name,15,Color.white,TextAnchor.MiddleLeft,true);
+            Draw.Text(new Rect(inner.x,y,w-128,44),owner<0?"DECK UNAVAILABLE":BallIcons.Name(Catalog.Ball(selected)),15,Color.white,TextAnchor.MiddleLeft,true);
             if(Draw.Button(new Rect(inner.xMax-120,y,120,44),"STANDARD",Draw.Owner(tintOwner),selected=="normal",CanChoose,12))SelectBall("normal");
             y+=48;float arrow=44,cardW=96,cardH=80;var ids=LocalDeckContent.StockIds(Simulation.State,owner);
             float viewW=Math.Max(1f,w-arrow*2-12),fullW=LocalDeckContent.TrayContentWidth(ids.Length,cardW,8,viewW),max=Math.Max(0f,fullW-viewW);
@@ -251,7 +251,7 @@ namespace CoreClash.Presentation
             string count=handReady?"H":available?"x"+stock:"0";Color countColor=handReady?Theme.Select:available?Theme.Text:Theme.Muted;
             Color nameColor=available?Theme.Text:Theme.Muted;
             // Longest word decides the name size, so a name never breaks inside a word.
-            int longest=0;foreach(string word in d.name.Split(' '))longest=Mathf.Max(longest,word.Length);
+            int longest=0;foreach(string word in BallIcons.Name(d).Split(' '))longest=Mathf.Max(longest,word.Length);
             bool side=r.width>=124?r.height<84:r.height<64;
             if(side)
             {
@@ -259,7 +259,7 @@ namespace CoreClash.Presentation
                 BallView.Preview(new Rect(r.x+10,r.y+(r.height-orb)/2,orb,orb),d,owner,picked);
                 float textX=r.x+orb+19,textWidth=r.xMax-textX-6;
                 int nameFont=textWidth>=longest*7.2f?12:textWidth>=longest*6.6f?11:textWidth>=longest*6f?10:9;
-                Draw.Text(new Rect(textX,r.y+4,textWidth,r.height-24),d.name,nameFont,nameColor,TextAnchor.MiddleLeft,true);
+                Draw.Text(new Rect(textX,r.y+4,textWidth,r.height-24),BallIcons.Name(d),nameFont,nameColor,TextAnchor.MiddleLeft,true);
                 Draw.Text(new Rect(textX,r.yMax-19,textWidth-30,15),handReady?LocalDeckContent.StockLabel(Simulation,owner,id):available?d.hp+" HP":"OUT",Theme.FontTiny,handReady?Theme.Select:Theme.Muted,TextAnchor.MiddleLeft,true);
                 Draw.Text(new Rect(r.xMax-36,r.yMax-21,30,17),count,12,countColor,TextAnchor.MiddleRight,true);
             }
@@ -271,7 +271,7 @@ namespace CoreClash.Presentation
                 Draw.Text(new Rect(r.xMax-(slim?30:40),r.y+5,slim?24:32,18),count,slim?12:13,countColor,TextAnchor.MiddleRight,true);
                 float nameWidth=r.width-10;
                 int nameFont=nameWidth>=longest*7.6f?13:nameWidth>=longest*7f?12:nameWidth>=longest*6.4f?11:10;
-                Draw.Text(new Rect(r.x+5,r.y+orb+14,nameWidth,cue||handReady?20:r.height-orb-18),d.name,nameFont,nameColor,TextAnchor.MiddleCenter,true);
+                Draw.Text(new Rect(r.x+5,r.y+orb+14,nameWidth,cue||handReady?20:r.height-orb-18),BallIcons.Name(d),nameFont,nameColor,TextAnchor.MiddleCenter,true);
                 if(handReady)Draw.Text(new Rect(r.x+5,r.yMax-19,r.width-10,14),LocalDeckContent.StockLabel(Simulation,owner,id),Theme.FontTiny,Theme.Select,TextAnchor.MiddleCenter,true);
                 else if(cue)Draw.Text(new Rect(r.x+5,r.yMax-19,r.width-10,14),available?Cue(id):"OUT OF STOCK",Theme.FontTiny,Theme.Muted,TextAnchor.MiddleCenter);
             }

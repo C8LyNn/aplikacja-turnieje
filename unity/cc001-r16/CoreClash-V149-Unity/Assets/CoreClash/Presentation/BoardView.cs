@@ -533,7 +533,7 @@ namespace CoreClash.Presentation
             float scale=board.width/540;var field=VisibleField(board);
             for(int owner=0;owner<2;owner++)
             {
-                var lines=BaseDamageTracker.Lines(baseReport.Latest,owner,type=>simulation.Catalog.Ball(type)?.name??type);if(lines.Length==0)continue;
+                var lines=BaseDamageTracker.Lines(baseReport.Latest,owner,type=>simulation.Catalog.Ball(type)==null?type:BallIcons.Name(simulation.Catalog.Ball(type)));if(lines.Length==0)continue;
                 var plan=BoardOverlayPlanner.Banner(lines,owner,viewOwner,field,scale,avoid);
                 if(!plan.Placed){marginNotes.Add((plan.Top,lines[0],Theme.Damage));continue;}
                 var rect=RectOf(plan.Box);Draw.Chip(rect,Alpha(Theme.Plate,.9f),Alpha(Theme.Damage,.7f));

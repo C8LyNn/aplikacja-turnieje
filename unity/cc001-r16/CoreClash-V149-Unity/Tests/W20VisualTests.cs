@@ -182,7 +182,7 @@ public static partial class Program
             string ball=Code("BallView.cs"),board=Code("BoardView.cs"),draw=Code("Draw.cs"),theme=Code("Theme.cs"),match=Code("MatchView.cs"),app=Code("CoreClashApp.cs");
             False(ball.Contains("OwnerMark("));False(ball.Contains("hpBox"));
             True(ball.Contains("BallBadges.Layout(")&&ball.Contains("public static void RenderBadges("),"ball badges do not use the shared layout");
-            True(ball.Contains("Theme.P2RingSegments"),"ownership has no non-colour pattern");
+            True(ball.Contains("OwnerPip("),"ownership has no non-colour pattern");
             int bodies=board.IndexOf("BallView.Render(clippedBoard",StringComparison.Ordinal),badges=board.IndexOf("BallView.RenderBadges(clippedBoard",StringComparison.Ordinal);
             True(bodies>0&&badges>bodies,"plates must be drawn after every ball body");
             True(board.Contains("if(preview.Ready&&ShowStopEstimate)RenderStopEstimate(")&&board.Contains("public static bool ShowStopEstimate = true;"),"STOP mark is not optional");

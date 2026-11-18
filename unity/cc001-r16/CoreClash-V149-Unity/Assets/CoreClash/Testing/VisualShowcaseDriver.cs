@@ -24,6 +24,7 @@ namespace CoreClash.Testing
         static readonly string[] DenseTypes = {
             "normal","fire","ice","mine","timebomb","web","plague","leech","medic","shield","magnet","anchor","ram","phase",
             "dart","splitter","colossus","tesla","quake","glue","pulse","breaker","bomb","regen","normal","mine","timebomb","fire" };
+        static readonly string[] IconBatch = BallIcons.Ids.ToArray();
         CoreClashApp app;
         string output = "", profile = "Desktop";
         float started;
@@ -218,6 +219,23 @@ namespace CoreClash.Testing
             app.ShowRuntimeBallDetails(inspected.id);
             yield return Capture("12-ball-details");
             app.CloseBallDetails();
+
+            // W21: every ball of the first icon batch, both owners, at full and reduced HP.
+            if (IconBatch.Length > 0)
+            {
+                app.StartLocalMatch();
+                sim = app.Simulation;
+                for (int i = 0; i < IconBatch.Length; i++)
+                {
+                    int row = i / 4, column = i % 4;
+                    var ball = Place(sim, row < 3 ? 1 : 0, IconBatch[i], 84 + column * 124, 150 + row * 118);
+                    if (i % 3 == 1) sim.Damage(ball, Mathf.Min(10, ball.hp - 5), true);
+                    if (i % 5 == 2 && ball.hp > 5) sim.Damage(ball, Mathf.Min(15, ball.hp - 5), true);
+                }
+                Still(sim);
+                yield return Seconds(1.6f);
+                yield return Capture("13-icon-batch");
+            }
 
             File.WriteAllText(Path.Combine(output, "showcase.txt"),
                 "unity=" + Application.unityVersion + "\nscreen=" + Screen.width + "x" + Screen.height + "\nprofile=" + profile + "\nlogical=" + app.UiWidth.ToString("0.#", CultureInfo.InvariantCulture) + "x" + app.UiHeight.ToString("0.#", CultureInfo.InvariantCulture) + "\ndpi=" + Screen.dpi.ToString(CultureInfo.InvariantCulture) +

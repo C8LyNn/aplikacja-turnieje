@@ -12,7 +12,9 @@ namespace CoreClash.Presentation
         static Color C(string hex)=>ColorUtility.TryParseHtmlString(hex,out var color)?color:Color.white;
         public static Color A(Color color,float alpha)=>new Color(color.r,color.g,color.b,alpha);
 
-        // Teams. Colour is never the only cue: P1 has a solid ring, P2 a segmented one.
+        // Teams. Colour is never the only cue. On a ball the cue is the owner pip (W21): a small
+        // triangle on the ring that points the way the ball's side attacks. Launchers, zones
+        // and structures keep the W20 ring pattern: P1 solid, P2 segmented.
         public static readonly Color P1=C("#4cc9f0"),P2=C("#ff5d73");
         public static Color Team(int owner)=>owner==0?P1:P2;
         public const int P2RingSegments=8;
@@ -33,9 +35,11 @@ namespace CoreClash.Presentation
         public const float CentreRing=.6f,CentreFill=.04f,CentreLabel=.34f,MidLine=.13f,RimAlpha=.75f;
 
         // Balls.
-        public const float OwnerRing=2.6f,OwnerGap=1f,SelectionRing=7f,BodyDark=.38f,BodyHighlight=.9f,ShadowAlpha=.5f;
+        public const float OwnerGap=1f,SelectionRing=7f,BodyDark=.38f,BodyHighlight=.9f,ShadowAlpha=.5f;
         public const float WakeLength=64f,WakeAlpha=.2f;
         public const int WakeSteps=5;
+        // W21: HP ring around the body, one segment per 5 HP (lost segments stay as a dim track).
+        public const float HpRing=4f,HpTrack=.26f,IconSize=1.22f;
         public static readonly Color HpGood=C("#8be28f"),HpHurt=C("#ffd166"),HpCritical=C("#ff5d5d");
         public const float HpHurtBelow=.6f,HpCriticalBelow=.3f,PlateAlpha=.93f;
 
