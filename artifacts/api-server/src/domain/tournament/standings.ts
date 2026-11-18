@@ -63,6 +63,9 @@ export interface StandingProjection {
   tiedAfterAllRules?: boolean;
   /** V5.5: net bonus/penalty included in `points` (absent when zero). */
   pointAdjustment?: number;
+  /** V5.7: points scored / conceded inside sets (only for stages decided by sets). */
+  setPointsFor?: number;
+  setPointsAgainst?: number;
 }
 
 interface MutableRecord {

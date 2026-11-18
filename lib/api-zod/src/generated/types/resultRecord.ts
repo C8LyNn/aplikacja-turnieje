@@ -6,8 +6,11 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { ResultRecordResultType } from './resultRecordResultType';
+import type { SetScore } from './setScore';
 
 export interface ResultRecord {
+  /** V5.7: played sets (stages decided by sets); null otherwise — older results never get invented sets. */
+  sets?: SetScore[] | null;
   id: number;
   matchId: number;
   round: number;

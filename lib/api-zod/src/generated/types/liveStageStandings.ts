@@ -7,6 +7,7 @@
  */
 import type { LeagueRules } from './leagueRules';
 import type { LiveStageTable } from './liveStageTable';
+import type { MatchRules } from './matchRules';
 
 export interface LiveStageStandings {
   stageId: number;
@@ -16,6 +17,8 @@ export interface LiveStageStandings {
   leagueRules: LeagueRules | null;
   /** @nullable */
   rulesSummary: string | null;
+  matchRules?: MatchRules | null;
+  matchRulesSummary?: string;
   /** @nullable */
   advancingPlaces: number | null;
   tables: LiveStageTable[];

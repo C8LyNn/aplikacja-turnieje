@@ -8,6 +8,7 @@
 import type { DeadlockTournamentGameConfig } from './deadlockTournamentGameConfig';
 import type { LeagueRules } from './leagueRules';
 import type { MarvelTournamentGameConfig } from './marvelTournamentGameConfig';
+import type { MatchRules } from './matchRules';
 import type { SchedulePlan } from './schedulePlan';
 import type { TournamentInputFormat } from './tournamentInputFormat';
 import type { TournamentInputParticipantType } from './tournamentInputParticipantType';
@@ -58,6 +59,8 @@ export interface TournamentInput {
   stagePlan?: TournamentStagePlanInput;
   /** V5.3: league rules for a single round_robin tournament created without a stage plan (flexible participant count). */
   leagueRules?: LeagueRules;
+  /** V5.7: match rules for a tournament created without a stage plan (defaultBestOf must equal 2 × setsToWin − 1). */
+  matchRules?: MatchRules;
   /** V5.3: schedule time zone for a single round_robin created without a stage plan. */
   scheduleTimeZone?: string;
   schedulePlan?: SchedulePlan;

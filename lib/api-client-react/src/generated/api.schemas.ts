@@ -943,6 +943,36 @@ export interface LeagueRules {
   tieBreakers?: LeagueRulesTieBreakersItem[];
 }
 
+export type MatchRulesKind = typeof MatchRulesKind[keyof typeof MatchRulesKind];
+
+
+export const MatchRulesKind = {
+  sets: 'sets',
+} as const;
+
+/**
+ * V5.7: what decides a match. Every set uses the same rules; the match score is sets won.
+ */
+export interface MatchRules {
+  version: 1;
+  kind: MatchRulesKind;
+  /**
+     * @minimum 1
+     * @maximum 4
+     */
+  setsToWin: number;
+  /**
+     * @minimum 3
+     * @maximum 99
+     */
+  pointsPerSet: number;
+  /**
+     * @minimum 1
+     * @maximum 2
+     */
+  winBy: number;
+}
+
 /**
  * V5.3: round 1 on startDate, every next round intervalDays later, at defaultTime (local, in scheduleTimeZone).
  */
@@ -1036,6 +1066,8 @@ export interface TournamentStagePlanItemInput {
   legs?: TournamentStagePlanItemInputLegs;
   /** V5.3: round_robin and group_stage only. Omitted keeps ranking by match wins. */
   leagueRules?: LeagueRules;
+  /** V5.7: matches decided by sets; bestOf must equal 2 × setsToWin − 1 and draws are not allowed. */
+  matchRules?: MatchRules;
   /** V5.3: round_robin and group_stage. IANA time zone of the schedule, e.g. Europe/Warsaw. */
   scheduleTimeZone?: string;
   schedulePlan?: SchedulePlan;
@@ -1182,6 +1214,8 @@ export interface TournamentInput {
   stagePlan?: TournamentStagePlanInput;
   /** V5.3: league rules for a single round_robin tournament created without a stage plan (flexible participant count). */
   leagueRules?: LeagueRules;
+  /** V5.7: match rules for a tournament created without a stage plan (defaultBestOf must equal 2 × setsToWin − 1). */
+  matchRules?: MatchRules;
   /** V5.3: schedule time zone for a single round_robin created without a stage plan. */
   scheduleTimeZone?: string;
   schedulePlan?: SchedulePlan;
@@ -1442,6 +1476,10 @@ export interface TournamentStage {
   roundRobinLegs?: TournamentStageRoundRobinLegs;
   /** V5.3: league rules; null keeps the pre-V5.3 ranking by match wins. */
   leagueRules?: LeagueRules | null;
+  /** V5.7: what decides a match; null keeps the series / draw-league meaning. */
+  matchRules?: MatchRules | null;
+  /** V5.7: plain-language description of how a match is decided (every stage). */
+  matchRulesSummary?: string;
   /**
      * V5.3: plain-language description of the league rules.
      * @nullable
@@ -2063,7 +2101,16 @@ export const MatchStatus = {
   cancelled: 'cancelled',
 } as const;
 
+export interface SetScore {
+  /** @minimum 0 */
+  score1: number;
+  /** @minimum 0 */
+  score2: number;
+}
+
 export interface Match {
+  /** V5.7: played sets (stages decided by sets); null otherwise — older results never get invented sets. */
+  sets?: SetScore[] | null;
   id: number;
   /** @minimum 1 */
   revision: number;
@@ -2344,6 +2391,16 @@ export interface LiveStageTableRow {
   decidedBy: string | null;
   /** V5.5: net bonus/penalty included in points (0 when none). */
   pointAdjustment?: number;
+  /**
+     * V5.7: points scored inside sets; null when the stage is not decided by sets.
+     * @nullable
+     */
+  setPointsFor?: number | null;
+  /**
+     * V5.7: points conceded inside sets; null when the stage is not decided by sets.
+     * @nullable
+     */
+  setPointsAgainst?: number | null;
   /** @nullable */
   zone: LiveStageTableRowZone;
 }
@@ -2365,6 +2422,8 @@ export interface LiveStageStandings {
   leagueRules: LeagueRules | null;
   /** @nullable */
   rulesSummary: string | null;
+  matchRules?: MatchRules | null;
+  matchRulesSummary?: string;
   /** @nullable */
   advancingPlaces: number | null;
   tables: LiveStageTable[];
@@ -2376,6 +2435,12 @@ export type MatchResult = {
   resultType: 'played';
   score1: number;
   score2: number;
+  /**
+     * V5.7: required in a stage decided by sets — every played set in order; score1/score2 must equal the sets won.
+     * @minItems 1
+     * @maxItems 7
+     */
+  sets?: SetScore[];
 } | {
   /** @minimum 1 */
   expectedRevision: number;
@@ -2451,6 +2516,16 @@ export interface Standing {
   decidedBy?: StandingDecidedBy;
   /** V5.3: every configured criterion left this row level; seeding decided. */
   tiedAfterAllRules?: boolean;
+  /** V5.7: points scored inside sets (stages decided by sets only). */
+  setPointsFor?: number;
+  /** V5.7: points conceded inside sets (stages decided by sets only). */
+  setPointsAgainst?: number;
+}
+
+export interface StageMatchRulesUpdateRequest {
+  matchRules: MatchRules | null;
+  /** @minimum 1 */
+  expectedVersion: number;
 }
 
 export interface StageLeagueRulesUpdateRequest {
@@ -2638,6 +2713,8 @@ export const ResultRecordResultType = {
 } as const;
 
 export interface ResultRecord {
+  /** V5.7: played sets (stages decided by sets); null otherwise — older results never get invented sets. */
+  sets?: SetScore[] | null;
   id: number;
   matchId: number;
   round: number;
@@ -3804,6 +3881,8 @@ export type TournamentBackupV3StagesItem = {
   scheduleTimeZone?: string;
   /** V5.5: present only when the stage has bonus/penalty entries (revoked ones included). */
   pointAdjustments?: PointAdjustment[];
+  /** V5.7: present only when matches of the stage are decided by sets. */
+  matchRules?: MatchRules;
   /** V5.3: present only when the stage has a schedule template. */
   schedulePlan?: SchedulePlan;
   /** @nullable */
@@ -4065,6 +4144,12 @@ export type TournamentBackupV3MatchesItem = {
   score1?: number | null;
   /** @nullable */
   score2?: number | null;
+  /**
+     * V5.7: present only for a played result of a stage decided by sets.
+     * @minItems 1
+     * @maxItems 7
+     */
+  sets?: SetScore[];
   /** @nullable */
   resultType: TournamentBackupV3MatchesItemResultType;
   /** @nullable */
@@ -4111,6 +4196,12 @@ export type TournamentBackupV3ResultHistoryItem = {
   score1?: number | null;
   /** @nullable */
   score2?: number | null;
+  /**
+     * V5.7: present only for a played result of a stage decided by sets.
+     * @minItems 1
+     * @maxItems 7
+     */
+  sets?: SetScore[];
   bestOf: number;
   resultType: TournamentBackupV3ResultHistoryItemResultType;
   /** @nullable */

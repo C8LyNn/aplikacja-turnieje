@@ -43,4 +43,8 @@ export interface Standing {
   decidedBy?: StandingDecidedBy;
   /** V5.3: every configured criterion left this row level; seeding decided. */
   tiedAfterAllRules?: boolean;
+  /** V5.7: points scored inside sets (stages decided by sets only). */
+  setPointsFor?: number;
+  /** V5.7: points conceded inside sets (stages decided by sets only). */
+  setPointsAgainst?: number;
 }

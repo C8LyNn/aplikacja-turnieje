@@ -85,6 +85,7 @@ import type {
   StageBasketConfigurationInput,
   StageLeagueRulesUpdateRequest,
   StageLifecycleError,
+  StageMatchRulesUpdateRequest,
   StagePointAdjustments,
   StageQualificationPreview,
   StageSchedule,
@@ -3528,6 +3529,80 @@ export const useUpdateStageLeagueRules = <TError = ErrorType<DomainError>,
         TContext
       > => {
       return useMutation(getUpdateStageLeagueRulesMutationOptions(options));
+    }
+
+export const getUpdateStageMatchRulesUrl = (id: number,
+    stageId: number,) => {
+
+
+
+
+  return `/api/tournaments/${id}/stages/${stageId}/match-rules`
+}
+
+/**
+ * @summary V5.7: set or clear what decides a match (sets) for a stage that has not started; played results are never recalculated
+ */
+export const updateStageMatchRules = async (id: number,
+    stageId: number,
+    stageMatchRulesUpdateRequest: StageMatchRulesUpdateRequest, options?: RequestInit): Promise<TournamentStage> => {
+
+  return customFetch<TournamentStage>(getUpdateStageMatchRulesUrl(id,stageId),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      stageMatchRulesUpdateRequest,)
+  }
+);}
+
+
+
+
+export const getUpdateStageMatchRulesMutationOptions = <TError = ErrorType<DomainError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateStageMatchRules>>, TError,{id: number;stageId: number;data: BodyType<StageMatchRulesUpdateRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof updateStageMatchRules>>, TError,{id: number;stageId: number;data: BodyType<StageMatchRulesUpdateRequest>}, TContext> => {
+
+const mutationKey = ['updateStageMatchRules'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof updateStageMatchRules>>, {id: number;stageId: number;data: BodyType<StageMatchRulesUpdateRequest>}> = (props) => {
+          const {id,stageId,data} = props ?? {};
+
+          return  updateStageMatchRules(id,stageId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type UpdateStageMatchRulesMutationResult = NonNullable<Awaited<ReturnType<typeof updateStageMatchRules>>>
+    export type UpdateStageMatchRulesMutationBody = BodyType<StageMatchRulesUpdateRequest>
+    export type UpdateStageMatchRulesMutationError = ErrorType<DomainError>
+
+    /**
+ * @summary V5.7: set or clear what decides a match (sets) for a stage that has not started; played results are never recalculated
+ */
+export const useUpdateStageMatchRules = <TError = ErrorType<DomainError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof updateStageMatchRules>>, TError,{id: number;stageId: number;data: BodyType<StageMatchRulesUpdateRequest>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof updateStageMatchRules>>,
+        TError,
+        {id: number;stageId: number;data: BodyType<StageMatchRulesUpdateRequest>},
+        TContext
+      > => {
+      return useMutation(getUpdateStageMatchRulesMutationOptions(options));
     }
 
 export const getGetStageScheduleUrl = (id: number,

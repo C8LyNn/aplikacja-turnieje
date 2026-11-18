@@ -1,3 +1,4 @@
+import { describeMatchRules, type MatchRules } from "@workspace/match-rules";
 /**
  * V5 · Stage A — parameterised tournament presets.
  *
@@ -60,13 +61,21 @@ export type PresetParamKey =
   /** V5.4: how seeds are spread into groups (0 snake by seed, 1 random). */
   | "groupPlacement"
   /** V5.4: how group qualifiers are seeded into the play-off (0 by group place, 1 by overall ranking). */
-  | "qualifierSeeding";
+  | "qualifierSeeding"
+  /** V5.7: 0 = no sets (series or one game as before); 1–4 = sets needed to win a match. */
+  | "setsToWin"
+  /** V5.7: points needed to win a set. */
+  | "setPoints"
+  /** V5.7: lead needed to win a set (1 or 2). */
+  | "setWinBy";
 
 /** V5.4: labels for enumerated params (index = value). */
 export const PRESET_PARAM_OPTION_LABELS: Partial<Record<PresetParamKey, string[]>> = {
   entrySeeding: ["Kolejność zgłoszeń", "Losowanie", "Ręczne rozstawienie"],
   groupPlacement: ["Wężykiem według rozstawienia", "Losowo"],
   qualifierSeeding: ["Najpierw zwycięzcy grup, potem drugie miejsca", "Według łącznego rankingu"],
+  setsToWin: ["Bez setów", "Jeden set", "Do 2 wygranych setów", "Do 3 wygranych setów", "Do 4 wygranych setów"],
+  setWinBy: ["", "Bez przewagi", "Przewaga 2 punktów"],
 };
 
 export type PresetParams = Partial<Record<PresetParamKey, number>>;
@@ -118,12 +127,18 @@ export interface PresetPreview {
     stagePlan?: TournamentStagesPlan;
     /** V5.3: league rules for a single flexible league (no stage plan). */
     leagueRules?: LeagueRules;
+    /** V5.7: match rules for a single flexible stage (no stage plan). */
+    matchRules?: MatchRules;
     /** V5.3: schedule for a single flexible league (no stage plan). */
     scheduleTimeZone?: string;
     schedulePlan?: SchedulePlan;
   };
   /** V5.3: league rules of the table stage (null for formats without a league table). */
   leagueRules: LeagueRules | null;
+  /** V5.7: what decides a match in every stage (null = series / one game as before). */
+  matchRules: MatchRules | null;
+  /** V5.7: plain description of how a match is decided. */
+  matchRulesSummary: string;
   /** V5.3: planned dates of the first league/group stage (null without a schedule). */
   schedule: PresetSchedulePreview | null;
   stagePlan: TournamentStagesPlan;
@@ -257,18 +272,24 @@ export const PRESET_PARAM_TEXT: Record<PresetParamKey, { label: string; help: st
   entrySeeding: { label: "Kolejność na starcie", help: "Kolejność zgłoszeń, losowanie przed startem albo numery rozstawienia nadane ręcznie." },
   groupPlacement: { label: "Podział do grup", help: "Wężykiem: najwyżej rozstawieni trafiają do różnych grup. Losowo: grupy z losowania." },
   qualifierSeeding: { label: "Rozstawienie w play-off", help: "Zwycięzcy grup przed drugimi miejscami albo jeden ranking wszystkich awansujących." },
+  setsToWin: { label: "Mecz na sety", help: "0 = bez setów (seria gier albo jedna gra). Inaczej: ile setów trzeba wygrać, aby wygrać mecz. Długość meczu wynika wtedy z setów." },
+  setPoints: { label: "Set do … punktów", help: "Ile punktów trzeba zdobyć, aby wygrać set." },
+  setWinBy: { label: "Przewaga w secie", help: "2 = przy remisie blisko końca seta gra się dalej, aż ktoś zdobędzie 2 punkty przewagi." },
 };
 
 /** Parameters a user (or an imported AI file) may set per preset; participantCount comes from the answers. */
 export const PRESET_TUNABLE_PARAMS: Record<PresetId, PresetParamKey[]> = {
-  single_elimination: ["bestOf", "entrySeeding"],
-  double_elimination: ["bestOf", "entrySeeding"],
-  swiss: ["bestOf", "swissRounds", "entrySeeding"],
-  round_robin: ["bestOf", "legs", "allowDraws", "pointsWin", "pointsDraw", "pointsLoss", "entrySeeding"],
-  groups_playoff: ["bestOf", "playoffBestOf", "groupCount", "qualifiersPerGroup", "allowDraws", "pointsWin", "pointsDraw", "pointsLoss", "entrySeeding", "groupPlacement", "qualifierSeeding"],
-  swiss_playoff: ["bestOf", "playoffBestOf", "swissRounds", "advancingCount", "entrySeeding"],
-  league_playoff: ["bestOf", "playoffBestOf", "advancingCount", "legs", "allowDraws", "pointsWin", "pointsDraw", "pointsLoss", "entrySeeding"],
+  single_elimination: ["bestOf", "entrySeeding", "setsToWin", "setPoints", "setWinBy"],
+  double_elimination: ["bestOf", "entrySeeding", "setsToWin", "setPoints", "setWinBy"],
+  swiss: ["bestOf", "swissRounds", "entrySeeding", "setsToWin", "setPoints", "setWinBy"],
+  round_robin: ["bestOf", "legs", "allowDraws", "pointsWin", "pointsDraw", "pointsLoss", "entrySeeding", "setsToWin", "setPoints", "setWinBy"],
+  groups_playoff: ["bestOf", "playoffBestOf", "groupCount", "qualifiersPerGroup", "allowDraws", "pointsWin", "pointsDraw", "pointsLoss", "entrySeeding", "groupPlacement", "qualifierSeeding", "setsToWin", "setPoints", "setWinBy"],
+  swiss_playoff: ["bestOf", "playoffBestOf", "swissRounds", "advancingCount", "entrySeeding", "setsToWin", "setPoints", "setWinBy"],
+  league_playoff: ["bestOf", "playoffBestOf", "advancingCount", "legs", "allowDraws", "pointsWin", "pointsDraw", "pointsLoss", "entrySeeding", "setsToWin", "setPoints", "setWinBy"],
 };
+
+/** V5.7: points-per-set choices offered by presets (the API accepts 3–99 through stage rules). */
+const SET_POINT_OPTIONS = [11, 15, 21, 25];
 
 const range = (from: number, to: number): number[] =>
   to < from ? [] : Array.from({ length: to - from + 1 }, (_, index) => from + index);
@@ -384,6 +405,8 @@ function leagueRulesFromParams(input: PresetParams, bestOf: StageBestOf, limits:
 
 interface Built {
   leagueRules?: LeagueRules;
+  /** V5.7: set rules applied to every stage (null = series / one game as before). */
+  matchRules?: MatchRules | null;
   params: PresetParams & { participantCount: number; bestOf: StageBestOf };
   paramLimits: PresetParamLimit[];
   stages: TournamentStagePlan[];
@@ -414,8 +437,36 @@ function normaliseCount(presetId: PresetId, raw: unknown): number {
  * V5.4: seeding rules on top of the structure. They change only who meets whom, never the
  * number of matches or qualifiers, so they are applied after the structure is built.
  */
-function build(presetId: PresetId, input: PresetParams, accurate: boolean): Built {
+function build(presetId: PresetId, rawInput: PresetParams, accurate: boolean): Built {
+  // V5.7: match rules — sets decide every match of the tournament; the match length follows from them.
+  const setsToWin = pick(rawInput.setsToWin, [0, 1, 2, 3, 4], 0, "setsToWin");
+  const setPoints = pick(rawInput.setPoints, SET_POINT_OPTIONS, 11, "setPoints");
+  const setWinBy = pick(rawInput.setWinBy, [1, 2], 2, "setWinBy");
+  let input = rawInput;
+  let matchRules: MatchRules | null = null;
+  if (setsToWin > 0) {
+    const derived = (2 * setsToWin - 1) as StageBestOf;
+    for (const key of ["bestOf", "playoffBestOf"] as const) {
+      if (rawInput[key] != null && rawInput[key] !== derived) {
+        throw new PresetError("PRESET_PARAM_CONFLICT", `${PRESET_PARAM_TEXT[key].label} wynika z zasad setów: do ${setsToWin} wygranych setów to najwyżej ${derived} setów. Usuń to ustawienie albo wybierz mecz bez setów.`, key);
+      }
+    }
+    if (rawInput.allowDraws === 1) {
+      throw new PresetError("PRESET_PARAM_CONFLICT", "Mecz rozstrzygany setami zawsze ma zwycięzcę — wyłącz remisy albo wybierz mecz bez setów.", "allowDraws");
+    }
+    input = { ...rawInput, bestOf: derived, ...(PRESET_TUNABLE_PARAMS[presetId].includes("playoffBestOf") ? { playoffBestOf: derived } : {}) };
+    matchRules = { version: 1, kind: "sets", setsToWin, pointsPerSet: setPoints, winBy: setWinBy };
+  }
   const built = buildStructure(presetId, input, accurate);
+  built.paramLimits.push(limit("setsToWin", [0, 1, 2, 3, 4], setsToWin), limit("setPoints", SET_POINT_OPTIONS, setPoints), limit("setWinBy", [1, 2], setWinBy));
+  if (matchRules) {
+    // Listed only when sets are chosen, so every existing preview keeps exactly its shape.
+    built.params.setsToWin = setsToWin;
+    built.params.setPoints = setPoints;
+    built.params.setWinBy = setWinBy;
+    built.matchRules = matchRules;
+    built.stages = built.stages.map((stage) => ({ ...stage, matchRules: matchRules! }));
+  }
   const entry = pick(input.entrySeeding, [0, 1, 2], 0, "entrySeeding");
   built.paramLimits.push(limit("entrySeeding", [0, 1, 2], entry));
   built.params.entrySeeding = entry;
@@ -669,6 +720,7 @@ function buildStructure(presetId: PresetId, input: PresetParams, accurate: boole
 const ALLOWED_PARAM_KEYS = new Set<PresetParamKey>([
   "participantCount", "bestOf", "playoffBestOf", "swissRounds", "groupCount", "qualifiersPerGroup", "advancingCount", "legs",
   "allowDraws", "pointsWin", "pointsDraw", "pointsLoss", "entrySeeding", "groupPlacement", "qualifierSeeding",
+  "setsToWin", "setPoints", "setWinBy",
 ]);
 
 export interface PresetPreviewRequest {
@@ -738,6 +790,7 @@ export function previewPreset(request: PresetPreviewRequest): PresetPreview {
         defaultBestOf: built.params.bestOf,
         ...(first.format === "swiss" ? { swissRounds: first.rounds } : {}),
         ...(built.leagueRules ? { leagueRules: built.leagueRules } : {}),
+        ...(built.matchRules ? { matchRules: built.matchRules } : {}),
       }
     : {
         // Compatibility column only; the stage plan is authoritative for multi-stage tournaments.
@@ -771,6 +824,8 @@ export function previewPreset(request: PresetPreviewRequest): PresetPreview {
     requirements: built.requirements,
     warnings: built.warnings,
     leagueRules: built.leagueRules ?? null,
+    matchRules: built.matchRules ?? null,
+    matchRulesSummary: describeMatchRules(built.matchRules ?? null, { bestOf: built.params.bestOf, allowDraws: !!built.leagueRules?.allowDraws }),
     schedule: null,
   };
 }

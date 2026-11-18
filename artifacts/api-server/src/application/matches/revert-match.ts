@@ -1,3 +1,4 @@
+import { evaluateSetMatch, matchRulesFromStorage, setsFromStorage, type MatchRules } from "@workspace/match-rules";
 import { and, desc, eq, gt, inArray } from "drizzle-orm";
 import {
   actionLogTable,
@@ -120,6 +121,7 @@ interface ConsistentResult {
 function requireConsistentResult(
   match: typeof matchesTable.$inferSelect,
   leagueRules: LeagueRules | null,
+  matchRules: MatchRules | null = null,
 ): ConsistentResult {
   if (match.completedAt == null || match.resultType == null) {
     throw new RevertMatchError("RESULT_INCONSISTENT");
@@ -131,6 +133,16 @@ function requireConsistentResult(
     throw new RevertMatchError("RESULT_INCONSISTENT");
   }
 
+  // V5.7: stored sets must belong to a played match and agree with its score; a set stage may still hold
+  // results saved without sets (none exist today, but old data is never given invented sets).
+  const storedSets = setsFromStorage(match.setScores);
+  if (match.setScores != null && (!storedSets || match.resultType !== "played")) throw new RevertMatchError("RESULT_INCONSISTENT");
+  if (storedSets && matchRules) {
+    const evaluated = evaluateSetMatch(storedSets, matchRules);
+    if (!evaluated.ok || evaluated.value.setsWon1 !== match.score1 || evaluated.value.setsWon2 !== match.score2) {
+      throw new RevertMatchError("RESULT_INCONSISTENT");
+    }
+  }
   if (match.resultType === "played" && leagueRules?.allowDraws) {
     // V5.3 draw-enabled league: a free score; the stored winner must follow from it (null for a draw).
     if (match.score1 == null || match.score2 == null || match.resultReason != null) {
@@ -208,6 +220,7 @@ function historyMatchesCurrentResult(
     history.score1 === match.score1 &&
     history.score2 === match.score2 &&
     history.winnerId === match.winnerId &&
+    JSON.stringify(history.setScores ?? null) === JSON.stringify(match.setScores ?? null) &&
     history.bestOf === match.bestOf &&
     history.resultType === match.resultType &&
     history.resultReason === match.resultReason &&
@@ -339,7 +352,7 @@ export async function revertMatch(
         throw new RevertMatchError("CONCURRENT_MODIFICATION");
       }
     }
-    const result = requireConsistentResult(match, leagueRulesFromStorage(stage.leagueRules));
+    const result = requireConsistentResult(match, leagueRulesFromStorage(stage.leagueRules), matchRulesFromStorage(stage.matchRules));
 
     const participantIds = [match.player1Id, match.player2Id].filter(
       (playerId): playerId is number => playerId != null,
@@ -632,6 +645,7 @@ export async function revertMatch(
         score2: null,
         winnerId: null,
         completedAt: null,
+        setScores: null,
       })
       .where(and(eq(matchesTable.id, match.id), eq(matchesTable.status, "completed")))
       .returning();

@@ -1,3 +1,4 @@
+import { describeMatchRules, matchRulesFromStorage } from "@workspace/match-rules";
 import { pointAdjustmentsFromStorage } from "../../domain/tournament/point-adjustments";
 import { asc, eq, inArray } from "drizzle-orm";
 import {
@@ -42,9 +43,13 @@ export function serializeTournamentStage(
 
 function leagueFields(stage: typeof tournamentStagesTable.$inferSelect) {
   const rules = leagueRulesFromStorage(stage.leagueRules);
+  const matchRules = matchRulesFromStorage(stage.matchRules);
   return {
     leagueRules: rules,
     leagueRulesSummary: rules ? describeLeagueRules(rules) : null,
+    // V5.7: what decides a match, in plain words for every stage (also the existing series / draw meaning).
+    matchRules,
+    matchRulesSummary: describeMatchRules(matchRules, { bestOf: stage.bestOf, allowDraws: !!rules?.allowDraws }),
     scheduleTimeZone: stage.scheduleTimeZone ?? null,
     schedulePlan: schedulePlanFromStorage(stage.schedulePlan, stage.scheduleTimeZone),
   };

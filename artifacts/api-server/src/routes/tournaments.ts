@@ -1,3 +1,5 @@
+import { setPointTotals } from "../domain/tournament/set-point-totals";
+import { matchRulesFromStorage, setsFromStorage } from "@workspace/match-rules";
 import { addPointAdjustment, pointAdjustmentView, PointAdjustmentError, revokePointAdjustment } from "../application/stages/point-adjustments-service";
 import { stagePointTotals } from "../domain/tournament/point-adjustments";
 import {
@@ -468,12 +470,15 @@ function mapPlayer(
 }
 
 function mapMatch(
-  m: typeof matchesTable.$inferSelect,
+  match: typeof matchesTable.$inferSelect,
   player1Name?: string | null,
   player2Name?: string | null,
 ) {
+  // V5.7: set scores are exposed as `sets` ({ score1, score2 } per set), never as the raw column.
+  const { setScores, ...m } = match;
   return {
     ...m,
+    sets: setsFromStorage(setScores),
     player1Id: m.player1Id ?? null,
     player2Id: m.player2Id ?? null,
     player1Name: player1Name ?? null,
@@ -648,13 +653,18 @@ async function calculateStandings(
       .from(stageParticipantsTable).where(eq(stageParticipantsTable.stageId, stage.id));
     const seeds = new Map(members.map(member => [member.playerId, member.stageSeed]));
     // A stage's frozen seeding, not registration order, resolves ranking ties.
-    return calculateMatchRecordStandings(
+    const stageMatches = matches.filter(match => match.stageId === stage.id);
+    const rows = calculateMatchRecordStandings(
       players.filter(player => seeds.has(player.id)).map(player => ({ ...player, seed: seeds.get(player.id)! })),
-      matches.filter(match => match.stageId === stage.id),
+      stageMatches,
       stage.format,
       leagueRulesFromStorage(stage.leagueRules),
       stagePointTotals(stage),
     );
+    // V5.7: small points of a set stage, next to (never instead of) match and set records.
+    if (!matchRulesFromStorage(stage.matchRules)) return rows;
+    const totals = setPointTotals(stageMatches);
+    return rows.map((row) => ({ ...row, setPointsFor: totals.get(row.playerId)?.for ?? 0, setPointsAgainst: totals.get(row.playerId)?.against ?? 0 }));
   }
   return calculateMatchRecordStandings(players, matches, tournament.format);
 }
@@ -803,6 +813,7 @@ router.post("/tournaments", async (req, res): Promise<void> => {
     leagueRules: _parsedLeagueRules,
     scheduleTimeZone: _parsedScheduleTimeZone,
     schedulePlan: _parsedSchedulePlan,
+    matchRules: _parsedMatchRules,
     ...rest
   } = parsed.data;
   // V5.3: zod strips unknown keys; league rules are validated strictly by the domain parser on the raw input,
@@ -813,10 +824,11 @@ router.post("/tournaments", async (req, res): Promise<void> => {
     stages: parsedStagePlan.stages.map((stage, index) => {
       const raw = rawStages[index];
       if (!raw || typeof raw !== "object") return stage;
-      const source = raw as { leagueRules?: unknown; schedulePlan?: unknown };
+      const source = raw as { leagueRules?: unknown; schedulePlan?: unknown; matchRules?: unknown };
       return {
         ...stage,
         ...("leagueRules" in source ? { leagueRules: source.leagueRules } : {}),
+        ...("matchRules" in source ? { matchRules: source.matchRules } : {}),
         ...("schedulePlan" in source ? { schedulePlan: source.schedulePlan } : {}),
       };
     }),
@@ -824,6 +836,7 @@ router.post("/tournaments", async (req, res): Promise<void> => {
   const rawLeagueRules = ownValue(requestBody, "leagueRules");
   const rawScheduleTimeZone = ownValue(requestBody, "scheduleTimeZone");
   const rawSchedulePlan = ownValue(requestBody, "schedulePlan");
+  const rawMatchRules = ownValue(requestBody, "matchRules");
   // group_stage cannot be a standalone single-stage tournament: it is structurally a
   // non-final format (GROUP_STAGE_CANNOT_BE_FINAL) and the DB constraint requires
   // groupCount/participantsPerGroup/qualifiersPerGroup which are not available here.
@@ -852,6 +865,7 @@ router.post("/tournaments", async (req, res): Promise<void> => {
       leagueRules: rawLeagueRules,
       scheduleTimeZone: rawScheduleTimeZone,
       schedulePlan: rawSchedulePlan,
+      matchRules: rawMatchRules,
     });
     res.status(201).json({
       ...mapTournament(created.tournament, created.gameConfig),
@@ -2199,6 +2213,7 @@ router.get("/tournaments/:id/results-history", async (req, res): Promise<void> =
       player2Name: h.player2Id ? (playerMap.get(h.player2Id) ?? null) : null,
       score1: h.score1 ?? null,
       score2: h.score2 ?? null,
+      sets: setsFromStorage(h.setScores),
       winnerId: h.winnerId ?? null,
       winnerName: h.winnerId ? (playerMap.get(h.winnerId) ?? null) : null,
       bestOf: h.bestOf,
@@ -2896,11 +2911,12 @@ router.patch("/matches/:id", async (req, res): Promise<void> => {
         if (lockedMatch.status !== "pending") {
           throw new Error("BEST_OF_CHANGE_NOT_ALLOWED");
         }
-        const [matchStage] = await tx.select({ leagueRules: tournamentStagesTable.leagueRules })
+        const [matchStage] = await tx.select({ leagueRules: tournamentStagesTable.leagueRules, matchRules: tournamentStagesTable.matchRules })
           .from(tournamentStagesTable).where(eq(tournamentStagesTable.id, lockedMatch.stageId));
         if (parsed.data.bestOf !== 1 && leagueRulesFromStorage(matchStage?.leagueRules)?.allowDraws) {
           throw new Error("BEST_OF_FIXED_FOR_DRAWS");
         }
+        if (matchRulesFromStorage(matchStage?.matchRules)) throw new Error("BEST_OF_FIXED_FOR_SETS");
       }
       const [saved] = await tx
         .update(matchesTable)
@@ -2961,6 +2977,11 @@ router.patch("/matches/:id", async (req, res): Promise<void> => {
         status: 422,
         error: "W lidze z remisami mecz to jedna gra — długości meczu nie można zmienić.",
         code: "BEST_OF_FIXED_FOR_DRAWS",
+      },
+      BEST_OF_FIXED_FOR_SETS: {
+        status: 422,
+        error: "Długość meczu wynika z zasad setów tego etapu — zmienia się ją razem z zasadami etapu, przed jego startem.",
+        code: "BEST_OF_FIXED_FOR_SETS",
       },
       MATCH_STATE_CHANGED: {
         status: 422,

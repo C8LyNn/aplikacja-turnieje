@@ -1,3 +1,4 @@
+import { evaluateSetMatch, matchRulesFromStorage, parseMatchRules, setsFromStorage, setsToStorage, validateMatchRulesForStage, type MatchRules } from "@workspace/match-rules";
 import { parsePointAdjustments, pointAdjustmentsFromStorage } from "../../domain/tournament/point-adjustments";
 import { parseParticipantFieldSet, participantFieldsFromStorage, validateFieldValues, type ParticipantFieldSet } from "../../domain/tournament/participant-fields";
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
@@ -421,6 +422,8 @@ export async function exportBackupV3(
       ...(stage.leagueRules != null ? { leagueRules: leagueRulesFromStorage(stage.leagueRules)! } : {}),
       // V5.5: bonus/penalty audit entries travel with the stage (omitted when none).
       ...(pointAdjustmentsFromStorage(stage.pointAdjustments).length ? { pointAdjustments: pointAdjustmentsFromStorage(stage.pointAdjustments) } : {}),
+      // V5.7: match rules travel with the stage (omitted for series / draw-league stages).
+      ...(matchRulesFromStorage(stage.matchRules) ? { matchRules: matchRulesFromStorage(stage.matchRules)! } : {}),
       ...(stage.scheduleTimeZone != null ? { scheduleTimeZone: stage.scheduleTimeZone } : {}),
       ...(schedulePlanFromStorage(stage.schedulePlan, stage.scheduleTimeZone) != null
         ? { schedulePlan: schedulePlanFromStorage(stage.schedulePlan, stage.scheduleTimeZone)! }
@@ -548,6 +551,7 @@ export async function exportBackupV3(
       winnerBackupId: match.winnerId ?? null,
       score1: match.score1 ?? null,
       score2: match.score2 ?? null,
+      ...(setsFromStorage(match.setScores) ? { sets: setsFromStorage(match.setScores)! } : {}),
       resultType: match.resultType ?? null,
       resultReason: match.resultReason ?? null,
       bestOf: match.bestOf,
@@ -570,6 +574,7 @@ export async function exportBackupV3(
       winnerBackupId: entry.winnerId ?? null,
       score1: entry.score1 ?? null,
       score2: entry.score2 ?? null,
+      ...(setsFromStorage(entry.setScores) ? { sets: setsFromStorage(entry.setScores)! } : {}),
       bestOf: entry.bestOf,
       resultType: entry.resultType,
       resultReason: entry.resultReason ?? null,
@@ -780,6 +785,28 @@ export function validateBackupV3(backup: TournamentBackupV3): void {
     }
   }
   const drawLeague = (stageBackupId: number) => leagueRulesByStage.get(stageBackupId)?.allowDraws === true;
+  // V5.7: match rules — well-formed, consistent with the stage; sets only on played results of such stages,
+  // every set valid and the match score equal to the sets won.
+  const matchRulesByStage = new Map<number, MatchRules | null>();
+  for (const stage of backup.stages) {
+    const parsed = parseMatchRules(stage.matchRules);
+    if (!parsed.ok) { errors.push(`Stage ${stage.backupId} has invalid match rules.`); matchRulesByStage.set(stage.backupId, null); continue; }
+    if (validateMatchRulesForStage(parsed.value, { format: stage.format, bestOf: stage.bestOf, allowDraws: leagueRulesByStage.get(stage.backupId)?.allowDraws === true }).length > 0) {
+      errors.push(`Stage ${stage.backupId} match rules do not fit the stage.`);
+    }
+    matchRulesByStage.set(stage.backupId, parsed.value);
+  }
+  const checkSets = (label: string, entry: { stageBackupId: number; resultType: string | null; score1?: number | null; score2?: number | null; sets?: Array<{ score1: number; score2: number }> }) => {
+    if (entry.sets === undefined) return;
+    const rules = matchRulesByStage.get(entry.stageBackupId);
+    if (!rules || entry.resultType !== "played") { errors.push(`${label} has set scores but is not a played result of a stage decided by sets.`); return; }
+    const evaluated = evaluateSetMatch(entry.sets, rules);
+    if (!evaluated.ok || evaluated.value.setsWon1 !== entry.score1 || evaluated.value.setsWon2 !== entry.score2) {
+      errors.push(`${label} set scores are invalid or do not match its result.`);
+    }
+  };
+  for (const match of backup.matches) checkSets(`Match ${match.backupId}`, match);
+  for (const history of backup.resultHistory) checkSets(`Result history ${history.matchBackupId}:${history.revision}`, history);
   const groupById = new Map(
     backup.groups.map((group) => [group.backupId, group]),
   );
@@ -1045,6 +1072,7 @@ export function validateBackupV3(backup: TournamentBackupV3): void {
         ...(stage.format === "swiss" ? { rounds: stage.plannedRounds } : {}),
         ...(stage.format === "round_robin" && stage.roundRobinLegs === 2 ? { legs: 2 } : {}),
         ...(stage.leagueRules !== undefined ? { leagueRules: stage.leagueRules } : {}),
+        ...(stage.matchRules !== undefined ? { matchRules: stage.matchRules } : {}),
         ...(stage.scheduleTimeZone !== undefined ? { scheduleTimeZone: stage.scheduleTimeZone } : {}),
         ...((stage.format === "swiss" || stage.format === "round_robin") &&
         stage.advancingCount != null
@@ -1893,6 +1921,7 @@ export async function importBackupV3(
         const parsed = parseLeagueRules(stage.leagueRules);
         return parsed.ok ? parsed.value : null;
       })(),
+      matchRules: matchRulesFromStorage(stage.matchRules),
       scheduleTimeZone: stage.scheduleTimeZone ?? null,
       schedulePlan: stage.schedulePlan && stage.scheduleTimeZone ? stage.schedulePlan : null,
       currentRound: stage.currentRound ?? null,
@@ -2273,6 +2302,7 @@ export async function importBackupV3(
               : playerIds.get(match.winnerBackupId)!,
           score1: match.score1 ?? null,
           score2: match.score2 ?? null,
+          setScores: match.sets ? setsToStorage(match.sets) : null,
           resultType: match.resultType,
           resultReason: match.resultReason,
           bestOf: match.bestOf,
@@ -2363,6 +2393,7 @@ export async function importBackupV3(
             : playerIds.get(history.winnerBackupId)!,
         score1: history.score1 ?? null,
         score2: history.score2 ?? null,
+        setScores: history.sets ? setsToStorage(history.sets) : null,
         bestOf: history.bestOf,
         resultType: history.resultType,
         resultReason: history.resultReason,

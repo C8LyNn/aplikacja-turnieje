@@ -26,6 +26,16 @@ export interface LiveStageTableRow {
   decidedBy: string | null;
   /** V5.5: net bonus/penalty included in points (0 when none). */
   pointAdjustment?: number;
+  /**
+     * V5.7: points scored inside sets; null when the stage is not decided by sets.
+     * @nullable
+     */
+  setPointsFor?: number | null;
+  /**
+     * V5.7: points conceded inside sets; null when the stage is not decided by sets.
+     * @nullable
+     */
+  setPointsAgainst?: number | null;
   /** @nullable */
   zone: LiveStageTableRowZone;
 }

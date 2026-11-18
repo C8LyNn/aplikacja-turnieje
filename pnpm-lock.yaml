@@ -190,6 +190,9 @@ importers:
       '@workspace/game-catalog':
         specifier: workspace:*
         version: link:../../lib/game-catalog
+      '@workspace/match-rules':
+        specifier: workspace:*
+        version: link:../../lib/match-rules
       '@workspace/stage-basket-flow':
         specifier: workspace:*
         version: link:../../lib/stage-basket-flow
@@ -566,6 +569,9 @@ importers:
       '@workspace/game-catalog':
         specifier: workspace:*
         version: link:../../lib/game-catalog
+      '@workspace/match-rules':
+        specifier: workspace:*
+        version: link:../../lib/match-rules
       '@workspace/stage-basket-flow':
         specifier: workspace:*
         version: link:../../lib/stage-basket-flow
@@ -692,6 +698,8 @@ importers:
         version: 0.31.10
 
   lib/game-catalog: {}
+
+  lib/match-rules: {}
 
   lib/stage-basket-flow: {}
 

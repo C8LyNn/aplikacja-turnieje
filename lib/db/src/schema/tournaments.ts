@@ -295,6 +295,8 @@ export const tournamentStagesTable = pgTable(
     leagueRules: jsonb("league_rules"),
     /** V5.5: point adjustments (audit entries); only on stages with league rules. null = none. */
     pointAdjustments: jsonb("point_adjustments"),
+    /** V5.7: match result rules (set-based matches); NULL keeps the series / draw-league meaning. */
+    matchRules: jsonb("match_rules"),
     /** V5.3: IANA time zone the league schedule is planned in; null = no schedule zone chosen. */
     scheduleTimeZone: text("schedule_time_zone"),
     /** V5.3: dates to assign at stage start ({ startDate, intervalDays, defaultTime }); null = none. */
@@ -867,6 +869,8 @@ export const matchesTable = pgTable(
     completedAt: timestamp("completed_at"),
     /** Stable Tournament Engine V2 logical match key for canonical routed matches. */
     routingMatchKey: text("routing_match_key"),
+    /** V5.7: [score1, score2] of every played set, only on a completed played match of a set stage. */
+    setScores: jsonb("set_scores"),
   },
   (table) => [
     unique("matches_stage_round_number_unique").on(
@@ -1009,6 +1013,8 @@ export const resultHistoryTable = pgTable(
     resultReason: text("result_reason"),
     completedAt: timestamp("completed_at").notNull(),
     recordedAt: timestamp("recorded_at").notNull().defaultNow(),
+    /** V5.7: the sets of this saved result (correction history). */
+    setScores: jsonb("set_scores"),
   },
   (table) => [
     uniqueIndex("result_history_match_revision_unique").on(table.matchId, table.revision),

@@ -135,6 +135,13 @@ export const createTournamentBodyStagePlanStagesItemLeagueRulesPointsDrawMax = 9
 export const createTournamentBodyStagePlanStagesItemLeagueRulesPointsLossMin = 0;
 export const createTournamentBodyStagePlanStagesItemLeagueRulesPointsLossMax = 99;
 
+export const createTournamentBodyStagePlanStagesItemMatchRulesSetsToWinMax = 4;
+
+export const createTournamentBodyStagePlanStagesItemMatchRulesPointsPerSetMin = 3;
+export const createTournamentBodyStagePlanStagesItemMatchRulesPointsPerSetMax = 99;
+
+export const createTournamentBodyStagePlanStagesItemMatchRulesWinByMax = 2;
+
 export const createTournamentBodyStagePlanStagesItemSchedulePlanIntervalDaysMax = 60;
 
 export const createTournamentBodyStagePlanStagesItemAdvancingCountMin = 2;
@@ -157,6 +164,13 @@ export const createTournamentBodyLeagueRulesPointsDrawMax = 99;
 
 export const createTournamentBodyLeagueRulesPointsLossMin = 0;
 export const createTournamentBodyLeagueRulesPointsLossMax = 99;
+
+export const createTournamentBodyMatchRulesSetsToWinMax = 4;
+
+export const createTournamentBodyMatchRulesPointsPerSetMin = 3;
+export const createTournamentBodyMatchRulesPointsPerSetMax = 99;
+
+export const createTournamentBodyMatchRulesWinByMax = 2;
 
 export const createTournamentBodySchedulePlanIntervalDaysMax = 60;
 
@@ -211,6 +225,13 @@ export const CreateTournamentBody = zod.object({
 }),
   "tieBreakers": zod.array(zod.enum(['head_to_head', 'score_difference', 'scored', 'wins'])).optional()
 }).optional().describe('V5.3: round_robin and group_stage only. Omitted keeps ranking by match wins.'),
+  "matchRules": zod.object({
+  "version": zod.number(),
+  "kind": zod.enum(['sets']),
+  "setsToWin": zod.number().min(1).max(createTournamentBodyStagePlanStagesItemMatchRulesSetsToWinMax),
+  "pointsPerSet": zod.number().min(createTournamentBodyStagePlanStagesItemMatchRulesPointsPerSetMin).max(createTournamentBodyStagePlanStagesItemMatchRulesPointsPerSetMax),
+  "winBy": zod.number().min(1).max(createTournamentBodyStagePlanStagesItemMatchRulesWinByMax)
+}).optional().describe('V5.7: matches decided by sets; bestOf must equal 2 × setsToWin − 1 and draws are not allowed.'),
   "scheduleTimeZone": zod.string().optional().describe('V5.3: round_robin and group_stage. IANA time zone of the schedule, e.g. Europe\/Warsaw.'),
   "schedulePlan": zod.object({
   "startDate": zod.string().describe('YYYY-MM-DD'),
@@ -239,6 +260,13 @@ export const CreateTournamentBody = zod.object({
 }),
   "tieBreakers": zod.array(zod.enum(['head_to_head', 'score_difference', 'scored', 'wins'])).optional()
 }).optional().describe('V5.3: league rules for a single round_robin tournament created without a stage plan (flexible participant count).'),
+  "matchRules": zod.object({
+  "version": zod.number(),
+  "kind": zod.enum(['sets']),
+  "setsToWin": zod.number().min(1).max(createTournamentBodyMatchRulesSetsToWinMax),
+  "pointsPerSet": zod.number().min(createTournamentBodyMatchRulesPointsPerSetMin).max(createTournamentBodyMatchRulesPointsPerSetMax),
+  "winBy": zod.number().min(1).max(createTournamentBodyMatchRulesWinByMax)
+}).optional().describe('V5.7: match rules for a tournament created without a stage plan (defaultBestOf must equal 2 × setsToWin − 1).'),
   "scheduleTimeZone": zod.string().optional().describe('V5.3: schedule time zone for a single round_robin created without a stage plan.'),
   "schedulePlan": zod.object({
   "startDate": zod.string().describe('YYYY-MM-DD'),
@@ -303,6 +331,13 @@ export const previewTournamentPlanResponseStagePlanStagesItemLeagueRulesPointsDr
 export const previewTournamentPlanResponseStagePlanStagesItemLeagueRulesPointsLossMin = 0;
 export const previewTournamentPlanResponseStagePlanStagesItemLeagueRulesPointsLossMax = 99;
 
+export const previewTournamentPlanResponseStagePlanStagesItemMatchRulesSetsToWinMax = 4;
+
+export const previewTournamentPlanResponseStagePlanStagesItemMatchRulesPointsPerSetMin = 3;
+export const previewTournamentPlanResponseStagePlanStagesItemMatchRulesPointsPerSetMax = 99;
+
+export const previewTournamentPlanResponseStagePlanStagesItemMatchRulesWinByMax = 2;
+
 export const previewTournamentPlanResponseStagePlanStagesItemSchedulePlanIntervalDaysMax = 60;
 
 export const previewTournamentPlanResponseStagePlanStagesItemAdvancingCountMin = 2;
@@ -348,6 +383,13 @@ export const PreviewTournamentPlanResponse = zod.object({
 }),
   "tieBreakers": zod.array(zod.enum(['head_to_head', 'score_difference', 'scored', 'wins'])).optional()
 }).optional().describe('V5.3: round_robin and group_stage only. Omitted keeps ranking by match wins.'),
+  "matchRules": zod.object({
+  "version": zod.number(),
+  "kind": zod.enum(['sets']),
+  "setsToWin": zod.number().min(1).max(previewTournamentPlanResponseStagePlanStagesItemMatchRulesSetsToWinMax),
+  "pointsPerSet": zod.number().min(previewTournamentPlanResponseStagePlanStagesItemMatchRulesPointsPerSetMin).max(previewTournamentPlanResponseStagePlanStagesItemMatchRulesPointsPerSetMax),
+  "winBy": zod.number().min(1).max(previewTournamentPlanResponseStagePlanStagesItemMatchRulesWinByMax)
+}).optional().describe('V5.7: matches decided by sets; bestOf must equal 2 × setsToWin − 1 and draws are not allowed.'),
   "scheduleTimeZone": zod.string().optional().describe('V5.3: round_robin and group_stage. IANA time zone of the schedule, e.g. Europe\/Warsaw.'),
   "schedulePlan": zod.object({
   "startDate": zod.string().describe('YYYY-MM-DD'),
@@ -1217,6 +1259,13 @@ export const listTournamentStagesResponseLeagueRulesOnePointsDrawMax = 99;
 export const listTournamentStagesResponseLeagueRulesOnePointsLossMin = 0;
 export const listTournamentStagesResponseLeagueRulesOnePointsLossMax = 99;
 
+export const listTournamentStagesResponseMatchRulesOneSetsToWinMax = 4;
+
+export const listTournamentStagesResponseMatchRulesOnePointsPerSetMin = 3;
+export const listTournamentStagesResponseMatchRulesOnePointsPerSetMax = 99;
+
+export const listTournamentStagesResponseMatchRulesOneWinByMax = 2;
+
 export const listTournamentStagesResponseSchedulePlanOneIntervalDaysMax = 60;
 
 
@@ -1243,6 +1292,14 @@ export const ListTournamentStagesResponseItem = zod.object({
 }),
   "tieBreakers": zod.array(zod.enum(['head_to_head', 'score_difference', 'scored', 'wins'])).optional()
 }).describe('V5.3: draws, points and ordered tie-breakers for round_robin and group_stage stages.'),zod.null()]).optional().describe('V5.3: league rules; null keeps the pre-V5.3 ranking by match wins.'),
+  "matchRules": zod.union([zod.object({
+  "version": zod.number(),
+  "kind": zod.enum(['sets']),
+  "setsToWin": zod.number().min(1).max(listTournamentStagesResponseMatchRulesOneSetsToWinMax),
+  "pointsPerSet": zod.number().min(listTournamentStagesResponseMatchRulesOnePointsPerSetMin).max(listTournamentStagesResponseMatchRulesOnePointsPerSetMax),
+  "winBy": zod.number().min(1).max(listTournamentStagesResponseMatchRulesOneWinByMax)
+}).describe('V5.7: what decides a match. Every set uses the same rules; the match score is sets won.'),zod.null()]).optional().describe('V5.7: what decides a match; null keeps the series \/ draw-league meaning.'),
+  "matchRulesSummary": zod.string().optional().describe('V5.7: plain-language description of how a match is decided (every stage).'),
   "leagueRulesSummary": zod.string().nullish().describe('V5.3: plain-language description of the league rules.'),
   "scheduleTimeZone": zod.string().nullish().describe('V5.3: IANA time zone of the league schedule.'),
   "schedulePlan": zod.union([zod.object({
@@ -1445,6 +1502,13 @@ export const getTournamentStageResponseStageLeagueRulesOnePointsDrawMax = 99;
 export const getTournamentStageResponseStageLeagueRulesOnePointsLossMin = 0;
 export const getTournamentStageResponseStageLeagueRulesOnePointsLossMax = 99;
 
+export const getTournamentStageResponseStageMatchRulesOneSetsToWinMax = 4;
+
+export const getTournamentStageResponseStageMatchRulesOnePointsPerSetMin = 3;
+export const getTournamentStageResponseStageMatchRulesOnePointsPerSetMax = 99;
+
+export const getTournamentStageResponseStageMatchRulesOneWinByMax = 2;
+
 export const getTournamentStageResponseStageSchedulePlanOneIntervalDaysMax = 60;
 
 
@@ -1476,6 +1540,14 @@ export const GetTournamentStageResponse = zod.object({
 }),
   "tieBreakers": zod.array(zod.enum(['head_to_head', 'score_difference', 'scored', 'wins'])).optional()
 }).describe('V5.3: draws, points and ordered tie-breakers for round_robin and group_stage stages.'),zod.null()]).optional().describe('V5.3: league rules; null keeps the pre-V5.3 ranking by match wins.'),
+  "matchRules": zod.union([zod.object({
+  "version": zod.number(),
+  "kind": zod.enum(['sets']),
+  "setsToWin": zod.number().min(1).max(getTournamentStageResponseStageMatchRulesOneSetsToWinMax),
+  "pointsPerSet": zod.number().min(getTournamentStageResponseStageMatchRulesOnePointsPerSetMin).max(getTournamentStageResponseStageMatchRulesOnePointsPerSetMax),
+  "winBy": zod.number().min(1).max(getTournamentStageResponseStageMatchRulesOneWinByMax)
+}).describe('V5.7: what decides a match. Every set uses the same rules; the match score is sets won.'),zod.null()]).optional().describe('V5.7: what decides a match; null keeps the series \/ draw-league meaning.'),
+  "matchRulesSummary": zod.string().optional().describe('V5.7: plain-language description of how a match is decided (every stage).'),
   "leagueRulesSummary": zod.string().nullish().describe('V5.3: plain-language description of the league rules.'),
   "scheduleTimeZone": zod.string().nullish().describe('V5.3: IANA time zone of the league schedule.'),
   "schedulePlan": zod.union([zod.object({
@@ -1860,6 +1932,13 @@ export const getStageLiveStandingsResponseLeagueRulesOnePointsDrawMax = 99;
 export const getStageLiveStandingsResponseLeagueRulesOnePointsLossMin = 0;
 export const getStageLiveStandingsResponseLeagueRulesOnePointsLossMax = 99;
 
+export const getStageLiveStandingsResponseMatchRulesOneSetsToWinMax = 4;
+
+export const getStageLiveStandingsResponseMatchRulesOnePointsPerSetMin = 3;
+export const getStageLiveStandingsResponseMatchRulesOnePointsPerSetMax = 99;
+
+export const getStageLiveStandingsResponseMatchRulesOneWinByMax = 2;
+
 
 
 export const GetStageLiveStandingsResponse = zod.object({
@@ -1878,6 +1957,14 @@ export const GetStageLiveStandingsResponse = zod.object({
   "tieBreakers": zod.array(zod.enum(['head_to_head', 'score_difference', 'scored', 'wins'])).optional()
 }).describe('V5.3: draws, points and ordered tie-breakers for round_robin and group_stage stages.'),zod.null()]),
   "rulesSummary": zod.string().nullable(),
+  "matchRules": zod.union([zod.object({
+  "version": zod.number(),
+  "kind": zod.enum(['sets']),
+  "setsToWin": zod.number().min(1).max(getStageLiveStandingsResponseMatchRulesOneSetsToWinMax),
+  "pointsPerSet": zod.number().min(getStageLiveStandingsResponseMatchRulesOnePointsPerSetMin).max(getStageLiveStandingsResponseMatchRulesOnePointsPerSetMax),
+  "winBy": zod.number().min(1).max(getStageLiveStandingsResponseMatchRulesOneWinByMax)
+}).describe('V5.7: what decides a match. Every set uses the same rules; the match score is sets won.'),zod.null()]).optional(),
+  "matchRulesSummary": zod.string().optional(),
   "advancingPlaces": zod.number().nullable(),
   "tables": zod.array(zod.object({
   "groupId": zod.number().nullable(),
@@ -1899,6 +1986,8 @@ export const GetStageLiveStandingsResponse = zod.object({
   "buchholz": zod.number().nullable(),
   "decidedBy": zod.string().nullable(),
   "pointAdjustment": zod.number().optional().describe('V5.5: net bonus\/penalty included in points (0 when none).'),
+  "setPointsFor": zod.number().nullish().describe('V5.7: points scored inside sets; null when the stage is not decided by sets.'),
+  "setPointsAgainst": zod.number().nullish().describe('V5.7: points conceded inside sets; null when the stage is not decided by sets.'),
   "zone": zod.union([zod.literal('qualify'),zod.literal('out'),zod.literal(null)]).nullable()
 }))
 }))
@@ -2650,6 +2739,13 @@ export const startTournamentStageResponseLeagueRulesOnePointsDrawMax = 99;
 export const startTournamentStageResponseLeagueRulesOnePointsLossMin = 0;
 export const startTournamentStageResponseLeagueRulesOnePointsLossMax = 99;
 
+export const startTournamentStageResponseMatchRulesOneSetsToWinMax = 4;
+
+export const startTournamentStageResponseMatchRulesOnePointsPerSetMin = 3;
+export const startTournamentStageResponseMatchRulesOnePointsPerSetMax = 99;
+
+export const startTournamentStageResponseMatchRulesOneWinByMax = 2;
+
 export const startTournamentStageResponseSchedulePlanOneIntervalDaysMax = 60;
 
 
@@ -2676,6 +2772,14 @@ export const StartTournamentStageResponse = zod.object({
 }),
   "tieBreakers": zod.array(zod.enum(['head_to_head', 'score_difference', 'scored', 'wins'])).optional()
 }).describe('V5.3: draws, points and ordered tie-breakers for round_robin and group_stage stages.'),zod.null()]).optional().describe('V5.3: league rules; null keeps the pre-V5.3 ranking by match wins.'),
+  "matchRules": zod.union([zod.object({
+  "version": zod.number(),
+  "kind": zod.enum(['sets']),
+  "setsToWin": zod.number().min(1).max(startTournamentStageResponseMatchRulesOneSetsToWinMax),
+  "pointsPerSet": zod.number().min(startTournamentStageResponseMatchRulesOnePointsPerSetMin).max(startTournamentStageResponseMatchRulesOnePointsPerSetMax),
+  "winBy": zod.number().min(1).max(startTournamentStageResponseMatchRulesOneWinByMax)
+}).describe('V5.7: what decides a match. Every set uses the same rules; the match score is sets won.'),zod.null()]).optional().describe('V5.7: what decides a match; null keeps the series \/ draw-league meaning.'),
+  "matchRulesSummary": zod.string().optional().describe('V5.7: plain-language description of how a match is decided (every stage).'),
   "leagueRulesSummary": zod.string().nullish().describe('V5.3: plain-language description of the league rules.'),
   "scheduleTimeZone": zod.string().nullish().describe('V5.3: IANA time zone of the league schedule.'),
   "schedulePlan": zod.union([zod.object({
@@ -2752,6 +2856,13 @@ export const updateStageLeagueRulesResponseLeagueRulesOnePointsDrawMax = 99;
 export const updateStageLeagueRulesResponseLeagueRulesOnePointsLossMin = 0;
 export const updateStageLeagueRulesResponseLeagueRulesOnePointsLossMax = 99;
 
+export const updateStageLeagueRulesResponseMatchRulesOneSetsToWinMax = 4;
+
+export const updateStageLeagueRulesResponseMatchRulesOnePointsPerSetMin = 3;
+export const updateStageLeagueRulesResponseMatchRulesOnePointsPerSetMax = 99;
+
+export const updateStageLeagueRulesResponseMatchRulesOneWinByMax = 2;
+
 export const updateStageLeagueRulesResponseSchedulePlanOneIntervalDaysMax = 60;
 
 
@@ -2778,11 +2889,131 @@ export const UpdateStageLeagueRulesResponse = zod.object({
 }),
   "tieBreakers": zod.array(zod.enum(['head_to_head', 'score_difference', 'scored', 'wins'])).optional()
 }).describe('V5.3: draws, points and ordered tie-breakers for round_robin and group_stage stages.'),zod.null()]).optional().describe('V5.3: league rules; null keeps the pre-V5.3 ranking by match wins.'),
+  "matchRules": zod.union([zod.object({
+  "version": zod.number(),
+  "kind": zod.enum(['sets']),
+  "setsToWin": zod.number().min(1).max(updateStageLeagueRulesResponseMatchRulesOneSetsToWinMax),
+  "pointsPerSet": zod.number().min(updateStageLeagueRulesResponseMatchRulesOnePointsPerSetMin).max(updateStageLeagueRulesResponseMatchRulesOnePointsPerSetMax),
+  "winBy": zod.number().min(1).max(updateStageLeagueRulesResponseMatchRulesOneWinByMax)
+}).describe('V5.7: what decides a match. Every set uses the same rules; the match score is sets won.'),zod.null()]).optional().describe('V5.7: what decides a match; null keeps the series \/ draw-league meaning.'),
+  "matchRulesSummary": zod.string().optional().describe('V5.7: plain-language description of how a match is decided (every stage).'),
   "leagueRulesSummary": zod.string().nullish().describe('V5.3: plain-language description of the league rules.'),
   "scheduleTimeZone": zod.string().nullish().describe('V5.3: IANA time zone of the league schedule.'),
   "schedulePlan": zod.union([zod.object({
   "startDate": zod.string().describe('YYYY-MM-DD'),
   "intervalDays": zod.number().min(1).max(updateStageLeagueRulesResponseSchedulePlanOneIntervalDaysMax),
+  "defaultTime": zod.string().describe('HH:MM')
+}).describe('V5.3: round 1 on startDate, every next round intervalDays later, at defaultTime (local, in scheduleTimeZone).'),zod.null()]).optional().describe('V5.3: dates assigned automatically when the stage starts.'),
+  "currentRound": zod.number().nullish(),
+  "totalRounds": zod.number().nullish(),
+  "rankingPolicy": zod.enum(['swiss_v1', 'round_robin_v1', 'group_v1', 'elimination_bracket_v1']),
+  "qualificationMode": zod.enum(['none', 'top_n', 'top_n_per_group']),
+  "advancingCount": zod.number().nullish(),
+  "groupCount": zod.number().nullish(),
+  "participantsPerGroup": zod.number().nullish(),
+  "qualifiersPerGroup": zod.number().nullish(),
+  "seedingPolicy": zod.enum(['standings_order', 'snake_groups', 'cross_group', 'random_groups', 'standard_bracket', 'random_bracket']),
+  "entrySeedingPolicy": zod.enum(['preserve', 'registration_order', 'alphabetical', 'random', 'manual']),
+  "resultSeedingPolicy": zod.enum(['standings_order', 'rank_bands', 'global_ranking']),
+  "randomSeed": zod.string().nullish(),
+  "randomRevealOrder": zod.enum(['instant', 'sequential']),
+  "seedingAudit": zod.record(zod.string(), zod.unknown()).nullish(),
+  "winnerId": zod.number().nullish(),
+  "version": zod.number(),
+  "createdAt": zod.string(),
+  "startedAt": zod.string().nullish(),
+  "completedAt": zod.string().nullish()
+})
+
+
+/**
+ * @summary V5.7: set or clear what decides a match (sets) for a stage that has not started; played results are never recalculated
+ */
+
+
+
+
+export const UpdateStageMatchRulesParams = zod.object({
+  "id": zod.coerce.number().min(1),
+  "stageId": zod.coerce.number().min(1)
+})
+
+export const updateStageMatchRulesBodyMatchRulesOneSetsToWinMax = 4;
+
+export const updateStageMatchRulesBodyMatchRulesOnePointsPerSetMin = 3;
+export const updateStageMatchRulesBodyMatchRulesOnePointsPerSetMax = 99;
+
+export const updateStageMatchRulesBodyMatchRulesOneWinByMax = 2;
+
+
+
+
+export const UpdateStageMatchRulesBody = zod.object({
+  "matchRules": zod.union([zod.object({
+  "version": zod.number(),
+  "kind": zod.enum(['sets']),
+  "setsToWin": zod.number().min(1).max(updateStageMatchRulesBodyMatchRulesOneSetsToWinMax),
+  "pointsPerSet": zod.number().min(updateStageMatchRulesBodyMatchRulesOnePointsPerSetMin).max(updateStageMatchRulesBodyMatchRulesOnePointsPerSetMax),
+  "winBy": zod.number().min(1).max(updateStageMatchRulesBodyMatchRulesOneWinByMax)
+}).describe('V5.7: what decides a match. Every set uses the same rules; the match score is sets won.'),zod.null()]),
+  "expectedVersion": zod.number().min(1)
+})
+
+export const updateStageMatchRulesResponseLeagueRulesOnePointsWinMin = 0;
+export const updateStageMatchRulesResponseLeagueRulesOnePointsWinMax = 99;
+
+export const updateStageMatchRulesResponseLeagueRulesOnePointsDrawMin = 0;
+export const updateStageMatchRulesResponseLeagueRulesOnePointsDrawMax = 99;
+
+export const updateStageMatchRulesResponseLeagueRulesOnePointsLossMin = 0;
+export const updateStageMatchRulesResponseLeagueRulesOnePointsLossMax = 99;
+
+export const updateStageMatchRulesResponseMatchRulesOneSetsToWinMax = 4;
+
+export const updateStageMatchRulesResponseMatchRulesOnePointsPerSetMin = 3;
+export const updateStageMatchRulesResponseMatchRulesOnePointsPerSetMax = 99;
+
+export const updateStageMatchRulesResponseMatchRulesOneWinByMax = 2;
+
+export const updateStageMatchRulesResponseSchedulePlanOneIntervalDaysMax = 60;
+
+
+
+export const UpdateStageMatchRulesResponse = zod.object({
+  "id": zod.number(),
+  "tournamentId": zod.number(),
+  "stageKey": zod.string(),
+  "position": zod.number(),
+  "name": zod.string(),
+  "format": zod.enum(['swiss', 'round_robin', 'group_stage', 'single_elimination', 'double_elimination']),
+  "status": zod.enum(['planned', 'active', 'completed']),
+  "participantCount": zod.number(),
+  "bestOf": zod.number(),
+  "plannedRounds": zod.number().nullish(),
+  "roundRobinLegs": zod.union([zod.literal(1),zod.literal(2)]).optional().describe('2 = home and away (double round robin). Only round_robin stages may use 2.'),
+  "leagueRules": zod.union([zod.object({
+  "version": zod.literal(1).optional(),
+  "allowDraws": zod.boolean().optional().describe('Draws need a single-game match (bestOf 1); the score is then goals\/points.'),
+  "points": zod.object({
+  "win": zod.number().min(updateStageMatchRulesResponseLeagueRulesOnePointsWinMin).max(updateStageMatchRulesResponseLeagueRulesOnePointsWinMax),
+  "draw": zod.number().min(updateStageMatchRulesResponseLeagueRulesOnePointsDrawMin).max(updateStageMatchRulesResponseLeagueRulesOnePointsDrawMax),
+  "loss": zod.number().min(updateStageMatchRulesResponseLeagueRulesOnePointsLossMin).max(updateStageMatchRulesResponseLeagueRulesOnePointsLossMax)
+}),
+  "tieBreakers": zod.array(zod.enum(['head_to_head', 'score_difference', 'scored', 'wins'])).optional()
+}).describe('V5.3: draws, points and ordered tie-breakers for round_robin and group_stage stages.'),zod.null()]).optional().describe('V5.3: league rules; null keeps the pre-V5.3 ranking by match wins.'),
+  "matchRules": zod.union([zod.object({
+  "version": zod.number(),
+  "kind": zod.enum(['sets']),
+  "setsToWin": zod.number().min(1).max(updateStageMatchRulesResponseMatchRulesOneSetsToWinMax),
+  "pointsPerSet": zod.number().min(updateStageMatchRulesResponseMatchRulesOnePointsPerSetMin).max(updateStageMatchRulesResponseMatchRulesOnePointsPerSetMax),
+  "winBy": zod.number().min(1).max(updateStageMatchRulesResponseMatchRulesOneWinByMax)
+}).describe('V5.7: what decides a match. Every set uses the same rules; the match score is sets won.'),zod.null()]).optional().describe('V5.7: what decides a match; null keeps the series \/ draw-league meaning.'),
+  "matchRulesSummary": zod.string().optional().describe('V5.7: plain-language description of how a match is decided (every stage).'),
+  "leagueRulesSummary": zod.string().nullish().describe('V5.3: plain-language description of the league rules.'),
+  "scheduleTimeZone": zod.string().nullish().describe('V5.3: IANA time zone of the league schedule.'),
+  "schedulePlan": zod.union([zod.object({
+  "startDate": zod.string().describe('YYYY-MM-DD'),
+  "intervalDays": zod.number().min(1).max(updateStageMatchRulesResponseSchedulePlanOneIntervalDaysMax),
   "defaultTime": zod.string().describe('HH:MM')
 }).describe('V5.3: round 1 on startDate, every next round intervalDays later, at defaultTime (local, in scheduleTimeZone).'),zod.null()]).optional().describe('V5.3: dates assigned automatically when the stage starts.'),
   "currentRound": zod.number().nullish(),
@@ -3539,6 +3770,11 @@ export const getTournamentBracketResponseTournamentGameConfigTwoConfigAdvancingC
 export const getTournamentBracketResponseTournamentGameConfigTwoConfigKillLimitDefault = 20;
 
 export const getTournamentBracketResponseTournamentGameConfigTwoConfigRegroupingStrategyDefault = `paired_merge`;
+export const getTournamentBracketResponseRoundsItemMatchesItemSetsOneItemScore1Min = 0;
+
+export const getTournamentBracketResponseRoundsItemMatchesItemSetsOneItemScore2Min = 0;
+
+
 
 
 
@@ -3602,6 +3838,10 @@ export const GetTournamentBracketResponse = zod.object({
   "rounds": zod.array(zod.object({
   "round": zod.number(),
   "matches": zod.array(zod.object({
+  "sets": zod.union([zod.array(zod.object({
+  "score1": zod.number().min(getTournamentBracketResponseRoundsItemMatchesItemSetsOneItemScore1Min),
+  "score2": zod.number().min(getTournamentBracketResponseRoundsItemMatchesItemSetsOneItemScore2Min)
+})),zod.null()]).optional().describe('V5.7: played sets (stages decided by sets); null otherwise — older results never get invented sets.'),
   "id": zod.number(),
   "revision": zod.number().min(1),
   "tournamentId": zod.number(),
@@ -3683,7 +3923,9 @@ export const GetTournamentStandingsResponseItem = zod.object({
   "matchDraws": zod.number().optional().describe('V5.3: draws (0 without league rules).'),
   "points": zod.number().nullish().describe('V5.3: league points; null when the stage has no league rules.'),
   "decidedBy": zod.union([zod.literal('points'),zod.literal('head_to_head'),zod.literal('score_difference'),zod.literal('scored'),zod.literal('wins'),zod.literal('seed'),zod.literal(null)]).nullish().describe('V5.3: what placed this row below the previous one.'),
-  "tiedAfterAllRules": zod.boolean().optional().describe('V5.3: every configured criterion left this row level; seeding decided.')
+  "tiedAfterAllRules": zod.boolean().optional().describe('V5.3: every configured criterion left this row level; seeding decided.'),
+  "setPointsFor": zod.number().optional().describe('V5.7: points scored inside sets (stages decided by sets only).'),
+  "setPointsAgainst": zod.number().optional().describe('V5.7: points conceded inside sets (stages decided by sets only).')
 })
 export const GetTournamentStandingsResponse = zod.array(GetTournamentStandingsResponseItem)
 
@@ -3741,7 +3983,17 @@ export const GetResultsHistoryParams = zod.object({
   "id": zod.coerce.number()
 })
 
+export const getResultsHistoryResponseSetsOneItemScore1Min = 0;
+
+export const getResultsHistoryResponseSetsOneItemScore2Min = 0;
+
+
+
 export const GetResultsHistoryResponseItem = zod.object({
+  "sets": zod.union([zod.array(zod.object({
+  "score1": zod.number().min(getResultsHistoryResponseSetsOneItemScore1Min),
+  "score2": zod.number().min(getResultsHistoryResponseSetsOneItemScore2Min)
+})),zod.null()]).optional().describe('V5.7: played sets (stages decided by sets); null otherwise — older results never get invented sets.'),
   "id": zod.number(),
   "matchId": zod.number(),
   "round": zod.number(),
@@ -3796,6 +4048,13 @@ export const exportTournamentResponseStagesItemLeagueRulesPointsLossMax = 99;
 export const exportTournamentResponseStagesItemPointAdjustmentsItemPointsMin = -100;
 export const exportTournamentResponseStagesItemPointAdjustmentsItemPointsMax = 100;
 
+export const exportTournamentResponseStagesItemMatchRulesSetsToWinMax = 4;
+
+export const exportTournamentResponseStagesItemMatchRulesPointsPerSetMin = 3;
+export const exportTournamentResponseStagesItemMatchRulesPointsPerSetMax = 99;
+
+export const exportTournamentResponseStagesItemMatchRulesWinByMax = 2;
+
 export const exportTournamentResponseStagesItemSchedulePlanIntervalDaysMax = 60;
 
 export const exportTournamentResponseStagesMax = 10;
@@ -3822,6 +4081,18 @@ export const exportTournamentResponseStageBasketsItemColorIdMax = 64;
 
 
 export const exportTournamentResponseStageBasketRoutesItemIdRegExp = new RegExp('^[a-z0-9][a-z0-9._:-]{0,99}$');
+export const exportTournamentResponseMatchesItemSetsItemScore1Min = 0;
+
+export const exportTournamentResponseMatchesItemSetsItemScore2Min = 0;
+
+export const exportTournamentResponseMatchesItemSetsMax = 7;
+
+export const exportTournamentResponseResultHistoryItemSetsItemScore1Min = 0;
+
+export const exportTournamentResponseResultHistoryItemSetsItemScore2Min = 0;
+
+export const exportTournamentResponseResultHistoryItemSetsMax = 7;
+
 
 
 
@@ -3939,6 +4210,13 @@ export const ExportTournamentResponse = zod.object({
   "revokedBy": zod.string().nullish(),
   "requestId": zod.string().optional()
 })).optional().describe('V5.5: present only when the stage has bonus\/penalty entries (revoked ones included).'),
+  "matchRules": zod.object({
+  "version": zod.number(),
+  "kind": zod.enum(['sets']),
+  "setsToWin": zod.number().min(1).max(exportTournamentResponseStagesItemMatchRulesSetsToWinMax),
+  "pointsPerSet": zod.number().min(exportTournamentResponseStagesItemMatchRulesPointsPerSetMin).max(exportTournamentResponseStagesItemMatchRulesPointsPerSetMax),
+  "winBy": zod.number().min(1).max(exportTournamentResponseStagesItemMatchRulesWinByMax)
+}).optional().describe('V5.7: present only when matches of the stage are decided by sets.'),
   "schedulePlan": zod.object({
   "startDate": zod.string().describe('YYYY-MM-DD'),
   "intervalDays": zod.number().min(1).max(exportTournamentResponseStagesItemSchedulePlanIntervalDaysMax),
@@ -4053,6 +4331,10 @@ export const ExportTournamentResponse = zod.object({
   "winnerBackupId": zod.number().nullish(),
   "score1": zod.number().nullish(),
   "score2": zod.number().nullish(),
+  "sets": zod.array(zod.object({
+  "score1": zod.number().min(exportTournamentResponseMatchesItemSetsItemScore1Min),
+  "score2": zod.number().min(exportTournamentResponseMatchesItemSetsItemScore2Min)
+})).min(1).max(exportTournamentResponseMatchesItemSetsMax).optional().describe('V5.7: present only for a played result of a stage decided by sets.'),
   "resultType": zod.union([zod.literal('played'),zod.literal('walkover'),zod.literal('bye'),zod.literal('no_contest'),zod.literal(null)]).nullable(),
   "resultReason": zod.string().nullable(),
   "bestOf": zod.number(),
@@ -4075,6 +4357,10 @@ export const ExportTournamentResponse = zod.object({
   "winnerBackupId": zod.number().nullish(),
   "score1": zod.number().nullish(),
   "score2": zod.number().nullish(),
+  "sets": zod.array(zod.object({
+  "score1": zod.number().min(exportTournamentResponseResultHistoryItemSetsItemScore1Min),
+  "score2": zod.number().min(exportTournamentResponseResultHistoryItemSetsItemScore2Min)
+})).min(1).max(exportTournamentResponseResultHistoryItemSetsMax).optional().describe('V5.7: present only for a played result of a stage decided by sets.'),
   "bestOf": zod.number(),
   "resultType": zod.enum(['played', 'walkover', 'bye', 'no_contest']),
   "resultReason": zod.string().nullable(),
@@ -4196,6 +4482,13 @@ export const importTournamentBodyBackupTwoStagesItemLeagueRulesPointsLossMax = 9
 export const importTournamentBodyBackupTwoStagesItemPointAdjustmentsItemPointsMin = -100;
 export const importTournamentBodyBackupTwoStagesItemPointAdjustmentsItemPointsMax = 100;
 
+export const importTournamentBodyBackupTwoStagesItemMatchRulesSetsToWinMax = 4;
+
+export const importTournamentBodyBackupTwoStagesItemMatchRulesPointsPerSetMin = 3;
+export const importTournamentBodyBackupTwoStagesItemMatchRulesPointsPerSetMax = 99;
+
+export const importTournamentBodyBackupTwoStagesItemMatchRulesWinByMax = 2;
+
 export const importTournamentBodyBackupTwoStagesItemSchedulePlanIntervalDaysMax = 60;
 
 export const importTournamentBodyBackupTwoStagesMax = 10;
@@ -4222,6 +4515,18 @@ export const importTournamentBodyBackupTwoStageBasketsItemColorIdMax = 64;
 
 
 export const importTournamentBodyBackupTwoStageBasketRoutesItemIdRegExp = new RegExp('^[a-z0-9][a-z0-9._:-]{0,99}$');
+export const importTournamentBodyBackupTwoMatchesItemSetsItemScore1Min = 0;
+
+export const importTournamentBodyBackupTwoMatchesItemSetsItemScore2Min = 0;
+
+export const importTournamentBodyBackupTwoMatchesItemSetsMax = 7;
+
+export const importTournamentBodyBackupTwoResultHistoryItemSetsItemScore1Min = 0;
+
+export const importTournamentBodyBackupTwoResultHistoryItemSetsItemScore2Min = 0;
+
+export const importTournamentBodyBackupTwoResultHistoryItemSetsMax = 7;
+
 
 
 
@@ -4418,6 +4723,13 @@ export const ImportTournamentBody = zod.object({
   "revokedBy": zod.string().nullish(),
   "requestId": zod.string().optional()
 })).optional().describe('V5.5: present only when the stage has bonus\/penalty entries (revoked ones included).'),
+  "matchRules": zod.object({
+  "version": zod.number(),
+  "kind": zod.enum(['sets']),
+  "setsToWin": zod.number().min(1).max(importTournamentBodyBackupTwoStagesItemMatchRulesSetsToWinMax),
+  "pointsPerSet": zod.number().min(importTournamentBodyBackupTwoStagesItemMatchRulesPointsPerSetMin).max(importTournamentBodyBackupTwoStagesItemMatchRulesPointsPerSetMax),
+  "winBy": zod.number().min(1).max(importTournamentBodyBackupTwoStagesItemMatchRulesWinByMax)
+}).optional().describe('V5.7: present only when matches of the stage are decided by sets.'),
   "schedulePlan": zod.object({
   "startDate": zod.string().describe('YYYY-MM-DD'),
   "intervalDays": zod.number().min(1).max(importTournamentBodyBackupTwoStagesItemSchedulePlanIntervalDaysMax),
@@ -4532,6 +4844,10 @@ export const ImportTournamentBody = zod.object({
   "winnerBackupId": zod.number().nullish(),
   "score1": zod.number().nullish(),
   "score2": zod.number().nullish(),
+  "sets": zod.array(zod.object({
+  "score1": zod.number().min(importTournamentBodyBackupTwoMatchesItemSetsItemScore1Min),
+  "score2": zod.number().min(importTournamentBodyBackupTwoMatchesItemSetsItemScore2Min)
+})).min(1).max(importTournamentBodyBackupTwoMatchesItemSetsMax).optional().describe('V5.7: present only for a played result of a stage decided by sets.'),
   "resultType": zod.union([zod.literal('played'),zod.literal('walkover'),zod.literal('bye'),zod.literal('no_contest'),zod.literal(null)]).nullable(),
   "resultReason": zod.string().nullable(),
   "bestOf": zod.number(),
@@ -4554,6 +4870,10 @@ export const ImportTournamentBody = zod.object({
   "winnerBackupId": zod.number().nullish(),
   "score1": zod.number().nullish(),
   "score2": zod.number().nullish(),
+  "sets": zod.array(zod.object({
+  "score1": zod.number().min(importTournamentBodyBackupTwoResultHistoryItemSetsItemScore1Min),
+  "score2": zod.number().min(importTournamentBodyBackupTwoResultHistoryItemSetsItemScore2Min)
+})).min(1).max(importTournamentBodyBackupTwoResultHistoryItemSetsMax).optional().describe('V5.7: present only for a played result of a stage decided by sets.'),
   "bestOf": zod.number(),
   "resultType": zod.enum(['played', 'walkover', 'bye', 'no_contest']),
   "resultReason": zod.string().nullable(),
@@ -5169,11 +5489,19 @@ export const ListMatchesParams = zod.object({
   "id": zod.coerce.number()
 })
 
+export const listMatchesResponseSetsOneItemScore1Min = 0;
+
+export const listMatchesResponseSetsOneItemScore2Min = 0;
+
 
 
 
 
 export const ListMatchesResponseItem = zod.object({
+  "sets": zod.union([zod.array(zod.object({
+  "score1": zod.number().min(listMatchesResponseSetsOneItemScore1Min),
+  "score2": zod.number().min(listMatchesResponseSetsOneItemScore2Min)
+})),zod.null()]).optional().describe('V5.7: played sets (stages decided by sets); null otherwise — older results never get invented sets.'),
   "id": zod.number(),
   "revision": zod.number().min(1),
   "tournamentId": zod.number(),
@@ -5206,11 +5534,19 @@ export const GetMatchParams = zod.object({
   "id": zod.coerce.number()
 })
 
+export const getMatchResponseSetsOneItemScore1Min = 0;
+
+export const getMatchResponseSetsOneItemScore2Min = 0;
+
 
 
 
 
 export const GetMatchResponse = zod.object({
+  "sets": zod.union([zod.array(zod.object({
+  "score1": zod.number().min(getMatchResponseSetsOneItemScore1Min),
+  "score2": zod.number().min(getMatchResponseSetsOneItemScore2Min)
+})),zod.null()]).optional().describe('V5.7: played sets (stages decided by sets); null otherwise — older results never get invented sets.'),
   "id": zod.number(),
   "revision": zod.number().min(1),
   "tournamentId": zod.number(),
@@ -5253,11 +5589,19 @@ export const UpdateMatchBody = zod.object({
   "expectedRevision": zod.number().min(1).optional().describe('V5.7: required with status or bestOf. A request whose target state already holds is a no-op (safe retry).')
 })
 
+export const updateMatchResponseSetsOneItemScore1Min = 0;
+
+export const updateMatchResponseSetsOneItemScore2Min = 0;
+
 
 
 
 
 export const UpdateMatchResponse = zod.object({
+  "sets": zod.union([zod.array(zod.object({
+  "score1": zod.number().min(updateMatchResponseSetsOneItemScore1Min),
+  "score2": zod.number().min(updateMatchResponseSetsOneItemScore2Min)
+})),zod.null()]).optional().describe('V5.7: played sets (stages decided by sets); null otherwise — older results never get invented sets.'),
   "id": zod.number(),
   "revision": zod.number().min(1),
   "tournamentId": zod.number(),
@@ -5299,11 +5643,19 @@ export const UpdateMatchScheduleBody = zod.object({
   "timeZone": zod.string().optional().describe('IANA zone; only used when the stage has none yet')
 })
 
+export const updateMatchScheduleResponseSetsOneItemScore1Min = 0;
+
+export const updateMatchScheduleResponseSetsOneItemScore2Min = 0;
+
 
 
 
 
 export const UpdateMatchScheduleResponse = zod.object({
+  "sets": zod.union([zod.array(zod.object({
+  "score1": zod.number().min(updateMatchScheduleResponseSetsOneItemScore1Min),
+  "score2": zod.number().min(updateMatchScheduleResponseSetsOneItemScore2Min)
+})),zod.null()]).optional().describe('V5.7: played sets (stages decided by sets); null otherwise — older results never get invented sets.'),
   "id": zod.number(),
   "revision": zod.number().min(1),
   "tournamentId": zod.number(),
@@ -5336,6 +5688,12 @@ export const CompleteMatchParams = zod.object({
 })
 
 
+export const completeMatchBodyOneSetsItemScore1Min = 0;
+
+export const completeMatchBodyOneSetsItemScore2Min = 0;
+
+export const completeMatchBodyOneSetsMax = 7;
+
 
 
 
@@ -5344,7 +5702,11 @@ export const CompleteMatchBody = zod.union([zod.object({
   "expectedRevision": zod.number().min(1),
   "resultType": zod.literal("played"),
   "score1": zod.number(),
-  "score2": zod.number()
+  "score2": zod.number(),
+  "sets": zod.array(zod.object({
+  "score1": zod.number().min(completeMatchBodyOneSetsItemScore1Min),
+  "score2": zod.number().min(completeMatchBodyOneSetsItemScore2Min)
+})).min(1).max(completeMatchBodyOneSetsMax).optional().describe('V5.7: required in a stage decided by sets — every played set in order; score1\/score2 must equal the sets won.')
 }),zod.object({
   "expectedRevision": zod.number().min(1),
   "resultType": zod.literal("walkover"),
@@ -5356,11 +5718,19 @@ export const CompleteMatchBody = zod.union([zod.object({
   "reason": zod.string().nullish()
 })])
 
+export const completeMatchResponseSetsOneItemScore1Min = 0;
+
+export const completeMatchResponseSetsOneItemScore2Min = 0;
+
 
 
 
 
 export const CompleteMatchResponse = zod.object({
+  "sets": zod.union([zod.array(zod.object({
+  "score1": zod.number().min(completeMatchResponseSetsOneItemScore1Min),
+  "score2": zod.number().min(completeMatchResponseSetsOneItemScore2Min)
+})),zod.null()]).optional().describe('V5.7: played sets (stages decided by sets); null otherwise — older results never get invented sets.'),
   "id": zod.number(),
   "revision": zod.number().min(1),
   "tournamentId": zod.number(),
@@ -5403,11 +5773,19 @@ export const CancelMatchBody = zod.object({
   "expectedRevision": zod.number().min(1).describe('V5.7: match revision the client saw')
 })
 
+export const cancelMatchResponseSetsOneItemScore1Min = 0;
+
+export const cancelMatchResponseSetsOneItemScore2Min = 0;
+
 
 
 
 
 export const CancelMatchResponse = zod.object({
+  "sets": zod.union([zod.array(zod.object({
+  "score1": zod.number().min(cancelMatchResponseSetsOneItemScore1Min),
+  "score2": zod.number().min(cancelMatchResponseSetsOneItemScore2Min)
+})),zod.null()]).optional().describe('V5.7: played sets (stages decided by sets); null otherwise — older results never get invented sets.'),
   "id": zod.number(),
   "revision": zod.number().min(1),
   "tournamentId": zod.number(),
@@ -5449,11 +5827,19 @@ export const RestoreCancelledMatchBody = zod.object({
   "expectedRevision": zod.number().min(1).describe('Match revision the client saw; a different current revision gives 409 CONCURRENT_MODIFICATION')
 })
 
+export const restoreCancelledMatchResponseSetsOneItemScore1Min = 0;
+
+export const restoreCancelledMatchResponseSetsOneItemScore2Min = 0;
+
 
 
 
 
 export const RestoreCancelledMatchResponse = zod.object({
+  "sets": zod.union([zod.array(zod.object({
+  "score1": zod.number().min(restoreCancelledMatchResponseSetsOneItemScore1Min),
+  "score2": zod.number().min(restoreCancelledMatchResponseSetsOneItemScore2Min)
+})),zod.null()]).optional().describe('V5.7: played sets (stages decided by sets); null otherwise — older results never get invented sets.'),
   "id": zod.number(),
   "revision": zod.number().min(1),
   "tournamentId": zod.number(),
@@ -5495,11 +5881,19 @@ export const SwapMatchPlayersBody = zod.object({
   "expectedRevision": zod.number().min(1).describe('Match revision the client saw; a different current revision gives 409 CONCURRENT_MODIFICATION')
 })
 
+export const swapMatchPlayersResponseSetsOneItemScore1Min = 0;
+
+export const swapMatchPlayersResponseSetsOneItemScore2Min = 0;
+
 
 
 
 
 export const SwapMatchPlayersResponse = zod.object({
+  "sets": zod.union([zod.array(zod.object({
+  "score1": zod.number().min(swapMatchPlayersResponseSetsOneItemScore1Min),
+  "score2": zod.number().min(swapMatchPlayersResponseSetsOneItemScore2Min)
+})),zod.null()]).optional().describe('V5.7: played sets (stages decided by sets); null otherwise — older results never get invented sets.'),
   "id": zod.number(),
   "revision": zod.number().min(1),
   "tournamentId": zod.number(),
@@ -5538,11 +5932,19 @@ export const ReorderMatchesBody = zod.object({
   "matchIds": zod.array(zod.number())
 })
 
+export const reorderMatchesResponseSetsOneItemScore1Min = 0;
+
+export const reorderMatchesResponseSetsOneItemScore2Min = 0;
+
 
 
 
 
 export const ReorderMatchesResponseItem = zod.object({
+  "sets": zod.union([zod.array(zod.object({
+  "score1": zod.number().min(reorderMatchesResponseSetsOneItemScore1Min),
+  "score2": zod.number().min(reorderMatchesResponseSetsOneItemScore2Min)
+})),zod.null()]).optional().describe('V5.7: played sets (stages decided by sets); null otherwise — older results never get invented sets.'),
   "id": zod.number(),
   "revision": zod.number().min(1),
   "tournamentId": zod.number(),
@@ -5585,11 +5987,19 @@ export const RevertMatchBody = zod.object({
   "expectedRevision": zod.number().min(1).describe('Match revision the client saw; a different current revision gives 409 CONCURRENT_MODIFICATION')
 })
 
+export const revertMatchResponseSetsOneItemScore1Min = 0;
+
+export const revertMatchResponseSetsOneItemScore2Min = 0;
+
 
 
 
 
 export const RevertMatchResponse = zod.object({
+  "sets": zod.union([zod.array(zod.object({
+  "score1": zod.number().min(revertMatchResponseSetsOneItemScore1Min),
+  "score2": zod.number().min(revertMatchResponseSetsOneItemScore2Min)
+})),zod.null()]).optional().describe('V5.7: played sets (stages decided by sets); null otherwise — older results never get invented sets.'),
   "id": zod.number(),
   "revision": zod.number().min(1),
   "tournamentId": zod.number(),

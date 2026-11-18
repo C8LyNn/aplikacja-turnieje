@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { LeagueRules } from './leagueRules';
+import type { MatchRules } from './matchRules';
 import type { SchedulePlan } from './schedulePlan';
 import type { TournamentStageEntrySeedingPolicy } from './tournamentStageEntrySeedingPolicy';
 import type { TournamentStageFormat } from './tournamentStageFormat';
@@ -34,6 +35,10 @@ export interface TournamentStage {
   roundRobinLegs?: TournamentStageRoundRobinLegs;
   /** V5.3: league rules; null keeps the pre-V5.3 ranking by match wins. */
   leagueRules?: LeagueRules | null;
+  /** V5.7: what decides a match; null keeps the series / draw-league meaning. */
+  matchRules?: MatchRules | null;
+  /** V5.7: plain-language description of how a match is decided (every stage). */
+  matchRulesSummary?: string;
   /**
      * V5.3: plain-language description of the league rules.
      * @nullable

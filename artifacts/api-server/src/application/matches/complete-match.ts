@@ -1,3 +1,4 @@
+import { evaluateSetMatch, matchRulesFromStorage, setsToStorage, type MatchRules, type SetScore, type SetScoreErrorCode } from "@workspace/match-rules";
 import { stagePointTotals } from "../../domain/tournament/point-adjustments";
 import { and, desc, eq, inArray, ne } from "drizzle-orm";
 import {
@@ -45,6 +46,7 @@ export type CompleteMatchErrorCode =
   | "RESULT_TYPE_NOT_PUBLIC"
   | "SCORE_TOO_HIGH"
   | "DRAW_NOT_ALLOWED"
+  | SetScoreErrorCode
   | SeriesResultErrorCode;
 
 const ERROR_MESSAGES: Record<CompleteMatchErrorCode, string> = {
@@ -72,11 +74,22 @@ const ERROR_MESSAGES: Record<CompleteMatchErrorCode, string> = {
   BOTH_SIDES_REACHED_WIN_THRESHOLD: "Tylko jedna strona może osiągnąć próg zwycięstw.",
   SCORE_TOO_HIGH: "Wynik jest zbyt wysoki (maksymalnie 999).",
   DRAW_NOT_ALLOWED: "Ten etap nie dopuszcza remisów — wpisz wynik ze zwycięzcą.",
+  // V5.7 set matches (the domain adds the set number and the reason to each message).
+  SETS_REQUIRED: "Wpisz wyniki setów — w tym etapie o meczu decydują sety.",
+  SET_SCORE_NOT_INTEGER: "Punkty w secie muszą być liczbami całkowitymi.",
+  SET_SCORE_NEGATIVE: "Punkty w secie nie mogą być ujemne.",
+  SET_SCORE_TOO_HIGH: "Wynik seta jest zbyt wysoki.",
+  SET_NOT_FINISHED: "Set nie jest zakończony.",
+  SET_SCORE_IMPOSSIBLE: "Taki wynik seta jest niemożliwy przy zasadach tego etapu.",
+  SET_AFTER_MATCH_DECIDED: "Po rozstrzygnięciu meczu nie dopisuje się kolejnych setów.",
+  MATCH_NOT_DECIDED: "Mecz nie jest jeszcze rozstrzygnięty.",
+  SET_TOTAL_MISMATCH: "Wynik meczu nie zgadza się z wynikami setów.",
+  SETS_NOT_SUPPORTED: "W tym etapie mecz nie jest rozstrzygany setami — wpisz sam wynik meczu.",
 };
 
 export class CompleteMatchError extends Error {
-  constructor(public readonly code: CompleteMatchErrorCode) {
-    super(ERROR_MESSAGES[code]);
+  constructor(public readonly code: CompleteMatchErrorCode, detail?: string) {
+    super(detail ?? ERROR_MESSAGES[code]);
     this.name = "CompleteMatchError";
   }
 }
@@ -91,6 +104,8 @@ export interface CompletePlayedMatchInput extends CompleteMatchBaseInput {
   resultType: "played";
   score1: number;
   score2: number;
+  /** V5.7: required in a set stage — every played set; score1/score2 must equal the sets won. */
+  sets?: SetScore[] | null;
 }
 
 export interface CompleteWalkoverMatchInput extends CompleteMatchBaseInput {
@@ -121,6 +136,7 @@ interface NormalizedResult {
   winnerId: number | null;
   loserId: number | null;
   reason: string | null;
+  setScores: SetScore[] | null;
 }
 
 function normalizeResult(params: {
@@ -130,7 +146,26 @@ function normalizeResult(params: {
   player2Id: number;
   format: "single_elimination" | "double_elimination" | "round_robin" | "swiss" | "group_stage";
   leagueRules: LeagueRules | null;
+  matchRules: MatchRules | null;
 }): NormalizedResult {
+  if (params.input.resultType === "played" && params.matchRules) {
+    // V5.7: the sets decide; the match score is sets won and must agree with them.
+    const evaluated = evaluateSetMatch(params.input.sets ?? [], params.matchRules);
+    if (!evaluated.ok) throw new CompleteMatchError(evaluated.problem.code, evaluated.problem.message);
+    const { setsWon1, setsWon2, winnerSide } = evaluated.value;
+    if (params.input.score1 !== setsWon1 || params.input.score2 !== setsWon2) {
+      throw new CompleteMatchError("SET_TOTAL_MISMATCH", `Wynik meczu ${params.input.score1}:${params.input.score2} nie zgadza się z setami — z setów wynika ${setsWon1}:${setsWon2}.`);
+    }
+    const winnerId = winnerSide === 1 ? params.player1Id : params.player2Id;
+    return {
+      resultType: "played", score1: setsWon1, score2: setsWon2, winnerId,
+      loserId: winnerId === params.player1Id ? params.player2Id : params.player1Id,
+      reason: null, setScores: evaluated.value.sets,
+    };
+  }
+  if (params.input.resultType === "played" && params.input.sets != null && params.input.sets.length > 0) {
+    throw new CompleteMatchError("SETS_NOT_SUPPORTED");
+  }
   if (params.input.resultType === "played" && params.leagueRules?.allowDraws) {
     // V5.3 draw-enabled league: the score is goals/points of one game; equal scores are a draw.
     const validation = validateLeagueScore(params.input.score1, params.input.score2);
@@ -144,6 +179,7 @@ function normalizeResult(params: {
       winnerId,
       loserId: winnerId == null ? null : winnerId === params.player1Id ? params.player2Id : params.player1Id,
       reason: null,
+      setScores: null,
     };
   }
   if (params.input.resultType === "played") {
@@ -164,6 +200,7 @@ function normalizeResult(params: {
       winnerId,
       loserId: winnerId === params.player1Id ? params.player2Id : params.player1Id,
       reason: null,
+      setScores: null,
     };
   }
 
@@ -183,6 +220,8 @@ function normalizeResult(params: {
         ? params.player2Id
         : params.player1Id,
       reason: params.input.reason?.trim() || null,
+      // A walkover is not played: it never gets invented set scores.
+      setScores: null,
     };
   }
 
@@ -196,6 +235,7 @@ function normalizeResult(params: {
     winnerId: null,
     loserId: null,
     reason: params.input.reason?.trim() || null,
+    setScores: null,
   };
 }
 
@@ -304,6 +344,7 @@ export async function completeMatch(
       player2Id: match.player2Id,
       format: stage.format,
       leagueRules: leagueRulesFromStorage(stage.leagueRules),
+      matchRules: matchRulesFromStorage(stage.matchRules),
     });
 
     let downstreamMatch: typeof matchesTable.$inferSelect | null = null;
@@ -347,6 +388,7 @@ export async function completeMatch(
         score2: result.score2,
         winnerId: result.winnerId,
         completedAt: now,
+        setScores: result.setScores ? setsToStorage(result.setScores) : null,
       })
       .where(and(eq(matchesTable.id, match.id), ne(matchesTable.status, "completed")))
       .returning();
@@ -403,11 +445,13 @@ export async function completeMatch(
       resultType: result.resultType,
       resultReason: result.reason,
       completedAt: now,
+      setScores: result.setScores ? setsToStorage(result.setScores) : null,
     });
 
     const names = new Map(participants.map((player) => [player.id, player.name]));
+    const setsText = result.setScores ? ` (sety: ${result.setScores.map((set) => `${set.score1}:${set.score2}`).join(", ")})` : "";
     const description = result.resultType === "played"
-      ? `R${match.round}M${match.matchNumber}: ${names.get(match.player1Id)} ${result.score1}:${result.score2} ${names.get(match.player2Id)}${result.winnerId == null ? " (remis)" : ""}`
+      ? `R${match.round}M${match.matchNumber}: ${names.get(match.player1Id)} ${result.score1}:${result.score2} ${names.get(match.player2Id)}${result.winnerId == null ? " (remis)" : ""}${setsText}`
       : result.resultType === "walkover"
         ? `R${match.round}M${match.matchNumber}: walkower dla ${names.get(result.winnerId!)}`
         : `R${match.round}M${match.matchNumber}: no contest`;

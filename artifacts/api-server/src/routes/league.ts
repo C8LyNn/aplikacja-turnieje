@@ -1,3 +1,4 @@
+import { bestOfForMatchRules, describeMatchRules, matchRulesFromStorage, parseMatchRules, validateMatchRulesForStage } from "@workspace/match-rules";
 /**
  * V5.3 — league endpoints: rules before a stage starts, the round-by-round schedule, the schedule
  * generator and per-match dates. Results are never touched here: dates and rules are separate from
@@ -11,7 +12,7 @@ import {
   matchesTable,
   playersTable,
   stageParticipantsTable,
-  tournamentStagesTable,
+  tournamentStagesTable, tournamentsTable,
 } from "@workspace/db";
 import {
   GenerateStageScheduleBody,
@@ -21,6 +22,7 @@ import {
   UpdateMatchScheduleParams,
   UpdateStageLeagueRulesBody,
   UpdateStageLeagueRulesParams,
+  UpdateStageMatchRulesParams,
 } from "@workspace/api-zod";
 import {
   getTournamentMutationActor,
@@ -33,6 +35,7 @@ import {
 import {
   describeLeagueRules,
   isLeagueDraw,
+  leagueRulesFromStorage,
   parseLeagueRules,
   validateLeagueRulesForStage,
 } from "../domain/tournament/league-rules";
@@ -106,6 +109,9 @@ router.put("/tournaments/:id/stages/:stageId/league-rules", async (req, res): Pr
       if (problems.length > 0) {
         throw new LeagueRouteError(422, problems[0]!.code, problems.map((problem) => problem.message).join(" "));
       }
+      if (parsed.value?.allowDraws && matchRulesFromStorage(stage.matchRules)) {
+        throw new LeagueRouteError(422, "MATCH_RULES_DRAWS_CONFLICT", "Ten etap rozstrzyga mecze setami, więc remis nie jest możliwy — najpierw zmień zasady meczu.");
+      }
       const [saved] = await tx.update(tournamentStagesTable)
         .set({ leagueRules: parsed.value, version: stage.version + 1 })
         .where(eq(tournamentStagesTable.id, stage.id))
@@ -117,6 +123,62 @@ router.put("/tournaments/:id/stages/:stageId/league-rules", async (req, res): Pr
         description: parsed.value
           ? `Zasady etapu „${stage.name}”: ${describeLeagueRules(parsed.value)}`
           : `Etap „${stage.name}”: przywrócono klasyfikację według liczby zwycięstw (bez punktów).`,
+        undoPayload: null,
+        isUndone: false,
+      });
+      return saved!;
+    });
+    res.json(serializeLeagueStage(updated));
+  } catch (error) {
+    sendError(res, error);
+  }
+});
+
+// ---------- match rules (V5.7) ----------
+
+router.put("/tournaments/:id/stages/:stageId/match-rules", async (req, res): Promise<void> => {
+  const params = UpdateStageMatchRulesParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
+  const expectedVersion = req.body && typeof req.body === "object" ? (req.body as Record<string, unknown>).expectedVersion : undefined;
+  if (typeof expectedVersion !== "number" || !Number.isSafeInteger(expectedVersion)) {
+    res.status(422).json({ error: "Brakuje wersji etapu (expectedVersion).", code: "INVALID_MATCH_RULES" });
+    return;
+  }
+  const access = await requireOrganizer(req, res, params.data.id);
+  if (!access) return;
+  try {
+    const updated = await withTournamentMutationLock(params.data.id, getTournamentMutationActor(access), async (tx) => {
+      const [stage] = await tx.select().from(tournamentStagesTable)
+        .where(and(eq(tournamentStagesTable.id, params.data.stageId), eq(tournamentStagesTable.tournamentId, params.data.id)))
+        .for("update");
+      if (!stage) throw new LeagueRouteError(404, "STAGE_NOT_FOUND", "Etap nie istnieje.");
+      // Policy: rules change only before the stage starts; played results are never recalculated.
+      if (stage.status !== "planned") {
+        throw new LeagueRouteError(409, "MATCH_RULES_LOCKED", "Zasady meczu można zmienić tylko przed rozpoczęciem etapu — rozegrane wyniki nie są przeliczane według nowych zasad.");
+      }
+      if (stage.version !== expectedVersion) {
+        throw new LeagueRouteError(409, "STAGE_VERSION_CONFLICT", "Etap zmienił się w międzyczasie. Odśwież i spróbuj ponownie.");
+      }
+      const parsed = parseMatchRules((req.body as Record<string, unknown>).matchRules);
+      if (!parsed.ok) throw new LeagueRouteError(422, parsed.problems[0]!.code, parsed.problems.map((problem) => problem.message).join(" "));
+      const leagueRules = leagueRulesFromStorage(stage.leagueRules);
+      // The match length follows the rules (sets to win), so the stage best-of moves with them.
+      const bestOf = parsed.value ? bestOfForMatchRules(parsed.value) : stage.bestOf;
+      const problems = validateMatchRulesForStage(parsed.value, { format: stage.format, bestOf, allowDraws: !!leagueRules?.allowDraws });
+      if (problems.length) throw new LeagueRouteError(422, problems[0]!.code, problems.map((problem) => problem.message).join(" "));
+      const [saved] = await tx.update(tournamentStagesTable)
+        .set({ matchRules: parsed.value, bestOf, version: stage.version + 1 })
+        .where(eq(tournamentStagesTable.id, stage.id))
+        .returning();
+      // The first stage's length mirrors the tournament's compatibility column (kept in sync at start).
+      if (stage.position === 1) {
+        await tx.update(tournamentsTable).set({ defaultBestOf: bestOf }).where(eq(tournamentsTable.id, stage.tournamentId));
+      }
+      await tx.insert(actionLogTable).values({
+        tournamentId: stage.tournamentId,
+        stageId: stage.id,
+        actionType: "match_rules_changed",
+        description: `Zasady meczu w etapie „${stage.name}”: ${describeMatchRules(parsed.value, { bestOf, allowDraws: !!leagueRules?.allowDraws })}`,
         undoPayload: null,
         isUndone: false,
       });

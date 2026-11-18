@@ -7,8 +7,11 @@
  */
 import type { MatchResultType } from './matchResultType';
 import type { MatchStatus } from './matchStatus';
+import type { SetScore } from './setScore';
 
 export interface Match {
+  /** V5.7: played sets (stages decided by sets); null otherwise — older results never get invented sets. */
+  sets?: SetScore[] | null;
   id: number;
   /** @minimum 1 */
   revision: number;

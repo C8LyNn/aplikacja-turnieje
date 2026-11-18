@@ -57,6 +57,7 @@
     "@workspace/api-client-react": "workspace:*",
     "@workspace/game-catalog": "workspace:*",
     "@workspace/stage-basket-flow": "workspace:*",
+    "@workspace/match-rules": "workspace:*",
     "class-variance-authority": "catalog:",
     "clsx": "catalog:",
     "cmdk": "^1.1.1",

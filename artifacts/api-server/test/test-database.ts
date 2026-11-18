@@ -122,6 +122,9 @@ const PARTICIPANT_FIELDS_MIGRATION_URL = new URL(
 const POINT_ADJUSTMENTS_MIGRATION_URL = new URL(
   "../../../lib/db/migrations/0045_stage_point_adjustments.sql", import.meta.url,
 );
+const MATCH_SET_RULES_MIGRATION_URL = new URL(
+  "../../../lib/db/migrations/0046_match_set_rules.sql", import.meta.url,
+);
 const ROUND_ROBIN_LEGS_MIGRATION_URL = new URL(
   "../../../lib/db/migrations/0041_round_robin_legs.sql", import.meta.url,
 );
@@ -450,6 +453,12 @@ export async function resetTestSchema(pool: TestPool, schema: string): Promise<v
       );
       await pool.query(pointAdjustmentsSql);
       await pool.query(pointAdjustmentsSql);
+      // V5.7: match set rules and set scores (idempotent like the others).
+      const matchSetRulesSql = renderSeriesV1MigrationForTestSchema(
+        await readFile(MATCH_SET_RULES_MIGRATION_URL, "utf8"), schema,
+      );
+      await pool.query(matchSetRulesSql);
+      await pool.query(matchSetRulesSql);
       await pool.query("COMMIT");
     } catch (error) {
       await pool.query("ROLLBACK");

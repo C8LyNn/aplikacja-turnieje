@@ -1,3 +1,4 @@
+import { parseMatchRules, validateMatchRulesForStage, type MatchRules } from "@workspace/match-rules";
 import {
   calculateBalancedGroupSizes,
   calculateGroupAdvancingCount,
@@ -62,6 +63,8 @@ export type StageQualificationRule =
   | { type: "top_n_per_group"; qualifiersPerGroup: number };
 
 export interface BaseTournamentStagePlan {
+  /** V5.7: what decides a match (set-based); omitted = series to N won games, or one game in a draw league. */
+  matchRules?: MatchRules;
   key: string;
   position: number;
   name: string;
@@ -137,6 +140,7 @@ export interface TournamentStagesPlan {
 
 export type TournamentStagePlanProblemCode =
   | "INVALID_LEAGUE_RULES"
+  | "INVALID_MATCH_RULES"
   | "INVALID_SCHEDULE_TIME_ZONE"
   | "INVALID_SCHEDULE_PLAN"
   | "STAGE_COUNT_OUT_OF_RANGE"
@@ -309,6 +313,21 @@ function validateFormatConfiguration(stages: readonly IndexedStage[], problems: 
         }
       }
     }
+    if (record.matchRules !== undefined && record.matchRules !== null) {
+      const parsedMatchRules = parseMatchRules(record.matchRules, `${path}.matchRules`);
+      if (!parsedMatchRules.ok) {
+        for (const problem of parsedMatchRules.problems) addProblem(problems, "INVALID_MATCH_RULES", problem.path, problem.message);
+      } else {
+        const stageLeagueRules = parseLeagueRules(record.leagueRules);
+        for (const problem of validateMatchRulesForStage(parsedMatchRules.value, {
+          format: String(record.format),
+          bestOf: typeof record.bestOf === "number" ? record.bestOf : 1,
+          allowDraws: stageLeagueRules.ok && !!stageLeagueRules.value?.allowDraws,
+        }, `${path}.matchRules`)) {
+          addProblem(problems, "INVALID_MATCH_RULES", problem.path, problem.message);
+        }
+      }
+    }
     const schedulable = record.format === "round_robin" || record.format === "group_stage";
     if (record.scheduleTimeZone !== undefined && (!schedulable || !isValidTimeZone(record.scheduleTimeZone))) {
       addProblem(problems, "INVALID_SCHEDULE_TIME_ZONE", `${path}.scheduleTimeZone`, "scheduleTimeZone is supported by round_robin and group_stage and must be an IANA time zone such as Europe/Warsaw.");
@@ -443,6 +462,11 @@ function validateParticipantFlow(
   });
 }
 
+function matchRulesField(record: UnknownRecord): { matchRules?: MatchRules } {
+  const parsed = parseMatchRules(record.matchRules);
+  return parsed.ok && parsed.value ? { matchRules: parsed.value } : {};
+}
+
 function leagueRulesField(record: UnknownRecord): { leagueRules?: LeagueRules } {
   const parsed = parseLeagueRules(record.leagueRules);
   return parsed.ok && parsed.value ? { leagueRules: parsed.value } : {};
@@ -468,6 +492,7 @@ function buildStage(record: UnknownRecord): TournamentStagePlan {
     entrySeedingMethod: normalizedEntrySeedingMethod(record)!,
     ...(record.randomSeed === undefined ? {} : { randomSeed: (record.randomSeed as string).trim() }),
     randomRevealOrder: normalizedRevealOrder(record)!,
+    ...matchRulesField(record),
   };
   switch (format) {
     case "swiss":

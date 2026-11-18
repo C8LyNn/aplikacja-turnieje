@@ -1,3 +1,5 @@
+import { describeMatchRules, matchRulesFromStorage, type MatchRules } from "@workspace/match-rules";
+import { setPointTotals, type SetPointTotal } from "../../domain/tournament/set-point-totals";
 /**
  * V5.4-006 · live tables of one stage (groups, league, Swiss) for organisers and viewers.
  *
@@ -40,6 +42,9 @@ export interface LiveTableRow {
   decidedBy: StandingProjection["decidedBy"] | null;
   /** V5.5: net bonus/penalty included in `points` (0 when none). */
   pointAdjustment: number;
+  /** V5.7: points scored / conceded inside sets; null when the stage is not decided by sets. */
+  setPointsFor: number | null;
+  setPointsAgainst: number | null;
   /** Inside the advancing places (only when the stage feeds another stage). */
   zone: LiveTableZone | null;
 }
@@ -61,6 +66,9 @@ export interface LiveStageStandings {
   final: boolean;
   leagueRules: LeagueRules | null;
   rulesSummary: string | null;
+  /** V5.7: what decides a match, and its plain summary. */
+  matchRules: MatchRules | null;
+  matchRulesSummary: string;
   /** Places per table that advance (groups: per group; league/Swiss: top N); null when nobody advances. */
   advancingPlaces: number | null;
   tables: LiveTable[];
@@ -80,6 +88,7 @@ function row(
   rank: number,
   advancingPlaces: number | null,
   rules: LeagueRules | null,
+  setPoints: Map<number, SetPointTotal> | null = null,
 ): LiveTableRow {
   return {
     playerId: ranked.playerId,
@@ -96,6 +105,8 @@ function row(
     buchholz: ranked.buchholz,
     decidedBy: rules ? projection?.decidedBy ?? null : null,
     pointAdjustment: rules ? projection?.pointAdjustment ?? 0 : 0,
+    setPointsFor: setPoints ? setPoints.get(ranked.playerId)?.for ?? 0 : null,
+    setPointsAgainst: setPoints ? setPoints.get(ranked.playerId)?.against ?? 0 : null,
     zone: advancingPlaces == null ? null : rank <= advancingPlaces ? "qualify" : "out",
   };
 }
@@ -110,6 +121,8 @@ export function buildLiveStageStandings(input: {
 }): LiveStageStandings {
   const { stage, groups, memberships, players, matches } = input;
   const rules = leagueRulesFromStorage(stage.leagueRules);
+  const matchRules = matchRulesFromStorage(stage.matchRules);
+  const setPoints = (list: MatchRow[]) => (matchRules ? setPointTotals(list) : null);
   const final = stage.status === "completed";
   const counted = (list: MatchRow[]) => ({
     matchesPlayed: list.filter((match) => match.status === "completed" && match.resultType !== "bye").length,
@@ -122,6 +135,8 @@ export function buildLiveStageStandings(input: {
     final,
     leagueRules: rules,
     rulesSummary: rules ? describeLeagueRules(rules) : null,
+    matchRules,
+    matchRulesSummary: describeMatchRules(matchRules, { bestOf: stage.bestOf, allowDraws: !!rules?.allowDraws }),
   };
   if (!TABLE_FORMATS.has(stage.format) || memberships.length === 0) {
     return { ...base, advancingPlaces: null, tables: [] };
@@ -149,7 +164,7 @@ export function buildLiveStageStandings(input: {
       return {
         groupId: group.id,
         label: `Grupa ${group.groupKey}`,
-        rows: ranked.map(({ entry, rank }) => row(entry, projectionById.get(entry.playerId), rank, advancingPlaces, rules)),
+        rows: ranked.map(({ entry, rank }) => row(entry, projectionById.get(entry.playerId), rank, advancingPlaces, rules, setPoints(groupMatches))),
         ...counted(groupMatches),
       };
     });
@@ -165,7 +180,7 @@ export function buildLiveStageStandings(input: {
   const rows = ranking
     .map((entry) => ({ entry, rank: final ? storedRank.get(entry.playerId) ?? entry.rank : entry.rank }))
     .sort((a, b) => a.rank - b.rank)
-    .map(({ entry, rank }) => row(entry, projectionById.get(entry.playerId), rank, advancingPlaces, format === "round_robin" ? rules : null));
+    .map(({ entry, rank }) => row(entry, projectionById.get(entry.playerId), rank, advancingPlaces, format === "round_robin" ? rules : null, setPoints(matches)));
   return { ...base, advancingPlaces, tables: [{ groupId: null, label: stage.name, rows, ...counted(matches) }] };
 }
 
@@ -174,9 +189,11 @@ export async function getLiveStageStandings(input: { tournamentId: number; stage
   if (!stage || stage.tournamentId !== input.tournamentId) throw new StageLifecycleError("STAGE_NOT_FOUND");
   if (stage.status === "planned") {
     const rules = leagueRulesFromStorage(stage.leagueRules);
+    const matchRules = matchRulesFromStorage(stage.matchRules);
     return {
       stageId: stage.id, format: stage.format, status: stage.status, final: false,
       leagueRules: rules, rulesSummary: rules ? describeLeagueRules(rules) : null,
+      matchRules, matchRulesSummary: describeMatchRules(matchRules, { bestOf: stage.bestOf, allowDraws: !!rules?.allowDraws }),
       advancingPlaces: stage.format === "group_stage" ? stage.qualifiersPerGroup ?? null : stage.advancingCount ?? null,
       tables: [],
     };

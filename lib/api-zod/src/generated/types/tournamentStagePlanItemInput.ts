@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { LeagueRules } from './leagueRules';
+import type { MatchRules } from './matchRules';
 import type { SchedulePlan } from './schedulePlan';
 import type { TournamentStagePlanItemInputBestOf } from './tournamentStagePlanItemInputBestOf';
 import type { TournamentStagePlanItemInputEntrySeedingMethod } from './tournamentStagePlanItemInputEntrySeedingMethod';
@@ -36,6 +37,8 @@ export interface TournamentStagePlanItemInput {
   legs?: TournamentStagePlanItemInputLegs;
   /** V5.3: round_robin and group_stage only. Omitted keeps ranking by match wins. */
   leagueRules?: LeagueRules;
+  /** V5.7: matches decided by sets; bestOf must equal 2 × setsToWin − 1 and draws are not allowed. */
+  matchRules?: MatchRules;
   /** V5.3: round_robin and group_stage. IANA time zone of the schedule, e.g. Europe/Warsaw. */
   scheduleTimeZone?: string;
   schedulePlan?: SchedulePlan;

@@ -22,6 +22,9 @@
     },
     {
       "path": "../../lib/stage-basket-flow"
+    },
+    {
+      "path": "../../lib/match-rules"
     }
   ]
 }

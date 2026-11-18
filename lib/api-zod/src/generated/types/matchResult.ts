@@ -5,6 +5,7 @@
  * Tournament Manager API
  * OpenAPI spec version: 0.1.0
  */
+import type { SetScore } from './setScore';
 
 export type MatchResult = {
   /** @minimum 1 */
@@ -12,6 +13,12 @@ export type MatchResult = {
   resultType: 'played';
   score1: number;
   score2: number;
+  /**
+     * V5.7: required in a stage decided by sets — every played set in order; score1/score2 must equal the sets won.
+     * @minItems 1
+     * @maxItems 7
+     */
+  sets?: SetScore[];
 } | {
   /** @minimum 1 */
   expectedRevision: number;

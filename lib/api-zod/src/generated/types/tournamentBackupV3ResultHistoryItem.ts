@@ -5,6 +5,7 @@
  * Tournament Manager API
  * OpenAPI spec version: 0.1.0
  */
+import type { SetScore } from './setScore';
 import type { TournamentBackupV3ResultHistoryItemResultType } from './tournamentBackupV3ResultHistoryItemResultType';
 
 export type TournamentBackupV3ResultHistoryItem = {
@@ -23,6 +24,12 @@ export type TournamentBackupV3ResultHistoryItem = {
   score1?: number | null;
   /** @nullable */
   score2?: number | null;
+  /**
+     * V5.7: present only for a played result of a stage decided by sets.
+     * @minItems 1
+     * @maxItems 7
+     */
+  sets?: SetScore[];
   bestOf: number;
   resultType: TournamentBackupV3ResultHistoryItemResultType;
   /** @nullable */

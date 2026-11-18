@@ -1365,6 +1365,52 @@ paths:
               schema:
                 $ref: "#/components/schemas/DomainError"
 
+  /tournaments/{id}/stages/{stageId}/match-rules:
+    put:
+      operationId: updateStageMatchRules
+      tags: [tournaments]
+      summary: "V5.7: set or clear what decides a match (sets) for a stage that has not started; played results are never recalculated"
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+        - $ref: "#/components/parameters/StageId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/StageMatchRulesUpdateRequest"
+      responses:
+        "200":
+          description: Updated stage
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TournamentStage"
+        "403":
+          description: Organizer authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "404":
+          description: Tournament or stage not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "409":
+          description: Stage already started (MATCH_RULES_LOCKED) or changed since it was read
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "422":
+          description: Rules invalid for this stage
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+
   /tournaments/{id}/stages/{stageId}/schedule:
     get:
       operationId: getStageSchedule
@@ -3578,6 +3624,9 @@ components:
         leagueRules:
           $ref: "#/components/schemas/LeagueRules"
           description: "V5.3: league rules for a single round_robin tournament created without a stage plan (flexible participant count)."
+        matchRules:
+          $ref: "#/components/schemas/MatchRules"
+          description: "V5.7: match rules for a tournament created without a stage plan (defaultBestOf must equal 2 × setsToWin − 1)."
         scheduleTimeZone:
           type: string
           description: "V5.3: schedule time zone for a single round_robin created without a stage plan."
@@ -3741,6 +3790,9 @@ components:
         leagueRules:
           $ref: "#/components/schemas/LeagueRules"
           description: "V5.3: round_robin and group_stage only. Omitted keeps ranking by match wins."
+        matchRules:
+          $ref: "#/components/schemas/MatchRules"
+          description: "V5.7: matches decided by sets; bestOf must equal 2 × setsToWin − 1 and draws are not allowed."
         scheduleTimeZone:
           type: string
           description: "V5.3: round_robin and group_stage. IANA time zone of the schedule, e.g. Europe/Warsaw."
@@ -3822,6 +3874,14 @@ components:
           oneOf:
             - $ref: "#/components/schemas/LeagueRules"
             - type: "null"
+        matchRules:
+          description: "V5.7: what decides a match; null keeps the series / draw-league meaning."
+          oneOf:
+            - $ref: "#/components/schemas/MatchRules"
+            - type: "null"
+        matchRulesSummary:
+          type: string
+          description: "V5.7: plain-language description of how a match is decided (every stage)."
         leagueRulesSummary:
           type: ["string", "null"]
           description: "V5.3: plain-language description of the league rules."
@@ -4406,6 +4466,13 @@ components:
       type: object
       required: [id, revision, tournamentId, stageId, round, matchNumber, bestOf, status]
       properties:
+        sets:
+          description: "V5.7: played sets (stages decided by sets); null otherwise — older results never get invented sets."
+          oneOf:
+            - type: array
+              items:
+                $ref: "#/components/schemas/SetScore"
+            - type: "null"
         id:
           type: integer
         revision:
@@ -4635,6 +4702,11 @@ components:
             - $ref: "#/components/schemas/LeagueRules"
             - type: "null"
         rulesSummary: { type: [string, "null"] }
+        matchRules:
+          oneOf:
+            - $ref: "#/components/schemas/MatchRules"
+            - type: "null"
+        matchRulesSummary: { type: string }
         advancingPlaces: { type: [integer, "null"] }
         tables:
           type: array
@@ -4670,6 +4742,8 @@ components:
         buchholz: { type: [number, "null"] }
         decidedBy: { type: [string, "null"] }
         pointAdjustment: { type: integer, description: "V5.5: net bonus/penalty included in points (0 when none)." }
+        setPointsFor: { type: [integer, "null"], description: "V5.7: points scored inside sets; null when the stage is not decided by sets." }
+        setPointsAgainst: { type: [integer, "null"], description: "V5.7: points conceded inside sets; null when the stage is not decided by sets." }
         zone:
           type: [string, "null"]
           enum: [qualify, out, null]
@@ -4689,6 +4763,13 @@ components:
               type: integer
             score2:
               type: integer
+            sets:
+              type: array
+              minItems: 1
+              maxItems: 7
+              description: "V5.7: required in a stage decided by sets — every played set in order; score1/score2 must equal the sets won."
+              items:
+                $ref: "#/components/schemas/SetScore"
         - type: object
           additionalProperties: false
           required: [resultType, winnerId, expectedRevision]
@@ -4764,6 +4845,43 @@ components:
         tiedAfterAllRules:
           type: boolean
           description: "V5.3: every configured criterion left this row level; seeding decided."
+        setPointsFor:
+          type: integer
+          description: "V5.7: points scored inside sets (stages decided by sets only)."
+        setPointsAgainst:
+          type: integer
+          description: "V5.7: points conceded inside sets (stages decided by sets only)."
+
+    MatchRules:
+      type: object
+      additionalProperties: false
+      required: [version, kind, setsToWin, pointsPerSet, winBy]
+      description: "V5.7: what decides a match. Every set uses the same rules; the match score is sets won."
+      properties:
+        version: { type: integer, const: 1 }
+        kind: { type: string, enum: [sets] }
+        setsToWin: { type: integer, minimum: 1, maximum: 4 }
+        pointsPerSet: { type: integer, minimum: 3, maximum: 99 }
+        winBy: { type: integer, minimum: 1, maximum: 2 }
+
+    SetScore:
+      type: object
+      additionalProperties: false
+      required: [score1, score2]
+      properties:
+        score1: { type: integer, minimum: 0 }
+        score2: { type: integer, minimum: 0 }
+
+    StageMatchRulesUpdateRequest:
+      type: object
+      additionalProperties: false
+      required: [matchRules, expectedVersion]
+      properties:
+        matchRules:
+          oneOf:
+            - $ref: "#/components/schemas/MatchRules"
+            - type: "null"
+        expectedVersion: { type: integer, minimum: 1 }
 
     LeagueRules:
       type: object
@@ -4937,6 +5055,13 @@ components:
       type: object
       required: [id, matchId, round, matchNumber, player1Name, player2Name, score1, score2, winnerId, winnerName, bestOf, resultType, resultReason, revision, completedAt, recordedAt]
       properties:
+        sets:
+          description: "V5.7: played sets (stages decided by sets); null otherwise — older results never get invented sets."
+          oneOf:
+            - type: array
+              items:
+                $ref: "#/components/schemas/SetScore"
+            - type: "null"
         id:
           type: integer
         matchId:
@@ -5798,6 +5923,9 @@ components:
                 items:
                   $ref: "#/components/schemas/PointAdjustment"
                 description: "V5.5: present only when the stage has bonus/penalty entries (revoked ones included)."
+              matchRules:
+                $ref: "#/components/schemas/MatchRules"
+                description: "V5.7: present only when matches of the stage are decided by sets."
               schedulePlan:
                 $ref: "#/components/schemas/SchedulePlan"
                 description: "V5.3: present only when the stage has a schedule template."
@@ -5962,6 +6090,7 @@ components:
               winnerBackupId: { type: ["integer", "null"] }
               score1: { type: ["integer", "null"] }
               score2: { type: ["integer", "null"] }
+              sets: { type: array, minItems: 1, maxItems: 7, items: { $ref: "#/components/schemas/SetScore" }, description: "V5.7: present only for a played result of a stage decided by sets." }
               resultType: { type: ["string", "null"], enum: [played, walkover, bye, no_contest, null] }
               resultReason: { type: ["string", "null"] }
               bestOf: { type: integer }
@@ -5989,6 +6118,7 @@ components:
               winnerBackupId: { type: ["integer", "null"] }
               score1: { type: ["integer", "null"] }
               score2: { type: ["integer", "null"] }
+              sets: { type: array, minItems: 1, maxItems: 7, items: { $ref: "#/components/schemas/SetScore" }, description: "V5.7: present only for a played result of a stage decided by sets." }
               bestOf: { type: integer }
               resultType: { type: string, enum: [played, walkover, bye, no_contest] }
               resultReason: { type: ["string", "null"] }
