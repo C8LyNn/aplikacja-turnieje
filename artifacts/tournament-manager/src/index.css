@@ -909,3 +909,8 @@ html[data-x-skin="sandstorm"] :is(.experimental-tournament-shell, .experimental-
 .experimental-tournament-public .participant-field-chips li { display: inline-flex; align-items: center; gap: .3rem; max-width: 14rem; padding: .1rem .5rem; border-radius: 999px; background: rgb(255 255 255 / .06); font-size: .75rem; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
 .experimental-tournament-public .participant-field-chip-label { opacity: .6; }
 .experimental-tournament-public .participant-field-swatch { display: inline-block; width: .8rem; height: .8rem; border-radius: 3px; border: 1px solid rgb(255 255 255 / .2); }
+
+/* V5.5 · point adjustment marker in stage tables */
+.stage-live-adjustment { margin-left: .15rem; font-size: .65rem; font-weight: 700; }
+.stage-live-adjustment[data-sign="minus"] { color: hsl(var(--destructive)); }
+.stage-live-adjustment[data-sign="plus"] { color: hsl(142 70% 45%); }

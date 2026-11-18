@@ -1,4 +1,5 @@
 import { ExperimentalLeaguePanel } from "@/features/experimental-tournaments/experimental-league-panel";
+import { ExperimentalPointAdjustments } from "@/features/experimental-tournaments/experimental-point-adjustments";
 import { LeagueTableNotes } from "@/components/league-table-notes";
 import { standingsHavePoints } from "@/lib/league-results";
 import { checkScore, matchResultLabel, scoreCap, scoreEntryHint, stageAllowsDraws } from "@/lib/league-results";
@@ -1631,6 +1632,9 @@ export default function TournamentHost() {
                 canEditDates={capabilities.canUseLegacyMatchTools}
                 onSelectMatch={(matchId) => setSelectedMatchId(matchId)}
               />
+            )}
+            {isExperimental && !dataLoading && !dataError && activeStage?.leagueRules && capabilities.canManageLifecycle && (
+              <ExperimentalPointAdjustments tournamentId={id} stage={activeStage} />
             )}
             {isExperimental && !dataLoading && !dataError && (
               <ExperimentalMatchFlow matches={operationalMatches} allMatches={matches} stageNames={new Map((stages ?? []).map((stage) => [stage.id, stage.name]))} focusedMatchId={focusedMatchId} onSelect={setSelectedMatchId} disabled={hostPending} />

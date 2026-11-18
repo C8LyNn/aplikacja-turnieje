@@ -2162,6 +2162,21 @@ html[data-x-motion="reduced"] :is(.experimental-tournament-shell, .experimental-
 .experimental-tournament-shell .participant-field-more { color: var(--x-text-2); }
 @media (max-width: 767px) { .experimental-tournament-shell .participant-fields-summary { display: none; } }
 
+/* v5.5 · point adjustments card */
+.experimental-tournament-shell .experimental-point-adjustments { border: 1px solid var(--x-line); border-radius: 1rem; background: var(--x-glass); }
+.experimental-tournament-shell .experimental-point-adjustments-head { display: flex; width: 100%; align-items: center; gap: .6rem; padding: .75rem 1rem; border: 0; background: transparent; color: var(--x-text); text-align: left; cursor: pointer; border-radius: 1rem; }
+.experimental-tournament-shell .experimental-point-adjustments-head:focus-visible { outline: 2px solid var(--x-a1); outline-offset: -2px; }
+.experimental-tournament-shell .experimental-point-adjustments-summary { flex: 1 1 auto; text-align: right; font-size: .8125rem; color: var(--x-text-2); }
+.experimental-tournament-shell .experimental-point-adjustments-head[aria-expanded="true"] .experimental-point-adjustments-chevron { transform: rotate(180deg); }
+.experimental-tournament-shell .experimental-point-adjustments-body { display: grid; gap: .75rem; padding: 0 1rem 1rem; }
+.experimental-tournament-shell .experimental-point-adjustments-list { display: grid; gap: .4rem; margin: 0; padding: 0; list-style: none; }
+.experimental-tournament-shell .experimental-point-adjustments-list li { display: flex; align-items: center; gap: .6rem; padding: .5rem .6rem; border-radius: .7rem; background: var(--x-glass-2); font-size: .875rem; }
+.experimental-tournament-shell .experimental-point-adjustments-list li[data-revoked="true"] { opacity: .55; text-decoration: line-through; }
+.experimental-tournament-shell .experimental-point-adjustments-points { min-width: 2.75rem; text-align: center; font-family: ui-monospace, monospace; font-weight: 800; }
+.experimental-tournament-shell .experimental-point-adjustments-points[data-sign="minus"] { color: hsl(var(--x-danger)); }
+.experimental-tournament-shell .experimental-point-adjustments-points[data-sign="plus"] { color: hsl(var(--x-live)); }
+.experimental-tournament-shell .experimental-point-adjustments-form { display: grid; gap: .6rem; grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr)); align-items: end; }
+
 /* v5 · shared V4 button on the create screen */
 :is(.experimental-tournament-create) .experimental-v4-btn { display: inline-flex; align-items: center; gap: .4rem; min-height: var(--x-tap, 2.75rem); padding-inline: 1rem; border: 1px solid var(--x-line-strong); border-radius: 999px; background: var(--x-glass); color: var(--x-text); font-weight: 600; font-size: .875rem; text-decoration: none; transition: background 140ms var(--x-ease), border-color 140ms var(--x-ease); }
 :is(.experimental-tournament-create) .experimental-v4-btn:hover:not(:disabled) { background: var(--x-glass-2); }

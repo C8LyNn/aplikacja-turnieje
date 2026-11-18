@@ -1,5 +1,9 @@
-# V5 schema migrations (0041–0044): procedure and recovery
+# V5 schema migrations (0041–0045): procedure and recovery
 
+> **V5.5** adds `0045_stage_point_adjustments.sql` (`tournament_stages.point_adjustments`: bonus/penalty audit
+> entries, only on stages with league rules) and renames the token to `apply-0041-0045`.
+> A V5.4 database (0001–0044) has exactly one pending migration: 0045. No existing row is rewritten.
+>
 > **V5.4** adds `0044_participant_fields.sql` (participant field definitions on `tournaments`, values on
 > `players`; both nullable JSON objects with size limits) and renames the token to `apply-0041-0044`.
 > A V5.3 database (0001–0043) has exactly one pending migration: 0044. No existing row is rewritten.
@@ -31,7 +35,7 @@ violate a new CHECK constraint, missing `players(tournament_id, id)` key.
 
 ## 3. Apply (one transaction, all or nothing)
 ```
-DATABASE_URL=... DATABASE_SCHEMA=public V5_MIGRATION_CONFIRM=apply-0041-0044 \
+DATABASE_URL=... DATABASE_SCHEMA=public V5_MIGRATION_CONFIRM=apply-0041-0045 \
   APP_COMMIT=<sha> DEPLOYMENT_ENVIRONMENT=<env> pnpm --filter @workspace/db migrate:v5
 ```
 Advisory lock, `lock_timeout 10s`, preflight inside the transaction, migration SQL, catalog
@@ -46,6 +50,12 @@ Run the preflight again: `"status": "applied"`. Start the API: the log line
 * **Apply failed** – nothing was changed (single transaction). Fix the reported blocker and rerun.
 * **API refuses to start** (`SchemaIncompatibleError`) – the schema lacks a migration; run steps 2–3,
   or roll the API back to the previous build (old builds ignore the new columns/tables).
+* **Need to undo V5.5 only (0045)** – roll the code back to V5.4 first. The V5.4 API ignores the column, so it
+  can stay — but it then ranks tables **without** the adjustments (places shown would differ from what V5.5
+  showed; completed stages keep their stored places). To remove it (adjustments are lost — export tournaments
+  that use them with Backup V3 first; `SELECT count(*) FROM tournament_stages WHERE point_adjustments IS NOT NULL`):
+  `ALTER TABLE tournament_stages DROP CONSTRAINT IF EXISTS tournament_stages_point_adjustments_supported, DROP COLUMN IF EXISTS point_adjustments;`
+  `DELETE FROM app_schema_migrations WHERE migration_key = 'v55_stage_point_adjustments_0045';`
 * **Need to undo V5.4 only (0044)** – roll the code back to V5.3 first. The V5.3 API ignores both columns, so
   0044 can stay. To remove it (extra participant data is lost — export tournaments that use it with Backup V3
   first; `SELECT count(*) FROM tournaments WHERE participant_fields IS NOT NULL`):

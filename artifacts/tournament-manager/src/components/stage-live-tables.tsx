@@ -48,6 +48,9 @@ export function LiveTable({
   const draws = data.leagueRules?.allowDraws === true || table.rows.some((row) => row.draws > 0);
   const swiss = data.format === "swiss";
   const rows = rowLimit ? table.rows.slice(0, rowLimit) : table.rows;
+  const adjustmentNotes = points
+    ? table.rows.filter((row) => row.pointAdjustment).map((row) => `${row.playerName}: w punktach korekta ${row.pointAdjustment! > 0 ? "+" : ""}${row.pointAdjustment} (bonus lub kara organizatora).`)
+    : [];
   const notes = points
     ? table.rows.flatMap((row, index) => {
         if (index === 0 || !row.decidedBy || row.decidedBy === "points") return [];
@@ -91,15 +94,20 @@ export function LiveTable({
                 <td className="px-1 py-2 text-center tabular-nums">{row.losses}</td>
                 {!compact && <td className="hidden px-1 py-2 text-center font-mono tabular-nums sm:table-cell">{row.scoreFor}:{row.scoreAgainst}</td>}
                 {swiss && !compact && <td className="hidden px-1 py-2 text-center tabular-nums sm:table-cell">{row.buchholz ?? "—"}</td>}
-                {points && <td className="px-2 py-2 text-center font-bold tabular-nums">{row.points ?? 0}</td>}
+                {points && (
+                  <td className="px-2 py-2 text-center font-bold tabular-nums">
+                    {row.points ?? 0}
+                    {row.pointAdjustment ? <sup className="stage-live-adjustment" data-sign={row.pointAdjustment > 0 ? "plus" : "minus"} title={`W tym korekta ${row.pointAdjustment > 0 ? "+" : ""}${row.pointAdjustment} pkt`}>{row.pointAdjustment > 0 ? "+" : ""}{row.pointAdjustment}</sup> : null}
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
         </table>
       </div>
-      {!compact && notes.length > 0 && (
+      {!compact && notes.length + adjustmentNotes.length > 0 && (
         <ul className="space-y-0.5 border-t px-4 py-2 text-xs text-muted-foreground">
-          {notes.map((note) => <li key={note}>{note}</li>)}
+          {[...adjustmentNotes, ...notes].map((note) => <li key={note}>{note}</li>)}
         </ul>
       )}
     </section>
