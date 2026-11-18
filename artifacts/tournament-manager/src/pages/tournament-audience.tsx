@@ -31,6 +31,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { ViewerLoginModal } from "@/components/viewer-login-modal";
 import { useAuth } from "@/context/auth-context";
 import { getMgmtFlag } from "@/lib/auth";
+import { isTwoLegTie, setRulesOf, tieScoreText } from "@/lib/two-leg-tie-view";
+import { TwoLegTieSummary } from "@/components/two-leg-tie";
 import { useVerifiedSupportSession } from "@/hooks/use-tournament-auth";
 import { setActiveOrganizerToken, setActiveSupportToken, setActiveViewerToken } from "@workspace/api-client-react";
 import { AppLogoLink, RoleHomeLink } from "@/components/app-navigation";
@@ -188,7 +190,7 @@ export default function TournamentAudience() {
   });
   const { data: stages } = stagesQuery;
   /** V5.7: set stages say sets instead of BO. */
-  const rulesOf = (m: { stageId?: number | null }) => stages?.find((stage) => stage.id === m.stageId)?.matchRules ?? null;
+  const rulesOf = (m: { stageId?: number | null }) => setRulesOf(stages?.find((stage) => stage.id === m.stageId)?.matchRules ?? null);
   // A failed refresh invalidates scope even when the cache still contains stages.
   const stageScopeUnknown = stages === undefined || stagesQuery.isError;
   const hasMultipleStages = !stageScopeUnknown && (stages?.length ?? 0) > 1;
@@ -764,7 +766,7 @@ export default function TournamentAudience() {
                         {m.player1Name}
                       </span>
                       <span className="font-mono text-sm font-bold text-white/50 shrink-0 tabular-nums px-1">
-                        {m.status === "completed" || m.status === "in_progress" ? `${m.score1}:${m.score2}` : "vs"}
+                        {tieScoreText(m) ?? (m.status === "completed" || m.status === "in_progress" ? `${m.score1}:${m.score2}` : "vs")}
                       </span>
                       <span className={`text-sm font-bold flex-1 truncate text-right ${m.winnerId === m.player2Id ? "text-cyan-300" : "text-white/70"}`}>
                         {m.player2Name}
@@ -804,7 +806,7 @@ export default function TournamentAudience() {
             stageLabel={hasMultipleStages && publicStage ? publicStage.name : undefined}
             planned={stagePlanned}
             groupLabelById={groupLabelById}
-            matchRules={publicStage?.matchRules ?? null}
+            matchRules={setRulesOf(publicStage?.matchRules ?? null)}
             highlightMatchId={requestedMatchId}
             matchHref={matchHref}
           />
@@ -997,13 +999,18 @@ function PublicMatchesSection({
                           {match.player1Name || "TBD"}
                         </span>
                         <span className="min-w-12 rounded-md bg-black/20 px-2 py-1 text-center font-mono font-bold tabular-nums text-white" title={match.sets?.length ? `Sety: ${setsText(match.sets)}` : undefined}>
-                          {showsScore ? matchResultLabel(match) : "vs"}
+                          {tieScoreText(match) ?? (showsScore ? matchResultLabel(match) : "vs")}
                           {showsScore && match.sets?.length ? <span className="block text-[10px] font-normal text-white/60">{setsText(match.sets)}</span> : null}
                         </span>
                         <span title={match.player2Name || "TBD"} className={`truncate font-semibold ${match.winnerId === match.player2Id ? "text-cyan-300" : "text-white/75"}`}>
                           {match.player2Name || "TBD"}
                         </span>
                       </div>
+                      {isTwoLegTie(match) && match.player1Id != null && match.player2Id != null && (
+                        <div className="col-span-full rounded-lg border border-white/8 bg-black/15 px-3 py-2 text-white/80">
+                          <TwoLegTieSummary match={match} />
+                        </div>
+                      )}
                     </article>
                   );
                 })}

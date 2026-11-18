@@ -67,6 +67,7 @@ import { SeedingCeremony } from "@/components/seeding-ceremony";
 import { deriveStageBasketFlowCounts } from "@workspace/stage-basket-flow";
 import { isExperimentalTournamentPath, tournamentHref } from "@/features/experimental-tournaments/experimental-tournament-routing";
 import { matchLengthText } from "@/features/experimental-tournaments/experimental-create-wizard-model";
+import { setRulesOf } from "@/lib/two-leg-tie-view";
 import type { MatchRules } from "@workspace/match-rules";
 import type { SeedingCeremonyState } from "@/lib/seeding-ceremony-api";
 import { LiveTablesLegend, StageLiveTables, useStageLiveStandings } from "@/components/stage-live-tables";
@@ -1098,7 +1099,7 @@ export function TournamentStagesPanel({
                 canManage={canWriteResults}
                 canReset={canManage}
                 onChanged={refresh}
-                matchRules={selected.matchRules ?? null}
+                matchRules={setRulesOf(selected.matchRules ?? null)}
                 // V5.7: set results are entered only in the match editor (Stable included), never in a short form.
                 openMatchHref={isExperimental || selected.matchRules ? (matchId) => tournamentHref(tournamentId, isExperimental, `/host?match=${matchId}`) : undefined}
               />

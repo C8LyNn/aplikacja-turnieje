@@ -82,6 +82,8 @@ import { ExperimentalTournamentContextBar } from "@/features/experimental-tourna
 import { ExperimentalTournamentChecklist } from "@/features/experimental-tournaments/experimental-tournament-checklist";
 import { ExperimentalPlayerToolbar, type ExperimentalPlayerSort, type ExperimentalPlayerStatusFilter } from "@/features/experimental-tournaments/experimental-player-toolbar";
 import { ExperimentalTournamentOverview } from "@/features/experimental-tournaments/experimental-tournament-overview";
+import { isTwoLegTie, tieScoreText } from "@/lib/two-leg-tie-view";
+import { TwoLegTieSummary } from "@/components/two-leg-tie";
 
 const FORMAT_LABELS: Record<string, string> = {
   single_elimination: "Drabinka eliminacyjna",
@@ -1514,18 +1516,22 @@ export default function TournamentDetail() {
                 ) : (
                   <div className="space-y-2">
                     {matches.map((m) => (
-                      <div key={m.id} className="flex flex-col md:flex-row md:items-center justify-between p-3 border rounded bg-background">
+                      <div key={m.id}>
+                      <div className="flex flex-col md:flex-row md:items-center justify-between p-3 border rounded bg-background">
                         <div className="flex items-center gap-3 mb-2 md:mb-0">
                           <Badge variant="outline">R{m.round}</Badge>
                           <span className="text-xs text-muted-foreground">M{m.matchNumber}</span>
-                          {m.bestOf && m.bestOf > 1 && <Badge variant="outline" className="text-xs">{(() => { const rules = stages?.find((stage) => stage.id === m.stageId)?.matchRules; return rules ? `sety do ${rules.setsToWin}` : `BO${m.bestOf}`; })()}</Badge>}
+                          {isTwoLegTie(m) && <Badge variant="outline" className="text-xs">dwumecz</Badge>}
+                          {m.bestOf && m.bestOf > 1 && <Badge variant="outline" className="text-xs">{(() => { const rules = stages?.find((stage) => stage.id === m.stageId)?.matchRules; return rules?.kind === "sets" ? `sety do ${rules.setsToWin}` : rules?.kind === "two_legs" ? "dwumecz" : `BO${m.bestOf}`; })()}</Badge>}
                         </div>
                         <div className="flex items-center gap-4">
                           <div className={`text-right w-28 truncate text-sm ${m.winnerId === m.player1Id ? "font-bold text-primary" : ""}`}>
                             {m.player1Name || "TBD"}
                           </div>
                           <div className="flex items-center gap-2 font-mono bg-muted/50 px-2 py-1 rounded text-sm">
-                             {m.resultType === "played" || m.status !== "completed" ? (
+                             {tieScoreText(m) && m.status !== "completed" ? (
+                               <span title="Suma po rozegranych spotkaniach">{tieScoreText(m)}</span>
+                             ) : m.resultType === "played" || m.status !== "completed" ? (
                                <><span>{m.score1 !== null ? m.score1 : "-"}</span><span className="text-muted-foreground">:</span><span>{m.score2 !== null ? m.score2 : "-"}</span></>
                              ) : (
                                <span>{m.resultType === "walkover" ? "W.O." : m.resultType === "bye" ? "BYE" : "N/C"}</span>
@@ -1544,6 +1550,12 @@ export default function TournamentDetail() {
                             {m.status === "completed" ? m.resultType === "walkover" ? "walkower" : m.resultType === "bye" ? "wolny los" : m.resultType === "no_contest" ? "no contest" : "zakończony" : MATCH_STATUS_LABELS[m.status] ?? "Nieznany"}
                           </Badge>
                         </div>
+                      </div>
+                      {isTwoLegTie(m) && m.player1Id != null && m.player2Id != null && (
+                        <div className="rounded-b border border-t-0 bg-muted/20 px-3 py-2">
+                          <TwoLegTieSummary match={m} />
+                        </div>
+                      )}
                       </div>
                     ))}
                   </div>

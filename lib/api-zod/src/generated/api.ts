@@ -234,7 +234,7 @@ export const CreateTournamentBody = zod.object({
 }).describe('V5.7: every set uses the same rules; the match score is sets won.'),zod.object({
   "version": zod.number(),
   "kind": zod.enum(['two_legs']),
-  "levelAggregate": zod.enum(['organizer_decision']).optional().describe('Only policy: the organizer decides a level aggregate (default).')
+  "levelAggregate": zod.enum(['organizer_decision']).describe('Only policy: the organizer decides a level aggregate.')
 }).describe('V5.10: two-legged knockout tie (single elimination only). Two games between the same pair; the aggregate decides. A level aggregate is decided by the organizer with a reason (no away-goals rule, nothing invented).')]).optional().describe('V5.7: matches decided by sets; bestOf must equal 2 × setsToWin − 1 and draws are not allowed.'),
   "scheduleTimeZone": zod.string().optional().describe('V5.3: round_robin and group_stage. IANA time zone of the schedule, e.g. Europe\/Warsaw.'),
   "schedulePlan": zod.object({
@@ -273,7 +273,7 @@ export const CreateTournamentBody = zod.object({
 }).describe('V5.7: every set uses the same rules; the match score is sets won.'),zod.object({
   "version": zod.number(),
   "kind": zod.enum(['two_legs']),
-  "levelAggregate": zod.enum(['organizer_decision']).optional().describe('Only policy: the organizer decides a level aggregate (default).')
+  "levelAggregate": zod.enum(['organizer_decision']).describe('Only policy: the organizer decides a level aggregate.')
 }).describe('V5.10: two-legged knockout tie (single elimination only). Two games between the same pair; the aggregate decides. A level aggregate is decided by the organizer with a reason (no away-goals rule, nothing invented).')]).optional().describe('V5.7: match rules for a tournament created without a stage plan (defaultBestOf must equal 2 × setsToWin − 1).'),
   "scheduleTimeZone": zod.string().optional().describe('V5.3: schedule time zone for a single round_robin created without a stage plan.'),
   "schedulePlan": zod.object({
@@ -400,7 +400,7 @@ export const PreviewTournamentPlanResponse = zod.object({
 }).describe('V5.7: every set uses the same rules; the match score is sets won.'),zod.object({
   "version": zod.number(),
   "kind": zod.enum(['two_legs']),
-  "levelAggregate": zod.enum(['organizer_decision']).optional().describe('Only policy: the organizer decides a level aggregate (default).')
+  "levelAggregate": zod.enum(['organizer_decision']).describe('Only policy: the organizer decides a level aggregate.')
 }).describe('V5.10: two-legged knockout tie (single elimination only). Two games between the same pair; the aggregate decides. A level aggregate is decided by the organizer with a reason (no away-goals rule, nothing invented).')]).optional().describe('V5.7: matches decided by sets; bestOf must equal 2 × setsToWin − 1 and draws are not allowed.'),
   "scheduleTimeZone": zod.string().optional().describe('V5.3: round_robin and group_stage. IANA time zone of the schedule, e.g. Europe\/Warsaw.'),
   "schedulePlan": zod.object({
@@ -1313,7 +1313,7 @@ export const ListTournamentStagesResponseItem = zod.object({
 }).describe('V5.7: every set uses the same rules; the match score is sets won.'),zod.object({
   "version": zod.number(),
   "kind": zod.enum(['two_legs']),
-  "levelAggregate": zod.enum(['organizer_decision']).optional().describe('Only policy: the organizer decides a level aggregate (default).')
+  "levelAggregate": zod.enum(['organizer_decision']).describe('Only policy: the organizer decides a level aggregate.')
 }).describe('V5.10: two-legged knockout tie (single elimination only). Two games between the same pair; the aggregate decides. A level aggregate is decided by the organizer with a reason (no away-goals rule, nothing invented).')]).describe('What decides a match (level B): sets (V5.7) or a two-legged knockout tie (V5.10). Absent\/null keeps the stage\'s existing meaning (one game, a best-of series, or a draw league game).'),zod.null()]).optional().describe('V5.7: what decides a match; null keeps the series \/ draw-league meaning.'),
   "matchRulesSummary": zod.string().optional().describe('V5.7: plain-language description of how a match is decided (every stage).'),
   "leagueRulesSummary": zod.string().nullish().describe('V5.3: plain-language description of the league rules.'),
@@ -1565,7 +1565,7 @@ export const GetTournamentStageResponse = zod.object({
 }).describe('V5.7: every set uses the same rules; the match score is sets won.'),zod.object({
   "version": zod.number(),
   "kind": zod.enum(['two_legs']),
-  "levelAggregate": zod.enum(['organizer_decision']).optional().describe('Only policy: the organizer decides a level aggregate (default).')
+  "levelAggregate": zod.enum(['organizer_decision']).describe('Only policy: the organizer decides a level aggregate.')
 }).describe('V5.10: two-legged knockout tie (single elimination only). Two games between the same pair; the aggregate decides. A level aggregate is decided by the organizer with a reason (no away-goals rule, nothing invented).')]).describe('What decides a match (level B): sets (V5.7) or a two-legged knockout tie (V5.10). Absent\/null keeps the stage\'s existing meaning (one game, a best-of series, or a draw league game).'),zod.null()]).optional().describe('V5.7: what decides a match; null keeps the series \/ draw-league meaning.'),
   "matchRulesSummary": zod.string().optional().describe('V5.7: plain-language description of how a match is decided (every stage).'),
   "leagueRulesSummary": zod.string().nullish().describe('V5.3: plain-language description of the league rules.'),
@@ -1986,7 +1986,7 @@ export const GetStageLiveStandingsResponse = zod.object({
 }).describe('V5.7: every set uses the same rules; the match score is sets won.'),zod.object({
   "version": zod.number(),
   "kind": zod.enum(['two_legs']),
-  "levelAggregate": zod.enum(['organizer_decision']).optional().describe('Only policy: the organizer decides a level aggregate (default).')
+  "levelAggregate": zod.enum(['organizer_decision']).describe('Only policy: the organizer decides a level aggregate.')
 }).describe('V5.10: two-legged knockout tie (single elimination only). Two games between the same pair; the aggregate decides. A level aggregate is decided by the organizer with a reason (no away-goals rule, nothing invented).')]).describe('What decides a match (level B): sets (V5.7) or a two-legged knockout tie (V5.10). Absent\/null keeps the stage\'s existing meaning (one game, a best-of series, or a draw league game).'),zod.null()]).optional(),
   "matchRulesSummary": zod.string().optional(),
   "advancingPlaces": zod.number().nullable(),
@@ -2805,7 +2805,7 @@ export const StartTournamentStageResponse = zod.object({
 }).describe('V5.7: every set uses the same rules; the match score is sets won.'),zod.object({
   "version": zod.number(),
   "kind": zod.enum(['two_legs']),
-  "levelAggregate": zod.enum(['organizer_decision']).optional().describe('Only policy: the organizer decides a level aggregate (default).')
+  "levelAggregate": zod.enum(['organizer_decision']).describe('Only policy: the organizer decides a level aggregate.')
 }).describe('V5.10: two-legged knockout tie (single elimination only). Two games between the same pair; the aggregate decides. A level aggregate is decided by the organizer with a reason (no away-goals rule, nothing invented).')]).describe('What decides a match (level B): sets (V5.7) or a two-legged knockout tie (V5.10). Absent\/null keeps the stage\'s existing meaning (one game, a best-of series, or a draw league game).'),zod.null()]).optional().describe('V5.7: what decides a match; null keeps the series \/ draw-league meaning.'),
   "matchRulesSummary": zod.string().optional().describe('V5.7: plain-language description of how a match is decided (every stage).'),
   "leagueRulesSummary": zod.string().nullish().describe('V5.3: plain-language description of the league rules.'),
@@ -2926,7 +2926,7 @@ export const UpdateStageLeagueRulesResponse = zod.object({
 }).describe('V5.7: every set uses the same rules; the match score is sets won.'),zod.object({
   "version": zod.number(),
   "kind": zod.enum(['two_legs']),
-  "levelAggregate": zod.enum(['organizer_decision']).optional().describe('Only policy: the organizer decides a level aggregate (default).')
+  "levelAggregate": zod.enum(['organizer_decision']).describe('Only policy: the organizer decides a level aggregate.')
 }).describe('V5.10: two-legged knockout tie (single elimination only). Two games between the same pair; the aggregate decides. A level aggregate is decided by the organizer with a reason (no away-goals rule, nothing invented).')]).describe('What decides a match (level B): sets (V5.7) or a two-legged knockout tie (V5.10). Absent\/null keeps the stage\'s existing meaning (one game, a best-of series, or a draw league game).'),zod.null()]).optional().describe('V5.7: what decides a match; null keeps the series \/ draw-league meaning.'),
   "matchRulesSummary": zod.string().optional().describe('V5.7: plain-language description of how a match is decided (every stage).'),
   "leagueRulesSummary": zod.string().nullish().describe('V5.3: plain-language description of the league rules.'),
@@ -2990,7 +2990,7 @@ export const UpdateStageMatchRulesBody = zod.object({
 }).describe('V5.7: every set uses the same rules; the match score is sets won.'),zod.object({
   "version": zod.number(),
   "kind": zod.enum(['two_legs']),
-  "levelAggregate": zod.enum(['organizer_decision']).optional().describe('Only policy: the organizer decides a level aggregate (default).')
+  "levelAggregate": zod.enum(['organizer_decision']).describe('Only policy: the organizer decides a level aggregate.')
 }).describe('V5.10: two-legged knockout tie (single elimination only). Two games between the same pair; the aggregate decides. A level aggregate is decided by the organizer with a reason (no away-goals rule, nothing invented).')]).describe('What decides a match (level B): sets (V5.7) or a two-legged knockout tie (V5.10). Absent\/null keeps the stage\'s existing meaning (one game, a best-of series, or a draw league game).'),zod.null()]),
   "expectedVersion": zod.number().min(1)
 })
@@ -3046,7 +3046,7 @@ export const UpdateStageMatchRulesResponse = zod.object({
 }).describe('V5.7: every set uses the same rules; the match score is sets won.'),zod.object({
   "version": zod.number(),
   "kind": zod.enum(['two_legs']),
-  "levelAggregate": zod.enum(['organizer_decision']).optional().describe('Only policy: the organizer decides a level aggregate (default).')
+  "levelAggregate": zod.enum(['organizer_decision']).describe('Only policy: the organizer decides a level aggregate.')
 }).describe('V5.10: two-legged knockout tie (single elimination only). Two games between the same pair; the aggregate decides. A level aggregate is decided by the organizer with a reason (no away-goals rule, nothing invented).')]).describe('What decides a match (level B): sets (V5.7) or a two-legged knockout tie (V5.10). Absent\/null keeps the stage\'s existing meaning (one game, a best-of series, or a draw league game).'),zod.null()]).optional().describe('V5.7: what decides a match; null keeps the series \/ draw-league meaning.'),
   "matchRulesSummary": zod.string().optional().describe('V5.7: plain-language description of how a match is decided (every stage).'),
   "leagueRulesSummary": zod.string().nullish().describe('V5.3: plain-language description of the league rules.'),
@@ -4299,7 +4299,7 @@ export const ExportTournamentResponse = zod.object({
 }).describe('V5.7: every set uses the same rules; the match score is sets won.'),zod.object({
   "version": zod.number(),
   "kind": zod.enum(['two_legs']),
-  "levelAggregate": zod.enum(['organizer_decision']).optional().describe('Only policy: the organizer decides a level aggregate (default).')
+  "levelAggregate": zod.enum(['organizer_decision']).describe('Only policy: the organizer decides a level aggregate.')
 }).describe('V5.10: two-legged knockout tie (single elimination only). Two games between the same pair; the aggregate decides. A level aggregate is decided by the organizer with a reason (no away-goals rule, nothing invented).')]).optional().describe('V5.7: present only when matches of the stage are decided by sets.'),
   "schedulePlan": zod.object({
   "startDate": zod.string().describe('YYYY-MM-DD'),
@@ -4851,7 +4851,7 @@ export const ImportTournamentBody = zod.object({
 }).describe('V5.7: every set uses the same rules; the match score is sets won.'),zod.object({
   "version": zod.number(),
   "kind": zod.enum(['two_legs']),
-  "levelAggregate": zod.enum(['organizer_decision']).optional().describe('Only policy: the organizer decides a level aggregate (default).')
+  "levelAggregate": zod.enum(['organizer_decision']).describe('Only policy: the organizer decides a level aggregate.')
 }).describe('V5.10: two-legged knockout tie (single elimination only). Two games between the same pair; the aggregate decides. A level aggregate is decided by the organizer with a reason (no away-goals rule, nothing invented).')]).optional().describe('V5.7: present only when matches of the stage are decided by sets.'),
   "schedulePlan": zod.object({
   "startDate": zod.string().describe('YYYY-MM-DD'),

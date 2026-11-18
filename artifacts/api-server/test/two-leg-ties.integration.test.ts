@@ -116,6 +116,9 @@ describe("V5.10 two-legged ties", () => {
     assert.equal(nextTie.status, "pending");
     const history = await rows("SELECT event, leg, score1, score2 FROM match_tie_history WHERE match_id = $1 ORDER BY id", [semi.id]);
     assert.deepEqual(history.map((row: Json) => row.event), ["leg_recorded", "leg_recorded"]);
+    // Reverting the whole tie would leave two played legs without advancement: a leg is corrected instead.
+    const whole = await request(app).post(`/api/matches/${semi.id}/revert`).set(t.auth).send({ expectedRevision: tie.revision }).expect(422);
+    assert.equal(whole.body.code, "TWO_LEGS_REVERT_A_LEG");
     const resultHistory = await rows("SELECT score1, score2, winner_id FROM result_history WHERE match_id = $1", [semi.id]);
     assert.deepEqual(resultHistory.map((row: Json) => [row.score1, row.score2]), [[3, 4]]);
   });
@@ -157,6 +160,17 @@ describe("V5.10 two-legged ties", () => {
     const log = await rows("SELECT description FROM action_log WHERE match_id = $1 ORDER BY id", [semi.id]);
     assert.ok(log.some((row: Json) => /decyzja organizatora/.test(row.description) && /Rzuty karne 4:3/.test(row.description)), "decision traced in the action log");
     assert.deepEqual((await rows("SELECT event FROM match_tie_history WHERE match_id = $1 ORDER BY id", [semi.id])).map((row: Json) => row.event), ["leg_recorded", "leg_recorded", "decision_recorded"]);
+    // The organizer may withdraw a decision (e.g. a mistake in who won the penalties): the tie goes back to waiting,
+    // the winner leaves the final, the legs stay; the history keeps both decisions.
+    const reopened = (await request(app).post(`/api/matches/${semi.id}/revert`).set(t.auth).send({ expectedRevision: tie.revision }).expect(200)).body;
+    assert.equal(reopened.status, "in_progress");
+    assert.equal(reopened.tie.state, "awaiting_decision");
+    assert.equal(reopened.legs.filter((entry: Json) => entry.status === "completed").length, 2);
+    assert.equal((await getMatch(final.id)).player1Id, null);
+    const again = (await request(app).post(`/api/matches/${semi.id}/tie-decision`).set(t.auth)
+      .send({ winnerId: semi.player1Id, reason: "Rzuty karne 5:4 (korekta protokołu)", expectedRevision: reopened.revision }).expect(200)).body;
+    assert.equal(again.winnerId, semi.player1Id);
+    assert.deepEqual((await rows("SELECT event FROM match_tie_history WHERE match_id = $1 ORDER BY id", [semi.id])).map((row: Json) => row.event), ["leg_recorded", "leg_recorded", "decision_recorded", "decision_reverted", "decision_recorded"]);
   });
 
   test("3+4+5: correcting the second leg after advancement — allowed while the next tie has not started, blocked once it has", async () => {

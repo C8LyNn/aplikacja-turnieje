@@ -407,7 +407,7 @@ test("AI import: malformed JSON gets a helpful message", async () => {
 test("contract: wizard tunable params match the server catalog", async () => {
   const { PRESET_IDS, PRESET_TUNABLE_PARAMS } = await import("../../../../api-server/src/domain/tournament/tournament-presets");
   const answers = { kind: "tournament" as const, participantType: "players" as const, participantCount: 16, grouping: "any" as const, priority: "short" as const };
-  const all = { bestOf: 3, playoffBestOf: 5, swissRounds: 4, groupCount: 4, qualifiersPerGroup: 2, advancingCount: 8, legs: 2, allowDraws: 0, pointsWin: 3, pointsDraw: 1, pointsLoss: 0, entrySeeding: 1, groupPlacement: 1, qualifierSeeding: 1, setsToWin: 2, setPoints: 11, setWinBy: 2 };
+  const all = { bestOf: 3, playoffBestOf: 5, swissRounds: 4, groupCount: 4, qualifiersPerGroup: 2, advancingCount: 8, legs: 2, allowDraws: 0, pointsWin: 3, pointsDraw: 1, pointsLoss: 0, entrySeeding: 1, groupPlacement: 1, qualifierSeeding: 1, setsToWin: 2, setPoints: 11, setWinBy: 2, twoLegs: 1 };
   for (const id of PRESET_IDS) {
     const keys = Object.keys(requestParams(id, answers, all)).filter((key) => key !== "participantCount").sort();
     assert.deepEqual(keys, [...PRESET_TUNABLE_PARAMS[id]].sort(), id);

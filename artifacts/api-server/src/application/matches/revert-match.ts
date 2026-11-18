@@ -50,7 +50,8 @@ export type RevertMatchErrorCode =
   | "RESULT_INCONSISTENT"
   | "HISTORY_INCONSISTENT"
   | "COMPLETION_LOG_AMBIGUOUS"
-  | "TOURNAMENT_FINALIZATION_INCONSISTENT";
+  | "TOURNAMENT_FINALIZATION_INCONSISTENT"
+  | "TWO_LEGS_REVERT_A_LEG";
 
 const ERROR_MESSAGES: Record<RevertMatchErrorCode, string> = {
   MATCH_NOT_FOUND: "Mecz nie istnieje.",
@@ -72,6 +73,7 @@ const ERROR_MESSAGES: Record<RevertMatchErrorCode, string> = {
   HISTORY_INCONSISTENT: "Historia nie odpowiada aktualnemu wynikowi meczu.",
   COMPLETION_LOG_AMBIGUOUS: "Nie można jednoznacznie wskazać logu zatwierdzenia wyniku.",
   TOURNAMENT_FINALIZATION_INCONSISTENT: "Finalizacja turnieju jest niespójna z wynikiem meczu.",
+  TWO_LEGS_REVERT_A_LEG: "Ten dwumecz rozstrzygnęła suma spotkań — popraw wynik konkretnego spotkania (cofnij je i wpisz ponownie); awans zostanie przeliczony.",
 };
 
 /** V5.7 · what blocks a revert, so the organiser sees the exact match or stage. */
@@ -101,6 +103,12 @@ export interface RevertMatchInput {
   requireActiveRoundRobin?: boolean;
   /** Pack 14 approval journal updated atomically in this transaction. */
   correctionOperationId?: string;
+  /**
+   * V5.10: only the leg correction may reopen a two-legged tie decided by its aggregate (it then removes the leg);
+   * any other revert of such a tie would leave two played legs without advancement. A tie decided by the
+   * organizer on a level aggregate may be reopened (its decision is withdrawn).
+   */
+  allowTieAggregateRevert?: boolean;
   actor?: TournamentMutationActor;
 }
 
@@ -387,6 +395,9 @@ export async function revertMatch(
       }
       : null;
     const result = requireConsistentResult(match, leagueRulesFromStorage(stage.leagueRules), stageMatchRules, storedTie);
+    if (storedTie && !input.allowTieAggregateRevert && storedTie.decision == null) {
+      throw new RevertMatchError("TWO_LEGS_REVERT_A_LEG");
+    }
 
     const participantIds = [match.player1Id, match.player2Id].filter(
       (playerId): playerId is number => playerId != null,

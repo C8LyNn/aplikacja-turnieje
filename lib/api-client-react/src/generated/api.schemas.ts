@@ -981,7 +981,7 @@ export const TwoLegMatchRulesKind = {
 } as const;
 
 /**
- * Only policy: the organizer decides a level aggregate (default).
+ * Only policy: the organizer decides a level aggregate.
  */
 export type TwoLegMatchRulesLevelAggregate = typeof TwoLegMatchRulesLevelAggregate[keyof typeof TwoLegMatchRulesLevelAggregate];
 
@@ -996,8 +996,8 @@ export const TwoLegMatchRulesLevelAggregate = {
 export interface TwoLegMatchRules {
   version: 1;
   kind: TwoLegMatchRulesKind;
-  /** Only policy: the organizer decides a level aggregate (default). */
-  levelAggregate?: TwoLegMatchRulesLevelAggregate;
+  /** Only policy: the organizer decides a level aggregate. */
+  levelAggregate: TwoLegMatchRulesLevelAggregate;
 }
 
 /**

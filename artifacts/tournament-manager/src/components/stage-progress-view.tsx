@@ -26,6 +26,7 @@ import {
   STAGE_FORMAT_LABELS,
 } from "@/lib/tournament-stages-ui";
 import { buildBracketFromMatches, deriveCurrentRound } from "@/lib/stage-utils";
+import { setRulesOf } from "@/lib/two-leg-tie-view";
 import { MarvelEliminationStage } from "@/components/marvel-elimination-stage";
 
 interface StageProgressViewProps {
@@ -282,7 +283,7 @@ export function StageProgressView({
                 tournamentId={tournamentId}
                 stageId={selected.id}
                 state={doubleEliminationQuery.data}
-                matchRules={selected.matchRules ?? null}
+                matchRules={setRulesOf(selected.matchRules ?? null)}
               />
             );
           }

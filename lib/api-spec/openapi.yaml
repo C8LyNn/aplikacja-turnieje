@@ -5052,12 +5052,12 @@ components:
     TwoLegMatchRules:
       type: object
       additionalProperties: false
-      required: [version, kind]
+      required: [version, kind, levelAggregate]
       description: "V5.10: two-legged knockout tie (single elimination only). Two games between the same pair; the aggregate decides. A level aggregate is decided by the organizer with a reason (no away-goals rule, nothing invented)."
       properties:
         version: { type: integer, const: 1 }
         kind: { type: string, enum: [two_legs] }
-        levelAggregate: { type: string, enum: [organizer_decision], description: "Only policy: the organizer decides a level aggregate (default)." }
+        levelAggregate: { type: string, enum: [organizer_decision], description: "Only policy: the organizer decides a level aggregate." }
 
     MatchLeg:
       type: object

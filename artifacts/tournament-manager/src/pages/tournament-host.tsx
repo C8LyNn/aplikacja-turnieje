@@ -72,6 +72,8 @@ import { ExperimentalHostFocusToggle } from "@/features/experimental-tournaments
 import { bestOfLabel } from "@/features/experimental-tournaments/experimental-create-wizard-model";
 import { countWorkStates, formatLocalSlot, matchWorkState, WORK_STATE_LABELS, type MatchWorkState } from "@/lib/match-work-state";
 import { readHostResultDrafts, sameSavedResult, saveFailureKind, writeHostResultDrafts, type SaveFailureKind } from "@/lib/host-result-drafts";
+import { isTwoLegTie, setRulesOf } from "@/lib/two-leg-tie-view";
+import { TwoLegTieEditor } from "@/components/two-leg-tie";
 
 type ScoreEntry = { s1: number; s2: number; baseline?: string; at?: number; sets?: SetScore[] };
 type SaveStatus = { phase: "saving"; label: string } | { phase: "error"; kind: SaveFailureKind; message: string; label: string }
@@ -556,7 +558,7 @@ export default function TournamentHost() {
     if (!capabilities.canWriteTournamentResults) return;
     setSelectedMatchId(matchId);
     const match = matches?.find((entry) => entry.id === matchId);
-    const rules = stages?.find((stage) => stage.id === match?.stageId)?.matchRules;
+    const rules = setRulesOf(stages?.find((stage) => stage.id === match?.stageId)?.matchRules ?? null);
     if (!match || !rules || resultDrafts.isStale(match)) return;
     resultDrafts.capture(match);
     const progress = setMatchProgress(sets, rules);
@@ -810,13 +812,13 @@ export default function TournamentHost() {
   /** V5.7: list tag for match length — sets for set stages, BO for series. */
   const matchLengthTag = (m: { stageId?: number | null; bestOf?: number | null }) => {
     const rules = stages?.find((stage) => stage.id === m.stageId)?.matchRules;
-    return rules ? `sety do ${rules.setsToWin}` : `BO${m.bestOf}`;
+    return rules?.kind === "sets" ? `sety do ${rules.setsToWin}` : rules?.kind === "two_legs" ? "dwumecz" : `BO${m.bestOf}`;
   };
 
   const handleTryComplete = (matchId: number, match: any) => {
     if (!capabilities.canWriteTournamentResults) return;
     if (scores[matchId]?.baseline && scores[matchId].baseline !== scoreBaseline(match)) return;
-    const setRules = stages?.find((stage) => stage.id === match.stageId)?.matchRules;
+    const setRules = setRulesOf(stages?.find((stage) => stage.id === match.stageId)?.matchRules ?? null);
     if (setRules) {
       // The API decides; this only stops an obviously incomplete form and says why.
       const evaluated = evaluateSetMatch(scores[matchId]?.sets ?? [], setRules);
@@ -1178,7 +1180,9 @@ export default function TournamentHost() {
 
     const bo = focusedMatch.bestOf ?? 1;
     const allowDraws = stageAllowsDraws(focusedStage);
-    const setRules = focusedStage?.matchRules ?? null;
+    const setRules = setRulesOf(focusedStage?.matchRules ?? null);
+    // V5.10: a two-legged tie is entered leg by leg (its own editor); the single-score editor is not used for it.
+    const twoLegTie = isTwoLegTie(focusedMatch);
     const draftSets = scores[focusedMatch.id]?.sets ?? [];
     // The one-line "after saving" preview is for series and score games; the set editor has its own.
     const seriesDraft = setRules ? undefined : scores[focusedMatch.id];
@@ -1247,7 +1251,9 @@ export default function TournamentHost() {
           <div className="flex items-center gap-2 shrink-0">
             {capabilities.canUseLegacyMatchTools && <>
             {/* BO selector — hidden in a draw league: a draw needs a single game (V5.3) */}
-            {allowDraws ? (
+            {twoLegTie ? (
+              <span className="text-xs text-muted-foreground" title="Para gra dwa spotkania; awansuje zwycięzca sumy.">dwumecz · 2 spotkania</span>
+            ) : allowDraws ? (
               <span className="text-xs text-muted-foreground" title="W lidze z remisami mecz to jedna gra (wynik: gole lub punkty).">jedna gra · remis możliwy</span>
             ) : setRules ? (
               <span className="text-xs text-muted-foreground" title="Długość meczu wynika z zasad etapu i zmienia się tylko przed jego startem.">do {setRules.setsToWin} wygranych setów</span>
@@ -1295,7 +1301,7 @@ export default function TournamentHost() {
               <dl>
                 <div><dt>Termin</dt><dd>{work.slot ? formatLocalSlot(work.slot.date, work.slot.time) : "bez terminu"}</dd></div>
                 <div><dt>Stan</dt><dd><span className="experimental-work-chip" data-state={work.state}>{work.label}</span> {work.reason}</dd></div>
-                <div><dt>Zasady wyniku</dt><dd>{setRules ? focusedStage?.matchRulesSummary : scoreEntryHint(bo, allowDraws)}</dd></div>
+                <div><dt>Zasady wyniku</dt><dd>{setRules || twoLegTie ? focusedStage?.matchRulesSummary : scoreEntryHint(bo, allowDraws)}</dd></div>
               </dl>
               {history.length > 0 && (
                 <details className="experimental-match-history">
@@ -1316,6 +1322,9 @@ export default function TournamentHost() {
 
         {/* Score area */}
         <div className="p-4 md:p-5">
+          {twoLegTie ? (
+            <TwoLegTieEditor match={focusedMatch} canWrite={capabilities.canWriteTournamentResults} onChanged={invalidateAll} />
+          ) : (<>
           {conflictedDraft && <section aria-label="Konflikt zapisu wyniku" className="organizer-notice mb-5 space-y-3 rounded-lg border border-orange-500/50 bg-orange-500/10 p-4">
             <h3 className="flex items-center gap-2 font-semibold"><AlertTriangle className="h-5 w-5 shrink-0" /> Wynik nie został zapisany</h3>
             <p className="text-sm">Twój wynik roboczy dotyczy starszej wersji meczu — w międzyczasie mecz zmienił się (np. w innym oknie albo u innej osoby). Sprawdź aktualnych zawodników i wynik, a potem zacznij od nowa.</p>
@@ -1765,6 +1774,7 @@ export default function TournamentHost() {
             setWalkoverConfirm(null); setNoContestConfirm(null); setResultReason("");
             setScores((prev) => { const next = { ...prev }; delete next[focusedMatch.id]; return next; });
           }}>Odrzuć wynik roboczy</Button>}
+          </>)}
         </div>
       </div>
     );
@@ -2401,7 +2411,7 @@ export default function TournamentHost() {
                 canManage={capabilities.canWriteTournamentResults}
                 canReset={capabilities.canManageLifecycle}
                 onOpenMatch={openInEditor}
-                matchRules={doubleEliminationStage.matchRules ?? null}
+                matchRules={setRulesOf(doubleEliminationStage.matchRules ?? null)}
               />
             ) : doubleEliminationStage && doubleEliminationQuery.isPending ? (
               <div className="rounded-lg border p-6 text-sm text-muted-foreground">Ładowanie drabinki Double Elimination…</div>

@@ -40,7 +40,9 @@ export type PresetParamKey =
   /** V5.7: sets needed to win a match (0 = no sets), points per set and the lead needed. */
   | "setsToWin"
   | "setPoints"
-  | "setWinBy";
+  | "setWinBy"
+  /** V5.10: 1 = the single-elimination bracket (or play-off) is played in two-legged ties. */
+  | "twoLegs";
 
 export type PresetParams = Partial<Record<PresetParamKey, number>>;
 
@@ -165,8 +167,16 @@ export function bestOfLabel(bestOf: number): string {
 export function matchLengthText(stage: { bestOf?: number | null; matchRules?: MatchRules | null } | null | undefined, experimental: boolean): string {
   const rules = stage?.matchRules;
   if (rules?.kind === "sets") return experimental ? `do ${rules.setsToWin} wygranych setów` : `sety do ${rules.setsToWin}`;
+  if (rules?.kind === "two_legs") return experimental ? "dwumecz (dwa spotkania)" : "dwumecz";
   const bestOf = stage?.bestOf ?? 1;
   return experimental ? bestOfLabel(bestOf).toLowerCase() : `BO${bestOf}`;
+}
+
+/** V5.10: how a match of a stage is decided, in the stage flow of the wizard (format and decision stay apart). */
+export function stageDecisionText(rules: MatchRules | null | undefined, bestOf: number): string {
+  if (rules?.kind === "two_legs") return "dwumecz: dwa spotkania każdej pary, awansuje zwycięzca sumy";
+  if (rules?.kind === "sets") return `do ${rules.setsToWin} ${rules.setsToWin === 1 ? "wygranego seta" : "wygranych setów"} (set do ${rules.pointsPerSet})`;
+  return `${bestOfLabel(bestOf).toLowerCase()}${bestOf > 1 ? ` (BO${bestOf})` : " na mecz"}`;
 }
 
 export const WIZARD_STEPS = [
@@ -419,13 +429,13 @@ const SET_PARAM_KEYS: PresetParamKey[] = ["setsToWin", "setPoints", "setWinBy"];
 
 /** Mirrors the server's PRESET_TUNABLE_PARAMS (participantCount comes from the answers). */
 export const PRESET_PARAM_KEYS_BY_PRESET: Record<PresetId, PresetParamKey[]> = {
-  single_elimination: ["bestOf", "entrySeeding", ...SET_PARAM_KEYS],
+  single_elimination: ["bestOf", "entrySeeding", ...SET_PARAM_KEYS, "twoLegs"],
   double_elimination: ["bestOf", "entrySeeding", ...SET_PARAM_KEYS],
   swiss: ["bestOf", "swissRounds", "entrySeeding", ...SET_PARAM_KEYS],
   round_robin: ["bestOf", "legs", "allowDraws", "pointsWin", "pointsDraw", "pointsLoss", "entrySeeding", ...SET_PARAM_KEYS],
-  groups_playoff: ["bestOf", "playoffBestOf", "groupCount", "qualifiersPerGroup", "allowDraws", "pointsWin", "pointsDraw", "pointsLoss", "entrySeeding", ...SET_PARAM_KEYS, "groupPlacement", "qualifierSeeding"],
-  swiss_playoff: ["bestOf", "playoffBestOf", "swissRounds", "advancingCount", "entrySeeding", ...SET_PARAM_KEYS],
-  league_playoff: ["bestOf", "playoffBestOf", "advancingCount", "legs", "allowDraws", "pointsWin", "pointsDraw", "pointsLoss", "entrySeeding", ...SET_PARAM_KEYS],
+  groups_playoff: ["bestOf", "playoffBestOf", "groupCount", "qualifiersPerGroup", "allowDraws", "pointsWin", "pointsDraw", "pointsLoss", "entrySeeding", ...SET_PARAM_KEYS, "groupPlacement", "qualifierSeeding", "twoLegs"],
+  swiss_playoff: ["bestOf", "playoffBestOf", "swissRounds", "advancingCount", "entrySeeding", ...SET_PARAM_KEYS, "twoLegs"],
+  league_playoff: ["bestOf", "playoffBestOf", "advancingCount", "legs", "allowDraws", "pointsWin", "pointsDraw", "pointsLoss", "entrySeeding", ...SET_PARAM_KEYS, "twoLegs"],
 };
 
 export const PRESET_LABELS: Record<PresetId, string> = {

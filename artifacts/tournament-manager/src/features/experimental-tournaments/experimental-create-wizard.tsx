@@ -66,6 +66,7 @@ import {
   type WizardDraft,
   type WizardStepIndex,
   bestOfLabel,
+  stageDecisionText,
   formatLocalDate,
   scheduleOutline,
   isLeagueOnly,
@@ -259,9 +260,7 @@ export function StageFlow({ preview }: { preview: PresetPreview }) {
             <span className="experimental-wizard-flow-index">{stage.position}</span>
             <div className="min-w-0">
               <p className="experimental-wizard-flow-name">{stage.name}</p>
-              <p className="experimental-wizard-flow-format">{stage.formatLabel} · {preview.matchRules
-                ? `do ${preview.matchRules.setsToWin} ${preview.matchRules.setsToWin === 1 ? "wygranego seta" : "wygranych setów"} (set do ${preview.matchRules.pointsPerSet})`
-                : <>{bestOfLabel(stage.bestOf).toLowerCase()}{stage.bestOf > 1 ? ` (BO${stage.bestOf})` : " na mecz"}</>}</p>
+              <p className="experimental-wizard-flow-format">{stage.formatLabel} · {stageDecisionText(preview.stagePlan?.stages.find((planned) => planned.position === stage.position)?.matchRules ?? preview.matchRules, stage.bestOf)}</p>
             </div>
           </div>
           <ul className="experimental-wizard-flow-facts">

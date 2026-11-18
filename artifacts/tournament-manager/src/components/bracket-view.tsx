@@ -3,6 +3,8 @@ import { Trophy } from "lucide-react";
 import { getDeadlockHero, type DeadlockHeroId } from "@workspace/game-catalog";
 import { DeadlockHeroIcon } from "@/components/deadlock-game-config";
 import { PickIcon } from "@/components/deadlock-bans-display";
+import { TwoLegTieSummary } from "@/components/two-leg-tie";
+import { isTwoLegTie, tieRowLegs } from "@/lib/two-leg-tie-view";
 
 // Layout constants — card heights must match actual rendered sizes
 const CARD_W = 200;
@@ -141,7 +143,27 @@ export function BracketView({ bracket, format, forcedHeroId, matchPicksMap, scal
           </>}
         </div>
       </div>
+      <TwoLegTieDetails bracket={bracket} format={format} />
     </div>
+  );
+}
+
+/** V5.10: both legs of every two-legged tie, readable on a phone (the cards show only the aggregate). */
+function TwoLegTieDetails({ bracket, format }: { bracket: Bracket; format?: string }) {
+  const ties = bracket.rounds.flatMap((round) => round.matches.filter((match) => isTwoLegTie(match) && match.player1Id != null && match.player2Id != null).map((match) => ({ round: round.round, match })));
+  if (ties.length === 0) return null;
+  return (
+    <details className="mt-3 rounded-md border bg-card/60 p-3" data-testid="two-leg-tie-details">
+      <summary className="cursor-pointer text-sm font-semibold">Szczegóły dwumeczów ({ties.length}) — wynik każdego spotkania i suma</summary>
+      <ul className="mt-3 grid gap-3 md:grid-cols-2">
+        {ties.map(({ round, match }) => (
+          <li key={match.id} className="rounded-md border p-3" data-match-id={match.id}>
+            <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-muted-foreground">{roundLabel(round, bracket.rounds.length, format)} · M{match.matchNumber}</p>
+            <TwoLegTieSummary match={match} />
+          </li>
+        ))}
+      </ul>
+    </details>
   );
 }
 
@@ -155,8 +177,11 @@ function MatchBox({
   matchPicksMap?: Map<number, MatchPickSummary>;
 }) {
   const isDone = match.status === "completed";
-  const isLive = match.status === "in_progress";
+  const twoLegs = isTwoLegTie(match);
+  // A two-legged tie between its legs is "in progress" (not live): show the running aggregate, not a live badge.
+  const isLive = match.status === "in_progress" && !twoLegs;
   const isBye = match.resultType === "bye";
+  const runningTotal = twoLegs && match.tie!.completedLegs > 0;
   const forcedHero = getDeadlockHero(forcedHeroId);
   const picks = matchPicksMap?.get(match.id);
 
@@ -181,6 +206,11 @@ function MatchBox({
           {forcedHero && <DeadlockHeroIcon hero={forcedHero} className="h-6 w-6" />}
           M{match.matchNumber}
         </span>
+        {twoLegs && (
+          <span className={`text-[8px] leading-none ${match.tie!.state === "awaiting_decision" ? "text-yellow-400 font-bold" : "text-muted-foreground"}`} title="Dwumecz: wyniki obu spotkań i suma">
+            {match.tie!.state === "awaiting_decision" ? "SUMA RÓWNA" : match.tie!.decidedBy === "organizer" ? "DWUMECZ · DECYZJA" : "DWUMECZ"}
+          </span>
+        )}
         {isLive && (
           <span className="text-[8px] text-yellow-400 font-bold animate-pulse leading-none">
             LIVE
@@ -201,7 +231,8 @@ function MatchBox({
       {/* Players */}
       <PlayerRow
         name={match.player1Name}
-        score={match.score1}
+        score={runningTotal && !isDone ? match.tie!.total1 : match.score1}
+        legs={twoLegs ? tieRowLegs(match, 1) : undefined}
         isWinner={isDone && match.winnerId === match.player1Id}
         isPending={!match.player1Id && !isBye}
         pickHeroId={match.player1Id ? picks?.p1HeroId : undefined}
@@ -209,7 +240,8 @@ function MatchBox({
       <div className="h-px bg-border/40 shrink-0" />
       <PlayerRow
         name={match.player2Name}
-        score={match.score2}
+        score={runningTotal && !isDone ? match.tie!.total2 : match.score2}
+        legs={twoLegs ? tieRowLegs(match, 2) : undefined}
         isWinner={isDone && match.winnerId === match.player2Id}
         isPending={!match.player2Id && !isBye}
         pickHeroId={match.player2Id ? picks?.p2HeroId : undefined}
@@ -221,12 +253,15 @@ function MatchBox({
 function PlayerRow({
   name,
   score,
+  legs,
   isWinner,
   isPending,
   pickHeroId,
 }: {
   name?: string | null;
   score?: number | null;
+  /** V5.10: this participant's score in leg 1 and leg 2 of a two-legged tie ("2·1"). */
+  legs?: string;
   isWinner: boolean;
   isPending: boolean;
   /** Hero this player used in the match (shown as small pick icon). */
@@ -257,6 +292,7 @@ function PlayerRow({
           title={`Grana postać: ${pickHero.displayName}`}
         />
       )}
+      {legs && <span className="text-[9px] font-mono text-muted-foreground shrink-0" aria-label={`spotkania: ${legs.replace("·", " i ")}`}>{legs}</span>}
       <span
         className={`text-[11px] font-mono font-bold w-5 text-right shrink-0 ${
           isWinner ? "text-primary" : "text-muted-foreground"

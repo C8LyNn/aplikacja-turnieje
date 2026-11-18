@@ -153,7 +153,7 @@ export function tieViewOf(match: Pick<MatchRow, "status" | "winnerId" | "player1
   return {
     legs,
     tie: {
-      state: decided ? "decided" : tieState(scores, false),
+      state: decided ? "decided" : aggregate.complete ? "awaiting_decision" : tieState(scores, false),
       total1: aggregate.total1,
       total2: aggregate.total2,
       completedLegs: aggregate.completedLegs,
@@ -324,7 +324,7 @@ export async function revertLegResult(input: {
 
     if (locked.match.status === "completed") {
       // The tie was decided (by the aggregate or by the organizer): undo that first, with every bracket check.
-      await revertMatch({ matchId: locked.match.id, expectedTournamentId: locked.match.tournamentId, actor: input.actor }, {}, tx);
+      await revertMatch({ matchId: locked.match.id, expectedTournamentId: locked.match.tournamentId, actor: input.actor, allowTieAggregateRevert: true }, {}, tx);
     }
     const [reverted] = await tx.update(matchLegsTable)
       .set({ status: "pending", score1: null, score2: null, completedAt: null, revision: sql`${matchLegsTable.revision} + 1` })

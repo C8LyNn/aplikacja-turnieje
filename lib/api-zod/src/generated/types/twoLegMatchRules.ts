@@ -14,6 +14,6 @@ import type { TwoLegMatchRulesLevelAggregate } from './twoLegMatchRulesLevelAggr
 export interface TwoLegMatchRules {
   version: 1;
   kind: TwoLegMatchRulesKind;
-  /** Only policy: the organizer decides a level aggregate (default). */
-  levelAggregate?: TwoLegMatchRulesLevelAggregate;
+  /** Only policy: the organizer decides a level aggregate. */
+  levelAggregate: TwoLegMatchRulesLevelAggregate;
 }
