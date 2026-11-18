@@ -175,7 +175,7 @@ function StructureOverlay({ config, tournamentId }: { config: OverlayConfig; tou
           <div className="ov-bracket" style={{ "--ov-rounds": v.rounds.length } as CSSProperties}>
             {v.rounds.map((round) => (
               <div className="ov-bracket-round" key={round.round}>
-                <h3>{round.name}</h3>
+                {!v.fragment && <h3>{round.name}</h3>}
                 <ol>
                   {round.matches.map((m) => (
                     <li key={m.matchId} className="ov-mini" data-live={m.live || undefined}>
@@ -210,7 +210,7 @@ function StructureOverlay({ config, tournamentId }: { config: OverlayConfig; tou
           <div className="ov-tables" data-count={v.tables.length}>
             {v.tables.map((table) => (
               <table className="ov-table" key={table.label}>
-                {v.tables.length > 1 || (table.label && table.label !== v.title) ? <caption>{table.label}</caption> : null}
+                {v.tables.length > 1 || (table.label && table.label !== v.title && table.label !== v.fragment) ? <caption>{table.label}</caption> : null}
                 <thead>
                   <tr><th scope="col">#</th><th scope="col">Uczestnik</th><th scope="col">M</th><th scope="col">W</th>{v.showDraws && <th scope="col">R</th>}<th scope="col">P</th><th scope="col">+/−</th>{v.showPoints && <th scope="col">Pkt</th>}</tr>
                 </thead>
