@@ -517,10 +517,14 @@ function hostMatch(id: number, stageId: number | null = 2, status = "pending") {
     score1: 0, score2: 0, resultType: null as "played" | "walkover" | "no_contest" | null, winnerId: null };
 }
 
+let lastHostLocation: ReturnType<typeof memoryLocation> | null = null;
+
 async function renderOperationalHost(options: {
   matches: ReturnType<typeof hostMatch>[];
   stages?: ReturnType<typeof hostStage>[];
   tab?: string;
+  /** Full path with query (V5.6 tests), e.g. "/experimental/tournaments/1/host?match=2". */
+  path?: string;
   intercept?: (path: string, init?: RequestInit) => Promise<Response | undefined>;
 }) {
   window.localStorage.setItem("tm_role", "organizer");
@@ -543,7 +547,8 @@ async function renderOperationalHost(options: {
   };
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false, gcTime: 0 } } });
   clients.add(client);
-  const location = memoryLocation({ path: `/tournaments/1/host${options.tab ? `?tab=${options.tab}` : ""}` });
+  const location = memoryLocation({ path: options.path ?? `/tournaments/1/host${options.tab ? `?tab=${options.tab}` : ""}`, record: true });
+  lastHostLocation = location;
   render(<QueryClientProvider client={client}><Router hook={location.hook}><AuthProvider><TournamentHost /></AuthProvider></Router></QueryClientProvider>);
   return userEvent.setup();
 }
@@ -820,4 +825,115 @@ test("Host waits for refreshed data after saving a score before enabling further
   await screen.findByRole("button", { name: "Zwiększ wynik: Gracz A2" });
   await waitFor(() => assert.equal(screen.getByRole("button", { name: "Zwiększ wynik: Gracz A2" }).matches(":disabled"), false));
   assert.match(screen.getByRole("region", { name: "Stan prowadzenia" }).textContent ?? "", /Zakończone1/);
+});
+
+// ---------- V5.6 · one match editor, safe saves, work queue ----------
+
+test("V5.6: ?match= opens that match in the editor and selecting another updates the address", async () => {
+  const user = await renderOperationalHost({ matches: [hostMatch(1), hostMatch(2), hostMatch(3)], path: "/tournaments/1/host?match=3" });
+  await screen.findByRole("button", { name: "Zwiększ wynik: Gracz A3" });
+  assert.equal(screen.queryByRole("button", { name: "Zwiększ wynik: Gracz A1" }), null);
+  await user.click(screen.getByRole("button", { name: /Gracz A2 vs Gracz B2/ }));
+  await screen.findByRole("button", { name: "Zwiększ wynik: Gracz A2" });
+  await waitFor(() => assert.match(lastHostLocation!.history!.at(-1) ?? "", /match=2/));
+});
+
+test("V5.6: an unsaved score survives a reload of the page and is saved with the checked revision", async () => {
+  const matches = [hostMatch(1)];
+  let body: unknown = null;
+  const intercept = async (path: string, init?: RequestInit) => {
+    if (path !== "/api/matches/1/complete") return undefined;
+    body = JSON.parse(String(init?.body));
+    matches[0] = { ...matches[0], revision: 2, status: "completed", resultType: "played", score1: 2, score2: 1 };
+    return jsonResponse(matches[0]);
+  };
+  let user = await renderOperationalHost({ matches, intercept });
+  const plus = await screen.findByRole("button", { name: "Zwiększ wynik: Gracz A1" });
+  await user.click(plus); await user.click(plus);
+  await user.click(screen.getByRole("button", { name: "Zwiększ wynik: Gracz B1" }));
+  // "Reload": the page is gone, the tab's storage stays.
+  cleanup();
+  clients.forEach((client) => client.clear());
+  user = await renderOperationalHost({ matches, intercept });
+  await screen.findByText(/przywrócono niezapisany wynik roboczy 2:1/);
+  await waitFor(() => assert.equal(screen.getByRole("button", { name: "Zapisz wynik" }).matches(":disabled"), false));
+  await user.click(screen.getByRole("button", { name: "Zapisz wynik" }));
+  await screen.findByText(/Zapisano \d\d:\d\d: Gracz A1 – Gracz B1 2:1\./);
+  assert.deepEqual(body, { resultType: "played", expectedRevision: 1, score1: 2, score2: 1 });
+  await waitFor(() => assert.equal(window.sessionStorage.getItem("tm_host_score_drafts_v1:1"), null));
+});
+
+test("V5.6: a retry after a lost response finds the result already stored and reports it once, not as a conflict", async () => {
+  const matches = [hostMatch(1)];
+  let writes = 0;
+  const user = await renderOperationalHost({ matches, intercept: async (path) => {
+    if (path !== "/api/matches/1/complete") return undefined;
+    writes++;
+    if (writes === 1) {
+      // The server saved the result, but the answer never reached the browser.
+      matches[0] = { ...matches[0], revision: 2, status: "completed", resultType: "played", score1: 2, score2: 0 };
+      return new Response("bad gateway", { status: 502 });
+    }
+    return new Response(JSON.stringify({ code: "CONCURRENT_MODIFICATION" }), { status: 409, headers: { "content-type": "application/json" } });
+  } });
+  const plus = await screen.findByRole("button", { name: "Zwiększ wynik: Gracz A1" });
+  await user.click(plus); await user.click(plus);
+  await user.click(screen.getByRole("button", { name: "Zapisz wynik" }));
+  const failed = await screen.findByText(/Nie udało się potwierdzić zapisu \(brak połączenia albo błąd serwera\)/);
+  assert.match(failed.textContent ?? "", /Wynik 2:0 został w formularzu/);
+  await user.click(await screen.findByRole("button", { name: "Spróbuj ponownie" }));
+  await screen.findByText(/był już zapisany \(np\. przy wcześniejszej próbie\), nic nie zmieniono/);
+  assert.equal(writes, 2);
+  assert.equal(screen.queryByRole("region", { name: "Konflikt zapisu wyniku" }), null);
+});
+
+test("V5.6: an expired session keeps the entered result and offers to log in again", async () => {
+  const matches = [hostMatch(1)];
+  const user = await renderOperationalHost({ matches, intercept: async (path) =>
+    path === "/api/matches/1/complete"
+      ? new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401, headers: { "content-type": "application/json" } })
+      : undefined });
+  const plus = await screen.findByRole("button", { name: "Zwiększ wynik: Gracz A1" });
+  await user.click(plus); await user.click(plus);
+  await user.click(screen.getByRole("button", { name: "Zapisz wynik" }));
+  await screen.findByText(/Sesja wygasła albo nie masz już uprawnień — nic nie zapisano/);
+  assert.ok(screen.getByRole("button", { name: "Zaloguj ponownie" }));
+  assert.match(window.sessionStorage.getItem("tm_host_score_drafts_v1:1") ?? "", /"s1":2/);
+});
+
+test("V5.6 Experimental: the work queue separates 'start passed' from 'needs a result', with a reason and one action", async () => {
+  const now = Date.now();
+  const matches = [
+    { ...hostMatch(1), scheduledAt: new Date(now - 2 * 86_400_000).toISOString() },
+    { ...hostMatch(2), status: "in_progress" },
+    { ...hostMatch(3), scheduledAt: new Date(now - 1000).toISOString() },
+    { ...hostMatch(4), scheduledAt: new Date(now + 3 * 86_400_000).toISOString() },
+    { ...hostMatch(5), status: "postponed" },
+  ];
+  const user = await renderOperationalHost({ matches, path: "/experimental/tournaments/1/host?match=4" });
+  const filters = await screen.findByRole("group", { name: "Pokaż mecze w stanie" });
+  assert.match(filters.textContent ?? "", /Wszystkie 5/);
+  assert.match(filters.textContent ?? "", /Czeka na wynik 1/);
+  assert.match(filters.textContent ?? "", /W trakcie 1/);
+  assert.match(filters.textContent ?? "", /Start minął 1/);
+  assert.match(filters.textContent ?? "", /Gotowy 1/);
+  assert.match(filters.textContent ?? "", /Przełożony 1/);
+  const queue = screen.getByRole("region", { name: "Mecze bieżącego etapu" });
+  const row = (n: number) => [...queue.querySelectorAll<HTMLElement>("li[data-work-state]")].find((li) => li.textContent?.includes(`Gracz A${n} vs`))!;
+  assert.match(row(3).textContent ?? "", /Planowany start \d\d:\d\d minął, a mecz nie jest oznaczony jako rozpoczęty/);
+  assert.ok(within(row(3)).getByRole("button", { name: "Rozpocznij" }));
+  assert.equal(within(row(3)).queryByRole("button", { name: "Wpisz wynik" }), null);
+  assert.match(row(1).textContent ?? "", /Dzień meczu .* minął, a wyniku nie ma/);
+  assert.ok(within(row(1)).getByRole("button", { name: "Wpisz wynik" }));
+  assert.ok(within(row(5)).getByRole("button", { name: "Przywróć" }));
+  await user.click(within(filters).getByRole("button", { name: /Czeka na wynik/ }));
+  await waitFor(() => assert.equal(within(queue).getAllByRole("listitem").length, 1));
+  assert.match(lastHostLocation!.history!.at(-1) ?? "", /kolejka=needs_result/);
+  // The editor names the planned time, the state with its reason and the result rules.
+  await user.click(within(row(1)).getByRole("button", { name: "Wpisz wynik" }));
+  const editor = await screen.findByRole("region", { name: "Edytor meczu" });
+  await waitFor(() => assert.match(editor.textContent ?? "", /Gracz A1/));
+  assert.match(editor.textContent ?? "", /Termin.*Stan.*Zasady wyniku/);
+  assert.match(editor.textContent ?? "", /Czeka na wynik/);
+  assert.match(editor.textContent ?? "", /Zasady wyniku/);
 });

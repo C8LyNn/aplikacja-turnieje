@@ -187,3 +187,18 @@ test("DE correction confirms participants, saved result and downstream count bef
   assert.equal(writes, 1);
   await screen.findByText("Wynik cofnięty. Wpisz poprawny wynik w formularzu tego meczu.");
 });
+
+test("V5.6: with the host match editor the bracket opens matches there and keeps no result form of its own", async () => {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false, gcTime: 0 } } });
+  clients.add(client);
+  client.setQueryData(getListMatchesQueryKey(1), [canonicalMatch()]);
+  globalThis.fetch = async () => new Response(JSON.stringify([canonicalMatch()]), { headers: { "content-type": "application/json" } });
+  const opened: number[] = [];
+  const ready = { ...state, matches: [{ ...state.matches[0], status: "ready" as const, score1: null, score2: null }, ...state.matches.slice(1)] };
+  render(<QueryClientProvider client={client}><DoubleEliminationBracket tournamentId={1} stageId={2} state={ready} canManage onOpenMatch={(id) => opened.push(id)} /></QueryClientProvider>);
+  const user = userEvent.setup();
+  assert.equal(screen.queryByRole("spinbutton"), null, "no second score form");
+  assert.equal(screen.queryByRole("button", { name: "Zapisz wynik" }), null);
+  await user.click(screen.getByRole("button", { name: "Wpisz wynik w edytorze meczu" }));
+  assert.deepEqual(opened, [101]);
+});

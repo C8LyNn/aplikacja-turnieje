@@ -130,6 +130,7 @@ export function ExperimentalLeaguePanel({
   const action = useMemo(() => (schedule ? leagueNextAction(schedule) : null), [schedule]);
   if (!schedule || !action) return null;
   const postponed = schedule.rounds.flatMap((round) => round.matches).filter((match) => match.scheduleState === "postponed");
+  const due = schedule.rounds.flatMap((round) => round.matches).filter((match) => match.scheduleState === "due");
   const current = schedule.rounds.find((round) => round.round === schedule.currentRound) ?? null;
   const row = (match: StageScheduleMatch, cta: string) => (
     <li key={match.matchId} className="experimental-v4-flow-match experimental-league-row" data-state={match.scheduleState}>
@@ -158,7 +159,7 @@ export function ExperimentalLeaguePanel({
         </div>
         {action.matchId != null && (
           <button type="button" className="experimental-v4-cta" onClick={() => onSelectMatch(action.matchId!)}>
-            {action.kind === "enter_overdue" ? "Wpisz wynik" : action.kind === "reschedule_postponed" ? "Pokaż mecz" : "Przejdź do meczu"}
+            {action.kind === "enter_overdue" ? "Wpisz wynik" : action.kind === "start_due" ? "Otwórz mecz" : action.kind === "reschedule_postponed" ? "Pokaż mecz" : "Przejdź do meczu"}
           </button>
         )}
       </div>
@@ -166,8 +167,14 @@ export function ExperimentalLeaguePanel({
       <div className="experimental-league-columns">
         {schedule.overdue.length > 0 && (
           <div>
-            <p className="experimental-v4-kicker"><Clock className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />Czekają na wynik ({schedule.overdue.length})</p>
+            <p className="experimental-v4-kicker"><Clock className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />Czekają na wynik — dzień meczu minął ({schedule.overdue.length})</p>
             <ul className="experimental-league-list">{schedule.overdue.slice(0, 6).map((match) => row(match, "Wpisz wynik"))}</ul>
+          </div>
+        )}
+        {due.length > 0 && (
+          <div>
+            <p className="experimental-v4-kicker"><Clock className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />Start minął — mecz nierozpoczęty ({due.length})</p>
+            <ul className="experimental-league-list">{due.slice(0, 6).map((match) => row(match, "Otwórz mecz"))}</ul>
           </div>
         )}
         {postponed.length > 0 && (
@@ -199,7 +206,7 @@ export function ExperimentalLeaguePanel({
               <ul className="experimental-league-list">
                 {round.matches.map((match) => (
                   <li key={match.matchId} className="experimental-v4-flow-match experimental-league-row" data-state={match.scheduleState}>
-                    <span className="experimental-v4-flow-names">{matchTitle(match)}</span>
+                    <button type="button" className="experimental-v4-flow-names experimental-league-open" onClick={() => onSelectMatch(match.matchId)} aria-label={`Otwórz mecz: ${matchTitle(match)}`}>{matchTitle(match)}</button>
                     <span className="experimental-league-row-meta">
                       {match.scheduleState === "completed"
                         ? matchResultLabel({ resultType: "played", score1: match.score1, score2: match.score2, winnerId: match.winnerId ?? (match.isDraw ? null : -1) })

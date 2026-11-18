@@ -2498,6 +2498,9 @@ export const StageScheduleMatchStatus = {
   cancelled: 'cancelled',
 } as const;
 
+/**
+ * due = planned start passed today, not started yet; awaiting_result = the planned match day is over and there is no result. Judged in the stage time zone.
+ */
 export type StageScheduleMatchScheduleState = typeof StageScheduleMatchScheduleState[keyof typeof StageScheduleMatchScheduleState];
 
 
@@ -2506,6 +2509,7 @@ export const StageScheduleMatchScheduleState = {
   postponed: 'postponed',
   cancelled: 'cancelled',
   in_progress: 'in_progress',
+  due: 'due',
   awaiting_result: 'awaiting_result',
   scheduled: 'scheduled',
   unscheduled: 'unscheduled',
@@ -2524,6 +2528,7 @@ export interface StageScheduleMatch {
   /** @nullable */
   player2Name: string | null;
   status: StageScheduleMatchStatus;
+  /** due = planned start passed today, not started yet; awaiting_result = the planned match day is over and there is no result. Judged in the stage time zone. */
   scheduleState: StageScheduleMatchScheduleState;
   /** @nullable */
   scheduledAt: string | null;
@@ -2565,6 +2570,8 @@ export type StageScheduleRoundsItem = {
 
 export type StageScheduleCounts = {
   scheduled: number;
+  due: number;
+  inProgress: number;
   awaitingResult: number;
   completed: number;
   postponed: number;

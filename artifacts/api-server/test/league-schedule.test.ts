@@ -92,6 +92,16 @@ test("schedule states distinguish scheduled, awaiting result, played and postpon
   assert.equal(scheduleStateOf({ status: "pending", scheduledAt: null }, now), "unscheduled");
   assert.equal(scheduleStateOf({ status: "pending", scheduledAt: new Date("2026-12-11T18:00:00Z") }, now), "scheduled");
   assert.equal(scheduleStateOf({ status: "pending", scheduledAt: new Date("2026-12-09T18:00:00Z") }, now), "awaiting_result");
+  // V5.6: a start that passed today means "should be under way", not "result missing".
+  assert.equal(scheduleStateOf({ status: "pending", scheduledAt: new Date("2026-12-10T09:00:00Z") }, now), "due");
+  assert.equal(scheduleStateOf({ status: "in_progress", scheduledAt: new Date("2026-12-09T18:00:00Z") }, now), "awaiting_result");
+  assert.equal(scheduleStateOf({ status: "in_progress", scheduledAt: new Date("2026-12-10T09:00:00Z") }, now), "in_progress");
+  assert.equal(scheduleStateOf({ status: "in_progress", scheduledAt: null }, now), "in_progress");
+  // The match day is judged on the league's calendar: a 23:30 Warsaw match is a past day at 00:10 Warsaw time,
+  // while the same two instants fall on one UTC day.
+  const justAfterMidnight = new Date("2026-12-09T23:10:00Z");
+  assert.equal(scheduleStateOf({ status: "pending", scheduledAt: new Date("2026-12-09T22:30:00Z") }, justAfterMidnight, "Europe/Warsaw"), "awaiting_result");
+  assert.equal(scheduleStateOf({ status: "pending", scheduledAt: new Date("2026-12-09T22:30:00Z") }, justAfterMidnight, "UTC"), "due");
   assert.equal(scheduleStateOf({ status: "completed", scheduledAt: new Date("2026-12-09T18:00:00Z") }, now), "completed");
   assert.equal(scheduleStateOf({ status: "postponed", scheduledAt: new Date("2026-12-09T18:00:00Z") }, now), "postponed");
 });

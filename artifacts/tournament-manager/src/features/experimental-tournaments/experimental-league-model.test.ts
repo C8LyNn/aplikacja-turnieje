@@ -22,7 +22,7 @@ function schedule(matches: StageScheduleMatch[]): StageSchedule {
     rounds,
     upcoming: matches.filter((entry) => entry.scheduleState === "scheduled"),
     overdue: matches.filter((entry) => entry.scheduleState === "awaiting_result"),
-    counts: { scheduled: count("scheduled"), awaitingResult: count("awaiting_result"), completed: count("completed"), postponed: count("postponed"), unscheduled: count("unscheduled"), total: matches.length },
+    counts: { scheduled: count("scheduled"), due: count("due"), inProgress: count("in_progress"), awaitingResult: count("awaiting_result"), completed: count("completed"), postponed: count("postponed"), unscheduled: count("unscheduled"), total: matches.length },
   };
 }
 
@@ -30,7 +30,8 @@ test("overdue results come first, then postponed matches, then the current round
   const overdue = leagueNextAction(schedule([match(1, 1, "completed"), match(2, 1, "awaiting_result", "2026-12-05"), match(3, 2, "postponed")]));
   assert.equal(overdue.kind, "enter_overdue");
   assert.equal(overdue.matchId, 2);
-  assert.match(overdue.title, /1 zaległy wynik/);
+  assert.equal(overdue.title, "1 mecz czeka na wynik");
+  assert.match(overdue.detail, /Dzień meczu minął/);
   const postponed = leagueNextAction(schedule([match(1, 1, "completed"), match(3, 2, "postponed")]));
   assert.equal(postponed.kind, "reschedule_postponed");
   assert.equal(postponed.matchId, 3);
@@ -38,6 +39,17 @@ test("overdue results come first, then postponed matches, then the current round
   assert.equal(play.kind, "play_round");
   assert.match(play.title, /Kolejka 1: rozegrano 1 z 2/);
   assert.match(play.detail, /sb 12 gru, 18:00/);
+});
+
+test("a start that passed today asks to start or postpone the match, not to enter a result", () => {
+  const due = leagueNextAction(schedule([match(1, 1, "completed"), match(2, 1, "due", "2026-12-10"), match(3, 2, "postponed")]));
+  assert.equal(due.kind, "start_due");
+  assert.equal(due.matchId, 2);
+  assert.equal(due.title, "Pora zacząć: 1 mecz");
+  assert.match(due.detail, /Rozpocznij mecz albo go przełóż — wynik wpiszesz po meczu/);
+  assert.doesNotMatch(due.title, /wynik/);
+  // A day that is over still comes first.
+  assert.equal(leagueNextAction(schedule([match(2, 1, "due", "2026-12-10"), match(4, 1, "awaiting_result", "2026-12-03")])).kind, "enter_overdue");
 });
 
 test("a league without dates suggests (but does not require) a schedule; a finished league says so", () => {

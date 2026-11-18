@@ -206,21 +206,31 @@ export interface ScheduleMatchLike {
   scheduledAt: Date | null;
 }
 
-export type ScheduleState = "completed" | "postponed" | "cancelled" | "in_progress" | "awaiting_result" | "scheduled" | "unscheduled";
+export type ScheduleState = "completed" | "postponed" | "cancelled" | "in_progress" | "due" | "awaiting_result" | "scheduled" | "unscheduled";
 
 /**
- * Plain schedule state of a match at `now`:
- *  - completed / postponed / cancelled / in_progress follow the match status;
- *  - awaiting_result: pending and its date has passed (played but no result entered yet);
- *  - scheduled: pending with a future date; unscheduled: pending without a date.
+ * Plain schedule state of a match at `now`, judged on the league's local calendar (`timeZone`):
+ *  - completed / postponed / cancelled follow the match status;
+ *  - due: pending, the planned start has passed today - it should be under way; a passed start alone
+ *    does not mean the result is missing (V5.6);
+ *  - awaiting_result: pending or started, and the planned match day is over - a result is expected;
+ *  - in_progress: started on the planned day (or without a date);
+ *  - scheduled: pending with a later start; unscheduled: pending without a date.
  */
-export function scheduleStateOf(match: Pick<ScheduleMatchLike, "status" | "scheduledAt">, now: Date): ScheduleState {
+export function scheduleStateOf(
+  match: Pick<ScheduleMatchLike, "status" | "scheduledAt">,
+  now: Date,
+  timeZone: string = DEFAULT_SCHEDULE_TIME_ZONE,
+): ScheduleState {
   if (match.status === "completed") return "completed";
   if (match.status === "postponed") return "postponed";
   if (match.status === "cancelled") return "cancelled";
-  if (match.status === "in_progress") return "in_progress";
+  const dayOver = match.scheduledAt != null &&
+    instantToLocal(match.scheduledAt, timeZone).date < instantToLocal(now, timeZone).date;
+  if (match.status === "in_progress") return dayOver ? "awaiting_result" : "in_progress";
   if (match.scheduledAt == null) return "unscheduled";
-  return match.scheduledAt.getTime() <= now.getTime() ? "awaiting_result" : "scheduled";
+  if (dayOver) return "awaiting_result";
+  return match.scheduledAt.getTime() <= now.getTime() ? "due" : "scheduled";
 }
 
 /** Participants without a match in a round (pause/bye in an odd-sized league). */

@@ -314,6 +314,32 @@ describe("V5.3 leagues: draws, points, schedule (PostgreSQL)", () => {
     assert.equal(wrongZone.code, "TIME_ZONE_MISMATCH");
   });
 
+  test("V5.6: a start that passed today is 'due' (start it), a day that is over awaits a result; counts follow", async () => {
+    const { tournamentId, headers, stageId } = await createLeague({ participantCount: 4 }, { scheduleTimeZone: "UTC" });
+    await request(app).post(`/api/tournaments/${tournamentId}/start`).set(headers).expect(200);
+    const matches = await stageMatches(stageId);
+    const day = (offsetDays: number) => new Date(Date.now() + offsetDays * 86_400_000).toISOString().slice(0, 10);
+    await request(app).put(`/api/matches/${matches[0]!.id}/schedule`).set(headers).send({ date: day(0), time: "00:00" }).expect(200);
+    await request(app).put(`/api/matches/${matches[1]!.id}/schedule`).set(headers).send({ date: day(-3), time: "18:00" }).expect(200);
+    await request(app).put(`/api/matches/${matches[2]!.id}/schedule`).set(headers).send({ date: day(-3), time: "18:00" }).expect(200);
+    await request(app).patch(`/api/matches/${matches[2]!.id}`).set(headers).send({ status: "in_progress" }).expect(200);
+    await request(app).patch(`/api/matches/${matches[3]!.id}`).set(headers).send({ status: "in_progress" }).expect(200);
+    await request(app).put(`/api/matches/${matches[4]!.id}/schedule`).set(headers).send({ date: day(3), time: "18:00" }).expect(200);
+    const view = (await request(app).get(`/api/tournaments/${tournamentId}/stages/${stageId}/schedule`).expect(200)).body;
+    const state = new Map(view.rounds.flatMap((round: Json) => round.matches).map((match: Json) => [match.matchId, match.scheduleState]));
+    assert.equal(state.get(matches[0]!.id), "due", "start passed today, not started: start it — no result is asked for yet");
+    assert.equal(state.get(matches[1]!.id), "awaiting_result", "the match day is over");
+    assert.equal(state.get(matches[2]!.id), "awaiting_result", "started, and its day is over");
+    assert.equal(state.get(matches[3]!.id), "in_progress", "started without a date");
+    assert.equal(state.get(matches[4]!.id), "scheduled");
+    assert.equal(state.get(matches[5]!.id), "unscheduled");
+    assert.deepEqual(view.overdue.map((match: Json) => match.matchId).sort(), [matches[1]!.id, matches[2]!.id].sort());
+    assert.deepEqual(
+      { due: view.counts.due, inProgress: view.counts.inProgress, awaitingResult: view.counts.awaitingResult, scheduled: view.counts.scheduled, unscheduled: view.counts.unscheduled, total: view.counts.total },
+      { due: 1, inProgress: 1, awaitingResult: 2, scheduled: 1, unscheduled: 1, total: 6 },
+    );
+  });
+
   test("schedule generator: preview changes nothing, apply fills only unscheduled matches, DST gaps are refused", async () => {
     const { tournamentId, headers, stageId } = await createLeague({ participantCount: 6, legs: 2 });
     await request(app).post(`/api/tournaments/${tournamentId}/start`).set(headers).expect(200);

@@ -1081,6 +1081,7 @@ export function TournamentStagesPanel({
                 canManage={canWriteResults}
                 canReset={canManage}
                 onChanged={refresh}
+                openMatchHref={isExperimental ? (matchId) => tournamentHref(tournamentId, true, `/host?match=${matchId}`) : undefined}
               />
             ) : null
           ) : selected.format === "group_stage" ? (

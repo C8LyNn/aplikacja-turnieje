@@ -8,6 +8,8 @@
 
 export type StageScheduleCounts = {
   scheduled: number;
+  due: number;
+  inProgress: number;
   awaitingResult: number;
   completed: number;
   postponed: number;

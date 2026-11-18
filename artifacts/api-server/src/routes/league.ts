@@ -164,7 +164,7 @@ router.get("/tournaments/:id/stages/:stageId/schedule", async (req, res): Promis
       player1Name: match.player1Id == null ? null : names.get(match.player1Id) ?? null,
       player2Name: match.player2Id == null ? null : names.get(match.player2Id) ?? null,
       status: match.status,
-      scheduleState: scheduleStateOf(match, now),
+      scheduleState: scheduleStateOf(match, now, timeZone),
       scheduledAt: match.scheduledAt ? match.scheduledAt.toISOString() : null,
       localDate: local?.date ?? null,
       localTime: local?.time ?? null,
@@ -226,6 +226,8 @@ router.get("/tournaments/:id/stages/:stageId/schedule", async (req, res): Promis
     overdue,
     counts: {
       scheduled: count("scheduled"),
+      due: count("due"),
+      inProgress: count("in_progress"),
       awaitingResult: count("awaiting_result"),
       completed: count("completed"),
       postponed: count("postponed"),

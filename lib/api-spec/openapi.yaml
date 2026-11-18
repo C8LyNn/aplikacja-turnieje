@@ -4816,7 +4816,8 @@ components:
         status: { type: string, enum: [pending, in_progress, postponed, completed, cancelled] }
         scheduleState:
           type: string
-          enum: [completed, postponed, cancelled, in_progress, awaiting_result, scheduled, unscheduled]
+          enum: [completed, postponed, cancelled, in_progress, due, awaiting_result, scheduled, unscheduled]
+          description: "due = planned start passed today, not started yet; awaiting_result = the planned match day is over and there is no result. Judged in the stage time zone."
         scheduledAt: { type: ["string", "null"], format: date-time }
         localDate: { type: ["string", "null"] }
         localTime: { type: ["string", "null"] }
@@ -4865,9 +4866,11 @@ components:
           items: { $ref: "#/components/schemas/StageScheduleMatch" }
         counts:
           type: object
-          required: [scheduled, awaitingResult, completed, postponed, unscheduled, total]
+          required: [scheduled, due, inProgress, awaitingResult, completed, postponed, unscheduled, total]
           properties:
             scheduled: { type: integer }
+            due: { type: integer }
+            inProgress: { type: integer }
             awaitingResult: { type: integer }
             completed: { type: integer }
             postponed: { type: integer }

@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from "react";
+import { Link } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   getGetDoubleEliminationStageQueryKey,
@@ -32,6 +33,13 @@ interface DoubleEliminationBracketProps {
   finalsPosition?: "upper" | "between";
   /** When false, hides UB→LB loser-drop connector lines. Default: true. */
   showDropLines?: boolean;
+  /**
+   * V5.6 · one match editor: when given, results are entered in the host's match editor (same rules, messages
+   * and conflict handling as every other entry point) and this bracket only opens the match there.
+   */
+  onOpenMatch?: (matchId: number) => void;
+  /** Same as `onOpenMatch`, as a link (outside the host page). */
+  openMatchHref?: (matchId: number) => string;
 }
 
 /** Inline score form rendered below the canvas for ready matches. */
@@ -123,7 +131,10 @@ export function DoubleEliminationBracket({
   onChanged,
   finalsPosition: finalsPositionProp,
   showDropLines = true,
+  onOpenMatch,
+  openMatchHref,
 }: DoubleEliminationBracketProps) {
+  const opensEditor = !!onOpenMatch || !!openMatchHref;
   const queryClient = useQueryClient();
   const [error, setError] = useState<string>();
   const [success, setSuccess] = useState<string>();
@@ -300,8 +311,33 @@ export function DoubleEliminationBracket({
         />
       </div>
 
-      {/* Management: score forms for actionable matches */}
-      {actionableMatches.length > 0 && (
+      {/* V5.6: the bracket opens the one match editor instead of keeping its own result form. */}
+      {opensEditor && actionableMatches.length > 0 && (
+        <div className="space-y-2">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Mecze do prowadzenia</p>
+          <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3" aria-label="Mecze drabinki do prowadzenia">
+            {actionableMatches.map(match => {
+              const current = canonical.data?.find(candidate => candidate.id === match.matchId);
+              const names = current ? `${current.player1Name ?? "?"} – ${current.player2Name ?? "?"}`
+                : match.slots.map(key => key ? participants.get(key)?.name ?? key : "Oczekuje na gracza").join(" – ");
+              const done = (current?.status ?? match.status) === "completed";
+              const label = done ? "Popraw w edytorze meczu" : "Wpisz wynik w edytorze meczu";
+              return <li key={match.matchKey} className="flex flex-wrap items-center gap-2 rounded-lg border bg-card p-3">
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-semibold">{names}</span>
+                  <span className="block text-xs text-muted-foreground">{match.name} · {done ? `wynik ${current?.score1 ?? match.score1}:${current?.score2 ?? match.score2}` : `BO${match.bestOf ?? 1}`}</span>
+                </span>
+                {onOpenMatch
+                  ? <Button type="button" size="sm" variant={done ? "outline" : "default"} onClick={() => onOpenMatch(match.matchId!)}>{label}</Button>
+                  : <Button type="button" size="sm" variant={done ? "outline" : "default"} asChild><Link href={openMatchHref!(match.matchId!)}>{label}</Link></Button>}
+              </li>;
+            })}
+          </ul>
+        </div>
+      )}
+
+      {/* Management: score forms for actionable matches (pages without the host match editor) */}
+      {!opensEditor && actionableMatches.length > 0 && (
         <div className="space-y-2">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
             Zarządzanie wynikami

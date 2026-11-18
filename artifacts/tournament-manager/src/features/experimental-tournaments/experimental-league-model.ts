@@ -1,6 +1,7 @@
 import type { StageSchedule, StageScheduleMatch } from "@workspace/api-client-react";
+import { formatLocalSlot, WORK_STATE_LABELS } from "@/lib/match-work-state";
 
-export type LeagueActionKind = "enter_overdue" | "reschedule_postponed" | "play_round" | "plan_schedule" | "finished";
+export type LeagueActionKind = "enter_overdue" | "start_due" | "reschedule_postponed" | "play_round" | "plan_schedule" | "finished";
 
 export interface LeagueNextAction {
   kind: LeagueActionKind;
@@ -22,10 +23,23 @@ export function leagueNextAction(schedule: StageSchedule): LeagueNextAction {
   const { counts } = schedule;
   if (schedule.overdue.length > 0) {
     const first = schedule.overdue[0]!;
+    const n = schedule.overdue.length;
     return {
       kind: "enter_overdue",
-      title: `Wpisz ${schedule.overdue.length} ${plural(schedule.overdue.length, "zaległy wynik", "zaległe wyniki", "zaległych wyników")}`,
-      detail: `Termin minął, a wyniku nie ma — najstarszy: ${matchTitle(first)} (${formatSlot(first)}).`,
+      title: `${n} ${plural(n, "mecz czeka", "mecze czekają", "meczów czeka")} na wynik`,
+      detail: `Dzień meczu minął, a wyniku nie ma — najstarszy: ${matchTitle(first)} (${formatSlot(first)}). Jeśli mecz się nie odbył, przełóż go.`,
+      matchId: first.matchId,
+    };
+  }
+  // V5.6: a passed start today asks to start the match (or postpone it) — not to enter a result yet.
+  const due = schedule.rounds.flatMap((round) => round.matches).filter((match) => match.scheduleState === "due")
+    .sort((left, right) => (left.scheduledAt ?? "").localeCompare(right.scheduledAt ?? ""));
+  if (due.length > 0) {
+    const first = due[0]!;
+    return {
+      kind: "start_due",
+      title: `Pora zacząć: ${due.length} ${plural(due.length, "mecz", "mecze", "meczów")}`,
+      detail: `Planowany start minął (${formatSlot(first)}): ${matchTitle(first)}. Rozpocznij mecz albo go przełóż — wynik wpiszesz po meczu.`,
       matchId: first.matchId,
     };
   }
@@ -63,23 +77,19 @@ export function matchTitle(match: Pick<StageScheduleMatch, "player1Name" | "play
   return `${match.player1Name ?? "?"} – ${match.player2Name ?? "?"}`;
 }
 
-const WEEKDAYS = ["nd", "pn", "wt", "śr", "cz", "pt", "sb"];
-const MONTHS = ["sty", "lut", "mar", "kwi", "maja", "cze", "lip", "sie", "wrz", "paź", "lis", "gru"];
-
 /** "sb 5 gru, 18:00" — the league's local date and time exactly as stored (no browser re-conversion). */
 export function formatSlot(match: Pick<StageScheduleMatch, "localDate" | "localTime">): string {
-  if (!match.localDate) return "bez terminu";
-  const [year, month, day] = match.localDate.split("-").map(Number);
-  const weekday = WEEKDAYS[new Date(Date.UTC(year!, month! - 1, day!)).getUTCDay()];
-  return `${weekday} ${day} ${MONTHS[month! - 1]}${match.localTime ? `, ${match.localTime}` : ""}`;
+  return formatLocalSlot(match.localDate, match.localTime);
 }
 
+/** Same words as the host work queue (lib/match-work-state). */
 export const SCHEDULE_STATE_LABELS: Record<StageScheduleMatch["scheduleState"], string> = {
   completed: "Rozegrany",
-  postponed: "Przełożony",
-  cancelled: "Anulowany",
-  in_progress: "W trakcie",
-  awaiting_result: "Czeka na wynik",
+  postponed: WORK_STATE_LABELS.postponed,
+  cancelled: WORK_STATE_LABELS.cancelled,
+  in_progress: WORK_STATE_LABELS.in_progress,
+  due: WORK_STATE_LABELS.due,
+  awaiting_result: WORK_STATE_LABELS.needs_result,
   scheduled: "Zaplanowany",
   unscheduled: "Bez terminu",
 };

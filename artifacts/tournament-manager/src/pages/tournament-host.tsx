@@ -67,8 +67,13 @@ import { ExperimentalTournamentContextBar } from "@/features/experimental-tourna
 import { ExperimentalHostCommandCenter } from "@/features/experimental-tournaments/experimental-host-command-center";
 import { ExperimentalMatchFlow } from "@/features/experimental-tournaments/experimental-v4-panels";
 import { ExperimentalHostFocusToggle } from "@/features/experimental-tournaments/experimental-host-focus-toggle";
+import { countWorkStates, formatLocalSlot, matchWorkState, WORK_STATE_LABELS, type MatchWorkState } from "@/lib/match-work-state";
+import { readHostResultDrafts, sameSavedResult, saveFailureKind, writeHostResultDrafts, type SaveFailureKind } from "@/lib/host-result-drafts";
 
-type ScoreEntry = { s1: number; s2: number; baseline?: string };
+type ScoreEntry = { s1: number; s2: number; baseline?: string; at?: number };
+type SaveStatus = { phase: "saving"; label: string } | { phase: "error"; kind: SaveFailureKind; message: string; label: string };
+/** Work-queue filters, in the order of the chips (V5.6). */
+const QUEUE_FILTERS = ["needs_result", "in_progress", "due", "ready", "postponed"] as const satisfies readonly MatchWorkState[];
 const scoreBaseline = (match: { player1Id?: number | null; player2Id?: number | null; score1?: number | null; score2?: number | null; bestOf?: number | null; status: string }) =>
   JSON.stringify([match.player1Id, match.player2Id, match.score1, match.score2, match.bestOf, match.status === "completed" || match.status === "cancelled" ? match.status : "open"]);
 
@@ -173,9 +178,20 @@ export default function TournamentHost() {
   const updateTournament = useUpdateTournament({ mutation: mutationFeedback });
   const resultDrafts = useMatchResultDrafts();
   const completeLock = useRef(false);
+  // A retry whose earlier attempt already went through (the response was lost) finds exactly this result stored.
+  const alreadySaved = useRef<number | null>(null);
   const completeMatch = useCompleteMatch({ mutation: {
     ...mutationFeedback, retry: false,
     onError: async (error, variables) => {
+      if ((error as { status?: number } | null)?.status === 409) {
+        const fresh = await matchesQuery.refetch().catch(() => null);
+        const current = fresh?.data?.find((match) => match.id === variables.id);
+        if (current && sameSavedResult(current, variables.data as { resultType: string; score1?: number; score2?: number; winnerId?: number })) {
+          alreadySaved.current = variables.id;
+          await invalidateAll();
+          return;
+        }
+      }
       if (matchOperationError(error).code === "CONCURRENT_MODIFICATION") resultDrafts.markConflict(variables.id);
       await mutationFeedback.onError(error);
     },
@@ -226,15 +242,65 @@ export default function TournamentHost() {
     capabilities, surface: "conducting", enabled: !!managementRole && isAuthReady });
   const nextStep = isExperimental ? experimentalNextStep(operation.nextStep) : operation.nextStep;
 
-  const [scores, setScores] = useState<Record<number, ScoreEntry>>({});
-  const [selectedMatchId, storeSelectedMatchId] = useState<number | null>(null);
+  // V5.6: an unsaved score survives a reload, a lost connection and an expired session (this browser tab only).
+  const [restoredDrafts] = useState(() => readHostResultDrafts(id));
+  const [scores, setScores] = useState<Record<number, ScoreEntry>>(restoredDrafts);
+  const pendingRestore = useRef(new Set(Object.keys(restoredDrafts).map(Number)));
+  const [draftNotices, setDraftNotices] = useState<string[]>([]);
+  const [saveStatus, setSaveStatus] = useState<Record<number, SaveStatus>>({});
+  const [lastSaved, setLastSaved] = useState<{ matchId: number; text: string; at: Date } | null>(null);
+  useEffect(() => { writeHostResultDrafts(id, scores); }, [id, scores]);
+
+  // V5.6: the selected match lives in the address (?match=), so a reload, a tab switch or a link keeps it.
+  const searchParams = new URLSearchParams(search);
+  const urlMatchId = (() => {
+    const value = Number(searchParams.get("match"));
+    return Number.isSafeInteger(value) && value > 0 ? value : null;
+  })();
+  const hostUrl = (patch: Record<string, string | null>) => {
+    const params = new URLSearchParams(search);
+    for (const [key, value] of Object.entries(patch)) {
+      if (value == null) params.delete(key); else params.set(key, value);
+    }
+    const query = params.toString();
+    return tournamentHref(id, isExperimental, `/host${query ? `?${query}` : ""}`);
+  };
+  const [selectedMatchId, storeSelectedMatchId] = useState<number | null>(urlMatchId);
   const selectionRevision = useRef(0);
   const [selectionNotice, setSelectionNotice] = useState<string | null>(null);
   const setSelectedMatchId = (matchId: number | null) => {
     selectionRevision.current++;
     storeSelectedMatchId(matchId);
     setSelectionNotice(null);
+    if (urlMatchId !== matchId) navigate(hostUrl({ match: matchId === null ? null : String(matchId) }), { replace: true });
   };
+  useEffect(() => {
+    // A link or the browser history names another match: open it.
+    if (urlMatchId !== null && urlMatchId !== selectedMatchId) {
+      selectionRevision.current++;
+      storeSelectedMatchId(urlMatchId);
+      setSelectionNotice(null);
+    }
+  }, [urlMatchId]); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    // Tab links drop ?match= — put it back so the address always names the open match.
+    if (selectedMatchId !== null && urlMatchId === null) navigate(hostUrl({ match: String(selectedMatchId) }), { replace: true });
+  }, [selectedMatchId, urlMatchId]); // eslint-disable-line react-hooks/exhaustive-deps
+  const scrollToEditor = useRef(false);
+  const openInEditor = (matchId: number) => {
+    setSelectedMatchId(matchId);
+    scrollToEditor.current = true;
+    if (activeHostTab !== "prowadzenie") navigate(hostUrl({ tab: null, match: String(matchId) }));
+  };
+  useEffect(() => {
+    if (!scrollToEditor.current || activeHostTab !== "prowadzenie") return;
+    const panel = typeof document !== "undefined" ? document.getElementById("host-match-editor") : null;
+    if (!panel) return;
+    scrollToEditor.current = false;
+    const reduced = typeof window !== "undefined" && window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
+    panel.scrollIntoView?.({ block: "start", behavior: reduced ? "auto" : "smooth" });
+    panel.focus?.({ preventScroll: true });
+  });
   const [revertConfirm, setRevertConfirm] = useState<number | null>(null);
   const openCorrection = (matchId: number) => {
     setSelectedMatchId(matchId);
@@ -316,6 +382,30 @@ export default function TournamentHost() {
       return Object.keys(remaining).length === Object.keys(previous).length ? previous : remaining;
     });
   }, [matches, matchesQuery.isSuccess, matchesQuery.isFetching, hostPending, selectedMatchId, revertConfirm]);
+
+  useEffect(() => {
+    if (!matchesQuery.isSuccess || !matches || pendingRestore.current.size === 0) return;
+    const notices: string[] = [];
+    const drop: number[] = [];
+    for (const matchId of pendingRestore.current) {
+      const match = matches.find((entry) => entry.id === matchId);
+      const draft = restoredDrafts[matchId];
+      if (!match || !draft) continue;
+      const names = `${match.player1Name ?? "?"} – ${match.player2Name ?? "?"}`;
+      if (match.status === "completed" || match.status === "cancelled") {
+        drop.push(matchId);
+        notices.push(match.status === "completed" && match.resultType === "played" && match.score1 === draft.s1 && match.score2 === draft.s2
+          ? `${names}: wynik ${draft.s1}:${draft.s2} jest już zapisany.`
+          : `${names}: niezapisany wynik roboczy ${draft.s1}:${draft.s2} nie został przywrócony — mecz ${match.status === "cancelled" ? "jest anulowany" : `ma już wynik ${matchResultLabel(match)}`}.`);
+      } else {
+        const changed = !!draft.baseline && draft.baseline !== scoreBaseline(match);
+        notices.push(`${names}: przywrócono niezapisany wynik roboczy ${draft.s1}:${draft.s2}${changed ? " — mecz zmienił się od tego czasu, sprawdź go przed zapisem" : ". Sprawdź go i zapisz"}.`);
+      }
+    }
+    pendingRestore.current = new Set();
+    if (drop.length) setScores((previous) => { const next = { ...previous }; for (const matchId of drop) delete next[matchId]; return next; });
+    if (notices.length) setDraftNotices(notices);
+  }, [matches, matchesQuery.isSuccess]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const beginMatchOperation = (matchId: number) => {
     // A completion callback must not steal a later selection or interaction.
@@ -408,8 +498,33 @@ export default function TournamentHost() {
         baseline: prev[matchId]?.baseline ?? (match ? scoreBaseline(match) : undefined),
         s1: player === 1 ? next : (prev[matchId]?.s1 ?? match?.score1 ?? 0),
         s2: player === 2 ? next : (prev[matchId]?.s2 ?? match?.score2 ?? 0),
+        at: Date.now(),
       },
     }));
+  };
+
+  // --- Save states (V5.6): editing → saving → saved, or an error that keeps the entered result ---
+  const matchNames = (matchId: number) => {
+    const match = matches?.find((entry) => entry.id === matchId);
+    return `${match?.player1Name ?? "?"} – ${match?.player2Name ?? "?"}`;
+  };
+  const clearSaveStatus = (matchId: number) => setSaveStatus((previous) => {
+    if (!previous[matchId]) return previous;
+    const next = { ...previous }; delete next[matchId]; return next;
+  });
+  const markSaving = (matchId: number, label: string) => setSaveStatus((previous) => ({ ...previous, [matchId]: { phase: "saving", label } }));
+  const markSaveFailed = (matchId: number, label: string, error: unknown) => {
+    const kind = saveFailureKind(error);
+    const message = kind === "session"
+      ? `Sesja wygasła albo nie masz już uprawnień — nic nie zapisano. Zaloguj się ponownie; ${label} czeka w tym formularzu, także po odświeżeniu strony.`
+      : kind === "network"
+        ? `Nie udało się potwierdzić zapisu (brak połączenia albo błąd serwera). ${label} został w formularzu — spróbuj ponownie. Ponowienie nie zapisze wyniku drugi raz.`
+        : matchOperationError(error).message;
+    setSaveStatus((previous) => ({ ...previous, [matchId]: { phase: "error", kind, message, label } }));
+  };
+  const markSaved = (matchId: number, text: string) => {
+    clearSaveStatus(matchId);
+    setLastSaved({ matchId, text, at: new Date() });
   };
 
   // --- Match actions ---
@@ -534,14 +649,22 @@ export default function TournamentHost() {
     if (!winnerId) return;
     completeLock.current = true;
     const mayAdvance = beginMatchOperation(matchId);
+    const winnerName = winner === 1 ? match.player1Name : match.player2Name;
+    markSaving(matchId, `Walkower (wygrywa ${winnerName ?? "?"})`);
+    const succeed = (already: boolean) => {
+      resultDrafts.discard(matchId);
+      setWalkoverConfirm(null);
+      setResultReason("");
+      setScores((prev) => { const n = { ...prev }; delete n[matchId]; return n; });
+      markSaved(matchId, `${matchNames(matchId)}: walkower, wygrywa ${winnerName ?? "?"}${already ? " — był już zapisany, nic nie zmieniono" : ""}`);
+      toast({ title: already ? "Walkower był już zapisany" : "Walkower zapisany (W.O.)", description: `${winnerName} wygrywa mecz.` });
+      if (mayAdvance()) setSelectedMatchId(null);
+    };
     completeMatch.mutate({ id: matchId, data: { resultType: "walkover", expectedRevision: match.revision, winnerId, reason: resultReason.trim() || null } }, {
-      onSuccess: () => {
-        resultDrafts.discard(matchId);
-        setWalkoverConfirm(null);
-        setResultReason("");
-        setScores((prev) => { const n = { ...prev }; delete n[matchId]; return n; });
-        toast({ title: "Walkower zapisany (W.O.)", description: `${winner === 1 ? focusedMatch?.player1Name : focusedMatch?.player2Name} wygrywa mecz.` });
-        if (mayAdvance()) setSelectedMatchId(null);
+      onSuccess: () => succeed(false),
+      onError: (error) => {
+        if (alreadySaved.current === matchId) { alreadySaved.current = null; succeed(true); return; }
+        markSaveFailed(matchId, "Walkower", error);
       },
     });
   };
@@ -563,14 +686,21 @@ export default function TournamentHost() {
     if (!match || !draft || resultDrafts.isStale(match) || completeLock.current) return;
     completeLock.current = true;
     const mayAdvance = beginMatchOperation(matchId);
+    markSaving(matchId, "Brak rozstrzygnięcia");
+    const succeed = (already: boolean) => {
+      resultDrafts.discard(matchId);
+      setScores(prev => { const next = { ...prev }; delete next[matchId]; return next; });
+      setNoContestConfirm(null);
+      setResultReason("");
+      markSaved(matchId, `${matchNames(matchId)}: brak rozstrzygnięcia${already ? " — był już zapisany, nic nie zmieniono" : ""}`);
+      toast({ title: already ? "Ten wynik był już zapisany" : "Mecz zakończony jako no contest" });
+      if (mayAdvance()) setSelectedMatchId(null);
+    };
     completeMatch.mutate({ id: matchId, data: { resultType: "no_contest", expectedRevision: draft.revision, reason: resultReason.trim() || null } }, {
-      onSuccess: () => {
-        resultDrafts.discard(matchId);
-        setScores(prev => { const next = { ...prev }; delete next[matchId]; return next; });
-        setNoContestConfirm(null);
-        setResultReason("");
-        toast({ title: "Mecz zakończony jako no contest" });
-        if (mayAdvance()) setSelectedMatchId(null);
+      onSuccess: () => succeed(false),
+      onError: (error) => {
+        if (alreadySaved.current === matchId) { alreadySaved.current = null; succeed(true); return; }
+        markSaveFailed(matchId, "Brak rozstrzygnięcia", error);
       },
     });
   };
@@ -635,12 +765,20 @@ export default function TournamentHost() {
     if (!capabilities.canWriteTournamentResults || completeMatch.isPending || completeLock.current) return;
     completeLock.current = true;
     const mayAdvance = beginMatchOperation(matchId);
+    const label = `Wynik ${score1}:${score2}`;
+    markSaving(matchId, label);
+    const succeed = (already: boolean) => {
+      setScores((prev) => { const n = { ...prev }; delete n[matchId]; return n; });
+      resultDrafts.discard(matchId);
+      markSaved(matchId, `${matchNames(matchId)} ${score1}:${score2}${already ? " — był już zapisany (np. przy wcześniejszej próbie), nic nie zmieniono" : ""}`);
+      toast({ title: already ? "Ten wynik był już zapisany" : "Wynik zapisany!" });
+      if (mayAdvance()) setSelectedMatchId(null);
+    };
     completeMatch.mutate({ id: matchId, data: { resultType: "played", expectedRevision, score1, score2 } }, {
-      onSuccess: () => {
-        setScores((prev) => { const n = { ...prev }; delete n[matchId]; return n; });
-        resultDrafts.discard(matchId);
-        toast({ title: "Wynik zapisany!" });
-        if (mayAdvance()) setSelectedMatchId(null);
+      onSuccess: () => succeed(false),
+      onError: (error) => {
+        if (alreadySaved.current === matchId) { alreadySaved.current = null; succeed(true); return; }
+        markSaveFailed(matchId, label, error);
       },
     });
   };
@@ -891,6 +1029,22 @@ export default function TournamentHost() {
   const cancelledMatches = operationalMatches?.filter((m) => m.status === "cancelled") || [];
   const queueMatches = [...actionableMatches].sort((a, b) => (a.sortOrder ?? a.matchNumber * 10) - (b.sortOrder ?? b.matchNumber * 10));
   const pendingQueue = queueMatches.filter((match) => match.status === "pending");
+  // V5.6 work queue (Experimental): one state per match with a short reason and one concrete action;
+  // postponed matches join the same list. The filter lives in the address (?kolejka=).
+  const workNow = new Date();
+  const workInfo = (match: (typeof queueMatches)[number]) => matchWorkState(match, {
+    now: workNow,
+    timeZone: stages?.find((stage) => stage.id === match.stageId)?.scheduleTimeZone,
+    canStart: capabilities.canUseLegacyMatchTools,
+  });
+  const workQueue = isExperimental ? [...queueMatches, ...postponedMatches] : queueMatches;
+  const workInfos = new Map(workQueue.map((match) => [match.id, workInfo(match)]));
+  const workCounts = countWorkStates([...workInfos.values()]);
+  const requestedQueueFilter = searchParams.get("kolejka") ?? "";
+  const queueFilter: MatchWorkState | "all" = isExperimental && (QUEUE_FILTERS as readonly string[]).includes(requestedQueueFilter)
+    ? requestedQueueFilter as MatchWorkState
+    : "all";
+  const shownQueue = queueFilter === "all" ? workQueue : workQueue.filter((match) => workInfos.get(match.id)?.state === queueFilter);
   const completedMatches = operationalMatches?.filter((m) => m.status === "completed") || [];
   const showResultsSidebar = queueMatches.length > 0 && completedMatches.length >= 3;
   const matchStageGroups = Array.from(new Set(matches?.map(match => match.stageId ?? null))).map(stageId => {
@@ -951,7 +1105,7 @@ export default function TournamentHost() {
     const completedResultLabel = matchResultLabel(focusedMatch);
 
     return (
-      <div data-exp-match-state={isExperimental ? focusedMatch.status : undefined} onFocusCapture={() => { if (!hostPending && !dataError) setSelectedMatchId(focusedMatch.id); }} onPointerDownCapture={() => { if (!hostPending && !dataError) setSelectedMatchId(focusedMatch.id); }} className={`${isExperimental ? "experimental-host-primary" : ""} rounded-xl border-2 overflow-hidden transition-colors ${
+      <div id="host-match-editor" tabIndex={-1} role="region" aria-label="Edytor meczu" data-exp-match-state={isExperimental ? focusedMatch.status : undefined} onFocusCapture={() => { if (!hostPending && !dataError) setSelectedMatchId(focusedMatch.id); }} onPointerEnter={() => { if (selectedMatchId === null && !hostPending && !dataError) setSelectedMatchId(focusedMatch.id); }} onPointerDownCapture={() => { if (!hostPending && !dataError) setSelectedMatchId(focusedMatch.id); }} className={`${isExperimental ? "experimental-host-primary" : ""} rounded-xl border-2 overflow-hidden transition-colors ${
         conflictedDraft
           ? "border-orange-500/60"
           : isCancelled
@@ -1024,6 +1178,33 @@ export default function TournamentHost() {
             </>}
           </div>
         </div>
+
+        {isExperimental && (() => {
+          const work = matchWorkState(focusedMatch, { timeZone: focusedStage?.scheduleTimeZone, canStart: capabilities.canUseLegacyMatchTools });
+          const history = (actionLog ?? []).filter((entry) => entry.matchId === focusedMatch.id);
+          return (
+            <div className="experimental-match-context" data-work-state={work.state}>
+              <dl>
+                <div><dt>Termin</dt><dd>{work.slot ? formatLocalSlot(work.slot.date, work.slot.time) : "bez terminu"}</dd></div>
+                <div><dt>Stan</dt><dd><span className="experimental-work-chip" data-state={work.state}>{work.label}</span> {work.reason}</dd></div>
+                <div><dt>Zasady wyniku</dt><dd>{scoreEntryHint(bo, allowDraws)}</dd></div>
+              </dl>
+              {history.length > 0 && (
+                <details className="experimental-match-history">
+                  <summary>Historia meczu ({history.length})</summary>
+                  <ol>
+                    {history.slice(0, 8).map((entry) => (
+                      <li key={entry.id} data-undone={entry.isUndone ? "true" : undefined}>
+                        <time dateTime={entry.createdAt}>{new Date(entry.createdAt).toLocaleString("pl-PL", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</time>{" "}
+                        {entry.description}{entry.isUndone ? " (cofnięta)" : ""}
+                      </li>
+                    ))}
+                  </ol>
+                </details>
+              )}
+            </div>
+          );
+        })()}
 
         {/* Score area */}
         <div className="p-4 md:p-5">
@@ -1405,10 +1586,31 @@ export default function TournamentHost() {
               </div>
             </div>
           )}
-          {!isDone && !isCancelled && !conflictedDraft && (
+          {saveStatus[focusedMatch.id] && (() => {
+            const status = saveStatus[focusedMatch.id]!;
+            if (status.phase === "saving") {
+              return <p role="status" className="host-save-status mt-3 flex items-center gap-2 text-sm text-primary" data-save-state="saving"><Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> Zapisywanie: {status.label}…</p>;
+            }
+            if (status.kind === "conflict") return null; // the conflict section above explains it
+            return (
+              <div role="status" className="host-save-status mt-3 rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm" data-save-state="error" data-kind={status.kind}>
+                <p className="font-semibold">Nie zapisano</p>
+                <p className="mt-1">{status.message}</p>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {status.kind === "session" && hasNewAuth && <Button variant="outline" size="sm" onClick={() => setShowOrgModal(true)}>Zaloguj ponownie</Button>}
+                  {status.kind !== "rejected" && !isDone && !!scores[focusedMatch.id] && (
+                    <Button size="sm" disabled={completeMatch.isPending || staleDraft} onClick={() => handleTryComplete(focusedMatch.id, focusedMatch)}>Spróbuj ponownie</Button>
+                  )}
+                </div>
+              </div>
+            );
+          })()}
+          {!isDone && !isCancelled && !conflictedDraft && (scores[focusedMatch.id] || !isExperimental) && (
             <p className="mt-3 text-sm text-muted-foreground">
               {scores[focusedMatch.id]
-                ? "Wynik roboczy — nie jest jeszcze zapisany. Zapisz go po zakończeniu meczu."
+                ? isExperimental
+                  ? `Edytujesz — wynik roboczy ${scores[focusedMatch.id]!.s1}:${scores[focusedMatch.id]!.s2} jest jeszcze niezapisany. Zostaje w tej karcie przeglądarki także po odświeżeniu strony.`
+                  : "Wynik roboczy — nie jest jeszcze zapisany. Zapisz go po zakończeniu meczu."
                 : scoreEntryHint(bo, allowDraws)}
             </p>
           )}
@@ -1621,6 +1823,22 @@ export default function TournamentHost() {
 
           {/* ═══ PROWADZENIE ═══ */}
           <TabsContent value="prowadzenie" className="pt-4 space-y-4">
+            {draftNotices.length > 0 && (
+              <div role="status" className="organizer-notice rounded-lg border p-3 text-sm" data-testid="restored-drafts">
+                <p className="font-semibold">Niezapisane wyniki z tej karty</p>
+                <ul className="mt-1 list-disc space-y-0.5 pl-5">{draftNotices.map((notice) => <li key={notice}>{notice}</li>)}</ul>
+                <Button variant="ghost" size="sm" className="mt-1" onClick={() => setDraftNotices([])}>Rozumiem</Button>
+              </div>
+            )}
+            {lastSaved && (
+              <p role="status" className="host-last-saved flex flex-wrap items-center gap-2 text-sm" data-save-state="saved">
+                <CheckCircle2 className="h-4 w-4 text-green-500" aria-hidden="true" />
+                <span>Zapisano {lastSaved.at.toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" })}: {lastSaved.text}.</span>
+                {lastSaved.matchId !== focusedMatchId && (
+                  <Button variant="ghost" size="sm" className="h-7" onClick={() => openInEditor(lastSaved.matchId)}>Pokaż ten mecz</Button>
+                )}
+              </p>
+            )}
             {/* Big active match panel */}
             {!dataLoading && !dataError && renderActiveMatchPanel()}
             {isExperimental && !dataLoading && !dataError && activeStage && (activeStage.format === "round_robin" || activeStage.format === "group_stage") && (
@@ -1630,7 +1848,7 @@ export default function TournamentHost() {
                 refreshKey={(operationalMatches ?? []).map((match) => `${match.id}:${match.status}:${match.revision ?? 0}`).join(",")}
                 canPlan={capabilities.canManageLifecycle}
                 canEditDates={capabilities.canUseLegacyMatchTools}
-                onSelectMatch={(matchId) => setSelectedMatchId(matchId)}
+                onSelectMatch={openInEditor}
               />
             )}
             {isExperimental && !dataLoading && !dataError && activeStage?.leagueRules && capabilities.canManageLifecycle && (
@@ -1647,7 +1865,7 @@ export default function TournamentHost() {
                 <section aria-label="Mecze bieżącego etapu" className="min-w-0">
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="text-sm font-semibold">
-                      Mecze bieżącego etapu ({queueMatches.length})
+                      Mecze bieżącego etapu ({workQueue.length})
                     </h3>
                     {actionableMatches.length > 1 && (
                       <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={handleNextMatch}>
@@ -1655,12 +1873,27 @@ export default function TournamentHost() {
                       </Button>
                     )}
                   </div>
-                  {queueMatches.length === 0 ? (
-                    <p className="text-xs text-muted-foreground text-center py-4">Brak oczekujących meczów</p>
+                  {isExperimental && workQueue.length > 0 && (
+                    <div role="group" aria-label="Pokaż mecze w stanie" className="experimental-work-filters">
+                      {(["all", ...QUEUE_FILTERS] as const).map((key) => {
+                        const count = key === "all" ? workQueue.length : workCounts[key];
+                        return (
+                          <button key={key} type="button" className="experimental-work-filter" data-state={key} data-empty={count === 0 ? "true" : undefined}
+                            aria-pressed={queueFilter === key}
+                            onClick={() => navigate(hostUrl({ kolejka: key === "all" ? null : key }), { replace: true })}>
+                            {key === "all" ? "Wszystkie" : WORK_STATE_LABELS[key]} <span className="tabular-nums">{count}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+                  {shownQueue.length === 0 ? (
+                    <p className="text-xs text-muted-foreground text-center py-4">{queueFilter !== "all" ? "Brak meczów w tym stanie." : "Brak oczekujących meczów"}</p>
                   ) : (
                     <ol className={`grid grid-cols-1 gap-1.5 ${showResultsSidebar ? "" : "xl:grid-cols-2"}`}>
-                      {queueMatches.map((m) => (
+                      {shownQueue.map((m) => (
                         <li
+                          data-work-state={isExperimental ? workInfos.get(m.id)?.state : undefined}
                           key={m.id}
                           className={`flex min-w-0 items-center gap-1 rounded-lg border border-l-[3px] pr-1 ${
                             m.id === focusedMatchId
@@ -1669,12 +1902,13 @@ export default function TournamentHost() {
                           }`}
                         >
                           {/* Reorder arrows */}
-                          {capabilities.canUseLegacyMatchTools && m.status === "pending" && <div className="flex flex-col py-1 pl-1 shrink-0">
+                          {capabilities.canUseLegacyMatchTools && m.status === "pending" && queueFilter === "all" && <div className="flex flex-col py-1 pl-1 shrink-0">
                             <button
                               className="p-0.5 text-muted-foreground/40 hover:text-muted-foreground disabled:opacity-20 disabled:cursor-not-allowed"
                               onClick={() => handleMoveInQueue(m.id, "up")}
                               disabled={m.id === pendingQueue[0]?.id || reorderMatches.isPending}
                               title="Przesuń wyżej"
+                              aria-label={`Przesuń wyżej w kolejce: ${m.player1Name} – ${m.player2Name}`}
                             >
                               <ArrowUp className="w-3 h-3" />
                             </button>
@@ -1683,6 +1917,7 @@ export default function TournamentHost() {
                               onClick={() => handleMoveInQueue(m.id, "down")}
                               disabled={m.id === pendingQueue[pendingQueue.length - 1]?.id || reorderMatches.isPending}
                               title="Przesuń niżej"
+                              aria-label={`Przesuń niżej w kolejce: ${m.player1Name} – ${m.player2Name}`}
                             >
                               <ArrowDown className="w-3 h-3" />
                             </button>
@@ -1706,20 +1941,43 @@ export default function TournamentHost() {
                                 <span className="text-muted-foreground font-normal">vs</span>{" "}
                                 {m.player2Name}
                               </div>
+                              {isExperimental && <div className="experimental-work-reason">{workInfos.get(m.id)?.reason}</div>}
                             </div>
                             {m.status === "in_progress" && <span className="text-sm font-mono tabular-nums">{m.score1 ?? 0}:{m.score2 ?? 0}</span>}
-                            {m.status === "pending" && <span className="shrink-0 text-xs text-muted-foreground">Oczekuje</span>}
-                            {m.status === "in_progress" && (
-                              <Badge className="shrink-0 bg-secondary/20 text-secondary border-secondary/40 text-[10px]">
-                                LIVE
-                              </Badge>
-                            )}
+                            {isExperimental ? (
+                              <span className="experimental-work-chip shrink-0" data-state={workInfos.get(m.id)?.state}>{workInfos.get(m.id)?.label}</span>
+                            ) : <>
+                              {m.status === "pending" && <span className="shrink-0 text-xs text-muted-foreground">Oczekuje</span>}
+                              {m.status === "in_progress" && (
+                                <Badge className="shrink-0 bg-secondary/20 text-secondary border-secondary/40 text-[10px]">
+                                  LIVE
+                                </Badge>
+                              )}
+                            </>}
                             {m.id === focusedMatchId && m.status !== "in_progress" && (
                               <span className="text-xs text-primary shrink-0">Wybrany</span>
                             )}
                           </button>
+                          {/* V5.6 (Experimental): the row's one action, with words */}
+                          {isExperimental && m.id !== focusedMatchId && (() => {
+                            const action = workInfos.get(m.id)?.action;
+                            if (action?.kind === "start" && capabilities.canUseLegacyMatchTools) {
+                              return <Button variant="outline" size="sm" className="h-8 shrink-0 gap-1 px-2 text-primary" onClick={() => { setSelectedMatchId(m.id); handleSetInProgress(m.id); }}>
+                                <Play className="h-3.5 w-3.5" aria-hidden="true" /> Rozpocznij
+                              </Button>;
+                            }
+                            if (action?.kind === "restore" && capabilities.canUseLegacyMatchTools) {
+                              return <Button variant="outline" size="sm" className="h-8 shrink-0 gap-1 px-2" onClick={() => handleRestore(m.id)} disabled={updateMatch.isPending}>
+                                <SkipForward className="h-3.5 w-3.5" aria-hidden="true" /> Przywróć
+                              </Button>;
+                            }
+                            if (action?.kind === "enter_result" && capabilities.canWriteTournamentResults) {
+                              return <Button variant="outline" size="sm" className="h-8 shrink-0 px-2" onClick={() => openInEditor(m.id)}>Wpisz wynik</Button>;
+                            }
+                            return null;
+                          })()}
                           {/* Set as current button for non-focused matches */}
-                          {capabilities.canUseLegacyMatchTools && m.id !== focusedMatchId && m.status !== "in_progress" && (
+                          {!isExperimental && capabilities.canUseLegacyMatchTools && m.id !== focusedMatchId && m.status !== "in_progress" && (
                             <Button
                               variant="outline"
                               size="sm"
@@ -1785,8 +2043,8 @@ export default function TournamentHost() {
               </div>
             )}
 
-            {/* Postponed matches section */}
-            {postponedMatches.length > 0 && (
+            {/* Postponed matches section (Experimental lists them in the work queue) */}
+            {!isExperimental && postponedMatches.length > 0 && (
               <div>
                 <h3 className="text-sm font-semibold text-orange-400/80 mb-2 flex items-center gap-2">
                   <Clock className="w-3.5 h-3.5" /> Przełożone ({postponedMatches.length})
@@ -1878,7 +2136,7 @@ export default function TournamentHost() {
                         <Badge variant="outline" className={match.status === "in_progress" ? "text-secondary border-secondary" : ""}>{MATCH_STATUS_LABELS[match.status] ?? "Nieznany"}</Badge>
                         {capabilities.canWriteTournamentResults && match.status === "completed" && match.resultType !== "bye" ?
                           <Button variant="outline" size="sm" aria-label={`Popraw wynik: ${match.player1Name} – ${match.player2Name}`} onClick={() => openCorrection(match.id)}>Popraw wynik</Button>
-                          : <Button variant="ghost" size="sm" onClick={() => { setSelectedMatchId(match.id); navigate(tournamentHref(id, isExperimental, "/host")); }}>Pokaż mecz</Button>}
+                          : <Button variant="ghost" size="sm" onClick={() => openInEditor(match.id)}>{isExperimental && match.status !== "cancelled" && match.status !== "postponed" ? "Otwórz w edytorze" : "Pokaż mecz"}</Button>}
                       </div>
                     ))}
                   </div>
@@ -2002,6 +2260,7 @@ export default function TournamentHost() {
                 state={doubleEliminationQuery.data}
                 canManage={capabilities.canWriteTournamentResults}
                 canReset={capabilities.canManageLifecycle}
+                onOpenMatch={openInEditor}
               />
             ) : doubleEliminationStage && doubleEliminationQuery.isPending ? (
               <div className="rounded-lg border p-6 text-sm text-muted-foreground">Ładowanie drabinki Double Elimination…</div>
@@ -2019,6 +2278,7 @@ export default function TournamentHost() {
                     : undefined
                 }
                 matchPicksMap={isDeadlock ? matchPicksMap : undefined}
+                onOpenMatch={capabilities.canWriteTournamentResults || capabilities.canUseLegacyMatchTools ? openInEditor : undefined}
               />
             ) : (
               <div className="text-center py-12 text-muted-foreground border border-dashed rounded bg-card">
@@ -2135,6 +2395,20 @@ export default function TournamentHost() {
           })()}
         </DialogContent>
       </Dialog>
+
+      {hasNewAuth && isNewAuthAuthenticated && (
+        <OrganizerLoginModal
+          open={showOrgModal}
+          onClose={() => setShowOrgModal(false)}
+          tournamentId={id}
+          tournamentName={tournament.name}
+          onSuccess={(token) => {
+            storeOrgToken(id, token);
+            setActiveOrganizerToken(token);
+            setShowOrgModal(false);
+          }}
+        />
+      )}
 
       {/* Share Links Dialog */}
       <Dialog open={showShareDialog} onOpenChange={setShowShareDialog}>

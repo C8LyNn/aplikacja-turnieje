@@ -84,9 +84,11 @@ interface BracketViewProps {
    * Pass matchPicksMap instead to show the hero played per match.
    */
   playerBansMap?: Map<number, string[]>;
+  /** V5.6 · host only: a match card opens that match in the one match editor. */
+  onOpenMatch?: (matchId: number) => void;
 }
 
-export function BracketView({ bracket, format, forcedHeroId, matchPicksMap, scale = 1 }: BracketViewProps) {
+export function BracketView({ bracket, format, forcedHeroId, matchPicksMap, scale = 1, onOpenMatch }: BracketViewProps) {
   if (!bracket || !bracket.rounds || bracket.rounds.length === 0) {
     return (
       <div className="flex items-center justify-center py-20 text-muted-foreground border border-dashed border-border rounded-lg bg-background/50">
@@ -115,9 +117,18 @@ export function BracketView({ bracket, format, forcedHeroId, matchPicksMap, scal
               style={{ left: PADDING + ri * (CARD_W + COL_GAP), top: PADDING, width: CARD_W, height: HEADER_H, lineHeight: `${HEADER_H}px` }}>
               {roundLabel(round.round, totalRounds, format)}
             </div>
-            {layout.columns[ri].map(({ match, x, y }) => <div key={match.id} data-match-id={match.id} className="absolute" style={{ left: x, top: y, width: CARD_W, height: CARD_H }}>
-              <MatchBox match={match} forcedHeroId={forcedHeroId} matchPicksMap={matchPicksMap} />
-            </div>)}
+            {layout.columns[ri].map(({ match, x, y }) => {
+              const openable = !!onOpenMatch && match.resultType !== "bye" && !!match.player1Id && !!match.player2Id;
+              return <div key={match.id} data-match-id={match.id} className="absolute" style={{ left: x, top: y, width: CARD_W, height: CARD_H }}>
+                {openable ? (
+                  <button type="button" className="block h-full w-full select-text rounded-md text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+                    onClick={() => onOpenMatch!(match.id)}
+                    aria-label={`Otwórz w edytorze meczu: ${match.player1Name ?? "?"} – ${match.player2Name ?? "?"}, mecz ${match.matchNumber}`}>
+                    <MatchBox match={match} forcedHeroId={forcedHeroId} matchPicksMap={matchPicksMap} />
+                  </button>
+                ) : <MatchBox match={match} forcedHeroId={forcedHeroId} matchPicksMap={matchPicksMap} />}
+              </div>;
+            })}
           </div>)}
           {bracket.winner && layout.winner && <>
             <div className="absolute text-center font-bold text-[10px] text-primary uppercase tracking-wider"

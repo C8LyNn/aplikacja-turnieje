@@ -21,6 +21,7 @@ export interface StageScheduleMatch {
   /** @nullable */
   player2Name: string | null;
   status: StageScheduleMatchStatus;
+  /** due = planned start passed today, not started yet; awaiting_result = the planned match day is over and there is no result. Judged in the stage time zone. */
   scheduleState: StageScheduleMatchScheduleState;
   /** @nullable */
   scheduledAt: Date | null;
