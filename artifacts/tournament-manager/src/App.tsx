@@ -13,6 +13,7 @@ import CreateTournament from "@/pages/create-tournament";
 import TournamentCreateChoice from "@/pages/tournament-create-choice";
 import CreateTournamentExperimental from "@/pages/experimental/tournaments/create-tournament-experimental";
 import CreateTournamentExperimentalAdvanced from "@/pages/experimental/tournaments/create-tournament-experimental-advanced";
+import ExperimentalUiCatalog from "@/pages/experimental/ui-catalog";
 import TournamentDetail from "@/pages/tournament-detail";
 import TournamentBracket from "@/pages/tournament-bracket";
 import TournamentHost from "@/pages/tournament-host";
@@ -151,6 +152,7 @@ function Router() {
       <Route path="/experimental/tournaments/new/advanced" component={CreateTournamentExperimentalAdvanced} />
       <Route path="/experimental/tournaments/new" component={CreateTournamentExperimental} />
       <Route path="/experimental/tournaments/dashboard" component={Dashboard} />
+      <Route path="/experimental/tournaments/katalog" component={ExperimentalUiCatalog} />
       <Route path="/experimental/tournaments/support" component={SupportEntry} />
       <Route path="/experimental/tournaments/fan" component={FanView} />
       <Route path="/experimental/tournaments/:id/bracket" component={TournamentBracket} />

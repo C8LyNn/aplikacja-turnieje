@@ -2625,4 +2625,12 @@ html[data-x-type="display"] :is(.experimental-tournament-shell, .experimental-to
 :is(.experimental-tournament-shell, .experimental-tournament-public) .experimental-public-match-card[data-highlight="true"] { border-color: var(--x-a1) !important; box-shadow: 0 0 0 1px var(--x-a1), 0 0 28px color-mix(in oklab, var(--x-a1) 30%, transparent); }
 :is(.experimental-tournament-shell, .experimental-tournament-public) .experimental-public-search:focus-within { border-color: var(--x-a1); }
 :is(.experimental-tournament-shell, .experimental-tournament-public) .experimental-public-match-link:focus-visible { outline: 2px solid var(--x-a1); outline-offset: 2px; }
+.experimental-tournament-shell .experimental-catalog-section { border-color: var(--x-line); border-radius: var(--x-radius-lg, 1rem); background: linear-gradient(180deg, var(--x-card-top), var(--x-card-bot)); }
+/* Notices keep their meaning in every set: a status accent (not the theme's primary colour) and words or a mark. */
+.experimental-tournament-shell .organizer-notice--success { border-left: 4px solid hsl(var(--x-live)) !important; color: var(--x-text) !important; }
+.experimental-tournament-shell .organizer-notice--success::before { content: "✓"; margin-right: .5rem; color: hsl(var(--x-live)); font-weight: 800; }
+.experimental-tournament-shell .organizer-notice--error { border-left: 4px solid hsl(var(--x-danger)) !important; background: color-mix(in oklab, hsl(var(--x-danger)) 8%, var(--x-card-bot)) !important; }
+.experimental-tournament-shell .organizer-notice--pending { border-left: 4px solid var(--x-line-strong) !important; color: var(--x-text) !important; }
+.experimental-tournament-shell section[data-exp-tone="danger"]:not(.experimental-host-command-center) { border-left: 4px solid hsl(var(--x-danger)) !important; }
+.experimental-tournament-shell .organizer-notice[aria-label="Konflikt zapisu wyniku"] { border-left: 4px solid hsl(var(--x-ready)) !important; }
 /* end v5.8 layout */

@@ -571,6 +571,8 @@ export function ExperimentalAppearanceControl() {
 
         <div className="experimental-appearance-footer">
           {dirty && <p className="experimental-appearance-note" role="status">Podgląd — kliknij „Zastosuj”, aby zachować.</p>}
+          {/* V5.8: every shared element (forms, tables, dialogs, notices) under each set, without saving anything. */}
+          <a href={`${(import.meta.env?.BASE_URL ?? "/").replace(/\/$/, "")}/experimental/tournaments/katalog`} className="experimental-appearance-note underline">Zobacz wszystkie elementy w katalogu</a>
           <div className="experimental-appearance-actions">
             <button type="button" className="experimental-appearance-reset" disabled={same(draft, DEFAULT_EXPERIMENTAL_APPEARANCE)} onClick={() => setDraft(DEFAULT_EXPERIMENTAL_APPEARANCE)}>
               Przywróć domyślne
