@@ -228,23 +228,34 @@ const CATEGORY_OPTIONS = {
 type Category = keyof typeof CATEGORY_OPTIONS;
 const CATEGORIES = Object.keys(CATEGORY_OPTIONS) as Category[];
 
+/** V5.8 · preset families, so the list reads as a few styles with variants, not fourteen similar tiles. */
+export const EXPERIMENTAL_APPEARANCE_FAMILIES = [
+  { id: "arena", label: "Arena", hint: "Futurystycznie i kolorowo" },
+  { id: "broadcast", label: "Transmisja", hint: "Duże wyniki na ekran i projektor" },
+  { id: "sport", label: "Sport", hint: "Klasycznie i profesjonalnie" },
+  { id: "arcade", label: "Arcade", hint: "Żywo i dynamicznie" },
+  { id: "technical", label: "Techniczny", hint: "Zwarto, dużo danych" },
+  { id: "comfort", label: "Wygoda", hint: "Czytelność i spokój" },
+] as const;
+export type ExperimentalAppearanceFamily = (typeof EXPERIMENTAL_APPEARANCE_FAMILIES)[number]["id"];
+
 /** Ready-made sets: one click for beginners, a starting point for tinkering. */
-export const EXPERIMENTAL_APPEARANCE_PRESETS: Array<{ id: string; label: string; hint: string; values: Partial<ExperimentalAppearance> }> = [
-  { id: "arena", label: "Arena", hint: "Domyślny wygląd turnieju", values: {} },
-  { id: "stage", label: "Scena turniejowa", hint: "Wyraziste kolory do pokazów i transmisji", values: { background: "nebula", palette: "triad", shape: "round", effects: "full", typography: "technical" } },
-  { id: "readable", label: "Czytelny", hint: "Duży tekst, wysoki kontrast, spokojne tło", values: { background: "carbon", contrast: "high", typography: "readable", cards: "solid", effects: "subtle" } },
-  { id: "pro", label: "Minimal pro", hint: "Ostre krawędzie, bez efektów", values: { background: "solid", palette: "mono", shape: "sharp", cards: "outline", effects: "off" } },
-  { id: "neon", label: "Neon", hint: "Siatka areny i mocny kontrast kolorów", values: { background: "grid", palette: "contrast", cards: "glass", effects: "full" } },
-  { id: "calm", label: "Spokojny", hint: "Miękkie barwy, bez animacji", values: { background: "aura", palette: "analog", motion: "reduced", effects: "subtle" } },
+export const EXPERIMENTAL_APPEARANCE_PRESETS: Array<{ id: string; label: string; hint: string; family: ExperimentalAppearanceFamily; values: Partial<ExperimentalAppearance> }> = [
+  { id: "arena", label: "Arena", hint: "Domyślny wygląd turnieju", family: "arena", values: {} },
+  { id: "stage", label: "Scena turniejowa", hint: "Na projektor: duże wyniki, ciepłe kolory, dużo miejsca", family: "broadcast", values: { skin: "ember", background: "nebula", palette: "triad", typography: "display", shape: "round", cards: "glass", effects: "full", glow: "neon", density: "spacious", buttons: "pill", nav: "pills", tables: "spacious", brackets: "broadcast", matchCards: "scoreboard", decor: "none" } },
+  { id: "readable", label: "Czytelny", hint: "Duży tekst, wysoki kontrast, wyraźne ramki i pasy w tabelach", family: "comfort", values: { background: "carbon", contrast: "high", typography: "readable", cards: "solid", effects: "subtle", glow: "none", density: "spacious", buttons: "solid", controls: "filled", borders: "bold", nav: "blocks", tables: "striped", matchCards: "arena", decor: "none" } },
+  { id: "pro", label: "Minimal pro", hint: "Stalowe, pełne panele, bez efektów, zwykła gęstość", family: "technical", values: { skin: "iron-citadel", background: "solid", palette: "mono", typography: "classic", shape: "sharp", cards: "solid", effects: "off", glow: "none", density: "comfortable", buttons: "solid", controls: "filled", borders: "none", nav: "blocks", tables: "striped", brackets: "minimal", matchCards: "compact", decor: "none" } },
+  { id: "neon", label: "Neon", hint: "Fiolet i neon, siatka areny, tablica wyników", family: "arena", values: { skin: "void", background: "grid", palette: "contrast", typography: "technical", shape: "arena", cards: "glass", effects: "full", glow: "neon", buttons: "arena", nav: "arena", tables: "lined", brackets: "neon", matchCards: "scoreboard", decor: "corners" } },
+  { id: "calm", label: "Spokojny", hint: "Ciepłe, miękkie barwy, bez animacji i poświaty", family: "comfort", values: { skin: "copper-age", background: "aura", palette: "analog", typography: "readable", shape: "round", cards: "solid", effects: "subtle", motion: "reduced", glow: "none", buttons: "solid", controls: "filled", borders: "none", nav: "underline", tables: "spacious", matchCards: "arena", decor: "none" } },
   // V5.4 · styles that differ in shape, type, buttons, tables and brackets — not only in colour.
-  { id: "esport", label: "Futurystyczny e-sport", hint: "Siatka, ścięte rogi, neonowa drabinka", values: { skin: "abyssal", background: "grid", palette: "triad", typography: "technical", shape: "cut", cards: "glass", effects: "full", glow: "neon", buttons: "beveled", nav: "pills", tables: "lined", brackets: "neon", matchCards: "scoreboard", decor: "corners" } },
-  { id: "minimal", label: "Minimalistyczny profesjonalny", hint: "Zwarty, ostry, bez efektów", values: { skin: "obsidian", background: "solid", palette: "mono", typography: "classic", shape: "sharp", cards: "outline", effects: "off", glow: "none", density: "compact", buttons: "outline", controls: "underline", nav: "underline", tables: "lined", brackets: "minimal", matchCards: "compact", borders: "arena" } },
-  { id: "arcade", label: "Energetyczny arcade", hint: "Pigułki, grube ramki, linie ekranu", values: { skin: "toxic", background: "grid", palette: "triad", typography: "display", shape: "round", cards: "solid", effects: "full", glow: "neon", buttons: "pill", controls: "outlined", borders: "bold", nav: "pills", tables: "striped", matchCards: "scoreboard", decor: "scanlines" } },
-  { id: "cyberpunk", label: "Cyberpunk", hint: "Róż i cyjan, ścięte panele, neon", values: { skin: "midnight-rose", background: "nebula", palette: "contrast", typography: "technical", shape: "cut", cards: "outline", effects: "full", glow: "neon", buttons: "beveled", controls: "outlined", borders: "bold", nav: "blocks", tables: "lined", brackets: "neon", matchCards: "scoreboard", decor: "scanlines" } },
-  { id: "sport", label: "Klasyczny sport", hint: "Tablica wyników, pasy w tabeli", values: { skin: "classic", background: "solid", palette: "harmony", typography: "display", shape: "sharp", cards: "solid", effects: "subtle", glow: "none", buttons: "solid", controls: "filled", borders: "arena", nav: "blocks", tables: "striped", brackets: "arena", matchCards: "scoreboard", decor: "none" } },
-  { id: "broadcast", label: "Transmisja TV", hint: "Mocny kontrast, duże wyniki, przestrzeń", values: { skin: "crimson-vault", background: "carbon", palette: "contrast", typography: "display", shape: "sharp", cards: "solid", effects: "subtle", glow: "soft", density: "spacious", buttons: "solid", nav: "underline", tables: "spacious", brackets: "broadcast", matchCards: "scoreboard", borders: "deep", decor: "corners" } },
-  { id: "premium", label: "Elegancki premium", hint: "Złoto, szeryfy, dużo powietrza", values: { skin: "sandstorm", background: "aura", palette: "analog", typography: "elegant", shape: "round", cards: "glass", effects: "subtle", glow: "soft", density: "spacious", buttons: "outline", controls: "underline", borders: "deep", nav: "underline", tables: "spacious", brackets: "minimal", matchCards: "arena", decor: "noise" } },
-  { id: "scifi", label: "Techniczny sci-fi", hint: "Chłodne kolory, siatka, znaczniki", values: { skin: "glacier", background: "grid", palette: "analog", typography: "technical", shape: "cut", cards: "outline", effects: "subtle", glow: "soft", density: "compact", buttons: "outline", controls: "outlined", borders: "bold", nav: "underline", tables: "lined", brackets: "minimal", matchCards: "compact", decor: "corners" } },
+  { id: "esport", label: "Futurystyczny e-sport", hint: "Siatka, ścięte rogi, neonowa drabinka", family: "arena", values: { skin: "abyssal", background: "grid", palette: "triad", typography: "technical", shape: "cut", cards: "glass", effects: "full", glow: "neon", buttons: "beveled", nav: "pills", tables: "lined", brackets: "neon", matchCards: "scoreboard", decor: "corners" } },
+  { id: "minimal", label: "Minimalistyczny profesjonalny", hint: "Zwarty, ostry, bez efektów", family: "technical", values: { skin: "obsidian", background: "solid", palette: "mono", typography: "classic", shape: "sharp", cards: "outline", effects: "off", glow: "none", density: "compact", buttons: "outline", controls: "underline", nav: "underline", tables: "lined", brackets: "minimal", matchCards: "compact", borders: "arena" } },
+  { id: "arcade", label: "Energetyczny arcade", hint: "Pigułki, grube ramki, linie ekranu", family: "arcade", values: { skin: "toxic", background: "grid", palette: "triad", typography: "display", shape: "round", cards: "solid", effects: "full", glow: "neon", buttons: "pill", controls: "outlined", borders: "bold", nav: "pills", tables: "striped", matchCards: "scoreboard", decor: "scanlines" } },
+  { id: "cyberpunk", label: "Cyberpunk", hint: "Róż i cyjan, ścięte panele, neon", family: "arena", values: { skin: "midnight-rose", background: "nebula", palette: "contrast", typography: "technical", shape: "cut", cards: "outline", effects: "full", glow: "neon", buttons: "beveled", controls: "outlined", borders: "bold", nav: "blocks", tables: "lined", brackets: "neon", matchCards: "scoreboard", decor: "scanlines" } },
+  { id: "sport", label: "Klasyczny sport", hint: "Tablica wyników, pasy w tabeli", family: "sport", values: { skin: "classic", background: "solid", palette: "harmony", typography: "display", shape: "sharp", cards: "solid", effects: "subtle", glow: "none", buttons: "solid", controls: "filled", borders: "arena", nav: "blocks", tables: "striped", brackets: "arena", matchCards: "scoreboard", decor: "none" } },
+  { id: "broadcast", label: "Transmisja TV", hint: "Mocny kontrast, duże wyniki, przestrzeń", family: "broadcast", values: { skin: "crimson-vault", background: "carbon", palette: "contrast", typography: "display", shape: "sharp", cards: "solid", effects: "subtle", glow: "soft", density: "spacious", buttons: "solid", nav: "underline", tables: "spacious", brackets: "broadcast", matchCards: "scoreboard", borders: "deep", decor: "corners" } },
+  { id: "premium", label: "Elegancki premium", hint: "Złoto, szeryfy, dużo powietrza", family: "sport", values: { skin: "sandstorm", background: "aura", palette: "analog", typography: "elegant", shape: "round", cards: "glass", effects: "subtle", glow: "soft", density: "spacious", buttons: "outline", controls: "underline", borders: "deep", nav: "underline", tables: "spacious", brackets: "minimal", matchCards: "arena", decor: "noise" } },
+  { id: "scifi", label: "Techniczny sci-fi", hint: "Chłodne kolory, siatka, znaczniki", family: "technical", values: { skin: "glacier", background: "grid", palette: "analog", typography: "technical", shape: "cut", cards: "outline", effects: "subtle", glow: "soft", density: "compact", buttons: "outline", controls: "outlined", borders: "bold", nav: "underline", tables: "lined", brackets: "minimal", matchCards: "compact", decor: "corners" } },
 ];
 
 function optionValues(category: Category): readonly string[] {
@@ -455,8 +466,11 @@ export function ExperimentalAppearanceControl() {
           <div role="tabpanel" aria-label="Zestawy">
             <fieldset className="experimental-appearance-group">
               <legend>Gotowe zestawy</legend>
+              {EXPERIMENTAL_APPEARANCE_FAMILIES.map((family) => (
+              <div key={family.id} className="experimental-appearance-family" role="group" aria-label={`${family.label}: ${family.hint}`}>
+              <p className="experimental-appearance-family-label"><strong>{family.label}</strong> <span>{family.hint}</span></p>
               <div className="experimental-appearance-presets">
-                {EXPERIMENTAL_APPEARANCE_PRESETS.map((preset) => {
+                {EXPERIMENTAL_APPEARANCE_PRESETS.filter((preset) => preset.family === family.id).map((preset) => {
                   const values = normalizeExperimentalAppearance({ ...DEFAULT_EXPERIMENTAL_APPEARANCE, skin: draft.skin, ...preset.values });
                   // (a preset with its own skin overrides the current one; others keep it)
                   const active = same(values, draft);
@@ -471,6 +485,8 @@ export function ExperimentalAppearanceControl() {
                   );
                 })}
               </div>
+              </div>
+              ))}
             </fieldset>
             <fieldset className="experimental-appearance-group">
               <legend>Twoje zestawy</legend>

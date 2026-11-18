@@ -84,15 +84,24 @@ test("Anuluj reverts the preview to the saved appearance", async () => {
 test("ready-made sets apply in one click and keep the chosen skin", async () => {
   localStorage.setItem(EXPERIMENTAL_APPEARANCE_STORAGE_KEY, JSON.stringify({ skin: "toxic" }));
   openPanel();
-  fireEvent.click(await screen.findByRole("button", { name: /Minimal pro/ }));
+  // V5.8: the sets are grouped in families.
+  assert.ok(await screen.findByRole("group", { name: "Arena: Futurystycznie i kolorowo" }));
+  assert.ok(screen.getByRole("group", { name: "Wygoda: Czytelność i spokój" }));
+  // A set without its own skin keeps the chosen one (V5.8: "Czytelny"; "Minimal pro" now has its own steel skin).
+  fireEvent.click(await screen.findByRole("button", { name: /Czytelny/ }));
   assert.equal(attr("data-x-skin"), "toxic");
-  assert.equal(attr("data-x-bg"), "solid");
-  assert.equal(attr("data-x-fx"), "off");
-  assert.equal(attr("data-x-cards"), "outline");
-  assert.equal(screen.getByRole("button", { name: /Minimal pro/ }).getAttribute("aria-pressed"), "true");
+  assert.equal(attr("data-x-bg"), "carbon");
+  assert.equal(attr("data-x-fx"), "subtle");
+  assert.equal(attr("data-x-cards"), "solid");
+  assert.equal(screen.getByRole("button", { name: /Czytelny/ }).getAttribute("aria-pressed"), "true");
+  fireEvent.click(screen.getByRole("button", { name: /Minimal pro/ }));
+  assert.equal(attr("data-x-skin"), "iron-citadel", "a set with its own skin brings it");
+  assert.equal(attr("data-x-cards"), "solid");
   fireEvent.click(screen.getByRole("button", { name: "Zastosuj" }));
   assert.equal(stored().palette, "mono");
   assert.equal(EXPERIMENTAL_APPEARANCE_PRESETS.length >= 6, true);
+  // V5.8: every set belongs to a family shown as a group in the studio.
+  assert.ok(EXPERIMENTAL_APPEARANCE_PRESETS.every((preset) => typeof preset.family === "string" && preset.family.length > 0));
 });
 
 test("high contrast never combines with translucent glass or full effects", async () => {
