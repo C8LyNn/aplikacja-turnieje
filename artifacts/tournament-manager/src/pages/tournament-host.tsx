@@ -72,7 +72,7 @@ import { ExperimentalHostFocusToggle } from "@/features/experimental-tournaments
 import { bestOfLabel } from "@/features/experimental-tournaments/experimental-create-wizard-model";
 import { countWorkStates, formatLocalSlot, matchWorkState, WORK_STATE_LABELS, type MatchWorkState } from "@/lib/match-work-state";
 import { readHostResultDrafts, sameSavedResult, saveFailureKind, writeHostResultDrafts, type SaveFailureKind } from "@/lib/host-result-drafts";
-import { isTwoLegTie, setRulesOf } from "@/lib/two-leg-tie-view";
+import { isTwoLegTie, setRulesOf, tieScoreText } from "@/lib/two-leg-tie-view";
 import { TwoLegTieEditor } from "@/components/two-leg-tie";
 
 type ScoreEntry = { s1: number; s2: number; baseline?: string; at?: number; sets?: SetScore[] };
@@ -328,6 +328,8 @@ export default function TournamentHost() {
   });
   const [revertConfirm, setRevertConfirm] = useState<number | null>(null);
   const openCorrection = (matchId: number) => {
+    // V5.10: a two-legged tie is corrected leg by leg in its own editor.
+    if (isTwoLegTie(matches?.find((entry) => entry.id === matchId))) { openInEditor(matchId); return; }
     confirmRevision.current[`revert:${matchId}`] = matches?.find((entry) => entry.id === matchId)?.revision;
     setSelectedMatchId(matchId);
     setRevertConfirm(matchId);
@@ -1195,7 +1197,8 @@ export default function TournamentHost() {
     const s1 = staleDraft || focusedMatch.status === "completed" ? focusedMatch.score1 ?? 0 : getS(focusedMatch.id, 1, focusedMatch.score1);
     const s2 = staleDraft || focusedMatch.status === "completed" ? focusedMatch.score2 ?? 0 : getS(focusedMatch.id, 2, focusedMatch.score2);
     const isFeatured = tournament?.featuredMatchId === focusedMatch.id;
-    const isLive = focusedMatch.status === "in_progress";
+    // V5.10: a two-legged tie between its legs is "in progress" but not live.
+    const isLive = focusedMatch.status === "in_progress" && !twoLegTie;
     const isDone = focusedMatch.status === "completed";
     const isPostponed = focusedMatch.status === "postponed";
     const isCancelled = focusedMatch.status === "cancelled";
@@ -1235,6 +1238,9 @@ export default function TournamentHost() {
             )}
             {isDone && (
               <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs shrink-0">✓ Zakończony</Badge>
+            )}
+            {twoLegTie && focusedMatch.status === "in_progress" && (
+              <Badge variant="outline" className="text-xs shrink-0">Dwumecz w toku</Badge>
             )}
             {!isExperimental && !isLive && !isDone && !isPostponed && !isCancelled && <Badge variant="outline">Oczekuje</Badge>}
             {isPostponed && (
@@ -2075,14 +2081,14 @@ export default function TournamentHost() {
                               </div>
                               {isExperimental && <div className="experimental-work-reason">{workInfos.get(m.id)?.reason}</div>}
                             </div>
-                            {m.status === "in_progress" && <span className="text-sm font-mono tabular-nums">{m.score1 ?? 0}:{m.score2 ?? 0}</span>}
+                            {m.status === "in_progress" && <span className="text-sm font-mono tabular-nums" title={isTwoLegTie(m) ? "Suma po rozegranych spotkaniach dwumeczu" : undefined}>{isTwoLegTie(m) ? tieScoreText(m) ?? "dwumecz" : `${m.score1 ?? 0}:${m.score2 ?? 0}`}</span>}
                             {isExperimental ? (
                               <span className="experimental-work-chip shrink-0" data-state={workInfos.get(m.id)?.state}>{workInfos.get(m.id)?.label}</span>
                             ) : <>
                               {m.status === "pending" && <span className="shrink-0 text-xs text-muted-foreground">Oczekuje</span>}
                               {m.status === "in_progress" && (
                                 <Badge className="shrink-0 bg-secondary/20 text-secondary border-secondary/40 text-[10px]">
-                                  LIVE
+                                  {isTwoLegTie(m) ? "DWUMECZ W TOKU" : "LIVE"}
                                 </Badge>
                               )}
                             </>}

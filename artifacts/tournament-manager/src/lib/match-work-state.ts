@@ -36,6 +36,9 @@ export interface MatchWorkInput {
   player2Id?: number | null;
   scheduledAt?: string | null;
   resultType?: string | null;
+  /** V5.10: both legs of a two-legged tie (each with its own date) and the aggregate state. */
+  legs?: Array<{ leg: number; status: string; scheduledAt?: string | null }> | null;
+  tie?: { state: string; total1: number; total2: number } | null;
 }
 
 export const WORK_STATE_LABELS: Record<MatchWorkState, string> = {
@@ -99,6 +102,24 @@ export function matchWorkState(
       match.resultType === "bye" ? { kind: "none", label: "" } : { kind: "correct", label: "Popraw wynik" });
   }
   if (match.status === "cancelled") return info("cancelled", "Mecz anulowany — nie liczy się do tabeli.", { kind: "restore", label: "Przywróć do kolejki" });
+  if (match.legs && match.legs.length === 2 && match.tie) {
+    // V5.10: a two-legged tie is worked leg by leg: no "start", each leg has its own date.
+    if (!match.player1Id || !match.player2Id) return info("waiting", "Para dwumeczu ustali się po wcześniejszych meczach.", { kind: "none", label: "" });
+    const enterLeg = { kind: "enter_result" as const, label: "Wpisz wynik spotkania" };
+    if (match.tie.state === "awaiting_decision") {
+      return info("needs_result", match.tie.total1 === match.tie.total2
+        ? `Oba spotkania rozegrane, suma ${match.tie.total1}:${match.tie.total2} — wskaż, kto awansuje, i podaj powód.`
+        : `Oba spotkania rozegrane — zatwierdź awans według sumy ${match.tie.total1}:${match.tie.total2}.`, { kind: "enter_result", label: "Rozstrzygnij awans" });
+    }
+    const next = match.legs.slice().sort((left, right) => left.leg - right.leg).find((leg) => leg.status !== "completed");
+    const nextPlanned = next?.scheduledAt ? new Date(next.scheduledAt) : null;
+    const nextSlot = nextPlanned && !Number.isNaN(nextPlanned.getTime()) ? partsIn(nextPlanned, timeZone) : null;
+    const legInfo = (state: MatchWorkState, reason: string): MatchWorkInfo => ({ state, label: WORK_STATE_LABELS[state], reason, action: enterLeg, slot: nextSlot });
+    const sum = match.tie.state === "first_leg_played" ? `Po 1. spotkaniu suma ${match.tie.total1}:${match.tie.total2}. ` : "";
+    if (!next) return legInfo("in_progress", "Oba spotkania rozegrane.");
+    if (nextSlot && nextSlot.date < today) return legInfo("needs_result", `${sum}Dzień ${next.leg}. spotkania (${formatLocalSlot(nextSlot.date, nextSlot.time)}) minął, a wyniku nie ma.`);
+    return legInfo(match.tie.state === "first_leg_played" ? "in_progress" : "ready", `${sum}Następne: ${next.leg}. spotkanie — ${nextSlot ? formatLocalSlot(nextSlot.date, nextSlot.time) : "bez terminu"}.`);
+  }
   if (match.status === "postponed") {
     return info("postponed", slot ? `Przełożony z ${formatLocalSlot(slot.date, slot.time)}. Ustal nowy termin i przywróć go do kolejki.` : "Ustal nowy termin i przywróć mecz do kolejki.",
       { kind: "restore", label: "Przywróć do kolejki" });

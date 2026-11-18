@@ -15,6 +15,7 @@ import { getApiErrorMessage } from "@/lib/tournament-stages-ui";
 import { matchResultLabel } from "@/lib/league-results";
 import { browserTimeZone, defaultWizardSchedule, formatLocalDate, plural } from "./experimental-create-wizard-model";
 import { SCHEDULE_STATE_LABELS, formatSlot, leagueNextAction, matchTitle } from "./experimental-league-model";
+import { returnLegNote } from "@/lib/league-return-legs";
 
 const INTERVALS = [1, 2, 3, 7, 14];
 
@@ -138,6 +139,8 @@ export function ExperimentalLeaguePanel({
   const action = useMemo(() => (schedule ? leagueNextAction(schedule) : null), [schedule]);
   if (!schedule || !action) return null;
   const postponed = schedule.rounds.flatMap((round) => round.matches).filter((match) => match.scheduleState === "postponed");
+  // V5.10 (P2): home and away — each match says whether it is the first meeting or the return (with the first result).
+  const allScheduleMatches = schedule.rounds.flatMap((round) => round.matches.map((match) => ({ ...match, round: round.round })));
   const due = schedule.rounds.flatMap((round) => round.matches).filter((match) => match.scheduleState === "due");
   const current = schedule.rounds.find((round) => round.round === schedule.currentRound) ?? null;
   const row = (match: StageScheduleMatch, cta: string) => (
@@ -221,6 +224,7 @@ export function ExperimentalLeaguePanel({
                         ? matchResultLabel({ resultType: "played", score1: match.score1, score2: match.score2, winnerId: match.winnerId ?? (match.isDraw ? null : -1) })
                         : SCHEDULE_STATE_LABELS[match.scheduleState]}
                       {" · "}{formatSlot(match)}
+                      {(() => { const note = returnLegNote(allScheduleMatches, match); return note ? <span className="block text-xs opacity-80" data-testid="league-return-leg">{note}</span> : null; })()}
                     </span>
                     {canEditDates && match.scheduleState !== "completed" && match.scheduleState !== "cancelled" && (
                       <span className="experimental-league-row-actions">
