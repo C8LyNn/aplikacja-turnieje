@@ -2640,3 +2640,10 @@ html[data-x-type="display"] :is(.experimental-tournament-shell, .experimental-to
 .experimental-tournament-shell .experimental-broadcast fieldset > legend { margin-bottom: .5rem; }
 .experimental-baskets-surface .basket-bulk.organizer-basket-bulk, .experimental-tournament-shell .basket-bulk.organizer-basket-bulk { border-color: var(--x-line); background: var(--x-card-bot); }
 /* end v5.9 */
+/* v5.9.1 · broadcast panel: preview scenes (bright / dark game), the chosen overlay and set clearly marked (one-line rules) */
+.experimental-broadcast-preview[data-scene="jasna"] { background: radial-gradient(circle at 22% 28%, #fff7c2 0 9%, transparent 10%), linear-gradient(170deg, #9fd3ff 0%, #e8f6ff 45%, #f4e3b0 46%, #e2c27a 100%); }
+.experimental-broadcast-preview[data-scene="ciemna"] { background: radial-gradient(circle at 72% 30%, #3a2a55 0 8%, transparent 9%), linear-gradient(170deg, #0b0f1a 0%, #1a1f2e 55%, #0e1410 56%, #05080a 100%); }
+.experimental-tournament-shell .experimental-broadcast-choice[data-selected], .experimental-tournament-shell .experimental-broadcast-preset[data-selected] { border-color: var(--x-a1); background: color-mix(in oklab, var(--x-a1) 14%, var(--x-card-bot)); box-shadow: inset 0 0 0 1px var(--x-a1); }
+.experimental-broadcast-choice[data-selected], .experimental-broadcast-preset[data-selected] { border-color: hsl(var(--primary)); }
+.experimental-tournament-shell .experimental-broadcast-onscreen { background: var(--x-card-bot); border-color: var(--x-line); border-left: 4px solid #f5b400; }
+/* end v5.9.1 */

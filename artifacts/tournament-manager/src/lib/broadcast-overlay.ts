@@ -42,9 +42,9 @@ export const OVERLAY_DEFAULTS: Omit<OverlayConfig, "tournamentId"> = {
 };
 
 export const OVERLAY_KINDS: { id: OverlayKind; label: string; description: string }[] = [
-  { id: "wynik", label: "Wynik meczu", description: "Pasek z nazwami, wynikiem, setami i stanem meczu — na obraz rozgrywki." },
-  { id: "struktura", label: "Drabinka i tabele", description: "Drabinka, tabela ligi lub tabele grup wybranego etapu — na przerwę." },
-  { id: "zapowiedz", label: "Zapowiedź meczu", description: "Plansza przed meczem: kto gra, etap, runda i termin." },
+  { id: "wynik", label: "Wynik", description: "Pasek z nazwami i wynikiem na obrazie gry." },
+  { id: "struktura", label: "Tabela i drabinka", description: "Tabela, grupy albo drabinka etapu — na przerwę." },
+  { id: "zapowiedz", label: "Zapowiedź", description: "Plansza przed meczem: kto gra, kiedy i o co." },
 ];
 
 export const OVERLAY_PRESETS: { id: OverlayPresetId; label: string; description: string }[] = [
@@ -289,6 +289,26 @@ export interface MatchCard {
   format: string;
   context: string;
   scheduledAt: string | null;
+  /** V5.9.1 · a stored score exists (before that the score box says "VS", never an empty "– : –"). */
+  hasScore: boolean;
+  /** V5.9.1 · plain match state for headings and styling. */
+  state: "pending" | "live" | "completed" | "postponed" | "cancelled";
+  /** V5.9.1 · how much room a name needs: long names get a smaller size and may take two lines (never cut to "…"). */
+  fit1: NameFit;
+  fit2: NameFit;
+}
+
+export type NameFit = "normal" | "long" | "xlong";
+/** Long names are shown smaller and on up to two lines; the thresholds follow the bar's name width at 1080p. */
+export function nameFit(name: string): NameFit {
+  const length = [...name.trim()].length;
+  return length > 30 ? "xlong" : length > 18 ? "long" : "normal";
+}
+
+/** Heading of the upcoming card for the match's real state (a postponed match is never "the next match"). */
+export function upcomingHeading(card: Pick<MatchCard, "state">): string {
+  return card.state === "live" ? "Teraz gramy" : card.state === "completed" ? "Wynik meczu" : card.state === "postponed" ? "Mecz przełożony"
+    : card.state === "cancelled" ? "Mecz odwołany" : "Następny mecz";
 }
 
 export function matchCard(match: PublicMatch, stage: PublicStage | null, stageMatches: readonly PublicMatch[], teams: boolean): MatchCard {
@@ -298,10 +318,18 @@ export function matchCard(match: PublicMatch, stage: PublicStage | null, stageMa
   const winner: 1 | 2 | 0 = match.winnerId != null && match.winnerId === match.player1Id ? 1 : match.winnerId != null && match.winnerId === match.player2Id ? 2 : 0;
   const resultNote = match.resultType === "walkover" ? "Walkower" : match.resultType === "bye" ? "Wolny los" : match.resultType === "no_contest" ? "Bez wyniku"
     : match.status === "completed" && match.resultType === "played" && winner === 0 && match.score1 != null && match.score1 === match.score2 ? "Remis" : null;
+  const side1 = match.player1Name ?? tbd;
+  const side2 = match.player2Name ?? tbd;
+  const state = match.status === "in_progress" ? "live" : match.status === "completed" ? "completed" : match.status === "postponed" ? "postponed"
+    : match.status === "cancelled" ? "cancelled" : "pending";
   return {
     matchId: match.id,
-    side1: match.player1Name ?? tbd,
-    side2: match.player2Name ?? tbd,
+    side1,
+    side2,
+    state,
+    hasScore: played && hasScore,
+    fit1: nameFit(side1),
+    fit2: nameFit(side2),
     score1: played && hasScore ? String(match.score1) : "–",
     score2: played && hasScore ? String(match.score2) : "–",
     scoreUnit: stage?.matchRules ? "sety" : null,
@@ -350,8 +378,10 @@ export function scheduleText(iso: string | null, timeZone: string | null): strin
 
 export interface StructureTableRow { rank: number; name: string; played: number; wins: number; draws: number; losses: number; points: number | null; diff: number; zone: string }
 export interface StructureTable { label: string; rows: StructureTableRow[] }
-export interface BracketRound { round: number; name: string; matches: MatchCard[] }
-export interface DoubleSection { id: "upper" | "lower" | "final"; label: string; matches: { name: string; side1: string; side2: string; score1: string; score2: string; winner: 1 | 2 | 0; live: boolean }[] }
+export interface BracketRound { round: number; name: string; matches: MatchCard[]; /** 2 when a round has more than 8 matches. */ columns: 1 | 2 }
+export interface DoubleMatch { name: string; side1: string; side2: string; score1: string; score2: string; winner: 1 | 2 | 0; live: boolean }
+/** V5.9.1 · each part of a double-elimination bracket is drawn as columns of rounds, like the bracket itself. */
+export interface DoubleSection { id: "upper" | "lower" | "final"; label: string; rounds: { round: number; matches: DoubleMatch[] }[] }
 
 export type StructureView =
   | { kind: "bracket"; title: string; rounds: BracketRound[]; fragment: string | null }
@@ -366,19 +396,32 @@ export function pickStage(stages: readonly PublicStage[], chosen: number | null,
     ?? [...ordered].reverse().find((s) => s.status !== "planned") ?? ordered[0] ?? null;
 }
 
-/** Bracket of a single-elimination stage; with a round chosen, only that round (large brackets stay readable). */
+/** More matches than this and the overlay shows the current part of the bracket instead of all of it. */
+export const BRACKET_FULL_LIMIT = 15;
+
+/**
+ * Bracket of a single-elimination stage. With a round chosen: only that round. Without one, a small bracket is shown
+ * whole; a large one (more than 15 matches, e.g. 32 players) from the current round on, at most three rounds, so it
+ * stays readable in a 1080p source instead of being squeezed. A round with more than 8 matches takes two columns.
+ */
 export function bracketView(stage: PublicStage, stageMatches: readonly PublicMatch[], round: number | null, teams: boolean): StructureView {
   if (!stageMatches.length) return { kind: "empty", title: stage.name, message: "Drabinka pojawi się po rozpoczęciu etapu." };
   const total = Math.max(...stageMatches.map((m) => m.round));
-  const rounds = [...new Set(stageMatches.map((m) => m.round))].sort((a, b) => a - b)
-    .filter((r) => round == null || r === round)
-    .map((r) => ({
-      round: r,
-      name: eliminationRoundName(r, total),
-      matches: stageMatches.filter((m) => m.round === r).sort((a, b) => a.matchNumber - b.matchNumber).map((m) => matchCard(m, stage, stageMatches, teams)),
-    }));
+  const all = [...new Set(stageMatches.map((m) => m.round))].sort((a, b) => a - b);
+  let visible = round != null ? all.filter((r) => r === round) : all;
+  let fragment: string | null = round != null ? eliminationRoundName(round, total) : null;
+  if (round == null && stageMatches.length > BRACKET_FULL_LIMIT) {
+    const open = stageMatches.filter((m) => m.status !== "completed" && m.status !== "cancelled").map((m) => m.round);
+    const current = open.length ? Math.min(...open) : total;
+    visible = all.filter((r) => r >= current).slice(0, 3);
+    if (visible[0] !== all[0]) fragment = `od: ${eliminationRoundName(visible[0], total)}`;
+  }
+  const rounds: BracketRound[] = visible.map((r) => {
+    const matches = stageMatches.filter((m) => m.round === r).sort((a, b) => a.matchNumber - b.matchNumber).map((m) => matchCard(m, stage, stageMatches, teams));
+    return { round: r, name: eliminationRoundName(r, total), matches, columns: matches.length > 8 ? 2 : 1 };
+  });
   if (!rounds.length) return { kind: "empty", title: stage.name, message: `Etap nie ma rundy ${round}.` };
-  return { kind: "bracket", title: stage.name, rounds, fragment: round != null ? rounds[0].name : null };
+  return { kind: "bracket", title: stage.name, rounds, fragment };
 }
 
 /** Group / league / Swiss tables exactly as the engine ranks them (live standings endpoint). */
@@ -415,26 +458,61 @@ export function deMatchName(name: string): string {
 export function doubleView(stage: PublicStage, state: { participants?: unknown[]; matches?: unknown[] } | null, round: number | null): StructureView {
   if (!state?.matches?.length) return { kind: "empty", title: stage.name, message: "Drabinka pojawi się po rozpoczęciu etapu." };
   const names = new Map(((state.participants ?? []) as Raw[]).map((p) => [str(p.participantKey) ?? "", str(p.name) ?? ""]));
-  const sections: DoubleSection[] = (["upper", "lower", "final"] as const).map((id) => ({
-    id,
-    label: id === "final" ? "Wielki finał" : DE_LABELS[id],
-    matches: ((state.matches ?? []) as Raw[])
+  const sections: DoubleSection[] = (["upper", "lower", "final"] as const).map((id) => {
+    const list = ((state.matches ?? []) as Raw[])
       .filter((m) => (id === "final" ? String(m.bracket).startsWith("grand_final") : m.bracket === id) && (round == null || id === "final" || m.round === round))
       .filter((m) => !(m.bracket === "grand_final_reset" && m.status === "blocked"))
-      .sort((a, b) => (num(a.order) ?? 0) - (num(b.order) ?? 0))
-      .map((m) => {
-        const slots = (m.slots as (string | null)[] | undefined) ?? [];
-        const done = m.status === "completed";
-        return {
-          name: deMatchName(str(m.name) ?? ""),
-          side1: slots[0] ? names.get(slots[0]) ?? "?" : "Do ustalenia",
-          side2: slots[1] ? names.get(slots[1]) ?? "?" : "Do ustalenia",
-          score1: done || m.status === "in_progress" ? String(num(m.score1) ?? "–") : "–",
-          score2: done || m.status === "in_progress" ? String(num(m.score2) ?? "–") : "–",
-          winner: (m.winnerParticipantKey && m.winnerParticipantKey === slots[0] ? 1 : m.winnerParticipantKey && m.winnerParticipantKey === slots[1] ? 2 : 0) as 1 | 2 | 0,
-          live: m.status === "in_progress",
-        };
-      }),
-  })).filter((section) => section.matches.length);
+      .sort((a, b) => (num(a.order) ?? 0) - (num(b.order) ?? 0));
+    const byRound = new Map<number, DoubleMatch[]>();
+    for (const m of list) {
+      const slots = (m.slots as (string | null)[] | undefined) ?? [];
+      const done = m.status === "completed";
+      const key = id === "final" ? 1 : num(m.round) ?? 1;
+      if (!byRound.has(key)) byRound.set(key, []);
+      byRound.get(key)!.push({
+        name: deMatchName(str(m.name) ?? ""),
+        side1: slots[0] ? names.get(slots[0]) ?? "?" : "Do ustalenia",
+        side2: slots[1] ? names.get(slots[1]) ?? "?" : "Do ustalenia",
+        score1: done || m.status === "in_progress" ? String(num(m.score1) ?? "–") : "–",
+        score2: done || m.status === "in_progress" ? String(num(m.score2) ?? "–") : "–",
+        winner: (m.winnerParticipantKey && m.winnerParticipantKey === slots[0] ? 1 : m.winnerParticipantKey && m.winnerParticipantKey === slots[1] ? 2 : 0) as 1 | 2 | 0,
+        live: m.status === "in_progress",
+      });
+    }
+    return { id, label: id === "final" ? "Wielki finał" : DE_LABELS[id], rounds: [...byRound.entries()].sort((a, b) => a[0] - b[0]).map(([r, matches]) => ({ round: r, matches })) };
+  }).filter((section) => section.rounds.length);
   return { kind: "double", title: stage.name, sections };
+}
+
+// ─── V5.9.1 · what the score / upcoming overlay shows (compared as a whole: unrelated changes do not re-render) ─────
+
+export interface MatchOverlayModel {
+  title: string;
+  card: MatchCard | null;
+  /** Why nothing is shown (no match "Na ekranie", unknown match). */
+  reason: string | null;
+  timeZone: string | null;
+  queue: { id: number; side1: string; side2: string }[];
+}
+
+export function matchOverlayModel(
+  config: Pick<OverlayConfig, "match" | "kind" | "showQueue">,
+  tournament: PublicTournament,
+  matches: readonly PublicMatch[],
+  stages: readonly PublicStage[],
+): MatchOverlayModel {
+  const picked = pickOverlayMatch(config, tournament, matches);
+  if (!picked.match) return { title: tournament.name, card: null, reason: picked.reason, timeZone: null, queue: [] };
+  const match = picked.match;
+  const stage = stages.find((s) => s.id === match.stageId) ?? null;
+  const stageMatches = matches.filter((m) => m.stageId === match.stageId);
+  return {
+    title: tournament.name,
+    card: matchCard(match, stage, stageMatches, tournament.participantType === "teams"),
+    reason: null,
+    timeZone: stage?.scheduleTimeZone ?? null,
+    queue: config.kind === "zapowiedz" && config.showQueue
+      ? upcomingQueue(match, matches).map((m) => ({ id: m.id, side1: m.player1Name ?? "", side2: m.player2Name ?? "" }))
+      : [],
+  };
 }

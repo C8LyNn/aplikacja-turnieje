@@ -1,14 +1,16 @@
-import { useMemo, type CSSProperties } from "react";
+import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import {
-  bracketView, doubleView, matchCard, pickOverlayMatch, pickStage, scheduleText, tablesView, toPublicMatch, toPublicStage,
-  toPublicTournament, upcomingQueue, type MatchCard, type OverlayConfig, type PublicMatch, type PublicStage,
-  type PublicTournament, type StructureView,
+  bracketView, doubleView, matchOverlayModel, pickStage, scheduleText, tablesView, toPublicMatch, toPublicStage,
+  toPublicTournament, upcomingHeading, type MatchCard, type MatchOverlayModel, type OverlayConfig, type PublicStage,
+  type StructureView,
 } from "@/lib/broadcast-overlay";
-import { fetchPublic, usePolled, type OverlayProblem } from "./overlay-data";
+import { fetchPublic, useDelayed, usePolled, type OverlayProblem } from "./overlay-data";
 
 type Raw = Record<string, unknown>;
 
 const LOADING_TEXT = "Wczytywanie danych turnieju…";
+/** Nothing is shown before this, so a quick first answer never flashes a loading text on air. */
+const LOADING_GRACE_MS = 2500;
 const PROBLEM_TEXT: Record<OverlayProblem, string> = {
   private: "Nakładki działają tylko dla turniejów publicznych.",
   missing: "Nie znaleziono turnieju.",
@@ -34,16 +36,15 @@ function OverlayMessage({ text, subtle = false }: { text: string; subtle?: boole
   return <div className={`ov-message${subtle ? " ov-message--subtle" : ""}`} role="status" data-loading={subtle || undefined}>{text}</div>;
 }
 
-function StaleMark() {
-  return <div className="ov-stale" role="status" title="Pokazujemy ostatni zapisany stan">Brak połączenia — ostatni zapisany stan</div>;
+/** Loading: nothing for the first moments, then a quiet text. */
+function Loading() {
+  const show = useDelayed(LOADING_GRACE_MS);
+  return show ? <OverlayMessage text={LOADING_TEXT} subtle /> : null;
 }
 
-async function loadLive(tournamentId: number, signal: AbortSignal) {
-  const [tournament, matches] = await Promise.all([
-    fetchPublic<Raw>(`/api/tournaments/${tournamentId}`, signal),
-    fetchPublic<Raw[]>(`/api/tournaments/${tournamentId}/matches`, signal),
-  ]);
-  return { tournament: toPublicTournament(tournament), matches: (matches ?? []).map(toPublicMatch) };
+const clock = (at: number | null) => (at ? new Date(at).toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" }) : "");
+function StaleMark({ lastOkAt }: { lastOkAt: number | null }) {
+  return <div className="ov-stale" role="status">Brak połączenia — stan z {clock(lastOkAt)}</div>;
 }
 
 async function loadStages(tournamentId: number, signal: AbortSignal) {
@@ -52,51 +53,64 @@ async function loadStages(tournamentId: number, signal: AbortSignal) {
 
 // ─── score bar and upcoming card ───────────────────────────────────────────
 
+const STAGES_REFRESH_MS = 60_000;
+
 function MatchOverlay({ config, tournamentId }: { config: OverlayConfig; tournamentId: number }) {
-  const live = usePolled(`live:${tournamentId}`, (signal) => loadLive(tournamentId, signal), 5_000);
-  const stages = usePolled(`stages:${tournamentId}`, (signal) => loadStages(tournamentId, signal), 60_000);
-  if (!live.data) return <OverlayMessage text={live.problem ? PROBLEM_TEXT[live.problem] : LOADING_TEXT} subtle={!live.problem} />;
-  const { tournament, matches } = live.data;
-  const picked = pickOverlayMatch(config, tournament, matches);
-  if (!picked.match) return <OverlayMessage text={picked.reason} />;
-  const stage = stages.data?.find((s) => s.id === picked.match.stageId) ?? null;
-  const stageMatches = matches.filter((m) => m.stageId === picked.match.stageId);
-  const card = matchCard(picked.match, stage, stageMatches, tournament.participantType === "teams");
+  // Stages change rarely: they are re-read once a minute inside the same poll; the model below is what gets compared.
+  const stagesCache = useRef<{ at: number; stages: PublicStage[] } | null>(null);
+  const live = usePolled<MatchOverlayModel>(`match:${tournamentId}:${config.match}:${config.kind}:${config.showQueue}`, async (signal) => {
+    const cached = stagesCache.current;
+    const stagesPromise = cached && Date.now() - cached.at < STAGES_REFRESH_MS ? Promise.resolve(cached.stages) : loadStages(tournamentId, signal);
+    const [tournament, matches, stages] = await Promise.all([
+      fetchPublic<Raw>(`/api/tournaments/${tournamentId}`, signal),
+      fetchPublic<Raw[]>(`/api/tournaments/${tournamentId}/matches`, signal),
+      stagesPromise,
+    ]);
+    if (stages !== cached?.stages) stagesCache.current = { at: Date.now(), stages };
+    return matchOverlayModel(config, toPublicTournament(tournament), (matches ?? []).map(toPublicMatch), stages);
+  }, 5_000);
+  if (!live.data) return live.problem ? <OverlayMessage text={PROBLEM_TEXT[live.problem]} /> : <Loading />;
+  const model = live.data;
+  if (!model.card) return <OverlayMessage text={model.reason ?? ""} />;
   return (
     <>
       {config.kind === "zapowiedz"
-        ? <UpcomingCard card={card} tournament={tournament} stage={stage} config={config} queue={config.showQueue ? upcomingQueue(picked.match, matches) : []} />
-        : <ScoreBar card={card} tournament={tournament} config={config} />}
-      {live.stale && <StaleMark />}
+        ? <UpcomingCard card={model.card} model={model} config={config} />
+        : <ScoreBar card={model.card} title={model.title} config={config} />}
+      {live.stale && <StaleMark lastOkAt={live.lastOkAt} />}
     </>
   );
 }
 
-function ScoreBar({ card, tournament, config }: { card: MatchCard; tournament: PublicTournament; config: OverlayConfig }) {
+function ScoreBar({ card, title, config }: { card: MatchCard; title: string; config: OverlayConfig }) {
   const full = config.layout === "pelny";
   return (
-    <section className="ov-scorebar" aria-label={`Wynik meczu: ${card.side1} ${card.score1}:${card.score2} ${card.side2}`} data-live={card.live || undefined}>
-      {config.showTitle && <div className="ov-title">{tournament.name}</div>}
+    <section className="ov-scorebar" aria-label={`Wynik meczu: ${card.side1} ${card.hasScore ? `${card.score1}:${card.score2}` : "przed wynikiem"} ${card.side2}`} data-state={card.state}>
+      {config.showTitle && <div className="ov-title">{title}</div>}
       <div className="ov-row">
-        <div className="ov-side ov-side--1" data-winner={card.winner === 1 || undefined}><span className="ov-name">{card.side1}</span></div>
-        <div className="ov-score">
-          <span className="ov-num" key={`a${card.score1}`}>{card.score1}</span>
-          <span className="ov-sep">:</span>
-          <span className="ov-num" key={`b${card.score2}`}>{card.score2}</span>
-          {card.scoreUnit && <span className="ov-unit">{card.scoreUnit}</span>}
+        <div className="ov-side ov-side--1" data-winner={card.winner === 1 || undefined} data-fit={card.fit1}><span className="ov-name">{card.side1}</span></div>
+        <div className="ov-score" data-empty={!card.hasScore || undefined}>
+          {card.hasScore ? (
+            <>
+              <span className="ov-num" key={`a${card.score1}`}>{card.score1}</span>
+              <span className="ov-sep">:</span>
+              <span className="ov-num" key={`b${card.score2}`}>{card.score2}</span>
+              {card.scoreUnit && <span className="ov-unit">{card.scoreUnit}</span>}
+            </>
+          ) : <span className="ov-vs-box">VS</span>}
         </div>
-        <div className="ov-side ov-side--2" data-winner={card.winner === 2 || undefined}><span className="ov-name">{card.side2}</span></div>
+        <div className="ov-side ov-side--2" data-winner={card.winner === 2 || undefined} data-fit={card.fit2}><span className="ov-name">{card.side2}</span></div>
       </div>
       {card.sets.length > 0 && (
-        <ol className="ov-sets" aria-label="Wyniki setów">
+        <ol className="ov-sets" aria-label="Wyniki setów (punkty w secie)">
           {card.sets.map((set, index) => (
-            <li key={index} data-winner={set.winner || undefined}><span className="ov-set-no">S{index + 1}</span> {set.score1}:{set.score2}</li>
+            <li key={index} data-winner={set.winner || undefined}><span className="ov-set-no">Set {index + 1}</span> {set.score1}:{set.score2}</li>
           ))}
         </ol>
       )}
       {full && (
         <div className="ov-meta">
-          <span className="ov-status" data-live={card.live || undefined}>{card.resultNote ?? card.status}</span>
+          <span className="ov-status" data-state={card.state}>{card.resultNote ?? card.status}</span>
           <span className="ov-context">{card.context}</span>
           <span className="ov-format">{card.format}</span>
         </div>
@@ -105,27 +119,29 @@ function ScoreBar({ card, tournament, config }: { card: MatchCard; tournament: P
   );
 }
 
-function UpcomingCard({ card, tournament, stage, config, queue }: { card: MatchCard; tournament: PublicTournament; stage: PublicStage | null; config: OverlayConfig; queue: PublicMatch[] }) {
-  const when = scheduleText(card.scheduledAt, stage?.scheduleTimeZone ?? null);
-  const heading = card.live ? "Teraz gramy" : card.status === "Zakończony" ? "Wynik meczu" : "Następny mecz";
+function UpcomingCard({ card, model, config }: { card: MatchCard; model: MatchOverlayModel; config: OverlayConfig }) {
+  const when = scheduleText(card.scheduledAt, model.timeZone);
+  const heading = upcomingHeading(card);
+  const showScore = card.state === "completed" && card.hasScore;
   return (
-    <section className="ov-upcoming" aria-label={`${heading}: ${card.side1} kontra ${card.side2}`}>
-      {config.showTitle && <div className="ov-title">{tournament.name}</div>}
+    <section className="ov-upcoming" aria-label={`${heading}: ${card.side1} kontra ${card.side2}`} data-state={card.state}>
+      {config.showTitle && <div className="ov-title">{model.title}</div>}
       <div className="ov-upcoming-heading">{heading}</div>
       <div className="ov-versus">
-        <span className="ov-name">{card.side1}</span>
-        <span className="ov-vs">{card.status === "Zakończony" ? `${card.score1}:${card.score2}` : "vs"}</span>
-        <span className="ov-name">{card.side2}</span>
+        <span className="ov-name" data-fit={card.fit1}>{card.side1}</span>
+        <span className="ov-vs">{showScore ? `${card.score1}:${card.score2}` : "vs"}</span>
+        <span className="ov-name" data-fit={card.fit2}>{card.side2}</span>
       </div>
       <div className="ov-meta">
         <span className="ov-context">{card.context}</span>
-        {when && <span className="ov-when">{when}</span>}
+        {/* a postponed or cancelled match has no date we can vouch for — none is shown */}
+        {when && card.state !== "cancelled" && card.state !== "postponed" && <span className="ov-when">{when}</span>}
         <span className="ov-format">{card.format}</span>
       </div>
-      {queue.length > 0 && (
+      {model.queue.length > 0 && (
         <ol className="ov-queue" aria-label="Kolejne mecze">
           <li className="ov-queue-title">Kolejne mecze</li>
-          {queue.map((m) => <li key={m.id}><span>{m.player1Name}</span> <span className="ov-vs-small">vs</span> <span>{m.player2Name}</span></li>)}
+          {model.queue.map((m) => <li key={m.id}><span>{m.side1}</span> <span className="ov-vs-small">vs</span> <span>{m.side2}</span></li>)}
         </ol>
       )}
     </section>
@@ -133,6 +149,30 @@ function UpcomingCard({ card, tournament, stage, config, queue }: { card: MatchC
 }
 
 // ─── structure: bracket, double elimination, tables ────────────────────────
+
+/** Scales a board down (never up) so it always fits the source — big brackets and many groups never spill out. */
+function FitToScreen({ children, deps }: { children: ReactNode; deps: unknown }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+  useLayoutEffect(() => {
+    const node = ref.current;
+    if (!node) return;
+    const measure = () => {
+      const available = window.innerHeight * 0.92;
+      const height = node.scrollHeight;
+      const width = node.scrollWidth;
+      const next = Math.min(1, available / Math.max(1, height), (window.innerWidth * 0.96) / Math.max(1, width));
+      setScale((current) => (Math.abs(current - next) > 0.01 ? next : current));
+    };
+    measure();
+    // Fonts arriving later or new rows change the size: measure again whenever the content does.
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(measure);
+    observer?.observe(node);
+    window.addEventListener("resize", measure);
+    return () => { observer?.disconnect(); window.removeEventListener("resize", measure); };
+  }, [deps]);
+  return <div ref={ref} className="ov-fit" style={{ transform: scale < 1 ? `scale(${scale})` : undefined }}>{children}</div>;
+}
 
 function StructureOverlay({ config, tournamentId }: { config: OverlayConfig; tournamentId: number }) {
   const tournamentState = usePolled(`t:${tournamentId}`, (signal) => fetchPublic<Raw>(`/api/tournaments/${tournamentId}`, signal).then(toPublicTournament), 30_000);
@@ -160,74 +200,80 @@ function StructureOverlay({ config, tournamentId }: { config: OverlayConfig; tou
   if (!stages.data || !view.data) {
     if (stages.data && !stage) return <OverlayMessage text="Turniej nie ma jeszcze etapów." />;
     const failed = view.problem ?? stages.problem;
-    return <OverlayMessage text={failed ? PROBLEM_TEXT[failed] : LOADING_TEXT} subtle={!failed} />;
+    return failed ? <OverlayMessage text={PROBLEM_TEXT[failed]} /> : <Loading />;
   }
   const v = view.data;
   return (
     <>
-      <section className="ov-board" aria-label={v.title} data-view={v.kind}>
-        <header className="ov-board-header">
-          {config.showTitle && tournamentState.data && <span className="ov-title">{tournamentState.data.name}</span>}
-          <span className="ov-board-title">{v.title}{"fragment" in v && v.fragment ? ` · ${v.fragment}` : ""}</span>
-        </header>
-        {v.kind === "empty" && <p className="ov-board-empty">{v.message}</p>}
-        {v.kind === "bracket" && (
-          <div className="ov-bracket" style={{ "--ov-rounds": v.rounds.length } as CSSProperties}>
-            {v.rounds.map((round) => (
-              <div className="ov-bracket-round" key={round.round}>
-                {!v.fragment && <h3>{round.name}</h3>}
-                <ol>
-                  {round.matches.map((m) => (
-                    <li key={m.matchId} className="ov-mini" data-live={m.live || undefined}>
-                      <span className="ov-mini-side" data-winner={m.winner === 1 || undefined}>{m.side1}</span><span className="ov-mini-score">{m.score1}</span>
-                      <span className="ov-mini-side" data-winner={m.winner === 2 || undefined}>{m.side2}</span><span className="ov-mini-score">{m.score2}</span>
-                    </li>
-                  ))}
-                </ol>
-              </div>
-            ))}
-          </div>
-        )}
-        {v.kind === "double" && (
-          <div className="ov-double">
-            {v.sections.map((section) => (
-              <div className="ov-double-section" key={section.id} data-section={section.id}>
-                <h3>{section.label}</h3>
-                <ol>
-                  {section.matches.map((m, index) => (
-                    <li key={`${m.name}-${index}`} className="ov-mini" data-live={m.live || undefined}>
-                      <span className="ov-mini-label">{m.name}</span>
-                      <span className="ov-mini-side" data-winner={m.winner === 1 || undefined}>{m.side1}</span><span className="ov-mini-score">{m.score1}</span>
-                      <span className="ov-mini-side" data-winner={m.winner === 2 || undefined}>{m.side2}</span><span className="ov-mini-score">{m.score2}</span>
-                    </li>
-                  ))}
-                </ol>
-              </div>
-            ))}
-          </div>
-        )}
-        {v.kind === "tables" && (
-          <div className="ov-tables" data-count={v.tables.length}>
-            {v.tables.map((table) => (
-              <table className="ov-table" key={table.label}>
-                {v.tables.length > 1 || (table.label && table.label !== v.title && table.label !== v.fragment) ? <caption>{table.label}</caption> : null}
-                <thead>
-                  <tr><th scope="col">#</th><th scope="col">Uczestnik</th><th scope="col">M</th><th scope="col">W</th>{v.showDraws && <th scope="col">R</th>}<th scope="col">P</th><th scope="col">+/−</th>{v.showPoints && <th scope="col">Pkt</th>}</tr>
-                </thead>
-                <tbody>
-                  {table.rows.map((row) => (
-                    <tr key={`${row.rank}-${row.name}`} data-zone={row.zone}>
-                      <td>{row.rank}</td><td className="ov-table-name">{row.name}</td><td>{row.played}</td><td>{row.wins}</td>{v.showDraws && <td>{row.draws}</td>}<td>{row.losses}</td>
-                      <td>{row.diff > 0 ? `+${row.diff}` : row.diff}</td>{v.showPoints && <td className="ov-table-points">{row.points ?? 0}</td>}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            ))}
-          </div>
-        )}
-      </section>
-      {(view.stale || stages.stale) && <StaleMark />}
+      <FitToScreen deps={view.data}>
+        <section className="ov-board" aria-label={v.title} data-view={v.kind}>
+          <header className="ov-board-header">
+            {config.showTitle && tournamentState.data && <span className="ov-title">{tournamentState.data.name}</span>}
+            <span className="ov-board-title">{v.title}{"fragment" in v && v.fragment ? ` · ${v.fragment}` : ""}</span>
+          </header>
+          {v.kind === "empty" && <p className="ov-board-empty">{v.message}</p>}
+          {v.kind === "bracket" && (
+            <div className="ov-bracket" style={{ "--ov-rounds": v.rounds.reduce((sum, round) => sum + round.columns, 0) } as CSSProperties}>
+              {v.rounds.map((round) => (
+                <div className="ov-bracket-round" key={round.round} data-columns={round.columns} style={{ gridColumn: `span ${round.columns}` }}>
+                  {!(v.fragment && v.rounds.length === 1) && <h3>{round.name}</h3>}
+                  <ol>
+                    {round.matches.map((m) => (
+                      <li key={m.matchId} className="ov-mini" data-live={m.live || undefined}>
+                        <span className="ov-mini-side" data-winner={m.winner === 1 || undefined}>{m.side1}</span><span className="ov-mini-score">{m.score1}</span>
+                        <span className="ov-mini-side" data-winner={m.winner === 2 || undefined}>{m.side2}</span><span className="ov-mini-score">{m.score2}</span>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              ))}
+            </div>
+          )}
+          {v.kind === "double" && (
+            <div className="ov-double">
+              {v.sections.map((section) => (
+                <div className="ov-double-section" key={section.id} data-section={section.id} style={{ flexGrow: section.rounds.length }}>
+                  <h3>{section.label}</h3>
+                  <div className="ov-double-rounds" style={{ "--ov-rounds": section.rounds.length } as CSSProperties}>
+                    {section.rounds.map((round) => (
+                      <ol key={round.round} aria-label={`${section.label} — runda ${round.round}`}>
+                        {round.matches.map((m, index) => (
+                          <li key={`${m.name}-${index}`} className="ov-mini" data-live={m.live || undefined}>
+                            <span className="ov-mini-label">{m.name}</span>
+                            <span className="ov-mini-side" data-winner={m.winner === 1 || undefined}>{m.side1}</span><span className="ov-mini-score">{m.score1}</span>
+                            <span className="ov-mini-side" data-winner={m.winner === 2 || undefined}>{m.side2}</span><span className="ov-mini-score">{m.score2}</span>
+                          </li>
+                        ))}
+                      </ol>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          {v.kind === "tables" && (
+            <div className="ov-tables" data-count={v.tables.length}>
+              {v.tables.map((table) => (
+                <table className="ov-table" key={table.label}>
+                  {v.tables.length > 1 || (table.label && table.label !== v.title && table.label !== v.fragment) ? <caption>{table.label}</caption> : null}
+                  <thead>
+                    <tr><th scope="col">#</th><th scope="col">Uczestnik</th><th scope="col">M</th><th scope="col">W</th>{v.showDraws && <th scope="col">R</th>}<th scope="col">P</th><th scope="col">+/−</th>{v.showPoints && <th scope="col">Pkt</th>}</tr>
+                  </thead>
+                  <tbody>
+                    {table.rows.map((row) => (
+                      <tr key={`${row.rank}-${row.name}`} data-zone={row.zone}>
+                        <td>{row.rank}</td><td className="ov-table-name">{row.name}</td><td>{row.played}</td><td>{row.wins}</td>{v.showDraws && <td>{row.draws}</td>}<td>{row.losses}</td>
+                        <td>{row.diff > 0 ? `+${row.diff}` : row.diff}</td>{v.showPoints && <td className="ov-table-points">{row.points ?? 0}</td>}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              ))}
+            </div>
+          )}
+        </section>
+      </FitToScreen>
+      {(view.stale || stages.stale) && <StaleMark lastOkAt={view.lastOkAt} />}
     </>
   );
 }
