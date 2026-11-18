@@ -16,7 +16,8 @@ const live = { stageId: 5, format: "round_robin", status: "active", final: false
   { playerId: 12, playerName: "Lwy", rank: 2, played: 1, wins: 0, draws: 0, losses: 1, points: 0, scoreFor: 0, scoreAgainst: 2, diff: -2, buchholz: null, decidedBy: null, zone: null, pointAdjustment: 0 },
 ] }] };
 
-function mount(locked = false) {
+function mount(locked = false, failFirstPost = false) {
+  let failed = false;
   const calls: Array<{ url: string; method: string; body: unknown }> = [];
   let entries = [{ id: "11111111-1111-4111-8111-111111111111", playerId: 12, points: -3, reason: "Spóźnienie", createdAt: "2026-11-18T10:00:00.000Z", revokedAt: null as string | null }];
   globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -26,6 +27,10 @@ function mount(locked = false) {
     calls.push({ url, method, body });
     if (url.endsWith("/standings")) return json(live);
     if (url.endsWith("/revoke")) { entries = entries.map((entry) => ({ ...entry, revokedAt: "2026-11-18T11:00:00.000Z" })); return json({ entries, totals: [] }); }
+    if (url.endsWith("/point-adjustments") && method === "POST" && failFirstPost && !failed) {
+      failed = true;
+      throw new TypeError("Failed to fetch");
+    }
     if (url.endsWith("/point-adjustments") && method === "POST") {
       entries = [...entries, { id: "22222222-2222-4222-8222-222222222222", playerId: body.playerId, points: body.points, reason: body.reason, createdAt: "2026-11-18T12:00:00.000Z", revokedAt: null }];
       return json({ entries, totals: [] }, 201);
@@ -51,7 +56,9 @@ test("lists entries with names, adds a penalty with a reason and revokes one", a
   fireEvent.click(screen.getByRole("button", { name: "Dodaj korektę" }));
   await screen.findByText(/Dodano korektę -2 pkt/);
   const post = calls.find((call) => call.method === "POST" && call.url.endsWith("/point-adjustments"))!;
-  assert.deepEqual(post.body, { playerId: 11, points: -2, reason: "Walkower bez zgłoszenia" });
+  const { requestId, ...sent } = post.body as Record<string, unknown>;
+  assert.deepEqual(sent, { playerId: 11, points: -2, reason: "Walkower bez zgłoszenia" });
+  assert.match(String(requestId), /^[0-9a-f]{24}$/, "every submission carries an idempotency key");
   fireEvent.click(screen.getAllByRole("button", { name: /Cofnij korektę/ })[0]);
   await screen.findByText("Korekta cofnięta.");
   assert.ok(calls.some((call) => call.url.endsWith("/revoke")));
@@ -64,4 +71,20 @@ test("a completed stage is read-only", async () => {
   assert.equal(screen.queryByRole("button", { name: "Dodaj korektę" }), null);
   assert.equal(screen.queryByRole("button", { name: /Cofnij korektę/ }), null);
   assert.ok(screen.getByText(/etap zakończony/));
+});
+
+test("a network error keeps the form; the retry reuses the same key so the API cannot count it twice", async () => {
+  const calls = mount(false, true);
+  fireEvent.click(await screen.findByRole("button", { name: /Korekty punktów/ }));
+  await waitFor(() => assert.ok(screen.getByRole("option", { name: "Orły" })));
+  fireEvent.change(screen.getByLabelText(/Uczestnik/), { target: { value: "11" } });
+  fireEvent.change(screen.getByLabelText(/Powód/), { target: { value: "Spóźnienie na mecz" } });
+  fireEvent.click(screen.getByRole("button", { name: "Dodaj korektę" }));
+  await screen.findByRole("alert");
+  assert.equal((screen.getByLabelText(/Powód/) as HTMLInputElement).value, "Spóźnienie na mecz", "input survives the error");
+  fireEvent.click(screen.getByRole("button", { name: "Dodaj korektę" }));
+  await screen.findByText(/Dodano korektę/);
+  const posts = calls.filter((call) => call.method === "POST" && call.url.endsWith("/point-adjustments"));
+  assert.equal(posts.length, 2);
+  assert.equal((posts[0].body as { requestId: string }).requestId, (posts[1].body as { requestId: string }).requestId);
 });

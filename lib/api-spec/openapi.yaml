@@ -4460,6 +4460,9 @@ components:
         reason: { type: string }
         createdAt: { type: string }
         revokedAt: { type: ["string", "null"] }
+        createdBy: { type: string, description: "Role and credential fingerprint, e.g. organizer:ab12cd34." }
+        revokedBy: { type: ["string", "null"] }
+        requestId: { type: string }
     PointAdjustmentInput:
       type: object
       required: [playerId, points, reason]
@@ -4467,6 +4470,7 @@ components:
         playerId: { type: integer }
         points: { type: integer, minimum: -100, maximum: 100 }
         reason: { type: string, minLength: 1, maxLength: 200 }
+        requestId: { type: string, description: "Idempotency key (8–64 chars); a repeated request returns the existing entry with 200." }
     StagePointAdjustments:
       type: object
       required: [entries, totals]
@@ -4474,6 +4478,7 @@ components:
         supported: { type: boolean }
         locked: { type: boolean }
         stageVersion: { type: integer }
+        replayed: { type: boolean }
         entry:
           $ref: "#/components/schemas/PointAdjustment"
         entries:

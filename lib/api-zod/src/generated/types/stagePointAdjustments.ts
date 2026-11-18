@@ -12,6 +12,7 @@ export interface StagePointAdjustments {
   supported?: boolean;
   locked?: boolean;
   stageVersion?: number;
+  replayed?: boolean;
   entry?: PointAdjustment;
   entries: PointAdjustment[];
   totals: StagePointAdjustmentsTotalsItem[];

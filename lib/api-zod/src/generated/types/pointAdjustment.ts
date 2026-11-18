@@ -18,4 +18,9 @@ export interface PointAdjustment {
   createdAt: string;
   /** @nullable */
   revokedAt: string | null;
+  /** Role and credential fingerprint, e.g. organizer:ab12cd34. */
+  createdBy?: string;
+  /** @nullable */
+  revokedBy?: string | null;
+  requestId?: string;
 }

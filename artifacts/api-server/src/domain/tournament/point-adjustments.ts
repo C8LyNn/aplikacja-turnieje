@@ -14,7 +14,15 @@ export interface PointAdjustment {
   reason: string;
   createdAt: string;
   revokedAt: string | null;
+  /** Who added it: the role and a short fingerprint of the credential version ("organizer:ab12cd34"). */
+  createdBy?: string;
+  revokedBy?: string | null;
+  /** Client idempotency key: a retried or double-clicked request with the same key adds nothing. */
+  requestId?: string;
 }
+
+const ACTOR_LABEL = /^(organizer|support):[A-Za-z0-9_-]{1,32}$/;
+const REQUEST_ID = /^[A-Za-z0-9_-]{8,64}$/;
 
 export const POINT_ADJUSTMENT_LIMITS = Object.freeze({ entries: 200, reasonLength: 200, min: -100, max: 100 });
 
@@ -35,7 +43,14 @@ function isEntry(value: unknown): value is PointAdjustment {
     && (entry.points as number) >= POINT_ADJUSTMENT_LIMITS.min && (entry.points as number) <= POINT_ADJUSTMENT_LIMITS.max
     && typeof entry.reason === "string" && entry.reason.trim().length > 0 && entry.reason.length <= POINT_ADJUSTMENT_LIMITS.reasonLength
     && typeof entry.createdAt === "string" && ISO.test(entry.createdAt)
-    && (entry.revokedAt === null || (typeof entry.revokedAt === "string" && ISO.test(entry.revokedAt)));
+    && (entry.revokedAt === null || (typeof entry.revokedAt === "string" && ISO.test(entry.revokedAt)))
+    && (entry.createdBy === undefined || (typeof entry.createdBy === "string" && ACTOR_LABEL.test(entry.createdBy)))
+    && (entry.revokedBy === undefined || entry.revokedBy === null || (typeof entry.revokedBy === "string" && ACTOR_LABEL.test(entry.revokedBy)))
+    && (entry.requestId === undefined || (typeof entry.requestId === "string" && REQUEST_ID.test(entry.requestId)));
+}
+
+export function isValidRequestId(value: unknown): value is string {
+  return typeof value === "string" && REQUEST_ID.test(value);
 }
 
 /** Strict parse (backup validation): every entry must be well-formed. */

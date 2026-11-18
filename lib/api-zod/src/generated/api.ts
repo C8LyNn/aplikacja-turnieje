@@ -1596,13 +1596,17 @@ export const GetStagePointAdjustmentsResponse = zod.object({
   "supported": zod.boolean().optional(),
   "locked": zod.boolean().optional(),
   "stageVersion": zod.number().optional(),
+  "replayed": zod.boolean().optional(),
   "entry": zod.object({
   "id": zod.string(),
   "playerId": zod.number(),
   "points": zod.number().min(getStagePointAdjustmentsResponseEntryPointsMin).max(getStagePointAdjustmentsResponseEntryPointsMax),
   "reason": zod.string(),
   "createdAt": zod.string(),
-  "revokedAt": zod.string().nullable()
+  "revokedAt": zod.string().nullable(),
+  "createdBy": zod.string().optional().describe('Role and credential fingerprint, e.g. organizer:ab12cd34.'),
+  "revokedBy": zod.string().nullish(),
+  "requestId": zod.string().optional()
 }).optional(),
   "entries": zod.array(zod.object({
   "id": zod.string(),
@@ -1610,7 +1614,10 @@ export const GetStagePointAdjustmentsResponse = zod.object({
   "points": zod.number().min(getStagePointAdjustmentsResponseEntriesItemPointsMin).max(getStagePointAdjustmentsResponseEntriesItemPointsMax),
   "reason": zod.string(),
   "createdAt": zod.string(),
-  "revokedAt": zod.string().nullable()
+  "revokedAt": zod.string().nullable(),
+  "createdBy": zod.string().optional().describe('Role and credential fingerprint, e.g. organizer:ab12cd34.'),
+  "revokedBy": zod.string().nullish(),
+  "requestId": zod.string().optional()
 })),
   "totals": zod.array(zod.object({
   "playerId": zod.number(),
@@ -1641,7 +1648,8 @@ export const addStagePointAdjustmentBodyReasonMax = 200;
 export const AddStagePointAdjustmentBody = zod.object({
   "playerId": zod.number(),
   "points": zod.number().min(addStagePointAdjustmentBodyPointsMin).max(addStagePointAdjustmentBodyPointsMax),
-  "reason": zod.string().min(1).max(addStagePointAdjustmentBodyReasonMax)
+  "reason": zod.string().min(1).max(addStagePointAdjustmentBodyReasonMax),
+  "requestId": zod.string().optional().describe('Idempotency key (8–64 chars); a repeated request returns the existing entry with 200.')
 })
 
 
@@ -1670,13 +1678,17 @@ export const RevokeStagePointAdjustmentResponse = zod.object({
   "supported": zod.boolean().optional(),
   "locked": zod.boolean().optional(),
   "stageVersion": zod.number().optional(),
+  "replayed": zod.boolean().optional(),
   "entry": zod.object({
   "id": zod.string(),
   "playerId": zod.number(),
   "points": zod.number().min(revokeStagePointAdjustmentResponseEntryPointsMin).max(revokeStagePointAdjustmentResponseEntryPointsMax),
   "reason": zod.string(),
   "createdAt": zod.string(),
-  "revokedAt": zod.string().nullable()
+  "revokedAt": zod.string().nullable(),
+  "createdBy": zod.string().optional().describe('Role and credential fingerprint, e.g. organizer:ab12cd34.'),
+  "revokedBy": zod.string().nullish(),
+  "requestId": zod.string().optional()
 }).optional(),
   "entries": zod.array(zod.object({
   "id": zod.string(),
@@ -1684,7 +1696,10 @@ export const RevokeStagePointAdjustmentResponse = zod.object({
   "points": zod.number().min(revokeStagePointAdjustmentResponseEntriesItemPointsMin).max(revokeStagePointAdjustmentResponseEntriesItemPointsMax),
   "reason": zod.string(),
   "createdAt": zod.string(),
-  "revokedAt": zod.string().nullable()
+  "revokedAt": zod.string().nullable(),
+  "createdBy": zod.string().optional().describe('Role and credential fingerprint, e.g. organizer:ab12cd34.'),
+  "revokedBy": zod.string().nullish(),
+  "requestId": zod.string().optional()
 })),
   "totals": zod.array(zod.object({
   "playerId": zod.number(),
@@ -3910,7 +3925,10 @@ export const ExportTournamentResponse = zod.object({
   "points": zod.number().min(exportTournamentResponseStagesItemPointAdjustmentsItemPointsMin).max(exportTournamentResponseStagesItemPointAdjustmentsItemPointsMax),
   "reason": zod.string(),
   "createdAt": zod.string(),
-  "revokedAt": zod.string().nullable()
+  "revokedAt": zod.string().nullable(),
+  "createdBy": zod.string().optional().describe('Role and credential fingerprint, e.g. organizer:ab12cd34.'),
+  "revokedBy": zod.string().nullish(),
+  "requestId": zod.string().optional()
 })).optional().describe('V5.5: present only when the stage has bonus\/penalty entries (revoked ones included).'),
   "schedulePlan": zod.object({
   "startDate": zod.string().describe('YYYY-MM-DD'),
@@ -4386,7 +4404,10 @@ export const ImportTournamentBody = zod.object({
   "points": zod.number().min(importTournamentBodyBackupTwoStagesItemPointAdjustmentsItemPointsMin).max(importTournamentBodyBackupTwoStagesItemPointAdjustmentsItemPointsMax),
   "reason": zod.string(),
   "createdAt": zod.string(),
-  "revokedAt": zod.string().nullable()
+  "revokedAt": zod.string().nullable(),
+  "createdBy": zod.string().optional().describe('Role and credential fingerprint, e.g. organizer:ab12cd34.'),
+  "revokedBy": zod.string().nullish(),
+  "requestId": zod.string().optional()
 })).optional().describe('V5.5: present only when the stage has bonus\/penalty entries (revoked ones included).'),
   "schedulePlan": zod.object({
   "startDate": zod.string().describe('YYYY-MM-DD'),

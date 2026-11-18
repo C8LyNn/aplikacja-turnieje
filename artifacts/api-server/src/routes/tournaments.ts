@@ -968,9 +968,9 @@ router.post("/tournaments/:id/stages/:stageId/point-adjustments", async (req, re
   const access = await requireOrganizer(req, res, params.data.id);
   if (!access) return;
   try {
-    const body = (typeof req.body === "object" && req.body !== null ? req.body : {}) as { playerId?: unknown; points?: unknown; reason?: unknown };
+    const body = (typeof req.body === "object" && req.body !== null ? req.body : {}) as { playerId?: unknown; points?: unknown; reason?: unknown; requestId?: unknown };
     const result = await addPointAdjustment({ tournamentId: params.data.id, stageId: params.data.stageId, body, actor: getTournamentMutationActor(access) });
-    res.status(201).json({ ...result.view, entry: result.entry, stageVersion: result.stageVersion });
+    res.status(result.replayed ? 200 : 201).json({ ...result.view, entry: result.entry, stageVersion: result.stageVersion, replayed: result.replayed });
   } catch (error) {
     if (error instanceof PointAdjustmentError) { sendPointAdjustmentError(error, res); return; }
     throw error;

@@ -18,4 +18,6 @@ export interface PointAdjustmentInput {
      * @maxLength 200
      */
   reason: string;
+  /** Idempotency key (8–64 chars); a repeated request returns the existing entry with 200. */
+  requestId?: string;
 }

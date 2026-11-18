@@ -2145,6 +2145,11 @@ export interface PointAdjustment {
   createdAt: string;
   /** @nullable */
   revokedAt: string | null;
+  /** Role and credential fingerprint, e.g. organizer:ab12cd34. */
+  createdBy?: string;
+  /** @nullable */
+  revokedBy?: string | null;
+  requestId?: string;
 }
 
 export interface PointAdjustmentInput {
@@ -2159,6 +2164,8 @@ export interface PointAdjustmentInput {
      * @maxLength 200
      */
   reason: string;
+  /** Idempotency key (8–64 chars); a repeated request returns the existing entry with 200. */
+  requestId?: string;
 }
 
 export type StagePointAdjustmentsTotalsItem = {
@@ -2170,6 +2177,7 @@ export interface StagePointAdjustments {
   supported?: boolean;
   locked?: boolean;
   stageVersion?: number;
+  replayed?: boolean;
   entry?: PointAdjustment;
   entries: PointAdjustment[];
   totals: StagePointAdjustmentsTotalsItem[];

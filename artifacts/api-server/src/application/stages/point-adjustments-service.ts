@@ -10,6 +10,7 @@ import { revalidateTournamentMutationActor, type TournamentMutationActor } from 
 import { leagueRulesFromStorage } from "../../domain/tournament/league-rules";
 import {
   activePointTotals,
+  isValidRequestId,
   pointAdjustmentsFromStorage,
   validateNewAdjustment,
   type PointAdjustment,
@@ -58,16 +59,29 @@ export function pointAdjustmentView(stored: unknown) {
   return { entries, totals: [...activePointTotals(entries)].map(([playerId, points]) => ({ playerId, points })) };
 }
 
+/** Audit label of an actor: role plus a short credential fingerprint (the API has no personal identities). */
+export function actorLabel(actor?: TournamentMutationActor): string {
+  if (!actor) return "organizer:system";
+  if (actor.type === "support") return `support:${String(actor.sessionId)}`;
+  return `organizer:${actor.credentialFingerprint.replace(/[^A-Za-z0-9_-]/g, "").slice(0, 12) || "organizer"}`;
+}
+
 export async function addPointAdjustment(input: {
   tournamentId: number;
   stageId: number;
-  body: { playerId?: unknown; points?: unknown; reason?: unknown };
+  body: { playerId?: unknown; points?: unknown; reason?: unknown; requestId?: unknown };
   actor?: TournamentMutationActor;
   now?: Date;
 }) {
   return db.transaction(async (tx) => {
     const stage = await lockStage(tx, input.tournamentId, input.stageId, input.actor);
     const existing = pointAdjustmentsFromStorage(stage.pointAdjustments);
+    if (input.body.requestId !== undefined && !isValidRequestId(input.body.requestId)) {
+      throw new PointAdjustmentError("INVALID_POINT_ADJUSTMENT", [{ field: "entries", message: "Nieprawidłowy identyfikator żądania." }]);
+    }
+    // A retried or double-sent request (same key) returns the entry it already created — nothing is added twice.
+    const replay = isValidRequestId(input.body.requestId) ? existing.find((entry) => entry.requestId === input.body.requestId) : undefined;
+    if (replay) return { entry: replay, view: pointAdjustmentView(stage.pointAdjustments), stageVersion: stage.version, replayed: true };
     const members = await tx.select({ playerId: stageParticipantsTable.playerId }).from(stageParticipantsTable)
       .where(eq(stageParticipantsTable.stageId, stage.id));
     // Before the stage starts its participants are not frozen yet: any registered participant may be adjusted.
@@ -85,6 +99,8 @@ export async function addPointAdjustment(input: {
       reason: checked.value.reason,
       createdAt: (input.now ?? new Date()).toISOString(),
       revokedAt: null,
+      createdBy: actorLabel(input.actor),
+      ...(isValidRequestId(input.body.requestId) ? { requestId: input.body.requestId } : {}),
     };
     const next = [...existing, entry];
     const [updated] = await tx.update(tournamentStagesTable)
@@ -98,7 +114,7 @@ export async function addPointAdjustment(input: {
       description: `${stage.name}: ${entry.points > 0 ? "+" : ""}${entry.points} pkt dla ${player?.name ?? `#${entry.playerId}`} — ${entry.reason}`,
       isUndone: false,
     });
-    return { entry, view: pointAdjustmentView(updated!.pointAdjustments), stageVersion: updated!.version };
+    return { entry, view: pointAdjustmentView(updated!.pointAdjustments), stageVersion: updated!.version, replayed: false };
   });
 }
 
@@ -116,7 +132,7 @@ export async function revokePointAdjustment(input: {
     if (!target) throw new PointAdjustmentError("POINT_ADJUSTMENT_NOT_FOUND");
     if (target.revokedAt) throw new PointAdjustmentError("POINT_ADJUSTMENT_ALREADY_REVOKED");
     const revokedAt = (input.now ?? new Date()).toISOString();
-    const next = existing.map((entry) => (entry.id === target.id ? { ...entry, revokedAt } : entry));
+    const next = existing.map((entry) => (entry.id === target.id ? { ...entry, revokedAt, revokedBy: actorLabel(input.actor) } : entry));
     const [updated] = await tx.update(tournamentStagesTable)
       .set({ pointAdjustments: next, version: stage.version + 1 })
       .where(eq(tournamentStagesTable.id, stage.id)).returning();

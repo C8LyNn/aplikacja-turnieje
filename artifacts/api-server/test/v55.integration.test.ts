@@ -149,3 +149,87 @@ describe("V5.5 point adjustments", () => {
     assert.equal(stage!.point_adjustments[0].reason, "Bonus za fair play");
   });
 });
+
+describe("V5.5 point adjustments — evidence", () => {
+  const tables = async (tournamentId: number, stageId: number) =>
+    (await request(app).get(`/api/tournaments/${tournamentId}/stages/${stageId}/standings`).expect(200)).body as Json;
+
+  test("a bonus lifts a participant into the qualifying places and the engine qualifies them", async () => {
+    const { tournamentId, organizer, stages } = await setup("groups_playoff", { participantCount: 8, groupCount: 2, qualifiersPerGroup: 2 });
+    const [groups, playoff] = stages;
+    await request(app).post(`/api/tournaments/${tournamentId}/start`).set(organizer).expect(200);
+    for (const match of await openMatches(groups.id)) await complete(organizer, match.id, 1, 0);
+    const before = (await tables(tournamentId, groups.id)).tables[0];
+    const outsider = before.rows.find((row: Json) => row.zone === "out");
+    await request(app).post(`/api/tournaments/${tournamentId}/stages/${groups.id}/point-adjustments`).set(organizer)
+      .send({ playerId: outsider.playerId, points: 20, reason: "Bonus regulaminowy" }).expect(201);
+    const after = (await tables(tournamentId, groups.id)).tables[0];
+    assert.equal(after.rows.find((row: Json) => row.playerId === outsider.playerId).zone, "qualify");
+    await request(app).post(`/api/tournaments/${tournamentId}/stages/${groups.id}/complete`).set(organizer).expect(200);
+    const qualified = (await rows<{ player_id: number }>("SELECT player_id FROM stage_participants WHERE stage_id = $1", [playoff.id])).map((row) => row.player_id);
+    assert.ok(qualified.includes(outsider.playerId), "the bonus decided qualification");
+  });
+
+  test("retry with the same key adds nothing; revoke restores the table; results and head-to-head data untouched; author recorded", async () => {
+    const { tournamentId, organizer, ids, stages } = await setup("round_robin", { participantCount: 4, allowDraws: 1 });
+    const stage = stages[0];
+    const url = `/api/tournaments/${tournamentId}/stages/${stage.id}/point-adjustments`;
+    await request(app).post(`/api/tournaments/${tournamentId}/start`).set(organizer).expect(200);
+    for (const match of (await openMatches(stage.id)).slice(0, 4)) await complete(organizer, match.id, 2, 1);
+    const matchesBefore = await rows("SELECT id, status, score1, score2, winner_id, result_type, revision FROM matches WHERE stage_id = $1 ORDER BY id", [stage.id]);
+    const original = await tables(tournamentId, stage.id);
+
+    const body = { playerId: ids[2], points: -2, reason: "Kara dyscyplinarna", requestId: "retry-key-0001" };
+    const first = await request(app).post(url).set(organizer).send(body).expect(201);
+    const second = await request(app).post(url).set(organizer).send(body).expect(200);
+    assert.equal(second.body.replayed, true);
+    assert.equal(second.body.entry.id, first.body.entry.id);
+    const [both] = await Promise.all([
+      request(app).post(url).set(organizer).send({ ...body, requestId: "double-click-01" }),
+      request(app).post(url).set(organizer).send({ ...body, requestId: "double-click-01" }),
+    ]);
+    assert.ok([200, 201].includes(both.status));
+    const view = (await request(app).get(url).expect(200)).body;
+    assert.equal(view.entries.length, 2, "one entry per key, even for parallel double clicks");
+    assert.deepEqual(view.totals, [{ playerId: ids[2], points: -4 }]);
+    assert.match(view.entries[0].createdBy, /^organizer:/, "author recorded");
+    assert.deepEqual(await rows("SELECT id, status, score1, score2, winner_id, result_type, revision FROM matches WHERE stage_id = $1 ORDER BY id", [stage.id]), matchesBefore, "match results (the head-to-head source) are unchanged");
+
+    for (const entry of view.entries) await request(app).post(`${url}/${entry.id}/revoke`).set(organizer).expect(200);
+    const restored = await tables(tournamentId, stage.id);
+    const strip = (data: Json) => data.tables[0].rows.map((row: Json) => ({ ...row, pointAdjustment: 0 }));
+    assert.deepEqual(strip(restored), strip(original), "after revoking, the table is exactly the original");
+    const history = (await request(app).get(url).expect(200)).body;
+    assert.equal(history.entries.length, 2);
+    assert.ok(history.entries.every((entry: Json) => entry.revokedAt && /^organizer:/.test(entry.revokedBy)), "history keeps who revoked and when");
+  });
+
+  test("Stable (tournament standings) and Experimental (stage table) show the same points; backup keeps active and revoked entries and the same table", async () => {
+    const { tournamentId, organizer, ids, stages } = await setup("round_robin", { participantCount: 4 });
+    const stage = stages[0];
+    const url = `/api/tournaments/${tournamentId}/stages/${stage.id}/point-adjustments`;
+    await request(app).post(`/api/tournaments/${tournamentId}/start`).set(organizer).expect(200);
+    for (const match of (await openMatches(stage.id)).slice(0, 3)) await complete(organizer, match.id, 1, 0);
+    await request(app).post(url).set(organizer).send({ playerId: ids[0], points: -3, reason: "Walkower" }).expect(201);
+    const toRevoke = (await request(app).post(url).set(organizer).send({ playerId: ids[1], points: 2, reason: "Pomyłka" }).expect(201)).body.entry;
+    await request(app).post(`${url}/${toRevoke.id}/revoke`).set(organizer).expect(200);
+
+    const experimental = (await tables(tournamentId, stage.id)).tables[0].rows as Json[];
+    const stable = (await request(app).get(`/api/tournaments/${tournamentId}/standings`).expect(200)).body as Json[];
+    assert.deepEqual(stable.map((row) => [row.playerId, row.points]), experimental.map((row) => [row.playerId, row.points]), "same order and points in both interfaces");
+
+    const { exportBackupV3, importBackupV3 } = await import("../src/application/backups/backup-v3");
+    const backup = (await exportBackupV3(tournamentId))!;
+    assert.equal(backup.stages[0].pointAdjustments?.length, 2);
+    assert.equal(backup.stages[0].pointAdjustments?.filter((entry) => entry.revokedAt).length, 1);
+    const [hash] = await rows<{ organizer_password_hash: string }>("SELECT organizer_password_hash FROM tournaments WHERE id = $1", [tournamentId]);
+    const restored = await importBackupV3(backup, { organizerPasswordHash: hash!.organizer_password_hash } as never) as Json;
+    const restoredId = (restored.id ?? restored.tournamentId ?? restored.tournament?.id) as number;
+    const [copyStage] = await rows<{ id: number }>("SELECT id FROM tournament_stages WHERE tournament_id = $1 ORDER BY position LIMIT 1", [restoredId]);
+    const copyRows = (await tables(restoredId, copyStage!.id)).tables[0].rows as Json[];
+    const byName = (list: Json[]) => list.map((row) => [row.playerName, row.points, row.rank, row.pointAdjustment]);
+    assert.deepEqual(byName(copyRows), byName(experimental), "the restored copy gives the same table");
+    const copyHistory = (await request(app).get(`/api/tournaments/${restoredId}/stages/${copyStage!.id}/point-adjustments`).expect(200)).body;
+    assert.equal(copyHistory.entries.filter((entry: Json) => entry.revokedAt).length, 1, "revoked entry restored as revoked");
+  });
+});
