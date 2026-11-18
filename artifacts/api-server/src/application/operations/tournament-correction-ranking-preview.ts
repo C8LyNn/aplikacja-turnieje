@@ -2,6 +2,7 @@
  * Pack 09: read-only hypothetical rank comparison based on the authoritative
  * ranking functions. Not a bracket rewrite or authorization to correct a match.
  */
+import { stagePointTotals } from "../../domain/tournament/point-adjustments";
 import { eq, inArray } from "drizzle-orm";
 import {
   db, playersTable, stageGroupsTable, stageParticipantsTable,
@@ -36,7 +37,7 @@ type MemberRow = typeof stageParticipantsTable.$inferSelect;
 type PlayerRow = typeof playersTable.$inferSelect;
 type GroupRow = typeof stageGroupsTable.$inferSelect;
 
-function groupRanking(group: GroupRow, memberships: MemberRow[], players: PlayerRow[], matches: MatchRow[], leagueRules: LeagueRules | null): RankingSnapshotRow[] {
+function groupRanking(group: GroupRow, memberships: MemberRow[], players: PlayerRow[], matches: MatchRow[], leagueRules: LeagueRules | null, pointTotals: ReadonlyMap<number, number> | null = null): RankingSnapshotRow[] {
   const members = memberships.filter(m => m.groupId === group.id)
     .sort((a,b)=>a.stageSeed-b.stageSeed);
   if (members.length !== group.participantCount) throw new Error("GROUP_MEMBERSHIP_MISMATCH");
@@ -47,7 +48,7 @@ function groupRanking(group: GroupRow, memberships: MemberRow[], players: Player
     return {...p, seed:m.stageSeed, status:"active" as const};
   });
   const groupMatches = matches.filter(m=>m.stageGroupId === group.id);
-  const projections = calculateMatchRecordStandings(groupPlayers,groupMatches,"round_robin",leagueRules);
+  const projections = calculateMatchRecordStandings(groupPlayers,groupMatches,"round_robin",leagueRules,pointTotals);
   // V5.3: with league rules the points projection is the official order (same as stage completion).
   const values = leagueRules != null
     ? { valid: true as const, standings: projections.map((row,index)=>({ participantKey:String(row.playerId), rank:index+1 })) }
@@ -123,8 +124,8 @@ export async function getResultCorrectionStandingsComparison(input: {
       const group=groups.find(g=>g.id===match.stageGroupId);
       if(!group) return unavailable("GROUP_NOT_FOUND", "Nie znaleziono grupy dla tego meczu.");
       const leagueRules = leagueRulesFromStorage(stage.leagueRules);
-      before=groupRanking(group,members,players,stageMatches,leagueRules);
-      after=groupRanking(group,members,players,afterMatches,leagueRules);
+      before=groupRanking(group,members,players,stageMatches,leagueRules,stagePointTotals(stage));
+      after=groupRanking(group,members,players,afterMatches,leagueRules,stagePointTotals(stage));
       scope="group";scopeLabel=group.groupKey;
       if(nextStageExists && stage.qualificationMode==="top_n_per_group") cutoff=group.qualifiersCount;
     } else {

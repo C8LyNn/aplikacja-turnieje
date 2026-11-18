@@ -293,6 +293,8 @@ export const tournamentStagesTable = pgTable(
     roundRobinLegs: smallint("round_robin_legs").notNull().default(1),
     /** V5.3: league rules (draws, points, tie-breakers); null = pre-V5.3 ranking by match wins. */
     leagueRules: jsonb("league_rules"),
+    /** V5.5: point adjustments (audit entries); only on stages with league rules. null = none. */
+    pointAdjustments: jsonb("point_adjustments"),
     /** V5.3: IANA time zone the league schedule is planned in; null = no schedule zone chosen. */
     scheduleTimeZone: text("schedule_time_zone"),
     /** V5.3: dates to assign at stage start ({ startDate, intervalDays, defaultTime }); null = none. */

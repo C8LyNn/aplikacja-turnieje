@@ -1,3 +1,4 @@
+import { stagePointTotals } from "../../domain/tournament/point-adjustments";
 import { createHash } from "node:crypto";
 import { and, asc, eq, inArray } from "drizzle-orm";
 import {
@@ -221,7 +222,7 @@ export function calculateRanking(
   const format = stage.format === "swiss" ? "swiss" : stage.format === "round_robin" ? "round_robin" : null;
   const projections = format == null
     ? calculateMatchRecordStandings(stagePlayers, matches, "single_elimination")
-    : calculateMatchRecordStandings(stagePlayers, matches, format, leagueRulesFromStorage(stage.leagueRules));
+    : calculateMatchRecordStandings(stagePlayers, matches, format, leagueRulesFromStorage(stage.leagueRules), stagePointTotals(stage));
   const projectionByPlayerId = new Map(projections.map((entry) => [entry.playerId, entry]));
 
   if (stage.format === "swiss") {
@@ -374,7 +375,7 @@ export function calculateGroupRanking(
     });
     const groupMatches = matches.filter((match) => match.stageGroupId === group.id);
     const leagueRules = leagueRulesFromStorage(stage.leagueRules);
-    const projections = calculateMatchRecordStandings(groupPlayers, groupMatches, "round_robin", leagueRules);
+    const projections = calculateMatchRecordStandings(groupPlayers, groupMatches, "round_robin", leagueRules, stagePointTotals(stage));
     const projectionByPlayerId = new Map(projections.map((entry) => [entry.playerId, entry]));
     const result = leagueRules != null
       ? leagueProjectionRanking(

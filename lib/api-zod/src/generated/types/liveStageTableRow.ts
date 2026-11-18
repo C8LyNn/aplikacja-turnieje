@@ -24,6 +24,8 @@ export interface LiveStageTableRow {
   buchholz: number | null;
   /** @nullable */
   decidedBy: string | null;
+  /** V5.5: net bonus/penalty included in points (0 when none). */
+  pointAdjustment?: number;
   /** @nullable */
   zone: LiveStageTableRowZone;
 }

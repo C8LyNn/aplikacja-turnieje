@@ -1,3 +1,5 @@
+import { addPointAdjustment, pointAdjustmentView, PointAdjustmentError, revokePointAdjustment } from "../application/stages/point-adjustments-service";
+import { stagePointTotals } from "../domain/tournament/point-adjustments";
 import {
   PARTICIPANT_FIELD_CATEGORIES,
   PARTICIPANT_FIELD_CATEGORY_LABELS,
@@ -650,6 +652,7 @@ async function calculateStandings(
       matches.filter(match => match.stageId === stage.id),
       stage.format,
       leagueRulesFromStorage(stage.leagueRules),
+      stagePointTotals(stage),
     );
   }
   return calculateMatchRecordStandings(players, matches, tournament.format);
@@ -939,6 +942,52 @@ router.get("/tournaments/:id/stages/:stageId", async (req, res): Promise<void> =
     res.json(await getTournamentStageDetails({ tournamentId: params.data.id, stageId: params.data.stageId }));
   } catch (error) {
     if (error instanceof StageLifecycleError) { sendStageLifecycleError(error, res); return; }
+    throw error;
+  }
+});
+
+// V5.5: point adjustments (bonuses / penalties) of a points-table stage — read for viewers, write for the organiser.
+function sendPointAdjustmentError(error: PointAdjustmentError, res: import("express").Response): void {
+  const status = error.code === "STAGE_NOT_FOUND" || error.code === "POINT_ADJUSTMENT_NOT_FOUND" ? 404
+    : error.code === "STAGE_COMPLETED" || error.code === "POINT_ADJUSTMENT_ALREADY_REVOKED" ? 409 : 422;
+  res.status(status).json({ error: error.message, code: error.code, problems: error.problems });
+}
+
+router.get("/tournaments/:id/stages/:stageId/point-adjustments", async (req, res): Promise<void> => {
+  const params = GetTournamentStageParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (!await requireTournamentRead(req, res, params.data.id)) return;
+  const [stage] = await db.select().from(tournamentStagesTable).where(eq(tournamentStagesTable.id, params.data.stageId));
+  if (!stage || stage.tournamentId !== params.data.id) { res.status(404).json({ error: "Etap nie istnieje.", code: "STAGE_NOT_FOUND" }); return; }
+  res.json({ supported: leagueRulesFromStorage(stage.leagueRules) != null, locked: stage.status === "completed", ...pointAdjustmentView(stage.pointAdjustments) });
+});
+
+router.post("/tournaments/:id/stages/:stageId/point-adjustments", async (req, res): Promise<void> => {
+  const params = GetTournamentStageParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
+  const access = await requireOrganizer(req, res, params.data.id);
+  if (!access) return;
+  try {
+    const body = (typeof req.body === "object" && req.body !== null ? req.body : {}) as { playerId?: unknown; points?: unknown; reason?: unknown };
+    const result = await addPointAdjustment({ tournamentId: params.data.id, stageId: params.data.stageId, body, actor: getTournamentMutationActor(access) });
+    res.status(201).json({ ...result.view, entry: result.entry, stageVersion: result.stageVersion });
+  } catch (error) {
+    if (error instanceof PointAdjustmentError) { sendPointAdjustmentError(error, res); return; }
+    throw error;
+  }
+});
+
+router.post("/tournaments/:id/stages/:stageId/point-adjustments/:adjustmentId/revoke", async (req, res): Promise<void> => {
+  const params = GetTournamentStageParams.safeParse(req.params);
+  const adjustmentId = typeof req.params.adjustmentId === "string" && /^[0-9a-f-]{36}$/.test(req.params.adjustmentId) ? req.params.adjustmentId : null;
+  if (!params.success || !adjustmentId) { res.status(400).json({ error: "Invalid id" }); return; }
+  const access = await requireOrganizer(req, res, params.data.id);
+  if (!access) return;
+  try {
+    const result = await revokePointAdjustment({ tournamentId: params.data.id, stageId: params.data.stageId, adjustmentId, actor: getTournamentMutationActor(access) });
+    res.json({ ...result.view, stageVersion: result.stageVersion });
+  } catch (error) {
+    if (error instanceof PointAdjustmentError) { sendPointAdjustmentError(error, res); return; }
     throw error;
   }
 });

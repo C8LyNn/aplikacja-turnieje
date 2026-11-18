@@ -1,3 +1,4 @@
+import { stagePointTotals } from "../../domain/tournament/point-adjustments";
 import { and, desc, eq, inArray, ne } from "drizzle-orm";
 import {
   actionLogTable,
@@ -525,6 +526,7 @@ export async function completeMatch(
           allMatches,
           "round_robin",
           leagueRulesFromStorage(stage.leagueRules),
+          stagePointTotals(stage),
         );
         if (winner) {
           await tx

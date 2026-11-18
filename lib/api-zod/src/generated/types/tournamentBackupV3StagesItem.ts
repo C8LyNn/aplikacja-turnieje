@@ -6,6 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { LeagueRules } from './leagueRules';
+import type { PointAdjustment } from './pointAdjustment';
 import type { SchedulePlan } from './schedulePlan';
 import type { TournamentBackupV3StagesItemEntrySeedingPolicy } from './tournamentBackupV3StagesItemEntrySeedingPolicy';
 import type { TournamentBackupV3StagesItemFormat } from './tournamentBackupV3StagesItemFormat';
@@ -35,6 +36,8 @@ export type TournamentBackupV3StagesItem = {
   leagueRules?: LeagueRules;
   /** V5.3: present only when the stage has a schedule time zone. */
   scheduleTimeZone?: string;
+  /** V5.5: present only when the stage has bonus/penalty entries (revoked ones included). */
+  pointAdjustments?: PointAdjustment[];
   /** V5.3: present only when the stage has a schedule template. */
   schedulePlan?: SchedulePlan;
   /** @nullable */

@@ -1,3 +1,4 @@
+import { parsePointAdjustments, pointAdjustmentsFromStorage } from "../../domain/tournament/point-adjustments";
 import { parseParticipantFieldSet, participantFieldsFromStorage, validateFieldValues, type ParticipantFieldSet } from "../../domain/tournament/participant-fields";
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import {
@@ -418,6 +419,8 @@ export async function exportBackupV3(
       ...(stage.roundRobinLegs === 2 ? { roundRobinLegs: 2 as const } : {}),
       // V5.3: present only when set, so pre-V5.3 tournaments export exactly as before.
       ...(stage.leagueRules != null ? { leagueRules: leagueRulesFromStorage(stage.leagueRules)! } : {}),
+      // V5.5: bonus/penalty audit entries travel with the stage (omitted when none).
+      ...(pointAdjustmentsFromStorage(stage.pointAdjustments).length ? { pointAdjustments: pointAdjustmentsFromStorage(stage.pointAdjustments) } : {}),
       ...(stage.scheduleTimeZone != null ? { scheduleTimeZone: stage.scheduleTimeZone } : {}),
       ...(schedulePlanFromStorage(stage.schedulePlan, stage.scheduleTimeZone) != null
         ? { schedulePlan: schedulePlanFromStorage(stage.schedulePlan, stage.scheduleTimeZone)! }
@@ -725,6 +728,16 @@ export function validateBackupV3(backup: TournamentBackupV3): void {
   };
   const playerIds = unique(backup.players, "Player");
   validateTeamRosters(backup, playerIds, errors);
+  // V5.5: point adjustments — well-formed, only on stages with league rules, only for known players.
+  for (const stage of backup.stages) {
+    if (stage.pointAdjustments === undefined) continue;
+    const parsed = parsePointAdjustments(stage.pointAdjustments);
+    if (!parsed.ok) { errors.push(`Stage ${stage.backupId} point adjustments are invalid: ${parsed.message}`); continue; }
+    if (stage.leagueRules === undefined) errors.push(`Stage ${stage.backupId} has point adjustments but no league rules.`);
+    for (const entry of parsed.value) {
+      if (!playerIds.has(entry.playerId)) errors.push(`Stage ${stage.backupId} point adjustment ${entry.id} references unknown player ${entry.playerId}.`);
+    }
+  }
   // V5.4: participant fields — definitions must parse, every stored value must fit its definition.
   let backupFieldSet: ParticipantFieldSet | null = null;
   if (backup.tournament.participantFields !== undefined) {
@@ -2030,6 +2043,15 @@ export async function importBackupV3(
             .returning();
     for (let index = 0; index < backup.players.length; index += 1) {
       playerIds.set(backup.players[index].backupId, createdPlayers[index].id);
+    }
+    // V5.5: point adjustments reference players, so they are written once player ids are known.
+    for (const stage of backup.stages) {
+      if (!stage.pointAdjustments?.length) continue;
+      const stageId = stageIds.get(stage.backupId);
+      if (stageId == null) continue;
+      await tx.update(tournamentStagesTable)
+        .set({ pointAdjustments: stage.pointAdjustments.map((entry) => ({ ...entry, playerId: playerIds.get(entry.playerId)! })) })
+        .where(eq(tournamentStagesTable.id, stageId));
     }
     const teamRosters = await restoreTeamRosters(tx, backup, tournament.id, playerIds);
     const marvelRoundIds = new Map<number, number>();

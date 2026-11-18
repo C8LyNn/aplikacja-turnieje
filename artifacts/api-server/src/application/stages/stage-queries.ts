@@ -1,3 +1,4 @@
+import { pointAdjustmentsFromStorage } from "../../domain/tournament/point-adjustments";
 import { asc, eq, inArray } from "drizzle-orm";
 import {
   db,
@@ -34,6 +35,8 @@ export function serializeTournamentStage(
     completedAt: iso(stage.completedAt),
     // V5.3: normalised rules plus a plain-language summary for every client (Stable and Experimental).
     ...leagueFields(stage),
+    // V5.5: audit entries of bonuses / penalties (normalised; never the raw column).
+    pointAdjustments: pointAdjustmentsFromStorage(stage.pointAdjustments),
   };
 }
 

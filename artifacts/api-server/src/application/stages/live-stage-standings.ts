@@ -6,6 +6,7 @@
  * qualifiers the engine will take. A completed stage shows its stored places. "In the qualifying
  * zone" is a position, not a promise: it is labelled as such until the stage ends.
  */
+import { stagePointTotals } from "../../domain/tournament/point-adjustments";
 import { asc, eq } from "drizzle-orm";
 import {
   db,
@@ -37,6 +38,8 @@ export interface LiveTableRow {
   buchholz: number | null;
   /** V5.3 tie-break note for points tables; null otherwise. */
   decidedBy: StandingProjection["decidedBy"] | null;
+  /** V5.5: net bonus/penalty included in `points` (0 when none). */
+  pointAdjustment: number;
   /** Inside the advancing places (only when the stage feeds another stage). */
   zone: LiveTableZone | null;
 }
@@ -92,6 +95,7 @@ function row(
     diff: ranked.gameDiff,
     buchholz: ranked.buchholz,
     decidedBy: rules ? projection?.decidedBy ?? null : null,
+    pointAdjustment: rules ? projection?.pointAdjustment ?? 0 : 0,
     zone: advancingPlaces == null ? null : rank <= advancingPlaces ? "qualify" : "out",
   };
 }
@@ -135,7 +139,7 @@ export function buildLiveStageStandings(input: {
     const tables = [...groups].sort((a, b) => a.position - b.position).map((group) => {
       const groupMemberships = memberships.filter((membership) => membership.groupId === group.id);
       const groupMatches = matches.filter((match) => match.stageGroupId === group.id);
-      const projections = calculateMatchRecordStandings(stagePlayers(groupMemberships), groupMatches, "round_robin", rules);
+      const projections = calculateMatchRecordStandings(stagePlayers(groupMemberships), groupMatches, "round_robin", rules, stagePointTotals(stage));
       const projectionById = new Map(projections.map((entry) => [entry.playerId, entry]));
       const storedRank = new Map(groupMemberships.map((membership) => [membership.playerId, membership.groupRank]));
       const ranked = ranking
@@ -153,7 +157,7 @@ export function buildLiveStageStandings(input: {
   }
 
   const format = stage.format === "swiss" ? "swiss" : "round_robin";
-  const projections = calculateMatchRecordStandings(stagePlayers(memberships), matches, format, format === "round_robin" ? rules : null);
+  const projections = calculateMatchRecordStandings(stagePlayers(memberships), matches, format, format === "round_robin" ? rules : null, stagePointTotals(stage));
   const projectionById = new Map(projections.map((entry) => [entry.playerId, entry]));
   const ranking = calculateRanking(stage, memberships, players, matches);
   const storedRank = new Map(memberships.map((membership) => [membership.playerId, membership.finalRank]));

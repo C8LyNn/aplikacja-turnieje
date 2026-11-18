@@ -61,6 +61,8 @@ export interface StandingProjection {
   decidedBy?: "points" | LeagueTieBreaker | "seed" | null;
   /** V5.3: true when all configured criteria left this row level with a neighbour (seed decided). */
   tiedAfterAllRules?: boolean;
+  /** V5.5: net bonus/penalty included in `points` (absent when zero). */
+  pointAdjustment?: number;
 }
 
 interface MutableRecord {
@@ -81,9 +83,11 @@ export function calculateMatchRecordStandings(
   matches: StandingsMatch[],
   format: StandingsFormat,
   leagueRules: LeagueRules | null = null,
+  /** V5.5: active point adjustments per player (points tables only). */
+  pointAdjustments: ReadonlyMap<number, number> | null = null,
 ): StandingProjection[] {
   if (leagueRules && (format === "round_robin" || format === "group_stage")) {
-    return calculateLeagueStandings(players, matches, leagueRules);
+    return calculateLeagueStandings(players, matches, leagueRules, pointAdjustments);
   }
   const records = new Map<number, MutableRecord>();
   for (const player of players) {
@@ -233,6 +237,7 @@ function calculateLeagueStandings(
   players: StandingsPlayer[],
   matches: StandingsMatch[],
   rules: LeagueRules,
+  pointAdjustments: ReadonlyMap<number, number> | null = null,
 ): StandingProjection[] {
   const records = new Map<number, LeagueRecord>();
   for (const player of players) {
@@ -274,6 +279,11 @@ function calculateLeagueStandings(
     results.push({ player1Id: match.player1Id, player2Id: match.player2Id, winnerId: match.winnerId! });
   }
 
+  // V5.5: bonuses and penalties change only the points total; head-to-head and score columns stay as played.
+  for (const [playerId, adjustment] of pointAdjustments ?? []) {
+    const record = records.get(playerId);
+    if (record) record.points += adjustment;
+  }
   const seedOf = new Map(players.map((player) => [player.id, player.seed ?? null]));
   const decidedBy = new Map<number, StandingProjection["decidedBy"]>();
   const tied = new Set<number>();
@@ -377,6 +387,7 @@ function calculateLeagueStandings(
       points: record.points,
       decidedBy: index === 0 ? null : decidedBy.get(playerId) ?? null,
       tiedAfterAllRules: tied.has(playerId),
+      ...(pointAdjustments?.get(playerId) ? { pointAdjustment: pointAdjustments.get(playerId)! } : {}),
     };
   });
 }

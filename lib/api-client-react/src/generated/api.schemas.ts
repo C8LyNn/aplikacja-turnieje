@@ -2133,6 +2133,48 @@ export interface MatchUpdate {
   bestOf?: number;
 }
 
+export interface PointAdjustment {
+  id: string;
+  playerId: number;
+  /**
+     * @minimum -100
+     * @maximum 100
+     */
+  points: number;
+  reason: string;
+  createdAt: string;
+  /** @nullable */
+  revokedAt: string | null;
+}
+
+export interface PointAdjustmentInput {
+  playerId: number;
+  /**
+     * @minimum -100
+     * @maximum 100
+     */
+  points: number;
+  /**
+     * @minLength 1
+     * @maxLength 200
+     */
+  reason: string;
+}
+
+export type StagePointAdjustmentsTotalsItem = {
+  playerId: number;
+  points: number;
+};
+
+export interface StagePointAdjustments {
+  supported?: boolean;
+  locked?: boolean;
+  stageVersion?: number;
+  entry?: PointAdjustment;
+  entries: PointAdjustment[];
+  totals: StagePointAdjustmentsTotalsItem[];
+}
+
 export type ParticipantFieldDefinitionType = typeof ParticipantFieldDefinitionType[keyof typeof ParticipantFieldDefinitionType];
 
 
@@ -2269,6 +2311,8 @@ export interface LiveStageTableRow {
   buchholz: number | null;
   /** @nullable */
   decidedBy: string | null;
+  /** V5.5: net bonus/penalty included in points (0 when none). */
+  pointAdjustment?: number;
   /** @nullable */
   zone: LiveStageTableRowZone;
 }
@@ -3713,6 +3757,8 @@ export type TournamentBackupV3StagesItem = {
   leagueRules?: LeagueRules;
   /** V5.3: present only when the stage has a schedule time zone. */
   scheduleTimeZone?: string;
+  /** V5.5: present only when the stage has bonus/penalty entries (revoked ones included). */
+  pointAdjustments?: PointAdjustment[];
   /** V5.3: present only when the stage has a schedule template. */
   schedulePlan?: SchedulePlan;
   /** @nullable */

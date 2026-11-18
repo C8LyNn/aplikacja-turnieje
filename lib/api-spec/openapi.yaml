@@ -596,6 +596,87 @@ paths:
               schema:
                 $ref: "#/components/schemas/DomainError"
 
+  /tournaments/{id}/stages/{stageId}/point-adjustments:
+    get:
+      operationId: getStagePointAdjustments
+      tags: [tournaments]
+      summary: Bonuses and penalties of a points-table stage (V5.5)
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+        - $ref: "#/components/parameters/StageId"
+      responses:
+        "200":
+          description: Adjustments
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StagePointAdjustments"
+        "404":
+          description: Not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+    post:
+      operationId: addStagePointAdjustment
+      tags: [tournaments]
+      summary: Add a bonus or penalty (organiser only, stage not completed, V5.5)
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+        - $ref: "#/components/parameters/StageId"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PointAdjustmentInput"
+      responses:
+        "201":
+          description: Added
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StagePointAdjustments"
+        "409":
+          description: Stage completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "422":
+          description: Invalid
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+
+  /tournaments/{id}/stages/{stageId}/point-adjustments/{adjustmentId}/revoke:
+    post:
+      operationId: revokeStagePointAdjustment
+      tags: [tournaments]
+      summary: Revoke a bonus or penalty (kept in the audit trail, V5.5)
+      parameters:
+        - $ref: "#/components/parameters/TournamentId"
+        - $ref: "#/components/parameters/StageId"
+        - name: adjustmentId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Revoked
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StagePointAdjustments"
+        "409":
+          description: Already revoked or stage completed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+
   /participant-field-library:
     get:
       operationId: getParticipantFieldLibrary
@@ -4369,6 +4450,44 @@ components:
           type: integer
           minimum: 1
 
+    PointAdjustment:
+      type: object
+      required: [id, playerId, points, reason, createdAt, revokedAt]
+      properties:
+        id: { type: string }
+        playerId: { type: integer }
+        points: { type: integer, minimum: -100, maximum: 100 }
+        reason: { type: string }
+        createdAt: { type: string }
+        revokedAt: { type: ["string", "null"] }
+    PointAdjustmentInput:
+      type: object
+      required: [playerId, points, reason]
+      properties:
+        playerId: { type: integer }
+        points: { type: integer, minimum: -100, maximum: 100 }
+        reason: { type: string, minLength: 1, maxLength: 200 }
+    StagePointAdjustments:
+      type: object
+      required: [entries, totals]
+      properties:
+        supported: { type: boolean }
+        locked: { type: boolean }
+        stageVersion: { type: integer }
+        entry:
+          $ref: "#/components/schemas/PointAdjustment"
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/PointAdjustment"
+        totals:
+          type: array
+          items:
+            type: object
+            required: [playerId, points]
+            properties:
+              playerId: { type: integer }
+              points: { type: integer }
     ParticipantFieldDefinition:
       type: object
       required: [key, label, type, category, kind, required, visibility]
@@ -4491,6 +4610,7 @@ components:
         diff: { type: integer }
         buchholz: { type: [number, "null"] }
         decidedBy: { type: [string, "null"] }
+        pointAdjustment: { type: integer, description: "V5.5: net bonus/penalty included in points (0 when none)." }
         zone:
           type: [string, "null"]
           enum: [qualify, out, null]
@@ -5609,6 +5729,11 @@ components:
                 $ref: "#/components/schemas/LeagueRules"
                 description: "V5.3: present only when the stage has league rules (draws, points, tie-breakers)."
               scheduleTimeZone: { type: string, description: "V5.3: present only when the stage has a schedule time zone." }
+              pointAdjustments:
+                type: array
+                items:
+                  $ref: "#/components/schemas/PointAdjustment"
+                description: "V5.5: present only when the stage has bonus/penalty entries (revoked ones included)."
               schedulePlan:
                 $ref: "#/components/schemas/SchedulePlan"
                 description: "V5.3: present only when the stage has a schedule template."

@@ -1573,6 +1573,127 @@ export const GetTournamentStageResponse = zod.object({
 
 
 /**
+ * @summary Bonuses and penalties of a points-table stage (V5.5)
+ */
+
+
+
+
+export const GetStagePointAdjustmentsParams = zod.object({
+  "id": zod.coerce.number().min(1),
+  "stageId": zod.coerce.number().min(1)
+})
+
+export const getStagePointAdjustmentsResponseEntryPointsMin = -100;
+export const getStagePointAdjustmentsResponseEntryPointsMax = 100;
+
+export const getStagePointAdjustmentsResponseEntriesItemPointsMin = -100;
+export const getStagePointAdjustmentsResponseEntriesItemPointsMax = 100;
+
+
+
+export const GetStagePointAdjustmentsResponse = zod.object({
+  "supported": zod.boolean().optional(),
+  "locked": zod.boolean().optional(),
+  "stageVersion": zod.number().optional(),
+  "entry": zod.object({
+  "id": zod.string(),
+  "playerId": zod.number(),
+  "points": zod.number().min(getStagePointAdjustmentsResponseEntryPointsMin).max(getStagePointAdjustmentsResponseEntryPointsMax),
+  "reason": zod.string(),
+  "createdAt": zod.string(),
+  "revokedAt": zod.string().nullable()
+}).optional(),
+  "entries": zod.array(zod.object({
+  "id": zod.string(),
+  "playerId": zod.number(),
+  "points": zod.number().min(getStagePointAdjustmentsResponseEntriesItemPointsMin).max(getStagePointAdjustmentsResponseEntriesItemPointsMax),
+  "reason": zod.string(),
+  "createdAt": zod.string(),
+  "revokedAt": zod.string().nullable()
+})),
+  "totals": zod.array(zod.object({
+  "playerId": zod.number(),
+  "points": zod.number()
+}))
+})
+
+
+/**
+ * @summary Add a bonus or penalty (organiser only, stage not completed, V5.5)
+ */
+
+
+
+
+export const AddStagePointAdjustmentParams = zod.object({
+  "id": zod.coerce.number().min(1),
+  "stageId": zod.coerce.number().min(1)
+})
+
+export const addStagePointAdjustmentBodyPointsMin = -100;
+export const addStagePointAdjustmentBodyPointsMax = 100;
+
+export const addStagePointAdjustmentBodyReasonMax = 200;
+
+
+
+export const AddStagePointAdjustmentBody = zod.object({
+  "playerId": zod.number(),
+  "points": zod.number().min(addStagePointAdjustmentBodyPointsMin).max(addStagePointAdjustmentBodyPointsMax),
+  "reason": zod.string().min(1).max(addStagePointAdjustmentBodyReasonMax)
+})
+
+
+/**
+ * @summary Revoke a bonus or penalty (kept in the audit trail, V5.5)
+ */
+
+
+
+
+export const RevokeStagePointAdjustmentParams = zod.object({
+  "id": zod.coerce.number().min(1),
+  "stageId": zod.coerce.number().min(1),
+  "adjustmentId": zod.coerce.string()
+})
+
+export const revokeStagePointAdjustmentResponseEntryPointsMin = -100;
+export const revokeStagePointAdjustmentResponseEntryPointsMax = 100;
+
+export const revokeStagePointAdjustmentResponseEntriesItemPointsMin = -100;
+export const revokeStagePointAdjustmentResponseEntriesItemPointsMax = 100;
+
+
+
+export const RevokeStagePointAdjustmentResponse = zod.object({
+  "supported": zod.boolean().optional(),
+  "locked": zod.boolean().optional(),
+  "stageVersion": zod.number().optional(),
+  "entry": zod.object({
+  "id": zod.string(),
+  "playerId": zod.number(),
+  "points": zod.number().min(revokeStagePointAdjustmentResponseEntryPointsMin).max(revokeStagePointAdjustmentResponseEntryPointsMax),
+  "reason": zod.string(),
+  "createdAt": zod.string(),
+  "revokedAt": zod.string().nullable()
+}).optional(),
+  "entries": zod.array(zod.object({
+  "id": zod.string(),
+  "playerId": zod.number(),
+  "points": zod.number().min(revokeStagePointAdjustmentResponseEntriesItemPointsMin).max(revokeStagePointAdjustmentResponseEntriesItemPointsMax),
+  "reason": zod.string(),
+  "createdAt": zod.string(),
+  "revokedAt": zod.string().nullable()
+})),
+  "totals": zod.array(zod.object({
+  "playerId": zod.number(),
+  "points": zod.number()
+}))
+})
+
+
+/**
  * @summary Ready-made participant fields grouped by category (V5.4)
  */
 export const GetParticipantFieldLibraryResponse = zod.object({
@@ -1762,6 +1883,7 @@ export const GetStageLiveStandingsResponse = zod.object({
   "diff": zod.number(),
   "buchholz": zod.number().nullable(),
   "decidedBy": zod.string().nullable(),
+  "pointAdjustment": zod.number().optional().describe('V5.5: net bonus\/penalty included in points (0 when none).'),
   "zone": zod.union([zod.literal('qualify'),zod.literal('out'),zod.literal(null)]).nullable()
 }))
 }))
@@ -3647,6 +3769,9 @@ export const exportTournamentResponseStagesItemLeagueRulesPointsDrawMax = 99;
 export const exportTournamentResponseStagesItemLeagueRulesPointsLossMin = 0;
 export const exportTournamentResponseStagesItemLeagueRulesPointsLossMax = 99;
 
+export const exportTournamentResponseStagesItemPointAdjustmentsItemPointsMin = -100;
+export const exportTournamentResponseStagesItemPointAdjustmentsItemPointsMax = 100;
+
 export const exportTournamentResponseStagesItemSchedulePlanIntervalDaysMax = 60;
 
 export const exportTournamentResponseStagesMax = 10;
@@ -3779,6 +3904,14 @@ export const ExportTournamentResponse = zod.object({
   "tieBreakers": zod.array(zod.enum(['head_to_head', 'score_difference', 'scored', 'wins'])).optional()
 }).optional().describe('V5.3: present only when the stage has league rules (draws, points, tie-breakers).'),
   "scheduleTimeZone": zod.string().optional().describe('V5.3: present only when the stage has a schedule time zone.'),
+  "pointAdjustments": zod.array(zod.object({
+  "id": zod.string(),
+  "playerId": zod.number(),
+  "points": zod.number().min(exportTournamentResponseStagesItemPointAdjustmentsItemPointsMin).max(exportTournamentResponseStagesItemPointAdjustmentsItemPointsMax),
+  "reason": zod.string(),
+  "createdAt": zod.string(),
+  "revokedAt": zod.string().nullable()
+})).optional().describe('V5.5: present only when the stage has bonus\/penalty entries (revoked ones included).'),
   "schedulePlan": zod.object({
   "startDate": zod.string().describe('YYYY-MM-DD'),
   "intervalDays": zod.number().min(1).max(exportTournamentResponseStagesItemSchedulePlanIntervalDaysMax),
@@ -4033,6 +4166,9 @@ export const importTournamentBodyBackupTwoStagesItemLeagueRulesPointsDrawMax = 9
 export const importTournamentBodyBackupTwoStagesItemLeagueRulesPointsLossMin = 0;
 export const importTournamentBodyBackupTwoStagesItemLeagueRulesPointsLossMax = 99;
 
+export const importTournamentBodyBackupTwoStagesItemPointAdjustmentsItemPointsMin = -100;
+export const importTournamentBodyBackupTwoStagesItemPointAdjustmentsItemPointsMax = 100;
+
 export const importTournamentBodyBackupTwoStagesItemSchedulePlanIntervalDaysMax = 60;
 
 export const importTournamentBodyBackupTwoStagesMax = 10;
@@ -4244,6 +4380,14 @@ export const ImportTournamentBody = zod.object({
   "tieBreakers": zod.array(zod.enum(['head_to_head', 'score_difference', 'scored', 'wins'])).optional()
 }).optional().describe('V5.3: present only when the stage has league rules (draws, points, tie-breakers).'),
   "scheduleTimeZone": zod.string().optional().describe('V5.3: present only when the stage has a schedule time zone.'),
+  "pointAdjustments": zod.array(zod.object({
+  "id": zod.string(),
+  "playerId": zod.number(),
+  "points": zod.number().min(importTournamentBodyBackupTwoStagesItemPointAdjustmentsItemPointsMin).max(importTournamentBodyBackupTwoStagesItemPointAdjustmentsItemPointsMax),
+  "reason": zod.string(),
+  "createdAt": zod.string(),
+  "revokedAt": zod.string().nullable()
+})).optional().describe('V5.5: present only when the stage has bonus\/penalty entries (revoked ones included).'),
   "schedulePlan": zod.object({
   "startDate": zod.string().describe('YYYY-MM-DD'),
   "intervalDays": zod.number().min(1).max(importTournamentBodyBackupTwoStagesItemSchedulePlanIntervalDaysMax),

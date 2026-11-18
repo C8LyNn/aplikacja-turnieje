@@ -65,6 +65,7 @@ import type {
   Player,
   PlayerInput,
   PlayerUpdate,
+  PointAdjustmentInput,
   PrepareControlledCorrectionIntentBody,
   PreviewTournamentResultCorrectionBody,
   QualificationOutput,
@@ -83,6 +84,7 @@ import type {
   StageBasketConfigurationInput,
   StageLeagueRulesUpdateRequest,
   StageLifecycleError,
+  StagePointAdjustments,
   StageQualificationPreview,
   StageSchedule,
   StageScheduleGenerateRequest,
@@ -1610,6 +1612,236 @@ export function useGetTournamentStage<TData = Awaited<ReturnType<typeof getTourn
 
 
 
+
+export const getGetStagePointAdjustmentsUrl = (id: number,
+    stageId: number,) => {
+
+
+
+
+  return `/api/tournaments/${id}/stages/${stageId}/point-adjustments`
+}
+
+/**
+ * @summary Bonuses and penalties of a points-table stage (V5.5)
+ */
+export const getStagePointAdjustments = async (id: number,
+    stageId: number, options?: RequestInit): Promise<StagePointAdjustments> => {
+
+  return customFetch<StagePointAdjustments>(getGetStagePointAdjustmentsUrl(id,stageId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetStagePointAdjustmentsQueryKey = (id: number,
+    stageId: number,) => {
+    return [
+    `/api/tournaments/${id}/stages/${stageId}/point-adjustments`
+    ] as const;
+    }
+
+
+export const getGetStagePointAdjustmentsQueryOptions = <TData = Awaited<ReturnType<typeof getStagePointAdjustments>>, TError = ErrorType<DomainError>>(id: number,
+    stageId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getStagePointAdjustments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetStagePointAdjustmentsQueryKey(id,stageId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getStagePointAdjustments>>> = ({ signal }) => getStagePointAdjustments(id,stageId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id && stageId), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getStagePointAdjustments>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetStagePointAdjustmentsQueryResult = NonNullable<Awaited<ReturnType<typeof getStagePointAdjustments>>>
+export type GetStagePointAdjustmentsQueryError = ErrorType<DomainError>
+
+
+/**
+ * @summary Bonuses and penalties of a points-table stage (V5.5)
+ */
+
+export function useGetStagePointAdjustments<TData = Awaited<ReturnType<typeof getStagePointAdjustments>>, TError = ErrorType<DomainError>>(
+ id: number,
+    stageId: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getStagePointAdjustments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetStagePointAdjustmentsQueryOptions(id,stageId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getAddStagePointAdjustmentUrl = (id: number,
+    stageId: number,) => {
+
+
+
+
+  return `/api/tournaments/${id}/stages/${stageId}/point-adjustments`
+}
+
+/**
+ * @summary Add a bonus or penalty (organiser only, stage not completed, V5.5)
+ */
+export const addStagePointAdjustment = async (id: number,
+    stageId: number,
+    pointAdjustmentInput: PointAdjustmentInput, options?: RequestInit): Promise<StagePointAdjustments> => {
+
+  return customFetch<StagePointAdjustments>(getAddStagePointAdjustmentUrl(id,stageId),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      pointAdjustmentInput,)
+  }
+);}
+
+
+
+
+export const getAddStagePointAdjustmentMutationOptions = <TError = ErrorType<DomainError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addStagePointAdjustment>>, TError,{id: number;stageId: number;data: BodyType<PointAdjustmentInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof addStagePointAdjustment>>, TError,{id: number;stageId: number;data: BodyType<PointAdjustmentInput>}, TContext> => {
+
+const mutationKey = ['addStagePointAdjustment'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof addStagePointAdjustment>>, {id: number;stageId: number;data: BodyType<PointAdjustmentInput>}> = (props) => {
+          const {id,stageId,data} = props ?? {};
+
+          return  addStagePointAdjustment(id,stageId,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type AddStagePointAdjustmentMutationResult = NonNullable<Awaited<ReturnType<typeof addStagePointAdjustment>>>
+    export type AddStagePointAdjustmentMutationBody = BodyType<PointAdjustmentInput>
+    export type AddStagePointAdjustmentMutationError = ErrorType<DomainError>
+
+    /**
+ * @summary Add a bonus or penalty (organiser only, stage not completed, V5.5)
+ */
+export const useAddStagePointAdjustment = <TError = ErrorType<DomainError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof addStagePointAdjustment>>, TError,{id: number;stageId: number;data: BodyType<PointAdjustmentInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof addStagePointAdjustment>>,
+        TError,
+        {id: number;stageId: number;data: BodyType<PointAdjustmentInput>},
+        TContext
+      > => {
+      return useMutation(getAddStagePointAdjustmentMutationOptions(options));
+    }
+
+export const getRevokeStagePointAdjustmentUrl = (id: number,
+    stageId: number,
+    adjustmentId: string,) => {
+
+
+
+
+  return `/api/tournaments/${id}/stages/${stageId}/point-adjustments/${adjustmentId}/revoke`
+}
+
+/**
+ * @summary Revoke a bonus or penalty (kept in the audit trail, V5.5)
+ */
+export const revokeStagePointAdjustment = async (id: number,
+    stageId: number,
+    adjustmentId: string, options?: RequestInit): Promise<StagePointAdjustments> => {
+
+  return customFetch<StagePointAdjustments>(getRevokeStagePointAdjustmentUrl(id,stageId,adjustmentId),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getRevokeStagePointAdjustmentMutationOptions = <TError = ErrorType<DomainError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeStagePointAdjustment>>, TError,{id: number;stageId: number;adjustmentId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof revokeStagePointAdjustment>>, TError,{id: number;stageId: number;adjustmentId: string}, TContext> => {
+
+const mutationKey = ['revokeStagePointAdjustment'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof revokeStagePointAdjustment>>, {id: number;stageId: number;adjustmentId: string}> = (props) => {
+          const {id,stageId,adjustmentId} = props ?? {};
+
+          return  revokeStagePointAdjustment(id,stageId,adjustmentId,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RevokeStagePointAdjustmentMutationResult = NonNullable<Awaited<ReturnType<typeof revokeStagePointAdjustment>>>
+
+    export type RevokeStagePointAdjustmentMutationError = ErrorType<DomainError>
+
+    /**
+ * @summary Revoke a bonus or penalty (kept in the audit trail, V5.5)
+ */
+export const useRevokeStagePointAdjustment = <TError = ErrorType<DomainError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revokeStagePointAdjustment>>, TError,{id: number;stageId: number;adjustmentId: string}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof revokeStagePointAdjustment>>,
+        TError,
+        {id: number;stageId: number;adjustmentId: string},
+        TContext
+      > => {
+      return useMutation(getRevokeStagePointAdjustmentMutationOptions(options));
+    }
 
 export const getGetParticipantFieldLibraryUrl = () => {
 
