@@ -17,3 +17,27 @@ export function experimentalNextStep<T extends { kind: string; title: string }>(
       return step;
   }
 }
+
+/**
+ * V5.8 · one rule for every organizer page: a draft with fewer than 2 participants asks for participants,
+ * instead of stage-consistency diagnostics ("Oczekiwano: 0 · Aktualnie: 0"). The tournament page and the host
+ * used to disagree on this state. Logic of the engine is unchanged; only the step shown is chosen here.
+ */
+export function experimentalDraftNextStep<T extends { kind: string; title: string }>(
+  step: T | null | undefined,
+  input: { tournamentStatus?: string; participantCount: number | null | undefined; tournamentId: number },
+) {
+  const count = input.participantCount;
+  if (input.tournamentStatus === "draft" && count != null && count < 2 && step && ["stage_preparation", "not_ready", "planned_stage"].includes(step.kind)) {
+    return {
+      kind: "stage_preparation" as const,
+      title: "Dodaj uczestników",
+      description: count === 0
+        ? "Turniej jest gotowy do zapisów. Dodaj co najmniej 2 uczestników — pojedynczo lub z pliku CSV."
+        : "Masz 1 uczestnika. Do rozpoczęcia turnieju potrzeba co najmniej 2.",
+      actionLabel: "Dodaj uczestników",
+      actionHref: `/tournaments/${input.tournamentId}?tab=players`,
+    };
+  }
+  return experimentalNextStep(step);
+}

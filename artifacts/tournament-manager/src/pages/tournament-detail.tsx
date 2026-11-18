@@ -59,7 +59,7 @@ import { StageBasketsPanel } from "@/components/stage-baskets-panel";
 import { parseTournamentBackupFile } from "@/lib/backup-file";
 import { organizerAreaForDetailTab, organizerDetailTab, TournamentOrganizerNavigation, useLegacyMatchesRedirect } from "@/components/tournament-organizer-navigation";
 import { OrganizerNextStep } from "@/components/organizer-next-step";
-import { experimentalNextStep } from "@/features/experimental-tournaments/experimental-next-step";
+import { experimentalDraftNextStep } from "@/features/experimental-tournaments/experimental-next-step";
 import { ExperimentalRosterHealth, ExperimentalStageMap } from "@/features/experimental-tournaments/experimental-v4-panels";
 import { ExperimentalBulkPaste, type BulkImportOutcome } from "@/features/experimental-tournaments/experimental-v4-bulk-paste";
 import { ExperimentalTeamRosters } from "@/features/experimental-tournaments/experimental-team-rosters";
@@ -325,26 +325,11 @@ export default function TournamentDetail() {
     capabilities, surface: "details", enabled: !!managementRole && readOk });
   // Experimental: a fresh draft without enough participants gets one plain next step
   // ("add participants") instead of the stage-consistency diagnostics.
+  // V5.8: the same rule as the host page (shared in experimental-next-step).
   const experimentalParticipantCount = players?.length ?? 0;
-  const nextStep =
-    isExperimental &&
-    tournament?.status === "draft" &&
-    experimentalParticipantCount < 2 &&
-    operation.nextStep &&
-    ["stage_preparation", "not_ready", "planned_stage"].includes(operation.nextStep.kind)
-      ? {
-          kind: "stage_preparation" as const,
-          title: "Dodaj uczestników",
-          description:
-            experimentalParticipantCount === 0
-              ? "Turniej jest gotowy do zapisów. Dodaj co najmniej 2 uczestników — pojedynczo lub z pliku CSV."
-              : "Masz 1 uczestnika. Do rozpoczęcia turnieju potrzeba co najmniej 2.",
-          actionLabel: "Dodaj uczestników",
-          actionHref: `/tournaments/${id}?tab=players`,
-        }
-      : isExperimental
-        ? experimentalNextStep(operation.nextStep)
-        : operation.nextStep;
+  const nextStep = isExperimental
+    ? experimentalDraftNextStep(operation.nextStep, { tournamentStatus: tournament?.status, participantCount: experimentalParticipantCount, tournamentId: id })
+    : operation.nextStep;
   const plannedStageReadiness = operation.readiness.data;
   const isFetchingPlannedStageReadiness = operation.readiness.isFetching;
 
@@ -1055,7 +1040,7 @@ export default function TournamentDetail() {
             )}
             {isExperimental && capabilities.canManageOrganizerSettings && <ParticipantFieldsManager tournamentId={tournament.id} participantNoun={teamEntries ? "drużyn" : "graczy"} />}
             {isExperimental && <ExperimentalRosterHealth players={players} maxPlayers={tournament.maxPlayers} teamsNotReady={teamsNotReady} nextHref={tournament.status === "draft" && capabilities.canManageLifecycle ? tournamentHref(tournament.id, true, "/host?tab=prowadzenie") : undefined} requiredCount={tournament.status === "draft" && (stages?.length ?? 0) > 1 ? stages?.find((stage) => stage.position === 1)?.participantCount : undefined} />}
-            {isExperimental && <ExperimentalPlayerToolbar query={playerSearch} onQueryChange={setPlayerSearch} status={playerStatusFilter} onStatusChange={setPlayerStatusFilter} sort={playerSort} onSortChange={setPlayerSort} total={players?.length ?? 0} visible={displayedPlayers.length} />}
+            {isExperimental && <ExperimentalPlayerToolbar query={playerSearch} onQueryChange={setPlayerSearch} status={playerStatusFilter} onStatusChange={setPlayerStatusFilter} sort={playerSort} onSortChange={setPlayerSort} total={players?.length ?? 0} visible={displayedPlayers.length} teams={!!teamEntries} />}
             {teamEntries && tournament.status === "draft" && (
               <p className="mt-4 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm" data-testid="team-entries-hint">
                 <strong>Turniej drużynowy.</strong> Najpierw dodaj <strong>drużyny</strong> — to one grają mecze i są w tabeli.

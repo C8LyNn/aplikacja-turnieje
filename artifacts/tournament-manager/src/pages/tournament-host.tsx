@@ -54,7 +54,7 @@ import { OrganizerRecoveryNotice } from "@/components/organizer-recovery-notice"
 import { SupportLoginModal } from "@/components/support-login-modal";
 import { organizerAreaForHostTab, organizerHostTab, TournamentOrganizerNavigation } from "@/components/tournament-organizer-navigation";
 import { OrganizerNextStep } from "@/components/organizer-next-step";
-import { experimentalNextStep } from "@/features/experimental-tournaments/experimental-next-step";
+import { experimentalDraftNextStep } from "@/features/experimental-tournaments/experimental-next-step";
 import { useOrganizerOperation } from "@/hooks/use-organizer-operation";
 import { deriveOrganizerCapabilities, managementRoleForCapabilities } from "@/lib/organizer-capabilities";
 import { invalidateTournamentDependentQueries } from "@/lib/tournament-query-invalidation";
@@ -260,7 +260,10 @@ export default function TournamentHost() {
   const activeHostTab = organizerHostTab(search, capabilities);
   const operation = useOrganizerOperation({ tournament, stages, matches: tournament?.status === "draft" ? [] : matches,
     capabilities, surface: "conducting", enabled: !!managementRole && isAuthReady });
-  const nextStep = isExperimental ? experimentalNextStep(operation.nextStep) : operation.nextStep;
+  // V5.8: the host and the tournament page show the same next step for a draft (shared rule).
+  const nextStep = isExperimental
+    ? experimentalDraftNextStep(operation.nextStep, { tournamentStatus: tournament?.status, participantCount: operation.readiness.data?.participantCount, tournamentId: id })
+    : operation.nextStep;
 
   // V5.6: an unsaved score survives a reload, a lost connection and an expired session (this browser tab only).
   const [restoredDrafts] = useState(() => readHostResultDrafts(id));
