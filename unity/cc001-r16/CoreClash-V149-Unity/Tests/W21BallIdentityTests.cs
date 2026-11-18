@@ -6,14 +6,14 @@ using System.Text.RegularExpressions;
 using CoreClash.Core;
 using CoreClash.Presentation;
 
-// CC-001 W21 (ball identity): icons and short names for the first 24 balls, the
+// CC-001 W21 (ball identity): icons and short names for 42 balls (Standard, five basics, the four featured decks), the
 // segmented HP ring and the owner pip. Presentation only: no id, rule, physics or
 // protocol value changes.
 public static partial class Program
 {
     static void W21BallIdentityTests()
     {
-        Test("W21 icon batch: 24 catalog ids, valid distinct shape lists, catalog untouched",()=>{
+        Test("W21 icon batch: 42 catalog ids, valid distinct shape lists, catalog untouched",()=>{
             var ids=BallIcons.Ids.ToArray();
             Eq(BallIcons.BatchSize,ids.Length);
             foreach(string id in ids)
@@ -22,9 +22,13 @@ public static partial class Program
                 True(BallIcons.Valid(BallIcons.Spec(id)),"malformed shape list: "+id);
             }
             Eq(ids.Length,ids.Select(BallIcons.Spec).Distinct(StringComparer.Ordinal).Count());
-            // the two decks a first match opens with, plus Standard, are fully covered
-            foreach(string deck in new[]{"featured_status_reactor","featured_gravity_trap"})
-                foreach(string id in catalog.Deck(deck).balls)True(BallIcons.Has(id),deck+" ball without an icon: "+id);
+            Eq(42,ids.Length);
+            // every featured deck, plus Standard, is fully covered; nothing beyond that batch has an icon yet
+            Eq(4,catalog.Featured.Length);
+            foreach(var deck in catalog.Featured)
+                foreach(string id in deck.balls)True(BallIcons.Has(id),deck.id+" ball without an icon: "+id);
+            var planned=new HashSet<string>(catalog.Featured.SelectMany(deck=>deck.balls).Concat(new[]{"normal","fire","ice","mine","bomb","medic"}));
+            True(planned.SetEquals(ids),"icon batch is not exactly the featured decks plus the six basics");
             True(BallIcons.Has("normal"));
             // a ball outside the batch keeps its letter mark and catalog name
             var other=catalog.Data.balls.First(b=>!BallIcons.Has(b.id));
@@ -44,9 +48,11 @@ public static partial class Program
                 renamed++;
                 True(BallIcons.Has(ball.id),"rename outside the icon batch: "+ball.id);
                 True(name.Length<=10,"new name is too long for a card: "+ball.id);
-                True(name.Split(' ').All(word=>word.Length<=9),"word too long for a card: "+name);
+                True(name.Split(' ').All(word=>word.Length<=10),"word too long for a card: "+name);
             }
             True(renamed>0&&renamed<=BallIcons.BatchSize);
+            Eq(13,renamed);
+            Eq("Deathspore",BallIcons.Name(catalog.Ball("vector")));Eq("Rootstrike",BallIcons.Name(catalog.Ball("briarheart")));
             Eq("Portal",BallIcons.Name(catalog.Ball("gatekeeper")));Eq("Gatekeeper",catalog.Ball("gatekeeper").name);
             Eq("Standard",BallIcons.Name(catalog.Ball("normal")));
         });
@@ -58,6 +64,9 @@ public static partial class Program
             // very large pools use 10 HP segments instead of unreadable slivers
             Eq(10,BallBadges.HpUnit(100));Eq(10,BallBadges.HpSegments(100));Eq(5,BallBadges.HpLit(41,100));Eq(5,BallBadges.HpUnit(60));Eq(12,BallBadges.HpSegments(60));
             foreach(var ball in catalog.Data.balls)True(BallBadges.HpSegments(ball.hp)>=1&&BallBadges.HpSegments(ball.hp)<=12,"too many segments: "+ball.id);
+            // 5 HP per segment for every pool up to 60 HP; today no catalog ball starts above that
+            for(int max=1;max<=60;max++)Eq(5,BallBadges.HpUnit(max));
+            Eq(60,catalog.Data.balls.Max(ball=>ball.hp));True(catalog.Data.balls.All(ball=>BallBadges.HpUnit(ball.hp)==5&&BallBadges.HpSegments(ball.hp)==ball.hp/5));
             for(int max=1;max<=120;max++)for(int hp=0;hp<=max;hp++)
             {
                 int lit=BallBadges.HpLit(hp,max),all=BallBadges.HpSegments(max);

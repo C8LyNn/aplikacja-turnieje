@@ -53,10 +53,41 @@ namespace CoreClash.Testing
             StartCoroutine(Guarded());
         }
 
+        bool sheet;
         void OnGUI()
         {
+            if (sheet) { GUI.depth = -1000; DrawSheet(); }
             if (Event.current.type != EventType.Repaint || lastRepaint == Time.frameCount) return;
             lastRepaint = Time.frameCount; repaints++;
+        }
+
+        // Comparison sheet: identical cell, orb size and caption layout for every icon.
+        // Top line = name shown in the game, second line = catalog name when it differs, third = id.
+        void DrawSheet()
+        {
+            if (Event.current.type != EventType.Repaint) return;
+            GUI.matrix = Matrix4x4.identity;
+            float width = Screen.width, height = Screen.height;
+            Draw.Rect(new Rect(0, 0, width, height), Theme.Background);
+            bool wide = width >= height;
+            int columns = wide ? 7 : 6, rows = Mathf.CeilToInt(IconBatch.Length / (float)columns);
+            float top = Mathf.Max(30, height * .06f), cellW = width / columns, cellH = (height - top) / rows;
+            float orb = Mathf.Floor(Mathf.Min(cellW * .42f, cellH * .46f));
+            int big = Mathf.Clamp(Mathf.RoundToInt(orb * .26f), 8, 20), small = Mathf.Clamp(Mathf.RoundToInt(orb * .19f), 7, 14);
+            Draw.Text(new Rect(0, 0, width, top), "CORE CLASH  /  W21 ICON SHEET  /  " + IconBatch.Length + " BALLS", Mathf.Clamp(Mathf.RoundToInt(top * .42f), 10, 22), Theme.Text, TextAnchor.MiddleCenter, true);
+            for (int i = 0; i < IconBatch.Length; i++)
+            {
+                var definition = app.Catalog.Ball(IconBatch[i]);
+                if (definition == null) continue;
+                float x = (i % columns) * cellW, y = top + (i / columns) * cellH;
+                Draw.Rect(new Rect(x + 2, y + 2, cellW - 4, cellH - 4), Theme.Panel);
+                BallView.Preview(new Rect(x + (cellW - orb) / 2, y + cellH * .1f, orb, orb), definition, 0);
+                string shown = BallIcons.Name(definition);
+                float text = y + cellH * .1f + orb + cellH * .07f, line = (y + cellH - 4 - text) / 3;
+                Draw.Text(new Rect(x, text, cellW, line), shown, big, Theme.Text, TextAnchor.MiddleCenter, true);
+                Draw.Text(new Rect(x, text + line, cellW, line), shown == definition.name ? "" : "was " + definition.name, small, Theme.Select, TextAnchor.MiddleCenter, false);
+                Draw.Text(new Rect(x, text + line * 2, cellW, line), definition.id, small, Theme.Muted, TextAnchor.MiddleCenter, false);
+            }
         }
 
         // Flattens nested steps so every exception and the time limit are handled in one place.
@@ -227,15 +258,45 @@ namespace CoreClash.Testing
                 sim = app.Simulation;
                 for (int i = 0; i < IconBatch.Length; i++)
                 {
-                    int row = i / 4, column = i % 4;
-                    var ball = Place(sim, row < 3 ? 1 : 0, IconBatch[i], 84 + column * 124, 150 + row * 118);
+                    int row = i / 6, column = i % 6;
+                    var ball = Place(sim, row < 3 ? 1 : 0, IconBatch[i], 60 + column * 84, 122 + row * 108);
                     if (i % 3 == 1) sim.Damage(ball, Mathf.Min(10, ball.hp - 5), true);
                     if (i % 5 == 2 && ball.hp > 5) sim.Damage(ball, Mathf.Min(15, ball.hp - 5), true);
                 }
                 Still(sim);
                 yield return Seconds(1.6f);
                 yield return Capture("13-icon-batch");
+                // One sheet with every icon at the same size and layout, with its names.
+                sheet = true;
+                yield return Capture("14-icon-sheet");
+                sheet = false;
             }
+
+            // W21: an ordinary match with the other two featured decks. Every ball is chosen from
+            // the deck and launched with the normal pointer gesture; nothing is staged.
+            app.SelectDeck(0, "featured_death_engine"); app.SelectDeck(1, "featured_reality_hackers");
+            app.StartLocalMatch();
+            sim = app.Simulation;
+            yield return Seconds(1f);
+            float[] offsets = { -150, 120, -60, 170, 30, -190, 90, -110 };
+            for (int shot = 0; shot < offsets.Length && sim.State.phase != MatchPhase.Over; shot++)
+            {
+                int turn = sim.State.turn, serial = sim.State.actionSerial;
+                var cards = sim.State.players[turn].stock.Where(entry => entry.remaining > 0).ToList();
+                if (cards.Count > 0) app.SelectBall(cards[(shot / 2) % cards.Count].id);
+                yield return null;
+                Vector2 from = ScreenPoint(270, turn == 0 ? 853 : 47), to = ScreenPoint(270 + offsets[shot], turn == 0 ? 640 - shot * 22 : 260 + shot * 22);
+                app.PresentationPointer(new PointerSample { id = 90 + shot, position = from, down = true, held = true });
+                for (int i = 1; i <= 20; i++) { app.PresentationPointer(new PointerSample { id = 90 + shot, position = Vector2.Lerp(from, to, i / 20f), held = true }); yield return null; }
+                if (shot == 2) yield return Capture("15-play-aim");
+                app.PresentationPointer(new PointerSample { id = 90 + shot, position = to, up = true });
+                Require(sim.State.actionSerial == serial + 1, "play scene: the pointer gesture did not launch a ball");
+                float settle = Time.realtimeSinceStartup + 25;
+                while (sim.State.phase == MatchPhase.Moving && Time.realtimeSinceStartup < settle) yield return null;
+                yield return Seconds(.9f);
+                if (shot == 3) yield return Capture("16-play-after-4-shots");
+            }
+            yield return Capture("17-play-after-8-shots");
 
             File.WriteAllText(Path.Combine(output, "showcase.txt"),
                 "unity=" + Application.unityVersion + "\nscreen=" + Screen.width + "x" + Screen.height + "\nprofile=" + profile + "\nlogical=" + app.UiWidth.ToString("0.#", CultureInfo.InvariantCulture) + "x" + app.UiHeight.ToString("0.#", CultureInfo.InvariantCulture) + "\ndpi=" + Screen.dpi.ToString(CultureInfo.InvariantCulture) +
