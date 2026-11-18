@@ -1,0 +1,108 @@
+import assert from "node:assert/strict";
+import { afterEach, test } from "node:test";
+import React from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { Router } from "wouter";
+import { memoryLocation } from "wouter/memory-location";
+import type { Match, TournamentStage } from "@workspace/api-client-react";
+import { ExperimentalBroadcastPanel } from "./experimental-broadcast-panel";
+import { organizerDetailTab, organizerMoreItems } from "@/components/tournament-organizer-navigation";
+import { deriveOrganizerCapabilities } from "@/lib/organizer-capabilities";
+
+const originalFetch = globalThis.fetch;
+const clients: QueryClient[] = [];
+afterEach(() => { cleanup(); clients.splice(0).forEach((c) => c.clear()); globalThis.fetch = originalFetch; });
+
+const stage = (id: number, position: number, format: string, status: string, name: string) =>
+  ({ id, tournamentId: 5, stageKey: `s${id}`, position, name, format, status, participantCount: 8, bestOf: 1 }) as unknown as TournamentStage;
+const match = (id: number, stageId: number, round: number, n: number, p1: string, p2: string, status = "pending") =>
+  ({ id, revision: 1, tournamentId: 5, stageId, round, matchNumber: n, bestOf: 1, status, player1Name: p1, player2Name: p2 }) as unknown as Match;
+const stages = [stage(1, 1, "group_stage", "active", "Faza grupowa"), stage(2, 2, "single_elimination", "planned", "Play-off")];
+const matches = [match(11, 1, 1, 1, "Ada", "Bartek", "in_progress"), match(12, 1, 1, 2, "Celina", "Darek"),
+  match(21, 2, 1, 1, "Ada", "Celina"), match(22, 2, 1, 2, "Bartek", "Darek"), match(23, 2, 2, 1, "?", "?")];
+
+function renderPanel({ visibility = "public_online", featuredMatchId = null as number | null, canFeature = true } = {}) {
+  const calls: { method: string; url: string; body?: unknown }[] = [];
+  globalThis.fetch = async (input: RequestInfo | URL, init?: RequestInit) => {
+    const url = String(input instanceof Request ? input.url : input);
+    calls.push({ method: init?.method ?? "GET", url, body: init?.body ? JSON.parse(String(init.body)) : undefined });
+    const body = url.endsWith("/standings") ? { stageId: 1, tables: [{ label: "Grupa A", rows: [] }, { label: "Grupa B", rows: [] }] } : { id: 5 };
+    return new Response(JSON.stringify(body), { status: 200, headers: { "content-type": "application/json" } });
+  };
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 }, mutations: { retry: false, gcTime: 0 } } });
+  clients.push(client);
+  render(
+    <QueryClientProvider client={client}>
+      <Router hook={memoryLocation({ path: "/experimental/tournaments/5?tab=broadcast" }).hook}>
+        <ExperimentalBroadcastPanel tournament={{ id: 5, name: "Puchar", visibility, featuredMatchId, activeStageId: 1 }} matches={matches} stages={stages} canFeature={canFeature} />
+      </Router>
+    </QueryClientProvider>,
+  );
+  return calls;
+}
+const address = () => (screen.getByLabelText("Adres nakładki") as HTMLInputElement).value;
+
+test("the address follows the choices; the preview shows the same address; no credential is ever in it", async () => {
+  const user = userEvent.setup();
+  renderPanel({ featuredMatchId: 11 });
+  assert.match(address(), /\/overlay\.html\?t=5$/);
+  assert.match(screen.getByText(/Teraz:/).textContent ?? "", /Teraz: R1 M1: Ada – Bartek \(na żywo\)|Ada – Bartek/);
+  await user.click(screen.getByRole("radio", { name: /Sport/ }));
+  await user.click(screen.getByRole("radio", { name: /Zapowiedź meczu/ }));
+  assert.match(address(), /t=5&widok=zapowiedz&styl=sport$/);
+  await user.click(screen.getByRole("radio", { name: /Zawsze ten sam mecz/ }));
+  await user.selectOptions(screen.getByRole("combobox", { name: "Mecz" }), "12");
+  assert.match(address(), /mecz=12/);
+  assert.equal(screen.getByTitle("Podgląd nakładki").getAttribute("src"), address());
+  assert.doesNotMatch(address(), /token|haslo|password/i);
+  assert.ok(screen.getByText(/szerokość 1920/));
+  await user.selectOptions(screen.getByRole("combobox", { name: "Rozdzielczość w OBS" }), "1440p");
+  assert.ok(screen.getByText(/szerokość 2560/));
+  assert.equal(screen.getByTitle("Podgląd nakładki").getAttribute("width"), "2560");
+});
+
+test("'Na ekranie' changes only after the explicit button, with the existing tournament update", async () => {
+  const user = userEvent.setup();
+  const calls = renderPanel({ featuredMatchId: null });
+  assert.ok(screen.getByText(/Bez meczu „Na ekranie” nakładka pokaże komunikat/));
+  await user.selectOptions(screen.getByRole("combobox", { name: "Mecz" }), "12");
+  assert.equal(calls.filter((c) => c.method === "PATCH").length, 0, "choosing in the list changes nothing on air");
+  await user.click(screen.getByRole("button", { name: /Pokaż na ekranie/ }));
+  await waitFor(() => assert.equal(calls.filter((c) => c.method === "PATCH").length, 1));
+  const patch = calls.find((c) => c.method === "PATCH")!;
+  assert.match(patch.url, /\/api\/tournaments\/5$/);
+  assert.deepEqual(patch.body, { featuredMatchId: 12 });
+});
+
+test("without write access nothing can be put on screen; a private tournament is explained", () => {
+  renderPanel({ visibility: "private_online", canFeature: false });
+  assert.match(screen.getByText(/Ten turniej nie jest publiczny/).textContent ?? "", /nigdy nie używa hasła ani tokenu/);
+  assert.equal(screen.queryByRole("button", { name: /Pokaż na ekranie|Usuń z ekranu/ }), null);
+});
+
+test("structure: current stage by default, a group can be chosen from the engine's tables, a bracket round for a cup", async () => {
+  const user = userEvent.setup();
+  renderPanel();
+  await user.click(screen.getByRole("radio", { name: /Drabinka i tabele/ }));
+  assert.match(address(), /widok=struktura$/);
+  assert.ok(screen.getByRole("option", { name: "Bieżący etap (Faza grupowa)" }));
+  const scope = await screen.findByRole("combobox", { name: "Zakres" });
+  await user.selectOptions(scope, "Grupa B");
+  assert.match(address(), /widok=struktura&grupa=Grupa\+B$/);
+  await user.selectOptions(screen.getByRole("combobox", { name: "Etap" }), "2");
+  assert.ok(screen.getByText(/Ten etap jeszcze się nie zaczął/));
+  await user.selectOptions(screen.getByRole("combobox", { name: "Zakres" }), "Finał");
+  assert.match(address(), /etap=2&runda=2$/);
+});
+
+test("navigation: 'Transmisja' is an optional Experimental area under 'Więcej'; Stable keeps its menu", () => {
+  const organizer = deriveOrganizerCapabilities({ role: "organizer", tournament: { hasHostCode: false, hasOrganizerPassword: true }, hasOrganizerToken: true, hasSupportSession: false });
+  assert.ok(organizerMoreItems(5, organizer, { broadcast: true }).some((item) => item.area === "broadcast" && item.label === "Transmisja"));
+  assert.ok(!organizerMoreItems(5, organizer).some((item) => item.area === "broadcast"), "Stable menu unchanged");
+  assert.equal(organizerDetailTab("?tab=broadcast", organizer, { experimental: true }), "broadcast");
+  assert.equal(organizerDetailTab("?tab=broadcast", organizer), "stages", "Stable falls back to its default tab");
+  const viewer = deriveOrganizerCapabilities({ role: null, tournament: { hasHostCode: false, hasOrganizerPassword: true }, hasOrganizerToken: false, hasSupportSession: false });
+  assert.notEqual(organizerDetailTab("?tab=broadcast", viewer, { experimental: true }), "broadcast");
+});

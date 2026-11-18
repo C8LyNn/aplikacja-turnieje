@@ -24,7 +24,8 @@ export type OrganizerArea =
   | "backup"
   | "game-rules"
   | "visuals"
-  | "security";
+  | "security"
+  | "broadcast";
 
 export type TournamentManagementRole = "organizer" | "support";
 export type OrganizerDetailTab =
@@ -40,7 +41,8 @@ export type OrganizerDetailTab =
   | "backup"
   | "game-rules"
   | "visuals"
-  | "security";
+  | "security"
+  | "broadcast";
 export type OrganizerHostTab = "prowadzenie" | "wyniki" | "tabela" | "drabinka" | "korekta";
 
 const readOnlyDetailTabs = ["overview", "stages", "baskets", "players", "matches", "bracket", "standings", "history"] as const;
@@ -49,6 +51,7 @@ const hostTabs = ["prowadzenie", "wyniki", "tabela", "drabinka", "korekta"] as c
 export function organizerDetailTab(
   search: string,
   capabilities: OrganizerCapabilities,
+  options: { experimental?: boolean } = {},
 ): OrganizerDetailTab {
   const requested = new URLSearchParams(search).get("tab");
   if (readOnlyDetailTabs.includes(requested as (typeof readOnlyDetailTabs)[number])) {
@@ -59,6 +62,8 @@ export function organizerDetailTab(
   if (requested === "sharing" && capabilities.canManageSharing) return requested;
   if (requested === "backup" && capabilities.canManageBackup) return requested;
   if (requested === "security" && capabilities.canManageOrganizerSettings) return requested;
+  // V5.9 · optional broadcast overlays (Experimental only; Stable stays the fallback interface without them).
+  if (requested === "broadcast" && options.experimental && capabilities.canAccessConducting) return requested;
   return capabilities.canViewOrganizerNavigation ? "stages" : "overview";
 }
 
@@ -129,6 +134,7 @@ export function organizerNavigationItems(tournamentId: number) {
 export function organizerMoreItems(
   tournamentId: number,
   capabilities: OrganizerCapabilities,
+  options: { broadcast?: boolean } = {},
 ) {
   const items: Array<{ area: OrganizerArea; label: string; href: string }> = [
     { area: "history", label: "Historia", href: `/tournaments/${tournamentId}?tab=history` },
@@ -142,6 +148,9 @@ export function organizerMoreItems(
   }
   if (capabilities.canManageSharing) {
     items.push({ area: "sharing", label: "Udostępnianie", href: `/tournaments/${tournamentId}?tab=sharing` });
+  }
+  if (options.broadcast && capabilities.canAccessConducting) {
+    items.push({ area: "broadcast", label: "Transmisja", href: `/tournaments/${tournamentId}?tab=broadcast` });
   }
   if (capabilities.canManageBackup) {
     items.push({ area: "backup", label: "Backup", href: `/tournaments/${tournamentId}?tab=backup` });
@@ -197,7 +206,7 @@ export function TournamentOrganizerNavigation({
       label: isExperimental && item.area === "players" ? "Uczestnicy" : item.label,
       href: tournamentModeHref(item.href, isExperimental),
     }));
-  const more = organizerMoreItems(tournamentId, capabilities).map((item) => ({
+  const more = organizerMoreItems(tournamentId, capabilities, { broadcast: isExperimental }).map((item) => ({
     ...item,
     href: tournamentModeHref(item.href, isExperimental),
   }));

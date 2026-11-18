@@ -8,6 +8,7 @@ import { fetchPublic, usePolled, type OverlayProblem } from "./overlay-data";
 
 type Raw = Record<string, unknown>;
 
+const LOADING_TEXT = "Wczytywanie danych turnieju…";
 const PROBLEM_TEXT: Record<OverlayProblem, string> = {
   private: "Nakładki działają tylko dla turniejów publicznych.",
   missing: "Nie znaleziono turnieju.",
@@ -30,7 +31,7 @@ export function OverlayApp({ config }: { config: OverlayConfig }) {
 }
 
 function OverlayMessage({ text, subtle = false }: { text: string; subtle?: boolean }) {
-  return <div className={`ov-message${subtle ? " ov-message--subtle" : ""}`} role="status">{text}</div>;
+  return <div className={`ov-message${subtle ? " ov-message--subtle" : ""}`} role="status" data-loading={subtle || undefined}>{text}</div>;
 }
 
 function StaleMark() {
@@ -54,7 +55,7 @@ async function loadStages(tournamentId: number, signal: AbortSignal) {
 function MatchOverlay({ config, tournamentId }: { config: OverlayConfig; tournamentId: number }) {
   const live = usePolled(`live:${tournamentId}`, (signal) => loadLive(tournamentId, signal), 5_000);
   const stages = usePolled(`stages:${tournamentId}`, (signal) => loadStages(tournamentId, signal), 60_000);
-  if (!live.data) return <OverlayMessage text={PROBLEM_TEXT[live.problem ?? "offline"]} subtle={!live.problem} />;
+  if (!live.data) return <OverlayMessage text={live.problem ? PROBLEM_TEXT[live.problem] : LOADING_TEXT} subtle={!live.problem} />;
   const { tournament, matches } = live.data;
   const picked = pickOverlayMatch(config, tournament, matches);
   if (!picked.match) return <OverlayMessage text={picked.reason} />;
@@ -158,7 +159,8 @@ function StructureOverlay({ config, tournamentId }: { config: OverlayConfig; tou
   if (problem && problem !== "offline") return <OverlayMessage text={PROBLEM_TEXT[problem]} />;
   if (!stages.data || !view.data) {
     if (stages.data && !stage) return <OverlayMessage text="Turniej nie ma jeszcze etapów." />;
-    return <OverlayMessage text={PROBLEM_TEXT[view.problem ?? stages.problem ?? "offline"]} subtle={!view.problem && !stages.problem} />;
+    const failed = view.problem ?? stages.problem;
+    return <OverlayMessage text={failed ? PROBLEM_TEXT[failed] : LOADING_TEXT} subtle={!failed} />;
   }
   const v = view.data;
   return (

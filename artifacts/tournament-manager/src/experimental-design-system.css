@@ -2634,3 +2634,9 @@ html[data-x-type="display"] :is(.experimental-tournament-shell, .experimental-to
 .experimental-tournament-shell section[data-exp-tone="danger"]:not(.experimental-host-command-center) { border-left: 4px solid hsl(var(--x-danger)) !important; }
 .experimental-tournament-shell .organizer-notice[aria-label="Konflikt zapisu wyniku"] { border-left: 4px solid hsl(var(--x-ready)) !important; }
 /* end v5.8 layout */
+/* v5.9 · broadcast panel and bulk basket assignment (one-line rules: every selector names an experimental- class) */
+.experimental-broadcast-preview { background-color: #161b26; background-image: linear-gradient(45deg, rgba(255, 255, 255, .07) 25%, transparent 25%, transparent 75%, rgba(255, 255, 255, .07) 75%), linear-gradient(45deg, rgba(255, 255, 255, .07) 25%, transparent 25%, transparent 75%, rgba(255, 255, 255, .07) 75%); background-size: 24px 24px; background-position: 0 0, 12px 12px; }
+.experimental-tournament-shell .experimental-broadcast-choice, .experimental-tournament-shell .experimental-broadcast-preset { background: var(--x-card-bot); border-color: var(--x-line); }
+.experimental-tournament-shell .experimental-broadcast fieldset > legend { margin-bottom: .5rem; }
+.experimental-baskets-surface .basket-bulk.organizer-basket-bulk, .experimental-tournament-shell .basket-bulk.organizer-basket-bulk { border-color: var(--x-line); background: var(--x-card-bot); }
+/* end v5.9 */

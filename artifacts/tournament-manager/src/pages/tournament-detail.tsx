@@ -61,6 +61,7 @@ import { organizerAreaForDetailTab, organizerDetailTab, TournamentOrganizerNavig
 import { OrganizerNextStep } from "@/components/organizer-next-step";
 import { experimentalDraftNextStep } from "@/features/experimental-tournaments/experimental-next-step";
 import { ExperimentalRosterHealth, ExperimentalStageMap } from "@/features/experimental-tournaments/experimental-v4-panels";
+import { ExperimentalBroadcastPanel } from "@/features/experimental-tournaments/experimental-broadcast-panel";
 import { ExperimentalBulkPaste, type BulkImportOutcome } from "@/features/experimental-tournaments/experimental-v4-bulk-paste";
 import { ExperimentalTeamRosters } from "@/features/experimental-tournaments/experimental-team-rosters";
 import { useGetTournamentTeams } from "@workspace/api-client-react";
@@ -313,7 +314,7 @@ export default function TournamentDetail() {
     [false, orgToken, role, supSession, tournament],
   );
   const managementRole = managementRoleForCapabilities(capabilities, !!orgToken, !!supSession, role);
-  const activeDetailTab = organizerDetailTab(search, capabilities);
+  const activeDetailTab = organizerDetailTab(search, capabilities, { experimental: isExperimental });
   const activeArea = organizerAreaForDetailTab(activeDetailTab);
   // Experimental: work tabs (players, baskets, matches…) open straight on their content; the
   // tournament-wide next step and operations overview stay on the stage panel and the overview.
@@ -1911,6 +1912,12 @@ export default function TournamentDetail() {
           {capabilities.canManageSharing && !!orgToken && (
             <TabsContent value="sharing" className="pt-6">
               <SharingPanel tournament={tournament as any} orgToken={orgToken} />
+            </TabsContent>
+          )}
+
+          {isExperimental && capabilities.canAccessConducting && (
+            <TabsContent value="broadcast" className="pt-6">
+              <ExperimentalBroadcastPanel tournament={tournament} matches={matches ?? []} stages={stages ?? []} canFeature={capabilities.canWriteTournamentResults} />
             </TabsContent>
           )}
 
