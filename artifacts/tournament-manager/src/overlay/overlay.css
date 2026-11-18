@@ -24,7 +24,7 @@ html[data-ov-bg="pelne"] body { background: var(--ov-page, #0b1020); }
   --ov-panel-2: rgba(22, 30, 56, .95);
   --ov-accent: #34d3ff;
   --ov-accent-2: #ff4fd8;
-  --ov-live: #e8213f;
+  --ov-live: #c9122d;
   --ov-win: #ffd34d;
   --ov-line: rgba(255, 255, 255, .16);
   --ov-edge: rgba(255, 255, 255, .16);
@@ -54,7 +54,8 @@ html[data-ov-bg="pelne"] body { background: var(--ov-page, #0b1020); }
 .ov-row { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: stretch; box-shadow: inset 0 0 0 1px var(--ov-edge); }
 .ov-side { display: flex; align-items: center; min-width: 0; min-height: calc(5rem * var(--s)); padding: .6rem 1.8rem; background: var(--ov-panel); }
 .ov-side--1 { justify-content: flex-end; text-align: right; }
-.ov-name { font-size: var(--ov-name-size); font-weight: 800; white-space: nowrap; overflow: hidden; line-height: 1.08; }
+/* room above and below the letters: Polish accents (Ś, Ż, Ł) and descenders are never clipped by the box */
+.ov-name { font-size: var(--ov-name-size); font-weight: 800; white-space: nowrap; overflow: hidden; line-height: 1.24; padding-block: .1em; }
 /* long names: smaller and up to two lines; the full name stays (only an extreme name is clipped after line two) */
 [data-fit="long"] > .ov-name, .ov-name[data-fit="long"] { font-size: calc(var(--ov-name-size) * .8); white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 [data-fit="xlong"] > .ov-name, .ov-name[data-fit="xlong"] { font-size: calc(var(--ov-name-size) * .66); white-space: normal; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
@@ -171,14 +172,14 @@ html[data-ov-bg="pelne"] body { background: var(--ov-page, #0b1020); }
 }
 .ov[data-preset="broadcast"] .ov-scorebar { gap: 0; }
 .ov[data-preset="broadcast"] .ov-scorebar > .ov-title { justify-self: start; background: var(--ov-accent); color: #fff; padding: .25rem 1rem; letter-spacing: .1em; box-shadow: none; }
-.ov[data-preset="broadcast"] .ov-name { text-transform: uppercase; font-weight: 800; letter-spacing: .02em; }
+.ov[data-preset="broadcast"] .ov-name { text-transform: uppercase; font-weight: 800; letter-spacing: .02em; line-height: 1.3; padding-block: .14em; }
 .ov[data-preset="broadcast"] .ov-side { box-shadow: inset 0 -.3rem 0 #c6ccd7; }
 .ov[data-preset="broadcast"] .ov-score { color: #fff; }
 .ov[data-preset="broadcast"] .ov-score .ov-unit { color: #9aa6bd; }
 .ov[data-preset="broadcast"] .ov-meta { background: var(--ov-panel-2); color: #c9d2e3; padding: .4rem 1rem; justify-content: flex-start; }
 .ov[data-preset="broadcast"] .ov-scorebar > .ov-meta { justify-self: stretch; border-radius: 0; box-shadow: none; }
 .ov[data-preset="broadcast"] .ov-status { color: #fff; background: rgba(255, 255, 255, .14); }
-.ov[data-preset="broadcast"] .ov-status[data-state="live"] { background: var(--ov-accent); }
+.ov[data-preset="broadcast"] .ov-status[data-state="live"] { background: var(--ov-live); }
 .ov[data-preset="broadcast"] .ov-sets { margin: 0; justify-content: flex-start; background: var(--ov-panel); padding: .3rem .6rem; }
 .ov[data-preset="broadcast"] .ov-sets li { border-radius: 0; background: #fff; color: var(--ov-fg); }
 .ov[data-preset="broadcast"] :is(.ov-upcoming, .ov-board) { border-top: .5rem solid var(--ov-accent); }
