@@ -4,11 +4,14 @@ import {
   type Match,
   useGetTournamentStage,
   useListTournamentStages,
+  useGetDoubleEliminationStage,
   getGetTournamentStageQueryKey,
   getListTournamentStagesQueryKey,
+  getGetDoubleEliminationStageQueryKey,
 } from "@workspace/api-client-react";
 import { Loader2 } from "lucide-react";
 import { BracketView } from "@/components/bracket-view";
+import { DoubleEliminationBracket } from "@/components/double-elimination-bracket";
 import { SwissRoundsView } from "@/components/swiss-rounds-view";
 import { RoundRobinView } from "@/components/round-robin-view";
 import {
@@ -84,6 +87,16 @@ export function StageProgressView({
   const detailError = detailQuery.error as { status?: number; response?: { status?: number } } | null;
   const denied = [401, 403].includes(detailError?.status ?? detailError?.response?.status ?? 0);
   const detail = denied ? undefined : detailQuery.data;
+  // V5.9 · the "Drabinka" tab had no double-elimination branch (it rendered nothing); it now reads the same
+  // double-elimination state the Etapy tab uses. Read-only here — results stay in the match editor / Etapy tab.
+  const doubleEliminationQuery = useGetDoubleEliminationStage(tournamentId, selectedStageId ?? 0, {
+    query: {
+      enabled: !!selectedStageId && selected?.format === "double_elimination" && selected.status !== "planned",
+      retry: false,
+      queryKey: getGetDoubleEliminationStageQueryKey(tournamentId, selectedStageId ?? 0),
+      refetchInterval: 5000,
+    },
+  });
 
   const selectedMatches = useMemo(
     () =>
@@ -241,6 +254,36 @@ export function StageProgressView({
                   </div>
                 </div>
               </div>
+            );
+          }
+
+          if (selected.format === "double_elimination") {
+            if (doubleEliminationQuery.isLoading) {
+              return (
+                <div className="flex items-center justify-center gap-2 rounded-lg border p-10 text-sm text-muted-foreground">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Ładowanie drabinki podwójnej eliminacji…
+                </div>
+              );
+            }
+            if (!doubleEliminationQuery.data) {
+              return (
+                <div role="alert" className="rounded-lg border border-destructive/40 bg-destructive/5 p-5 text-sm text-destructive">
+                  Nie udało się pobrać drabinki. {doubleEliminationQuery.error ? getApiErrorMessage(doubleEliminationQuery.error) : ""}
+                  <button type="button" onClick={() => void doubleEliminationQuery.refetch()} disabled={doubleEliminationQuery.isFetching}
+                    className="mt-3 block min-h-11 rounded-md border border-destructive/40 px-4 font-medium hover:bg-destructive/10 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
+                    {doubleEliminationQuery.isFetching ? "Ponawianie…" : "Ponów odczyt drabinki"}
+                  </button>
+                </div>
+              );
+            }
+            return (
+              <DoubleEliminationBracket
+                tournamentId={tournamentId}
+                stageId={selected.id}
+                state={doubleEliminationQuery.data}
+                matchRules={selected.matchRules ?? null}
+              />
             );
           }
 

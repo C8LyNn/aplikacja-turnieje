@@ -28,6 +28,7 @@ import {
   deriveStageBasketFlowCounts,
   type StageBasketFlowCounts,
 } from "@workspace/stage-basket-flow";
+import { BasketBulkAssignment } from "@/components/basket-bulk-assignment";
 
 // ─── color palette ──────────────────────────────────────────────────────────
 
@@ -158,6 +159,8 @@ interface BasketCardProps {
   isRouteTarget?: boolean;
   onSelectAsRouteSource?: (basketId: string) => void;
   onCompleteRoute?: (targetBasketId: string) => void;
+  /** V5.9 · the last save was rejected for this basket (e.g. "Przechodzi" missing) — the field is marked. */
+  invalid?: boolean;
 }
 
 export function BasketCard({
@@ -173,6 +176,7 @@ export function BasketCard({
   availablePlayers = [],
   isRouteSource = false,
   isRouteTarget = false,
+  invalid = false,
   onSelectAsRouteSource,
   onCompleteRoute,
 }: BasketCardProps) {
@@ -274,7 +278,8 @@ export function BasketCard({
               if (!isNaN(n) && n >= 1) onQualifierCountChange?.(basket.id, n);
             }}
             data-testid={`qualifier-count-${basket.id}`}
-            className="w-14 text-xs rounded border border-border bg-background px-1.5 py-0.5 text-right"
+            aria-invalid={invalid || undefined}
+            className={`w-14 text-xs rounded border bg-background px-1.5 py-0.5 text-right ${invalid ? "border-destructive ring-1 ring-destructive" : "border-border"}`}
           />
         </div>
       )}
@@ -363,6 +368,7 @@ interface StageBlockProps {
   onAddOutput?: (stageId: number) => void;
   onSelectRouteSource?: (basketId: string) => void;
   onCompleteRoute?: (targetBasketId: string) => void;
+  invalidBasketIds?: ReadonlySet<string>;
 }
 
 export function StageBlock({
@@ -377,6 +383,7 @@ export function StageBlock({
   routeTargetStageIds,
   explicitAuthority,
   flowCounts,
+  invalidBasketIds,
   onColorChange,
   onQualifierCountChange,
   onRemoveBasket,
@@ -479,6 +486,7 @@ export function StageBlock({
                 onToggleParticipant={onToggleParticipant}
                 availablePlayers={[]}
                 isRouteSource={routeSourceId === basket.id}
+                invalid={invalidBasketIds?.has(basket.id)}
                 onSelectAsRouteSource={onSelectRouteSource}
               />
             ))}
@@ -1130,6 +1138,7 @@ export function StageBasketsPanel({ tournamentId, tournamentStatus, orgToken }: 
                     routeSourceId={routeSourceId}
                     routeTargetStageIds={routeTargetStageIds}
                     explicitAuthority={showDerivedFlow}
+                    invalidBasketIds={new Set(apiProblems.map((problem) => problem.context?.basketId).filter((id): id is string => typeof id === "string"))}
                     flowCounts={flowCountsByStage.get(stage.id)}
                     onColorChange={handleColorChange}
                     onQualifierCountChange={handleQualifierCountChange}
@@ -1160,6 +1169,24 @@ export function StageBasketsPanel({ tournamentId, tournamentStatus, orgToken }: 
             })}
           </div>
         </div>
+      )}
+
+      {/* V5.9 · bulk assignment to start baskets (draft only; saved with "Zapisz konfigurację"). */}
+      {advancedMode && draft && canEdit && (
+        <BasketBulkAssignment
+          stages={stages}
+          baskets={draft.baskets}
+          players={players ?? []}
+          incomingQuotaByStage={new Map([...flowCountsByStage].map(([stageId, counts]) => [stageId, counts.incomingRouteQuota]))}
+          labelOf={(basket) => basketLabel(basket.type, basket.ordinal)}
+          createInputBasket={(stageId, current) => {
+            const existing = current.filter((b) => b.stageId === stageId && b.type === "input");
+            if (existing.length >= 4) return null;
+            const ordinal = firstFreeOrdinal(existing.map((b) => b.ordinal));
+            return { id: generateBasketId(stageId, "input", new Set(current.map((b) => b.id))), stageId, type: "input", ordinal, order: ordinal, colorId: null, participantIds: [], qualifierCount: null };
+          }}
+          onApply={(baskets) => mutateDraft((d) => { d.baskets = baskets; })}
+        />
       )}
 
       {/* Add route button in advanced mode */}
