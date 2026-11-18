@@ -1,5 +1,12 @@
-# V5 schema migrations (0041–0045): procedure and recovery
+# V5 schema migrations (0041–0046): procedure and recovery
 
+> **V5.7** adds `0046_match_set_rules.sql`: `tournament_stages.match_rules` (set-based match rules, NULL keeps
+> the old meaning of a stage), `matches.set_scores` and `result_history.set_scores` (per-set scores, NULL for
+> every existing match — old results never get invented sets). The match revision trigger now also counts
+> set scores. The token becomes `apply-0041-0046`. A V5.5/V5.6 database (0001–0045) has exactly one pending
+> migration: 0046. No existing row is rewritten; the CHECK constraints are validated during the migration
+> (every existing row has NULL in the new columns, so it passes).
+>
 > **V5.5** adds `0045_stage_point_adjustments.sql` (`tournament_stages.point_adjustments`: bonus/penalty audit
 > entries, only on stages with league rules) and renames the token to `apply-0041-0045`.
 > A V5.4 database (0001–0044) has exactly one pending migration: 0045. No existing row is rewritten.
@@ -35,7 +42,7 @@ violate a new CHECK constraint, missing `players(tournament_id, id)` key.
 
 ## 3. Apply (one transaction, all or nothing)
 ```
-DATABASE_URL=... DATABASE_SCHEMA=public V5_MIGRATION_CONFIRM=apply-0041-0045 \
+DATABASE_URL=... DATABASE_SCHEMA=public V5_MIGRATION_CONFIRM=apply-0041-0046 \
   APP_COMMIT=<sha> DEPLOYMENT_ENVIRONMENT=<env> pnpm --filter @workspace/db migrate:v5
 ```
 Advisory lock, `lock_timeout 10s`, preflight inside the transaction, migration SQL, catalog
@@ -50,6 +57,16 @@ Run the preflight again: `"status": "applied"`. Start the API: the log line
 * **Apply failed** – nothing was changed (single transaction). Fix the reported blocker and rerun.
 * **API refuses to start** (`SchemaIncompatibleError`) – the schema lacks a migration; run steps 2–3,
   or roll the API back to the previous build (old builds ignore the new columns/tables).
+* **Need to undo V5.7 only (0046)** – roll the code back to V5.6 first. The V5.6 API ignores the new columns,
+  but it would treat a set stage as a plain series (no set validation, no set columns), and the database refuses
+  its revert of a result that has sets (the CHECK keeps sets only on completed results) — finish or export
+  such tournaments first (Backup V3 keeps rules and sets): `SELECT count(*) FROM tournament_stages WHERE match_rules IS NOT NULL`.
+  To remove 0046 (rules and set scores are lost):
+  `ALTER TABLE result_history DROP CONSTRAINT IF EXISTS result_history_set_scores_shape, DROP COLUMN IF EXISTS set_scores;`
+  `ALTER TABLE matches DROP CONSTRAINT IF EXISTS matches_set_scores_shape, DROP COLUMN IF EXISTS set_scores;`
+  `ALTER TABLE tournament_stages DROP CONSTRAINT IF EXISTS tournament_stages_match_rules_supported, DROP COLUMN IF EXISTS match_rules;`
+  then recreate `increment_match_revision()` from `0028_match_revision.sql` (the trigger itself stays) and
+  `DELETE FROM app_schema_migrations WHERE migration_key = 'v57_match_set_rules_0046';`
 * **Need to undo V5.5 only (0045)** – roll the code back to V5.4 first. The V5.4 API ignores the column, so it
   can stay — but it then ranks tables **without** the adjustments (places shown would differ from what V5.5
   showed; completed stages keep their stored places). To remove it (adjustments are lost — export tournaments
