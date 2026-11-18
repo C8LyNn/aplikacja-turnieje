@@ -185,6 +185,8 @@ export default function TournamentAudience() {
     },
   });
   const { data: stages } = stagesQuery;
+  /** V5.7: set stages say sets instead of BO. */
+  const rulesOf = (m: { stageId?: number | null }) => stages?.find((stage) => stage.id === m.stageId)?.matchRules ?? null;
   // A failed refresh invalidates scope even when the cache still contains stages.
   const stageScopeUnknown = stages === undefined || stagesQuery.isError;
   const hasMultipleStages = !stageScopeUnknown && (stages?.length ?? 0) > 1;
@@ -528,7 +530,7 @@ export default function TournamentAudience() {
                 </span>
                 {bo > 1 && (
                   <Badge className="bg-cyan-500/15 text-cyan-400 border-cyan-500/30 text-[11px] font-bold tracking-wider px-2">
-                    Best of {bo}
+                    {rulesOf(heroMatch) ? `Do ${rulesOf(heroMatch)!.setsToWin} wygranych setów` : `Best of ${bo}`}
                   </Badge>
                 )}
               </div>
@@ -658,7 +660,7 @@ export default function TournamentAudience() {
                       <span className="text-[10px] text-white/30 shrink-0">vs</span>
                       <span className="text-sm font-semibold text-white/80 flex-1 truncate text-right">{m.player2Name}</span>
                       {m.bestOf && m.bestOf > 1 && (
-                        <span className="text-[10px] text-cyan-500/50 shrink-0 font-mono">BO{m.bestOf}</span>
+                        <span className="text-[10px] text-cyan-500/50 shrink-0 font-mono">{rulesOf(m) ? `sety do ${rulesOf(m)!.setsToWin}` : `BO${m.bestOf}`}</span>
                       )}
                     </div>
                   ))}
@@ -671,7 +673,8 @@ export default function TournamentAudience() {
               <Panel title="Ostatnie wyniki">
                 <div className="space-y-2.5">
                   {recentResults.map((m) => (
-                    <div key={m.id} className="flex items-center gap-2">
+                    <div key={m.id}>
+                    <div className="flex items-center gap-2">
                       <span className="text-[10px] text-white/25 font-mono w-10 shrink-0">R{m.round}M{m.matchNumber}</span>
                       <span className={`text-sm flex-1 truncate ${m.winnerId === m.player1Id ? "font-bold text-white" : "text-white/40"}`}>
                         {m.player1Name}
@@ -682,6 +685,8 @@ export default function TournamentAudience() {
                       <span className={`text-sm flex-1 truncate text-right ${m.winnerId === m.player2Id ? "font-bold text-white" : "text-white/40"}`}>
                         {m.player2Name}
                       </span>
+                    </div>
+                    {m.sets?.length ? <p className="mt-0.5 pl-12 text-center text-[11px] text-white/45 tabular-nums">Sety: {setsText(m.sets)}</p> : null}
                     </div>
                   ))}
                 </div>
