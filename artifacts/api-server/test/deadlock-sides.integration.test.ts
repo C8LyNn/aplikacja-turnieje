@@ -1,3 +1,4 @@
+import { lastUndoableActionId, matchRevision, matchScheduledAt } from "./match-revision-fixture";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, before, describe, test } from "node:test";
@@ -263,7 +264,8 @@ describe("Deadlock swap-players: atomically swaps picks and sides", () => {
     // Swap players
     const swap1 = await request(app)
       .post(`/api/matches/${match.id}/swap-players`)
-      .set(auth);
+      .set(auth)
+      .send({ expectedRevision: await matchRevision(database, match.id) });
     assert.equal(swap1.status, 200, swap1.text);
 
     // After swap: G1 picks should be flipped
@@ -277,7 +279,8 @@ describe("Deadlock swap-players: atomically swaps picks and sides", () => {
     // Double-swap restores original
     const swap2 = await request(app)
       .post(`/api/matches/${match.id}/swap-players`)
-      .set(auth);
+      .set(auth)
+      .send({ expectedRevision: await matchRevision(database, match.id) });
     assert.equal(swap2.status, 200, swap2.text);
 
     const picksAfterSwap2 = await getPicks(match.id);

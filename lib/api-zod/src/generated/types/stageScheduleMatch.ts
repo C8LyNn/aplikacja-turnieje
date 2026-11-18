@@ -10,6 +10,8 @@ import type { StageScheduleMatchStatus } from './stageScheduleMatchStatus';
 
 export interface StageScheduleMatch {
   matchId: number;
+  /** V5.7: match revision for guarded status changes */
+  revision: number;
   round: number;
   matchNumber: number;
   /** @nullable */

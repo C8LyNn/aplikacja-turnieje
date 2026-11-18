@@ -1,4 +1,4 @@
-import { matchRevision } from "./match-revision-fixture";
+import { lastUndoableActionId, matchRevision, matchScheduledAt } from "./match-revision-fixture";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, before, test } from "node:test";
@@ -192,6 +192,7 @@ test("[before V3 import] runs, corrects, resets and restores a public Double Eli
   await request(app)
     .post(`/api/matches/${first.matchId}/revert`)
     .set(organizer)
+    .send({ expectedRevision: await matchRevision(database, first.matchId) })
     .expect(200);
   state = (await request(app)
     .get(`/api/tournaments/${tournamentId}/stages/${stageId}/double-elimination`)
@@ -235,6 +236,7 @@ test("[before V3 import] runs, corrects, resets and restores a public Double Eli
   await request(app)
     .post(`/api/matches/${supportReady.matchId}/revert`)
     .set(support)
+    .send({ expectedRevision: await matchRevision(database, supportReady.matchId) })
     .expect(200);
   state = (await request(app)
     .get(`/api/tournaments/${tournamentId}/stages/${stageId}/double-elimination`)
@@ -282,6 +284,7 @@ test("[before V3 import] runs, corrects, resets and restores a public Double Eli
   await request(app)
     .post(`/api/matches/${upperRoundOne[0].matchId}/revert`)
     .set(organizer)
+    .send({ expectedRevision: await matchRevision(database, upperRoundOne[0].matchId) })
     .expect(200);
   state = (await request(app)
     .get(`/api/tournaments/${tournamentId}/stages/${stageId}/double-elimination`)
@@ -649,7 +652,7 @@ test("serializes CompleteMatch against correction and correction against reset",
       .post(`/api/matches/${ready.matchId}/complete`)
       .set(organizer)
       .send({ expectedRevision: await matchRevision(database, ready.matchId), ...({ resultType: "played", score1: 1, score2: 0 }) }),
-    request(app).post(`/api/matches/${ready.matchId}/revert`).set(organizer),
+    request(app).post(`/api/matches/${ready.matchId}/revert`).set(organizer).send({ expectedRevision: await matchRevision(database, ready.matchId) }),
   ]);
   assert.deepEqual(
     completeVsCorrection.map((response) => response.status).sort((left, right) => left - right),
@@ -671,7 +674,7 @@ test("serializes CompleteMatch against correction and correction against reset",
     .expect(200)).body;
 
   const correctionVsReset = await Promise.all([
-    request(app).post(`/api/matches/${ready.matchId}/revert`).set(organizer),
+    request(app).post(`/api/matches/${ready.matchId}/revert`).set(organizer).send({ expectedRevision: await matchRevision(database, ready.matchId) }),
     request(app)
       .post(`/api/tournaments/${tournamentId}/stages/${stage.id}/double-elimination/reset`)
       .set(organizer)

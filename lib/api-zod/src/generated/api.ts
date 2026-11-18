@@ -2831,6 +2831,7 @@ export const GetStageScheduleResponse = zod.object({
   "round": zod.number(),
   "matches": zod.array(zod.object({
   "matchId": zod.number(),
+  "revision": zod.number().describe('V5.7: match revision for guarded status changes'),
   "round": zod.number(),
   "matchNumber": zod.number(),
   "player1Id": zod.number().nullable(),
@@ -2857,6 +2858,7 @@ export const GetStageScheduleResponse = zod.object({
 })),
   "upcoming": zod.array(zod.object({
   "matchId": zod.number(),
+  "revision": zod.number().describe('V5.7: match revision for guarded status changes'),
   "round": zod.number(),
   "matchNumber": zod.number(),
   "player1Id": zod.number().nullable(),
@@ -2875,6 +2877,7 @@ export const GetStageScheduleResponse = zod.object({
 })),
   "overdue": zod.array(zod.object({
   "matchId": zod.number(),
+  "revision": zod.number().describe('V5.7: match revision for guarded status changes'),
   "round": zod.number(),
   "matchNumber": zod.number(),
   "player1Id": zod.number().nullable(),
@@ -3706,10 +3709,14 @@ export const GetActionLogResponse = zod.array(GetActionLogResponseItem)
 
 
 /**
- * @summary Undo the last undoable action
+ * @summary Undo the last undoable action (V5.7 — only the action the client saw as last)
  */
 export const UndoLastActionParams = zod.object({
   "id": zod.coerce.number()
+})
+
+export const UndoLastActionBody = zod.object({
+  "expectedActionId": zod.number().describe('Id of the action the client shows as the last one; another last action gives 409 UNDO_ACTION_CHANGED')
 })
 
 export const UndoLastActionResponse = zod.object({
@@ -5238,10 +5245,12 @@ export const UpdateMatchParams = zod.object({
 
 
 
+
 export const UpdateMatchBody = zod.object({
   "status": zod.enum(['pending', 'in_progress', 'postponed', 'cancelled']).optional(),
   "note": zod.string().optional(),
-  "bestOf": zod.number().min(1).optional()
+  "bestOf": zod.number().min(1).optional(),
+  "expectedRevision": zod.number().min(1).optional().describe('V5.7: required with status or bestOf. A request whose target state already holds is a no-op (safe retry).')
 })
 
 
@@ -5284,6 +5293,7 @@ export const UpdateMatchScheduleParams = zod.object({
 })
 
 export const UpdateMatchScheduleBody = zod.object({
+  "expectedScheduledAt": zod.coerce.date().nullable().describe('V5.7: the match date the client saw (null = none). Another current date gives 409 SCHEDULE_CHANGED; the requested date already set is a no-op.'),
   "date": zod.string().nullable().describe('YYYY-MM-DD in the stage time zone; null clears the date'),
   "time": zod.string().optional().describe('HH:MM local time (required with a date)'),
   "timeZone": zod.string().optional().describe('IANA zone; only used when the stage has none yet')
@@ -5385,8 +5395,12 @@ export const CancelMatchParams = zod.object({
   "id": zod.coerce.number()
 })
 
+
+
+
 export const CancelMatchBody = zod.object({
-  "note": zod.string().optional()
+  "note": zod.string().optional(),
+  "expectedRevision": zod.number().min(1).describe('V5.7: match revision the client saw')
 })
 
 
@@ -5431,6 +5445,13 @@ export const RestoreCancelledMatchParams = zod.object({
 
 
 
+export const RestoreCancelledMatchBody = zod.object({
+  "expectedRevision": zod.number().min(1).describe('Match revision the client saw; a different current revision gives 409 CONCURRENT_MODIFICATION')
+})
+
+
+
+
 
 export const RestoreCancelledMatchResponse = zod.object({
   "id": zod.number(),
@@ -5465,6 +5486,13 @@ export const RestoreCancelledMatchResponse = zod.object({
  */
 export const SwapMatchPlayersParams = zod.object({
   "id": zod.coerce.number()
+})
+
+
+
+
+export const SwapMatchPlayersBody = zod.object({
+  "expectedRevision": zod.number().min(1).describe('Match revision the client saw; a different current revision gives 409 CONCURRENT_MODIFICATION')
 })
 
 
@@ -5544,10 +5572,17 @@ export const ReorderMatchesResponse = zod.array(ReorderMatchesResponseItem)
 
 
 /**
- * @summary Revert a completed match result
+ * @summary Revert a completed match result (V5.7 — of the revision the client saw)
  */
 export const RevertMatchParams = zod.object({
   "id": zod.coerce.number()
+})
+
+
+
+
+export const RevertMatchBody = zod.object({
+  "expectedRevision": zod.number().min(1).describe('Match revision the client saw; a different current revision gives 409 CONCURRENT_MODIFICATION')
 })
 
 

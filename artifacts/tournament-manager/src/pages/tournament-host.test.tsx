@@ -215,13 +215,35 @@ for (const resultType of ["played", "walkover", "no_contest"] as const) {
   });
 }
 
-test("Host recovery captures the current revision immediately, before the next score interaction", async () => {
+test("V5.7: a revision-only change carries the draft over with a notice, never re-saves by itself, and later polling cannot rebase it", async () => {
   const matches = [{ ...hostMatch(1), revision: 12 }];
   let writes = 0;
   const user = await renderOperationalHost({ matches, intercept: async path => {
     if (!path.endsWith("/complete")) return undefined;
     writes++;
-    matches[0] = { ...matches[0], revision: 13 };
+    matches[0] = { ...matches[0], revision: 13, status: "in_progress" }; // another operator started the match
+    return new Response(JSON.stringify({ code: "CONCURRENT_MODIFICATION" }), { status: 409, headers: { "content-type": "application/json" } });
+  } });
+  const plus = await screen.findByRole("button", { name: "Zwiększ wynik: Gracz A1" });
+  await user.click(plus); await user.click(plus);
+  await user.click(screen.getByRole("button", { name: "Zapisz wynik" }));
+  await screen.findByText(/Inna osoba zmieniła w międzyczasie stan meczu .* Wynik 2:0 został zachowany/);
+  assert.ok(screen.getByRole("button", { name: "Zapisz ponownie" }));
+  assert.equal(screen.queryByRole("region", { name: "Konflikt zapisu wyniku" }), null);
+  assert.equal(writes, 1, "no automatic second write");
+  matches[0] = { ...matches[0], revision: 14 };
+  await refreshHost();
+  await waitFor(() => assert.ok(screen.getByRole("button", { name: "Zwiększ wynik: Gracz A1" }).matches(":disabled"), "polling cannot silently rebase the carried-over draft"));
+  assert.equal(writes, 1);
+});
+
+test("Host recovery after a real conflict (players changed) still asks to discard the old draft", async () => {
+  const matches = [{ ...hostMatch(1), revision: 12 }];
+  let writes = 0;
+  const user = await renderOperationalHost({ matches, intercept: async path => {
+    if (!path.endsWith("/complete")) return undefined;
+    writes++;
+    matches[0] = { ...matches[0], revision: 13, player1Id: 99, player1Name: "Nowy gracz" };
     return new Response(JSON.stringify({ code: "CONCURRENT_MODIFICATION" }), { status: 409, headers: { "content-type": "application/json" } });
   } });
   const plus = await screen.findByRole("button", { name: "Zwiększ wynik: Gracz A1" });
@@ -231,9 +253,6 @@ test("Host recovery captures the current revision immediately, before the next s
   await waitFor(() => assert.ok(!recovery.matches(":disabled")));
   await user.click(recovery);
   assert.equal(screen.queryByRole("region", { name: "Konflikt zapisu wyniku" }), null);
-  matches[0] = { ...matches[0], revision: 14 };
-  await refreshHost();
-  await waitFor(() => assert.ok(screen.getByRole("button", { name: "Zwiększ wynik: Gracz A1" }).matches(":disabled"), "polling cannot silently rebase the draft created by recovery"));
   assert.equal(writes, 1);
 });
 
@@ -952,4 +971,27 @@ test("V5.6: undoing a result of a finished tournament warns that it reopens the 
   } });
   await user.click(await screen.findByRole("button", { name: "Cofnij" }));
   await screen.findByText(/Cofnięcie tego wyniku ponownie otworzy etap i turniej/);
+});
+
+test("V5.7: start and undo send the version the operator was shown", async () => {
+  const bodies: Record<string, unknown>[] = [];
+  const matches = [{ ...hostMatch(1), revision: 7 }];
+  const user = await renderOperationalHost({ matches, intercept: async (path, init) => {
+    if (path === "/api/tournaments/1/action-log") return jsonResponse([
+      { id: 31, tournamentId: 1, actionType: "match_started", description: "Rozpoczęto mecz R1M1", matchId: 1, canUndo: true, isUndone: false, createdAt: "2026-11-18T10:00:00Z" },
+    ]);
+    if ((path === "/api/matches/1" && init?.method === "PATCH") || path.endsWith("/undo-last")) {
+      bodies.push({ path, ...JSON.parse(String(init?.body)) });
+      return path.endsWith("/undo-last")
+        ? jsonResponse({ action: { id: 31, tournamentId: 1, actionType: "match_started", description: "x", matchId: 1, canUndo: false, isUndone: true, createdAt: "2026-11-18T10:00:00Z" }, message: "Cofnięto" })
+        : jsonResponse({ ...matches[0], status: "in_progress", revision: 8 });
+    }
+    return undefined;
+  } });
+  await user.click(await screen.findByRole("button", { name: "Rozpocznij mecz" }));
+  await waitFor(() => assert.deepEqual(bodies[0], { path: "/api/matches/1", status: "in_progress", expectedRevision: 7 }));
+  await user.click(await screen.findByRole("button", { name: "Cofnij" }));
+  const banner = await screen.findByText("Cofnąć akcję?");
+  await user.click(within(banner.closest("div")!.parentElement!).getByRole("button", { name: "Cofnij" }));
+  await waitFor(() => assert.deepEqual(bodies[1], { path: "/api/tournaments/1/undo-last", expectedActionId: 31 }));
 });

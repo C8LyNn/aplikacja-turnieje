@@ -26,10 +26,12 @@ function SlotEditor({ match, timeZone, onDone }: { match: StageScheduleMatch; ti
   const restore = useUpdateMatch();
   const save = (clear = false) => {
     setError(null);
-    update.mutate({ id: match.matchId, data: clear ? { date: null } : { date, time } }, {
+    // V5.7: the date and the status change carry what this row showed, so nothing newer is overwritten.
+    const expectedScheduledAt = match.scheduledAt ?? null;
+    update.mutate({ id: match.matchId, data: clear ? { date: null, expectedScheduledAt } : { date, time, expectedScheduledAt } }, {
       onSuccess: () => {
         if (match.status === "postponed" && !clear) {
-          restore.mutate({ id: match.matchId, data: { status: "pending" } }, { onSuccess: onDone, onError: (e) => setError(getApiErrorMessage(e) || "Nie udało się przywrócić meczu.") });
+          restore.mutate({ id: match.matchId, data: { status: "pending", expectedRevision: match.revision } }, { onSuccess: onDone, onError: (e) => setError(getApiErrorMessage(e) || "Nie udało się przywrócić meczu.") });
         } else onDone();
       },
       onError: (e) => setError(getApiErrorMessage(e) || "Nie udało się zapisać terminu."),

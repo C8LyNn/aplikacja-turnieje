@@ -70,9 +70,19 @@ const ERROR_MESSAGES: Record<RevertMatchErrorCode, string> = {
   TOURNAMENT_FINALIZATION_INCONSISTENT: "Finalizacja turnieju jest niespójna z wynikiem meczu.",
 };
 
+/** V5.7 · what blocks a revert, so the organiser sees the exact match or stage. */
+export interface RevertBlocking {
+  kind: "match" | "stage" | "round";
+  stageId: number;
+  stageName: string;
+  matchId?: number;
+  round?: number;
+  matchNumber?: number;
+}
+
 export class RevertMatchError extends Error {
-  constructor(public readonly code: RevertMatchErrorCode) {
-    super(ERROR_MESSAGES[code]);
+  constructor(public readonly code: RevertMatchErrorCode, public readonly blocking?: RevertBlocking, detail?: string) {
+    super(detail ?? ERROR_MESSAGES[code]);
     this.name = "RevertMatchError";
   }
 }
@@ -269,10 +279,14 @@ export async function revertMatch(
     const nextStage = tournamentStages.find(
       (candidate) => candidate.position === stage.position + 1,
     );
-    const startedLaterStage = tournamentStages.some(
+    const startedLaterStage = tournamentStages.find(
       (candidate) => candidate.position > stage.position && candidate.status !== "planned",
     );
-    if (startedLaterStage) throw new RevertMatchError("STAGE_ALREADY_ADVANCED");
+    if (startedLaterStage) {
+      throw new RevertMatchError("STAGE_ALREADY_ADVANCED",
+        { kind: "stage", stageId: startedLaterStage.id, stageName: startedLaterStage.name },
+        `Nie można cofnąć tego wyniku: etap „${startedLaterStage.name}” już ${startedLaterStage.status === "completed" ? "się zakończył" : "trwa"}, a jego uczestnicy wynikają z tego etapu. Zmiana wymagałaby cofnięcia także tamtego etapu.`);
+    }
 
     // Once qualification is approved or any route from this stage is
     // materialised, downstream participant selection is immutable. Reverting
@@ -300,7 +314,9 @@ export async function revertMatch(
       )
       .for("update");
     if (approvedQualification || materializedRoute) {
-      throw new RevertMatchError("STAGE_QUALIFICATION_ALREADY_COMMITTED");
+      throw new RevertMatchError("STAGE_QUALIFICATION_ALREADY_COMMITTED",
+        { kind: "stage", stageId: stage.id, stageName: stage.name },
+        `Nie można cofnąć tego wyniku: awans z etapu „${stage.name}” jest już zatwierdzony i uczestnicy zostali przeniesieni dalej.`);
     }
     const doubleEliminationRuntime = stage.format === "double_elimination"
       ? await lockDoubleEliminationRuntime(tx, tournament.id, stage)
@@ -380,7 +396,9 @@ export async function revertMatch(
         laterPairings.length > 0 ||
         (stage.currentRound != null && stage.currentRound > match.round)
       ) {
-        throw new RevertMatchError("DOWNSTREAM_BLOCKED");
+        throw new RevertMatchError("DOWNSTREAM_BLOCKED",
+          { kind: "round", stageId: stage.id, stageName: stage.name, round: match.round + 1 },
+          `Nie można cofnąć tego wyniku: runda ${match.round + 1} etapu „${stage.name}” jest już rozlosowana na podstawie tej tabeli.`);
       }
     }
 
@@ -424,7 +442,12 @@ export async function revertMatch(
           downstreamMatch.winnerId == null &&
           downstreamMatch.completedAt == null;
         if (!pristine || expectedSlot !== result.winnerId || otherSlot === result.winnerId) {
-          throw new RevertMatchError("DOWNSTREAM_BLOCKED");
+          const state = downstreamMatch.status === "completed" ? "ma już wynik"
+            : downstreamMatch.status === "in_progress" ? "już się rozpoczął"
+            : downstreamMatch.status === "pending" ? "zmienił się" : `ma status ${downstreamMatch.status}`;
+          throw new RevertMatchError("DOWNSTREAM_BLOCKED",
+            { kind: "match", stageId: stage.id, stageName: stage.name, matchId: downstreamMatch.id, round: downstreamMatch.round, matchNumber: downstreamMatch.matchNumber },
+            `Nie można cofnąć tego wyniku: kolejny mecz (runda ${downstreamMatch.round}, mecz ${downstreamMatch.matchNumber}) ${state}. Najpierw cofnij wynik albo start tamtego meczu.`);
         }
       }
     }

@@ -1,3 +1,4 @@
+import { lastUndoableActionId, matchRevision, matchScheduledAt } from "./match-revision-fixture";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, before, test } from "node:test";
@@ -62,7 +63,7 @@ test("malformed persisted roster payloads cause no writes", async () => {
   ]) {
     await database.pool.query("UPDATE action_log SET undo_payload=$1 WHERE id=$2", [JSON.stringify(payload), actionId]);
     const beforeState = await f.state();
-    const response = await request(app).post(`/api/tournaments/${f.id}/undo-last`).set(f.headers).send({});
+    const response = await request(app).post(`/api/tournaments/${f.id}/undo-last`).set(f.headers).send({ expectedActionId: await lastUndoableActionId(database, f.id) });
     assert.equal(response.status, 422);
     assert.equal(response.body.code, "ROSTER_UNDO_UNAVAILABLE");
     assert.deepEqual(await f.state(), beforeState);
@@ -86,13 +87,13 @@ test("edited-player Undo validates snapshot fields and restores a valid snapshot
   ]) {
     await database.pool.query("UPDATE action_log SET undo_payload=$1 WHERE id=$2", [JSON.stringify(payload), actionId]);
     const beforeState = await f.state();
-    const response = await request(app).post(`/api/tournaments/${f.id}/undo-last`).set(f.headers).send({});
+    const response = await request(app).post(`/api/tournaments/${f.id}/undo-last`).set(f.headers).send({ expectedActionId: await lastUndoableActionId(database, f.id) });
     assert.equal(response.status, 422);
     assert.equal(response.body.code, "ROSTER_UNDO_UNAVAILABLE");
     assert.deepEqual(await f.state(), beforeState);
   }
   await database.pool.query("UPDATE action_log SET undo_payload=$1 WHERE id=$2", [validPayload, actionId]);
-  await request(app).post(`/api/tournaments/${f.id}/undo-last`).set(f.headers).send({}).expect(200);
+  await request(app).post(`/api/tournaments/${f.id}/undo-last`).set(f.headers).send({ expectedActionId: await lastUndoableActionId(database, f.id) }).expect(200);
   assert.equal((await f.state()).players[0].name, "Before edit");
 });
 
@@ -105,14 +106,14 @@ test("latest roster action wins; stale and repeated undo do not change state", a
   const beforeStale = await f.state();
   await assert.rejects(undoAction({ tournamentId: f.id, actionId: firstAction }), /zmian|changed/i);
   assert.deepEqual(await f.state(), beforeStale);
-  await request(app).post(`/api/tournaments/${f.id}/undo-last`).set(f.headers).send({}).expect(200);
+  await request(app).post(`/api/tournaments/${f.id}/undo-last`).set(f.headers).send({ expectedActionId: await lastUndoableActionId(database, f.id) }).expect(200);
   assert.deepEqual((await f.state()).players.map((p: { id: number }) => p.id), [firstPlayer]);
   const afterUndo = await f.state();
   await assert.rejects(undoAction({ tournamentId: f.id, actionId: secondAction }));
   assert.deepEqual(await f.state(), afterUndo);
-  await request(app).post(`/api/tournaments/${f.id}/undo-last`).set(f.headers).send({}).expect(200);
+  await request(app).post(`/api/tournaments/${f.id}/undo-last`).set(f.headers).send({ expectedActionId: await lastUndoableActionId(database, f.id) }).expect(200);
   assert.equal((await f.state()).players.length, 0);
-  await request(app).post(`/api/tournaments/${f.id}/undo-last`).set(f.headers).send({}).expect(404);
+  await request(app).post(`/api/tournaments/${f.id}/undo-last`).set(f.headers).send({ expectedActionId: await lastUndoableActionId(database, f.id) }).expect(404);
 });
 
 test("transaction rolls back player deletion when later action-log write fails", async () => {

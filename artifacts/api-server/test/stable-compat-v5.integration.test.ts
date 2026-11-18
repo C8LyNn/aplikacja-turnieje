@@ -1,4 +1,4 @@
-import { matchRevision } from "./match-revision-fixture";
+import { lastUndoableActionId, matchRevision, matchScheduledAt } from "./match-revision-fixture";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, before, describe, test } from "node:test";
@@ -82,10 +82,10 @@ describe("V5.1: Stable stays a working fallback", () => {
     await (await complete(supportHeaders, first, first.player1_id)).ok;
     assert.equal((await complete(supportHeaders, first, first.player1_id)).status >= 400, true, "stale revision is refused");
     // Wrong result: revert and record the other winner.
-    await request(app).post(`/api/matches/${first.id}/revert`).set(supportHeaders).expect(200);
+    await request(app).post(`/api/matches/${first.id}/revert`).set(supportHeaders).send({ expectedRevision: await matchRevision(database, first.id) }).expect(200);
     assert.equal((await complete(headers, first, first.player2_id)).status, 200);
     assert.equal((await complete(headers, second, second.player1_id)).status, 200);
-    await request(app).post(`/api/tournaments/${id}/undo-last`).set(headers).send({}).expect(200);
+    await request(app).post(`/api/tournaments/${id}/undo-last`).set(headers).send({ expectedActionId: await lastUndoableActionId(database, id) }).expect(200);
     assert.equal((await rows<{ status: string }>("SELECT status FROM matches WHERE id = $1", [second.id]))[0].status, "pending");
     for (let guard = 0; guard < 5; guard += 1) {
       const ready = await pending(id);
@@ -124,7 +124,7 @@ describe("V5.1: Stable stays a working fallback", () => {
     assert.equal(matches.length, 6, "3 teams × home and away");
     const ready = await pending(id);
     assert.equal((await complete(headers, ready[0], ready[0].player1_id)).status, 200);
-    await request(app).post(`/api/tournaments/${id}/undo-last`).set(headers).send({}).expect(200);
+    await request(app).post(`/api/tournaments/${id}/undo-last`).set(headers).send({ expectedActionId: await lastUndoableActionId(database, id) }).expect(200);
     for (let guard = 0; guard < 10; guard += 1) {
       const next = await pending(id);
       if (!next.length) break;

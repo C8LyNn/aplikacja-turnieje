@@ -177,7 +177,7 @@ const variants: [string, string, Record<string, unknown>][] = [
 for (const [name, kind, payload] of variants) {
   test(`HTTP Undo ${name}: a newer action committed while waiting gives 409 and zero writes`, { timeout: 2000 }, async () => {
     const f = fixture(action(10, kind, payload), true);
-    const running = f.handler({}, f.response);
+    const running = f.handler({ body: { expectedActionId: 10 } }, f.response);
     await f.queued.promise; // Candidate A has already been selected, lock is still held by writer B.
     f.state.actions.push(action(11, "player_edited", { type: "restore_player", playerId: 27, prevData: { name: "B" } }));
     const committed = structuredClone(f.state);
@@ -195,7 +195,7 @@ for (const [name, kind, payload] of variants) {
 for (const [name, kind, payload] of variants) {
   test(`HTTP Undo ${name}: unchanged candidate succeeds under the same transaction`, async () => {
     const f = fixture(action(10, kind, payload));
-    await f.handler({}, f.response);
+    await f.handler({ body: { expectedActionId: 10 } }, f.response);
     assert.equal(f.response.statusCode, 200);
     assert.ok(f.state.writes > 0);
     assert.deepEqual(f.reads, name.startsWith("roster") ? ["locked-latest", "locked-player"] : ["locked-latest"]);

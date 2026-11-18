@@ -12,4 +12,9 @@ export interface MatchUpdate {
   note?: string;
   /** @minimum 1 */
   bestOf?: number;
+  /**
+     * V5.7: required with status or bestOf. A request whose target state already holds is a no-op (safe retry).
+     * @minimum 1
+     */
+  expectedRevision?: number;
 }

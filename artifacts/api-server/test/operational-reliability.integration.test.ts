@@ -1,4 +1,4 @@
-import { matchRevision } from "./match-revision-fixture";
+import { lastUndoableActionId, matchRevision, matchScheduledAt } from "./match-revision-fixture";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, before, test } from "node:test";
@@ -93,9 +93,9 @@ for (const resultType of ["played", "no_contest"] as const) {
 test("DE advancing an independent match preserves another match's LIVE state, BO and swapped sides", async () => {
   const fixture = await tournament("double_elimination", 4);
   const [a, b] = await fixture.matches();
-  await request(app).patch(`/api/matches/${a.id}`).set(fixture.auth).send({ bestOf: 3 }).expect(200);
-  await request(app).post(`/api/matches/${a.id}/swap-players`).set(fixture.auth).expect(200);
-  await request(app).patch(`/api/matches/${a.id}`).set(fixture.auth).send({ status: "in_progress" }).expect(200);
+  await request(app).patch(`/api/matches/${a.id}`).set(fixture.auth).send({ bestOf: 3, expectedRevision: await matchRevision(database, a.id) }).expect(200);
+  await request(app).post(`/api/matches/${a.id}/swap-players`).set(fixture.auth).send({ expectedRevision: await matchRevision(database, a.id) }).expect(200);
+  await request(app).patch(`/api/matches/${a.id}`).set(fixture.auth).send({ status: "in_progress", expectedRevision: await matchRevision(database, a.id) }).expect(200);
   const before = (await fixture.matches()).find(match => match.id === a.id)!;
   await request(app).post(`/api/matches/${b.id}/complete`).set(fixture.auth)
     .send({ expectedRevision: await matchRevision(database, b.id), ...({ resultType: "played", score1: 1, score2: 0 }) }).expect(200);
@@ -118,7 +118,7 @@ test("DE advancing an independent match preserves another match's LIVE state, BO
 test("DE public score stays attached to the correct participant after a side swap", async () => {
   const fixture = await tournament("double_elimination", 4);
   const [a] = await fixture.matches();
-  await request(app).post(`/api/matches/${a.id}/swap-players`).set(fixture.auth).expect(200);
+  await request(app).post(`/api/matches/${a.id}/swap-players`).set(fixture.auth).send({ expectedRevision: await matchRevision(database, a.id) }).expect(200);
   await request(app).post(`/api/matches/${a.id}/complete`).set(fixture.auth)
     .send({ expectedRevision: await matchRevision(database, a.id), ...({ resultType: "played", score1: 1, score2: 0 }) }).expect(200);
   const state = (await request(app).get(`/api/tournaments/${fixture.id}/stages/${fixture.stageId}/double-elimination`).expect(200)).body;
@@ -135,11 +135,11 @@ test("multi-stage SE can revert a legal first-stage result without eliminating a
     .send({ expectedRevision: await matchRevision(database, a.id), ...({ resultType: "played", score1: 1, score2: 0 }) }).expect(200);
   const loser = await database.pool.query("SELECT status FROM players WHERE id=$1", [a.player2Id]);
   assert.equal(loser.rows[0].status, "active");
-  await request(app).post(`/api/matches/${a.id}/revert`).set(fixture.auth).expect(200);
+  await request(app).post(`/api/matches/${a.id}/revert`).set(fixture.auth).send({ expectedRevision: await matchRevision(database, a.id) }).expect(200);
   const reopened = (await fixture.matches()).find(match => match.id === a.id)!;
   assert.equal(reopened.status, "pending");
   assert.equal(reopened.winnerId, null);
-  await request(app).post(`/api/matches/${a.id}/revert`).set(fixture.auth).expect(409);
+  await request(app).post(`/api/matches/${a.id}/revert`).set(fixture.auth).send({ expectedRevision: await matchRevision(database, a.id) }).expect(409);
   const member = await database.pool.query("SELECT status FROM stage_participants WHERE stage_id=$1 AND player_id=$2", [fixture.stageId, a.player2Id]);
   assert.equal(member.rows[0].status, "active");
   await request(app).post(`/api/matches/${a.id}/complete`).set(fixture.auth)
@@ -164,7 +164,7 @@ test("reopening a completed DE stage removes frozen final ranks and the global w
   assert.equal(closed.status, "completed");
   const frozen = await database.pool.query("SELECT final_rank FROM stage_participants WHERE stage_id=$1", [fixture.stageId]);
   assert.ok(frozen.rows.every(row => row.final_rank != null));
-  await request(app).post(`/api/matches/${lastMatchId}/revert`).set(fixture.auth).expect(200);
+  await request(app).post(`/api/matches/${lastMatchId}/revert`).set(fixture.auth).send({ expectedRevision: await matchRevision(database, lastMatchId) }).expect(200);
   const reopened = (await request(app).get(`/api/tournaments/${fixture.id}`).expect(200)).body;
   assert.equal(reopened.status, "active");
   assert.equal(reopened.winnerId, null);
@@ -178,7 +178,7 @@ test("stale operator score is rejected after another operator swaps the match si
   const fixture = await tournament("double_elimination", 4);
   const [observedByA] = await fixture.matches();
   const payloadA = { resultType: "played", score1: 1, score2: 0, expectedRevision: observedByA.revision };
-  const swapped = await request(app).post(`/api/matches/${observedByA.id}/swap-players`).set(fixture.auth).expect(200);
+  const swapped = await request(app).post(`/api/matches/${observedByA.id}/swap-players`).set(fixture.auth).send({ expectedRevision: await matchRevision(database, observedByA.id) }).expect(200);
   const snapshot = async () => {
     const tables = ["matches", "stage_participants", "result_history", "action_log", "tournament_stages"];
     return Promise.all([

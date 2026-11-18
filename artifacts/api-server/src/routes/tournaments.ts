@@ -15,6 +15,7 @@ import {
 import { ParticipantFieldsError, saveParticipantFields, setParticipantFieldValues } from "../application/players/participant-fields-service";
 import { getLiveStageStandings } from "../application/stages/live-stage-standings";
 import { Router, type IRouter, type Response as ExpressResponse } from "express";
+import { MatchRevisionConflict, readExpectedRevision, REVISION_REQUIRED_MESSAGE, sendRevisionConflict } from "./match-revision-guard";
 import { lockLatestUndoableAction, UndoActionChangedError } from "../application/undo/latest-undo-action";
 import { assertCancelRestoreState, MatchLifecycleConflict } from "../application/matches/cancel-restore-policy";
 import { deriveTournamentOperations } from "../application/operations/tournament-operations";
@@ -2531,7 +2532,7 @@ function sendRevertMatchError(
     : conflictCodes.has(error.code)
       ? 409
       : 422;
-  res.status(status).json({ error: error.message, code: error.code });
+  res.status(status).json({ error: error.message, code: error.code, ...(error.blocking ? { blocking: error.blocking } : {}) });
 }
 
 // ========== ACTION LOG ROUTES ==========
@@ -2562,6 +2563,12 @@ router.post("/tournaments/:id/undo-last", async (req, res): Promise<void> => {
   const access = await requireTournamentWrite(req, res, params.data.id);
   if (!access) return;
   const mutationActor = getTournamentMutationActor(access);
+  const expectedActionRaw = req.body && typeof req.body === "object" ? (req.body as Record<string, unknown>).expectedActionId : undefined;
+  if (typeof expectedActionRaw !== "number" || !Number.isSafeInteger(expectedActionRaw)) {
+    res.status(422).json({ error: "Brakuje identyfikatora cofanej akcji (expectedActionId). Odśwież historię i spróbuj ponownie.", code: "EXPECTED_ACTION_REQUIRED" });
+    return;
+  }
+  const expectedActionId = expectedActionRaw;
 
   // Find the last undoable, non-undone action
   const [lastAction] = await db
@@ -2589,6 +2596,21 @@ router.post("/tournaments/:id/undo-last", async (req, res): Promise<void> => {
       return;
     }
     res.status(404).json({ error: "Brak akcji do cofnięcia" });
+    return;
+  }
+
+  if (lastAction.id !== expectedActionId) {
+    const [expected] = await db.select().from(actionLogTable)
+      .where(and(eq(actionLogTable.id, expectedActionId), eq(actionLogTable.tournamentId, params.data.id)));
+    if (expected?.isUndone) {
+      // Retry after a lost response: the action the client meant is already undone.
+      res.json({ action: mapActionLog(expected), message: `Ta akcja była już cofnięta: ${expected.description}` });
+      return;
+    }
+    res.status(409).json({
+      error: `Ostatnia akcja zmieniła się — teraz to „${lastAction.description}”. Nic nie cofnięto; sprawdź historię i zdecyduj ponownie.`,
+      code: "UNDO_ACTION_CHANGED",
+    });
     return;
   }
 
@@ -2830,6 +2852,12 @@ router.patch("/matches/:id", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
+  const { expectedRevision, ...changes } = parsed.data;
+  const changesState = changes.status != null || changes.bestOf != null;
+  if (changesState && expectedRevision == null) {
+    res.status(422).json({ error: REVISION_REQUIRED_MESSAGE, code: "EXPECTED_REVISION_REQUIRED" });
+    return;
+  }
   // Read previous state before update for logging
   const [prevMatch] = await db.select().from(matchesTable).where(eq(matchesTable.id, params.data.id));
   if (!prevMatch) { res.status(404).json({ error: "Match not found" }); return; }
@@ -2854,6 +2882,13 @@ router.patch("/matches/:id", async (req, res): Promise<void> => {
       ) {
         throw new Error("FINALIZED_MATCH_PATCH_FORBIDDEN");
       }
+      // A retry after a lost response (or a second operator asking for the same) changes nothing.
+      if (changesState &&
+        (changes.status == null || changes.status === lockedMatch.status) &&
+        (changes.bestOf == null || changes.bestOf === lockedMatch.bestOf)) {
+        return lockedMatch;
+      }
+      if (changesState && lockedMatch.revision !== expectedRevision) throw new MatchRevisionConflict(lockedMatch);
       if (parsed.data.bestOf != null) {
         if (!Number.isInteger(parsed.data.bestOf) || parsed.data.bestOf <= 0 || parsed.data.bestOf % 2 === 0) {
           throw new Error("INVALID_BEST_OF");
@@ -2869,7 +2904,7 @@ router.patch("/matches/:id", async (req, res): Promise<void> => {
       }
       const [saved] = await tx
         .update(matchesTable)
-        .set(parsed.data)
+        .set(changes)
         .where(eq(matchesTable.id, params.data.id))
         .returning();
       if (!saved) throw new Error("MATCH_STATE_CHANGED");
@@ -2895,6 +2930,10 @@ router.patch("/matches/:id", async (req, res): Promise<void> => {
       return saved;
     },
   ).catch((error: unknown) => {
+    if (error instanceof MatchRevisionConflict) {
+      sendRevisionConflict(res, error);
+      return null;
+    }
     if (!(error instanceof Error)) throw error;
     const responses: Record<string, { status: number; error: string; code?: string }> = {
       MATCH_NOT_FOUND: { status: 404, error: "Match not found" },
@@ -3009,11 +3048,17 @@ router.post("/matches/:id/revert", async (req, res): Promise<void> => {
   }
   const access = await requireTournamentWrite(req, res, matchReference.tournamentId);
   if (!access) return;
+  const expectedRevision = readExpectedRevision(req.body);
+  if (expectedRevision == null) {
+    res.status(422).json({ error: REVISION_REQUIRED_MESSAGE, code: "EXPECTED_REVISION_REQUIRED" });
+    return;
+  }
 
   try {
     const result = await revertMatch({
       matchId: params.data.id,
       expectedTournamentId: matchReference.tournamentId,
+      expectedMatchRevision: expectedRevision,
       actor: getTournamentMutationActor(access),
     });
     const [enriched] = await enrichMatches([result.match]);
@@ -3047,6 +3092,10 @@ async function assertLockedCancelRestoreState(
 router.post("/matches/:id/cancel", async (req, res): Promise<void> => {
   const params = CancelMatchParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
+  if (readExpectedRevision(req.body) == null) {
+    res.status(422).json({ error: REVISION_REQUIRED_MESSAGE, code: "EXPECTED_REVISION_REQUIRED" });
+    return;
+  }
   const parsed = CancelMatchBody.safeParse(req.body ?? {});
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const [match] = await db.select().from(matchesTable).where(eq(matchesTable.id, params.data.id));
@@ -3063,6 +3112,8 @@ router.post("/matches/:id/cancel", async (req, res): Promise<void> => {
         .where(eq(matchesTable.id, params.data.id))
         .for("update");
       if (!lockedMatch) throw new Error("Match disappeared during cancellation");
+      if (lockedMatch.status === "cancelled") return lockedMatch; // retry: already cancelled
+      if (lockedMatch.revision !== parsed.data.expectedRevision) throw new MatchRevisionConflict(lockedMatch);
       // Re-read the tournament in the same transaction; the outer helper holds its lock.
       const [lockedTournament] = await tx.select().from(tournamentsTable)
         .where(eq(tournamentsTable.id, match.tournamentId));
@@ -3097,6 +3148,10 @@ router.post("/matches/:id/cancel", async (req, res): Promise<void> => {
       return saved;
     },
   ).catch((error: unknown) => {
+    if (error instanceof MatchRevisionConflict) {
+      sendRevisionConflict(res, error);
+      return null;
+    }
     if (error instanceof MatchLifecycleConflict) {
       res.status(error.status).json({ error: error.message, code: error.code });
       return null;
@@ -3118,6 +3173,11 @@ router.post("/matches/:id/cancel", async (req, res): Promise<void> => {
 router.post("/matches/:id/restore-cancelled", async (req, res): Promise<void> => {
   const params = RestoreCancelledMatchParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
+  const expectedRestoreRevision = readExpectedRevision(req.body);
+  if (expectedRestoreRevision == null) {
+    res.status(422).json({ error: REVISION_REQUIRED_MESSAGE, code: "EXPECTED_REVISION_REQUIRED" });
+    return;
+  }
   const [match] = await db.select().from(matchesTable).where(eq(matchesTable.id, params.data.id));
   if (!match) { res.status(404).json({ error: "Match not found" }); return; }
   const access = await requireTournamentWrite(req, res, match.tournamentId);
@@ -3132,6 +3192,9 @@ router.post("/matches/:id/restore-cancelled", async (req, res): Promise<void> =>
         .where(eq(matchesTable.id, params.data.id))
         .for("update");
       if (!lockedMatch) throw new Error("Match disappeared during restore");
+      // Retry after a lost response: the match is already back in the queue.
+      if (lockedMatch.status === "pending" && lockedMatch.revision === expectedRestoreRevision + 1) return lockedMatch;
+      if (lockedMatch.revision !== expectedRestoreRevision) throw new MatchRevisionConflict(lockedMatch);
       const [lockedTournament] = await tx.select().from(tournamentsTable)
         .where(eq(tournamentsTable.id, match.tournamentId));
       if (!lockedTournament) throw new Error("Tournament disappeared during restore");
@@ -3157,6 +3220,10 @@ router.post("/matches/:id/restore-cancelled", async (req, res): Promise<void> =>
       return saved;
     },
   ).catch((error: unknown) => {
+    if (error instanceof MatchRevisionConflict) {
+      sendRevisionConflict(res, error);
+      return null;
+    }
     if (error instanceof MatchLifecycleConflict) {
       res.status(error.status).json({ error: error.message, code: error.code });
       return null;
@@ -3176,6 +3243,11 @@ router.post("/matches/:id/restore-cancelled", async (req, res): Promise<void> =>
 router.post("/matches/:id/swap-players", async (req, res): Promise<void> => {
   const params = SwapMatchPlayersParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
+  const expectedSwapRevision = readExpectedRevision(req.body);
+  if (expectedSwapRevision == null) {
+    res.status(422).json({ error: REVISION_REQUIRED_MESSAGE, code: "EXPECTED_REVISION_REQUIRED" });
+    return;
+  }
   const [match] = await db.select().from(matchesTable).where(eq(matchesTable.id, params.data.id));
   if (!match) { res.status(404).json({ error: "Match not found" }); return; }
   const access = await requireTournamentWrite(req, res, match.tournamentId);
@@ -3191,6 +3263,8 @@ router.post("/matches/:id/swap-players", async (req, res): Promise<void> => {
         .for("update");
       if (!lockedMatch) throw new Error("Match disappeared during swap");
       if (lockedMatch.status === "completed") throw new Error("MATCH_CANNOT_SWAP");
+      // Not idempotent by nature (a second swap undoes the first), so a stale or repeated request is refused.
+      if (lockedMatch.revision !== expectedSwapRevision) throw new MatchRevisionConflict(lockedMatch);
       const [saved] = await tx
         .update(matchesTable)
         .set({
@@ -3236,6 +3310,10 @@ router.post("/matches/:id/swap-players", async (req, res): Promise<void> => {
       return saved;
     },
   ).catch((error: unknown) => {
+    if (error instanceof MatchRevisionConflict) {
+      sendRevisionConflict(res, error);
+      return null;
+    }
     if (error instanceof Error && error.message === "MATCH_CANNOT_SWAP") {
       res.status(400).json({
         error: "Nie można zamieniać zawodników w meczu o statusie: completed",

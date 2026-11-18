@@ -53,6 +53,7 @@ import type {
   Match,
   MatchCancelInput,
   MatchResult,
+  MatchRevisionInput,
   MatchScheduleUpdateRequest,
   MatchUpdate,
   OrganizerCredentialState,
@@ -112,6 +113,7 @@ import type {
   TournamentTemplateRequest,
   TournamentUpdate,
   UndoLastAction404,
+  UndoLastActionInput,
   UndoResult
 } from './api.schemas';
 
@@ -4732,16 +4734,18 @@ export const getUndoLastActionUrl = (id: number,) => {
 }
 
 /**
- * @summary Undo the last undoable action
+ * @summary Undo the last undoable action (V5.7 — only the action the client saw as last)
  */
-export const undoLastAction = async (id: number, options?: RequestInit): Promise<UndoResult> => {
+export const undoLastAction = async (id: number,
+    undoLastActionInput: UndoLastActionInput, options?: RequestInit): Promise<UndoResult> => {
 
   return customFetch<UndoResult>(getUndoLastActionUrl(id),
   {
     ...options,
-    method: 'POST'
-
-
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      undoLastActionInput,)
   }
 );}
 
@@ -4749,8 +4753,8 @@ export const undoLastAction = async (id: number, options?: RequestInit): Promise
 
 
 export const getUndoLastActionMutationOptions = <TError = ErrorType<UndoLastAction404 | DomainError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof undoLastAction>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof undoLastAction>>, TError,{id: number}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof undoLastAction>>, TError,{id: number;data: BodyType<UndoLastActionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof undoLastAction>>, TError,{id: number;data: BodyType<UndoLastActionInput>}, TContext> => {
 
 const mutationKey = ['undoLastAction'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -4762,10 +4766,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof undoLastAction>>, {id: number}> = (props) => {
-          const {id} = props ?? {};
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof undoLastAction>>, {id: number;data: BodyType<UndoLastActionInput>}> = (props) => {
+          const {id,data} = props ?? {};
 
-          return  undoLastAction(id,requestOptions)
+          return  undoLastAction(id,data,requestOptions)
         }
 
 
@@ -4776,18 +4780,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type UndoLastActionMutationResult = NonNullable<Awaited<ReturnType<typeof undoLastAction>>>
-
+    export type UndoLastActionMutationBody = BodyType<UndoLastActionInput>
     export type UndoLastActionMutationError = ErrorType<UndoLastAction404 | DomainError>
 
     /**
- * @summary Undo the last undoable action
+ * @summary Undo the last undoable action (V5.7 — only the action the client saw as last)
  */
 export const useUndoLastAction = <TError = ErrorType<UndoLastAction404 | DomainError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof undoLastAction>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof undoLastAction>>, TError,{id: number;data: BodyType<UndoLastActionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof undoLastAction>>,
         TError,
-        {id: number},
+        {id: number;data: BodyType<UndoLastActionInput>},
         TContext
       > => {
       return useMutation(getUndoLastActionMutationOptions(options));
@@ -6258,7 +6262,7 @@ export const getCancelMatchUrl = (id: number,) => {
  * @summary Cancel a match (saves state for undo)
  */
 export const cancelMatch = async (id: number,
-    matchCancelInput?: MatchCancelInput, options?: RequestInit): Promise<Match> => {
+    matchCancelInput: MatchCancelInput, options?: RequestInit): Promise<Match> => {
 
   return customFetch<Match>(getCancelMatchUrl(id),
   {
@@ -6274,8 +6278,8 @@ export const cancelMatch = async (id: number,
 
 
 export const getCancelMatchMutationOptions = <TError = ErrorType<void>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelMatch>>, TError,{id: number;data?: BodyType<MatchCancelInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof cancelMatch>>, TError,{id: number;data?: BodyType<MatchCancelInput>}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelMatch>>, TError,{id: number;data: BodyType<MatchCancelInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof cancelMatch>>, TError,{id: number;data: BodyType<MatchCancelInput>}, TContext> => {
 
 const mutationKey = ['cancelMatch'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -6287,7 +6291,7 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof cancelMatch>>, {id: number;data?: BodyType<MatchCancelInput>}> = (props) => {
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof cancelMatch>>, {id: number;data: BodyType<MatchCancelInput>}> = (props) => {
           const {id,data} = props ?? {};
 
           return  cancelMatch(id,data,requestOptions)
@@ -6301,18 +6305,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type CancelMatchMutationResult = NonNullable<Awaited<ReturnType<typeof cancelMatch>>>
-    export type CancelMatchMutationBody = BodyType<MatchCancelInput> | undefined
+    export type CancelMatchMutationBody = BodyType<MatchCancelInput>
     export type CancelMatchMutationError = ErrorType<void>
 
     /**
  * @summary Cancel a match (saves state for undo)
  */
 export const useCancelMatch = <TError = ErrorType<void>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelMatch>>, TError,{id: number;data?: BodyType<MatchCancelInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof cancelMatch>>, TError,{id: number;data: BodyType<MatchCancelInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof cancelMatch>>,
         TError,
-        {id: number;data?: BodyType<MatchCancelInput>},
+        {id: number;data: BodyType<MatchCancelInput>},
         TContext
       > => {
       return useMutation(getCancelMatchMutationOptions(options));
@@ -6329,23 +6333,25 @@ export const getRestoreCancelledMatchUrl = (id: number,) => {
 /**
  * @summary Restore a cancelled match back to pending
  */
-export const restoreCancelledMatch = async (id: number, options?: RequestInit): Promise<Match> => {
+export const restoreCancelledMatch = async (id: number,
+    matchRevisionInput: MatchRevisionInput, options?: RequestInit): Promise<Match> => {
 
   return customFetch<Match>(getRestoreCancelledMatchUrl(id),
   {
     ...options,
-    method: 'POST'
-
-
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      matchRevisionInput,)
   }
 );}
 
 
 
 
-export const getRestoreCancelledMatchMutationOptions = <TError = ErrorType<void>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof restoreCancelledMatch>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof restoreCancelledMatch>>, TError,{id: number}, TContext> => {
+export const getRestoreCancelledMatchMutationOptions = <TError = ErrorType<void | DomainError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof restoreCancelledMatch>>, TError,{id: number;data: BodyType<MatchRevisionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof restoreCancelledMatch>>, TError,{id: number;data: BodyType<MatchRevisionInput>}, TContext> => {
 
 const mutationKey = ['restoreCancelledMatch'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -6357,10 +6363,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof restoreCancelledMatch>>, {id: number}> = (props) => {
-          const {id} = props ?? {};
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof restoreCancelledMatch>>, {id: number;data: BodyType<MatchRevisionInput>}> = (props) => {
+          const {id,data} = props ?? {};
 
-          return  restoreCancelledMatch(id,requestOptions)
+          return  restoreCancelledMatch(id,data,requestOptions)
         }
 
 
@@ -6371,18 +6377,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type RestoreCancelledMatchMutationResult = NonNullable<Awaited<ReturnType<typeof restoreCancelledMatch>>>
-
-    export type RestoreCancelledMatchMutationError = ErrorType<void>
+    export type RestoreCancelledMatchMutationBody = BodyType<MatchRevisionInput>
+    export type RestoreCancelledMatchMutationError = ErrorType<void | DomainError>
 
     /**
  * @summary Restore a cancelled match back to pending
  */
-export const useRestoreCancelledMatch = <TError = ErrorType<void>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof restoreCancelledMatch>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+export const useRestoreCancelledMatch = <TError = ErrorType<void | DomainError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof restoreCancelledMatch>>, TError,{id: number;data: BodyType<MatchRevisionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof restoreCancelledMatch>>,
         TError,
-        {id: number},
+        {id: number;data: BodyType<MatchRevisionInput>},
         TContext
       > => {
       return useMutation(getRestoreCancelledMatchMutationOptions(options));
@@ -6399,23 +6405,25 @@ export const getSwapMatchPlayersUrl = (id: number,) => {
 /**
  * @summary Swap player1 and player2 in a match
  */
-export const swapMatchPlayers = async (id: number, options?: RequestInit): Promise<Match> => {
+export const swapMatchPlayers = async (id: number,
+    matchRevisionInput: MatchRevisionInput, options?: RequestInit): Promise<Match> => {
 
   return customFetch<Match>(getSwapMatchPlayersUrl(id),
   {
     ...options,
-    method: 'POST'
-
-
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      matchRevisionInput,)
   }
 );}
 
 
 
 
-export const getSwapMatchPlayersMutationOptions = <TError = ErrorType<void>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof swapMatchPlayers>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof swapMatchPlayers>>, TError,{id: number}, TContext> => {
+export const getSwapMatchPlayersMutationOptions = <TError = ErrorType<void | DomainError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof swapMatchPlayers>>, TError,{id: number;data: BodyType<MatchRevisionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof swapMatchPlayers>>, TError,{id: number;data: BodyType<MatchRevisionInput>}, TContext> => {
 
 const mutationKey = ['swapMatchPlayers'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -6427,10 +6435,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof swapMatchPlayers>>, {id: number}> = (props) => {
-          const {id} = props ?? {};
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof swapMatchPlayers>>, {id: number;data: BodyType<MatchRevisionInput>}> = (props) => {
+          const {id,data} = props ?? {};
 
-          return  swapMatchPlayers(id,requestOptions)
+          return  swapMatchPlayers(id,data,requestOptions)
         }
 
 
@@ -6441,18 +6449,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type SwapMatchPlayersMutationResult = NonNullable<Awaited<ReturnType<typeof swapMatchPlayers>>>
-
-    export type SwapMatchPlayersMutationError = ErrorType<void>
+    export type SwapMatchPlayersMutationBody = BodyType<MatchRevisionInput>
+    export type SwapMatchPlayersMutationError = ErrorType<void | DomainError>
 
     /**
  * @summary Swap player1 and player2 in a match
  */
-export const useSwapMatchPlayers = <TError = ErrorType<void>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof swapMatchPlayers>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+export const useSwapMatchPlayers = <TError = ErrorType<void | DomainError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof swapMatchPlayers>>, TError,{id: number;data: BodyType<MatchRevisionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof swapMatchPlayers>>,
         TError,
-        {id: number},
+        {id: number;data: BodyType<MatchRevisionInput>},
         TContext
       > => {
       return useMutation(getSwapMatchPlayersMutationOptions(options));
@@ -6539,16 +6547,18 @@ export const getRevertMatchUrl = (id: number,) => {
 }
 
 /**
- * @summary Revert a completed match result
+ * @summary Revert a completed match result (V5.7 — of the revision the client saw)
  */
-export const revertMatch = async (id: number, options?: RequestInit): Promise<Match> => {
+export const revertMatch = async (id: number,
+    matchRevisionInput: MatchRevisionInput, options?: RequestInit): Promise<Match> => {
 
   return customFetch<Match>(getRevertMatchUrl(id),
   {
     ...options,
-    method: 'POST'
-
-
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      matchRevisionInput,)
   }
 );}
 
@@ -6556,8 +6566,8 @@ export const revertMatch = async (id: number, options?: RequestInit): Promise<Ma
 
 
 export const getRevertMatchMutationOptions = <TError = ErrorType<DomainError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revertMatch>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
-): UseMutationOptions<Awaited<ReturnType<typeof revertMatch>>, TError,{id: number}, TContext> => {
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revertMatch>>, TError,{id: number;data: BodyType<MatchRevisionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof revertMatch>>, TError,{id: number;data: BodyType<MatchRevisionInput>}, TContext> => {
 
 const mutationKey = ['revertMatch'];
 const {mutation: mutationOptions, request: requestOptions} = options ?
@@ -6569,10 +6579,10 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
 
 
-      const mutationFn: MutationFunction<Awaited<ReturnType<typeof revertMatch>>, {id: number}> = (props) => {
-          const {id} = props ?? {};
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof revertMatch>>, {id: number;data: BodyType<MatchRevisionInput>}> = (props) => {
+          const {id,data} = props ?? {};
 
-          return  revertMatch(id,requestOptions)
+          return  revertMatch(id,data,requestOptions)
         }
 
 
@@ -6583,18 +6593,18 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
   return  { mutationFn, ...mutationOptions }}
 
     export type RevertMatchMutationResult = NonNullable<Awaited<ReturnType<typeof revertMatch>>>
-
+    export type RevertMatchMutationBody = BodyType<MatchRevisionInput>
     export type RevertMatchMutationError = ErrorType<DomainError>
 
     /**
- * @summary Revert a completed match result
+ * @summary Revert a completed match result (V5.7 — of the revision the client saw)
  */
 export const useRevertMatch = <TError = ErrorType<DomainError>,
-    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revertMatch>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revertMatch>>, TError,{id: number;data: BodyType<MatchRevisionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
  ): UseMutationResult<
         Awaited<ReturnType<typeof revertMatch>>,
         TError,
-        {id: number},
+        {id: number;data: BodyType<MatchRevisionInput>},
         TContext
       > => {
       return useMutation(getRevertMatchMutationOptions(options));

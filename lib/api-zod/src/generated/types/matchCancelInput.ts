@@ -8,4 +8,9 @@
 
 export interface MatchCancelInput {
   note?: string;
+  /**
+     * V5.7: match revision the client saw
+     * @minimum 1
+     */
+  expectedRevision: number;
 }

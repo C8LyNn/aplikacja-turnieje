@@ -21,7 +21,10 @@ export function matchOperationError(error: unknown) {
   const detail = typeof rawDetail === "string" ? rawDetail : "";
   const serverError = typeof response?.data?.error === "string" ? response.data.error : undefined;
   // Do not read inherited properties such as "constructor" or "toString" as diagnostic messages.
-  const knownMessage = code && Object.prototype.hasOwnProperty.call(messages, code)
+  // V5.7: for blocked reverts the server names the exact match or stage — prefer its message.
+  const serverNamesBlocker = !!code && ["DOWNSTREAM_BLOCKED", "STAGE_ALREADY_ADVANCED", "STAGE_QUALIFICATION_ALREADY_COMMITTED"].includes(code)
+    && !!serverError && serverError.trim().length > 0 && !/^[A-Z_\d]+$/.test(serverError);
+  const knownMessage = code && !serverNamesBlocker && Object.prototype.hasOwnProperty.call(messages, code)
     ? messages[code]
     : undefined;
   // V5.6: an expired or missing session is said in plain words, never as the server's English status text.

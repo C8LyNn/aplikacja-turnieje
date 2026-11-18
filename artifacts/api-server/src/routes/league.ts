@@ -157,6 +157,7 @@ router.get("/tournaments/:id/stages/:stageId/schedule", async (req, res): Promis
     const local = match.scheduledAt ? instantToLocal(match.scheduledAt, timeZone) : null;
     return {
       matchId: match.id,
+      revision: match.revision,
       round: match.round,
       matchNumber: match.matchNumber,
       player1Id: match.player1Id ?? null,
@@ -350,6 +351,15 @@ router.put("/matches/:id/schedule", async (req, res): Promise<void> => {
         const converted = localDateTimeToInstant(body.data.date, body.data.time, timeZone);
         if (!converted.ok) throw new LeagueRouteError(422, converted.code, converted.message);
         scheduledAt = converted.instant;
+      }
+      // V5.7 · compare-and-set on the date itself: a date change never conflicts with a result or a start,
+      // but a date set by someone else meanwhile is not silently replaced.
+      const currentMs = match.scheduledAt?.getTime() ?? null;
+      if ((scheduledAt?.getTime() ?? null) === currentMs) return match; // already this date (safe retry)
+      const expectedMs = body.data.expectedScheduledAt == null ? null : new Date(body.data.expectedScheduledAt).getTime();
+      if (expectedMs !== currentMs) {
+        const now = match.scheduledAt ? instantToLocal(match.scheduledAt, timeZone) : null;
+        throw new LeagueRouteError(409, "SCHEDULE_CHANGED", `Termin tego meczu zmienił się w międzyczasie — teraz: ${now ? `${now.date} ${now.time}` : "bez terminu"}. Nic nie zapisano; sprawdź termin i zdecyduj ponownie.`);
       }
       const [updated] = await tx.update(matchesTable).set({ scheduledAt }).where(eq(matchesTable.id, match.id)).returning();
       if (!stage.scheduleTimeZone) {

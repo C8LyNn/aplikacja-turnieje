@@ -2110,6 +2110,24 @@ export interface Match {
 
 export interface MatchCancelInput {
   note?: string;
+  /**
+     * V5.7: match revision the client saw
+     * @minimum 1
+     */
+  expectedRevision: number;
+}
+
+export interface MatchRevisionInput {
+  /**
+     * Match revision the client saw; a different current revision gives 409 CONCURRENT_MODIFICATION
+     * @minimum 1
+     */
+  expectedRevision: number;
+}
+
+export interface UndoLastActionInput {
+  /** Id of the action the client shows as the last one; another last action gives 409 UNDO_ACTION_CHANGED */
+  expectedActionId: number;
 }
 
 export interface ReorderMatchesInput {
@@ -2131,6 +2149,11 @@ export interface MatchUpdate {
   note?: string;
   /** @minimum 1 */
   bestOf?: number;
+  /**
+     * V5.7: required with status or bestOf. A request whose target state already holds is a no-op (safe retry).
+     * @minimum 1
+     */
+  expectedRevision?: number;
 }
 
 export interface PointAdjustment {
@@ -2438,6 +2461,11 @@ export interface StageLeagueRulesUpdateRequest {
 
 export interface MatchScheduleUpdateRequest {
   /**
+     * V5.7: the match date the client saw (null = none). Another current date gives 409 SCHEDULE_CHANGED; the requested date already set is a no-op.
+     * @nullable
+     */
+  expectedScheduledAt: string | null;
+  /**
      * YYYY-MM-DD in the stage time zone; null clears the date
      * @nullable
      */
@@ -2517,6 +2545,8 @@ export const StageScheduleMatchScheduleState = {
 
 export interface StageScheduleMatch {
   matchId: number;
+  /** V5.7: match revision for guarded status changes */
+  revision: number;
   round: number;
   matchNumber: number;
   /** @nullable */

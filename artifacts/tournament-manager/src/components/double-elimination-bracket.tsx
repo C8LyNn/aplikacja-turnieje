@@ -209,8 +209,10 @@ export function DoubleEliminationBracket({
       )
     ) return;
     setError(undefined);
+    const current = canonical.data?.find(candidate => candidate.id === match.matchId);
+    if (!current) return;
     revert.mutate(
-      { id: match.matchId },
+      { id: match.matchId, data: { expectedRevision: current.revision } },
       {
         onSuccess: () => {
           resultDrafts.discard(match.matchId!);

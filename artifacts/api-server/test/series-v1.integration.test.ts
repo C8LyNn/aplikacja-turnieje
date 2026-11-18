@@ -1,4 +1,4 @@
-import { matchRevision } from "./match-revision-fixture";
+import { lastUndoableActionId, matchRevision, matchScheduledAt } from "./match-revision-fixture";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, before, describe, test } from "node:test";
@@ -378,7 +378,7 @@ describe("Swiss generation policy", () => {
     await request(app)
       .patch(`/api/matches/${pending[0].id}`)
       .set(fixture.organizerHeaders)
-      .send({ status: "postponed" })
+      .send({ status: "postponed", expectedRevision: await matchRevision(database, pending[0].id) })
       .expect(200);
     await request(app)
       .post(`/api/matches/${pending[1].id}/complete`)

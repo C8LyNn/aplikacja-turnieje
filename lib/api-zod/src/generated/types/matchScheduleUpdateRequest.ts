@@ -8,6 +8,11 @@
 
 export interface MatchScheduleUpdateRequest {
   /**
+     * V5.7: the match date the client saw (null = none). Another current date gives 409 SCHEDULE_CHANGED; the requested date already set is a no-op.
+     * @nullable
+     */
+  expectedScheduledAt: Date | null;
+  /**
      * YYYY-MM-DD in the stage time zone; null clears the date
      * @nullable
      */

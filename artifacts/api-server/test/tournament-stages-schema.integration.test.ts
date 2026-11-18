@@ -1,4 +1,4 @@
-import { matchRevision } from "./match-revision-fixture";
+import { lastUndoableActionId, matchRevision, matchScheduledAt } from "./match-revision-fixture";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, before, describe, test } from "node:test";
@@ -423,6 +423,7 @@ describe("single-stage compatibility lifecycle", () => {
     await request(app)
       .post(`/api/matches/${match.id}/revert`)
       .set(fixture.organizerHeaders)
+      .send({ expectedRevision: await matchRevision(database, match.id) })
       .expect(200);
     [state] = await rows<typeof state>(
       `SELECT stage.status AS stage_status,

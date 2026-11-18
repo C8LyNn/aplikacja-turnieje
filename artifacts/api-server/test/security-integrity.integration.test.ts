@@ -1,4 +1,4 @@
-import { matchRevision } from "./match-revision-fixture";
+import { lastUndoableActionId, matchRevision, matchScheduledAt } from "./match-revision-fixture";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, before, describe, test } from "node:test";
@@ -1222,7 +1222,7 @@ describe("security and tournament integrity regressions", () => {
             match = matches.body[0];
             assert.ok(match);
             if (operation === "restore" || operation === "undo-status") {
-              await request(app).post(`/api/matches/${match.id}/cancel`).set(headers).send({}).expect(200);
+              await request(app).post(`/api/matches/${match.id}/cancel`).set(headers).send({ expectedRevision: await matchRevision(database, match.id) }).expect(200);
             } else if (operation === "undo-result") {
               await request(app).post(`/api/matches/${match.id}/complete`).set(headers).send({
                 expectedRevision: match.revision, resultType: "played",
@@ -1231,6 +1231,9 @@ describe("security and tournament integrity regressions", () => {
             }
           }
         }
+        // V5.7: undo-last names the action the operator saw as the last one.
+        const undoActionId = operation.startsWith("undo-") ? await lastUndoableActionId(database, id) : 0;
+        const opRevision = match ? await matchRevision(database, match.id) : 0;
         await runOrganizerRevocationRace({
           tournamentId: id,
           successStatus: operation === "roster" ? 201 : operation === "delete" ? 204 : 200,
@@ -1247,7 +1250,7 @@ describe("security and tournament integrity regressions", () => {
               return request(app).delete(`/api/tournaments/${id}`).set(actorHeaders).then(r => r);
             }
             if (operation.startsWith("undo-")) {
-              return request(app).post(`/api/tournaments/${id}/undo-last`).set(actorHeaders).send({}).then(r => r);
+              return request(app).post(`/api/tournaments/${id}/undo-last`).set(actorHeaders).send({ expectedActionId: undoActionId }).then(r => r);
             }
             if (operation === "bans") {
               return request(app).put(`/api/players/${playerId}/bans`).set(actorHeaders)
@@ -1266,7 +1269,7 @@ describe("security and tournament integrity regressions", () => {
             }
             const endpoint = operation === "restore" ? "restore-cancelled" : operation;
             return request(app).post(`/api/matches/${match.id}/${endpoint}`)
-              .set(actorHeaders).send({}).then(r => r);
+              .set(actorHeaders).send({ expectedRevision: opRevision }).then(r => r);
           },
         });
       });
@@ -1354,12 +1357,14 @@ describe("security and tournament integrity regressions", () => {
       .send({ expectedRevision: await matchRevision(database, revertMatchRow.rows[0].id), ...({ resultType: "played", score1: 1, score2: 0 }) })
       .expect(200);
     const revertSupport = await supportHeaders(revertTournament.id);
+    const revertRevision = await matchRevision(database, revertMatchRow.rows[0].id);
     await runSupportRevocationRace({
       tournamentId: revertTournament.id,
       support: revertSupport,
       mutate: () => request(app)
         .post(`/api/matches/${revertMatchRow.rows[0].id}/revert`)
         .set(revertSupport)
+        .send({ expectedRevision: revertRevision })
         .then((response) => response),
     });
     const afterRevert = await database.pool.query<{ status: string }>(
@@ -1442,7 +1447,8 @@ describe("security and tournament integrity regressions", () => {
     }
     const undoRosterChange = await request(app)
       .post(`/api/tournaments/${tournament.id}/undo-last`)
-      .set(organizerHeaders(tournament.id));
+      .set(organizerHeaders(tournament.id))
+      .send({ expectedActionId: await lastUndoableActionId(database, tournament.id) });
     assert.equal(undoRosterChange.status, 409, undoRosterChange.text);
     assert.equal(undoRosterChange.body.code, "ROSTER_LOCKED");
     const roster = await database.pool.query(
@@ -1680,7 +1686,8 @@ describe("security and tournament integrity regressions", () => {
     await addPlayer(tournament.id, "Undo draft player", 1);
     const undone = await request(app)
       .post(`/api/tournaments/${tournament.id}/undo-last`)
-      .set(organizerHeaders(tournament.id));
+      .set(organizerHeaders(tournament.id))
+      .send({ expectedActionId: await lastUndoableActionId(database, tournament.id) });
     assert.equal(undone.status, 200, undone.text);
     const roster = await database.pool.query(
       "SELECT count(*)::int AS count FROM players WHERE tournament_id = $1",
@@ -1690,6 +1697,7 @@ describe("security and tournament integrity regressions", () => {
     await request(app)
       .post(`/api/tournaments/${tournament.id}/undo-last`)
       .set(organizerHeaders(tournament.id))
+      .send({ expectedActionId: await lastUndoableActionId(database, tournament.id) })
       .expect(404);
   });
 

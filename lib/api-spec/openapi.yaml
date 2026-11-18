@@ -1959,13 +1959,19 @@ paths:
     post:
       operationId: undoLastAction
       tags: [tournaments]
-      summary: Undo the last undoable action
+      summary: Undo the last undoable action (V5.7 — only the action the client saw as last)
       parameters:
         - name: id
           in: path
           required: true
           schema:
             type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UndoLastActionInput"
       responses:
         "200":
           description: Action undone
@@ -2626,7 +2632,7 @@ paths:
           schema:
             type: integer
       requestBody:
-        required: false
+        required: true
         content:
           application/json:
             schema:
@@ -2654,7 +2660,19 @@ paths:
           required: true
           schema:
             type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MatchRevisionInput"
       responses:
+        "409":
+          description: "V5.7: the match changed since the client read it (CONCURRENT_MODIFICATION) — refresh and retry"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
         "200":
           description: Match restored
           content:
@@ -2677,7 +2695,19 @@ paths:
           required: true
           schema:
             type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MatchRevisionInput"
       responses:
+        "409":
+          description: "V5.7: the match changed since the client read it (CONCURRENT_MODIFICATION) — refresh and retry"
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
         "200":
           description: Players swapped
           content:
@@ -2720,13 +2750,19 @@ paths:
     post:
       operationId: revertMatch
       tags: [matches]
-      summary: Revert a completed match result
+      summary: Revert a completed match result (V5.7 — of the revision the client saw)
       parameters:
         - name: id
           in: path
           required: true
           schema:
             type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/MatchRevisionInput"
       responses:
         "200":
           description: Match reverted
@@ -4425,9 +4461,23 @@ components:
 
     MatchCancelInput:
       type: object
+      required: [expectedRevision]
       properties:
         note:
           type: string
+        expectedRevision: { type: integer, minimum: 1, description: "V5.7: match revision the client saw" }
+
+    MatchRevisionInput:
+      type: object
+      required: [expectedRevision]
+      properties:
+        expectedRevision: { type: integer, minimum: 1, description: "Match revision the client saw; a different current revision gives 409 CONCURRENT_MODIFICATION" }
+
+    UndoLastActionInput:
+      type: object
+      required: [expectedActionId]
+      properties:
+        expectedActionId: { type: integer, description: "Id of the action the client shows as the last one; another last action gives 409 UNDO_ACTION_CHANGED" }
 
     ReorderMatchesInput:
       type: object
@@ -4449,6 +4499,10 @@ components:
         bestOf:
           type: integer
           minimum: 1
+        expectedRevision:
+          type: integer
+          minimum: 1
+          description: "V5.7: required with status or bestOf. A request whose target state already holds is a no-op (safe retry)."
 
     PointAdjustment:
       type: object
@@ -4759,8 +4813,9 @@ components:
     MatchScheduleUpdateRequest:
       type: object
       additionalProperties: false
-      required: [date]
+      required: [date, expectedScheduledAt]
       properties:
+        expectedScheduledAt: { type: ["string", "null"], format: date-time, description: "V5.7: the match date the client saw (null = none). Another current date gives 409 SCHEDULE_CHANGED; the requested date already set is a no-op." }
         date: { type: ["string", "null"], description: "YYYY-MM-DD in the stage time zone; null clears the date" }
         time: { type: string, description: "HH:MM local time (required with a date)" }
         timeZone: { type: string, description: "IANA zone; only used when the stage has none yet" }
@@ -4804,9 +4859,10 @@ components:
 
     StageScheduleMatch:
       type: object
-      required: [matchId, round, matchNumber, player1Id, player2Id, player1Name, player2Name, status, scheduleState, scheduledAt, localDate, localTime, score1, score2, winnerId, isDraw]
+      required: [matchId, revision, round, matchNumber, player1Id, player2Id, player1Name, player2Name, status, scheduleState, scheduledAt, localDate, localTime, score1, score2, winnerId, isDraw]
       properties:
         matchId: { type: integer }
+        revision: { type: integer, description: "V5.7: match revision for guarded status changes" }
         round: { type: integer }
         matchNumber: { type: integer }
         player1Id: { type: ["integer", "null"] }

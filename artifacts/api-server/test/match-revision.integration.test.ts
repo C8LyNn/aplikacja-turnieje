@@ -1,3 +1,4 @@
+import { lastUndoableActionId, matchRevision, matchScheduledAt } from "./match-revision-fixture";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
@@ -50,7 +51,7 @@ for (const resultType of ["played", "walkover", "no_contest"] as const) {
     assert.equal(f.match.revision, 1);
     const body = resultType === "played" ? { resultType, score1: 1, score2: 0 }
       : resultType === "walkover" ? { resultType, winnerId: f.match.player1Id } : { resultType };
-    await request(app).post(`/api/matches/${f.match.id}/swap-players`).set(f.auth).expect(200);
+    await request(app).post(`/api/matches/${f.match.id}/swap-players`).set(f.auth).send({ expectedRevision: await matchRevision(database, f.match.id) }).expect(200);
     const current = await f.read();
     assert.equal(current.revision, 2);
     const before = await f.snapshot();
@@ -67,7 +68,7 @@ for (const resultType of ["played", "walkover", "no_contest"] as const) {
 
 test("ABA: two swaps restore the same pair but invalidate the original form", async () => {
   const f = await fixture();
-  for (let i = 0; i < 2; i++) await request(app).post(`/api/matches/${f.match.id}/swap-players`).set(f.auth).expect(200);
+  for (let i = 0; i < 2; i++) await request(app).post(`/api/matches/${f.match.id}/swap-players`).set(f.auth).send({ expectedRevision: await matchRevision(database, f.match.id) }).expect(200);
   const now = await f.read();
   assert.equal(now.player1Id, f.match.player1Id);
   assert.equal(now.player2Id, f.match.player2Id);
@@ -119,18 +120,18 @@ test("BO, status, cancel, restore and revert invalidate forms; presentation fiel
   await request(app).patch(`/api/matches/${f.match.id}`).set(f.auth).send({ note: "court note" }).expect(200);
   await database.pool.query("UPDATE matches SET sort_order=99, scheduled_at=now(), revision=999 WHERE id=$1", [f.match.id]);
   assert.equal((await f.read()).revision, 1);
-  await request(app).patch(`/api/matches/${f.match.id}`).set(f.auth).send({ bestOf: 3 }).expect(200);
+  await request(app).patch(`/api/matches/${f.match.id}`).set(f.auth).send({ bestOf: 3, expectedRevision: await matchRevision(database, f.match.id) }).expect(200);
   assert.equal((await f.read()).revision, 2);
-  await request(app).patch(`/api/matches/${f.match.id}`).set(f.auth).send({ status: "in_progress" }).expect(200);
+  await request(app).patch(`/api/matches/${f.match.id}`).set(f.auth).send({ status: "in_progress", expectedRevision: await matchRevision(database, f.match.id) }).expect(200);
   assert.equal((await f.read()).revision, 3);
-  await request(app).post(`/api/matches/${f.match.id}/cancel`).set(f.auth).send({}).expect(200);
+  await request(app).post(`/api/matches/${f.match.id}/cancel`).set(f.auth).send({ expectedRevision: await matchRevision(database, f.match.id) }).expect(200);
   assert.equal((await f.read()).revision, 4);
-  await request(app).post(`/api/matches/${f.match.id}/restore-cancelled`).set(f.auth).expect(200);
+  await request(app).post(`/api/matches/${f.match.id}/restore-cancelled`).set(f.auth).send({ expectedRevision: await matchRevision(database, f.match.id) }).expect(200);
   assert.equal((await f.read()).revision, 5);
   await request(app).post(`/api/matches/${f.match.id}/complete`).set(f.auth)
     .send({ resultType: "played", score1: 2, score2: 0, expectedRevision: 5 }).expect(200);
   const completed = await f.read();
-  await request(app).post(`/api/matches/${f.match.id}/revert`).set(f.auth).expect(200);
+  await request(app).post(`/api/matches/${f.match.id}/revert`).set(f.auth).send({ expectedRevision: await matchRevision(database, f.match.id) }).expect(200);
   const reopened = await f.read();
   assert.equal(reopened.revision, completed.revision + 1);
   const before = await f.snapshot();

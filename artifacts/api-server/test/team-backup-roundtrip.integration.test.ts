@@ -1,4 +1,4 @@
-import { matchRevision } from "./match-revision-fixture";
+import { lastUndoableActionId, matchRevision, matchScheduledAt } from "./match-revision-fixture";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
@@ -183,7 +183,7 @@ describe("V5.1 P0: team tournament backup round trip", () => {
     // 4. Correct a wrong result: revert the last completed match and record the opposite winner.
     const [wrong] = await rows<{ id: number; player1_id: number; player2_id: number; winner_id: number }>(
       "SELECT id, player1_id, player2_id, winner_id FROM matches WHERE tournament_id = $1 AND status = 'completed' ORDER BY completed_at DESC, id DESC LIMIT 1", [tournamentId]);
-    await request(app).post(`/api/matches/${wrong.id}/revert`).set(headers).expect(200);
+    await request(app).post(`/api/matches/${wrong.id}/revert`).set(headers).send({ expectedRevision: await matchRevision(database, wrong.id) }).expect(200);
     const corrected = wrong.winner_id === wrong.player1_id ? wrong.player2_id : wrong.player1_id;
     await request(app).post(`/api/matches/${wrong.id}/complete`).set(headers)
       .send({ expectedRevision: await matchRevision(database, wrong.id), resultType: "played", score1: corrected === wrong.player1_id ? 1 : 0, score2: corrected === wrong.player2_id ? 1 : 0 })
@@ -243,10 +243,10 @@ describe("V5.1 P0: team tournament backup round trip", () => {
     const higherIdWins = (p1: number, p2: number) => Math.max(p1, p2);
     await play(id, headers, higherIdWins, 2);
     // Undo the last result, then revert-and-correct another one before finishing.
-    await request(app).post(`/api/tournaments/${id}/undo-last`).set(headers).send({}).expect(200);
+    await request(app).post(`/api/tournaments/${id}/undo-last`).set(headers).send({ expectedActionId: await lastUndoableActionId(database, id) }).expect(200);
     const [done] = await rows<{ id: number; player1_id: number; player2_id: number; winner_id: number }>(
       "SELECT id, player1_id, player2_id, winner_id FROM matches WHERE tournament_id = $1 AND status = 'completed' AND player2_id IS NOT NULL ORDER BY id LIMIT 1", [id]);
-    await request(app).post(`/api/matches/${done.id}/revert`).set(headers).expect(200);
+    await request(app).post(`/api/matches/${done.id}/revert`).set(headers).send({ expectedRevision: await matchRevision(database, done.id) }).expect(200);
     const corrected = done.winner_id === done.player1_id ? done.player2_id : done.player1_id;
     await request(app).post(`/api/matches/${done.id}/complete`).set(headers)
       .send({ expectedRevision: await matchRevision(database, done.id), resultType: "played", score1: corrected === done.player1_id ? 1 : 0, score2: corrected === done.player2_id ? 1 : 0 })

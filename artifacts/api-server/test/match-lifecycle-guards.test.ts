@@ -1,3 +1,4 @@
+import { MatchRevisionConflict, readExpectedRevision, REVISION_REQUIRED_MESSAGE, sendRevisionConflict } from "../src/routes/match-revision-guard";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { test } from "node:test";
@@ -29,7 +30,7 @@ function deferred() {
 function lifecycle(operation: "cancel" | "restore", patchBody?: Record<string, unknown>) {
   const queued = deferred(), release = deferred();
   const initial = {
-    id: 11, tournamentId: 7, stageId: 2, status: operation === "cancel" ? "pending" : "cancelled",
+    id: 11, revision: 1, tournamentId: 7, stageId: 2, status: operation === "cancel" ? "pending" : "cancelled",
     resultType: null as string | null, completedAt: null as Date | null, winnerId: null as number | null,
     player1Id: null, player2Id: null, round: 1, matchNumber: 1, note: null,
   };
@@ -72,12 +73,13 @@ function lifecycle(operation: "cancel" | "restore", patchBody?: Record<string, u
       try { return await run(tx); } finally { held = false; }
     },
     assertLockedCancelRestoreState, MatchLifecycleConflict,
+    MatchRevisionConflict, readExpectedRevision, REVISION_REQUIRED_MESSAGE, sendRevisionConflict,
     enrichMatches: async (rows: unknown[]) => rows,
     logAction: async () => { state.writes++; },
   };
   const run = handler(routes, patchBody ? 'patch("/matches/:id"' : `post("/matches/:id/${operation === "cancel" ? "cancel" : "restore-cancelled"}"`, env);
   const res = { statusCode: 200, body: undefined as any, status(n: number) { this.statusCode = n; return this; }, json(body: unknown) { this.body = body; return this; } };
-  return { state, queued, release, res, run: () => run({ body: patchBody ?? {} }, res) };
+  return { state, queued, release, res, run: () => run({ body: { expectedRevision: 1, ...(patchBody ?? {}) } }, res) };
 }
 
 for (const operation of ["cancel", "restore"] as const) {

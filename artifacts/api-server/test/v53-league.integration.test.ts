@@ -1,4 +1,4 @@
-import { matchRevision } from "./match-revision-fixture";
+import { lastUndoableActionId, matchRevision, matchScheduledAt } from "./match-revision-fixture";
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
@@ -223,7 +223,7 @@ describe("V5.3 leagues: draws, points, schedule (PostgreSQL)", () => {
       ((await request(app).get(`/api/tournaments/${tournamentId}/standings`).expect(200)).body as Json[]).find((entry) => entry.playerId === playerId).points;
     assert.equal(await pointsOf(first!.player1_id), 1);
     assert.equal(await pointsOf(first!.player2_id), 1);
-    await request(app).post(`/api/matches/${first!.id}/revert`).set(headers).expect(200);
+    await request(app).post(`/api/matches/${first!.id}/revert`).set(headers).send({ expectedRevision: await matchRevision(database, first!.id) }).expect(200);
     assert.equal(await pointsOf(first!.player1_id), 0);
     await complete(headers, first!.id, 3, 2);
     assert.equal(await pointsOf(first!.player1_id), 3);
@@ -248,7 +248,7 @@ describe("V5.3 leagues: draws, points, schedule (PostgreSQL)", () => {
     const [drawMatch] = await stageMatches(draws.stageId);
     assert.equal((await complete(draws.headers, drawMatch!.id, 1000, 0, 422)).body.code, "SCORE_TOO_HIGH");
     assert.equal((await complete(draws.headers, drawMatch!.id, -1, 0, 422)).body.code, "SCORE_NEGATIVE");
-    const longer = await request(app).patch(`/api/matches/${drawMatch!.id}`).set(draws.headers).send({ bestOf: 3 }).expect(422);
+    const longer = await request(app).patch(`/api/matches/${drawMatch!.id}`).set(draws.headers).send({ bestOf: 3, expectedRevision: await matchRevision(database, drawMatch!.id) }).expect(422);
     assert.equal(longer.body.code, "BEST_OF_FIXED_FOR_DRAWS", "a draw league keeps one game per match");
   });
 
@@ -296,9 +296,9 @@ describe("V5.3 leagues: draws, points, schedule (PostgreSQL)", () => {
     const matches = await stageMatches(stageId);
     await complete(headers, matches[0]!.id, 1, 0);
     const target = matches[1]!;
-    await request(app).patch(`/api/matches/${target.id}`).set(headers).send({ status: "postponed" }).expect(200);
-    await request(app).put(`/api/matches/${target.id}/schedule`).set(headers).send({ date: "2026-11-04", time: "19:30" }).expect(200);
-    await request(app).patch(`/api/matches/${target.id}`).set(headers).send({ status: "pending" }).expect(200);
+    await request(app).patch(`/api/matches/${target.id}`).set(headers).send({ status: "postponed", expectedRevision: await matchRevision(database, target.id) }).expect(200);
+    await request(app).put(`/api/matches/${target.id}/schedule`).set(headers).send({ date: "2026-11-04", time: "19:30", expectedScheduledAt: await matchScheduledAt(database, target.id) }).expect(200);
+    await request(app).patch(`/api/matches/${target.id}`).set(headers).send({ status: "pending", expectedRevision: await matchRevision(database, target.id) }).expect(200);
     const [moved] = await rows<{ at: string; status: string }>("SELECT to_char(scheduled_at, 'YYYY-MM-DD\"T\"HH24:MI') AS at, status FROM matches WHERE id = $1", [target.id]);
     assert.deepEqual(moved, { at: "2026-11-04T18:30", status: "pending" });
     const [kept] = await stageMatches(stageId);
@@ -306,11 +306,11 @@ describe("V5.3 leagues: draws, points, schedule (PostgreSQL)", () => {
     await complete(headers, target.id, 0, 1);
     const types = (await rows<{ action_type: string }>("SELECT action_type FROM action_log WHERE match_id = $1 ORDER BY id", [target.id])).map((row) => row.action_type);
     assert.deepEqual(types, ["match_postponed", "match_rescheduled", "match_restored", "match_result_submitted"]);
-    const played = (await request(app).put(`/api/matches/${target.id}/schedule`).set(headers).send({ date: "2026-11-05", time: "19:30" }).expect(422)).body;
+    const played = (await request(app).put(`/api/matches/${target.id}/schedule`).set(headers).send({ date: "2026-11-05", time: "19:30", expectedScheduledAt: await matchScheduledAt(database, target.id) }).expect(422)).body;
     assert.equal(played.code, "MATCH_SCHEDULE_LOCKED");
-    const gap = (await request(app).put(`/api/matches/${matches[2]!.id}/schedule`).set(headers).send({ date: "2027-03-28", time: "02:30" }).expect(422)).body;
+    const gap = (await request(app).put(`/api/matches/${matches[2]!.id}/schedule`).set(headers).send({ date: "2027-03-28", time: "02:30", expectedScheduledAt: await matchScheduledAt(database, matches[2]!.id) }).expect(422)).body;
     assert.equal(gap.code, "LOCAL_TIME_DOES_NOT_EXIST");
-    const wrongZone = (await request(app).put(`/api/matches/${matches[2]!.id}/schedule`).set(headers).send({ date: "2026-11-05", time: "19:30", timeZone: "UTC" }).expect(422)).body;
+    const wrongZone = (await request(app).put(`/api/matches/${matches[2]!.id}/schedule`).set(headers).send({ date: "2026-11-05", time: "19:30", timeZone: "UTC", expectedScheduledAt: await matchScheduledAt(database, matches[2]!.id) }).expect(422)).body;
     assert.equal(wrongZone.code, "TIME_ZONE_MISMATCH");
   });
 
@@ -319,12 +319,12 @@ describe("V5.3 leagues: draws, points, schedule (PostgreSQL)", () => {
     await request(app).post(`/api/tournaments/${tournamentId}/start`).set(headers).expect(200);
     const matches = await stageMatches(stageId);
     const day = (offsetDays: number) => new Date(Date.now() + offsetDays * 86_400_000).toISOString().slice(0, 10);
-    await request(app).put(`/api/matches/${matches[0]!.id}/schedule`).set(headers).send({ date: day(0), time: "00:00" }).expect(200);
-    await request(app).put(`/api/matches/${matches[1]!.id}/schedule`).set(headers).send({ date: day(-3), time: "18:00" }).expect(200);
-    await request(app).put(`/api/matches/${matches[2]!.id}/schedule`).set(headers).send({ date: day(-3), time: "18:00" }).expect(200);
-    await request(app).patch(`/api/matches/${matches[2]!.id}`).set(headers).send({ status: "in_progress" }).expect(200);
-    await request(app).patch(`/api/matches/${matches[3]!.id}`).set(headers).send({ status: "in_progress" }).expect(200);
-    await request(app).put(`/api/matches/${matches[4]!.id}/schedule`).set(headers).send({ date: day(3), time: "18:00" }).expect(200);
+    await request(app).put(`/api/matches/${matches[0]!.id}/schedule`).set(headers).send({ date: day(0), time: "00:00", expectedScheduledAt: await matchScheduledAt(database, matches[0]!.id) }).expect(200);
+    await request(app).put(`/api/matches/${matches[1]!.id}/schedule`).set(headers).send({ date: day(-3), time: "18:00", expectedScheduledAt: await matchScheduledAt(database, matches[1]!.id) }).expect(200);
+    await request(app).put(`/api/matches/${matches[2]!.id}/schedule`).set(headers).send({ date: day(-3), time: "18:00", expectedScheduledAt: await matchScheduledAt(database, matches[2]!.id) }).expect(200);
+    await request(app).patch(`/api/matches/${matches[2]!.id}`).set(headers).send({ status: "in_progress", expectedRevision: await matchRevision(database, matches[2]!.id) }).expect(200);
+    await request(app).patch(`/api/matches/${matches[3]!.id}`).set(headers).send({ status: "in_progress", expectedRevision: await matchRevision(database, matches[3]!.id) }).expect(200);
+    await request(app).put(`/api/matches/${matches[4]!.id}/schedule`).set(headers).send({ date: day(3), time: "18:00", expectedScheduledAt: await matchScheduledAt(database, matches[4]!.id) }).expect(200);
     const view = (await request(app).get(`/api/tournaments/${tournamentId}/stages/${stageId}/schedule`).expect(200)).body;
     const state = new Map(view.rounds.flatMap((round: Json) => round.matches).map((match: Json) => [match.matchId, match.scheduleState]));
     assert.equal(state.get(matches[0]!.id), "due", "start passed today, not started: start it — no result is asked for yet");
@@ -352,7 +352,7 @@ describe("V5.3 leagues: draws, points, schedule (PostgreSQL)", () => {
     assert.equal(preview.lastDate, "2027-03-13");
     assert.equal((await rows<{ n: number }>("SELECT count(*)::int AS n FROM matches WHERE stage_id = $1 AND scheduled_at IS NOT NULL", [stageId]))[0]!.n, 0);
     const [first] = await stageMatches(stageId);
-    await request(app).put(`/api/matches/${first!.id}/schedule`).set(headers).send({ date: "2027-01-08", time: "20:00" }).expect(200);
+    await request(app).put(`/api/matches/${first!.id}/schedule`).set(headers).send({ date: "2027-01-08", time: "20:00", expectedScheduledAt: await matchScheduledAt(database, first!.id) }).expect(200);
     const applied = (await request(app).post(url).set(headers).send(body({ apply: true, onlyUnscheduled: true, expectedVersion: await version() })).expect(200)).body;
     assert.equal(applied.updatedMatches, 29);
     assert.equal(applied.skippedMatches, 1);
@@ -374,10 +374,10 @@ describe("V5.3 leagues: draws, points, schedule (PostgreSQL)", () => {
     const matches = await stageMatches(stageId);
     await complete(headers, matches[0]!.id, 1, 1);
     await complete(headers, matches[1]!.id, 2, 0);
-    await request(app).post(`/api/matches/${matches[1]!.id}/revert`).set(headers).expect(200);
+    await request(app).post(`/api/matches/${matches[1]!.id}/revert`).set(headers).send({ expectedRevision: await matchRevision(database, matches[1]!.id) }).expect(200);
     await complete(headers, matches[1]!.id, 2, 2);
-    await request(app).patch(`/api/matches/${matches[2]!.id}`).set(headers).send({ status: "postponed" }).expect(200);
-    await request(app).put(`/api/matches/${matches[2]!.id}/schedule`).set(headers).send({ date: "2026-12-09", time: "20:00" }).expect(200);
+    await request(app).patch(`/api/matches/${matches[2]!.id}`).set(headers).send({ status: "postponed", expectedRevision: await matchRevision(database, matches[2]!.id) }).expect(200);
+    await request(app).put(`/api/matches/${matches[2]!.id}/schedule`).set(headers).send({ date: "2026-12-09", time: "20:00", expectedScheduledAt: await matchScheduledAt(database, matches[2]!.id) }).expect(200);
 
     const backup = (await request(app).get(`/api/tournaments/${tournamentId}/export`).set(headers).expect(200)).body as Json;
     assert.doesNotThrow(() => validateBackupV3(backup));

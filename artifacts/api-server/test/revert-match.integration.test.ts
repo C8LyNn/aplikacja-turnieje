@@ -1,4 +1,4 @@
-import { matchRevision } from "./match-revision-fixture";
+import { lastUndoableActionId, matchRevision, matchScheduledAt } from "./match-revision-fixture";
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
 import { after, before, describe, test } from "node:test";
@@ -112,11 +112,11 @@ async function complete(
 }
 
 async function revert(fixture: Fixture, headers: Headers = fixture.organizerHeaders): Promise<Response> {
-  return request(app).post(`/api/matches/${fixture.matchId}/revert`).set(headers).send({});
+  return request(app).post(`/api/matches/${fixture.matchId}/revert`).set(headers).send({ expectedRevision: await matchRevision(database, fixture.matchId) });
 }
 
 async function undo(fixture: Fixture, headers: Headers = fixture.organizerHeaders): Promise<Response> {
-  return request(app).post(`/api/tournaments/${fixture.tournamentId}/undo-last`).set(headers).send({});
+  return request(app).post(`/api/tournaments/${fixture.tournamentId}/undo-last`).set(headers).send({ expectedActionId: await lastUndoableActionId(database, fixture.tournamentId) });
 }
 
 async function snapshot(fixture: Fixture) {

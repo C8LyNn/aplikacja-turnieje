@@ -72,7 +72,8 @@ import { countWorkStates, formatLocalSlot, matchWorkState, WORK_STATE_LABELS, ty
 import { readHostResultDrafts, sameSavedResult, saveFailureKind, writeHostResultDrafts, type SaveFailureKind } from "@/lib/host-result-drafts";
 
 type ScoreEntry = { s1: number; s2: number; baseline?: string; at?: number };
-type SaveStatus = { phase: "saving"; label: string } | { phase: "error"; kind: SaveFailureKind; message: string; label: string };
+type SaveStatus = { phase: "saving"; label: string } | { phase: "error"; kind: SaveFailureKind; message: string; label: string }
+  | { phase: "notice"; message: string; label: string };
 /** Work-queue filters, in the order of the chips (V5.6). */
 const QUEUE_FILTERS = ["needs_result", "in_progress", "due", "ready", "postponed"] as const satisfies readonly MatchWorkState[];
 const scoreBaseline = (match: { player1Id?: number | null; player2Id?: number | null; score1?: number | null; score2?: number | null; bestOf?: number | null; status: string }) =>
@@ -181,19 +182,35 @@ export default function TournamentHost() {
   const completeLock = useRef(false);
   // A retry whose earlier attempt already went through (the response was lost) finds exactly this result stored.
   const alreadySaved = useRef<number | null>(null);
+  const carriedOver = useRef<number | null>(null);
+  // V5.7: the version each confirmation was opened on (cancel, swap, revert), sent with the operation.
+  const confirmRevision = useRef<Record<string, number | undefined>>({});
   const completeMatch = useCompleteMatch({ mutation: {
     ...mutationFeedback, retry: false,
     onError: async (error, variables) => {
+      let current: NonNullable<typeof matches>[number] | undefined;
       if ((error as { status?: number } | null)?.status === 409) {
         const fresh = await matchesQuery.refetch().catch(() => null);
-        const current = fresh?.data?.find((match) => match.id === variables.id);
+        current = fresh?.data?.find((match) => match.id === variables.id);
         if (current && sameSavedResult(current, variables.data as { resultType: string; score1?: number; score2?: number; winnerId?: number })) {
           alreadySaved.current = variables.id;
           await invalidateAll();
           return;
         }
       }
-      if (matchOperationError(error).code === "CONCURRENT_MODIFICATION") resultDrafts.markConflict(variables.id);
+      if (matchOperationError(error).code === "CONCURRENT_MODIFICATION") {
+        // V5.7: when only the match's state changed meanwhile (e.g. another operator started it) and players,
+        // length and score are what the draft was typed against, the draft is carried over to the new version.
+        const entry = scores[variables.id];
+        if (current && (current.status === "pending" || current.status === "in_progress") && entry?.baseline && entry.baseline === scoreBaseline(current)) {
+          resultDrafts.discard(variables.id);
+          resultDrafts.capture(current);
+          carriedOver.current = variables.id;
+          await invalidateAll();
+          return;
+        }
+        resultDrafts.markConflict(variables.id);
+      }
       await mutationFeedback.onError(error);
     },
     onSettled: () => { completeLock.current = false; },
@@ -304,6 +321,7 @@ export default function TournamentHost() {
   });
   const [revertConfirm, setRevertConfirm] = useState<number | null>(null);
   const openCorrection = (matchId: number) => {
+    confirmRevision.current[`revert:${matchId}`] = matches?.find((entry) => entry.id === matchId)?.revision;
     setSelectedMatchId(matchId);
     setRevertConfirm(matchId);
   };
@@ -531,7 +549,9 @@ export default function TournamentHost() {
   // --- Match actions ---
   const handleSetInProgress = (matchId: number) => {
     if (!capabilities.canUseLegacyMatchTools) return;
-    updateMatch.mutate({ id: matchId, data: { status: "in_progress" } }, {
+    const match = matches?.find((entry) => entry.id === matchId);
+    if (!match) return;
+    updateMatch.mutate({ id: matchId, data: { status: "in_progress", expectedRevision: match.revision } }, {
       onSuccess: () => toast({ title: "Mecz rozpoczęty" }),
     });
   };
@@ -539,8 +559,10 @@ export default function TournamentHost() {
   const handlePostpone = (matchId: number) => {
     if (!capabilities.canUseLegacyMatchTools) return;
     const mayAdvance = beginMatchOperation(matchId);
+    const match = matches?.find((entry) => entry.id === matchId);
+    if (!match) return;
     updateMatch.mutate(
-      { id: matchId, data: { status: "postponed" } },
+      { id: matchId, data: { status: "postponed", expectedRevision: match.revision } },
       {
         onSuccess: () => {
           toast({ title: "Mecz przełożony", description: "Możesz go przywrócić z sekcji Przełożone." });
@@ -552,8 +574,10 @@ export default function TournamentHost() {
 
   const handleRestore = (matchId: number) => {
     if (!capabilities.canUseLegacyMatchTools) return;
+    const match = matches?.find((entry) => entry.id === matchId);
+    if (!match) return;
     updateMatch.mutate(
-      { id: matchId, data: { status: "pending" } },
+      { id: matchId, data: { status: "pending", expectedRevision: match.revision } },
       {
         onSuccess: () => {
           toast({ title: "Mecz przywrócony do kolejki" });
@@ -576,7 +600,9 @@ export default function TournamentHost() {
 
   const applyChangeBestOf = (matchId: number, bo: number) => {
     if (!capabilities.canUseLegacyMatchTools) return;
-    updateMatch.mutate({ id: matchId, data: { bestOf: bo } }, {
+    const match = matches?.find((entry) => entry.id === matchId);
+    if (!match) return;
+    updateMatch.mutate({ id: matchId, data: { bestOf: bo, expectedRevision: match.revision } }, {
       onSuccess: () => {
         toast({ title: "Format meczu zapisany", description: `Mecz będzie rozgrywany jako BO${bo}.` });
       },
@@ -585,7 +611,7 @@ export default function TournamentHost() {
 
   const handleUndo = () => {
     if (!capabilities.canUndo || !lastUndoableAction) return;
-    undoLastAction.mutate({ id }, {
+    undoLastAction.mutate({ id, data: { expectedActionId: lastUndoableAction.id } }, {
       onSuccess: (result) => {
         setUndoConfirm(false);
         toast({ title: "Akcja cofnięta", description: result.message });
@@ -608,7 +634,7 @@ export default function TournamentHost() {
       toast({ title: "Stan meczu zmienił się", description: "Sprawdź aktualne dane i ponów operację.", variant: "destructive" });
       return;
     }
-    cancelMatch.mutate({ id: matchId }, {
+    cancelMatch.mutate({ id: matchId, data: { expectedRevision: resultDrafts.drafts[matchId]?.revision ?? candidate.revision } }, {
       onSuccess: () => {
         setCancelConfirm(null);
         toast({ title: "Mecz anulowany", description: "Możesz go przywrócić z sekcji Anulowane." });
@@ -619,7 +645,9 @@ export default function TournamentHost() {
 
   const handleRestoreCancelled = (matchId: number) => {
     if (!capabilities.canUseLegacyMatchTools) return;
-    restoreCancelledMatch.mutate({ id: matchId }, {
+    const match = matches?.find((entry) => entry.id === matchId);
+    if (!match) return;
+    restoreCancelledMatch.mutate({ id: matchId, data: { expectedRevision: match.revision } }, {
       onSuccess: () => {
         toast({ title: "Mecz przywrócony do kolejki" });
         setSelectedMatchId(matchId);
@@ -707,15 +735,21 @@ export default function TournamentHost() {
   };
 
   const handleSwapPlayers = (matchId: number) => {
-    if (capabilities.canUseLegacyMatchTools) setSwapConfirm(matchId);
+    if (!capabilities.canUseLegacyMatchTools) return;
+    confirmRevision.current[`swap:${matchId}`] = matches?.find((entry) => entry.id === matchId)?.revision;
+    setSwapConfirm(matchId);
   };
   const doSwapPlayers = (matchId: number) => {
     if (!capabilities.canUseLegacyMatchTools) return;
-    swapMatchPlayers.mutate({ id: matchId }, {
+    const revision = confirmRevision.current[`swap:${matchId}`] ?? matches?.find((entry) => entry.id === matchId)?.revision;
+    if (revision == null) return;
+    swapMatchPlayers.mutate({ id: matchId, data: { expectedRevision: revision } }, {
       onSuccess: () => {
         setSwapConfirm(null);
         toast({ title: "Zawodnicy zamienieni stronami" });
       },
+      // After a refresh the next click decides on what is shown now.
+      onError: () => { delete confirmRevision.current[`swap:${matchId}`]; },
     });
   };
 
@@ -779,6 +813,12 @@ export default function TournamentHost() {
       onSuccess: () => succeed(false),
       onError: (error) => {
         if (alreadySaved.current === matchId) { alreadySaved.current = null; succeed(true); return; }
+        if (carriedOver.current === matchId) {
+          carriedOver.current = null;
+          setSaveStatus((previous) => ({ ...previous, [matchId]: { phase: "notice", label,
+            message: `Inna osoba zmieniła w międzyczasie stan meczu (np. go rozpoczęła), ale zawodnicy i wynik są bez zmian. ${label} został zachowany — sprawdź i zapisz ponownie.` } }));
+          return;
+        }
         markSaveFailed(matchId, label, error);
       },
     });
@@ -786,7 +826,10 @@ export default function TournamentHost() {
 
   const handleRevert = (matchId: number) => {
     if (!capabilities.canWriteTournamentResults) return;
-    revertMatch.mutate({ id: matchId }, {
+    const revision = confirmRevision.current[`revert:${matchId}`] ?? matches?.find((entry) => entry.id === matchId)?.revision;
+    if (revision == null) return;
+    revertMatch.mutate({ id: matchId, data: { expectedRevision: revision } }, {
+      onError: () => { delete confirmRevision.current[`revert:${matchId}`]; },
       onSuccess: () => {
         resultDrafts.discard(matchId);
         setRevertConfirm(null);
@@ -1595,6 +1638,15 @@ export default function TournamentHost() {
             if (status.phase === "saving") {
               return <p role="status" className="host-save-status mt-3 flex items-center gap-2 text-sm text-primary" data-save-state="saving"><Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> Zapisywanie: {status.label}…</p>;
             }
+            if (status.phase === "notice") {
+              return (
+                <div role="status" className="host-save-status mt-3 rounded-lg border border-orange-500/40 bg-orange-500/10 p-3 text-sm" data-save-state="carried-over">
+                  <p className="font-semibold">Nie zapisano — mecz zmienił się w międzyczasie</p>
+                  <p className="mt-1">{status.message}</p>
+                  <Button size="sm" className="mt-2" disabled={completeMatch.isPending || staleDraft} onClick={() => handleTryComplete(focusedMatch.id, focusedMatch)}>Zapisz ponownie</Button>
+                </div>
+              );
+            }
             if (status.kind === "conflict") return null; // the conflict section above explains it
             return (
               <div role="status" className="host-save-status mt-3 rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm" data-save-state="error" data-kind={status.kind}>
@@ -1759,6 +1811,11 @@ export default function TournamentHost() {
         {actionError && <div role="alert" className="organizer-notice organizer-notice--error rounded-lg border border-destructive/40 bg-destructive/5 p-4">
           <p className="font-semibold">Operacja nie powiodła się</p><p className="mt-1 text-sm">{actionError.message}</p>
           {actionError.code && <p className="mt-2 text-xs text-muted-foreground">Kod diagnostyczny: {actionError.code}</p>}
+          {actionError.code && ["CONCURRENT_MODIFICATION", "SCHEDULE_CHANGED", "UNDO_ACTION_CHANGED", "MATCH_ALREADY_FINALIZED"].includes(actionError.code) && (
+            <Button variant="outline" size="sm" className="mt-2" disabled={matchesQuery.isFetching} onClick={() => { setActionError(null); void invalidateAll(); }}>
+              <RefreshCw className="mr-2 h-4 w-4" aria-hidden="true" /> Odśwież dane
+            </Button>
+          )}
         </div>}
         {hostPending && <p role="status" className="organizer-notice organizer-notice--pending flex items-center gap-2 text-sm text-primary"><Loader2 className="h-4 w-4 animate-spin" /> Zapisywanie i odświeżanie stanu…</p>}
         {selectionNotice && <p role="status" className="rounded-lg border p-3 text-sm">{selectionNotice}</p>}
