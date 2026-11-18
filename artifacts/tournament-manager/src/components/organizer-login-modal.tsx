@@ -114,14 +114,14 @@ export function OrganizerLoginModal({ open, onClose, tournamentId, tournamentNam
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
       onClick={handleBackdropClick}
     >
-      <div className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-sm p-6 space-y-5">
+      <div role="dialog" aria-modal="true" aria-labelledby="organizer-login-title" className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-sm p-6 space-y-5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="bg-primary/15 rounded-full p-2 shrink-0">
               <UserCog className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h2 className="font-bold text-base">Logowanie organizatora</h2>
+              <h2 id="organizer-login-title" className="font-bold text-base">Logowanie organizatora</h2>
               <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{tournamentName}</p>
             </div>
           </div>
