@@ -26,7 +26,7 @@ import {
 } from "@workspace/api-client-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Lock, Trophy, Settings2 } from "lucide-react";
+import { Link2, Lock, Search, Trophy, Settings2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ViewerLoginModal } from "@/components/viewer-login-modal";
 import { useAuth } from "@/context/auth-context";
@@ -110,6 +110,8 @@ export default function TournamentAudience() {
   const [preparedAuthId, setPreparedAuthId] = useState<number | null>(null);
   const requestedSection = searchParams.get("section");
   const requestedStageId = Number.parseInt(searchParams.get("stage") ?? "", 10) || null;
+  // V5.8: a direct link to one match (?mecz=ID) opens the matches of its stage and scrolls to it.
+  const requestedMatchId = Number.parseInt(searchParams.get("mecz") ?? "", 10) || null;
 
   const organizerToken = getOrgToken(id);
   const storedSupportSession = getSupSession(id);
@@ -269,6 +271,12 @@ export default function TournamentAudience() {
     if (stageId != null) query.set("stage", String(stageId));
     const text = query.toString();
     return tournamentHref(id, isExperimental, text ? `/audience?${text}` : "/audience");
+  };
+  const matchHref = (match: { id: number; stageId?: number | null }) => {
+    const query = new URLSearchParams({ section: "matches" });
+    if (match.stageId != null) query.set("stage", String(match.stageId));
+    query.set("mecz", String(match.id));
+    return tournamentHref(id, isExperimental, `/audience?${query.toString()}`);
   };
   const isHeroDone = heroMatch?.status === "completed";
   const isHeroFeatured = !!featuredMatch && !isHeroLive;
@@ -796,6 +804,8 @@ export default function TournamentAudience() {
             planned={stagePlanned}
             groupLabelById={groupLabelById}
             matchRules={publicStage?.matchRules ?? null}
+            highlightMatchId={requestedMatchId}
+            matchHref={matchHref}
           />
         </ReadQueryState>}
         {activeSection === "table" && (
@@ -829,6 +839,9 @@ export default function TournamentAudience() {
             playerBansMap={isDeadlock ? audienceBansMap : undefined}
             isDeadlock={isDeadlock}
             bansPerPlayer={(tournament?.gameConfig as any)?.config?.bansPerPlayer ?? 5}
+            matches={matches ?? []}
+            stageNames={new Map((stages ?? []).map((stage) => [stage.id, stage.name]))}
+            matchHref={matchHref}
           />
           </ReadQueryState>
         )}
@@ -922,6 +935,8 @@ function PublicMatchesSection({
   planned = false,
   groupLabelById,
   matchRules = null,
+  highlightMatchId = null,
+  matchHref,
 }: {
   matches: Match[];
   format?: string;
@@ -930,7 +945,15 @@ function PublicMatchesSection({
   groupLabelById?: ReadonlyMap<number, string>;
   /** V5.7: a set stage says sets instead of BO. */
   matchRules?: { setsToWin: number } | null;
+  /** V5.8: the match a shared link points to (scrolled into view and marked). */
+  highlightMatchId?: number | null;
+  matchHref?: (match: Match) => string;
 }) {
+  useEffect(() => {
+    if (highlightMatchId == null) return;
+    const target = document.getElementById(`mecz-${highlightMatchId}`);
+    target?.scrollIntoView?.({ block: "center", behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
+  }, [highlightMatchId, matches.length]);
   // V5.4-006: matches of the shown stage, grouped by round ("Kolejka" in a league), group shown per match.
   const rounds = new Map<number, Match[]>();
   for (const match of [...matches].sort((a, b) => a.round - b.round || (a.stageGroupId ?? 0) - (b.stageGroupId ?? 0) || a.matchNumber - b.matchNumber)) {
@@ -952,7 +975,7 @@ function PublicMatchesSection({
                   const groupLabel = match.stageGroupId != null ? groupLabelById?.get(match.stageGroupId) : undefined;
                   const when = match.scheduledAt ? new Date(match.scheduledAt).toLocaleString("pl-PL", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }) : null;
                   return (
-                    <article key={match.id} data-exp-match-state={match.status} className="experimental-public-match-card grid min-w-0 grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[9rem_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 rounded-xl border border-white/8 bg-card px-3 py-2.5 md:px-4">
+                    <article key={match.id} id={`mecz-${match.id}`} data-exp-match-state={match.status} data-highlight={match.id === highlightMatchId ? "true" : undefined} className="experimental-public-match-card grid min-w-0 grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[9rem_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 rounded-xl border border-white/8 bg-card px-3 py-2.5 md:px-4">
                       <div className="min-w-0 text-xs text-white/40">
                         {groupLabel ?? `Mecz ${match.matchNumber}`}
                         {when && <span className="block text-white/55">{when}</span>}
@@ -962,6 +985,11 @@ function PublicMatchesSection({
                         <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-white/55">
                           {MATCH_STATUS_LABELS[match.status] ?? match.status}
                         </span>
+                        {matchHref && (
+                          <Link href={matchHref(match)} className="experimental-public-match-link inline-flex h-7 w-7 items-center justify-center rounded-md text-white/45 hover:text-white" aria-label={`Link do meczu: ${match.player1Name || "TBD"} – ${match.player2Name || "TBD"}`} title="Link do tego meczu">
+                            <Link2 className="h-3.5 w-3.5" aria-hidden="true" />
+                          </Link>
+                        )}
                       </div>
                       <div className="col-span-2 grid min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 md:col-span-1 md:col-start-2 md:row-start-1 md:gap-3">
                         <span title={match.player1Name || "TBD"} className={`truncate text-right font-semibold ${match.winnerId === match.player1Id ? "text-cyan-300" : "text-white/75"}`}>
@@ -1059,6 +1087,9 @@ function PublicPlayersSection({
   playerBansMap,
   isDeadlock,
   bansPerPlayer = 5,
+  matches = [],
+  stageNames,
+  matchHref,
 }: {
   fields?: Parameters<typeof ParticipantFieldChips>[0]["fields"];
   players: Player[];
@@ -1066,14 +1097,33 @@ function PublicPlayersSection({
   playerBansMap?: Map<number, string[]>;
   isDeadlock?: boolean;
   bansPerPlayer?: number;
+  /** V5.8: every match, for each participant's path through the tournament. */
+  matches?: Match[];
+  stageNames?: ReadonlyMap<number, string>;
+  matchHref?: (match: Match) => string;
 }) {
+  const [query, setQuery] = useState("");
+  const fold = (text: string) => text.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/ł/g, "l").replace(/Ł/g, "L").toLowerCase();
+  const needle = fold(query.trim());
+  const shown = needle ? players.filter((player) => fold(`${player.name} ${player.teamName ?? ""}`).includes(needle)) : players;
+  const pathOf = (playerId: number) => matches
+    .filter((match) => match.player1Id === playerId || match.player2Id === playerId)
+    .filter((match) => match.resultType !== "bye")
+    .sort((a, b) => (a.stageId ?? 0) - (b.stageId ?? 0) || a.round - b.round || a.matchNumber - b.matchNumber);
   return (
-    <AudienceSectionShell title="Uczestnicy" description="Lista uczestników z ich statystykami.">
+    <AudienceSectionShell title="Uczestnicy" description="Znajdź uczestnika i zobacz jego mecze.">
       {players.length === 0 ? (
         <EmptyAudienceSection>Nie dodano jeszcze uczestników.</EmptyAudienceSection>
       ) : (
+        <>
+        <label className="experimental-public-search mb-3 flex items-center gap-2 rounded-xl border border-white/10 bg-card px-3 py-2">
+          <Search className="h-4 w-4 shrink-0 text-white/45" aria-hidden="true" />
+          <span className="sr-only">Znajdź uczestnika</span>
+          <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Znajdź uczestnika lub drużynę" className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-white/35" autoComplete="off" />
+          {needle && <span className="text-xs text-white/45" role="status" aria-live="polite">{shown.length === 0 ? "Brak wyników" : `Znaleziono: ${shown.length}`}</span>}
+        </label>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-          {players.map((player) => {
+          {shown.map((player) => {
             const standing = standings?.find((entry) => entry.playerId === player.id);
             const bans = playerBansMap?.get(player.id) ?? [];
             return (
@@ -1092,6 +1142,29 @@ function PublicPlayersSection({
                   <PlayerStat label="P" value={standing?.matchLosses ?? 0} />
                   <PlayerStat label="Gry +/-" value={standing?.gameDiff ?? 0} emphasize />
                 </dl>}
+                {(() => {
+                  const path = pathOf(player.id);
+                  if (path.length === 0) return null;
+                  return (
+                    <details className="experimental-public-path mt-3 border-t border-white/6 pt-3">
+                      <summary className="cursor-pointer text-xs font-semibold text-white/70">Droga w turnieju · {path.length} {path.length === 1 ? "mecz" : path.length < 5 ? "mecze" : "meczów"}</summary>
+                      <ol className="mt-2 space-y-1">
+                        {path.map((match) => {
+                          const opponent = match.player1Id === player.id ? match.player2Name : match.player1Name;
+                          const outcome = match.status !== "completed" ? (MATCH_STATUS_LABELS[match.status] ?? match.status)
+                            : match.winnerId == null ? `remis ${matchResultLabel(match)}`
+                            : match.winnerId === player.id ? `wygrana ${matchResultLabel(match)}` : `porażka ${matchResultLabel(match)}`;
+                          return (
+                            <li key={match.id} className="flex items-center justify-between gap-2 text-xs">
+                              <span className="min-w-0 truncate text-white/60">{stageNames?.get(match.stageId ?? -1) ? `${stageNames.get(match.stageId ?? -1)} · ` : ""}R{match.round} · vs {opponent || "TBD"}</span>
+                              {matchHref ? <Link href={matchHref(match)} className="shrink-0 font-mono text-white/80 hover:underline">{outcome}</Link> : <span className="shrink-0 font-mono text-white/80">{outcome}</span>}
+                            </li>
+                          );
+                        })}
+                      </ol>
+                    </details>
+                  );
+                })()}
                 {isDeadlock && bansPerPlayer > 0 && (
                   <div className="mt-3 pt-3 border-t border-white/6">
                     {bans.length > 0 ? (
@@ -1105,6 +1178,7 @@ function PublicPlayersSection({
             );
           })}
         </div>
+        </>
       )}
     </AudienceSectionShell>
   );

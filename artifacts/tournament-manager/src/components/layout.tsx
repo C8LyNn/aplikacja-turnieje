@@ -1,6 +1,6 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation } from "wouter";
-import { PlusCircle, HelpCircle, FlaskConical } from "lucide-react";
+import { PlusCircle, HelpCircle, FlaskConical, Menu, X } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
 import { AppLogoLink, getRoleHomePath, RoleHomeLink, RoleSelectionLink } from "@/components/app-navigation";
 import { isExperimentalTournamentPath } from "@/features/experimental-tournaments/experimental-tournament-routing";
@@ -11,6 +11,9 @@ export function Layout({ children, deadlockTheme, colorPreset }: { children: Rea
   const [location] = useLocation();
   const { role } = useAuth();
   const isExperimentalTournamentView = isExperimentalTournamentPath(location);
+  // V5.8 (Experimental, phones): the app links open from one "Menu" button instead of a hidden sideways strip.
+  const [navOpen, setNavOpen] = useState(false);
+  useEffect(() => { setNavOpen(false); }, [location]);
   // Experimental: a new screen starts at its top (the router keeps the previous scroll offset).
   useEffect(() => {
     if (isExperimentalTournamentView) window.scrollTo({ top: 0, left: 0 });
@@ -54,12 +57,24 @@ export function Layout({ children, deadlockTheme, colorPreset }: { children: Rea
               <RoleHomeLink
                 fallbackHref={fallbackHref}
                 fallbackLabel={fallbackLabel}
-                className="border-l border-border pl-4"
+                className={`border-l border-border pl-4${isExperimentalTournamentView ? " experimental-role-home" : ""}`}
               />
             )}
           </div>
+          {isExperimentalTournamentView && (
+            <button
+              type="button"
+              className="experimental-nav-toggle"
+              aria-expanded={navOpen}
+              aria-controls="experimental-app-nav"
+              onClick={() => setNavOpen((open) => !open)}
+            >
+              {navOpen ? <X className="h-4 w-4" aria-hidden="true" /> : <Menu className="h-4 w-4" aria-hidden="true" />}
+              Menu
+            </button>
+          )}
           {/* V5.1: on narrow screens Stable's nav scrolls inside the header instead of widening the page. */}
-          <nav className={`flex items-center gap-3 text-sm font-medium text-muted-foreground ${isExperimentalTournamentView ? "" : "min-w-0 overflow-x-auto whitespace-nowrap [scrollbar-width:none]"}`}>{isExperimentalTournamentView && <ExperimentalAppearanceControl />}{isExperimentalTournamentView && <ExperimentalDensityControl />}
+          <nav id={isExperimentalTournamentView ? "experimental-app-nav" : undefined} data-open={isExperimentalTournamentView && navOpen ? "true" : undefined} className={`flex items-center gap-3 text-sm font-medium text-muted-foreground ${isExperimentalTournamentView ? "" : "min-w-0 overflow-x-auto whitespace-nowrap [scrollbar-width:none]"}`}>{isExperimentalTournamentView && <ExperimentalAppearanceControl />}{isExperimentalTournamentView && <ExperimentalDensityControl />}
             {role && (
               <RoleSelectionLink className="border border-border rounded-full px-2.5 py-1 text-xs" />
             )}

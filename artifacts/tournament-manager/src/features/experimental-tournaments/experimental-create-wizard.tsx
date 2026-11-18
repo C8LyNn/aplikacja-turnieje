@@ -417,10 +417,19 @@ function PresetCard({
           {item.recommended && <span className="experimental-wizard-badge"><Sparkles className="h-3 w-3" aria-hidden="true" /> Polecany</span>}
         </span>
         <span className="experimental-wizard-preset-short">{item.short}</span>
-        <span className="experimental-wizard-preset-reasons">{item.reasons.join(" ")}</span>
+        {item.reasons.length > 0 && (
+          <span className="experimental-wizard-preset-reasons">
+            {/* V5.8: the recommendation says why, in the user's terms. */}
+            {item.recommended ? `Polecamy, bo: ${item.reasons.join(" ").replace(/^./, (first) => first.toLowerCase())}` : item.reasons.join(" ")}
+          </span>
+        )}
         <span className="experimental-wizard-preset-meta">
           {rangeText(preview.totals.matches)} {plural(preview.totals.matches.max, "mecz", "mecze", "meczów")} · {rangeText(preview.totals.rounds)} {plural(preview.totals.rounds.max, "runda", "rundy", "rund")}
           {preview.stages.length > 1 ? ` · ${preview.stages.length} etapy` : ""} · min. {preview.totals.matchesPerParticipant.min} {plural(preview.totals.matchesPerParticipant.min, "mecz", "mecze", "meczów")} na osobę
+        </span>
+        {/* V5.8: how people advance (multi-stage) and how the winner is decided — the real differences, from the engine. */}
+        <span className="experimental-wizard-preset-rules">
+          {[preview.stages.length > 1 ? preview.stages[0]?.advancementText : null, preview.winnerRule].filter(Boolean).join(" ")}
         </span>
       </span>
       <Check className="experimental-wizard-choice-check" aria-hidden="true" />
@@ -760,6 +769,9 @@ export function ExperimentalCreateWizard() {
 
           {!importOpen && step === 0 && (
             <div className="experimental-wizard-stack">
+              {/* V5.8: the two either-or questions sit side by side on wide screens, so step 1 fits one screen. */}
+              <div className="experimental-wizard-pair">
+              <div>
               <ChoiceGroup
                 legend="Co organizujesz?"
                 value={answers.kind}
@@ -775,6 +787,8 @@ export function ExperimentalCreateWizard() {
                   Liga to tabela „każdy z każdym” (także mecz i rewanż), opcjonalnie z play-off. Remisy, punktację i terminy kolejek ustawisz w kroku „Dopasuj”.
                 </p>
               )}
+              </div>
+              <div>
               <ChoiceGroup
                 legend="Kto bierze udział?"
                 value={answers.participantType}
@@ -790,6 +804,8 @@ export function ExperimentalCreateWizard() {
                   Każda drużyna ma skład: kapitan, zawodnicy i rezerwowi. Dodasz ich po utworzeniu turnieju.
                 </p>
               )}
+              </div>
+              </div>
               <CountField value={answers.participantCount} onChange={(participantCount) => setAnswers({ participantCount })} noun={noun} />
               <ChoiceGroup
                 legend="Podzielić na grupy?"

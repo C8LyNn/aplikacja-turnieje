@@ -1791,11 +1791,11 @@ export default function TournamentHost() {
           </div>
           {isExperimental && <ExperimentalHostFocusToggle />}
           {capabilities.canManageSharing && <Button variant="outline" size="sm" className="shrink-0" onClick={() => setShowShareDialog(true)}>
-            <Share2 className="w-4 h-4 mr-1" /> Udostępnij
+            <Share2 className="w-4 h-4 mr-1" /> <span className="experimental-action-label">Udostępnij</span>
           </Button>}
           <Button variant="outline" size="sm" asChild className="shrink-0">
             <Link href={tournamentHref(id, isExperimental, "/audience")}>
-              <Monitor className="w-4 h-4 mr-1" /> Widok widzów
+              <Monitor className="w-4 h-4 mr-1" /> <span className="experimental-action-label">Widok widzów</span>
             </Link>
           </Button>
         </div>

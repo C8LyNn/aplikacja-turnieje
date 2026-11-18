@@ -753,7 +753,7 @@ export default function TournamentDetail() {
               onClick={() => setShowChecklist((v) => !v)}
               title="Checklista przed turniejem"
             >
-              <CheckSquare className="w-4 h-4 mr-2" /> Checklista
+              <CheckSquare className="w-4 h-4 mr-2" /> <span className="experimental-action-label">Checklista</span>
             </Button>
             {tournament.status !== "draft" && (
               <>
@@ -762,10 +762,10 @@ export default function TournamentDetail() {
                   <Link href={tournamentHref(id, isExperimental, "/host")}><Swords className="w-4 h-4 mr-2" /> Panel prowadzącego</Link>
                 </Button>}
                 <Button variant="outline" asChild>
-                  <Link href={tournamentHref(id, isExperimental, "/audience")}><Monitor className="w-4 h-4 mr-2" /> Widok widzów</Link>
+                  <Link href={tournamentHref(id, isExperimental, "/audience")}><Monitor className="w-4 h-4 mr-2" /> <span className="experimental-action-label">Widok widzów</span></Link>
                 </Button>
                 <Button variant="outline" asChild>
-                  <Link href={tournamentHref(id, isExperimental, "/bracket")}><ExternalLink className="w-4 h-4 mr-2" /> Projektor</Link>
+                  <Link href={tournamentHref(id, isExperimental, "/bracket")}><ExternalLink className="w-4 h-4 mr-2" /> <span className="experimental-action-label">Projektor</span></Link>
                 </Button>
               </>
             )}
