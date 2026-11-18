@@ -30,6 +30,9 @@ const toastVariants = cva(
         default: "border bg-background text-foreground",
         destructive:
           "destructive group border-destructive bg-destructive text-destructive-foreground",
+        // V5.7: success and warning are distinct kinds (icon and spoken label in the Toaster too).
+        success: "border border-emerald-500/50 bg-background text-foreground",
+        warning: "border border-amber-500/60 bg-background text-foreground",
       },
     },
     defaultVariants: {

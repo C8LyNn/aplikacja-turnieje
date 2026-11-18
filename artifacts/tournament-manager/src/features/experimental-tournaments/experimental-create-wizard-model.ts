@@ -1,3 +1,4 @@
+import type { MatchRules } from "@workspace/match-rules";
 /**
  * V5 · Stage A — beginner creation wizard model (pure, testable).
  * The preset catalog lives on the server (`/api/tournaments/presets/*`); this module
@@ -35,7 +36,11 @@ export type PresetParamKey =
   | "pointsLoss"
   | "entrySeeding"
   | "groupPlacement"
-  | "qualifierSeeding";
+  | "qualifierSeeding"
+  /** V5.7: sets needed to win a match (0 = no sets), points per set and the lead needed. */
+  | "setsToWin"
+  | "setPoints"
+  | "setWinBy";
 
 export type PresetParams = Partial<Record<PresetParamKey, number>>;
 
@@ -91,8 +96,13 @@ export interface PresetPreview {
     leagueRules?: PresetLeagueRules;
     scheduleTimeZone?: string;
     schedulePlan?: WizardSchedulePlan;
+    /** V5.7: match rules of a flexible single stage. */
+    matchRules?: MatchRules;
   };
   stagePlan: NonNullable<TournamentInput["stagePlan"]>;
+  /** V5.7: what decides a match (null = series / one game as before) and its plain summary. */
+  matchRules?: MatchRules | null;
+  matchRulesSummary?: string;
   /** V5.3: league rules of the table stage; null/absent for formats without a points table. */
   leagueRules?: PresetLeagueRules | null;
   /** V5.3: planned dates (from an AI file); the wizard computes its own from WizardDraft.schedule. */
@@ -396,15 +406,18 @@ export function requestParams(presetId: PresetId, answers: WizardAnswers, params
   return result;
 }
 
+/** V5.7: set rules are tunable for every preset (the server derives match length from them). */
+const SET_PARAM_KEYS: PresetParamKey[] = ["setsToWin", "setPoints", "setWinBy"];
+
 /** Mirrors the server's PRESET_TUNABLE_PARAMS (participantCount comes from the answers). */
 export const PRESET_PARAM_KEYS_BY_PRESET: Record<PresetId, PresetParamKey[]> = {
-  single_elimination: ["bestOf", "entrySeeding"],
-  double_elimination: ["bestOf", "entrySeeding"],
-  swiss: ["bestOf", "swissRounds", "entrySeeding"],
-  round_robin: ["bestOf", "legs", "allowDraws", "pointsWin", "pointsDraw", "pointsLoss", "entrySeeding"],
-  groups_playoff: ["bestOf", "playoffBestOf", "groupCount", "qualifiersPerGroup", "allowDraws", "pointsWin", "pointsDraw", "pointsLoss", "entrySeeding", "groupPlacement", "qualifierSeeding"],
-  swiss_playoff: ["bestOf", "playoffBestOf", "swissRounds", "advancingCount", "entrySeeding"],
-  league_playoff: ["bestOf", "playoffBestOf", "advancingCount", "legs", "allowDraws", "pointsWin", "pointsDraw", "pointsLoss", "entrySeeding"],
+  single_elimination: ["bestOf", "entrySeeding", ...SET_PARAM_KEYS],
+  double_elimination: ["bestOf", "entrySeeding", ...SET_PARAM_KEYS],
+  swiss: ["bestOf", "swissRounds", "entrySeeding", ...SET_PARAM_KEYS],
+  round_robin: ["bestOf", "legs", "allowDraws", "pointsWin", "pointsDraw", "pointsLoss", "entrySeeding", ...SET_PARAM_KEYS],
+  groups_playoff: ["bestOf", "playoffBestOf", "groupCount", "qualifiersPerGroup", "allowDraws", "pointsWin", "pointsDraw", "pointsLoss", "entrySeeding", ...SET_PARAM_KEYS, "groupPlacement", "qualifierSeeding"],
+  swiss_playoff: ["bestOf", "playoffBestOf", "swissRounds", "advancingCount", "entrySeeding", ...SET_PARAM_KEYS],
+  league_playoff: ["bestOf", "playoffBestOf", "advancingCount", "legs", "allowDraws", "pointsWin", "pointsDraw", "pointsLoss", "entrySeeding", ...SET_PARAM_KEYS],
 };
 
 export const PRESET_LABELS: Record<PresetId, string> = {

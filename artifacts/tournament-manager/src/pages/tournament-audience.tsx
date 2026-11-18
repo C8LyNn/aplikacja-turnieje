@@ -1,3 +1,4 @@
+import { setsText } from "@/components/set-score-editor";
 import { matchResultLabel } from "@/lib/league-results";
 import { ReadQueryState } from "@/components/read-query-state";
 import { Link, useSearchParams } from "wouter";
@@ -675,7 +676,7 @@ export default function TournamentAudience() {
                       <span className={`text-sm flex-1 truncate ${m.winnerId === m.player1Id ? "font-bold text-white" : "text-white/40"}`}>
                         {m.player1Name}
                       </span>
-                      <span className="font-mono text-sm font-bold text-white/70 bg-white/6 px-2 py-0.5 rounded shrink-0 tabular-nums">
+                      <span className="font-mono text-sm font-bold text-white/70 bg-white/6 px-2 py-0.5 rounded shrink-0 tabular-nums" title={m.sets?.length ? `Sety: ${setsText(m.sets)}` : undefined}>
                         {matchResultLabel(m)}
                       </span>
                       <span className={`text-sm flex-1 truncate text-right ${m.winnerId === m.player2Id ? "font-bold text-white" : "text-white/40"}`}>
@@ -957,8 +958,9 @@ function PublicMatchesSection({
                         <span title={match.player1Name || "TBD"} className={`truncate text-right font-semibold ${match.winnerId === match.player1Id ? "text-cyan-300" : "text-white/75"}`}>
                           {match.player1Name || "TBD"}
                         </span>
-                        <span className="min-w-12 rounded-md bg-black/20 px-2 py-1 text-center font-mono font-bold tabular-nums text-white">
+                        <span className="min-w-12 rounded-md bg-black/20 px-2 py-1 text-center font-mono font-bold tabular-nums text-white" title={match.sets?.length ? `Sety: ${setsText(match.sets)}` : undefined}>
                           {showsScore ? matchResultLabel(match) : "vs"}
+                          {showsScore && match.sets?.length ? <span className="block text-[10px] font-normal text-white/60">{setsText(match.sets)}</span> : null}
                         </span>
                         <span title={match.player2Name || "TBD"} className={`truncate font-semibold ${match.winnerId === match.player2Id ? "text-cyan-300" : "text-white/75"}`}>
                           {match.player2Name || "TBD"}

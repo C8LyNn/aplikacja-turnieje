@@ -37,6 +37,7 @@ import {
 import { getApiErrorMessage } from "@/lib/tournament-stages-ui";
 import { LEAGUE_PARAM_KEYS, LeagueOptions } from "./experimental-league-options";
 import { ParamControl, PreviewPanel } from "./experimental-create-wizard";
+import { MATCH_PARAM_KEYS, MatchRulesChoice } from "./experimental-match-rules-choice";
 import {
   ALL_PRESET_IDS,
   PRESET_LABELS,
@@ -62,8 +63,9 @@ type SectionId = "structure" | "matches" | "scoring" | "seeding" | "participants
 
 const SECTION_PARAMS: Record<SectionId, readonly PresetParamKey[]> = {
   structure: ["participantCount", "groupCount", "qualifiersPerGroup", "advancingCount", "swissRounds", "legs"],
-  matches: ["bestOf", "playoffBestOf"],
-  scoring: LEAGUE_PARAM_KEYS,
+  // V5.7: the match rules (length, sets, draws) live together in "Mecze"; the table keeps points and dates.
+  matches: MATCH_PARAM_KEYS,
+  scoring: LEAGUE_PARAM_KEYS.filter((key) => !MATCH_PARAM_KEYS.includes(key)),
   seeding: ["entrySeeding", "groupPlacement", "qualifierSeeding"],
   participants: [],
   access: [],
@@ -321,9 +323,12 @@ export function ExperimentalAdvancedEditor() {
     ? `${custom.label} · ${custom.preview.stages.length} ${plural(custom.preview.stages.length, "etap", "etapy", "etapów")}`
     : [presetId ? PRESET_LABELS[presetId] : null, `${answers.participantCount} ${noun(answers.participantCount)}`, limitText(limits.get("groupCount")), limitText(limits.get("advancingCount")), limitText(limits.get("swissRounds"))]
         .filter(Boolean).join(" · ");
-  const matchesSummary = [limitText(limits.get("bestOf")), limits.get("playoffBestOf") ? `play-off: ${limitText(limits.get("playoffBestOf"))?.toLowerCase()}` : null].filter(Boolean).join(" · ");
+  const setRules = shown?.matchRules?.kind === "sets" ? shown.matchRules : null;
+  const matchesSummary = setRules
+    ? [`do ${setRules.setsToWin} wygranych setów`, `set do ${setRules.pointsPerSet}`, setRules.winBy > 1 ? `przewaga ${setRules.winBy}` : null].filter(Boolean).join(" · ")
+    : [limitText(limits.get("bestOf")), limits.get("playoffBestOf") ? `play-off: ${limitText(limits.get("playoffBestOf"))?.toLowerCase()}` : null, shown?.leagueRules?.allowDraws ? "remisy" : null].filter(Boolean).join(" · ");
   const scoringSummary = shown?.leagueRules
-    ? `${shown.leagueRules.points.win}/${shown.leagueRules.points.draw}/${shown.leagueRules.points.loss} pkt · ${shown.leagueRules.allowDraws ? "remisy" : "bez remisów"}${draft.schedule ? " · terminarz" : ""}`
+    ? `${shown.leagueRules.allowDraws ? `${shown.leagueRules.points.win}/${shown.leagueRules.points.draw}/${shown.leagueRules.points.loss}` : `${shown.leagueRules.points.win}/${shown.leagueRules.points.loss}`} pkt${draft.schedule ? " · terminarz" : ""}`
     : "—";
   const seedingSummary = custom ? "według planu z pliku" : [limitText(limits.get("entrySeeding")), limitText(limits.get("groupPlacement"))].filter(Boolean).join(" · ");
   const participantsSummary = answers.participantType === "teams"
@@ -381,12 +386,19 @@ export function ExperimentalAdvancedEditor() {
 
           {!custom && (
             <Section id="matches" title="Mecze" icon={<Swords className="h-4 w-4" />} summary={matchesSummary} open={open === "matches"} invalid={errorSection === "matches"} onToggle={toggle}>
-              {paramControls(SECTION_PARAMS.matches)}
+              {shown && (
+                <MatchRulesChoice
+                  preview={shown}
+                  params={params}
+                  onParams={(next) => update({ params: next })}
+                  error={preview.status === "error" ? { param: preview.param, message: preview.error } : null}
+                />
+              )}
             </Section>
           )}
 
           {hasTable && shown && (
-            <Section id="scoring" title="Punktacja, remisy i terminy" icon={<Scale className="h-4 w-4" />} summary={scoringSummary} open={open === "scoring"} invalid={errorSection === "scoring"} onToggle={toggle}>
+            <Section id="scoring" title="Punktacja i terminy" icon={<Scale className="h-4 w-4" />} summary={scoringSummary} open={open === "scoring"} invalid={errorSection === "scoring"} onToggle={toggle}>
               <LeagueOptions
                 preview={shown}
                 params={params}

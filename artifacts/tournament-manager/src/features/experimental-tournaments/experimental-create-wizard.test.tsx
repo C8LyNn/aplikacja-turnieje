@@ -1,7 +1,7 @@
 import type React from "react";
 import test, { afterEach } from "node:test";
 import assert from "node:assert/strict";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { Router } from "wouter";
 import { memoryLocation } from "wouter/memory-location";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -407,7 +407,7 @@ test("AI import: malformed JSON gets a helpful message", async () => {
 test("contract: wizard tunable params match the server catalog", async () => {
   const { PRESET_IDS, PRESET_TUNABLE_PARAMS } = await import("../../../../api-server/src/domain/tournament/tournament-presets");
   const answers = { kind: "tournament" as const, participantType: "players" as const, participantCount: 16, grouping: "any" as const, priority: "short" as const };
-  const all = { bestOf: 3, playoffBestOf: 5, swissRounds: 4, groupCount: 4, qualifiersPerGroup: 2, advancingCount: 8, legs: 2, allowDraws: 0, pointsWin: 3, pointsDraw: 1, pointsLoss: 0, entrySeeding: 1, groupPlacement: 1, qualifierSeeding: 1 };
+  const all = { bestOf: 3, playoffBestOf: 5, swissRounds: 4, groupCount: 4, qualifiersPerGroup: 2, advancingCount: 8, legs: 2, allowDraws: 0, pointsWin: 3, pointsDraw: 1, pointsLoss: 0, entrySeeding: 1, groupPlacement: 1, qualifierSeeding: 1, setsToWin: 2, setPoints: 11, setWinBy: 2 };
   for (const id of PRESET_IDS) {
     const keys = Object.keys(requestParams(id, answers, all)).filter((key) => key !== "participantCount").sort();
     assert.deepEqual(keys, [...PRESET_TUNABLE_PARAMS[id]].sort(), id);
@@ -440,4 +440,49 @@ test("answers that cannot be honoured are explained in plain words (V5.1)", asyn
   // Match length is described without jargon in the format preview.
   assert.ok(screen.getAllByText(/jedna gra na mecz/).length > 0);
   assert.equal(screen.queryByText(/· BO1/), null);
+});
+
+test("V5.7: a beginner picks set rules in Tune, sees the plain summary, goes back and forth and creates with them", async () => {
+  const calls = installFetch();
+  renderAt("/experimental/tournaments/new", CreateTournamentExperimental);
+  fireEvent.click(screen.getByLabelText(/Tak, z grupami/));
+  fireEvent.click(screen.getByRole("button", { name: "16" }));
+  fireEvent.click(screen.getByRole("button", { name: /Pokaż propozycje/ }));
+  await screen.findByRole("heading", { name: "Wybierz format" });
+  await waitFor(() => assert.ok(screen.getByLabelText("Podgląd rozgrywek").textContent?.includes("Dokładnie 16 uczestników")));
+  fireEvent.click(screen.getByRole("button", { name: /Dalej: dopasuj/ }));
+  await screen.findByRole("heading", { name: "Dopasuj szczegóły" });
+
+  const choice = await screen.findByRole("radiogroup", { name: "Jak rozstrzyga się mecz" });
+  fireEvent.click(within(choice).getByRole("radio", { name: "Do 2 wygranych setów, set do 11, przewaga 2" }));
+  await waitFor(() => {
+    const last = calls.filter((call) => call.url.includes("/preview")).at(-1)!;
+    const params = (last.body as { params: Record<string, number> }).params;
+    assert.equal(params.setsToWin, 2);
+    assert.equal(params.setPoints, 11);
+    assert.equal(params.setWinBy, 2);
+    assert.equal("bestOf" in params, false, "match length follows the sets");
+  });
+  await waitFor(() => assert.match(screen.getAllByRole("status").map((node) => node.textContent).join(" "), /Mecz do dwóch wygranych setów\. Każdy set do 11 punktów, z przewagą dwóch\. Zwycięstwo daje 3 punkty w tabeli\./));
+  assert.equal(within(choice).getByRole("radio", { name: "Do 2 wygranych setów, set do 11, przewaga 2" }).getAttribute("aria-checked"), "true");
+
+  fireEvent.click(screen.getByRole("button", { name: /Wstecz/ }));
+  await screen.findByRole("heading", { name: "Wybierz format" });
+  fireEvent.click(screen.getByRole("button", { name: /Dalej: dopasuj/ }));
+  const again = await screen.findByRole("radiogroup", { name: "Jak rozstrzyga się mecz" });
+  assert.equal(within(again).getByRole("radio", { name: "Do 2 wygranych setów, set do 11, przewaga 2" }).getAttribute("aria-checked"), "true", "going back keeps the match rules");
+
+  fireEvent.click(screen.getByRole("button", { name: /Dalej: nazwa/ }));
+  await screen.findByRole("heading", { name: "Nazwij turniej i zabezpiecz go" });
+  fireEvent.change(screen.getByLabelText(/Nazwa turnieju/), { target: { value: "Sety testowe" } });
+  fireEvent.change(screen.getByLabelText(/Hasło organizatora/), { target: { value: "organizer-pass-1" } });
+  await waitFor(() => assert.equal((screen.getByRole("button", { name: /Utwórz turniej/ }) as HTMLButtonElement).disabled, false));
+  fireEvent.click(screen.getByRole("button", { name: /Utwórz turniej/ }));
+  await waitFor(() => assert.ok(calls.some((call) => call.url.endsWith("/api/tournaments"))));
+  const create = calls.find((call) => call.url.endsWith("/api/tournaments"))!.body as Record<string, any>;
+  const rules = { version: 1, kind: "sets", setsToWin: 2, pointsPerSet: 11, winBy: 2 };
+  for (const stage of create.stagePlan.stages) {
+    assert.deepEqual(stage.matchRules, rules, `stage ${stage.key} carries the previewed rules`);
+    assert.equal(stage.bestOf, 3);
+  }
 });

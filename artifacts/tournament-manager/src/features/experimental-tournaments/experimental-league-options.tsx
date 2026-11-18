@@ -72,38 +72,11 @@ export function LeagueOptions({
     .filter((limit): limit is PresetParamLimit => !!limit && (limit.key !== "pointsDraw" || draws?.value === 1));
   return (
     <div className="experimental-wizard-stack" data-testid="league-options">
-      {draws && (
-        <div className="experimental-wizard-param" data-invalid={error?.param === "allowDraws" ? "true" : undefined}>
-          <div className="experimental-wizard-param-head">
-            <span className="experimental-wizard-legend" id={`${id}-draws`}>Remisy</span>
-            <span className="experimental-wizard-help">
-              {bestOf === 1
-                ? "Remis ma sens, gdy wynik meczu to np. gole lub punkty. W grach z jednym zwycięzcą zostaw „Bez remisów”."
-                : `Remisy działają przy meczu na jedną grę. Teraz mecz to „${bestOfLabel(bestOf).toLowerCase()}”.`}
-            </span>
-          </div>
-          <div className="experimental-wizard-segments" role="radiogroup" aria-labelledby={`${id}-draws`}>
-            {[0, 1].map((value) => (
-              <button
-                key={value}
-                type="button"
-                role="radio"
-                aria-checked={draws.value === value}
-                className="experimental-wizard-chip"
-                disabled={value === 1 && bestOf !== 1}
-                onClick={() => setParam("allowDraws", value)}
-              >
-                {value === 1 ? "Remisy możliwe" : "Bez remisów"}
-              </button>
-            ))}
-          </div>
-          {error?.param === "allowDraws" && <p role="alert" className="experimental-wizard-error">{error.message}</p>}
-        </div>
-      )}
+      {/* V5.7: draws are chosen with the match rules ("Jak rozstrzyga się mecz"); this block keeps the points. */}
       {draws && (
         <details className="experimental-wizard-param" open={["pointsWin", "pointsDraw", "pointsLoss"].includes(error?.param ?? "") || undefined}>
           <summary className="cursor-pointer">
-            <span className="experimental-wizard-legend">Punktacja</span>{" "}
+            <span className="experimental-wizard-legend">Punktacja tabeli</span>{" "}
             <span className="experimental-wizard-help">
               {leagueRulesSentence({ allowDraws: draws.value === 1, points: { win: limits.get("pointsWin")?.value ?? 3, draw: limits.get("pointsDraw")?.value ?? 1, loss: limits.get("pointsLoss")?.value ?? 0 } })}
               {" "}Zmień, jeśli Twoja liga liczy inaczej.

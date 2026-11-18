@@ -1,3 +1,4 @@
+import { MATCH_PARAM_KEYS, MatchRulesChoice } from "./experimental-match-rules-choice";
 import { LEAGUE_PARAM_KEYS, LeagueOptions } from "./experimental-league-options";
 import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
@@ -258,7 +259,9 @@ export function StageFlow({ preview }: { preview: PresetPreview }) {
             <span className="experimental-wizard-flow-index">{stage.position}</span>
             <div className="min-w-0">
               <p className="experimental-wizard-flow-name">{stage.name}</p>
-              <p className="experimental-wizard-flow-format">{stage.formatLabel} · {bestOfLabel(stage.bestOf).toLowerCase()}{stage.bestOf > 1 ? ` (BO${stage.bestOf})` : " na mecz"}</p>
+              <p className="experimental-wizard-flow-format">{stage.formatLabel} · {preview.matchRules
+                ? `do ${preview.matchRules.setsToWin} ${preview.matchRules.setsToWin === 1 ? "wygranego seta" : "wygranych setów"} (set do ${preview.matchRules.pointsPerSet})`
+                : <>{bestOfLabel(stage.bestOf).toLowerCase()}{stage.bestOf > 1 ? ` (BO${stage.bestOf})` : " na mecz"}</>}</p>
             </div>
           </div>
           <ul className="experimental-wizard-flow-facts">
@@ -919,8 +922,14 @@ export function ExperimentalCreateWizard() {
                       <p role="alert" className="experimental-wizard-error">{preview.error}</p>
                     )}
                   </div>
+                  <MatchRulesChoice
+                    preview={shownPreview}
+                    params={params}
+                    onParams={(next) => update({ params: next })}
+                    error={preview.status === "error" ? { param: preview.param, message: preview.error } : null}
+                  />
                   {shownPreview.paramLimits
-                    .filter((limit) => limit.key !== "participantCount" && !LEAGUE_PARAM_KEYS.includes(limit.key) && !ADVANCED_PARAM_KEYS.includes(limit.key))
+                    .filter((limit) => limit.key !== "participantCount" && !LEAGUE_PARAM_KEYS.includes(limit.key) && !ADVANCED_PARAM_KEYS.includes(limit.key) && !MATCH_PARAM_KEYS.includes(limit.key))
                     .map((limit) => (
                       <ParamControl
                         key={limit.key}
@@ -942,7 +951,7 @@ export function ExperimentalCreateWizard() {
                       <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />{preview.error}
                     </p>
                   )}
-                  {preview.status === "error" && preview.param && !LEAGUE_PARAM_KEYS.includes(preview.param) && !shownPreview.paramLimits.some((limit) => limit.key === preview.param) && (
+                  {preview.status === "error" && preview.param && !LEAGUE_PARAM_KEYS.includes(preview.param) && !MATCH_PARAM_KEYS.includes(preview.param) && !shownPreview.paramLimits.some((limit) => limit.key === preview.param) && (
                     <p role="alert" className="experimental-wizard-note" data-tone="danger">
                       <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />{preview.error}
                     </p>

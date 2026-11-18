@@ -8,6 +8,8 @@
 export interface StoredScoreDraft {
   s1: number;
   s2: number;
+  /** V5.7: set scores typed so far in a stage decided by sets. */
+  sets?: Array<{ score1: number; score2: number }>;
   /** JSON of the match fields the draft depends on (players, scores, length, open/closed). */
   baseline?: string;
   /** When the draft was last changed (ms). */
@@ -42,7 +44,10 @@ export function readHostResultDrafts(tournamentId: number, now = Date.now()): Re
       const { s1, s2, baseline, at } = entry;
       if (!Number.isInteger(s1) || !Number.isInteger(s2) || s1! < 0 || s2! < 0 || s1! > 999 || s2! > 999) continue;
       if (typeof at === "number" && now - at > DRAFT_MAX_AGE_MS) continue;
-      result[id] = { s1: s1!, s2: s2!, ...(typeof baseline === "string" ? { baseline } : {}), ...(typeof at === "number" ? { at } : {}) };
+      const sets = Array.isArray(entry.sets) && entry.sets.length <= 7 && entry.sets.every((set) => set && Number.isInteger(set.score1) && Number.isInteger(set.score2) && set.score1 >= 0 && set.score2 >= 0 && set.score1 <= 999 && set.score2 <= 999)
+        ? entry.sets.map((set) => ({ score1: set.score1, score2: set.score2 }))
+        : undefined;
+      result[id] = { s1: s1!, s2: s2!, ...(typeof baseline === "string" ? { baseline } : {}), ...(typeof at === "number" ? { at } : {}), ...(sets ? { sets } : {}) };
     }
     return result;
   } catch {
@@ -64,10 +69,13 @@ export function writeHostResultDrafts(tournamentId: number, drafts: Record<numbe
 /** True when the stored result is exactly what the operator tried to save (a retry that already went through). */
 export function sameSavedResult(
   current: { status: string; resultType?: string | null; score1?: number | null; score2?: number | null; winnerId?: number | null },
-  attempted: { resultType: string; score1?: number | null; score2?: number | null; winnerId?: number | null },
+  attempted: { resultType: string; score1?: number | null; score2?: number | null; winnerId?: number | null; sets?: Array<{ score1: number; score2: number }> | null },
 ): boolean {
   if (current.status !== "completed" || current.resultType !== attempted.resultType) return false;
-  if (attempted.resultType === "played") return current.score1 === attempted.score1 && current.score2 === attempted.score2;
+  if (attempted.resultType === "played") {
+    const sameSets = !attempted.sets || JSON.stringify((current as { sets?: unknown }).sets ?? null) === JSON.stringify(attempted.sets);
+    return current.score1 === attempted.score1 && current.score2 === attempted.score2 && sameSets;
+  }
   if (attempted.resultType === "walkover") return current.winnerId === attempted.winnerId;
   return attempted.resultType === "no_contest";
 }

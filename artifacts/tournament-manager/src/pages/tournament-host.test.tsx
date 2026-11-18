@@ -995,3 +995,32 @@ test("V5.7: start and undo send the version the operator was shown", async () =>
   await user.click(within(banner.closest("div")!.parentElement!).getByRole("button", { name: "Cofnij" }));
   await waitFor(() => assert.deepEqual(bodies[1], { path: "/api/tournaments/1/undo-last", expectedActionId: 31 }));
 });
+
+test("V5.7: a set match is entered set by set in the same editor and saved with its sets; the draft keeps the sets", async () => {
+  const setStage = { ...hostStage(2, "active", "round_robin"), bestOf: 3, matchRules: { version: 1, kind: "sets", setsToWin: 2, pointsPerSet: 11, winBy: 2 }, matchRulesSummary: "Mecz do dwóch wygranych setów. Każdy set do 11 punktów, z przewagą dwóch." };
+  const matches = [{ ...hostMatch(1), bestOf: 3 }];
+  let body: Record<string, unknown> | null = null;
+  const user = await renderOperationalHost({ matches, stages: [setStage as never], intercept: async (path, init) => {
+    if (path !== "/api/matches/1/complete") return undefined;
+    body = JSON.parse(String(init?.body));
+    matches[0] = { ...matches[0], revision: 2, status: "completed", resultType: "played", score1: 2, score2: 1, winnerId: 2, sets: [{ score1: 11, score2: 7 }, { score1: 9, score2: 11 }, { score1: 11, score2: 5 }] } as never;
+    return jsonResponse(matches[0]);
+  } });
+  await user.click(await screen.findByRole("button", { name: "Wpisz pierwszy set" }));
+  const type = async (set: number, a: string, b: string) => {
+    const left = screen.getByRole("spinbutton", { name: `Set ${set} — Gracz A1` });
+    await user.clear(left); await user.type(left, a);
+    const right = screen.getByRole("spinbutton", { name: `Set ${set} — Gracz B1` });
+    await user.clear(right); await user.type(right, b);
+  };
+  await type(1, "11", "7");
+  assert.ok(screen.getByRole("button", { name: "Zapisz wynik" }).matches(":disabled"), "not decided yet");
+  await user.click(screen.getByRole("button", { name: "Dodaj set 2" }));
+  await type(2, "9", "11");
+  await user.click(screen.getByRole("button", { name: "Dodaj set 3" }));
+  await type(3, "11", "5");
+  assert.match(window.sessionStorage.getItem("tm_host_score_drafts_v1:1") ?? "", /"sets":\[\{"score1":11,"score2":7\}/);
+  await user.click(screen.getByRole("button", { name: "Zapisz wynik" }));
+  await waitFor(() => assert.deepEqual(body, { resultType: "played", expectedRevision: 1, score1: 2, score2: 1, sets: [{ score1: 11, score2: 7 }, { score1: 9, score2: 11 }, { score1: 11, score2: 5 }] }));
+  await screen.findByText(/Zapisano \d\d:\d\d: Gracz A1 – Gracz B1 2:1 \(11:7, 9:11, 11:5\)/);
+});

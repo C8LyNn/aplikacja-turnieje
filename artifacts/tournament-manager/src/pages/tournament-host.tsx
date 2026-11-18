@@ -1,3 +1,5 @@
+import { evaluateSetMatch, setMatchProgress, type SetScore } from "@workspace/match-rules";
+import { SetScoreEditor, setsText } from "@/components/set-score-editor";
 import { ExperimentalLeaguePanel } from "@/features/experimental-tournaments/experimental-league-panel";
 import { ExperimentalPointAdjustments } from "@/features/experimental-tournaments/experimental-point-adjustments";
 import { LeagueTableNotes } from "@/components/league-table-notes";
@@ -71,7 +73,7 @@ import { bestOfLabel } from "@/features/experimental-tournaments/experimental-cr
 import { countWorkStates, formatLocalSlot, matchWorkState, WORK_STATE_LABELS, type MatchWorkState } from "@/lib/match-work-state";
 import { readHostResultDrafts, sameSavedResult, saveFailureKind, writeHostResultDrafts, type SaveFailureKind } from "@/lib/host-result-drafts";
 
-type ScoreEntry = { s1: number; s2: number; baseline?: string; at?: number };
+type ScoreEntry = { s1: number; s2: number; baseline?: string; at?: number; sets?: SetScore[] };
 type SaveStatus = { phase: "saving"; label: string } | { phase: "error"; kind: SaveFailureKind; message: string; label: string }
   | { phase: "notice"; message: string; label: string };
 /** Work-queue filters, in the order of the chips (V5.6). */
@@ -192,7 +194,7 @@ export default function TournamentHost() {
       if ((error as { status?: number } | null)?.status === 409) {
         const fresh = await matchesQuery.refetch().catch(() => null);
         current = fresh?.data?.find((match) => match.id === variables.id);
-        if (current && sameSavedResult(current, variables.data as { resultType: string; score1?: number; score2?: number; winnerId?: number })) {
+        if (current && sameSavedResult(current, variables.data as { resultType: string; score1?: number; score2?: number; winnerId?: number; sets?: SetScore[] })) {
           alreadySaved.current = variables.id;
           await invalidateAll();
           return;
@@ -546,6 +548,27 @@ export default function TournamentHost() {
     setLastSaved({ matchId, text, at: new Date() });
   };
 
+  // V5.7: set results — the draft keeps the sets; s1/s2 follow the sets won so far.
+  const updateSets = (matchId: number, sets: SetScore[]) => {
+    if (!capabilities.canWriteTournamentResults) return;
+    setSelectedMatchId(matchId);
+    const match = matches?.find((entry) => entry.id === matchId);
+    const rules = stages?.find((stage) => stage.id === match?.stageId)?.matchRules;
+    if (!match || !rules || resultDrafts.isStale(match)) return;
+    resultDrafts.capture(match);
+    const progress = setMatchProgress(sets, rules);
+    setScores((prev) => ({
+      ...prev,
+      [matchId]: {
+        baseline: prev[matchId]?.baseline ?? scoreBaseline(match),
+        s1: progress.ok ? progress.value.setsWon1 : prev[matchId]?.s1 ?? 0,
+        s2: progress.ok ? progress.value.setsWon2 : prev[matchId]?.s2 ?? 0,
+        sets,
+        at: Date.now(),
+      },
+    }));
+  };
+
   // --- Match actions ---
   const handleSetInProgress = (matchId: number) => {
     if (!capabilities.canUseLegacyMatchTools) return;
@@ -686,7 +709,7 @@ export default function TournamentHost() {
       setResultReason("");
       setScores((prev) => { const n = { ...prev }; delete n[matchId]; return n; });
       markSaved(matchId, `${matchNames(matchId)}: walkower, wygrywa ${winnerName ?? "?"}${already ? " — był już zapisany, nic nie zmieniono" : ""}`);
-      toast({ title: already ? "Walkower był już zapisany" : "Walkower zapisany (W.O.)", description: `${winnerName} wygrywa mecz.` });
+      toast({ title: already ? "Walkower był już zapisany" : "Walkower zapisany (W.O.)", description: `${winnerName} wygrywa mecz.`, variant: "success" });
       if (mayAdvance()) setSelectedMatchId(null);
     };
     completeMatch.mutate({ id: matchId, data: { resultType: "walkover", expectedRevision: match.revision, winnerId, reason: resultReason.trim() || null } }, {
@@ -722,7 +745,7 @@ export default function TournamentHost() {
       setNoContestConfirm(null);
       setResultReason("");
       markSaved(matchId, `${matchNames(matchId)}: brak rozstrzygnięcia${already ? " — był już zapisany, nic nie zmieniono" : ""}`);
-      toast({ title: already ? "Ten wynik był już zapisany" : "Mecz zakończony jako no contest" });
+      toast({ title: already ? "Ten wynik był już zapisany" : "Mecz zakończony jako no contest", variant: "success" });
       if (mayAdvance()) setSelectedMatchId(null);
     };
     completeMatch.mutate({ id: matchId, data: { resultType: "no_contest", expectedRevision: draft.revision, reason: resultReason.trim() || null } }, {
@@ -784,6 +807,19 @@ export default function TournamentHost() {
   const handleTryComplete = (matchId: number, match: any) => {
     if (!capabilities.canWriteTournamentResults) return;
     if (scores[matchId]?.baseline && scores[matchId].baseline !== scoreBaseline(match)) return;
+    const setRules = stages?.find((stage) => stage.id === match.stageId)?.matchRules;
+    if (setRules) {
+      // The API decides; this only stops an obviously incomplete form and says why.
+      const evaluated = evaluateSetMatch(scores[matchId]?.sets ?? [], setRules);
+      if (!evaluated.ok) {
+        toast({ title: "Wynik niekompletny", description: evaluated.problem.message, variant: "warning" });
+        return;
+      }
+      if (resultDrafts.isStale(match)) return;
+      const draft = resultDrafts.capture(match);
+      doComplete(matchId, evaluated.value.setsWon1, evaluated.value.setsWon2, draft.revision, evaluated.value.sets);
+      return;
+    }
     const s1 = getS(matchId, 1, match.score1);
     const s2 = getS(matchId, 2, match.score2);
     const check = checkScore(s1, s2, match.bestOf, stageAllowsDraws(stages?.find((stage) => stage.id === match.stageId)));
@@ -796,20 +832,20 @@ export default function TournamentHost() {
     doComplete(matchId, s1, s2, draft.revision);
   };
 
-  const doComplete = (matchId: number, score1: number, score2: number, expectedRevision: number) => {
+  const doComplete = (matchId: number, score1: number, score2: number, expectedRevision: number, sets?: SetScore[]) => {
     if (!capabilities.canWriteTournamentResults || completeMatch.isPending || completeLock.current) return;
     completeLock.current = true;
     const mayAdvance = beginMatchOperation(matchId);
-    const label = `Wynik ${score1}:${score2}`;
+    const label = `Wynik ${score1}:${score2}${sets ? ` (sety ${setsText(sets)})` : ""}`;
     markSaving(matchId, label);
     const succeed = (already: boolean) => {
       setScores((prev) => { const n = { ...prev }; delete n[matchId]; return n; });
       resultDrafts.discard(matchId);
-      markSaved(matchId, `${matchNames(matchId)} ${score1}:${score2}${already ? " — był już zapisany (np. przy wcześniejszej próbie), nic nie zmieniono" : ""}`);
-      toast({ title: already ? "Ten wynik był już zapisany" : "Wynik zapisany!" });
+      markSaved(matchId, `${matchNames(matchId)} ${score1}:${score2}${sets ? ` (${setsText(sets)})` : ""}${already ? " — był już zapisany (np. przy wcześniejszej próbie), nic nie zmieniono" : ""}`);
+      toast({ title: already ? "Ten wynik był już zapisany" : "Wynik zapisany!", variant: "success" });
       if (mayAdvance()) setSelectedMatchId(null);
     };
-    completeMatch.mutate({ id: matchId, data: { resultType: "played", expectedRevision, score1, score2 } }, {
+    completeMatch.mutate({ id: matchId, data: { resultType: "played", expectedRevision, score1, score2, ...(sets ? { sets } : {}) } }, {
       onSuccess: () => succeed(false),
       onError: (error) => {
         if (alreadySaved.current === matchId) { alreadySaved.current = null; succeed(true); return; }
@@ -1125,6 +1161,10 @@ export default function TournamentHost() {
 
     const bo = focusedMatch.bestOf ?? 1;
     const allowDraws = stageAllowsDraws(focusedStage);
+    const setRules = focusedStage?.matchRules ?? null;
+    const draftSets = scores[focusedMatch.id]?.sets ?? [];
+    // The one-line "after saving" preview is for series and score games; the set editor has its own.
+    const seriesDraft = setRules ? undefined : scores[focusedMatch.id];
     const maxScore = scoreCap(bo, allowDraws);
     const staleDraft = resultDrafts.isStale(focusedMatch) || (!!scores[focusedMatch.id]?.baseline && scores[focusedMatch.id].baseline !== scoreBaseline(focusedMatch));
     const conflictedDraft = resultDrafts.hasConflict(focusedMatch.id);
@@ -1143,9 +1183,11 @@ export default function TournamentHost() {
     const isShowingWalkover = walkoverConfirm === focusedMatch.id;
     const isShowingNoContest = noContestConfirm === focusedMatch.id;
     // In a draw league 0:0 is a valid result, so saving needs at least one entered score (no accidental 0:0).
-    const isCompleteSeries = allowDraws
-      ? !!scores[focusedMatch.id] && checkScore(s1, s2, bo, true).ok
-      : checkScore(s1, s2, bo, false).ok;
+    const isCompleteSeries = setRules
+      ? evaluateSetMatch(draftSets, setRules).ok
+      : allowDraws
+        ? !!scores[focusedMatch.id] && checkScore(s1, s2, bo, true).ok
+        : checkScore(s1, s2, bo, false).ok;
     const completedResultLabel = matchResultLabel(focusedMatch);
 
     return (
@@ -1234,7 +1276,7 @@ export default function TournamentHost() {
               <dl>
                 <div><dt>Termin</dt><dd>{work.slot ? formatLocalSlot(work.slot.date, work.slot.time) : "bez terminu"}</dd></div>
                 <div><dt>Stan</dt><dd><span className="experimental-work-chip" data-state={work.state}>{work.label}</span> {work.reason}</dd></div>
-                <div><dt>Zasady wyniku</dt><dd>{scoreEntryHint(bo, allowDraws)}</dd></div>
+                <div><dt>Zasady wyniku</dt><dd>{setRules ? focusedStage?.matchRulesSummary : scoreEntryHint(bo, allowDraws)}</dd></div>
               </dl>
               {history.length > 0 && (
                 <details className="experimental-match-history">
@@ -1274,6 +1316,17 @@ export default function TournamentHost() {
               setActionError(previous => previous?.code === "CONCURRENT_MODIFICATION" ? null : previous);
             }}>Odrzuć stary wynik roboczy i zacznij od aktualnego</Button>
           </section>}
+          {setRules ? (
+            <SetScoreEditor
+              rules={setRules}
+              sets={isDone || staleDraft ? focusedMatch.sets ?? [] : draftSets}
+              player1Name={focusedMatch.player1Name ?? "Zawodnik A"}
+              player2Name={focusedMatch.player2Name ?? "Zawodnik B"}
+              readOnly={isDone || isCancelled || !capabilities.canWriteTournamentResults}
+              disabled={staleDraft || conflictedDraft}
+              onChange={(next) => updateSets(focusedMatch.id, next)}
+            />
+          ) : (<>
           <p className="mb-4 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">Wygrane gry / mapy</p>
           <div className="flex items-center justify-center gap-3 md:gap-6">
             {/* Player 1 */}
@@ -1395,6 +1448,8 @@ export default function TournamentHost() {
               </div>
             </div>
           </div>
+
+          </>)}
 
           {/* Deadlock per-game picks editor */}
           {isDeadlock && capabilities.canWriteTournamentResults && !isDone && !isCancelled && (
@@ -1665,13 +1720,13 @@ export default function TournamentHost() {
             <p className="mt-3 text-sm text-muted-foreground">
               {scores[focusedMatch.id]
                 ? isExperimental
-                  ? `Edytujesz — wynik roboczy ${scores[focusedMatch.id]!.s1}:${scores[focusedMatch.id]!.s2} jest jeszcze niezapisany. Zostaje w tej karcie przeglądarki także po odświeżeniu strony.`
+                  ? `Edytujesz — wynik roboczy ${scores[focusedMatch.id]!.sets ? `(sety ${setsText(scores[focusedMatch.id]!.sets) || "–"})` : `${scores[focusedMatch.id]!.s1}:${scores[focusedMatch.id]!.s2}`} jest jeszcze niezapisany. Zostaje w tej karcie przeglądarki także po odświeżeniu strony.`
                   : "Wynik roboczy — nie jest jeszcze zapisany. Zapisz go po zakończeniu meczu."
                 : scoreEntryHint(bo, allowDraws)}
             </p>
           )}
-          {isExperimental && !isDone && !isCancelled && !conflictedDraft && scores[focusedMatch.id] && (() => {
-            const draft = scores[focusedMatch.id]!;
+          {isExperimental && !isDone && !isCancelled && !conflictedDraft && seriesDraft && (() => {
+            const draft = seriesDraft;
             const winnerName = draft.s1 > draft.s2 ? focusedMatch.player1Name : focusedMatch.player2Name;
             const draw = allowDraws && draft.s1 === draft.s2;
             return (
@@ -1684,7 +1739,7 @@ export default function TournamentHost() {
               </p>
             );
           })()}
-          {isDone && <p className="mt-3 text-sm text-muted-foreground">Wynik zapisany: {completedResultLabel}. Aby go zmienić, wybierz „Popraw wynik”.</p>}
+          {isDone && <p className="mt-3 text-sm text-muted-foreground">Wynik zapisany: {completedResultLabel}{focusedMatch.sets?.length ? ` (sety ${setsText(focusedMatch.sets)})` : ""}. Aby go zmienić, wybierz „Popraw wynik”.</p>}
           {staleDraft && !conflictedDraft && <p className="mt-3 text-sm text-orange-400">Stan meczu zmienił się od rozpoczęcia edycji. Twój wynik roboczy: {scores[focusedMatch.id]?.s1 ?? 0}:{scores[focusedMatch.id]?.s2 ?? 0}. Aktualny wynik: {focusedMatch.score1 ?? 0}:{focusedMatch.score2 ?? 0}. Odrzuć wynik roboczy i sprawdź mecz przed kolejnym zapisem. Wynik roboczy dotyczy meczu: {resultDrafts.drafts[focusedMatch.id]?.player1Name} – {resultDrafts.drafts[focusedMatch.id]?.player2Name}.</p>}
           {!conflictedDraft && (scores[focusedMatch.id] || staleDraft) && <Button variant="ghost" size="sm" className="mt-2" onClick={() => {
             resultDrafts.discard(focusedMatch.id);
@@ -2199,6 +2254,7 @@ export default function TournamentHost() {
                           {" – "}<span className={match.winnerId && match.winnerId === match.player2Id ? "font-bold text-primary" : ""}>{match.player2Name ?? "Oczekuje na gracza"}</span>
                         </span>
                         <span className="font-mono tabular-nums">{match.status === "completed" ? matchResultLabel(match) : `${match.score1 ?? 0}:${match.score2 ?? 0}`}</span>
+                        {match.sets?.length ? <span className="text-xs text-muted-foreground tabular-nums" title="Wyniki setów">({setsText(match.sets)})</span> : null}
                         <Badge variant="outline" className={match.status === "in_progress" ? "text-secondary border-secondary" : ""}>{MATCH_STATUS_LABELS[match.status] ?? "Nieznany"}</Badge>
                         {capabilities.canWriteTournamentResults && match.status === "completed" && match.resultType !== "bye" ?
                           <Button variant="outline" size="sm" aria-label={`Popraw wynik: ${match.player1Name} – ${match.player2Name}`} onClick={() => openCorrection(match.id)}>Popraw wynik</Button>
@@ -2251,7 +2307,8 @@ export default function TournamentHost() {
                       <th className="py-2 px-3 text-center">W</th>
                       {standingsHavePoints(standings) && <th className="py-2 px-3 text-center" title="Remisy">R</th>}
                       <th className="py-2 px-3 text-center">P</th>
-                      <th className="py-2 px-3 text-center">{standingsHavePoints(standings) ? "Bilans" : "Gry"}</th>
+                      <th className="py-2 px-3 text-center">{standings.some((row) => row.setPointsFor != null) ? "Sety" : standingsHavePoints(standings) ? "Bilans" : "Gry"}</th>
+                      {standings.some((row) => row.setPointsFor != null) && <th className="py-2 px-3 text-center" title="Punkty zdobyte i stracone w setach (nie wpływają na kolejność)">Małe pkt</th>}
                       {(!isExperimental || standings.some((row) => row.buchholz != null)) && <th className="py-2 px-3 text-center">Buchh.</th>}
                       <th className="py-2 px-3 text-center">+/−</th>
                     </tr>
@@ -2286,6 +2343,7 @@ export default function TournamentHost() {
                         {standingsHavePoints(standings) && <td className="py-2 px-3 text-center text-muted-foreground">{s.matchDraws ?? 0}</td>}
                         <td className="py-2 px-3 text-center text-red-400">{s.matchLosses}</td>
                         <td className="py-2 px-3 text-center font-mono">{s.gameWins}:{s.gameLosses}</td>
+                        {standings.some((row) => row.setPointsFor != null) && <td className="py-2 px-3 text-center font-mono text-muted-foreground">{s.setPointsFor ?? 0}:{s.setPointsAgainst ?? 0}</td>}
                         {(!isExperimental || standings.some((row) => row.buchholz != null)) && <td className="py-2 px-3 text-center text-muted-foreground">{s.buchholz ?? "—"}</td>}
                         <td className="py-2 px-3 text-center">
                           <span

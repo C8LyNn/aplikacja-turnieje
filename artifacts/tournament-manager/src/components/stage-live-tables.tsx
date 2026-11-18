@@ -47,6 +47,8 @@ export function LiveTable({
   const points = data.leagueRules != null;
   const draws = data.leagueRules?.allowDraws === true || table.rows.some((row) => row.draws > 0);
   const swiss = data.format === "swiss";
+  // V5.7: a stage decided by sets shows sets and small points as their own columns, apart from points.
+  const sets = data.matchRules != null;
   const rows = rowLimit ? table.rows.slice(0, rowLimit) : table.rows;
   const adjustmentNotes = points
     ? table.rows.filter((row) => row.pointAdjustment).map((row) => `${row.playerName}: w punktach korekta ${row.pointAdjustment! > 0 ? "+" : ""}${row.pointAdjustment} (bonus lub kara organizatora).`)
@@ -76,7 +78,8 @@ export function LiveTable({
               <th scope="col" className="w-8 px-1 py-2 text-center sm:w-10" title="Zwycięstwa">W</th>
               {draws && <th scope="col" className="w-8 px-1 py-2 text-center sm:w-10" title="Remisy">R</th>}
               <th scope="col" className="w-8 px-1 py-2 text-center sm:w-10" title="Porażki">P</th>
-              {!compact && <th scope="col" className="hidden w-16 px-1 py-2 text-center sm:table-cell" title="Wynik zdobyty i stracony">Bilans</th>}
+              {!compact && <th scope="col" className="hidden w-16 px-1 py-2 text-center sm:table-cell" title={sets ? "Sety wygrane i przegrane" : "Wynik zdobyty i stracony"}>{sets ? "Sety" : "Bilans"}</th>}
+              {sets && !compact && <th scope="col" className="hidden w-20 px-1 py-2 text-center md:table-cell" title="Punkty zdobyte i stracone w setach (nie wpływają na kolejność)">Małe pkt</th>}
               {swiss && !compact && <th scope="col" className="hidden w-14 px-1 py-2 text-center sm:table-cell" title="Buchholz — siła rywali">Bh</th>}
               {points && <th scope="col" className="w-12 px-2 py-2 text-center font-semibold" title="Punkty">Pkt</th>}
             </tr>
@@ -93,6 +96,7 @@ export function LiveTable({
                 {draws && <td className="px-1 py-2 text-center tabular-nums">{row.draws}</td>}
                 <td className="px-1 py-2 text-center tabular-nums">{row.losses}</td>
                 {!compact && <td className="hidden px-1 py-2 text-center font-mono tabular-nums sm:table-cell">{row.scoreFor}:{row.scoreAgainst}</td>}
+                {sets && !compact && <td className="hidden px-1 py-2 text-center font-mono tabular-nums text-muted-foreground md:table-cell">{row.setPointsFor ?? 0}:{row.setPointsAgainst ?? 0}</td>}
                 {swiss && !compact && <td className="hidden px-1 py-2 text-center tabular-nums sm:table-cell">{row.buchholz ?? "—"}</td>}
                 {points && (
                   <td className="px-2 py-2 text-center font-bold tabular-nums">

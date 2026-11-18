@@ -90,9 +90,9 @@ test("opens with one section and a live preview; other sections show their value
 test("scoring section exists only for formats with a table", async () => {
   renderEditor("organizer");
   await waitFor(() => assert.ok(screen.getByLabelText("Podgląd rozgrywek").textContent?.includes("Drabinka pucharowa")));
-  assert.equal(screen.queryByRole("button", { name: /Punktacja, remisy i terminy/ }), null, "a bracket has no points table");
+  assert.equal(screen.queryByRole("button", { name: /Punktacja i terminy/ }), null, "a bracket has no points table");
   fireEvent.click(screen.getByRole("radio", { name: "Każdy z każdym" }));
-  await screen.findByRole("button", { name: /Punktacja, remisy i terminy/ });
+  await screen.findByRole("button", { name: /Punktacja i terminy/ });
 });
 
 test("validation lists blocking problems and opens the access section on submit", async () => {
