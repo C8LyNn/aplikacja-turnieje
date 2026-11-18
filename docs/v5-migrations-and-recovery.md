@@ -1,5 +1,14 @@
-# V5 schema migrations (0041–0046): procedure and recovery
+# V5 schema migrations (0041–0047): procedure and recovery
 
+> **V5.10** adds `0047_two_leg_ties.sql`: three new tables for two-legged knockout ties — `match_legs` (both legs
+> of a tie: own date, score in the tie's orientation, revision), `match_tie_decisions` (the organizer's winner and
+> public reason for a level aggregate) and `match_tie_history` (legs and decisions, recorded/reverted). The
+> `tournament_stages_match_rules_supported` CHECK is replaced in place by one that keeps every V5.7 `sets`
+> condition and adds `{ "kind": "two_legs", "levelAggregate": "organizer_decision" }` (best of 1); the separate
+> `tournament_stages_two_legs_supported` CHECK allows that kind only in a `single_elimination` stage without
+> league rules. The token becomes `apply-0041-0047`. A V5.7–V5.9.1 database (0001–0046) has exactly one pending
+> migration: 0047. No existing row is rewritten; old stages keep `match_rules` as they were and get no legs.
+>
 > **V5.7** adds `0046_match_set_rules.sql`: `tournament_stages.match_rules` (set-based match rules, NULL keeps
 > the old meaning of a stage), `matches.set_scores` and `result_history.set_scores` (per-set scores, NULL for
 > every existing match — old results never get invented sets). The match revision trigger now also counts
@@ -42,7 +51,7 @@ violate a new CHECK constraint, missing `players(tournament_id, id)` key.
 
 ## 3. Apply (one transaction, all or nothing)
 ```
-DATABASE_URL=... DATABASE_SCHEMA=public V5_MIGRATION_CONFIRM=apply-0041-0046 \
+DATABASE_URL=... DATABASE_SCHEMA=public V5_MIGRATION_CONFIRM=apply-0041-0047 \
   APP_COMMIT=<sha> DEPLOYMENT_ENVIRONMENT=<env> pnpm --filter @workspace/db migrate:v5
 ```
 Advisory lock, `lock_timeout 10s`, preflight inside the transaction, migration SQL, catalog
@@ -57,6 +66,15 @@ Run the preflight again: `"status": "applied"`. Start the API: the log line
 * **Apply failed** – nothing was changed (single transaction). Fix the reported blocker and rerun.
 * **API refuses to start** (`SchemaIncompatibleError`) – the schema lacks a migration; run steps 2–3,
   or roll the API back to the previous build (old builds ignore the new columns/tables).
+* **Need to undo V5.10 only (0047)** – roll the code back to V5.9.1 first. The V5.9.1 API does not know the
+  `two_legs` kind: it would read such a stage as having no rules and treat each tie as a single game (its stored
+  aggregate would no longer validate) — finish or export (Backup V3 keeps legs, decisions and history) every
+  tournament that uses it first: `SELECT count(*) FROM tournament_stages WHERE match_rules->>'kind' = 'two_legs'`.
+  To remove 0047 (only when that count is 0; legs, decisions and history are lost):
+  `DROP TABLE IF EXISTS match_tie_history; DROP TABLE IF EXISTS match_tie_decisions; DROP TABLE IF EXISTS match_legs;`
+  `ALTER TABLE tournament_stages DROP CONSTRAINT IF EXISTS tournament_stages_two_legs_supported;`
+  re-create `tournament_stages_match_rules_supported` with the 0046 definition and
+  `DELETE FROM app_schema_migrations WHERE migration_key = 'v510_two_leg_ties_0047';`
 * **Need to undo V5.7 only (0046)** – roll the code back to V5.6 first. The V5.6 API ignores the new columns,
   but it would treat a set stage as a plain series (no set validation, no set columns), and the database refuses
   its revert of a result that has sets (the CHECK keeps sets only on completed results) — finish or export
