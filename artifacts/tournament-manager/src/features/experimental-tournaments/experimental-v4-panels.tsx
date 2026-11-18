@@ -206,8 +206,9 @@ export function ExperimentalStageMap({
                 </div>
               ) : null}
               <dl className="experimental-v4-map-facts">
-                <div><dt>Uczestnicy</dt><dd>{node.participants || "—"}{node.groups ? ` · ${node.groups} gr.` : ""}</dd></div>
-                {node.inputs.map((input) => (
+                <div><dt>Uczestnicy</dt><dd>{node.participants || "—"}{node.groups ? ` · ${node.groups} gr.` : ""}{node.inputs.length === 1 && node.inputs[0]!.incoming > 0 ? " · z awansu" : ""}</dd></div>
+                {/* V5.6: a single pool repeats the participants line — the basket rows appear only when the organiser set several. */}
+                {node.inputs.length > 1 && node.inputs.map((input) => (
                   <div key={input.label}>
                     <dt>{input.label}</dt>
                     <dd>

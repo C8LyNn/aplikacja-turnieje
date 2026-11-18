@@ -67,6 +67,7 @@ import { ExperimentalTournamentContextBar } from "@/features/experimental-tourna
 import { ExperimentalHostCommandCenter } from "@/features/experimental-tournaments/experimental-host-command-center";
 import { ExperimentalMatchFlow } from "@/features/experimental-tournaments/experimental-v4-panels";
 import { ExperimentalHostFocusToggle } from "@/features/experimental-tournaments/experimental-host-focus-toggle";
+import { bestOfLabel } from "@/features/experimental-tournaments/experimental-create-wizard-model";
 import { countWorkStates, formatLocalSlot, matchWorkState, WORK_STATE_LABELS, type MatchWorkState } from "@/lib/match-work-state";
 import { readHostResultDrafts, sameSavedResult, saveFailureKind, writeHostResultDrafts, type SaveFailureKind } from "@/lib/host-result-drafts";
 
@@ -1147,10 +1148,13 @@ export default function TournamentHost() {
             {allowDraws ? (
               <span className="text-xs text-muted-foreground" title="W lidze z remisami mecz to jedna gra (wynik: gole lub punkty).">jedna gra · remis możliwy</span>
             ) : (
-            <div className="flex items-center gap-0.5 bg-background border rounded p-0.5">
+            <div className="flex items-center gap-0.5 bg-background border rounded p-0.5" role={isExperimental ? "group" : undefined} aria-label={isExperimental ? "Długość meczu" : undefined}>
               {([1, 3, 5, 7] as const).map((n) => (
                 <button
                   key={n}
+                  title={isExperimental ? bestOfLabel(n) : undefined}
+                  aria-label={isExperimental ? bestOfLabel(n) : undefined}
+                  aria-pressed={isExperimental ? bo === n : undefined}
                   onClick={() => handleChangeBestOf(focusedMatch.id, n)}
                   disabled={focusedMatch.status !== "pending" || conflictedDraft}
                   className={`text-xs px-2.5 py-1 rounded transition-colors font-medium ${
@@ -1159,7 +1163,7 @@ export default function TournamentHost() {
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  BO{n}
+                  {isExperimental ? (n === 1 ? "1 gra" : `do ${Math.ceil(n / 2)}`) : `BO${n}`}
                 </button>
               ))}
             </div>
@@ -1213,7 +1217,7 @@ export default function TournamentHost() {
             <p className="text-sm">Twój wynik roboczy dotyczy starszej wersji meczu — w międzyczasie mecz zmienił się (np. w innym oknie albo u innej osoby). Sprawdź aktualnych zawodników i wynik, a potem zacznij od nowa.</p>
             <div className="rounded-md border bg-background p-3 text-sm">
               <p className="font-semibold">Aktualny stan meczu</p>
-              <p>{focusedMatch.player1Name ?? "Oczekuje na gracza"} – {focusedMatch.player2Name ?? "Oczekuje na gracza"} · BO{bo} · {MATCH_STATUS_LABELS[focusedMatch.status] ?? "Nieznany"}</p>
+              <p>{focusedMatch.player1Name ?? "Oczekuje na gracza"} – {focusedMatch.player2Name ?? "Oczekuje na gracza"} · {isExperimental ? bestOfLabel(bo).toLowerCase() : `BO${bo}`} · {MATCH_STATUS_LABELS[focusedMatch.status] ?? "Nieznany"}</p>
               <p>Aktualny wynik: {isDone ? completedResultLabel : `${focusedMatch.score1 ?? 0}:${focusedMatch.score2 ?? 0}`}</p>
             </div>
             <p className="text-sm text-muted-foreground">Nieaktualny wynik roboczy (niezapisany): {originalMatch?.player1Name} – {originalMatch?.player2Name}. {walkoverConfirm === focusedMatch.id ? "Walkower." : noContestConfirm === focusedMatch.id ? "No contest." : `Twój wynik roboczy: ${scores[focusedMatch.id]?.s1 ?? 0}:${scores[focusedMatch.id]?.s2 ?? 0}.`}</p>

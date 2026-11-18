@@ -137,8 +137,8 @@ export function deriveOrganizerNextStep(input: {
       kind: "complete_stage",
       title: "Sprawdź zakończenie etapu",
       description: next
-        ? `Serwer sprawdzi wyniki i kwalifikację. Przed rozpoczęciem etapu „${next.name}” trzeba potwierdzić jego gotowość.`
-        : "Serwer sprawdzi wyniki i warunki zakończenia etapu.",
+        ? `Wszystkie mecze etapu mają wyniki. Zakończ etap, aby zatwierdzić tabelę i awans — potem rozpoczniesz etap „${next.name}”.`
+        : "Wszystkie mecze etapu mają wyniki. Zakończ etap, aby zatwierdzić końcowe miejsca i zwycięzcę.",
       actionLabel: capabilities.canManageLifecycle ? "Zakończ etap" : undefined,
       actionHref: capabilities.canManageLifecycle ? `/tournaments/${tournament.id}?tab=stages&stage=${active.id}&action=complete` : undefined,
       stageId: active.id,

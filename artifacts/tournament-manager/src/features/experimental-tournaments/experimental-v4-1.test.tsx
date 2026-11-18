@@ -215,6 +215,23 @@ test("stage map: basket routes win over the implicit rule and feed input baskets
   assert.deepEqual(nodes[1]!.inputs, [{ label: "Koszyk 1", direct: 0, incoming: 4 }, { label: "Koszyk 2", direct: 4, incoming: 0 }]);
 });
 
+test("V5.6 stage map: qualifiers already moved from a completed stage are not counted twice", () => {
+  const baskets = {
+    baskets: [
+      { id: "s1-out-1", stageId: 1, type: "output" as const, ordinal: 1, participantIds: [], qualifierCount: null },
+      { id: "s2-in-1", stageId: 2, type: "input" as const, ordinal: 1, participantIds: [21, 22, 23, 24], qualifierCount: null },
+    ],
+    routes: [{ sourceBasketId: "s1-out-1", targetBasketId: "s2-in-1" }],
+  };
+  const stages = (first: "active" | "completed") => [
+    s(1, 1, first, { participantCount: 8, qualificationMode: "top_n_per_group", groupCount: 2, qualifiersPerGroup: 2 }),
+    s(2, 2, first === "completed" ? "active" : "planned", { participantCount: 4, format: "single_elimination" }),
+  ];
+  assert.deepEqual(stageMap(stages("completed"), [], baskets)[1]!.inputs, [{ label: "Koszyk 1", direct: 4, incoming: 0 }]);
+  assert.deepEqual(stageMap(stages("active"), [], { ...baskets, baskets: [baskets.baskets[0]!, { ...baskets.baskets[1]!, participantIds: [] }] })[1]!.inputs,
+    [{ label: "Koszyk 1", direct: 0, incoming: 4 }]);
+});
+
 test("stage map component renders without basket data (query disabled for one stage)", () => {
   const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
   const { container, unmount } = render(

@@ -453,7 +453,11 @@ export function stageMap(
     const inputs = own.filter((b) => b.type === "input").map((b) => ({
       label: `Koszyk ${b.ordinal}`,
       direct: b.participantIds.length,
-      incoming: (routesTo.get(b.id) ?? []).reduce((sum, r) => sum + (quotaOf(basketById.get(r.sourceBasketId)) ?? 0), 0),
+      // V5.6: once the source stage is completed its qualifiers already sit in this basket (counted in `direct`).
+      incoming: (routesTo.get(b.id) ?? []).reduce((sum, r) => {
+        const source = basketById.get(r.sourceBasketId);
+        return source && byId.get(source.stageId)?.status === "completed" ? sum : sum + (quotaOf(source) ?? 0);
+      }, 0),
     }));
     let outgoing: StageMapLink[] = own
       .filter((b) => b.type === "output")

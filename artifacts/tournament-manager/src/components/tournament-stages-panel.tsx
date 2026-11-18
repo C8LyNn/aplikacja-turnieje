@@ -293,6 +293,9 @@ export function ParticipantTable({
 }
 
 function MatchList({ matches }: { matches: Match[] }) {
+  // V5.6: Experimental says "jedna gra / do 2 wygranych" everywhere, Stable keeps BO.
+  const [navigationLocation] = useLocation();
+  const matchLength = (bestOf: number) => isExperimentalTournamentPath(navigationLocation) ? bestOfLabel(bestOf).toLowerCase() : `BO${bestOf}`;
   if (matches.length === 0) {
     return (
       <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
@@ -308,7 +311,7 @@ function MatchList({ matches }: { matches: Match[] }) {
             <span>
               Runda {match.round} · Mecz {match.matchNumber}
             </span>
-            <span>BO{match.bestOf}</span>
+            <span>{matchLength(match.bestOf)}</span>
           </div>
           <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
             <span
@@ -1117,8 +1120,8 @@ export function TournamentStagesPanel({
           )}
           {selected.status === "active" && selected.id === activeStageId && !liveStandingsQuery.data && (
             <p className="text-xs text-muted-foreground">
-              Bilans obejmuje wyłącznie mecze tego etapu; ostateczna pozycja
-              zostanie zamrożona przez serwer przy jego zakończeniu.
+              Bilans obejmuje wyłącznie mecze tego etapu; miejsca zostaną
+              ustalone i zapisane przy zakończeniu etapu.
             </p>
           )}
           {selected.status === "completed" && (
@@ -1172,7 +1175,7 @@ export function TournamentStagesPanel({
           {actionStage?.format === "double_elimination" && actionDoubleElimination.data && (
             <p className="text-sm text-muted-foreground">
               {actionDoubleElimination.data.completed
-                ? `Zwycięzca został wyłoniony. Serwer sprawdzi i zamknie ten etap.`
+                ? `Zwycięzca został wyłoniony. Zakończenie etapu zatwierdzi miejsca.`
                 : "Najpierw rozegraj Grand Final (oraz reset, jeśli będzie wymagany)."}
             </p>
           )}
