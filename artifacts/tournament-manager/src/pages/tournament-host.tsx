@@ -1113,7 +1113,13 @@ export default function TournamentHost() {
   ) || [];
   const postponedMatches = operationalMatches?.filter((m) => m.status === "postponed") || [];
   const cancelledMatches = operationalMatches?.filter((m) => m.status === "cancelled") || [];
-  const queueMatches = [...actionableMatches].sort((a, b) => (a.sortOrder ?? a.matchNumber * 10) - (b.sortOrder ?? b.matchNumber * 10));
+  // V5.8: a manual order (arrows) wins; otherwise round by round — never round 10 before the rest of round 3.
+  const queueMatches = [...actionableMatches].sort((a, b) => {
+    if (a.sortOrder != null && b.sortOrder != null) return a.sortOrder - b.sortOrder;
+    if (a.sortOrder != null) return -1;
+    if (b.sortOrder != null) return 1;
+    return a.round - b.round || a.matchNumber - b.matchNumber || a.id - b.id;
+  });
   const pendingQueue = queueMatches.filter((match) => match.status === "pending");
   // V5.6 work queue (Experimental): one state per match with a short reason and one concrete action;
   // postponed matches join the same list. The filter lives in the address (?kolejka=).
@@ -1335,7 +1341,7 @@ export default function TournamentHost() {
               onChange={(next) => updateSets(focusedMatch.id, next)}
             />
           ) : (<>
-          <p className="mb-4 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">Wygrane gry / mapy</p>
+          <p className="mb-4 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">{allowDraws ? "Wynik meczu" : bo > 1 ? "Wygrane gry / mapy" : "Wynik"}</p>
           <div className="flex items-center justify-center gap-3 md:gap-6">
             {/* Player 1 */}
             <div className="flex-1 flex flex-col items-center gap-4 min-w-0">
@@ -1764,11 +1770,12 @@ export default function TournamentHost() {
       <div className="organizer-workspace flex flex-col gap-4 mx-auto">
         {/* Top bar */}
         <div className="organizer-header flex flex-wrap items-center gap-3 border-b pb-3">
-          <Button variant="ghost" size="icon" asChild>
+          {/* V5.8: Experimental goes back through "Turnieje" and the tabs; Stable keeps its arrow. */}
+          {!isExperimental && <Button variant="ghost" size="icon" asChild>
             <Link href={tournamentHref(id, isExperimental)} aria-label="Wróć do szczegółów turnieju"><ArrowLeft className="w-5 h-5" /></Link>
-          </Button>
+          </Button>}
           <div className="flex-1 min-w-0">
-            {isExperimental && <p className="experimental-eyebrow">Prowadzenie na żywo</p>}
+            {isExperimental && <ExperimentalTournamentContextBar tournamentId={id} tournamentName={tournament.name} currentLabel="Prowadzenie" compact />}
             <h1 className="text-xl font-bold flex items-center gap-2">
               <Swords className="text-primary w-5 h-5 shrink-0" />
               <span className="break-words">{tournament.name}</span>
@@ -1793,19 +1800,12 @@ export default function TournamentHost() {
           </Button>
         </div>
 
-        {isExperimental && (
-          <ExperimentalTournamentContextBar
-            tournamentId={id}
-            tournamentName={tournament.name}
-            currentLabel="Prowadzenie"
-          />
-        )}
-
         {managementRole && (
           <TournamentOrganizerNavigation
             tournamentId={id}
             active={organizerAreaForHostTab(activeHostTab)}
             capabilities={capabilities}
+            stages={stages}
           />
         )}
         {orgToken && !tournament.hasOrganizerPassword && <OrganizerRecoveryNotice tournamentId={id} />}
@@ -1825,6 +1825,7 @@ export default function TournamentHost() {
             nextStepTitle={nextStep?.title}
             championName={championName}
             isCompleted={tournamentCompleted}
+            finalPlacesHref={tournamentHref(id, true, (stages ?? []).some((stage) => stage.format === "round_robin" || stage.format === "group_stage" || stage.format === "swiss") ? "?tab=standings" : "?tab=stages")}
             dataLoading={dataLoading}
             dataError={dataError}
           />
@@ -1883,7 +1884,7 @@ export default function TournamentHost() {
         {hostPending && <p role="status" className="organizer-notice organizer-notice--pending flex items-center gap-2 text-sm text-primary"><Loader2 className="h-4 w-4 animate-spin" /> Zapisywanie i odświeżanie stanu…</p>}
         {selectionNotice && <p role="status" className="rounded-lg border p-3 text-sm">{selectionNotice}</p>}
         <fieldset disabled={hostPending || dataLoading || dataError} className="contents">
-        {nextStep && !tournamentCompleted && !dataLoading && !dataError && (
+        {nextStep && !tournamentCompleted && !dataLoading && !dataError && !(isExperimental && nextStep.kind === "active_matches") && (
           <OrganizerNextStep
             step={isExperimental && nextStep.actionHref?.includes("action=")
               ? { ...nextStep, actionHref: `${nextStep.actionHref}&return=host` }
@@ -1970,23 +1971,10 @@ export default function TournamentHost() {
             )}
             {/* Big active match panel */}
             {!dataLoading && !dataError && renderActiveMatchPanel()}
-            {isExperimental && !dataLoading && !dataError && activeStage && (activeStage.format === "round_robin" || activeStage.format === "group_stage") && (
-              <ExperimentalLeaguePanel
-                tournamentId={id}
-                stage={activeStage}
-                refreshKey={(operationalMatches ?? []).map((match) => `${match.id}:${match.status}:${match.revision ?? 0}`).join(",")}
-                canPlan={capabilities.canManageLifecycle}
-                canEditDates={capabilities.canUseLegacyMatchTools}
-                onSelectMatch={openInEditor}
-              />
-            )}
-            {isExperimental && !dataLoading && !dataError && activeStage?.leagueRules && capabilities.canManageLifecycle && (
-              <ExperimentalPointAdjustments tournamentId={id} stage={activeStage} />
-            )}
-            {isExperimental && !dataLoading && !dataError && (
-              <ExperimentalMatchFlow matches={operationalMatches} allMatches={matches} stageNames={new Map((stages ?? []).map((stage) => [stage.id, stage.name]))} focusedMatchId={focusedMatchId} onSelect={setSelectedMatchId} disabled={hostPending} />
-            )}
 
+            {isExperimental && !dataLoading && !dataError && !tournamentCompleted && (
+              <ExperimentalMatchFlow matches={operationalMatches} allMatches={matches} stageNames={new Map((stages ?? []).map((stage) => [stage.id, stage.name]))} focusedMatchId={focusedMatchId} onSelect={setSelectedMatchId} disabled={hostPending} compact />
+            )}
             {/* Queue + recent results */}
             {(queueMatches.length > 0 || completedMatches.length > 0 || postponedMatches.length > 0) && (
               <div className={`${isExperimental ? "experimental-host-secondary" : ""} grid min-w-0 grid-cols-1 items-start gap-4 ${showResultsSidebar ? "xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]" : ""}`}>
@@ -2243,6 +2231,20 @@ export default function TournamentHost() {
                   ))}
                 </div>
               </div>
+            )}
+            {isExperimental && !dataLoading && !dataError && activeStage && (activeStage.format === "round_robin" || activeStage.format === "group_stage") && (
+              <ExperimentalLeaguePanel
+                tournamentId={id}
+                stage={activeStage}
+                refreshKey={(operationalMatches ?? []).map((match) => `${match.id}:${match.status}:${match.revision ?? 0}`).join(",")}
+                canPlan={capabilities.canManageLifecycle}
+                canEditDates={capabilities.canUseLegacyMatchTools}
+                onSelectMatch={openInEditor}
+                variant="host"
+              />
+            )}
+            {isExperimental && !dataLoading && !dataError && activeStage?.leagueRules && capabilities.canManageLifecycle && (
+              <ExperimentalPointAdjustments tournamentId={id} stage={activeStage} />
             )}
           </TabsContent>
 

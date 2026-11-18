@@ -2584,3 +2584,20 @@ html[data-x-type="display"] :is(.experimental-tournament-shell, .experimental-to
 :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create, .experimental-tournament-public, .experimental-tournament-stage-view) .experimental-toast[data-toast-kind="destructive"] { --toast-tone: hsl(var(--x-danger)); }
 :is(.experimental-tournament-shell, .experimental-tournament-entry, .experimental-tournament-create, .experimental-tournament-public, .experimental-tournament-stage-view) .experimental-toast .experimental-toast-icon { color: var(--toast-tone); margin-top: .1rem; }
 /* end v5.7 notifications */
+
+/* v5.8 · compact page header and work area: name, state and stage line first; the tabs show where you are */
+.experimental-tournament-shell .organizer-header { padding: 1rem 1.25rem !important; }
+@media (min-width: 768px) { .experimental-tournament-shell .organizer-header { padding: 1.1rem 1.5rem !important; } }
+.experimental-tournament-shell .organizer-header h1 { font-size: clamp(1.35rem, 1.05rem + 1vw, 1.875rem); }
+.experimental-tournament-shell .organizer-header .mb-2 { margin-bottom: .25rem; }
+.experimental-tournament-shell .organizer-header .experimental-context-bar--compact { display: flex; margin: 0 0 .2rem; padding: 0; border: 0; background: none; box-shadow: none; }
+.experimental-tournament-shell .experimental-session-chip--header { border-color: color-mix(in oklab, hsl(var(--x-live)) 45%, var(--x-line)); color: hsl(var(--x-live)); background: color-mix(in oklab, hsl(var(--x-live)) 10%, transparent); min-height: 2.25rem; }
+.experimental-tournament-shell .experimental-host-alert { display: block; color: inherit; text-decoration: none; }
+.experimental-tournament-shell .experimental-host-alert:hover .experimental-metric-card { border-color: var(--x-line-strong); }
+.experimental-tournament-shell .experimental-v4-flow[data-compact="true"] { grid-template-columns: minmax(0, 1fr); padding-block: .625rem; }
+.experimental-tournament-shell .experimental-v4-map-structure { margin: 0 0 .75rem; font-size: .875rem; font-weight: 600; color: var(--x-text); }
+.experimental-tournament-shell .experimental-v4-map-pick { width: 100%; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; border-radius: var(--x-radius-sm, .5rem); }
+.experimental-tournament-shell .experimental-v4-map-pick:focus-visible { outline: 2px solid var(--x-a1); outline-offset: 3px; }
+.experimental-tournament-shell .experimental-v4-map-stage[data-selected="true"] { border-color: var(--x-a1); box-shadow: 0 0 0 1px var(--x-a1), 0 0 24px color-mix(in oklab, var(--x-a1) 22%, transparent); }
+.experimental-tournament-shell .experimental-v4-map[data-selectable="true"] .experimental-v4-map-stage:not([data-selected="true"]):hover { border-color: var(--x-line-strong); }
+/* end v5.8 layout */

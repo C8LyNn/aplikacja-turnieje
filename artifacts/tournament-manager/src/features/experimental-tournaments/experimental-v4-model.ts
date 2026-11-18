@@ -144,8 +144,9 @@ export function stageRail(
   return sorted.map((s) => {
     const c = counts.get(s.id) ?? { done: 0, total: 0 };
     const rounds = s.totalRounds ?? s.plannedRounds ?? null;
+    // V5.8: groups play their rounds side by side — progress is the match count, not "Runda 1/3".
     const roundLabel =
-      s.status === "active" && typeof s.currentRound === "number"
+      s.status === "active" && typeof s.currentRound === "number" && s.format !== "group_stage"
         ? rounds ? `Runda ${s.currentRound}/${rounds}` : `Runda ${s.currentRound}`
         : null;
     return { id: s.id, name: s.name, format: s.format, status: s.status, done: c.done, total: c.total, roundLabel, isCurrent: s.id === currentId };

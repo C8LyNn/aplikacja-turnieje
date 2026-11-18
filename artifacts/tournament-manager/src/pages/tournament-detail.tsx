@@ -712,7 +712,7 @@ export default function TournamentDetail() {
       <div className="organizer-workspace flex flex-col gap-6">
         <div className="organizer-header flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            {isExperimental && <p className="experimental-eyebrow">Panel turnieju</p>}
+            {isExperimental && <ExperimentalTournamentContextBar tournamentId={id} tournamentName={tournament.name} currentLabel="Panel turnieju" compact />}
             <div className="flex flex-wrap items-center gap-3 mb-2">
               <h1 className="text-3xl font-bold tracking-tight text-primary">{tournament.name}</h1>
               <Badge variant={tournament.status === "active" ? "default" : tournament.status === "completed" ? "secondary" : "outline"}
@@ -723,7 +723,8 @@ export default function TournamentDetail() {
             </div>
             {tournament.description && <p className="text-muted-foreground">{tournament.description}</p>}
             <p className="text-sm text-muted-foreground mt-1">
-              {operation.stage?.name} · {FORMAT_LABELS[operation.stage?.format ?? tournament.format] ?? operation.stage?.format}
+              {/* V5.8: the format is named once, also when the stage carries the format's name. */}
+              {[operation.stage?.name, (() => { const label = FORMAT_LABELS[operation.stage?.format ?? tournament.format] ?? operation.stage?.format; return label && label !== operation.stage?.name ? label : null; })()].filter(Boolean).join(" · ")}
               {` · ${operation.summary.roundLabel} · ${operation.stage?.matchRules ? matchLengthText(operation.stage, isExperimental) : isExperimental ? bestOfLabel(operation.stage?.bestOf ?? tournament.defaultBestOf ?? 1).toLowerCase() : `BO${operation.stage?.bestOf ?? tournament.defaultBestOf}`}`}
             </p>
             <div className="mt-2">
@@ -731,6 +732,22 @@ export default function TournamentDetail() {
             </div>
           </div>
           <div className="organizer-header-actions flex flex-wrap gap-2">
+            {isExperimental && tournament.hasOrganizerPassword && isAuthenticated && (
+              <span className="experimental-session-chip experimental-session-chip--header inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs">
+                <Shield className="h-3.5 w-3.5" aria-hidden="true" />
+                {orgToken ? "Organizator" : `Wsparcie: ${supSession?.nick}`}
+                <button
+                  type="button"
+                  className="font-semibold text-muted-foreground hover:text-foreground"
+                  onClick={() => {
+                    if (orgToken) removeOrgToken(id); else removeSupSession(id);
+                    setActiveOrganizerToken(null); setActiveSupportToken(null);
+                  }}
+                >
+                  Wyloguj
+                </button>
+              </span>
+            )}
             <Button
               variant="outline"
               onClick={() => setShowChecklist((v) => !v)}
@@ -740,9 +757,10 @@ export default function TournamentDetail() {
             </Button>
             {tournament.status !== "draft" && (
               <>
-                <Button variant="outline" asChild>
+                {/* V5.8: Experimental reaches the host through the "Prowadzenie" tab right below. */}
+                {!isExperimental && <Button variant="outline" asChild>
                   <Link href={tournamentHref(id, isExperimental, "/host")}><Swords className="w-4 h-4 mr-2" /> Panel prowadzącego</Link>
-                </Button>
+                </Button>}
                 <Button variant="outline" asChild>
                   <Link href={tournamentHref(id, isExperimental, "/audience")}><Monitor className="w-4 h-4 mr-2" /> Widok widzów</Link>
                 </Button>
@@ -753,14 +771,6 @@ export default function TournamentDetail() {
             )}
           </div>
         </div>
-
-        {isExperimental && (
-          <ExperimentalTournamentContextBar
-            tournamentId={id}
-            tournamentName={tournament.name}
-            currentLabel="Panel turnieju"
-          />
-        )}
 
         {isExperimental ? (
           <ExperimentalTournamentChecklist
@@ -779,7 +789,7 @@ export default function TournamentDetail() {
         )}
 
         {managementRole && (
-          <TournamentOrganizerNavigation tournamentId={id} active={activeArea} capabilities={capabilities} />
+          <TournamentOrganizerNavigation tournamentId={id} active={activeArea} capabilities={capabilities} stages={stages} />
         )}
         {nextStep && !experimentalWorkTab && (
           <OrganizerNextStep
@@ -831,7 +841,7 @@ export default function TournamentDetail() {
 
         {/* Authenticated badge */}
         {orgToken && !tournament.hasOrganizerPassword && <OrganizerRecoveryNotice tournamentId={id} />}
-        {tournament.hasOrganizerPassword && isAuthenticated && (
+        {!isExperimental && tournament.hasOrganizerPassword && isAuthenticated && (
           <div className={`bg-green-500/10 border border-green-500/30 rounded-lg px-4 py-2.5 flex items-center gap-2${isExperimental ? " experimental-session-chip" : ""}`}>
             <Shield className="w-4 h-4 text-green-400 shrink-0" aria-hidden="true" />
             <p className="text-sm text-green-400 font-medium">
@@ -1009,7 +1019,6 @@ export default function TournamentDetail() {
           </TabsContent>
 
           <TabsContent value="stages" className={isExperimental ? "pt-2 experimental-stages-surface" : "pt-2"}>
-            {isExperimental && <ExperimentalStageMap tournamentId={id} stages={stages} matches={matches} activeStageId={tournament.activeStageId} />}
             <TournamentStagesPanel
               tournamentId={id}
               tournamentStatus={tournament.status}
@@ -1018,6 +1027,9 @@ export default function TournamentDetail() {
               canManage={capabilities.canManageLifecycle}
               canWriteResults={capabilities.canWriteTournamentResults}
               gameConfig={tournament.gameConfig}
+              renderStageNavigation={isExperimental && (stages?.length ?? 0) >= 2
+                ? ({ selectedStageId, onSelect }) => <ExperimentalStageMap tournamentId={id} stages={stages} matches={matches} activeStageId={tournament.activeStageId} selectedStageId={selectedStageId} onSelectStage={onSelect} />
+                : undefined}
             />
           </TabsContent>
 

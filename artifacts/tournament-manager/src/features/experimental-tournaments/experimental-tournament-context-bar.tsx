@@ -1,4 +1,4 @@
-import { ChevronRight, LayoutDashboard } from "lucide-react";
+import { ChevronLeft, ChevronRight, LayoutDashboard } from "lucide-react";
 import { Link } from "wouter";
 import { tournamentHref } from "@/features/experimental-tournaments/experimental-tournament-routing";
 
@@ -6,11 +6,28 @@ export function ExperimentalTournamentContextBar({
   tournamentId,
   tournamentName,
   currentLabel,
+  compact = false,
 }: {
   tournamentId: number;
   tournamentName: string;
   currentLabel?: string;
+  /** V5.8: one back link inside the page header; the tabs below already show where the user is. */
+  compact?: boolean;
 }) {
+  if (compact) {
+    return (
+      <nav aria-label="Ścieżka w eksperymentalnym panelu turnieju" className="experimental-context-bar experimental-context-bar--compact">
+        <Link
+          href="/experimental/tournaments/dashboard"
+          className="inline-flex items-center gap-1 rounded-md py-0.5 text-xs font-semibold text-muted-foreground transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+        >
+          <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
+          Turnieje
+        </Link>
+        <span className="sr-only">{` › ${tournamentName}${currentLabel ? ` › ${currentLabel}` : ""}`}</span>
+      </nav>
+    );
+  }
   return (
     <nav
       aria-label="Ścieżka w eksperymentalnym panelu turnieju"

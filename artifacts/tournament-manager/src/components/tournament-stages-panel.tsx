@@ -88,6 +88,8 @@ interface TournamentStagesPanelProps {
   audience?: boolean;
   onChanged?: () => void;
   gameConfig?: Tournament["gameConfig"];
+  /** V5.8: Experimental passes its stage map as the one list of stages (selection stays in this panel). */
+  renderStageNavigation?: (props: { selectedStageId?: number; onSelect: (stageId: number) => void }) => React.ReactNode;
 }
 
 interface PlayerRecord {
@@ -293,10 +295,14 @@ export function ParticipantTable({
   );
 }
 
-function MatchList({ matches, matchRules }: { matches: Match[]; matchRules?: MatchRules | null }) {
+function MatchList({ matches, matchRules, stageBestOf }: { matches: Match[]; matchRules?: MatchRules | null; stageBestOf?: number | null }) {
   // V5.6: Experimental says "jedna gra / do 2 wygranych" everywhere, Stable keeps BO; V5.7: set stages say sets.
   const [navigationLocation] = useLocation();
-  const matchLength = (bestOf: number) => matchLengthText({ bestOf, matchRules }, isExperimentalTournamentPath(navigationLocation));
+  const experimental = isExperimentalTournamentPath(navigationLocation);
+  const matchLength = (bestOf: number) => matchLengthText({ bestOf, matchRules }, experimental);
+  // V5.8 (Experimental): the stage states the match length once; a match shows it only when it differs (an exception).
+  const lengthNote = (bestOf: number) => !experimental || stageBestOf == null ? matchLength(bestOf)
+    : bestOf === stageBestOf ? null : `wyjątek: ${matchLength(bestOf)}`;
   if (matches.length === 0) {
     return (
       <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
@@ -312,7 +318,7 @@ function MatchList({ matches, matchRules }: { matches: Match[]; matchRules?: Mat
             <span>
               Runda {match.round} · Mecz {match.matchNumber}
             </span>
-            <span>{matchLength(match.bestOf)}</span>
+            {lengthNote(match.bestOf) && <span data-length-exception={experimental && stageBestOf != null ? "true" : undefined}>{lengthNote(match.bestOf)}</span>}
           </div>
           <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-3">
             <span
@@ -377,7 +383,7 @@ export function StageGroupTables({
               <h5 className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Mecze grupy
               </h5>
-              <MatchList matches={groupMatches} matchRules={live?.matchRules} />
+              <MatchList matches={groupMatches} matchRules={live?.matchRules} stageBestOf={details.stage.bestOf} />
             </div>
           </section>
         );
@@ -565,6 +571,7 @@ export function TournamentStagesPanel({
   audience = false,
   onChanged,
   gameConfig,
+  renderStageNavigation,
 }: TournamentStagesPanelProps) {
   const queryClient = useQueryClient();
   const search = useSearch();
@@ -926,8 +933,8 @@ export function TournamentStagesPanel({
         <p className="mt-1 text-sm text-muted-foreground">
           Wybierz etap, aby zobaczyć jego uczestników, ranking, grupy i mecze.
         </p>
-        <p className="mt-2 font-medium text-primary">{allStagesCompleted ? "Wszystkie etapy są zakończone. Przeglądasz historię turnieju." : stages.some(stage => stage.status === "active")
-          ? `Aktywny etap: ${stages.find(stage => stage.status === "active")?.name}` : "Brak aktywnego etapu"}</p>
+        {(allStagesCompleted || !renderStageNavigation) && <p className="mt-2 font-medium text-primary">{allStagesCompleted ? "Wszystkie etapy są zakończone. Przeglądasz historię turnieju." : stages.some(stage => stage.status === "active")
+          ? `Aktywny etap: ${stages.find(stage => stage.status === "active")?.name}` : "Brak aktywnego etapu"}</p>}
       </div>
       {explicitBasketAuthority && (
         <div
@@ -938,17 +945,23 @@ export function TournamentStagesPanel({
           Liczby uczestników i awansów są tylko do odczytu — wynikają z konfiguracji w zakładce Koszyki.
         </div>
       )}
-      <StageNavigation
-        stages={stages}
-        selectedStageId={selectedStageId}
-        participantCounts={explicitParticipantCounts}
-        onSelect={(stageId) => {
+      {(() => {
+        const selectStage = (stageId: number) => {
           if (pending) return;
           setSelectedStageId(stageId);
           setActionError(undefined);
           setCeremonyState(null);
-        }}
-      />
+        };
+        // V5.8: Experimental passes its stage map, which then is the one list of stages on this screen.
+        return renderStageNavigation ? renderStageNavigation({ selectedStageId, onSelect: selectStage }) : (
+          <StageNavigation
+            stages={stages}
+            selectedStageId={selectedStageId}
+            participantCounts={explicitParticipantCounts}
+            onSelect={selectStage}
+          />
+        );
+      })()}
       {actionError && (
         <div role="alert" className="organizer-notice organizer-notice--error rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
           {actionError}
@@ -983,7 +996,7 @@ export function TournamentStagesPanel({
                   )}
                 </div>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  {STAGE_FORMAT_LABELS[selected.format]} · {matchLengthText(selected, isExperimental)} ·{" "}
+                  {isExperimental && STAGE_FORMAT_LABELS[selected.format] === selected.name ? null : <>{STAGE_FORMAT_LABELS[selected.format]} · </>}{matchLengthText(selected, isExperimental)} ·{" "}
                   {selected.status === "planned" ? readinessQuery.data?.participantCount ?? "—" : detailQuery.data.participants.length} uczestników
                   {` · ${organizerStageSummary(selected, matches).roundLabel}`}
                 </p>
@@ -1117,7 +1130,7 @@ export function TournamentStagesPanel({
               )}
               <div>
                 <h4 className="mb-3 font-semibold">Mecze etapu</h4>
-                <MatchList matches={selectedMatches} matchRules={selected.matchRules} />
+                <MatchList matches={selectedMatches} matchRules={selected.matchRules} stageBestOf={selected.bestOf} />
               </div>
             </div>
           )}

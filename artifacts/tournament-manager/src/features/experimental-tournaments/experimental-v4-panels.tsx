@@ -168,11 +168,16 @@ export function ExperimentalStageMap({
   stages,
   matches,
   activeStageId,
+  selectedStageId,
+  onSelectStage,
 }: {
   tournamentId: number;
   stages: ReadonlyArray<TournamentStage> | null | undefined;
   matches: ReadonlyArray<Match> | null | undefined;
   activeStageId?: number | null;
+  /** V5.8: when given, the map is the stage picker (one list of stages instead of a map plus a picker). */
+  selectedStageId?: number;
+  onSelectStage?: (stageId: number) => void;
 }) {
   const enabled = (stages?.length ?? 0) >= 2;
   const basketsQuery = useGetTournamentStageBaskets(tournamentId, {
@@ -180,23 +185,34 @@ export function ExperimentalStageMap({
   });
   const nodes = stageMap(stages, matches, basketsQuery.data ?? null, activeStageId);
   if (!enabled || nodes.length < 2) return null;
+  const structure = structureLine(nodes);
   return (
-    <nav className="experimental-v4-map" aria-label="Mapa etapów i awansów">
+    <nav className="experimental-v4-map" aria-label="Mapa etapów i awansów" data-selectable={onSelectStage ? "true" : undefined}>
+      {structure && <p className="experimental-v4-map-structure" data-testid="stage-structure-line">{structure}</p>}
       <ol role="list">
         {nodes.map((node, index) => {
           const pct = node.total > 0 ? Math.round((node.done / node.total) * 100) : null;
-          return (
-            <li key={node.id} className="experimental-v4-map-stage" data-status={node.status} aria-current={node.isCurrent ? "step" : undefined}>
-              <header className="experimental-v4-map-head">
-                <span className="experimental-v4-rail-dot" aria-hidden="true">{node.status === "completed" ? "✓" : index + 1}</span>
-                <span className="experimental-v4-rail-text">
-                  <strong>{node.name}</strong>
-                  <span className="experimental-v4-muted">
-                    {STAGE_FORMAT_LABELS[node.format] ?? node.format}{node.homeAndAway ? " · mecz i rewanż" : ""} · {STAGE_STATUS_LABEL[node.status] ?? node.status}
-                    {node.roundLabel ? ` · ${node.roundLabel}` : ""}
-                  </span>
+          const head = (
+            <>
+              <span className="experimental-v4-rail-dot" aria-hidden="true">{node.status === "completed" ? "✓" : index + 1}</span>
+              <span className="experimental-v4-rail-text">
+                <strong>{node.name}</strong>
+                <span className="experimental-v4-muted">
+                  {[STAGE_FORMAT_LABELS[node.format] ?? node.format, node.homeAndAway ? "mecz i rewanż" : null, STAGE_STATUS_LABEL[node.status] ?? node.status, node.roundLabel || null]
+                    .filter((part, position, all) => part && part !== node.name && all.indexOf(part) === position).join(" · ")}
                 </span>
-              </header>
+              </span>
+            </>
+          );
+          return (
+            <li key={node.id} className="experimental-v4-map-stage" data-status={node.status} data-selected={onSelectStage && node.id === selectedStageId ? "true" : undefined} aria-current={node.isCurrent ? "step" : undefined}>
+              {onSelectStage ? (
+                <button type="button" className="experimental-v4-map-head experimental-v4-map-pick" aria-pressed={node.id === selectedStageId} onClick={() => onSelectStage(node.id)}>
+                  {head}
+                </button>
+              ) : (
+                <header className="experimental-v4-map-head">{head}</header>
+              )}
               {pct !== null ? (
                 <div className="experimental-v4-map-progress">
                   <div className="experimental-v4-progress" role="progressbar" aria-label={`Rozegrane mecze: ${node.name}`} aria-valuemin={0} aria-valuemax={100} aria-valuenow={pct}>
@@ -243,6 +259,25 @@ export function ExperimentalStageMap({
   );
 }
 
+/**
+ * V5.8 · the whole structure in one line, from the same nodes as the map:
+ * "16 uczestników → Faza grupowa: 4 grupy po 4 → awansuje 8 → Play-off".
+ */
+function structureLine(nodes: ReturnType<typeof stageMap>): string | null {
+  if (nodes.length < 2) return null;
+  const parts: string[] = [];
+  const first = nodes[0]!;
+  if (first.participants) parts.push(`${first.participants} uczestników`);
+  nodes.forEach((node, index) => {
+    const size = node.groups && node.participants ? Math.ceil(node.participants / node.groups) : null;
+    parts.push(node.groups ? `${node.name}: ${node.groups} ${node.groups === 1 ? "grupa" : node.groups < 5 ? "grupy" : "grup"}${size ? ` po ${size}` : ""}` : node.name);
+    const next = nodes[index + 1];
+    const link = next ? node.outgoing.find((candidate) => candidate.targetStageId === next.id) : undefined;
+    if (next) parts.push(link?.count != null ? `awansuje ${link.count}` : "awans");
+  });
+  return parts.join(" → ");
+}
+
 /* ── Match running: round progress, up next and search ──────────────────── */
 
 export function ExperimentalMatchFlow({
@@ -252,7 +287,10 @@ export function ExperimentalMatchFlow({
   focusedMatchId,
   onSelect,
   disabled,
+  compact = false,
 }: {
+  /** V5.8: search only — the host shows progress and the next matches elsewhere (command center and queue). */
+  compact?: boolean;
   /** Matches of the stage being run (drives round progress and "up next"). */
   matches: ReadonlyArray<Match> | null | undefined;
   /** Every match of the tournament, for search. Defaults to `matches`. */
@@ -295,8 +333,8 @@ export function ExperimentalMatchFlow({
   const shown = results.slice(0, 30);
 
   return (
-    <section className="experimental-v4-flow" data-searching={searching ? "true" : "false"} aria-label="Postęp rundy, kolejne mecze i wyszukiwarka">
-      {hasRound ? (
+    <section className="experimental-v4-flow" data-searching={searching ? "true" : "false"} data-compact={compact ? "true" : undefined} aria-label={compact ? "Wyszukiwarka meczów" : "Postęp rundy, kolejne mecze i wyszukiwarka"}>
+      {hasRound && !compact ? (
         <div className="experimental-v4-flow-round">
           <p className="experimental-v4-kicker">Runda {flow.round}</p>
           <p className="experimental-v4-flow-count"><strong>{flow.roundDone}</strong>/{flow.roundTotal} rozegranych</p>
@@ -346,7 +384,7 @@ export function ExperimentalMatchFlow({
               </ol>
             ) : null}
           </>
-        ) : (
+        ) : compact ? null : (
           <>
             <p className="experimental-v4-kicker">Następne do rozegrania</p>
             {flow.upNext.length === 0 ? (

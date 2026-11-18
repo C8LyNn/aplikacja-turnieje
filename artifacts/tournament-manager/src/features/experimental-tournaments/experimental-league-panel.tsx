@@ -110,6 +110,7 @@ export function ExperimentalLeaguePanel({
   canPlan,
   canEditDates,
   onSelectMatch,
+  variant = "full",
 }: {
   tournamentId: number;
   stage: TournamentStage;
@@ -117,6 +118,11 @@ export function ExperimentalLeaguePanel({
   canPlan: boolean;
   canEditDates: boolean;
   onSelectMatch: (matchId: number) => void;
+  /**
+   * V5.8: "host" sits under the work queue, which already shows the next match and the upcoming ones; it keeps
+   * only what needs a date (overdue, start passed, postponed) and the schedule itself.
+   */
+  variant?: "full" | "host";
 }) {
   const queryClient = useQueryClient();
   const scheduleQuery = useGetStageSchedule(tournamentId, stage.id);
@@ -148,8 +154,8 @@ export function ExperimentalLeaguePanel({
     </li>
   );
   return (
-    <section className="experimental-league-panel" aria-label="Liga: kolejki i terminy" data-testid="league-panel">
-      <div className="experimental-v4-resume">
+    <section className="experimental-league-panel" aria-label="Liga: kolejki i terminy" data-testid="league-panel" data-variant={variant}>
+      {variant === "full" && <div className="experimental-v4-resume">
         <span className="experimental-v4-resume-icon" aria-hidden="true"><ListChecks className="h-5 w-5" /></span>
         <div className="experimental-v4-resume-body">
           <p className="experimental-v4-kicker">Liga · {current ? `kolejka ${current.round} z ${schedule.rounds.length}` : `${schedule.rounds.length} ${plural(schedule.rounds.length, "kolejka", "kolejki", "kolejek")}`}</p>
@@ -164,7 +170,7 @@ export function ExperimentalLeaguePanel({
             {action.kind === "enter_overdue" ? "Wpisz wynik" : action.kind === "start_due" ? "Otwórz mecz" : action.kind === "reschedule_postponed" ? "Pokaż mecz" : "Przejdź do meczu"}
           </button>
         )}
-      </div>
+      </div>}
 
       <div className="experimental-league-columns">
         {schedule.overdue.length > 0 && (
@@ -185,7 +191,7 @@ export function ExperimentalLeaguePanel({
             <ul className="experimental-league-list">{postponed.map((match) => row(match, "Pokaż mecz"))}</ul>
           </div>
         )}
-        {schedule.upcoming.length > 0 && (
+        {variant === "full" && schedule.upcoming.length > 0 && (
           <div>
             <p className="experimental-v4-kicker"><CalendarDays className="mr-1 inline h-3.5 w-3.5" aria-hidden="true" />Najbliższe mecze</p>
             <ul className="experimental-league-list">{schedule.upcoming.slice(0, 4).map((match) => row(match, "Pokaż mecz"))}</ul>
@@ -197,6 +203,7 @@ export function ExperimentalLeaguePanel({
         <summary className="cursor-pointer text-sm font-semibold">
           Terminarz: {schedule.rounds.length} {plural(schedule.rounds.length, "kolejka", "kolejki", "kolejek")} · rozegrane {schedule.counts.completed} z {schedule.counts.total}
           {schedule.counts.unscheduled > 0 ? ` · bez terminu ${schedule.counts.unscheduled}` : ""}
+          {variant === "host" && current && current.resting.length > 0 ? ` · w kolejce ${current.round} pauzuje: ${current.resting.map((entry) => entry.name).join(", ")}` : ""}
         </summary>
         <ol className="mt-2 space-y-2">
           {schedule.rounds.map((round) => (

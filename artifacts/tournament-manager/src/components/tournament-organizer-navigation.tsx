@@ -152,14 +152,34 @@ export function organizerMoreItems(
   return items;
 }
 
+const BRACKET_FORMATS = new Set(["single_elimination", "double_elimination", "swiss"]);
+const TABLE_FORMATS = new Set(["round_robin", "group_stage", "swiss"]);
+
+/**
+ * V5.8 (Experimental): only the areas that mean something for this tournament's stages. A cup has no table,
+ * a league has no bracket, a one-stage event has no baskets between stages. The area the user is on always stays
+ * visible, and every address keeps working (Stable shows every area, as before).
+ */
+export function relevantOrganizerAreas(stages: ReadonlyArray<{ format: string }> | null | undefined): Set<OrganizerArea> | null {
+  if (!stages || stages.length === 0) return null;
+  const areas = new Set<OrganizerArea>(["conducting", "stages", "players"]);
+  if (stages.some((stage) => BRACKET_FORMATS.has(stage.format))) areas.add("bracket");
+  if (stages.some((stage) => TABLE_FORMATS.has(stage.format))) areas.add("standings");
+  if (stages.length > 1) areas.add("baskets");
+  return areas;
+}
+
 export function TournamentOrganizerNavigation({
   tournamentId,
   active,
   capabilities,
+  stages,
 }: {
   tournamentId: number;
   active: OrganizerArea;
   capabilities: OrganizerCapabilities;
+  /** V5.8: the tournament's stages; Experimental hides areas that do not apply to them. */
+  stages?: ReadonlyArray<{ format: string }> | null;
 }) {
   const [location] = useLocation();
   const isExperimental = isExperimentalTournamentPath(location);
@@ -168,10 +188,15 @@ export function TournamentOrganizerNavigation({
   useEffect(() => {
     (moreActiveRef.current ?? mainActiveRef.current)?.scrollIntoView({ block: "nearest", inline: "nearest" });
   }, [active]);
-  const main = organizerNavigationItems(tournamentId).map((item) => ({
-    ...item,
-    href: tournamentModeHref(item.href, isExperimental),
-  }));
+  const relevant = isExperimental ? relevantOrganizerAreas(stages) : null;
+  const main = organizerNavigationItems(tournamentId)
+    .filter((item) => !relevant || relevant.has(item.area) || item.area === active)
+    .map((item) => ({
+      ...item,
+      // V5.8: players and teams are both "Uczestnicy" in Experimental.
+      label: isExperimental && item.area === "players" ? "Uczestnicy" : item.label,
+      href: tournamentModeHref(item.href, isExperimental),
+    }));
   const more = organizerMoreItems(tournamentId, capabilities).map((item) => ({
     ...item,
     href: tournamentModeHref(item.href, isExperimental),
