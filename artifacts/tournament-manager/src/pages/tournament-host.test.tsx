@@ -937,3 +937,19 @@ test("V5.6 Experimental: the work queue separates 'start passed' from 'needs a r
   assert.match(editor.textContent ?? "", /Czeka na wynik/);
   assert.match(editor.textContent ?? "", /Zasady wyniku/);
 });
+
+test("V5.6: undoing a result of a finished tournament warns that it reopens the stage and the tournament", async () => {
+  const user = await renderOperationalHost({ matches: [{ ...hostMatch(1, 2, "completed"), resultType: "played" as const, score1: 2 }], intercept: async (path) => {
+    if (path === "/api/tournaments/1") return jsonResponse({
+      id: 1, name: "Turniej szkoleniowy", status: "completed", format: "single_elimination", activeStageId: null, winnerId: 2,
+      currentRound: 1, totalRounds: 1, defaultBestOf: 3, hasOrganizerPassword: true, resultModelVersion: "series_v1", visibility: "public_online",
+    });
+    if (path === "/api/tournaments/1/action-log") return jsonResponse([
+      { id: 9, tournamentId: 1, actionType: "match_result_submitted", description: "R1M1: Gracz A1 2:0 Gracz B1", matchId: 1, canUndo: true, isUndone: false, createdAt: "2026-11-18T10:00:00Z" },
+    ]);
+    if (path.endsWith("/stages")) return jsonResponse([hostStage(2, "completed")]);
+    return undefined;
+  } });
+  await user.click(await screen.findByRole("button", { name: "Cofnij" }));
+  await screen.findByText(/Cofnięcie tego wyniku ponownie otworzy etap i turniej/);
+});

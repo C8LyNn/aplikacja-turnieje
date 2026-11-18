@@ -1788,6 +1788,9 @@ export default function TournamentHost() {
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-yellow-400">Cofnąć akcję?</p>
               <p className="text-xs text-muted-foreground truncate">{lastUndoableAction.description}</p>
+              {tournamentCompleted && lastUndoableAction.actionType === "match_result_submitted" && (
+                <p className="text-xs text-yellow-300" role="note">Turniej jest zakończony. Cofnięcie tego wyniku ponownie otworzy etap i turniej, a zwycięzca zostanie usunięty do czasu ponownego zapisania wyniku.</p>
+              )}
             </div>
             <div className="flex gap-2 shrink-0">
               <Button size="sm" variant="destructive" onClick={handleUndo} disabled={undoLastAction.isPending}>
