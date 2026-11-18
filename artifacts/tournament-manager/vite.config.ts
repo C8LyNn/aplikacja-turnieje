@@ -120,6 +120,13 @@ export default defineConfig({
   build: {
     outDir: path.resolve(import.meta.dirname, "dist/public"),
     emptyOutDir: true,
+    // V5.9 · the broadcast overlay is its own small entry: OBS never loads the organizer app.
+    rollupOptions: {
+      input: {
+        main: path.resolve(import.meta.dirname, "index.html"),
+        overlay: path.resolve(import.meta.dirname, "overlay.html"),
+      },
+    },
   },
   server: {
     port,
