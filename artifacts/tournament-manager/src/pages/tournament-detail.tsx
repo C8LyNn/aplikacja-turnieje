@@ -1062,6 +1062,7 @@ export default function TournamentDetail() {
                   {isExperimental && showCsvImport && capabilities.canManageParticipants && (
                     <div className="border-b px-6 pb-5">
                       <ExperimentalBulkPaste
+                        teams={!!teamEntries}
                         existingNames={(players ?? []).map((player) => player.name)}
                         existingSeeds={(players ?? []).flatMap((player) => (typeof player.seed === "number" ? [player.seed] : []))}
                         maxPlayers={tournament.maxPlayers}

@@ -18,6 +18,28 @@
 
 import { useMemo } from "react";
 import { Trophy, ArrowDownRight } from "lucide-react";
+import { useLocation } from "wouter";
+import { isExperimentalTournamentPath } from "@/features/experimental-tournaments/experimental-tournament-routing";
+
+/**
+ * V5.8 · Experimental speaks Polish in the double-elimination view; the engine's match names ("Upper R1 M1",
+ * "Grand Final") are only translated for display. Stable keeps the original labels.
+ */
+export function deDisplayName(name: string, experimental: boolean): string {
+  if (!experimental) return name;
+  if (name === "Grand Final Reset") return "Rewanż w wielkim finale";
+  if (name === "Grand Final") return "Wielki finał";
+  return name.replace(/^Upper R(\d+)/, "Wygrani R$1").replace(/^Lower R(\d+)/, "Przegrani R$1");
+}
+const DE_SECTION_LABELS = {
+  stable: { upper: "Upper Bracket", lower: "Lower Bracket", final: "Grand Final", drop: "Spada z Upper Bracket" },
+  experimental: { upper: "Drabinka wygranych", lower: "Drabinka przegranych", final: "Wielki finał", drop: "Spada z drabinki wygranych" },
+} as const;
+function useDeLabels() {
+  const [location] = useLocation();
+  const experimental = isExperimentalTournamentPath(location);
+  return { experimental, labels: DE_SECTION_LABELS[experimental ? "experimental" : "stable"] };
+}
 import type {
   DoubleEliminationMatch,
   DoubleEliminationParticipant,
@@ -360,6 +382,7 @@ function DEMatchCard({
   hideMatchName?: boolean;
   compact?: boolean;
 }) {
+  const de = useDeLabels();
   const cardH = compact ? 64 : CARD_H;
   const headerH = 16;
   const rowH = (cardH - headerH) / 2;
@@ -386,7 +409,7 @@ function DEMatchCard({
       >
         {!hideMatchName && (
           <span className="text-[9px] font-mono text-muted-foreground leading-none truncate">
-            {match.name}
+            {deDisplayName(match.name, de.experimental)}
           </span>
         )}
         <div className="ml-auto flex items-center gap-1 shrink-0">
@@ -419,7 +442,7 @@ function DEMatchCard({
             {isUbDrop && !isWinner && (
               <ArrowDownRight
                 className="w-3 h-3 text-amber-400/70 shrink-0"
-                aria-label="Spada z Upper Bracket"
+                aria-label={de.labels.drop}
               />
             )}
             <span
@@ -462,6 +485,7 @@ export function DEBracketCanvas({
   hideMatchNames,
   showDropLines = true,
 }: DEBracketCanvasProps) {
+  const de = useDeLabels();
   const {
     ubPositions,
     lbPositions,
@@ -570,7 +594,7 @@ export function DEBracketCanvas({
             className="absolute text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60"
             style={{ top: UB_LABEL_Y, left: 0, height: SECTION_LABEL_H, lineHeight: `${SECTION_LABEL_H}px` }}
           >
-            Upper Bracket
+            {de.labels.upper}
           </div>
         )}
         {lbPositions.length > 0 && (
@@ -578,7 +602,7 @@ export function DEBracketCanvas({
             className="absolute text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60"
             style={{ top: LB_LABEL_Y, left: 0, height: SECTION_LABEL_H, lineHeight: `${SECTION_LABEL_H}px` }}
           >
-            Lower Bracket
+            {de.labels.lower}
           </div>
         )}
         {allGfPos.length > 0 && (
@@ -591,7 +615,7 @@ export function DEBracketCanvas({
               lineHeight: `${GF_LABEL_H}px`,
             }}
           >
-            Grand Final
+            {de.labels.final}
           </div>
         )}
 

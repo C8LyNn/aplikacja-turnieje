@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState } from "react";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
+import { isExperimentalTournamentPath } from "@/features/experimental-tournaments/experimental-tournament-routing";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   getGetDoubleEliminationStageQueryKey,
@@ -20,7 +21,7 @@ import { Input } from "@/components/ui/input";
 import { useMatchResultDrafts } from "@/hooks/use-match-result-drafts";
 import { matchOperationError } from "@/lib/match-operation-feedback";
 import { invalidateTournamentDependentQueries } from "@/lib/tournament-query-invalidation";
-import { DEBracketCanvas } from "@/components/de-bracket-canvas";
+import { DEBracketCanvas, deDisplayName } from "@/components/de-bracket-canvas";
 
 interface DoubleEliminationBracketProps {
   tournamentId: number;
@@ -138,6 +139,8 @@ export function DoubleEliminationBracket({
   matchRules = null,
 }: DoubleEliminationBracketProps) {
   const opensEditor = !!onOpenMatch || !!openMatchHref;
+  const [bracketLocation] = useLocation();
+  const experimentalView = isExperimentalTournamentPath(bracketLocation);
   const queryClient = useQueryClient();
   const [error, setError] = useState<string>();
   const [success, setSuccess] = useState<string>();
@@ -259,7 +262,8 @@ export function DoubleEliminationBracket({
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Shield className="h-4 w-4" />
           <span>Uczestnik odpada po drugiej porażce.</span>
-          <Badge variant="outline">Rewizja {state.revision}</Badge>
+          {/* V5.8: the state revision is an operator detail — Experimental viewers do not see it. */}
+          {(!experimentalView || canManage) && <Badge variant="outline">Rewizja {state.revision}</Badge>}
         </div>
         <div className="flex items-center gap-2">
           {/* Finals position toggle */}
@@ -270,10 +274,10 @@ export function DoubleEliminationBracket({
               size="sm"
               className="gap-1.5 text-xs"
               onClick={() => setFinalsPos(v => v === "upper" ? "between" : "upper")}
-              title="Zmień pozycję Grand Finału"
+              title={experimentalView ? "Zmień pozycję wielkiego finału" : "Zmień pozycję Grand Finału"}
             >
               <LayoutTemplate className="h-3.5 w-3.5" />
-              Finały: {finalsPos === "upper" ? "przy Upper" : "pomiędzy"}
+              Finały: {finalsPos === "upper" ? (experimentalView ? "przy drabince wygranych" : "przy Upper") : "pomiędzy"}
             </Button>
           )}
           {canReset && (
@@ -330,7 +334,7 @@ export function DoubleEliminationBracket({
               return <li key={match.matchKey} className="flex flex-wrap items-center gap-2 rounded-lg border bg-card p-3">
                 <span className="min-w-0 flex-1">
                   <span className="block text-sm font-semibold">{names}</span>
-                  <span className="block text-xs text-muted-foreground">{match.name} · {done ? `wynik ${current?.score1 ?? match.score1}:${current?.score2 ?? match.score2}` : matchRules ? `sety do ${matchRules.setsToWin}` : `BO${match.bestOf ?? 1}`}</span>
+                  <span className="block text-xs text-muted-foreground">{deDisplayName(match.name, experimentalView)} · {done ? `wynik ${current?.score1 ?? match.score1}:${current?.score2 ?? match.score2}` : matchRules ? `sety do ${matchRules.setsToWin}` : `BO${match.bestOf ?? 1}`}</span>
                 </span>
                 {onOpenMatch
                   ? <Button type="button" size="sm" variant={done ? "outline" : "default"} onClick={() => onOpenMatch(match.matchId!)}>{label}</Button>

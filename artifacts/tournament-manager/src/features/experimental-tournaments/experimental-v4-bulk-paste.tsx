@@ -24,7 +24,10 @@ export function ExperimentalBulkPaste({
   pending,
   onImport,
   onClose,
+  teams = false,
 }: {
+  /** V5.8: a team tournament pastes teams and says "drużyna". */
+  teams?: boolean;
   existingNames: ReadonlyArray<string>;
   existingSeeds?: ReadonlyArray<number>;
   maxPlayers?: number | null;
@@ -84,7 +87,7 @@ export function ExperimentalBulkPaste({
       <section className="experimental-v4-bulk" aria-labelledby={`${id}-done`}>
         <p id={`${id}-done`} className="experimental-v4-bulk-done" role="status">
           <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
-          Dodano {plural(outcome.imported ?? 0, "zawodnika", "zawodników", "zawodników")}
+          Dodano {teams ? plural(outcome.imported ?? 0, "drużynę", "drużyny", "drużyn") : plural(outcome.imported ?? 0, "zawodnika", "zawodników", "zawodników")}
           {outcome.replacedCount ? ` · usunięto poprzednich: ${outcome.replacedCount}` : ""}
           {outcome.skipped ? ` · pominięto: ${outcome.skipped}` : ""}
         </p>
@@ -112,7 +115,7 @@ export function ExperimentalBulkPaste({
         </button>
       </div>
       <label htmlFor={`${id}-text`} className="experimental-v4-muted">
-        Jeden zawodnik w wierszu. Możesz wkleić kolumny z arkusza (nick, drużyna, rozstawienie) albo CSV z nagłówkiem.
+        {teams ? "Jedna drużyna w wierszu. Możesz wkleić kolumny z arkusza (nazwa, rozstawienie) albo CSV z nagłówkiem. Składy uzupełnisz poniżej." : "Jeden zawodnik w wierszu. Możesz wkleić kolumny z arkusza (nick, drużyna, rozstawienie) albo CSV z nagłówkiem."}
       </label>
       <textarea
         id={`${id}-text`}
@@ -178,7 +181,7 @@ export function ExperimentalBulkPaste({
       ) : null}
       <div className="experimental-v4-bulk-actions">
         <button type="button" className="experimental-v4-btn" data-variant="primary" disabled={!toAdd || pending} onClick={() => void submit()}>
-          {pending ? "Dodawanie…" : confirmReplace ? `Zastąp listę (${toAdd})` : toAdd ? `Dodaj ${plural(toAdd, "zawodnika", "zawodników", "zawodników")}` : "Dodaj zawodników"}
+          {pending ? "Dodawanie…" : confirmReplace ? `Zastąp listę (${toAdd})` : toAdd ? `Dodaj ${teams ? plural(toAdd, "drużynę", "drużyny", "drużyn") : plural(toAdd, "zawodnika", "zawodników", "zawodników")}` : teams ? "Dodaj drużyny" : "Dodaj zawodników"}
         </button>
         <button type="button" className="experimental-v4-btn" data-variant="ghost" onClick={onClose}>Anuluj</button>
       </div>
