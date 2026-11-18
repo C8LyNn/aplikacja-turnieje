@@ -61,6 +61,7 @@ test("the address follows the choices; the preview shows the same address; no cr
   await user.selectOptions(screen.getByRole("combobox", { name: "Rozdzielczość w OBS" }), "1440p");
   assert.ok(screen.getByText(/szerokość 2560/));
   assert.equal(screen.getByTitle("Podgląd nakładki").getAttribute("width"), "2560");
+  assert.equal(screen.getByTitle("Podgląd nakładki").getAttribute("tabindex"), "-1", "the preview is not a keyboard stop");
 });
 
 test("'Na ekranie' changes only after the explicit button, with the existing tournament update", async () => {

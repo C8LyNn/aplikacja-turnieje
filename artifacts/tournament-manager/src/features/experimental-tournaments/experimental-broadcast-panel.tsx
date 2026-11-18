@@ -288,7 +288,8 @@ function OverlayPreview({ src, width, height }: { src: string; width: number; he
   }, [width]);
   return (
     <div ref={box} className="experimental-broadcast-preview relative w-full max-w-4xl overflow-hidden rounded-lg border" style={{ aspectRatio: `${width} / ${height}` }}>
-      <iframe title="Podgląd nakładki" src={src} width={width} height={height} className="absolute left-0 top-0 origin-top-left border-0" style={{ transform: `scale(${scale})` }} />
+      {/* Nothing to operate inside the overlay, so the preview is not a keyboard stop (V5.9 a11y check). */}
+      <iframe title="Podgląd nakładki" tabIndex={-1} src={src} width={width} height={height} className="absolute left-0 top-0 origin-top-left border-0" style={{ transform: `scale(${scale})` }} />
     </div>
   );
 }
