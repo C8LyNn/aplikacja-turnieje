@@ -1,4 +1,4 @@
-import { describeMatchRules, parseMatchRules, validateMatchRulesForStage } from "@workspace/match-rules";
+import { describeMatchRules, MATCH_RULE_PRESETS, parseMatchRules, TWO_LEGS_DESCRIPTION, validateMatchRulesForStage } from "@workspace/match-rules";
 /**
  * V5 · Stage B — versioned tournament configuration for AI assistants.
  *
@@ -604,7 +604,7 @@ export function summarizeCustomPlan(plan: TournamentStagesPlan): PresetPreview {
     tieRules: plan.stages.map((stage) => {
       const rules = (stage.format === "round_robin" || stage.format === "group_stage") ? stage.leagueRules : undefined;
       return rules
-        ? `${stage.name}: ${describeLeagueRules(rules, { sets: stage.matchRules != null })}`
+        ? `${stage.name}: ${describeLeagueRules(rules, { sets: stage.matchRules?.kind === "sets" })}`
         : `${stage.name}: remisów nie ma — każdy mecz musi mieć zwycięzcę.`;
     }),
     leagueRules: plan.stages.map((stage) => (stage.format === "round_robin" || stage.format === "group_stage") ? stage.leagueRules ?? null : null).find((rules) => rules != null) ?? null,
@@ -719,6 +719,7 @@ const PARAM_RANGES: Record<PresetParamKey, { minimum: number; maximum: number }>
   setsToWin: { minimum: 0, maximum: 4 },
   setPoints: { minimum: 11, maximum: 25 },
   setWinBy: { minimum: 1, maximum: 2 },
+  twoLegs: { minimum: 0, maximum: 1 },
   legs: { minimum: 1, maximum: 2 },
   allowDraws: { minimum: 0, maximum: 1 },
   pointsWin: { minimum: 0, maximum: 10 },
@@ -777,17 +778,33 @@ export function buildAiConfigJsonSchema(): Rec {
       entrySeedingMethod: { enum: [...AI_ENTRY_SEEDING_METHODS], description: "Tylko pierwszy etap." },
       legs: { enum: [1, 2], description: "Tylko round_robin: 2 = mecz i rewanż (każda para gra dwa razy)." },
       matchRules: {
-        type: "object",
-        additionalProperties: false,
-        required: ["kind", "setsToWin", "pointsPerSet", "winBy"],
-        description: "Mecz rozstrzygany setami (każdy set według tych samych zasad). bestOf musi wynosić 2 × setsToWin − 1; remisy są wtedy niedozwolone. Pominięte = seria gier albo jedna gra.",
-        properties: {
-          version: { const: 1 },
-          kind: { const: "sets" },
-          setsToWin: { type: "integer", minimum: 1, maximum: 4 },
-          pointsPerSet: { type: "integer", minimum: 3, maximum: 99 },
-          winBy: { enum: [1, 2] },
-        },
+        description: "Jak rozstrzyga się mecz w etapie. Pominięte = seria gier albo jedna gra.",
+        oneOf: [
+          {
+            type: "object",
+            additionalProperties: false,
+            required: ["kind", "setsToWin", "pointsPerSet", "winBy"],
+            description: "Mecz rozstrzygany setami (każdy set według tych samych zasad). bestOf musi wynosić 2 × setsToWin − 1; remisy są wtedy niedozwolone.",
+            properties: {
+              version: { const: 1 },
+              kind: { const: "sets" },
+              setsToWin: { type: "integer", minimum: 1, maximum: 4 },
+              pointsPerSet: { type: "integer", minimum: 3, maximum: 99 },
+              winBy: { enum: [1, 2] },
+            },
+          },
+          {
+            type: "object",
+            additionalProperties: false,
+            required: ["kind"],
+            description: "V5.10 — dwumecz: tylko etap single_elimination z bestOf 1. Każda para gra dwa spotkania; awansuje zwycięzca sumy; przy równej sumie rozstrzyga organizator w aplikacji (bez bramek wyjazdowych).",
+            properties: {
+              version: { const: 1 },
+              kind: { const: "two_legs" },
+              levelAggregate: { const: "organizer_decision" },
+            },
+          },
+        ],
       },
       leagueRules: {
         type: "object",
@@ -910,6 +927,31 @@ export const AI_CONFIG_EXAMPLES: Array<{ title: string; request: string; config:
     },
   },
   {
+    title: "Puchar z dwumeczami (8 drużyn)",
+    request: "Puchar dla 8 drużyn, każda para gra mecz i rewanż, awansuje lepszy w sumie bramek.",
+    config: {
+      schemaVersion: 1, kind: "tournament",
+      participants: { type: "teams", count: 8 },
+      structure: { type: "preset", presetId: "single_elimination", params: { twoLegs: 1 } },
+      notes: "Ćwierćfinały, półfinały i finał w dwumeczach (14 spotkań). Przy równej sumie zwycięzcę wskazuje organizator.",
+    },
+  },
+  {
+    title: "Grupy, potem play-off w dwumeczach",
+    request: "16 drużyn w 4 grupach (remisy, 3/1/0), po dwie z grupy; ćwierćfinały i dalej mecz i rewanż.",
+    config: {
+      schemaVersion: 1, kind: "tournament",
+      participants: { type: "teams", count: 16 },
+      structure: {
+        type: "stages",
+        stages: [
+          { label: "Faza grupowa", format: "group_stage", groupCount: 4, qualifiersPerGroup: 2, bestOf: 1, leagueRules: { allowDraws: true, points: { win: 3, draw: 1, loss: 0 } } },
+          { label: "Play-off", format: "single_elimination", bestOf: 1, matchRules: { kind: "two_legs" } },
+        ],
+      },
+    },
+  },
+  {
     title: "Własna punktacja i kolejność kryteriów",
     request: "8 graczy, każdy z każdym, 2 punkty za wygraną, bez remisów; przy równych punktach najpierw bilans, potem mecz bezpośredni.",
     config: {
@@ -925,8 +967,15 @@ export const AI_CONFIG_EXAMPLES: Array<{ title: string; request: string; config:
   },
 ];
 
+/** V5.10: what decides a match (level B) — the catalog an AI may choose from, with where each option works. */
+export const AI_MATCH_DECISIONS = MATCH_RULE_PRESETS.map((preset) => ({
+  id: preset.id, label: preset.label, description: preset.description, formats: [...preset.formats],
+}));
+
 export interface AiSpecification {
   specVersion: string;
+  /** V5.10: what decides a match — ready-made options and the formats they work in. */
+  matchDecisions: typeof AI_MATCH_DECISIONS;
   schemaVersion: typeof AI_CONFIG_SCHEMA_VERSION;
   schema: Rec;
   presets: Array<{ id: PresetId; label: string; summary: string; participants: [number, number]; params: Array<{ key: PresetParamKey; label: string; help: string }> }>;
@@ -939,7 +988,9 @@ export interface AiSpecification {
 }
 
 export const AI_UNSUPPORTED_FEATURES: readonly string[] = [
-  "Remisy w drabinkach, systemie szwajcarskim i play-off — remis jest możliwy tylko w lidze i fazie grupowej z leagueRules.allowDraws.",
+  "Remisy w drabinkach, systemie szwajcarskim i play-off — remis jest możliwy tylko w lidze i fazie grupowej z leagueRules.allowDraws (oraz w jednym spotkaniu dwumeczu — o awansie decyduje suma).",
+  "Zasada bramek wyjazdowych, automatyczna dogrywka i rzuty karne w dwumeczu — przy równej sumie zwycięzcę wskazuje organizator w aplikacji.",
+  "Dwumecz poza drabinką pojedynczej eliminacji (np. w drabince podwójnej, lidze, grupach) oraz finał jako pojedynczy mecz w drabince z dwumeczami.",
   "Inne zasady dla seta decydującego (np. krótszy ostatni set), limit punktów w secie i wyjątki konkretnych dyscyplin — każdy set ma te same zasady.",
   "Wyniki setów w pliku — wyniki wpisuje organizator w aplikacji.",
   "Różne godziny meczów w jednej kolejce z pliku — schedule daje jedną godzinę na kolejkę; pojedyncze terminy organizator zmienia w aplikacji.",
@@ -951,7 +1002,9 @@ export const AI_UNSUPPORTED_FEATURES: readonly string[] = [
 
 export function buildAiSpecification(): AiSpecification {
   return {
-    specVersion: `${AI_CONFIG_SCHEMA_VERSION}.0`,
+    // 1.1 (V5.10): two-legged ties (`twoLegs`, `matchRules.kind = "two_legs"`) — backward compatible with 1.0 files.
+    specVersion: `${AI_CONFIG_SCHEMA_VERSION}.1`,
+    matchDecisions: AI_MATCH_DECISIONS,
     schemaVersion: AI_CONFIG_SCHEMA_VERSION,
     schema: buildAiConfigJsonSchema(),
     presets: PRESET_IDS.map((id) => ({
@@ -983,6 +1036,9 @@ export function buildAiSpecificationMarkdown(): string {
   lines.push("## Czego NIE wolno umieszczać w pliku", "");
   lines.push("Nazwy turnieju, opisu, haseł, tokenów, właściciela, uprawnień, identyfikatorów, list zawodników, wyników ani historii. Użytkownik wpisze nazwę i hasła w aplikacji. Zabronione pola (w dowolnym miejscu pliku):", "");
   lines.push(spec.forbiddenFields.map((field) => `\`${field}\``).join(", "), "");
+  lines.push("## Jak rozstrzyga się mecz (gotowe zasady)", "");
+  for (const option of spec.matchDecisions) lines.push(`- \`${option.id}\` — ${option.label}: ${option.description} Formaty: ${option.formats.join(", ")}.`);
+  lines.push("");
   lines.push("## Presety (zalecane)", "");
   for (const preset of spec.presets) {
     lines.push(`### \`${preset.id}\` — ${preset.label}`, "");
@@ -993,6 +1049,7 @@ export function buildAiSpecificationMarkdown(): string {
   lines.push("`legs` (presety round_robin i league_playoff): 1 = jeden mecz każdej pary, 2 = mecz i rewanż. ");
   lines.push("Punktacja w presetach z tabelą (round_robin, league_playoff, groups_playoff): `pointsWin`, `pointsDraw`, `pointsLoss` (0–10, domyślnie 3/1/0) i `allowDraws` (0 albo 1, domyślnie 0). Remisy wymagają `bestOf: 1`. Przy równej liczbie punktów kolejno decydują: mecze bezpośrednie, różnica wyników, zdobyte, liczba zwycięstw, rozstawienie.");
   lines.push("Mecz na sety (każdy preset): `setsToWin` (0 = bez setów, 1–4 = tyle wygranych setów daje zwycięstwo), `setPoints` (11, 15, 21 albo 25 punktów w secie), `setWinBy` (1 albo 2 punkty przewagi). Przy `setsToWin` > 0 długość meczu wynika z setów — nie podawaj wtedy `bestOf` ani `playoffBestOf`, a `allowDraws` musi być 0. Tabela liczy wtedy mecze, sety i małe punkty (punkty z setów) osobno od punktów klasyfikacji.");
+  lines.push(`Dwumecz (presety z drabinką pojedynczej eliminacji: single_elimination, groups_playoff, swiss_playoff, league_playoff): \`twoLegs: 1\` — ${TWO_LEGS_DESCRIPTION} Każde spotkanie to jedna gra, więc nie podawaj wtedy \`bestOf\` (w single_elimination) ani \`playoffBestOf\` (w presetach z play-off) różnych od 1; dwumecz nie łączy się z \`setsToWin\`.`);
   lines.push("Zasady parametrów: `bestOf`/`playoffBestOf` ∈ {1, 3, 5, 7}; `groupCount` od 2 do floor(uczestnicy/3); `qualifiersPerGroup` mniejsze od najmniejszej grupy; `advancingCount` to potęga dwójki mniejsza od liczby uczestników; `swissRounds` od 1 (2 w presecie z play-off) do min(uczestnicy−1, 15). Pominięty parametr = rozsądna wartość domyślna.", "");
   lines.push("## Własne etapy (`structure.type: \"stages\"`)", "");
   lines.push(`Do ${AI_CONFIG_MAX_STAGES} etapów rozgrywanych po kolei. Formaty: ${spec.stageFormats.map((item) => `\`${item.format}\` (${item.label})`).join(", ")}.`, "");
@@ -1005,6 +1062,7 @@ export function buildAiSpecificationMarkdown(): string {
   lines.push("- `double_elimination` musi być ostatnim etapem; w planie wieloetapowym wymaga potęgi dwójki 4–64 uczestników.");
   lines.push("- `round_robin` i `group_stage` mogą mieć `leagueRules`: `{ \"allowDraws\": true, \"points\": { \"win\": 3, \"draw\": 1, \"loss\": 0 }, \"tieBreakers\": [\"head_to_head\", \"score_difference\", \"scored\", \"wins\"] }`. Bez `leagueRules` tabela liczy zwycięstwa, a remisów nie ma.");
   lines.push("- Każdy etap może mieć `matchRules`: `{ \"kind\": \"sets\", \"setsToWin\": 2, \"pointsPerSet\": 11, \"winBy\": 2 }` — wtedy `bestOf` musi być równe 2 × setsToWin − 1, a remisów nie ma.");
+  lines.push("- Etap `single_elimination` z `bestOf: 1` może mieć `matchRules: { \"kind\": \"two_legs\" }` — dwumecz: dwa spotkania każdej pary, awansuje zwycięzca sumy, przy równej sumie rozstrzyga organizator (bez bramek wyjazdowych).");
   lines.push("- Ostatni etap nie ma `advancingCount`. Poza ligą i grupami z remisami każdy mecz ma zwycięzcę.", "");
   lines.push("## Terminarz (`schedule`)", "");
   lines.push("Opcjonalne pole na najwyższym poziomie pliku. Dotyczy pierwszego etapu ligowego lub grupowego: kolejka 1 odbywa się `startDate`, każda następna `intervalDays` dni później, o godzinie `defaultTime` czasu lokalnego w strefie `timeZone` (domyślnie Europe/Warsaw). Godzina, która przez zmianę czasu nie istnieje albo występuje dwa razy, zostanie odrzucona. Daty pojawią się po starcie etapu, a organizator może je zmieniać i przekładać mecze.", "");

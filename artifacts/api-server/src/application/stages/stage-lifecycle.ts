@@ -65,6 +65,7 @@ import {
 import { loadStageBasketConfigurationInTransaction } from "./stage-basket-configuration";
 import { hasLegacyLinearParticipantFlowMismatch } from "../../domain/tournament/stage-baskets";
 import { loadBasketInputRoster, materializeBasketInputRoster } from "./basket-input-roster";
+import { createTieLegs } from "../matches/two-leg-ties";
 export { StageLifecycleError, type StageLifecycleErrorCode } from "./stage-lifecycle-error";
 
 export interface StageLifecycleTestHooks {
@@ -1342,6 +1343,8 @@ export async function startStage(
       inserted = await tx.insert(matchesTable).values(generated.values).returning();
     }
 
+    // V5.10: a two-legged stage gets both legs of every tie (byes have none).
+    await createTieLegs(tx, stage, inserted);
     const byeMatches = inserted.filter((match) => match.resultType === "bye" && match.winnerId != null);
     if (stage.format === "single_elimination") {
       const secondRound = inserted.filter((match) => match.round === 2).sort((left, right) => left.matchNumber - right.matchNumber);

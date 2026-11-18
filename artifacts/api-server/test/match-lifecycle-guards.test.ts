@@ -34,7 +34,7 @@ function lifecycle(operation: "cancel" | "restore", patchBody?: Record<string, u
     resultType: null as string | null, completedAt: null as Date | null, winnerId: null as number | null,
     player1Id: null, player2Id: null, round: 1, matchNumber: 1, note: null,
   };
-  const state = { match: { ...initial }, tournament: "active", stage: "active" as string | undefined, writes: 0 };
+  const state = { match: { ...initial }, tournament: "active", stage: "active" as string | undefined, writes: 0, twoLegged: false };
   let held = false;
   function select(current: boolean) {
     let table: unknown;
@@ -76,6 +76,8 @@ function lifecycle(operation: "cancel" | "restore", patchBody?: Record<string, u
     MatchRevisionConflict, readExpectedRevision, REVISION_REQUIRED_MESSAGE, sendRevisionConflict,
     enrichMatches: async (rows: unknown[]) => rows,
     logAction: async () => { state.writes++; },
+    // V5.10: two-legged ties are refused by these whole-match operations (see the test below).
+    isTwoLeggedTie: async () => state.twoLegged === true,
   };
   const run = handler(routes, patchBody ? 'patch("/matches/:id"' : `post("/matches/:id/${operation === "cancel" ? "cancel" : "restore-cancelled"}"`, env);
   const res = { statusCode: 200, body: undefined as any, status(n: number) { this.statusCode = n; return this; }, json(body: unknown) { this.body = body; return this; } };
@@ -114,6 +116,17 @@ test("generic PATCH cannot restore a match cancelled while the request waited", 
   await f.queued.promise; f.state.match.status = "cancelled"; f.release.resolve(); await running;
   assert.equal(f.res.statusCode, 422); assert.equal(f.res.body.code, "CANCELLED_MATCH_PATCH_FORBIDDEN");
   assert.equal(f.state.writes, 0);
+});
+test("V5.10: a two-legged tie is not cancelled or re-statused as a whole (zero writes)", async () => {
+  for (const patchBody of [undefined, { status: "in_progress" }] as const) {
+    const f = lifecycle("cancel", patchBody);
+    f.state.twoLegged = true;
+    f.release.resolve();
+    await f.run();
+    assert.equal(f.res.statusCode, 422);
+    assert.equal(f.res.body.code, "TWO_LEGS_TIE_OPERATION_UNSUPPORTED");
+    assert.equal(f.state.writes, 0);
+  }
 });
 test("duplicate cancellation is a 409 conflict", () => {
   assert.throws(() => assertCancelRestoreState("cancel", {

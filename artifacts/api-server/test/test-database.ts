@@ -125,6 +125,9 @@ const POINT_ADJUSTMENTS_MIGRATION_URL = new URL(
 const MATCH_SET_RULES_MIGRATION_URL = new URL(
   "../../../lib/db/migrations/0046_match_set_rules.sql", import.meta.url,
 );
+const TWO_LEG_TIES_MIGRATION_URL = new URL(
+  "../../../lib/db/migrations/0047_two_leg_ties.sql", import.meta.url,
+);
 const ROUND_ROBIN_LEGS_MIGRATION_URL = new URL(
   "../../../lib/db/migrations/0041_round_robin_legs.sql", import.meta.url,
 );
@@ -459,6 +462,12 @@ export async function resetTestSchema(pool: TestPool, schema: string): Promise<v
       );
       await pool.query(matchSetRulesSql);
       await pool.query(matchSetRulesSql);
+      // V5.10: two-legged ties (idempotent like the others).
+      const twoLegTiesSql = renderSeriesV1MigrationForTestSchema(
+        await readFile(TWO_LEG_TIES_MIGRATION_URL, "utf8"), schema,
+      );
+      await pool.query(twoLegTiesSql);
+      await pool.query(twoLegTiesSql);
       await pool.query("COMMIT");
     } catch (error) {
       await pool.query("ROLLBACK");

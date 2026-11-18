@@ -135,12 +135,12 @@ export const createTournamentBodyStagePlanStagesItemLeagueRulesPointsDrawMax = 9
 export const createTournamentBodyStagePlanStagesItemLeagueRulesPointsLossMin = 0;
 export const createTournamentBodyStagePlanStagesItemLeagueRulesPointsLossMax = 99;
 
-export const createTournamentBodyStagePlanStagesItemMatchRulesSetsToWinMax = 4;
+export const createTournamentBodyStagePlanStagesItemMatchRulesOneSetsToWinMax = 4;
 
-export const createTournamentBodyStagePlanStagesItemMatchRulesPointsPerSetMin = 3;
-export const createTournamentBodyStagePlanStagesItemMatchRulesPointsPerSetMax = 99;
+export const createTournamentBodyStagePlanStagesItemMatchRulesOnePointsPerSetMin = 3;
+export const createTournamentBodyStagePlanStagesItemMatchRulesOnePointsPerSetMax = 99;
 
-export const createTournamentBodyStagePlanStagesItemMatchRulesWinByMax = 2;
+export const createTournamentBodyStagePlanStagesItemMatchRulesOneWinByMax = 2;
 
 export const createTournamentBodyStagePlanStagesItemSchedulePlanIntervalDaysMax = 60;
 
@@ -165,12 +165,12 @@ export const createTournamentBodyLeagueRulesPointsDrawMax = 99;
 export const createTournamentBodyLeagueRulesPointsLossMin = 0;
 export const createTournamentBodyLeagueRulesPointsLossMax = 99;
 
-export const createTournamentBodyMatchRulesSetsToWinMax = 4;
+export const createTournamentBodyMatchRulesOneSetsToWinMax = 4;
 
-export const createTournamentBodyMatchRulesPointsPerSetMin = 3;
-export const createTournamentBodyMatchRulesPointsPerSetMax = 99;
+export const createTournamentBodyMatchRulesOnePointsPerSetMin = 3;
+export const createTournamentBodyMatchRulesOnePointsPerSetMax = 99;
 
-export const createTournamentBodyMatchRulesWinByMax = 2;
+export const createTournamentBodyMatchRulesOneWinByMax = 2;
 
 export const createTournamentBodySchedulePlanIntervalDaysMax = 60;
 
@@ -225,13 +225,17 @@ export const CreateTournamentBody = zod.object({
 }),
   "tieBreakers": zod.array(zod.enum(['head_to_head', 'score_difference', 'scored', 'wins'])).optional()
 }).optional().describe('V5.3: round_robin and group_stage only. Omitted keeps ranking by match wins.'),
-  "matchRules": zod.object({
+  "matchRules": zod.union([zod.object({
   "version": zod.number(),
   "kind": zod.enum(['sets']),
-  "setsToWin": zod.number().min(1).max(createTournamentBodyStagePlanStagesItemMatchRulesSetsToWinMax),
-  "pointsPerSet": zod.number().min(createTournamentBodyStagePlanStagesItemMatchRulesPointsPerSetMin).max(createTournamentBodyStagePlanStagesItemMatchRulesPointsPerSetMax),
-  "winBy": zod.number().min(1).max(createTournamentBodyStagePlanStagesItemMatchRulesWinByMax)
-}).optional().describe('V5.7: matches decided by sets; bestOf must equal 2 × setsToWin − 1 and draws are not allowed.'),
+  "setsToWin": zod.number().min(1).max(createTournamentBodyStagePlanStagesItemMatchRulesOneSetsToWinMax),
+  "pointsPerSet": zod.number().min(createTournamentBodyStagePlanStagesItemMatchRulesOnePointsPerSetMin).max(createTournamentBodyStagePlanStagesItemMatchRulesOnePointsPerSetMax),
+  "winBy": zod.number().min(1).max(createTournamentBodyStagePlanStagesItemMatchRulesOneWinByMax)
+}).describe('V5.7: every set uses the same rules; the match score is sets won.'),zod.object({
+  "version": zod.number(),
+  "kind": zod.enum(['two_legs']),
+  "levelAggregate": zod.enum(['organizer_decision']).optional().describe('Only policy: the organizer decides a level aggregate (default).')
+}).describe('V5.10: two-legged knockout tie (single elimination only). Two games between the same pair; the aggregate decides. A level aggregate is decided by the organizer with a reason (no away-goals rule, nothing invented).')]).optional().describe('V5.7: matches decided by sets; bestOf must equal 2 × setsToWin − 1 and draws are not allowed.'),
   "scheduleTimeZone": zod.string().optional().describe('V5.3: round_robin and group_stage. IANA time zone of the schedule, e.g. Europe\/Warsaw.'),
   "schedulePlan": zod.object({
   "startDate": zod.string().describe('YYYY-MM-DD'),
@@ -260,13 +264,17 @@ export const CreateTournamentBody = zod.object({
 }),
   "tieBreakers": zod.array(zod.enum(['head_to_head', 'score_difference', 'scored', 'wins'])).optional()
 }).optional().describe('V5.3: league rules for a single round_robin tournament created without a stage plan (flexible participant count).'),
-  "matchRules": zod.object({
+  "matchRules": zod.union([zod.object({
   "version": zod.number(),
   "kind": zod.enum(['sets']),
-  "setsToWin": zod.number().min(1).max(createTournamentBodyMatchRulesSetsToWinMax),
-  "pointsPerSet": zod.number().min(createTournamentBodyMatchRulesPointsPerSetMin).max(createTournamentBodyMatchRulesPointsPerSetMax),
-  "winBy": zod.number().min(1).max(createTournamentBodyMatchRulesWinByMax)
-}).optional().describe('V5.7: match rules for a tournament created without a stage plan (defaultBestOf must equal 2 × setsToWin − 1).'),
+  "setsToWin": zod.number().min(1).max(createTournamentBodyMatchRulesOneSetsToWinMax),
+  "pointsPerSet": zod.number().min(createTournamentBodyMatchRulesOnePointsPerSetMin).max(createTournamentBodyMatchRulesOnePointsPerSetMax),
+  "winBy": zod.number().min(1).max(createTournamentBodyMatchRulesOneWinByMax)
+}).describe('V5.7: every set uses the same rules; the match score is sets won.'),zod.object({
+  "version": zod.number(),
+  "kind": zod.enum(['two_legs']),
+  "levelAggregate": zod.enum(['organizer_decision']).optional().describe('Only policy: the organizer decides a level aggregate (default).')
+}).describe('V5.10: two-legged knockout tie (single elimination only). Two games between the same pair; the aggregate decides. A level aggregate is decided by the organizer with a reason (no away-goals rule, nothing invented).')]).optional().describe('V5.7: match rules for a tournament created without a stage plan (defaultBestOf must equal 2 × setsToWin − 1).'),
   "scheduleTimeZone": zod.string().optional().describe('V5.3: schedule time zone for a single round_robin created without a stage plan.'),
   "schedulePlan": zod.object({
   "startDate": zod.string().describe('YYYY-MM-DD'),
@@ -331,12 +339,12 @@ export const previewTournamentPlanResponseStagePlanStagesItemLeagueRulesPointsDr
 export const previewTournamentPlanResponseStagePlanStagesItemLeagueRulesPointsLossMin = 0;
 export const previewTournamentPlanResponseStagePlanStagesItemLeagueRulesPointsLossMax = 99;
 
-export const previewTournamentPlanResponseStagePlanStagesItemMatchRulesSetsToWinMax = 4;
+export const previewTournamentPlanResponseStagePlanStagesItemMatchRulesOneSetsToWinMax = 4;
 
-export const previewTournamentPlanResponseStagePlanStagesItemMatchRulesPointsPerSetMin = 3;
-export const previewTournamentPlanResponseStagePlanStagesItemMatchRulesPointsPerSetMax = 99;
+export const previewTournamentPlanResponseStagePlanStagesItemMatchRulesOnePointsPerSetMin = 3;
+export const previewTournamentPlanResponseStagePlanStagesItemMatchRulesOnePointsPerSetMax = 99;
 
-export const previewTournamentPlanResponseStagePlanStagesItemMatchRulesWinByMax = 2;
+export const previewTournamentPlanResponseStagePlanStagesItemMatchRulesOneWinByMax = 2;
 
 export const previewTournamentPlanResponseStagePlanStagesItemSchedulePlanIntervalDaysMax = 60;
 
@@ -383,13 +391,17 @@ export const PreviewTournamentPlanResponse = zod.object({
 }),
   "tieBreakers": zod.array(zod.enum(['head_to_head', 'score_difference', 'scored', 'wins'])).optional()
 }).optional().describe('V5.3: round_robin and group_stage only. Omitted keeps ranking by match wins.'),
-  "matchRules": zod.object({
+  "matchRules": zod.union([zod.object({
   "version": zod.number(),
   "kind": zod.enum(['sets']),
-  "setsToWin": zod.number().min(1).max(previewTournamentPlanResponseStagePlanStagesItemMatchRulesSetsToWinMax),
-  "pointsPerSet": zod.number().min(previewTournamentPlanResponseStagePlanStagesItemMatchRulesPointsPerSetMin).max(previewTournamentPlanResponseStagePlanStagesItemMatchRulesPointsPerSetMax),
-  "winBy": zod.number().min(1).max(previewTournamentPlanResponseStagePlanStagesItemMatchRulesWinByMax)
-}).optional().describe('V5.7: matches decided by sets; bestOf must equal 2 × setsToWin − 1 and draws are not allowed.'),
+  "setsToWin": zod.number().min(1).max(previewTournamentPlanResponseStagePlanStagesItemMatchRulesOneSetsToWinMax),
+  "pointsPerSet": zod.number().min(previewTournamentPlanResponseStagePlanStagesItemMatchRulesOnePointsPerSetMin).max(previewTournamentPlanResponseStagePlanStagesItemMatchRulesOnePointsPerSetMax),
+  "winBy": zod.number().min(1).max(previewTournamentPlanResponseStagePlanStagesItemMatchRulesOneWinByMax)
+}).describe('V5.7: every set uses the same rules; the match score is sets won.'),zod.object({
+  "version": zod.number(),
+  "kind": zod.enum(['two_legs']),
+  "levelAggregate": zod.enum(['organizer_decision']).optional().describe('Only policy: the organizer decides a level aggregate (default).')
+}).describe('V5.10: two-legged knockout tie (single elimination only). Two games between the same pair; the aggregate decides. A level aggregate is decided by the organizer with a reason (no away-goals rule, nothing invented).')]).optional().describe('V5.7: matches decided by sets; bestOf must equal 2 × setsToWin − 1 and draws are not allowed.'),
   "scheduleTimeZone": zod.string().optional().describe('V5.3: round_robin and group_stage. IANA time zone of the schedule, e.g. Europe\/Warsaw.'),
   "schedulePlan": zod.object({
   "startDate": zod.string().describe('YYYY-MM-DD'),
@@ -1259,12 +1271,12 @@ export const listTournamentStagesResponseLeagueRulesOnePointsDrawMax = 99;
 export const listTournamentStagesResponseLeagueRulesOnePointsLossMin = 0;
 export const listTournamentStagesResponseLeagueRulesOnePointsLossMax = 99;
 
-export const listTournamentStagesResponseMatchRulesOneSetsToWinMax = 4;
+export const listTournamentStagesResponseMatchRulesOneOneSetsToWinMax = 4;
 
-export const listTournamentStagesResponseMatchRulesOnePointsPerSetMin = 3;
-export const listTournamentStagesResponseMatchRulesOnePointsPerSetMax = 99;
+export const listTournamentStagesResponseMatchRulesOneOnePointsPerSetMin = 3;
+export const listTournamentStagesResponseMatchRulesOneOnePointsPerSetMax = 99;
 
-export const listTournamentStagesResponseMatchRulesOneWinByMax = 2;
+export const listTournamentStagesResponseMatchRulesOneOneWinByMax = 2;
 
 export const listTournamentStagesResponseSchedulePlanOneIntervalDaysMax = 60;
 
@@ -1292,13 +1304,17 @@ export const ListTournamentStagesResponseItem = zod.object({
 }),
   "tieBreakers": zod.array(zod.enum(['head_to_head', 'score_difference', 'scored', 'wins'])).optional()
 }).describe('V5.3: draws, points and ordered tie-breakers for round_robin and group_stage stages.'),zod.null()]).optional().describe('V5.3: league rules; null keeps the pre-V5.3 ranking by match wins.'),
-  "matchRules": zod.union([zod.object({
+  "matchRules": zod.union([zod.union([zod.object({
   "version": zod.number(),
   "kind": zod.enum(['sets']),
-  "setsToWin": zod.number().min(1).max(listTournamentStagesResponseMatchRulesOneSetsToWinMax),
-  "pointsPerSet": zod.number().min(listTournamentStagesResponseMatchRulesOnePointsPerSetMin).max(listTournamentStagesResponseMatchRulesOnePointsPerSetMax),
-  "winBy": zod.number().min(1).max(listTournamentStagesResponseMatchRulesOneWinByMax)
-}).describe('V5.7: what decides a match. Every set uses the same rules; the match score is sets won.'),zod.null()]).optional().describe('V5.7: what decides a match; null keeps the series \/ draw-league meaning.'),
+  "setsToWin": zod.number().min(1).max(listTournamentStagesResponseMatchRulesOneOneSetsToWinMax),
+  "pointsPerSet": zod.number().min(listTournamentStagesResponseMatchRulesOneOnePointsPerSetMin).max(listTournamentStagesResponseMatchRulesOneOnePointsPerSetMax),
+  "winBy": zod.number().min(1).max(listTournamentStagesResponseMatchRulesOneOneWinByMax)
+}).describe('V5.7: every set uses the same rules; the match score is sets won.'),zod.object({
+  "version": zod.number(),
+  "kind": zod.enum(['two_legs']),
+  "levelAggregate": zod.enum(['organizer_decision']).optional().describe('Only policy: the organizer decides a level aggregate (default).')
+}).describe('V5.10: two-legged knockout tie (single elimination only). Two games between the same pair; the aggregate decides. A level aggregate is decided by the organizer with a reason (no away-goals rule, nothing invented).')]).describe('What decides a match (level B): sets (V5.7) or a two-legged knockout tie (V5.10). Absent\/null keeps the stage\'s existing meaning (one game, a best-of series, or a draw league game).'),zod.null()]).optional().describe('V5.7: what decides a match; null keeps the series \/ draw-league meaning.'),
   "matchRulesSummary": zod.string().optional().describe('V5.7: plain-language description of how a match is decided (every stage).'),
   "leagueRulesSummary": zod.string().nullish().describe('V5.3: plain-language description of the league rules.'),
   "scheduleTimeZone": zod.string().nullish().describe('V5.3: IANA time zone of the league schedule.'),
@@ -1502,12 +1518,12 @@ export const getTournamentStageResponseStageLeagueRulesOnePointsDrawMax = 99;
 export const getTournamentStageResponseStageLeagueRulesOnePointsLossMin = 0;
 export const getTournamentStageResponseStageLeagueRulesOnePointsLossMax = 99;
 
-export const getTournamentStageResponseStageMatchRulesOneSetsToWinMax = 4;
+export const getTournamentStageResponseStageMatchRulesOneOneSetsToWinMax = 4;
 
-export const getTournamentStageResponseStageMatchRulesOnePointsPerSetMin = 3;
-export const getTournamentStageResponseStageMatchRulesOnePointsPerSetMax = 99;
+export const getTournamentStageResponseStageMatchRulesOneOnePointsPerSetMin = 3;
+export const getTournamentStageResponseStageMatchRulesOneOnePointsPerSetMax = 99;
 
-export const getTournamentStageResponseStageMatchRulesOneWinByMax = 2;
+export const getTournamentStageResponseStageMatchRulesOneOneWinByMax = 2;
 
 export const getTournamentStageResponseStageSchedulePlanOneIntervalDaysMax = 60;
 
@@ -1540,13 +1556,17 @@ export const GetTournamentStageResponse = zod.object({
 }),
   "tieBreakers": zod.array(zod.enum(['head_to_head', 'score_difference', 'scored', 'wins'])).optional()
 }).describe('V5.3: draws, points and ordered tie-breakers for round_robin and group_stage stages.'),zod.null()]).optional().describe('V5.3: league rules; null keeps the pre-V5.3 ranking by match wins.'),
-  "matchRules": zod.union([zod.object({
+  "matchRules": zod.union([zod.union([zod.object({
   "version": zod.number(),
   "kind": zod.enum(['sets']),
-  "setsToWin": zod.number().min(1).max(getTournamentStageResponseStageMatchRulesOneSetsToWinMax),
-  "pointsPerSet": zod.number().min(getTournamentStageResponseStageMatchRulesOnePointsPerSetMin).max(getTournamentStageResponseStageMatchRulesOnePointsPerSetMax),
-  "winBy": zod.number().min(1).max(getTournamentStageResponseStageMatchRulesOneWinByMax)
-}).describe('V5.7: what decides a match. Every set uses the same rules; the match score is sets won.'),zod.null()]).optional().describe('V5.7: what decides a match; null keeps the series \/ draw-league meaning.'),
+  "setsToWin": zod.number().min(1).max(getTournamentStageResponseStageMatchRulesOneOneSetsToWinMax),
+  "pointsPerSet": zod.number().min(getTournamentStageResponseStageMatchRulesOneOnePointsPerSetMin).max(getTournamentStageResponseStageMatchRulesOneOnePointsPerSetMax),
+  "winBy": zod.number().min(1).max(getTournamentStageResponseStageMatchRulesOneOneWinByMax)
+}).describe('V5.7: every set uses the same rules; the match score is sets won.'),zod.object({
+  "version": zod.number(),
+  "kind": zod.enum(['two_legs']),
+  "levelAggregate": zod.enum(['organizer_decision']).optional().describe('Only policy: the organizer decides a level aggregate (default).')
+}).describe('V5.10: two-legged knockout tie (single elimination only). Two games between the same pair; the aggregate decides. A level aggregate is decided by the organizer with a reason (no away-goals rule, nothing invented).')]).describe('What decides a match (level B): sets (V5.7) or a two-legged knockout tie (V5.10). Absent\/null keeps the stage\'s existing meaning (one game, a best-of series, or a draw league game).'),zod.null()]).optional().describe('V5.7: what decides a match; null keeps the series \/ draw-league meaning.'),
   "matchRulesSummary": zod.string().optional().describe('V5.7: plain-language description of how a match is decided (every stage).'),
   "leagueRulesSummary": zod.string().nullish().describe('V5.3: plain-language description of the league rules.'),
   "scheduleTimeZone": zod.string().nullish().describe('V5.3: IANA time zone of the league schedule.'),
@@ -1932,12 +1952,12 @@ export const getStageLiveStandingsResponseLeagueRulesOnePointsDrawMax = 99;
 export const getStageLiveStandingsResponseLeagueRulesOnePointsLossMin = 0;
 export const getStageLiveStandingsResponseLeagueRulesOnePointsLossMax = 99;
 
-export const getStageLiveStandingsResponseMatchRulesOneSetsToWinMax = 4;
+export const getStageLiveStandingsResponseMatchRulesOneOneSetsToWinMax = 4;
 
-export const getStageLiveStandingsResponseMatchRulesOnePointsPerSetMin = 3;
-export const getStageLiveStandingsResponseMatchRulesOnePointsPerSetMax = 99;
+export const getStageLiveStandingsResponseMatchRulesOneOnePointsPerSetMin = 3;
+export const getStageLiveStandingsResponseMatchRulesOneOnePointsPerSetMax = 99;
 
-export const getStageLiveStandingsResponseMatchRulesOneWinByMax = 2;
+export const getStageLiveStandingsResponseMatchRulesOneOneWinByMax = 2;
 
 
 
@@ -1957,13 +1977,17 @@ export const GetStageLiveStandingsResponse = zod.object({
   "tieBreakers": zod.array(zod.enum(['head_to_head', 'score_difference', 'scored', 'wins'])).optional()
 }).describe('V5.3: draws, points and ordered tie-breakers for round_robin and group_stage stages.'),zod.null()]),
   "rulesSummary": zod.string().nullable(),
-  "matchRules": zod.union([zod.object({
+  "matchRules": zod.union([zod.union([zod.object({
   "version": zod.number(),
   "kind": zod.enum(['sets']),
-  "setsToWin": zod.number().min(1).max(getStageLiveStandingsResponseMatchRulesOneSetsToWinMax),
-  "pointsPerSet": zod.number().min(getStageLiveStandingsResponseMatchRulesOnePointsPerSetMin).max(getStageLiveStandingsResponseMatchRulesOnePointsPerSetMax),
-  "winBy": zod.number().min(1).max(getStageLiveStandingsResponseMatchRulesOneWinByMax)
-}).describe('V5.7: what decides a match. Every set uses the same rules; the match score is sets won.'),zod.null()]).optional(),
+  "setsToWin": zod.number().min(1).max(getStageLiveStandingsResponseMatchRulesOneOneSetsToWinMax),
+  "pointsPerSet": zod.number().min(getStageLiveStandingsResponseMatchRulesOneOnePointsPerSetMin).max(getStageLiveStandingsResponseMatchRulesOneOnePointsPerSetMax),
+  "winBy": zod.number().min(1).max(getStageLiveStandingsResponseMatchRulesOneOneWinByMax)
+}).describe('V5.7: every set uses the same rules; the match score is sets won.'),zod.object({
+  "version": zod.number(),
+  "kind": zod.enum(['two_legs']),
+  "levelAggregate": zod.enum(['organizer_decision']).optional().describe('Only policy: the organizer decides a level aggregate (default).')
+}).describe('V5.10: two-legged knockout tie (single elimination only). Two games between the same pair; the aggregate decides. A level aggregate is decided by the organizer with a reason (no away-goals rule, nothing invented).')]).describe('What decides a match (level B): sets (V5.7) or a two-legged knockout tie (V5.10). Absent\/null keeps the stage\'s existing meaning (one game, a best-of series, or a draw league game).'),zod.null()]).optional(),
   "matchRulesSummary": zod.string().optional(),
   "advancingPlaces": zod.number().nullable(),
   "tables": zod.array(zod.object({
@@ -2739,12 +2763,12 @@ export const startTournamentStageResponseLeagueRulesOnePointsDrawMax = 99;
 export const startTournamentStageResponseLeagueRulesOnePointsLossMin = 0;
 export const startTournamentStageResponseLeagueRulesOnePointsLossMax = 99;
 
-export const startTournamentStageResponseMatchRulesOneSetsToWinMax = 4;
+export const startTournamentStageResponseMatchRulesOneOneSetsToWinMax = 4;
 
-export const startTournamentStageResponseMatchRulesOnePointsPerSetMin = 3;
-export const startTournamentStageResponseMatchRulesOnePointsPerSetMax = 99;
+export const startTournamentStageResponseMatchRulesOneOnePointsPerSetMin = 3;
+export const startTournamentStageResponseMatchRulesOneOnePointsPerSetMax = 99;
 
-export const startTournamentStageResponseMatchRulesOneWinByMax = 2;
+export const startTournamentStageResponseMatchRulesOneOneWinByMax = 2;
 
 export const startTournamentStageResponseSchedulePlanOneIntervalDaysMax = 60;
 
@@ -2772,13 +2796,17 @@ export const StartTournamentStageResponse = zod.object({
 }),
   "tieBreakers": zod.array(zod.enum(['head_to_head', 'score_difference', 'scored', 'wins'])).optional()
 }).describe('V5.3: draws, points and ordered tie-breakers for round_robin and group_stage stages.'),zod.null()]).optional().describe('V5.3: league rules; null keeps the pre-V5.3 ranking by match wins.'),
-  "matchRules": zod.union([zod.object({
+  "matchRules": zod.union([zod.union([zod.object({
   "version": zod.number(),
   "kind": zod.enum(['sets']),
-  "setsToWin": zod.number().min(1).max(startTournamentStageResponseMatchRulesOneSetsToWinMax),
-  "pointsPerSet": zod.number().min(startTournamentStageResponseMatchRulesOnePointsPerSetMin).max(startTournamentStageResponseMatchRulesOnePointsPerSetMax),
-  "winBy": zod.number().min(1).max(startTournamentStageResponseMatchRulesOneWinByMax)
-}).describe('V5.7: what decides a match. Every set uses the same rules; the match score is sets won.'),zod.null()]).optional().describe('V5.7: what decides a match; null keeps the series \/ draw-league meaning.'),
+  "setsToWin": zod.number().min(1).max(startTournamentStageResponseMatchRulesOneOneSetsToWinMax),
+  "pointsPerSet": zod.number().min(startTournamentStageResponseMatchRulesOneOnePointsPerSetMin).max(startTournamentStageResponseMatchRulesOneOnePointsPerSetMax),
+  "winBy": zod.number().min(1).max(startTournamentStageResponseMatchRulesOneOneWinByMax)
+}).describe('V5.7: every set uses the same rules; the match score is sets won.'),zod.object({
+  "version": zod.number(),
+  "kind": zod.enum(['two_legs']),
+  "levelAggregate": zod.enum(['organizer_decision']).optional().describe('Only policy: the organizer decides a level aggregate (default).')
+}).describe('V5.10: two-legged knockout tie (single elimination only). Two games between the same pair; the aggregate decides. A level aggregate is decided by the organizer with a reason (no away-goals rule, nothing invented).')]).describe('What decides a match (level B): sets (V5.7) or a two-legged knockout tie (V5.10). Absent\/null keeps the stage\'s existing meaning (one game, a best-of series, or a draw league game).'),zod.null()]).optional().describe('V5.7: what decides a match; null keeps the series \/ draw-league meaning.'),
   "matchRulesSummary": zod.string().optional().describe('V5.7: plain-language description of how a match is decided (every stage).'),
   "leagueRulesSummary": zod.string().nullish().describe('V5.3: plain-language description of the league rules.'),
   "scheduleTimeZone": zod.string().nullish().describe('V5.3: IANA time zone of the league schedule.'),
@@ -2856,12 +2884,12 @@ export const updateStageLeagueRulesResponseLeagueRulesOnePointsDrawMax = 99;
 export const updateStageLeagueRulesResponseLeagueRulesOnePointsLossMin = 0;
 export const updateStageLeagueRulesResponseLeagueRulesOnePointsLossMax = 99;
 
-export const updateStageLeagueRulesResponseMatchRulesOneSetsToWinMax = 4;
+export const updateStageLeagueRulesResponseMatchRulesOneOneSetsToWinMax = 4;
 
-export const updateStageLeagueRulesResponseMatchRulesOnePointsPerSetMin = 3;
-export const updateStageLeagueRulesResponseMatchRulesOnePointsPerSetMax = 99;
+export const updateStageLeagueRulesResponseMatchRulesOneOnePointsPerSetMin = 3;
+export const updateStageLeagueRulesResponseMatchRulesOneOnePointsPerSetMax = 99;
 
-export const updateStageLeagueRulesResponseMatchRulesOneWinByMax = 2;
+export const updateStageLeagueRulesResponseMatchRulesOneOneWinByMax = 2;
 
 export const updateStageLeagueRulesResponseSchedulePlanOneIntervalDaysMax = 60;
 
@@ -2889,13 +2917,17 @@ export const UpdateStageLeagueRulesResponse = zod.object({
 }),
   "tieBreakers": zod.array(zod.enum(['head_to_head', 'score_difference', 'scored', 'wins'])).optional()
 }).describe('V5.3: draws, points and ordered tie-breakers for round_robin and group_stage stages.'),zod.null()]).optional().describe('V5.3: league rules; null keeps the pre-V5.3 ranking by match wins.'),
-  "matchRules": zod.union([zod.object({
+  "matchRules": zod.union([zod.union([zod.object({
   "version": zod.number(),
   "kind": zod.enum(['sets']),
-  "setsToWin": zod.number().min(1).max(updateStageLeagueRulesResponseMatchRulesOneSetsToWinMax),
-  "pointsPerSet": zod.number().min(updateStageLeagueRulesResponseMatchRulesOnePointsPerSetMin).max(updateStageLeagueRulesResponseMatchRulesOnePointsPerSetMax),
-  "winBy": zod.number().min(1).max(updateStageLeagueRulesResponseMatchRulesOneWinByMax)
-}).describe('V5.7: what decides a match. Every set uses the same rules; the match score is sets won.'),zod.null()]).optional().describe('V5.7: what decides a match; null keeps the series \/ draw-league meaning.'),
+  "setsToWin": zod.number().min(1).max(updateStageLeagueRulesResponseMatchRulesOneOneSetsToWinMax),
+  "pointsPerSet": zod.number().min(updateStageLeagueRulesResponseMatchRulesOneOnePointsPerSetMin).max(updateStageLeagueRulesResponseMatchRulesOneOnePointsPerSetMax),
+  "winBy": zod.number().min(1).max(updateStageLeagueRulesResponseMatchRulesOneOneWinByMax)
+}).describe('V5.7: every set uses the same rules; the match score is sets won.'),zod.object({
+  "version": zod.number(),
+  "kind": zod.enum(['two_legs']),
+  "levelAggregate": zod.enum(['organizer_decision']).optional().describe('Only policy: the organizer decides a level aggregate (default).')
+}).describe('V5.10: two-legged knockout tie (single elimination only). Two games between the same pair; the aggregate decides. A level aggregate is decided by the organizer with a reason (no away-goals rule, nothing invented).')]).describe('What decides a match (level B): sets (V5.7) or a two-legged knockout tie (V5.10). Absent\/null keeps the stage\'s existing meaning (one game, a best-of series, or a draw league game).'),zod.null()]).optional().describe('V5.7: what decides a match; null keeps the series \/ draw-league meaning.'),
   "matchRulesSummary": zod.string().optional().describe('V5.7: plain-language description of how a match is decided (every stage).'),
   "leagueRulesSummary": zod.string().nullish().describe('V5.3: plain-language description of the league rules.'),
   "scheduleTimeZone": zod.string().nullish().describe('V5.3: IANA time zone of the league schedule.'),
@@ -2938,24 +2970,28 @@ export const UpdateStageMatchRulesParams = zod.object({
   "stageId": zod.coerce.number().min(1)
 })
 
-export const updateStageMatchRulesBodyMatchRulesOneSetsToWinMax = 4;
+export const updateStageMatchRulesBodyMatchRulesOneOneSetsToWinMax = 4;
 
-export const updateStageMatchRulesBodyMatchRulesOnePointsPerSetMin = 3;
-export const updateStageMatchRulesBodyMatchRulesOnePointsPerSetMax = 99;
+export const updateStageMatchRulesBodyMatchRulesOneOnePointsPerSetMin = 3;
+export const updateStageMatchRulesBodyMatchRulesOneOnePointsPerSetMax = 99;
 
-export const updateStageMatchRulesBodyMatchRulesOneWinByMax = 2;
+export const updateStageMatchRulesBodyMatchRulesOneOneWinByMax = 2;
 
 
 
 
 export const UpdateStageMatchRulesBody = zod.object({
-  "matchRules": zod.union([zod.object({
+  "matchRules": zod.union([zod.union([zod.object({
   "version": zod.number(),
   "kind": zod.enum(['sets']),
-  "setsToWin": zod.number().min(1).max(updateStageMatchRulesBodyMatchRulesOneSetsToWinMax),
-  "pointsPerSet": zod.number().min(updateStageMatchRulesBodyMatchRulesOnePointsPerSetMin).max(updateStageMatchRulesBodyMatchRulesOnePointsPerSetMax),
-  "winBy": zod.number().min(1).max(updateStageMatchRulesBodyMatchRulesOneWinByMax)
-}).describe('V5.7: what decides a match. Every set uses the same rules; the match score is sets won.'),zod.null()]),
+  "setsToWin": zod.number().min(1).max(updateStageMatchRulesBodyMatchRulesOneOneSetsToWinMax),
+  "pointsPerSet": zod.number().min(updateStageMatchRulesBodyMatchRulesOneOnePointsPerSetMin).max(updateStageMatchRulesBodyMatchRulesOneOnePointsPerSetMax),
+  "winBy": zod.number().min(1).max(updateStageMatchRulesBodyMatchRulesOneOneWinByMax)
+}).describe('V5.7: every set uses the same rules; the match score is sets won.'),zod.object({
+  "version": zod.number(),
+  "kind": zod.enum(['two_legs']),
+  "levelAggregate": zod.enum(['organizer_decision']).optional().describe('Only policy: the organizer decides a level aggregate (default).')
+}).describe('V5.10: two-legged knockout tie (single elimination only). Two games between the same pair; the aggregate decides. A level aggregate is decided by the organizer with a reason (no away-goals rule, nothing invented).')]).describe('What decides a match (level B): sets (V5.7) or a two-legged knockout tie (V5.10). Absent\/null keeps the stage\'s existing meaning (one game, a best-of series, or a draw league game).'),zod.null()]),
   "expectedVersion": zod.number().min(1)
 })
 
@@ -2968,12 +3004,12 @@ export const updateStageMatchRulesResponseLeagueRulesOnePointsDrawMax = 99;
 export const updateStageMatchRulesResponseLeagueRulesOnePointsLossMin = 0;
 export const updateStageMatchRulesResponseLeagueRulesOnePointsLossMax = 99;
 
-export const updateStageMatchRulesResponseMatchRulesOneSetsToWinMax = 4;
+export const updateStageMatchRulesResponseMatchRulesOneOneSetsToWinMax = 4;
 
-export const updateStageMatchRulesResponseMatchRulesOnePointsPerSetMin = 3;
-export const updateStageMatchRulesResponseMatchRulesOnePointsPerSetMax = 99;
+export const updateStageMatchRulesResponseMatchRulesOneOnePointsPerSetMin = 3;
+export const updateStageMatchRulesResponseMatchRulesOneOnePointsPerSetMax = 99;
 
-export const updateStageMatchRulesResponseMatchRulesOneWinByMax = 2;
+export const updateStageMatchRulesResponseMatchRulesOneOneWinByMax = 2;
 
 export const updateStageMatchRulesResponseSchedulePlanOneIntervalDaysMax = 60;
 
@@ -3001,13 +3037,17 @@ export const UpdateStageMatchRulesResponse = zod.object({
 }),
   "tieBreakers": zod.array(zod.enum(['head_to_head', 'score_difference', 'scored', 'wins'])).optional()
 }).describe('V5.3: draws, points and ordered tie-breakers for round_robin and group_stage stages.'),zod.null()]).optional().describe('V5.3: league rules; null keeps the pre-V5.3 ranking by match wins.'),
-  "matchRules": zod.union([zod.object({
+  "matchRules": zod.union([zod.union([zod.object({
   "version": zod.number(),
   "kind": zod.enum(['sets']),
-  "setsToWin": zod.number().min(1).max(updateStageMatchRulesResponseMatchRulesOneSetsToWinMax),
-  "pointsPerSet": zod.number().min(updateStageMatchRulesResponseMatchRulesOnePointsPerSetMin).max(updateStageMatchRulesResponseMatchRulesOnePointsPerSetMax),
-  "winBy": zod.number().min(1).max(updateStageMatchRulesResponseMatchRulesOneWinByMax)
-}).describe('V5.7: what decides a match. Every set uses the same rules; the match score is sets won.'),zod.null()]).optional().describe('V5.7: what decides a match; null keeps the series \/ draw-league meaning.'),
+  "setsToWin": zod.number().min(1).max(updateStageMatchRulesResponseMatchRulesOneOneSetsToWinMax),
+  "pointsPerSet": zod.number().min(updateStageMatchRulesResponseMatchRulesOneOnePointsPerSetMin).max(updateStageMatchRulesResponseMatchRulesOneOnePointsPerSetMax),
+  "winBy": zod.number().min(1).max(updateStageMatchRulesResponseMatchRulesOneOneWinByMax)
+}).describe('V5.7: every set uses the same rules; the match score is sets won.'),zod.object({
+  "version": zod.number(),
+  "kind": zod.enum(['two_legs']),
+  "levelAggregate": zod.enum(['organizer_decision']).optional().describe('Only policy: the organizer decides a level aggregate (default).')
+}).describe('V5.10: two-legged knockout tie (single elimination only). Two games between the same pair; the aggregate decides. A level aggregate is decided by the organizer with a reason (no away-goals rule, nothing invented).')]).describe('What decides a match (level B): sets (V5.7) or a two-legged knockout tie (V5.10). Absent\/null keeps the stage\'s existing meaning (one game, a best-of series, or a draw league game).'),zod.null()]).optional().describe('V5.7: what decides a match; null keeps the series \/ draw-league meaning.'),
   "matchRulesSummary": zod.string().optional().describe('V5.7: plain-language description of how a match is decided (every stage).'),
   "leagueRulesSummary": zod.string().nullish().describe('V5.3: plain-language description of the league rules.'),
   "scheduleTimeZone": zod.string().nullish().describe('V5.3: IANA time zone of the league schedule.'),
@@ -3776,6 +3816,18 @@ export const getTournamentBracketResponseRoundsItemMatchesItemSetsOneItemScore2M
 
 
 
+export const getTournamentBracketResponseRoundsItemMatchesItemLegsOneItemScore1Min = 0;
+
+export const getTournamentBracketResponseRoundsItemMatchesItemLegsOneItemScore2Min = 0;
+
+
+export const getTournamentBracketResponseRoundsItemMatchesItemTieOneTotal1Min = 0;
+
+export const getTournamentBracketResponseRoundsItemMatchesItemTieOneTotal2Min = 0;
+
+export const getTournamentBracketResponseRoundsItemMatchesItemTieOneCompletedLegsMin = 0;
+export const getTournamentBracketResponseRoundsItemMatchesItemTieOneCompletedLegsMax = 2;
+
 
 
 export const GetTournamentBracketResponse = zod.object({
@@ -3860,7 +3912,26 @@ export const GetTournamentBracketResponse = zod.object({
   "resultType": zod.union([zod.literal('played'),zod.literal('walkover'),zod.literal('bye'),zod.literal('no_contest'),zod.literal(null)]).nullish(),
   "resultReason": zod.string().nullish(),
   "bestOf": zod.number().min(1),
-  "note": zod.string().nullish(),
+  "note": zod.string().nullish().describe('V5.10: organizer\'s free-text note — returned only to the organizer and support staff, never to viewers.'),
+  "legs": zod.union([zod.array(zod.object({
+  "leg": zod.union([zod.literal(1),zod.literal(2)]),
+  "homeSide": zod.union([zod.literal(1),zod.literal(2)]),
+  "status": zod.enum(['pending', 'completed']),
+  "score1": zod.number().min(getTournamentBracketResponseRoundsItemMatchesItemLegsOneItemScore1Min).nullable(),
+  "score2": zod.number().min(getTournamentBracketResponseRoundsItemMatchesItemLegsOneItemScore2Min).nullable(),
+  "scheduledAt": zod.string().nullable(),
+  "completedAt": zod.string().nullable(),
+  "revision": zod.number().min(1)
+}).describe('V5.10: one leg of a two-legged tie. Scores are from the tie\'s point of view: score1 = participant 1 (home in leg 1), score2 = participant 2 (home in leg 2).')),zod.null()]).optional().describe('V5.10: both legs of a two-legged tie; null for other matches.'),
+  "tie": zod.union([zod.object({
+  "state": zod.enum(['not_started', 'first_leg_played', 'awaiting_decision', 'decided']),
+  "total1": zod.number().min(getTournamentBracketResponseRoundsItemMatchesItemTieOneTotal1Min),
+  "total2": zod.number().min(getTournamentBracketResponseRoundsItemMatchesItemTieOneTotal2Min),
+  "completedLegs": zod.number().min(getTournamentBracketResponseRoundsItemMatchesItemTieOneCompletedLegsMin).max(getTournamentBracketResponseRoundsItemMatchesItemTieOneCompletedLegsMax),
+  "decidedBy": zod.union([zod.literal('aggregate'),zod.literal('organizer'),zod.literal(null)]).nullable(),
+  "decisionReason": zod.string().nullable().describe('Organizer\'s reason for deciding a level aggregate (public).'),
+  "decisionWinnerId": zod.number().nullable()
+}).describe('V5.10: aggregate of a two-legged tie. state: not_started, first_leg_played, awaiting_decision (level aggregate, advancement blocked), decided.'),zod.null()]).optional().describe('V5.10: aggregate of a two-legged tie; null for other matches.'),
   "status": zod.enum(['pending', 'in_progress', 'postponed', 'completed', 'cancelled']),
   "nextMatchId": zod.number().nullish(),
   "sortOrder": zod.number().nullish(),
@@ -4048,12 +4119,12 @@ export const exportTournamentResponseStagesItemLeagueRulesPointsLossMax = 99;
 export const exportTournamentResponseStagesItemPointAdjustmentsItemPointsMin = -100;
 export const exportTournamentResponseStagesItemPointAdjustmentsItemPointsMax = 100;
 
-export const exportTournamentResponseStagesItemMatchRulesSetsToWinMax = 4;
+export const exportTournamentResponseStagesItemMatchRulesOneSetsToWinMax = 4;
 
-export const exportTournamentResponseStagesItemMatchRulesPointsPerSetMin = 3;
-export const exportTournamentResponseStagesItemMatchRulesPointsPerSetMax = 99;
+export const exportTournamentResponseStagesItemMatchRulesOnePointsPerSetMin = 3;
+export const exportTournamentResponseStagesItemMatchRulesOnePointsPerSetMax = 99;
 
-export const exportTournamentResponseStagesItemMatchRulesWinByMax = 2;
+export const exportTournamentResponseStagesItemMatchRulesOneWinByMax = 2;
 
 export const exportTournamentResponseStagesItemSchedulePlanIntervalDaysMax = 60;
 
@@ -4092,6 +4163,15 @@ export const exportTournamentResponseResultHistoryItemSetsItemScore1Min = 0;
 export const exportTournamentResponseResultHistoryItemSetsItemScore2Min = 0;
 
 export const exportTournamentResponseResultHistoryItemSetsMax = 7;
+
+export const exportTournamentResponseTieLegsItemScore1Min = 0;
+export const exportTournamentResponseTieLegsItemScore1Max = 999;
+
+export const exportTournamentResponseTieLegsItemScore2Min = 0;
+export const exportTournamentResponseTieLegsItemScore2Max = 999;
+
+
+export const exportTournamentResponseTieDecisionsItemReasonMax = 300;
 
 
 
@@ -4210,13 +4290,17 @@ export const ExportTournamentResponse = zod.object({
   "revokedBy": zod.string().nullish(),
   "requestId": zod.string().optional()
 })).optional().describe('V5.5: present only when the stage has bonus\/penalty entries (revoked ones included).'),
-  "matchRules": zod.object({
+  "matchRules": zod.union([zod.object({
   "version": zod.number(),
   "kind": zod.enum(['sets']),
-  "setsToWin": zod.number().min(1).max(exportTournamentResponseStagesItemMatchRulesSetsToWinMax),
-  "pointsPerSet": zod.number().min(exportTournamentResponseStagesItemMatchRulesPointsPerSetMin).max(exportTournamentResponseStagesItemMatchRulesPointsPerSetMax),
-  "winBy": zod.number().min(1).max(exportTournamentResponseStagesItemMatchRulesWinByMax)
-}).optional().describe('V5.7: present only when matches of the stage are decided by sets.'),
+  "setsToWin": zod.number().min(1).max(exportTournamentResponseStagesItemMatchRulesOneSetsToWinMax),
+  "pointsPerSet": zod.number().min(exportTournamentResponseStagesItemMatchRulesOnePointsPerSetMin).max(exportTournamentResponseStagesItemMatchRulesOnePointsPerSetMax),
+  "winBy": zod.number().min(1).max(exportTournamentResponseStagesItemMatchRulesOneWinByMax)
+}).describe('V5.7: every set uses the same rules; the match score is sets won.'),zod.object({
+  "version": zod.number(),
+  "kind": zod.enum(['two_legs']),
+  "levelAggregate": zod.enum(['organizer_decision']).optional().describe('Only policy: the organizer decides a level aggregate (default).')
+}).describe('V5.10: two-legged knockout tie (single elimination only). Two games between the same pair; the aggregate decides. A level aggregate is decided by the organizer with a reason (no away-goals rule, nothing invented).')]).optional().describe('V5.7: present only when matches of the stage are decided by sets.'),
   "schedulePlan": zod.object({
   "startDate": zod.string().describe('YYYY-MM-DD'),
   "intervalDays": zod.number().min(1).max(exportTournamentResponseStagesItemSchedulePlanIntervalDaysMax),
@@ -4377,6 +4461,32 @@ export const ExportTournamentResponse = zod.object({
   "isUndone": zod.boolean(),
   "createdAt": zod.string()
 })),
+  "tieLegs": zod.array(zod.object({
+  "matchBackupId": zod.number(),
+  "leg": zod.union([zod.literal(1),zod.literal(2)]),
+  "status": zod.enum(['pending', 'completed']),
+  "score1": zod.number().min(exportTournamentResponseTieLegsItemScore1Min).max(exportTournamentResponseTieLegsItemScore1Max).nullable(),
+  "score2": zod.number().min(exportTournamentResponseTieLegsItemScore2Min).max(exportTournamentResponseTieLegsItemScore2Max).nullable(),
+  "scheduledAt": zod.string().nullable(),
+  "completedAt": zod.string().nullable(),
+  "revision": zod.number().min(1)
+})).optional().describe('V5.10: both legs of every two-legged tie (present only when the tournament has any). Scores in tie orientation (score1 = participant 1, home in leg 1).'),
+  "tieDecisions": zod.array(zod.object({
+  "matchBackupId": zod.number(),
+  "winnerBackupId": zod.number(),
+  "reason": zod.string().min(1).max(exportTournamentResponseTieDecisionsItemReasonMax),
+  "decidedAt": zod.string()
+})).optional().describe('V5.10: organizer decisions of level aggregates (present only when any exist).'),
+  "tieHistory": zod.array(zod.object({
+  "matchBackupId": zod.number(),
+  "event": zod.enum(['leg_recorded', 'leg_reverted', 'decision_recorded', 'decision_reverted']),
+  "leg": zod.union([zod.literal(1),zod.literal(2),zod.literal(null)]).nullable(),
+  "score1": zod.number().nullable(),
+  "score2": zod.number().nullable(),
+  "winnerBackupId": zod.number().nullable(),
+  "reason": zod.string().nullable(),
+  "recordedAt": zod.string()
+})).optional().describe('V5.10: history of legs and decisions of two-legged ties (present only when any exist).'),
   "deadlockBans": zod.array(zod.object({
   "playerBackupId": zod.number(),
   "bannedHeroIds": zod.array(zod.string())
@@ -4482,12 +4592,12 @@ export const importTournamentBodyBackupTwoStagesItemLeagueRulesPointsLossMax = 9
 export const importTournamentBodyBackupTwoStagesItemPointAdjustmentsItemPointsMin = -100;
 export const importTournamentBodyBackupTwoStagesItemPointAdjustmentsItemPointsMax = 100;
 
-export const importTournamentBodyBackupTwoStagesItemMatchRulesSetsToWinMax = 4;
+export const importTournamentBodyBackupTwoStagesItemMatchRulesOneSetsToWinMax = 4;
 
-export const importTournamentBodyBackupTwoStagesItemMatchRulesPointsPerSetMin = 3;
-export const importTournamentBodyBackupTwoStagesItemMatchRulesPointsPerSetMax = 99;
+export const importTournamentBodyBackupTwoStagesItemMatchRulesOnePointsPerSetMin = 3;
+export const importTournamentBodyBackupTwoStagesItemMatchRulesOnePointsPerSetMax = 99;
 
-export const importTournamentBodyBackupTwoStagesItemMatchRulesWinByMax = 2;
+export const importTournamentBodyBackupTwoStagesItemMatchRulesOneWinByMax = 2;
 
 export const importTournamentBodyBackupTwoStagesItemSchedulePlanIntervalDaysMax = 60;
 
@@ -4526,6 +4636,15 @@ export const importTournamentBodyBackupTwoResultHistoryItemSetsItemScore1Min = 0
 export const importTournamentBodyBackupTwoResultHistoryItemSetsItemScore2Min = 0;
 
 export const importTournamentBodyBackupTwoResultHistoryItemSetsMax = 7;
+
+export const importTournamentBodyBackupTwoTieLegsItemScore1Min = 0;
+export const importTournamentBodyBackupTwoTieLegsItemScore1Max = 999;
+
+export const importTournamentBodyBackupTwoTieLegsItemScore2Min = 0;
+export const importTournamentBodyBackupTwoTieLegsItemScore2Max = 999;
+
+
+export const importTournamentBodyBackupTwoTieDecisionsItemReasonMax = 300;
 
 
 
@@ -4723,13 +4842,17 @@ export const ImportTournamentBody = zod.object({
   "revokedBy": zod.string().nullish(),
   "requestId": zod.string().optional()
 })).optional().describe('V5.5: present only when the stage has bonus\/penalty entries (revoked ones included).'),
-  "matchRules": zod.object({
+  "matchRules": zod.union([zod.object({
   "version": zod.number(),
   "kind": zod.enum(['sets']),
-  "setsToWin": zod.number().min(1).max(importTournamentBodyBackupTwoStagesItemMatchRulesSetsToWinMax),
-  "pointsPerSet": zod.number().min(importTournamentBodyBackupTwoStagesItemMatchRulesPointsPerSetMin).max(importTournamentBodyBackupTwoStagesItemMatchRulesPointsPerSetMax),
-  "winBy": zod.number().min(1).max(importTournamentBodyBackupTwoStagesItemMatchRulesWinByMax)
-}).optional().describe('V5.7: present only when matches of the stage are decided by sets.'),
+  "setsToWin": zod.number().min(1).max(importTournamentBodyBackupTwoStagesItemMatchRulesOneSetsToWinMax),
+  "pointsPerSet": zod.number().min(importTournamentBodyBackupTwoStagesItemMatchRulesOnePointsPerSetMin).max(importTournamentBodyBackupTwoStagesItemMatchRulesOnePointsPerSetMax),
+  "winBy": zod.number().min(1).max(importTournamentBodyBackupTwoStagesItemMatchRulesOneWinByMax)
+}).describe('V5.7: every set uses the same rules; the match score is sets won.'),zod.object({
+  "version": zod.number(),
+  "kind": zod.enum(['two_legs']),
+  "levelAggregate": zod.enum(['organizer_decision']).optional().describe('Only policy: the organizer decides a level aggregate (default).')
+}).describe('V5.10: two-legged knockout tie (single elimination only). Two games between the same pair; the aggregate decides. A level aggregate is decided by the organizer with a reason (no away-goals rule, nothing invented).')]).optional().describe('V5.7: present only when matches of the stage are decided by sets.'),
   "schedulePlan": zod.object({
   "startDate": zod.string().describe('YYYY-MM-DD'),
   "intervalDays": zod.number().min(1).max(importTournamentBodyBackupTwoStagesItemSchedulePlanIntervalDaysMax),
@@ -4890,6 +5013,32 @@ export const ImportTournamentBody = zod.object({
   "isUndone": zod.boolean(),
   "createdAt": zod.string()
 })),
+  "tieLegs": zod.array(zod.object({
+  "matchBackupId": zod.number(),
+  "leg": zod.union([zod.literal(1),zod.literal(2)]),
+  "status": zod.enum(['pending', 'completed']),
+  "score1": zod.number().min(importTournamentBodyBackupTwoTieLegsItemScore1Min).max(importTournamentBodyBackupTwoTieLegsItemScore1Max).nullable(),
+  "score2": zod.number().min(importTournamentBodyBackupTwoTieLegsItemScore2Min).max(importTournamentBodyBackupTwoTieLegsItemScore2Max).nullable(),
+  "scheduledAt": zod.string().nullable(),
+  "completedAt": zod.string().nullable(),
+  "revision": zod.number().min(1)
+})).optional().describe('V5.10: both legs of every two-legged tie (present only when the tournament has any). Scores in tie orientation (score1 = participant 1, home in leg 1).'),
+  "tieDecisions": zod.array(zod.object({
+  "matchBackupId": zod.number(),
+  "winnerBackupId": zod.number(),
+  "reason": zod.string().min(1).max(importTournamentBodyBackupTwoTieDecisionsItemReasonMax),
+  "decidedAt": zod.string()
+})).optional().describe('V5.10: organizer decisions of level aggregates (present only when any exist).'),
+  "tieHistory": zod.array(zod.object({
+  "matchBackupId": zod.number(),
+  "event": zod.enum(['leg_recorded', 'leg_reverted', 'decision_recorded', 'decision_reverted']),
+  "leg": zod.union([zod.literal(1),zod.literal(2),zod.literal(null)]).nullable(),
+  "score1": zod.number().nullable(),
+  "score2": zod.number().nullable(),
+  "winnerBackupId": zod.number().nullable(),
+  "reason": zod.string().nullable(),
+  "recordedAt": zod.string()
+})).optional().describe('V5.10: history of legs and decisions of two-legged ties (present only when any exist).'),
   "deadlockBans": zod.array(zod.object({
   "playerBackupId": zod.number(),
   "bannedHeroIds": zod.array(zod.string())
@@ -5495,6 +5644,18 @@ export const listMatchesResponseSetsOneItemScore2Min = 0;
 
 
 
+export const listMatchesResponseLegsOneItemScore1Min = 0;
+
+export const listMatchesResponseLegsOneItemScore2Min = 0;
+
+
+export const listMatchesResponseTieOneTotal1Min = 0;
+
+export const listMatchesResponseTieOneTotal2Min = 0;
+
+export const listMatchesResponseTieOneCompletedLegsMin = 0;
+export const listMatchesResponseTieOneCompletedLegsMax = 2;
+
 
 
 export const ListMatchesResponseItem = zod.object({
@@ -5520,7 +5681,26 @@ export const ListMatchesResponseItem = zod.object({
   "resultType": zod.union([zod.literal('played'),zod.literal('walkover'),zod.literal('bye'),zod.literal('no_contest'),zod.literal(null)]).nullish(),
   "resultReason": zod.string().nullish(),
   "bestOf": zod.number().min(1),
-  "note": zod.string().nullish(),
+  "note": zod.string().nullish().describe('V5.10: organizer\'s free-text note — returned only to the organizer and support staff, never to viewers.'),
+  "legs": zod.union([zod.array(zod.object({
+  "leg": zod.union([zod.literal(1),zod.literal(2)]),
+  "homeSide": zod.union([zod.literal(1),zod.literal(2)]),
+  "status": zod.enum(['pending', 'completed']),
+  "score1": zod.number().min(listMatchesResponseLegsOneItemScore1Min).nullable(),
+  "score2": zod.number().min(listMatchesResponseLegsOneItemScore2Min).nullable(),
+  "scheduledAt": zod.string().nullable(),
+  "completedAt": zod.string().nullable(),
+  "revision": zod.number().min(1)
+}).describe('V5.10: one leg of a two-legged tie. Scores are from the tie\'s point of view: score1 = participant 1 (home in leg 1), score2 = participant 2 (home in leg 2).')),zod.null()]).optional().describe('V5.10: both legs of a two-legged tie; null for other matches.'),
+  "tie": zod.union([zod.object({
+  "state": zod.enum(['not_started', 'first_leg_played', 'awaiting_decision', 'decided']),
+  "total1": zod.number().min(listMatchesResponseTieOneTotal1Min),
+  "total2": zod.number().min(listMatchesResponseTieOneTotal2Min),
+  "completedLegs": zod.number().min(listMatchesResponseTieOneCompletedLegsMin).max(listMatchesResponseTieOneCompletedLegsMax),
+  "decidedBy": zod.union([zod.literal('aggregate'),zod.literal('organizer'),zod.literal(null)]).nullable(),
+  "decisionReason": zod.string().nullable().describe('Organizer\'s reason for deciding a level aggregate (public).'),
+  "decisionWinnerId": zod.number().nullable()
+}).describe('V5.10: aggregate of a two-legged tie. state: not_started, first_leg_played, awaiting_decision (level aggregate, advancement blocked), decided.'),zod.null()]).optional().describe('V5.10: aggregate of a two-legged tie; null for other matches.'),
   "status": zod.enum(['pending', 'in_progress', 'postponed', 'completed', 'cancelled']),
   "nextMatchId": zod.number().nullish(),
   "sortOrder": zod.number().nullish(),
@@ -5539,6 +5719,18 @@ export const getMatchResponseSetsOneItemScore1Min = 0;
 export const getMatchResponseSetsOneItemScore2Min = 0;
 
 
+
+export const getMatchResponseLegsOneItemScore1Min = 0;
+
+export const getMatchResponseLegsOneItemScore2Min = 0;
+
+
+export const getMatchResponseTieOneTotal1Min = 0;
+
+export const getMatchResponseTieOneTotal2Min = 0;
+
+export const getMatchResponseTieOneCompletedLegsMin = 0;
+export const getMatchResponseTieOneCompletedLegsMax = 2;
 
 
 
@@ -5565,7 +5757,26 @@ export const GetMatchResponse = zod.object({
   "resultType": zod.union([zod.literal('played'),zod.literal('walkover'),zod.literal('bye'),zod.literal('no_contest'),zod.literal(null)]).nullish(),
   "resultReason": zod.string().nullish(),
   "bestOf": zod.number().min(1),
-  "note": zod.string().nullish(),
+  "note": zod.string().nullish().describe('V5.10: organizer\'s free-text note — returned only to the organizer and support staff, never to viewers.'),
+  "legs": zod.union([zod.array(zod.object({
+  "leg": zod.union([zod.literal(1),zod.literal(2)]),
+  "homeSide": zod.union([zod.literal(1),zod.literal(2)]),
+  "status": zod.enum(['pending', 'completed']),
+  "score1": zod.number().min(getMatchResponseLegsOneItemScore1Min).nullable(),
+  "score2": zod.number().min(getMatchResponseLegsOneItemScore2Min).nullable(),
+  "scheduledAt": zod.string().nullable(),
+  "completedAt": zod.string().nullable(),
+  "revision": zod.number().min(1)
+}).describe('V5.10: one leg of a two-legged tie. Scores are from the tie\'s point of view: score1 = participant 1 (home in leg 1), score2 = participant 2 (home in leg 2).')),zod.null()]).optional().describe('V5.10: both legs of a two-legged tie; null for other matches.'),
+  "tie": zod.union([zod.object({
+  "state": zod.enum(['not_started', 'first_leg_played', 'awaiting_decision', 'decided']),
+  "total1": zod.number().min(getMatchResponseTieOneTotal1Min),
+  "total2": zod.number().min(getMatchResponseTieOneTotal2Min),
+  "completedLegs": zod.number().min(getMatchResponseTieOneCompletedLegsMin).max(getMatchResponseTieOneCompletedLegsMax),
+  "decidedBy": zod.union([zod.literal('aggregate'),zod.literal('organizer'),zod.literal(null)]).nullable(),
+  "decisionReason": zod.string().nullable().describe('Organizer\'s reason for deciding a level aggregate (public).'),
+  "decisionWinnerId": zod.number().nullable()
+}).describe('V5.10: aggregate of a two-legged tie. state: not_started, first_leg_played, awaiting_decision (level aggregate, advancement blocked), decided.'),zod.null()]).optional().describe('V5.10: aggregate of a two-legged tie; null for other matches.'),
   "status": zod.enum(['pending', 'in_progress', 'postponed', 'completed', 'cancelled']),
   "nextMatchId": zod.number().nullish(),
   "sortOrder": zod.number().nullish(),
@@ -5595,6 +5806,18 @@ export const updateMatchResponseSetsOneItemScore2Min = 0;
 
 
 
+export const updateMatchResponseLegsOneItemScore1Min = 0;
+
+export const updateMatchResponseLegsOneItemScore2Min = 0;
+
+
+export const updateMatchResponseTieOneTotal1Min = 0;
+
+export const updateMatchResponseTieOneTotal2Min = 0;
+
+export const updateMatchResponseTieOneCompletedLegsMin = 0;
+export const updateMatchResponseTieOneCompletedLegsMax = 2;
+
 
 
 export const UpdateMatchResponse = zod.object({
@@ -5620,7 +5843,26 @@ export const UpdateMatchResponse = zod.object({
   "resultType": zod.union([zod.literal('played'),zod.literal('walkover'),zod.literal('bye'),zod.literal('no_contest'),zod.literal(null)]).nullish(),
   "resultReason": zod.string().nullish(),
   "bestOf": zod.number().min(1),
-  "note": zod.string().nullish(),
+  "note": zod.string().nullish().describe('V5.10: organizer\'s free-text note — returned only to the organizer and support staff, never to viewers.'),
+  "legs": zod.union([zod.array(zod.object({
+  "leg": zod.union([zod.literal(1),zod.literal(2)]),
+  "homeSide": zod.union([zod.literal(1),zod.literal(2)]),
+  "status": zod.enum(['pending', 'completed']),
+  "score1": zod.number().min(updateMatchResponseLegsOneItemScore1Min).nullable(),
+  "score2": zod.number().min(updateMatchResponseLegsOneItemScore2Min).nullable(),
+  "scheduledAt": zod.string().nullable(),
+  "completedAt": zod.string().nullable(),
+  "revision": zod.number().min(1)
+}).describe('V5.10: one leg of a two-legged tie. Scores are from the tie\'s point of view: score1 = participant 1 (home in leg 1), score2 = participant 2 (home in leg 2).')),zod.null()]).optional().describe('V5.10: both legs of a two-legged tie; null for other matches.'),
+  "tie": zod.union([zod.object({
+  "state": zod.enum(['not_started', 'first_leg_played', 'awaiting_decision', 'decided']),
+  "total1": zod.number().min(updateMatchResponseTieOneTotal1Min),
+  "total2": zod.number().min(updateMatchResponseTieOneTotal2Min),
+  "completedLegs": zod.number().min(updateMatchResponseTieOneCompletedLegsMin).max(updateMatchResponseTieOneCompletedLegsMax),
+  "decidedBy": zod.union([zod.literal('aggregate'),zod.literal('organizer'),zod.literal(null)]).nullable(),
+  "decisionReason": zod.string().nullable().describe('Organizer\'s reason for deciding a level aggregate (public).'),
+  "decisionWinnerId": zod.number().nullable()
+}).describe('V5.10: aggregate of a two-legged tie. state: not_started, first_leg_played, awaiting_decision (level aggregate, advancement blocked), decided.'),zod.null()]).optional().describe('V5.10: aggregate of a two-legged tie; null for other matches.'),
   "status": zod.enum(['pending', 'in_progress', 'postponed', 'completed', 'cancelled']),
   "nextMatchId": zod.number().nullish(),
   "sortOrder": zod.number().nullish(),
@@ -5649,6 +5891,18 @@ export const updateMatchScheduleResponseSetsOneItemScore2Min = 0;
 
 
 
+export const updateMatchScheduleResponseLegsOneItemScore1Min = 0;
+
+export const updateMatchScheduleResponseLegsOneItemScore2Min = 0;
+
+
+export const updateMatchScheduleResponseTieOneTotal1Min = 0;
+
+export const updateMatchScheduleResponseTieOneTotal2Min = 0;
+
+export const updateMatchScheduleResponseTieOneCompletedLegsMin = 0;
+export const updateMatchScheduleResponseTieOneCompletedLegsMax = 2;
+
 
 
 export const UpdateMatchScheduleResponse = zod.object({
@@ -5674,7 +5928,26 @@ export const UpdateMatchScheduleResponse = zod.object({
   "resultType": zod.union([zod.literal('played'),zod.literal('walkover'),zod.literal('bye'),zod.literal('no_contest'),zod.literal(null)]).nullish(),
   "resultReason": zod.string().nullish(),
   "bestOf": zod.number().min(1),
-  "note": zod.string().nullish(),
+  "note": zod.string().nullish().describe('V5.10: organizer\'s free-text note — returned only to the organizer and support staff, never to viewers.'),
+  "legs": zod.union([zod.array(zod.object({
+  "leg": zod.union([zod.literal(1),zod.literal(2)]),
+  "homeSide": zod.union([zod.literal(1),zod.literal(2)]),
+  "status": zod.enum(['pending', 'completed']),
+  "score1": zod.number().min(updateMatchScheduleResponseLegsOneItemScore1Min).nullable(),
+  "score2": zod.number().min(updateMatchScheduleResponseLegsOneItemScore2Min).nullable(),
+  "scheduledAt": zod.string().nullable(),
+  "completedAt": zod.string().nullable(),
+  "revision": zod.number().min(1)
+}).describe('V5.10: one leg of a two-legged tie. Scores are from the tie\'s point of view: score1 = participant 1 (home in leg 1), score2 = participant 2 (home in leg 2).')),zod.null()]).optional().describe('V5.10: both legs of a two-legged tie; null for other matches.'),
+  "tie": zod.union([zod.object({
+  "state": zod.enum(['not_started', 'first_leg_played', 'awaiting_decision', 'decided']),
+  "total1": zod.number().min(updateMatchScheduleResponseTieOneTotal1Min),
+  "total2": zod.number().min(updateMatchScheduleResponseTieOneTotal2Min),
+  "completedLegs": zod.number().min(updateMatchScheduleResponseTieOneCompletedLegsMin).max(updateMatchScheduleResponseTieOneCompletedLegsMax),
+  "decidedBy": zod.union([zod.literal('aggregate'),zod.literal('organizer'),zod.literal(null)]).nullable(),
+  "decisionReason": zod.string().nullable().describe('Organizer\'s reason for deciding a level aggregate (public).'),
+  "decisionWinnerId": zod.number().nullable()
+}).describe('V5.10: aggregate of a two-legged tie. state: not_started, first_leg_played, awaiting_decision (level aggregate, advancement blocked), decided.'),zod.null()]).optional().describe('V5.10: aggregate of a two-legged tie; null for other matches.'),
   "status": zod.enum(['pending', 'in_progress', 'postponed', 'completed', 'cancelled']),
   "nextMatchId": zod.number().nullish(),
   "sortOrder": zod.number().nullish(),
@@ -5724,6 +5997,18 @@ export const completeMatchResponseSetsOneItemScore2Min = 0;
 
 
 
+export const completeMatchResponseLegsOneItemScore1Min = 0;
+
+export const completeMatchResponseLegsOneItemScore2Min = 0;
+
+
+export const completeMatchResponseTieOneTotal1Min = 0;
+
+export const completeMatchResponseTieOneTotal2Min = 0;
+
+export const completeMatchResponseTieOneCompletedLegsMin = 0;
+export const completeMatchResponseTieOneCompletedLegsMax = 2;
+
 
 
 export const CompleteMatchResponse = zod.object({
@@ -5749,7 +6034,379 @@ export const CompleteMatchResponse = zod.object({
   "resultType": zod.union([zod.literal('played'),zod.literal('walkover'),zod.literal('bye'),zod.literal('no_contest'),zod.literal(null)]).nullish(),
   "resultReason": zod.string().nullish(),
   "bestOf": zod.number().min(1),
-  "note": zod.string().nullish(),
+  "note": zod.string().nullish().describe('V5.10: organizer\'s free-text note — returned only to the organizer and support staff, never to viewers.'),
+  "legs": zod.union([zod.array(zod.object({
+  "leg": zod.union([zod.literal(1),zod.literal(2)]),
+  "homeSide": zod.union([zod.literal(1),zod.literal(2)]),
+  "status": zod.enum(['pending', 'completed']),
+  "score1": zod.number().min(completeMatchResponseLegsOneItemScore1Min).nullable(),
+  "score2": zod.number().min(completeMatchResponseLegsOneItemScore2Min).nullable(),
+  "scheduledAt": zod.string().nullable(),
+  "completedAt": zod.string().nullable(),
+  "revision": zod.number().min(1)
+}).describe('V5.10: one leg of a two-legged tie. Scores are from the tie\'s point of view: score1 = participant 1 (home in leg 1), score2 = participant 2 (home in leg 2).')),zod.null()]).optional().describe('V5.10: both legs of a two-legged tie; null for other matches.'),
+  "tie": zod.union([zod.object({
+  "state": zod.enum(['not_started', 'first_leg_played', 'awaiting_decision', 'decided']),
+  "total1": zod.number().min(completeMatchResponseTieOneTotal1Min),
+  "total2": zod.number().min(completeMatchResponseTieOneTotal2Min),
+  "completedLegs": zod.number().min(completeMatchResponseTieOneCompletedLegsMin).max(completeMatchResponseTieOneCompletedLegsMax),
+  "decidedBy": zod.union([zod.literal('aggregate'),zod.literal('organizer'),zod.literal(null)]).nullable(),
+  "decisionReason": zod.string().nullable().describe('Organizer\'s reason for deciding a level aggregate (public).'),
+  "decisionWinnerId": zod.number().nullable()
+}).describe('V5.10: aggregate of a two-legged tie. state: not_started, first_leg_played, awaiting_decision (level aggregate, advancement blocked), decided.'),zod.null()]).optional().describe('V5.10: aggregate of a two-legged tie; null for other matches.'),
+  "status": zod.enum(['pending', 'in_progress', 'postponed', 'completed', 'cancelled']),
+  "nextMatchId": zod.number().nullish(),
+  "sortOrder": zod.number().nullish(),
+  "scheduledAt": zod.string().nullish(),
+  "completedAt": zod.string().nullish()
+})
+
+
+/**
+ * @summary V5.10: record the score of one leg of a two-legged tie
+ */
+export const RecordMatchLegResultParams = zod.object({
+  "id": zod.coerce.number(),
+  "leg": zod.union([zod.literal(1),zod.literal(2)])
+})
+
+export const recordMatchLegResultBodyScore1Min = 0;
+export const recordMatchLegResultBodyScore1Max = 999;
+
+export const recordMatchLegResultBodyScore2Min = 0;
+export const recordMatchLegResultBodyScore2Max = 999;
+
+
+
+
+export const RecordMatchLegResultBody = zod.object({
+  "score1": zod.number().min(recordMatchLegResultBodyScore1Min).max(recordMatchLegResultBodyScore1Max).describe('Participant 1 of the tie (home in leg 1).'),
+  "score2": zod.number().min(recordMatchLegResultBodyScore2Min).max(recordMatchLegResultBodyScore2Max).describe('Participant 2 of the tie (home in leg 2).'),
+  "expectedRevision": zod.number().min(1).describe('Revision of this leg the client saw.')
+})
+
+export const recordMatchLegResultResponseSetsOneItemScore1Min = 0;
+
+export const recordMatchLegResultResponseSetsOneItemScore2Min = 0;
+
+
+
+export const recordMatchLegResultResponseLegsOneItemScore1Min = 0;
+
+export const recordMatchLegResultResponseLegsOneItemScore2Min = 0;
+
+
+export const recordMatchLegResultResponseTieOneTotal1Min = 0;
+
+export const recordMatchLegResultResponseTieOneTotal2Min = 0;
+
+export const recordMatchLegResultResponseTieOneCompletedLegsMin = 0;
+export const recordMatchLegResultResponseTieOneCompletedLegsMax = 2;
+
+
+
+export const RecordMatchLegResultResponse = zod.object({
+  "sets": zod.union([zod.array(zod.object({
+  "score1": zod.number().min(recordMatchLegResultResponseSetsOneItemScore1Min),
+  "score2": zod.number().min(recordMatchLegResultResponseSetsOneItemScore2Min)
+})),zod.null()]).optional().describe('V5.7: played sets (stages decided by sets); null otherwise — older results never get invented sets.'),
+  "id": zod.number(),
+  "revision": zod.number().min(1),
+  "tournamentId": zod.number(),
+  "stageId": zod.number(),
+  "stageGroupId": zod.number().nullish(),
+  "routingMatchKey": zod.string().nullish(),
+  "round": zod.number(),
+  "matchNumber": zod.number(),
+  "player1Id": zod.number().nullish(),
+  "player2Id": zod.number().nullish(),
+  "player1Name": zod.string().nullish(),
+  "player2Name": zod.string().nullish(),
+  "score1": zod.number().nullish(),
+  "score2": zod.number().nullish(),
+  "winnerId": zod.number().nullish(),
+  "resultType": zod.union([zod.literal('played'),zod.literal('walkover'),zod.literal('bye'),zod.literal('no_contest'),zod.literal(null)]).nullish(),
+  "resultReason": zod.string().nullish(),
+  "bestOf": zod.number().min(1),
+  "note": zod.string().nullish().describe('V5.10: organizer\'s free-text note — returned only to the organizer and support staff, never to viewers.'),
+  "legs": zod.union([zod.array(zod.object({
+  "leg": zod.union([zod.literal(1),zod.literal(2)]),
+  "homeSide": zod.union([zod.literal(1),zod.literal(2)]),
+  "status": zod.enum(['pending', 'completed']),
+  "score1": zod.number().min(recordMatchLegResultResponseLegsOneItemScore1Min).nullable(),
+  "score2": zod.number().min(recordMatchLegResultResponseLegsOneItemScore2Min).nullable(),
+  "scheduledAt": zod.string().nullable(),
+  "completedAt": zod.string().nullable(),
+  "revision": zod.number().min(1)
+}).describe('V5.10: one leg of a two-legged tie. Scores are from the tie\'s point of view: score1 = participant 1 (home in leg 1), score2 = participant 2 (home in leg 2).')),zod.null()]).optional().describe('V5.10: both legs of a two-legged tie; null for other matches.'),
+  "tie": zod.union([zod.object({
+  "state": zod.enum(['not_started', 'first_leg_played', 'awaiting_decision', 'decided']),
+  "total1": zod.number().min(recordMatchLegResultResponseTieOneTotal1Min),
+  "total2": zod.number().min(recordMatchLegResultResponseTieOneTotal2Min),
+  "completedLegs": zod.number().min(recordMatchLegResultResponseTieOneCompletedLegsMin).max(recordMatchLegResultResponseTieOneCompletedLegsMax),
+  "decidedBy": zod.union([zod.literal('aggregate'),zod.literal('organizer'),zod.literal(null)]).nullable(),
+  "decisionReason": zod.string().nullable().describe('Organizer\'s reason for deciding a level aggregate (public).'),
+  "decisionWinnerId": zod.number().nullable()
+}).describe('V5.10: aggregate of a two-legged tie. state: not_started, first_leg_played, awaiting_decision (level aggregate, advancement blocked), decided.'),zod.null()]).optional().describe('V5.10: aggregate of a two-legged tie; null for other matches.'),
+  "status": zod.enum(['pending', 'in_progress', 'postponed', 'completed', 'cancelled']),
+  "nextMatchId": zod.number().nullish(),
+  "sortOrder": zod.number().nullish(),
+  "scheduledAt": zod.string().nullish(),
+  "completedAt": zod.string().nullish()
+})
+
+
+/**
+ * @summary V5.10: undo the score of one leg (a decided tie is reverted first, with the usual dependency checks)
+ */
+export const RevertMatchLegResultParams = zod.object({
+  "id": zod.coerce.number(),
+  "leg": zod.union([zod.literal(1),zod.literal(2)])
+})
+
+
+
+
+export const RevertMatchLegResultBody = zod.object({
+  "expectedRevision": zod.number().min(1).describe('Revision of this leg the client saw.')
+})
+
+export const revertMatchLegResultResponseSetsOneItemScore1Min = 0;
+
+export const revertMatchLegResultResponseSetsOneItemScore2Min = 0;
+
+
+
+export const revertMatchLegResultResponseLegsOneItemScore1Min = 0;
+
+export const revertMatchLegResultResponseLegsOneItemScore2Min = 0;
+
+
+export const revertMatchLegResultResponseTieOneTotal1Min = 0;
+
+export const revertMatchLegResultResponseTieOneTotal2Min = 0;
+
+export const revertMatchLegResultResponseTieOneCompletedLegsMin = 0;
+export const revertMatchLegResultResponseTieOneCompletedLegsMax = 2;
+
+
+
+export const RevertMatchLegResultResponse = zod.object({
+  "sets": zod.union([zod.array(zod.object({
+  "score1": zod.number().min(revertMatchLegResultResponseSetsOneItemScore1Min),
+  "score2": zod.number().min(revertMatchLegResultResponseSetsOneItemScore2Min)
+})),zod.null()]).optional().describe('V5.7: played sets (stages decided by sets); null otherwise — older results never get invented sets.'),
+  "id": zod.number(),
+  "revision": zod.number().min(1),
+  "tournamentId": zod.number(),
+  "stageId": zod.number(),
+  "stageGroupId": zod.number().nullish(),
+  "routingMatchKey": zod.string().nullish(),
+  "round": zod.number(),
+  "matchNumber": zod.number(),
+  "player1Id": zod.number().nullish(),
+  "player2Id": zod.number().nullish(),
+  "player1Name": zod.string().nullish(),
+  "player2Name": zod.string().nullish(),
+  "score1": zod.number().nullish(),
+  "score2": zod.number().nullish(),
+  "winnerId": zod.number().nullish(),
+  "resultType": zod.union([zod.literal('played'),zod.literal('walkover'),zod.literal('bye'),zod.literal('no_contest'),zod.literal(null)]).nullish(),
+  "resultReason": zod.string().nullish(),
+  "bestOf": zod.number().min(1),
+  "note": zod.string().nullish().describe('V5.10: organizer\'s free-text note — returned only to the organizer and support staff, never to viewers.'),
+  "legs": zod.union([zod.array(zod.object({
+  "leg": zod.union([zod.literal(1),zod.literal(2)]),
+  "homeSide": zod.union([zod.literal(1),zod.literal(2)]),
+  "status": zod.enum(['pending', 'completed']),
+  "score1": zod.number().min(revertMatchLegResultResponseLegsOneItemScore1Min).nullable(),
+  "score2": zod.number().min(revertMatchLegResultResponseLegsOneItemScore2Min).nullable(),
+  "scheduledAt": zod.string().nullable(),
+  "completedAt": zod.string().nullable(),
+  "revision": zod.number().min(1)
+}).describe('V5.10: one leg of a two-legged tie. Scores are from the tie\'s point of view: score1 = participant 1 (home in leg 1), score2 = participant 2 (home in leg 2).')),zod.null()]).optional().describe('V5.10: both legs of a two-legged tie; null for other matches.'),
+  "tie": zod.union([zod.object({
+  "state": zod.enum(['not_started', 'first_leg_played', 'awaiting_decision', 'decided']),
+  "total1": zod.number().min(revertMatchLegResultResponseTieOneTotal1Min),
+  "total2": zod.number().min(revertMatchLegResultResponseTieOneTotal2Min),
+  "completedLegs": zod.number().min(revertMatchLegResultResponseTieOneCompletedLegsMin).max(revertMatchLegResultResponseTieOneCompletedLegsMax),
+  "decidedBy": zod.union([zod.literal('aggregate'),zod.literal('organizer'),zod.literal(null)]).nullable(),
+  "decisionReason": zod.string().nullable().describe('Organizer\'s reason for deciding a level aggregate (public).'),
+  "decisionWinnerId": zod.number().nullable()
+}).describe('V5.10: aggregate of a two-legged tie. state: not_started, first_leg_played, awaiting_decision (level aggregate, advancement blocked), decided.'),zod.null()]).optional().describe('V5.10: aggregate of a two-legged tie; null for other matches.'),
+  "status": zod.enum(['pending', 'in_progress', 'postponed', 'completed', 'cancelled']),
+  "nextMatchId": zod.number().nullish(),
+  "sortOrder": zod.number().nullish(),
+  "scheduledAt": zod.string().nullish(),
+  "completedAt": zod.string().nullish()
+})
+
+
+/**
+ * @summary V5.10: set or clear the date of one leg
+ */
+export const ScheduleMatchLegParams = zod.object({
+  "id": zod.coerce.number(),
+  "leg": zod.union([zod.literal(1),zod.literal(2)])
+})
+
+export const ScheduleMatchLegBody = zod.object({
+  "scheduledAt": zod.string().nullable().describe('ISO date-time of the leg, or null to clear.'),
+  "expectedScheduledAt": zod.string().nullable().describe('The leg\'s date the client saw.')
+})
+
+export const scheduleMatchLegResponseSetsOneItemScore1Min = 0;
+
+export const scheduleMatchLegResponseSetsOneItemScore2Min = 0;
+
+
+
+export const scheduleMatchLegResponseLegsOneItemScore1Min = 0;
+
+export const scheduleMatchLegResponseLegsOneItemScore2Min = 0;
+
+
+export const scheduleMatchLegResponseTieOneTotal1Min = 0;
+
+export const scheduleMatchLegResponseTieOneTotal2Min = 0;
+
+export const scheduleMatchLegResponseTieOneCompletedLegsMin = 0;
+export const scheduleMatchLegResponseTieOneCompletedLegsMax = 2;
+
+
+
+export const ScheduleMatchLegResponse = zod.object({
+  "sets": zod.union([zod.array(zod.object({
+  "score1": zod.number().min(scheduleMatchLegResponseSetsOneItemScore1Min),
+  "score2": zod.number().min(scheduleMatchLegResponseSetsOneItemScore2Min)
+})),zod.null()]).optional().describe('V5.7: played sets (stages decided by sets); null otherwise — older results never get invented sets.'),
+  "id": zod.number(),
+  "revision": zod.number().min(1),
+  "tournamentId": zod.number(),
+  "stageId": zod.number(),
+  "stageGroupId": zod.number().nullish(),
+  "routingMatchKey": zod.string().nullish(),
+  "round": zod.number(),
+  "matchNumber": zod.number(),
+  "player1Id": zod.number().nullish(),
+  "player2Id": zod.number().nullish(),
+  "player1Name": zod.string().nullish(),
+  "player2Name": zod.string().nullish(),
+  "score1": zod.number().nullish(),
+  "score2": zod.number().nullish(),
+  "winnerId": zod.number().nullish(),
+  "resultType": zod.union([zod.literal('played'),zod.literal('walkover'),zod.literal('bye'),zod.literal('no_contest'),zod.literal(null)]).nullish(),
+  "resultReason": zod.string().nullish(),
+  "bestOf": zod.number().min(1),
+  "note": zod.string().nullish().describe('V5.10: organizer\'s free-text note — returned only to the organizer and support staff, never to viewers.'),
+  "legs": zod.union([zod.array(zod.object({
+  "leg": zod.union([zod.literal(1),zod.literal(2)]),
+  "homeSide": zod.union([zod.literal(1),zod.literal(2)]),
+  "status": zod.enum(['pending', 'completed']),
+  "score1": zod.number().min(scheduleMatchLegResponseLegsOneItemScore1Min).nullable(),
+  "score2": zod.number().min(scheduleMatchLegResponseLegsOneItemScore2Min).nullable(),
+  "scheduledAt": zod.string().nullable(),
+  "completedAt": zod.string().nullable(),
+  "revision": zod.number().min(1)
+}).describe('V5.10: one leg of a two-legged tie. Scores are from the tie\'s point of view: score1 = participant 1 (home in leg 1), score2 = participant 2 (home in leg 2).')),zod.null()]).optional().describe('V5.10: both legs of a two-legged tie; null for other matches.'),
+  "tie": zod.union([zod.object({
+  "state": zod.enum(['not_started', 'first_leg_played', 'awaiting_decision', 'decided']),
+  "total1": zod.number().min(scheduleMatchLegResponseTieOneTotal1Min),
+  "total2": zod.number().min(scheduleMatchLegResponseTieOneTotal2Min),
+  "completedLegs": zod.number().min(scheduleMatchLegResponseTieOneCompletedLegsMin).max(scheduleMatchLegResponseTieOneCompletedLegsMax),
+  "decidedBy": zod.union([zod.literal('aggregate'),zod.literal('organizer'),zod.literal(null)]).nullable(),
+  "decisionReason": zod.string().nullable().describe('Organizer\'s reason for deciding a level aggregate (public).'),
+  "decisionWinnerId": zod.number().nullable()
+}).describe('V5.10: aggregate of a two-legged tie. state: not_started, first_leg_played, awaiting_decision (level aggregate, advancement blocked), decided.'),zod.null()]).optional().describe('V5.10: aggregate of a two-legged tie; null for other matches.'),
+  "status": zod.enum(['pending', 'in_progress', 'postponed', 'completed', 'cancelled']),
+  "nextMatchId": zod.number().nullish(),
+  "sortOrder": zod.number().nullish(),
+  "scheduledAt": zod.string().nullish(),
+  "completedAt": zod.string().nullish()
+})
+
+
+/**
+ * @summary V5.10: decide a two-legged tie (level aggregate: winner and reason; otherwise confirms the aggregate)
+ */
+export const DecideMatchTieParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const decideMatchTieBodyReasonMax = 300;
+
+
+
+
+export const DecideMatchTieBody = zod.object({
+  "winnerId": zod.number().optional().describe('Required for a level aggregate: the participant who advances.'),
+  "reason": zod.string().max(decideMatchTieBodyReasonMax).optional().describe('Required for a level aggregate: why (e.g. penalties 4:3). Shown to viewers.'),
+  "expectedRevision": zod.number().min(1).describe('Revision of the tie (match) the client saw.')
+})
+
+export const decideMatchTieResponseSetsOneItemScore1Min = 0;
+
+export const decideMatchTieResponseSetsOneItemScore2Min = 0;
+
+
+
+export const decideMatchTieResponseLegsOneItemScore1Min = 0;
+
+export const decideMatchTieResponseLegsOneItemScore2Min = 0;
+
+
+export const decideMatchTieResponseTieOneTotal1Min = 0;
+
+export const decideMatchTieResponseTieOneTotal2Min = 0;
+
+export const decideMatchTieResponseTieOneCompletedLegsMin = 0;
+export const decideMatchTieResponseTieOneCompletedLegsMax = 2;
+
+
+
+export const DecideMatchTieResponse = zod.object({
+  "sets": zod.union([zod.array(zod.object({
+  "score1": zod.number().min(decideMatchTieResponseSetsOneItemScore1Min),
+  "score2": zod.number().min(decideMatchTieResponseSetsOneItemScore2Min)
+})),zod.null()]).optional().describe('V5.7: played sets (stages decided by sets); null otherwise — older results never get invented sets.'),
+  "id": zod.number(),
+  "revision": zod.number().min(1),
+  "tournamentId": zod.number(),
+  "stageId": zod.number(),
+  "stageGroupId": zod.number().nullish(),
+  "routingMatchKey": zod.string().nullish(),
+  "round": zod.number(),
+  "matchNumber": zod.number(),
+  "player1Id": zod.number().nullish(),
+  "player2Id": zod.number().nullish(),
+  "player1Name": zod.string().nullish(),
+  "player2Name": zod.string().nullish(),
+  "score1": zod.number().nullish(),
+  "score2": zod.number().nullish(),
+  "winnerId": zod.number().nullish(),
+  "resultType": zod.union([zod.literal('played'),zod.literal('walkover'),zod.literal('bye'),zod.literal('no_contest'),zod.literal(null)]).nullish(),
+  "resultReason": zod.string().nullish(),
+  "bestOf": zod.number().min(1),
+  "note": zod.string().nullish().describe('V5.10: organizer\'s free-text note — returned only to the organizer and support staff, never to viewers.'),
+  "legs": zod.union([zod.array(zod.object({
+  "leg": zod.union([zod.literal(1),zod.literal(2)]),
+  "homeSide": zod.union([zod.literal(1),zod.literal(2)]),
+  "status": zod.enum(['pending', 'completed']),
+  "score1": zod.number().min(decideMatchTieResponseLegsOneItemScore1Min).nullable(),
+  "score2": zod.number().min(decideMatchTieResponseLegsOneItemScore2Min).nullable(),
+  "scheduledAt": zod.string().nullable(),
+  "completedAt": zod.string().nullable(),
+  "revision": zod.number().min(1)
+}).describe('V5.10: one leg of a two-legged tie. Scores are from the tie\'s point of view: score1 = participant 1 (home in leg 1), score2 = participant 2 (home in leg 2).')),zod.null()]).optional().describe('V5.10: both legs of a two-legged tie; null for other matches.'),
+  "tie": zod.union([zod.object({
+  "state": zod.enum(['not_started', 'first_leg_played', 'awaiting_decision', 'decided']),
+  "total1": zod.number().min(decideMatchTieResponseTieOneTotal1Min),
+  "total2": zod.number().min(decideMatchTieResponseTieOneTotal2Min),
+  "completedLegs": zod.number().min(decideMatchTieResponseTieOneCompletedLegsMin).max(decideMatchTieResponseTieOneCompletedLegsMax),
+  "decidedBy": zod.union([zod.literal('aggregate'),zod.literal('organizer'),zod.literal(null)]).nullable(),
+  "decisionReason": zod.string().nullable().describe('Organizer\'s reason for deciding a level aggregate (public).'),
+  "decisionWinnerId": zod.number().nullable()
+}).describe('V5.10: aggregate of a two-legged tie. state: not_started, first_leg_played, awaiting_decision (level aggregate, advancement blocked), decided.'),zod.null()]).optional().describe('V5.10: aggregate of a two-legged tie; null for other matches.'),
   "status": zod.enum(['pending', 'in_progress', 'postponed', 'completed', 'cancelled']),
   "nextMatchId": zod.number().nullish(),
   "sortOrder": zod.number().nullish(),
@@ -5779,6 +6436,18 @@ export const cancelMatchResponseSetsOneItemScore2Min = 0;
 
 
 
+export const cancelMatchResponseLegsOneItemScore1Min = 0;
+
+export const cancelMatchResponseLegsOneItemScore2Min = 0;
+
+
+export const cancelMatchResponseTieOneTotal1Min = 0;
+
+export const cancelMatchResponseTieOneTotal2Min = 0;
+
+export const cancelMatchResponseTieOneCompletedLegsMin = 0;
+export const cancelMatchResponseTieOneCompletedLegsMax = 2;
+
 
 
 export const CancelMatchResponse = zod.object({
@@ -5804,7 +6473,26 @@ export const CancelMatchResponse = zod.object({
   "resultType": zod.union([zod.literal('played'),zod.literal('walkover'),zod.literal('bye'),zod.literal('no_contest'),zod.literal(null)]).nullish(),
   "resultReason": zod.string().nullish(),
   "bestOf": zod.number().min(1),
-  "note": zod.string().nullish(),
+  "note": zod.string().nullish().describe('V5.10: organizer\'s free-text note — returned only to the organizer and support staff, never to viewers.'),
+  "legs": zod.union([zod.array(zod.object({
+  "leg": zod.union([zod.literal(1),zod.literal(2)]),
+  "homeSide": zod.union([zod.literal(1),zod.literal(2)]),
+  "status": zod.enum(['pending', 'completed']),
+  "score1": zod.number().min(cancelMatchResponseLegsOneItemScore1Min).nullable(),
+  "score2": zod.number().min(cancelMatchResponseLegsOneItemScore2Min).nullable(),
+  "scheduledAt": zod.string().nullable(),
+  "completedAt": zod.string().nullable(),
+  "revision": zod.number().min(1)
+}).describe('V5.10: one leg of a two-legged tie. Scores are from the tie\'s point of view: score1 = participant 1 (home in leg 1), score2 = participant 2 (home in leg 2).')),zod.null()]).optional().describe('V5.10: both legs of a two-legged tie; null for other matches.'),
+  "tie": zod.union([zod.object({
+  "state": zod.enum(['not_started', 'first_leg_played', 'awaiting_decision', 'decided']),
+  "total1": zod.number().min(cancelMatchResponseTieOneTotal1Min),
+  "total2": zod.number().min(cancelMatchResponseTieOneTotal2Min),
+  "completedLegs": zod.number().min(cancelMatchResponseTieOneCompletedLegsMin).max(cancelMatchResponseTieOneCompletedLegsMax),
+  "decidedBy": zod.union([zod.literal('aggregate'),zod.literal('organizer'),zod.literal(null)]).nullable(),
+  "decisionReason": zod.string().nullable().describe('Organizer\'s reason for deciding a level aggregate (public).'),
+  "decisionWinnerId": zod.number().nullable()
+}).describe('V5.10: aggregate of a two-legged tie. state: not_started, first_leg_played, awaiting_decision (level aggregate, advancement blocked), decided.'),zod.null()]).optional().describe('V5.10: aggregate of a two-legged tie; null for other matches.'),
   "status": zod.enum(['pending', 'in_progress', 'postponed', 'completed', 'cancelled']),
   "nextMatchId": zod.number().nullish(),
   "sortOrder": zod.number().nullish(),
@@ -5833,6 +6521,18 @@ export const restoreCancelledMatchResponseSetsOneItemScore2Min = 0;
 
 
 
+export const restoreCancelledMatchResponseLegsOneItemScore1Min = 0;
+
+export const restoreCancelledMatchResponseLegsOneItemScore2Min = 0;
+
+
+export const restoreCancelledMatchResponseTieOneTotal1Min = 0;
+
+export const restoreCancelledMatchResponseTieOneTotal2Min = 0;
+
+export const restoreCancelledMatchResponseTieOneCompletedLegsMin = 0;
+export const restoreCancelledMatchResponseTieOneCompletedLegsMax = 2;
+
 
 
 export const RestoreCancelledMatchResponse = zod.object({
@@ -5858,7 +6558,26 @@ export const RestoreCancelledMatchResponse = zod.object({
   "resultType": zod.union([zod.literal('played'),zod.literal('walkover'),zod.literal('bye'),zod.literal('no_contest'),zod.literal(null)]).nullish(),
   "resultReason": zod.string().nullish(),
   "bestOf": zod.number().min(1),
-  "note": zod.string().nullish(),
+  "note": zod.string().nullish().describe('V5.10: organizer\'s free-text note — returned only to the organizer and support staff, never to viewers.'),
+  "legs": zod.union([zod.array(zod.object({
+  "leg": zod.union([zod.literal(1),zod.literal(2)]),
+  "homeSide": zod.union([zod.literal(1),zod.literal(2)]),
+  "status": zod.enum(['pending', 'completed']),
+  "score1": zod.number().min(restoreCancelledMatchResponseLegsOneItemScore1Min).nullable(),
+  "score2": zod.number().min(restoreCancelledMatchResponseLegsOneItemScore2Min).nullable(),
+  "scheduledAt": zod.string().nullable(),
+  "completedAt": zod.string().nullable(),
+  "revision": zod.number().min(1)
+}).describe('V5.10: one leg of a two-legged tie. Scores are from the tie\'s point of view: score1 = participant 1 (home in leg 1), score2 = participant 2 (home in leg 2).')),zod.null()]).optional().describe('V5.10: both legs of a two-legged tie; null for other matches.'),
+  "tie": zod.union([zod.object({
+  "state": zod.enum(['not_started', 'first_leg_played', 'awaiting_decision', 'decided']),
+  "total1": zod.number().min(restoreCancelledMatchResponseTieOneTotal1Min),
+  "total2": zod.number().min(restoreCancelledMatchResponseTieOneTotal2Min),
+  "completedLegs": zod.number().min(restoreCancelledMatchResponseTieOneCompletedLegsMin).max(restoreCancelledMatchResponseTieOneCompletedLegsMax),
+  "decidedBy": zod.union([zod.literal('aggregate'),zod.literal('organizer'),zod.literal(null)]).nullable(),
+  "decisionReason": zod.string().nullable().describe('Organizer\'s reason for deciding a level aggregate (public).'),
+  "decisionWinnerId": zod.number().nullable()
+}).describe('V5.10: aggregate of a two-legged tie. state: not_started, first_leg_played, awaiting_decision (level aggregate, advancement blocked), decided.'),zod.null()]).optional().describe('V5.10: aggregate of a two-legged tie; null for other matches.'),
   "status": zod.enum(['pending', 'in_progress', 'postponed', 'completed', 'cancelled']),
   "nextMatchId": zod.number().nullish(),
   "sortOrder": zod.number().nullish(),
@@ -5887,6 +6606,18 @@ export const swapMatchPlayersResponseSetsOneItemScore2Min = 0;
 
 
 
+export const swapMatchPlayersResponseLegsOneItemScore1Min = 0;
+
+export const swapMatchPlayersResponseLegsOneItemScore2Min = 0;
+
+
+export const swapMatchPlayersResponseTieOneTotal1Min = 0;
+
+export const swapMatchPlayersResponseTieOneTotal2Min = 0;
+
+export const swapMatchPlayersResponseTieOneCompletedLegsMin = 0;
+export const swapMatchPlayersResponseTieOneCompletedLegsMax = 2;
+
 
 
 export const SwapMatchPlayersResponse = zod.object({
@@ -5912,7 +6643,26 @@ export const SwapMatchPlayersResponse = zod.object({
   "resultType": zod.union([zod.literal('played'),zod.literal('walkover'),zod.literal('bye'),zod.literal('no_contest'),zod.literal(null)]).nullish(),
   "resultReason": zod.string().nullish(),
   "bestOf": zod.number().min(1),
-  "note": zod.string().nullish(),
+  "note": zod.string().nullish().describe('V5.10: organizer\'s free-text note — returned only to the organizer and support staff, never to viewers.'),
+  "legs": zod.union([zod.array(zod.object({
+  "leg": zod.union([zod.literal(1),zod.literal(2)]),
+  "homeSide": zod.union([zod.literal(1),zod.literal(2)]),
+  "status": zod.enum(['pending', 'completed']),
+  "score1": zod.number().min(swapMatchPlayersResponseLegsOneItemScore1Min).nullable(),
+  "score2": zod.number().min(swapMatchPlayersResponseLegsOneItemScore2Min).nullable(),
+  "scheduledAt": zod.string().nullable(),
+  "completedAt": zod.string().nullable(),
+  "revision": zod.number().min(1)
+}).describe('V5.10: one leg of a two-legged tie. Scores are from the tie\'s point of view: score1 = participant 1 (home in leg 1), score2 = participant 2 (home in leg 2).')),zod.null()]).optional().describe('V5.10: both legs of a two-legged tie; null for other matches.'),
+  "tie": zod.union([zod.object({
+  "state": zod.enum(['not_started', 'first_leg_played', 'awaiting_decision', 'decided']),
+  "total1": zod.number().min(swapMatchPlayersResponseTieOneTotal1Min),
+  "total2": zod.number().min(swapMatchPlayersResponseTieOneTotal2Min),
+  "completedLegs": zod.number().min(swapMatchPlayersResponseTieOneCompletedLegsMin).max(swapMatchPlayersResponseTieOneCompletedLegsMax),
+  "decidedBy": zod.union([zod.literal('aggregate'),zod.literal('organizer'),zod.literal(null)]).nullable(),
+  "decisionReason": zod.string().nullable().describe('Organizer\'s reason for deciding a level aggregate (public).'),
+  "decisionWinnerId": zod.number().nullable()
+}).describe('V5.10: aggregate of a two-legged tie. state: not_started, first_leg_played, awaiting_decision (level aggregate, advancement blocked), decided.'),zod.null()]).optional().describe('V5.10: aggregate of a two-legged tie; null for other matches.'),
   "status": zod.enum(['pending', 'in_progress', 'postponed', 'completed', 'cancelled']),
   "nextMatchId": zod.number().nullish(),
   "sortOrder": zod.number().nullish(),
@@ -5937,6 +6687,18 @@ export const reorderMatchesResponseSetsOneItemScore1Min = 0;
 export const reorderMatchesResponseSetsOneItemScore2Min = 0;
 
 
+
+export const reorderMatchesResponseLegsOneItemScore1Min = 0;
+
+export const reorderMatchesResponseLegsOneItemScore2Min = 0;
+
+
+export const reorderMatchesResponseTieOneTotal1Min = 0;
+
+export const reorderMatchesResponseTieOneTotal2Min = 0;
+
+export const reorderMatchesResponseTieOneCompletedLegsMin = 0;
+export const reorderMatchesResponseTieOneCompletedLegsMax = 2;
 
 
 
@@ -5963,7 +6725,26 @@ export const ReorderMatchesResponseItem = zod.object({
   "resultType": zod.union([zod.literal('played'),zod.literal('walkover'),zod.literal('bye'),zod.literal('no_contest'),zod.literal(null)]).nullish(),
   "resultReason": zod.string().nullish(),
   "bestOf": zod.number().min(1),
-  "note": zod.string().nullish(),
+  "note": zod.string().nullish().describe('V5.10: organizer\'s free-text note — returned only to the organizer and support staff, never to viewers.'),
+  "legs": zod.union([zod.array(zod.object({
+  "leg": zod.union([zod.literal(1),zod.literal(2)]),
+  "homeSide": zod.union([zod.literal(1),zod.literal(2)]),
+  "status": zod.enum(['pending', 'completed']),
+  "score1": zod.number().min(reorderMatchesResponseLegsOneItemScore1Min).nullable(),
+  "score2": zod.number().min(reorderMatchesResponseLegsOneItemScore2Min).nullable(),
+  "scheduledAt": zod.string().nullable(),
+  "completedAt": zod.string().nullable(),
+  "revision": zod.number().min(1)
+}).describe('V5.10: one leg of a two-legged tie. Scores are from the tie\'s point of view: score1 = participant 1 (home in leg 1), score2 = participant 2 (home in leg 2).')),zod.null()]).optional().describe('V5.10: both legs of a two-legged tie; null for other matches.'),
+  "tie": zod.union([zod.object({
+  "state": zod.enum(['not_started', 'first_leg_played', 'awaiting_decision', 'decided']),
+  "total1": zod.number().min(reorderMatchesResponseTieOneTotal1Min),
+  "total2": zod.number().min(reorderMatchesResponseTieOneTotal2Min),
+  "completedLegs": zod.number().min(reorderMatchesResponseTieOneCompletedLegsMin).max(reorderMatchesResponseTieOneCompletedLegsMax),
+  "decidedBy": zod.union([zod.literal('aggregate'),zod.literal('organizer'),zod.literal(null)]).nullable(),
+  "decisionReason": zod.string().nullable().describe('Organizer\'s reason for deciding a level aggregate (public).'),
+  "decisionWinnerId": zod.number().nullable()
+}).describe('V5.10: aggregate of a two-legged tie. state: not_started, first_leg_played, awaiting_decision (level aggregate, advancement blocked), decided.'),zod.null()]).optional().describe('V5.10: aggregate of a two-legged tie; null for other matches.'),
   "status": zod.enum(['pending', 'in_progress', 'postponed', 'completed', 'cancelled']),
   "nextMatchId": zod.number().nullish(),
   "sortOrder": zod.number().nullish(),
@@ -5993,6 +6774,18 @@ export const revertMatchResponseSetsOneItemScore2Min = 0;
 
 
 
+export const revertMatchResponseLegsOneItemScore1Min = 0;
+
+export const revertMatchResponseLegsOneItemScore2Min = 0;
+
+
+export const revertMatchResponseTieOneTotal1Min = 0;
+
+export const revertMatchResponseTieOneTotal2Min = 0;
+
+export const revertMatchResponseTieOneCompletedLegsMin = 0;
+export const revertMatchResponseTieOneCompletedLegsMax = 2;
+
 
 
 export const RevertMatchResponse = zod.object({
@@ -6018,7 +6811,26 @@ export const RevertMatchResponse = zod.object({
   "resultType": zod.union([zod.literal('played'),zod.literal('walkover'),zod.literal('bye'),zod.literal('no_contest'),zod.literal(null)]).nullish(),
   "resultReason": zod.string().nullish(),
   "bestOf": zod.number().min(1),
-  "note": zod.string().nullish(),
+  "note": zod.string().nullish().describe('V5.10: organizer\'s free-text note — returned only to the organizer and support staff, never to viewers.'),
+  "legs": zod.union([zod.array(zod.object({
+  "leg": zod.union([zod.literal(1),zod.literal(2)]),
+  "homeSide": zod.union([zod.literal(1),zod.literal(2)]),
+  "status": zod.enum(['pending', 'completed']),
+  "score1": zod.number().min(revertMatchResponseLegsOneItemScore1Min).nullable(),
+  "score2": zod.number().min(revertMatchResponseLegsOneItemScore2Min).nullable(),
+  "scheduledAt": zod.string().nullable(),
+  "completedAt": zod.string().nullable(),
+  "revision": zod.number().min(1)
+}).describe('V5.10: one leg of a two-legged tie. Scores are from the tie\'s point of view: score1 = participant 1 (home in leg 1), score2 = participant 2 (home in leg 2).')),zod.null()]).optional().describe('V5.10: both legs of a two-legged tie; null for other matches.'),
+  "tie": zod.union([zod.object({
+  "state": zod.enum(['not_started', 'first_leg_played', 'awaiting_decision', 'decided']),
+  "total1": zod.number().min(revertMatchResponseTieOneTotal1Min),
+  "total2": zod.number().min(revertMatchResponseTieOneTotal2Min),
+  "completedLegs": zod.number().min(revertMatchResponseTieOneCompletedLegsMin).max(revertMatchResponseTieOneCompletedLegsMax),
+  "decidedBy": zod.union([zod.literal('aggregate'),zod.literal('organizer'),zod.literal(null)]).nullable(),
+  "decisionReason": zod.string().nullable().describe('Organizer\'s reason for deciding a level aggregate (public).'),
+  "decisionWinnerId": zod.number().nullable()
+}).describe('V5.10: aggregate of a two-legged tie. state: not_started, first_leg_played, awaiting_decision (level aggregate, advancement blocked), decided.'),zod.null()]).optional().describe('V5.10: aggregate of a two-legged tie; null for other matches.'),
   "status": zod.enum(['pending', 'in_progress', 'postponed', 'completed', 'cancelled']),
   "nextMatchId": zod.number().nullish(),
   "sortOrder": zod.number().nullish(),

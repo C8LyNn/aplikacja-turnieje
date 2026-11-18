@@ -5,9 +5,11 @@
  * Tournament Manager API
  * OpenAPI spec version: 0.1.0
  */
+import type { MatchLeg } from './matchLeg';
 import type { MatchResultType } from './matchResultType';
 import type { MatchStatus } from './matchStatus';
 import type { SetScore } from './setScore';
+import type { TieSummary } from './tieSummary';
 
 export interface Match {
   /** V5.7: played sets (stages decided by sets); null otherwise — older results never get invented sets. */
@@ -43,8 +45,15 @@ export interface Match {
   resultReason?: string | null;
   /** @minimum 1 */
   bestOf: number;
-  /** @nullable */
+  /**
+     * V5.10: organizer's free-text note — returned only to the organizer and support staff, never to viewers.
+     * @nullable
+     */
   note?: string | null;
+  /** V5.10: both legs of a two-legged tie; null for other matches. */
+  legs?: MatchLeg[] | null;
+  /** V5.10: aggregate of a two-legged tie; null for other matches. */
+  tie?: TieSummary | null;
   status: MatchStatus;
   /** @nullable */
   nextMatchId?: number | null;

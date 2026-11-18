@@ -66,6 +66,7 @@ import {
   tournamentTeamFields,
   validateTeamRosters,
 } from "./backup-team-rosters";
+import { exportTwoLegTies, restoreTwoLegTies, validateTwoLegTies } from "./backup-two-leg-ties";
 
 export class BackupV3ValidationError extends Error {
   constructor(public readonly details: string[]) {
@@ -89,6 +90,7 @@ const UNDOABLE_ACTIONS = new Set([
   "player_edited",
   "match_cancelled",
   "match_players_swapped",
+  "match_leg_result_submitted",
 ]);
 
 function parseUndoPayload(
@@ -361,6 +363,8 @@ export async function exportBackupV3(
       .orderBy(asc(tournamentRoutingExecutionsTable.stageKey));
   const stageBackupIdByKey = new Map(stages.map((stage) => [stage.stageKey, stage.id]));
   const teamRosters = await exportTeamRosters(db, tournament);
+  // V5.10: legs, decisions and history of two-legged ties (only when the tournament has any).
+  const twoLegTies = await exportTwoLegTies(db, tournamentId);
   const parsedGameConfig = gameConfig
     ? parseTournamentGameConfig({
         gameId: gameConfig.gameId,
@@ -690,6 +694,7 @@ export async function exportBackupV3(
           }),
         }),
     ...teamRosters,
+    ...twoLegTies,
   };
 }
 
@@ -799,13 +804,16 @@ export function validateBackupV3(backup: TournamentBackupV3): void {
   const checkSets = (label: string, entry: { stageBackupId: number; resultType: string | null; score1?: number | null; score2?: number | null; sets?: Array<{ score1: number; score2: number }> }) => {
     if (entry.sets === undefined) return;
     const rules = matchRulesByStage.get(entry.stageBackupId);
-    if (!rules || entry.resultType !== "played") { errors.push(`${label} has set scores but is not a played result of a stage decided by sets.`); return; }
+    if (rules?.kind !== "sets" || entry.resultType !== "played") { errors.push(`${label} has set scores but is not a played result of a stage decided by sets.`); return; }
     const evaluated = evaluateSetMatch(entry.sets, rules);
     if (!evaluated.ok || evaluated.value.setsWon1 !== entry.score1 || evaluated.value.setsWon2 !== entry.score2) {
       errors.push(`${label} set scores are invalid or do not match its result.`);
     }
   };
   for (const match of backup.matches) checkSets(`Match ${match.backupId}`, match);
+  // V5.10: two-legged ties — legs, aggregates, decisions and their history.
+  const twoLegStage = (stageBackupId: number) => matchRulesByStage.get(stageBackupId)?.kind === "two_legs";
+  validateTwoLegTies(backup, matchRulesByStage, playerIds, errors);
   for (const history of backup.resultHistory) checkSets(`Result history ${history.matchBackupId}:${history.revision}`, history);
   const groupById = new Map(
     backup.groups.map((group) => [group.backupId, group]),
@@ -1567,7 +1575,9 @@ export function validateBackupV3(backup: TournamentBackupV3): void {
       errors.push(
         `Pending match ${match.backupId} contains final result data.`,
       );
-    if (
+    if (match.resultType === "played" && twoLegStage(match.stageBackupId)) {
+      // V5.10: a two-legged tie's result is the aggregate of its legs (checked by validateTwoLegTies).
+    } else if (
       match.resultType === "played" &&
       match.player1BackupId != null &&
       match.player2BackupId != null &&
@@ -1678,7 +1688,13 @@ export function validateBackupV3(backup: TournamentBackupV3): void {
     }
     if (!positive(history.bestOf) || history.bestOf % 2 === 0)
       errors.push(`History ${key} has an invalid bestOf.`);
-    if (
+    if (history.resultType === "played" && twoLegStage(history.stageBackupId)) {
+      // V5.10: a saved aggregate of a two-legged tie — the winner is a participant; a higher total wins.
+      const totalsOk = Number.isInteger(history.score1) && Number.isInteger(history.score2) && (history.score1 as number) >= 0 && (history.score2 as number) >= 0;
+      const winnerOk = history.winnerBackupId != null && [history.player1BackupId, history.player2BackupId].includes(history.winnerBackupId)
+        && (history.score1 === history.score2 || history.winnerBackupId === ((history.score1 as number) > (history.score2 as number) ? history.player1BackupId : history.player2BackupId));
+      if (!totalsOk || !winnerOk || history.resultReason != null) errors.push(`Played history ${key} is invalid.`);
+    } else if (
       history.resultType === "played" &&
       history.player1BackupId != null &&
       history.player2BackupId != null &&
@@ -2325,6 +2341,12 @@ export async function importBackupV3(
           .set({ nextMatchId: matchIds.get(match.nextMatchBackupId)! })
           .where(eq(matchesTable.id, matchIds.get(match.backupId)!));
     }
+    // V5.10: legs, decisions and history of two-legged ties.
+    await restoreTwoLegTies(
+      tx, backup, tournament.id, matchIds,
+      new Map(backup.matches.map((match) => [match.backupId, stageIds.get(match.stageBackupId)!])),
+      playerIds,
+    );
     // Restore per-game picks (Deadlock)
     if (backup.gamePicks && backup.gamePicks.length > 0) {
       for (const pick of backup.gamePicks) {

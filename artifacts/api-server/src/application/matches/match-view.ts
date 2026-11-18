@@ -1,4 +1,5 @@
 import { setsFromStorage, type SetScore } from "@workspace/match-rules";
+import type { MatchLegView, TieSummaryView } from "./two-leg-ties";
 
 /**
  * V5.10 (P0): the match as the API returns it, built from an explicit list of fields — never by spreading the
@@ -51,7 +52,7 @@ export const PUBLIC_MATCH_FIELDS = [
   "id", "revision", "tournamentId", "stageId", "stageGroupId", "round", "matchNumber",
   "player1Id", "player2Id", "player1Name", "player2Name", "score1", "score2", "winnerId", "bestOf",
   "resultType", "resultReason", "status", "nextMatchId", "sortOrder", "scheduledAt", "completedAt",
-  "routingMatchKey", "sets",
+  "routingMatchKey", "sets", "legs", "tie",
 ] as const;
 
 /** Extra keys the organizer and support staff get. */
@@ -68,6 +69,8 @@ export type PublicMatchView = {
   winnerId: number | null; bestOf: number; resultType: string | null; resultReason: string | null;
   status: string; nextMatchId: number | null; sortOrder: number | null; scheduledAt: string | null;
   completedAt: string | null; routingMatchKey: string | null; sets: SetScore[] | null;
+  /** V5.10: both legs and the aggregate of a two-legged tie; null for every other match. */
+  legs: MatchLegView[] | null; tie: TieSummaryView | null;
 };
 export type MatchView = PublicMatchView & { note?: string | null };
 
@@ -75,6 +78,7 @@ export function toMatchView(
   match: MatchRow,
   names: { player1Name?: string | null; player2Name?: string | null },
   audience: MatchAudience,
+  twoLegs: { legs: MatchLegView[]; tie: TieSummaryView } | null = null,
 ): MatchView {
   const view: MatchView = {
     id: match.id,
@@ -102,6 +106,8 @@ export function toMatchView(
     routingMatchKey: match.routingMatchKey ?? null,
     // V5.7: set scores are exposed as `sets` ({ score1, score2 } per set), never as the raw column.
     sets: setsFromStorage(match.setScores),
+    legs: twoLegs?.legs ?? null,
+    tie: twoLegs?.tie ?? null,
   };
   if (audience === "organizer") view.note = match.note ?? null;
   return view;

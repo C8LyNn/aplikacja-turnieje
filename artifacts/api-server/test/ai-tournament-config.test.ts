@@ -84,7 +84,7 @@ describe("V5-B: published schema and specification match the engine", () => {
     assert.match(md, /## JSON Schema/);
     assert.match(md, /Jeszcze nieobsługiwane/);
     for (const planned of PLANNED_PRESETS) assert.ok(md.includes(planned.label));
-    assert.equal(buildAiSpecification().specVersion, "1.0");
+    assert.equal(buildAiSpecification().specVersion, "1.1");
   });
 });
 

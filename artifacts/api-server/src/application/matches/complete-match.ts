@@ -1,9 +1,12 @@
-import { evaluateSetMatch, matchRulesFromStorage, setsToStorage, type MatchRules, type SetScore, type SetScoreErrorCode } from "@workspace/match-rules";
+import { evaluateSetMatch, matchRulesFromStorage, setsToStorage, tieAggregate, validateDecisionReason, type MatchRules, type SetScore, type SetScoreErrorCode } from "@workspace/match-rules";
 import { stagePointTotals } from "../../domain/tournament/point-adjustments";
 import { and, desc, eq, inArray, ne } from "drizzle-orm";
 import {
   actionLogTable,
   db,
+  matchLegsTable,
+  matchTieDecisionsTable,
+  matchTieHistoryTable,
   matchesTable,
   playersTable,
   resultHistoryTable,
@@ -46,6 +49,13 @@ export type CompleteMatchErrorCode =
   | "RESULT_TYPE_NOT_PUBLIC"
   | "SCORE_TOO_HIGH"
   | "DRAW_NOT_ALLOWED"
+  | "TWO_LEGS_INCOMPLETE"
+  | "TWO_LEGS_RESULT_TYPE_UNSUPPORTED"
+  | "TIE_LEVEL_DECISION_REQUIRED"
+  | "TIE_DECISION_WINNER_INVALID"
+  | "TIE_DECISION_REASON_INVALID"
+  | "TIE_DECISION_NOT_NEEDED"
+  | "TIE_TOTAL_MISMATCH"
   | SetScoreErrorCode
   | SeriesResultErrorCode;
 
@@ -74,6 +84,14 @@ const ERROR_MESSAGES: Record<CompleteMatchErrorCode, string> = {
   BOTH_SIDES_REACHED_WIN_THRESHOLD: "Tylko jedna strona może osiągnąć próg zwycięstw.",
   SCORE_TOO_HIGH: "Wynik jest zbyt wysoki (maksymalnie 999).",
   DRAW_NOT_ALLOWED: "Ten etap nie dopuszcza remisów — wpisz wynik ze zwycięzcą.",
+  // V5.10 two-legged ties.
+  TWO_LEGS_INCOMPLETE: "W dwumeczu najpierw wpisz wyniki obu spotkań — o awansie decyduje ich suma.",
+  TWO_LEGS_RESULT_TYPE_UNSUPPORTED: "W dwumeczu wpisuje się wyniki obu spotkań; walkower ani „no contest” całego dwumeczu nie są obsługiwane.",
+  TIE_LEVEL_DECISION_REQUIRED: "Suma obu spotkań jest równa — awans wymaga rozstrzygnięcia organizatora (zwycięzca i powód, np. „rzuty karne 4:3”).",
+  TIE_DECISION_WINNER_INVALID: "Rozstrzygnięcie musi wskazać jednego z uczestników dwumeczu.",
+  TIE_DECISION_REASON_INVALID: "Podaj powód rozstrzygnięcia (1–300 znaków) — widzowie go zobaczą.",
+  TIE_DECISION_NOT_NEEDED: "Suma spotkań wskazuje zwycięzcę — rozstrzygnięcie organizatora nie jest potrzebne i nie może go zmienić.",
+  TIE_TOTAL_MISMATCH: "Wynik dwumeczu musi być sumą wyników obu spotkań.",
   // V5.7 set matches (the domain adds the set number and the reason to each message).
   SETS_REQUIRED: "Wpisz wyniki setów — w tym etapie o meczu decydują sety.",
   SET_SCORE_NOT_INTEGER: "Punkty w secie muszą być liczbami całkowitymi.",
@@ -98,6 +116,8 @@ interface CompleteMatchBaseInput {
   matchId: number;
   expectedRevision: number;
   actor?: TournamentMutationActor;
+  /** V5.10: the organizer's decision of a two-legged tie with a level aggregate (winner and public reason). */
+  tieDecision?: { winnerId: number; reason: string } | null;
 }
 
 export interface CompletePlayedMatchInput extends CompleteMatchBaseInput {
@@ -148,7 +168,7 @@ function normalizeResult(params: {
   leagueRules: LeagueRules | null;
   matchRules: MatchRules | null;
 }): NormalizedResult {
-  if (params.input.resultType === "played" && params.matchRules) {
+  if (params.input.resultType === "played" && params.matchRules?.kind === "sets") {
     // V5.7: the sets decide; the match score is sets won and must agree with them.
     const evaluated = evaluateSetMatch(params.input.sets ?? [], params.matchRules);
     if (!evaluated.ok) throw new CompleteMatchError(evaluated.problem.code, evaluated.problem.message);
@@ -337,15 +357,49 @@ export async function completeMatch(
       throw new CompleteMatchError("PARTICIPANT_NOT_FOUND");
     }
 
-    const result = normalizeResult({
-      input,
-      bestOf: match.bestOf,
-      player1Id: match.player1Id,
-      player2Id: match.player2Id,
-      format: stage.format,
-      leagueRules: leagueRulesFromStorage(stage.leagueRules),
-      matchRules: matchRulesFromStorage(stage.matchRules),
-    });
+    const stageMatchRules = matchRulesFromStorage(stage.matchRules);
+    let tieDecisionToStore: { winnerId: number; reason: string } | null = null;
+    let result: NormalizedResult;
+    if (stageMatchRules?.kind === "two_legs") {
+      // V5.10: a two-legged tie — the result is the aggregate of both stored legs; a level aggregate needs the
+      // organizer's decision. Nothing is invented (no away goals, no extra time, no penalties).
+      if (input.resultType !== "played") throw new CompleteMatchError("TWO_LEGS_RESULT_TYPE_UNSUPPORTED");
+      const legs = await tx.select().from(matchLegsTable).where(eq(matchLegsTable.matchId, match.id)).orderBy(matchLegsTable.leg).for("update");
+      const aggregate = tieAggregate(legs.map((leg) => ({ leg: leg.leg as 1 | 2, status: leg.status, score1: leg.score1, score2: leg.score2 })));
+      if (!aggregate.complete) throw new CompleteMatchError("TWO_LEGS_INCOMPLETE");
+      if (input.score1 !== aggregate.total1 || input.score2 !== aggregate.total2) {
+        throw new CompleteMatchError("TIE_TOTAL_MISMATCH", `Wynik dwumeczu ${input.score1}:${input.score2} nie zgadza się z sumą spotkań ${aggregate.total1}:${aggregate.total2}.`);
+      }
+      let winnerId: number;
+      if (aggregate.aggregateWinner != null) {
+        winnerId = aggregate.aggregateWinner === 1 ? match.player1Id : match.player2Id;
+        if (input.tieDecision && input.tieDecision.winnerId !== winnerId) throw new CompleteMatchError("TIE_DECISION_NOT_NEEDED");
+      } else {
+        if (!input.tieDecision) throw new CompleteMatchError("TIE_LEVEL_DECISION_REQUIRED");
+        if (input.tieDecision.winnerId !== match.player1Id && input.tieDecision.winnerId !== match.player2Id) {
+          throw new CompleteMatchError("TIE_DECISION_WINNER_INVALID");
+        }
+        const reason = validateDecisionReason(input.tieDecision.reason);
+        if (!reason.ok) throw new CompleteMatchError("TIE_DECISION_REASON_INVALID", reason.message);
+        winnerId = input.tieDecision.winnerId;
+        tieDecisionToStore = { winnerId, reason: reason.value };
+      }
+      result = {
+        resultType: "played", score1: aggregate.total1, score2: aggregate.total2, winnerId,
+        loserId: winnerId === match.player1Id ? match.player2Id : match.player1Id,
+        reason: null, setScores: null,
+      };
+    } else {
+      result = normalizeResult({
+        input,
+        bestOf: match.bestOf,
+        player1Id: match.player1Id,
+        player2Id: match.player2Id,
+        format: stage.format,
+        leagueRules: leagueRulesFromStorage(stage.leagueRules),
+        matchRules: stageMatchRules,
+      });
+    }
 
     let downstreamMatch: typeof matchesTable.$inferSelect | null = null;
     let downstreamSlot: "player1" | "player2" | null = null;
@@ -448,10 +502,24 @@ export async function completeMatch(
       setScores: result.setScores ? setsToStorage(result.setScores) : null,
     });
 
+    if (tieDecisionToStore) {
+      await tx.insert(matchTieDecisionsTable).values({
+        matchId: match.id, tournamentId: match.tournamentId, stageId: match.stageId,
+        winnerId: tieDecisionToStore.winnerId, reason: tieDecisionToStore.reason, decidedAt: now,
+      });
+      await tx.insert(matchTieHistoryTable).values({
+        tournamentId: match.tournamentId, stageId: match.stageId, matchId: match.id, event: "decision_recorded",
+        winnerId: tieDecisionToStore.winnerId, reason: tieDecisionToStore.reason, recordedAt: now,
+      });
+    }
+
     const names = new Map(participants.map((player) => [player.id, player.name]));
     const setsText = result.setScores ? ` (sety: ${result.setScores.map((set) => `${set.score1}:${set.score2}`).join(", ")})` : "";
+    const tieText = stageMatchRules?.kind !== "two_legs" ? ""
+      : tieDecisionToStore ? ` (dwumecz, remis w sumie — decyzja organizatora: awansuje ${names.get(tieDecisionToStore.winnerId)}; ${tieDecisionToStore.reason})`
+      : " (dwumecz, suma obu spotkań)";
     const description = result.resultType === "played"
-      ? `R${match.round}M${match.matchNumber}: ${names.get(match.player1Id)} ${result.score1}:${result.score2} ${names.get(match.player2Id)}${result.winnerId == null ? " (remis)" : ""}${setsText}`
+      ? `R${match.round}M${match.matchNumber}: ${names.get(match.player1Id)} ${result.score1}:${result.score2} ${names.get(match.player2Id)}${result.winnerId == null ? " (remis)" : ""}${setsText}${tieText}`
       : result.resultType === "walkover"
         ? `R${match.round}M${match.matchNumber}: walkower dla ${names.get(result.winnerId!)}`
         : `R${match.round}M${match.matchNumber}: no contest`;

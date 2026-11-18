@@ -24,6 +24,9 @@ import type { TournamentBackupV3StageBasketsItem } from './tournamentBackupV3Sta
 import type { TournamentBackupV3StageParticipantsItem } from './tournamentBackupV3StageParticipantsItem';
 import type { TournamentBackupV3StagesItem } from './tournamentBackupV3StagesItem';
 import type { TournamentBackupV3TeamRosters } from './tournamentBackupV3TeamRosters';
+import type { TournamentBackupV3TieDecisionsItem } from './tournamentBackupV3TieDecisionsItem';
+import type { TournamentBackupV3TieHistoryItem } from './tournamentBackupV3TieHistoryItem';
+import type { TournamentBackupV3TieLegsItem } from './tournamentBackupV3TieLegsItem';
 import type { TournamentBackupV3Tournament } from './tournamentBackupV3Tournament';
 
 export interface TournamentBackupV3 {
@@ -51,6 +54,12 @@ export interface TournamentBackupV3 {
   matches: TournamentBackupV3MatchesItem[];
   resultHistory: TournamentBackupV3ResultHistoryItem[];
   actionLog: TournamentBackupV3ActionLogItem[];
+  /** V5.10: both legs of every two-legged tie (present only when the tournament has any). Scores in tie orientation (score1 = participant 1, home in leg 1). */
+  tieLegs?: TournamentBackupV3TieLegsItem[];
+  /** V5.10: organizer decisions of level aggregates (present only when any exist). */
+  tieDecisions?: TournamentBackupV3TieDecisionsItem[];
+  /** V5.10: history of legs and decisions of two-legged ties (present only when any exist). */
+  tieHistory?: TournamentBackupV3TieHistoryItem[];
   /** Per-player Deadlock hero bans (optional, present only for Deadlock tournaments) */
   deadlockBans?: TournamentBackupV3DeadlockBansItem[];
   /** Per-game hero picks for each match (optional, present only when picks exist) */

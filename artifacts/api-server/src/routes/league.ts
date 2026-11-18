@@ -50,6 +50,7 @@ import {
 } from "../domain/tournament/league-schedule";
 import { serializeTournamentStage } from "../application/stages/stage-queries";
 import { enrichMatches } from "./tournaments";
+import { isTwoLeggedTie } from "../application/matches/two-leg-ties";
 
 const router: IRouter = Router();
 
@@ -388,6 +389,10 @@ router.put("/matches/:id/schedule", async (req, res): Promise<void> => {
   const [reference] = await db.select({ tournamentId: matchesTable.tournamentId }).from(matchesTable)
     .where(eq(matchesTable.id, params.data.id));
   if (!reference) { res.status(404).json({ error: "Mecz nie istnieje.", code: "MATCH_NOT_FOUND" }); return; }
+  if (await isTwoLeggedTie(db, params.data.id)) {
+    res.status(422).json({ error: "W dwumeczu termin ustawia się dla każdego spotkania osobno.", code: "TWO_LEGS_TIE_OPERATION_UNSUPPORTED" });
+    return;
+  }
   const access = await requireTournamentWrite(req, res, reference.tournamentId);
   if (!access) return;
   try {

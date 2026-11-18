@@ -140,6 +140,8 @@ import { BACKUP_V3_IMPORT_DISABLED, BACKUP_V2_CONTAINS_V3_FIELDS, hasV3OnlyField
 import { buildStandardSeededBracket } from "../domain/tournament/stage-placement";
 import { validatePlayedSeriesResult } from "../domain/match/series-result";
 import { matchAudienceOf, toMatchView, type MatchAudience } from "../application/matches/match-view";
+import { createTieLegs, isTwoLeggedTie, loadTieData, revertLegResult, tieViewOf, TwoLegTieError, type StoredTieData } from "../application/matches/two-leg-ties";
+import { matchLegsTable } from "@workspace/db";
 import {
   loadTournamentGameConfig,
   loadTournamentGameConfigMap,
@@ -476,8 +478,9 @@ function mapMatch(
   player1Name: string | null | undefined,
   player2Name: string | null | undefined,
   audience: MatchAudience,
+  tie: StoredTieData | undefined = undefined,
 ) {
-  return toMatchView(match, { player1Name, player2Name }, audience);
+  return toMatchView(match, { player1Name, player2Name }, audience, tie ? tieViewOf(match, tie) : null);
 }
 
 /** Matches with player names. `audience` defaults to "public" so a forgotten argument never leaks organizer fields. */
@@ -498,6 +501,8 @@ export async function enrichMatches(matches: (typeof matchesTable.$inferSelect)[
           .where(inArray(playersTable.id, playerIds))
       : [];
   const playerMap = new Map(players.map((p) => [p.id, p.name]));
+  // V5.10: legs and the aggregate of two-legged ties (other matches have none).
+  const ties = await loadTieData(db, matches.map((m) => m.id));
 
   return matches.map((m) =>
     mapMatch(
@@ -505,6 +510,7 @@ export async function enrichMatches(matches: (typeof matchesTable.$inferSelect)[
       playerMap.get(m.player1Id!) ?? null,
       playerMap.get(m.player2Id!) ?? null,
       audience,
+      ties.get(m.id),
     ),
   );
 }
@@ -647,7 +653,7 @@ async function calculateStandings(
       stagePointTotals(stage),
     );
     // V5.7: small points of a set stage, next to (never instead of) match and set records.
-    if (!matchRulesFromStorage(stage.matchRules)) return rows;
+    if (matchRulesFromStorage(stage.matchRules)?.kind !== "sets") return rows;
     const totals = setPointTotals(stageMatches);
     return rows.map((row) => ({ ...row, setPointsFor: totals.get(row.playerId)?.for ?? 0, setPointsAgainst: totals.get(row.playerId)?.against ?? 0 }));
   }
@@ -1749,6 +1755,8 @@ router.post("/tournaments/:id/start", async (req, res): Promise<void> => {
         .insert(matchesTable)
         .values(generatedMatches.map((match) => ({ ...match, stageId: stage.id })))
         .returning();
+      // V5.10: a two-legged stage gets both legs of every tie (byes have none).
+      await createTieLegs(tx, stage, inserted);
       const byeMatches = inserted.filter((match) => match.resultType === "bye" && match.winnerId);
 
       // Single-elimination bye advances structurally but is not a match win.
@@ -2475,6 +2483,7 @@ const UNDOABLE_TYPES = new Set([
   "match_bo_changed", "match_featured", "match_unfeatured",
   "match_result_submitted", "player_added", "player_edited",
   "match_cancelled", "match_players_swapped",
+  "match_leg_result_submitted",
 ]);
 
 type RouteTransaction = Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -2509,7 +2518,7 @@ function mapActionLog(entry: typeof actionLogTable.$inferSelect) {
   };
 }
 
-function sendRevertMatchError(
+export function sendRevertMatchError(
   error: RevertMatchError,
   res: import("express").Response,
 ): void {
@@ -2639,6 +2648,21 @@ router.post("/tournaments/:id/undo-last", async (req, res): Promise<void> => {
   }
 
   try {
+    if (payload.type === "revert_leg") {
+      // V5.10: undo the score of one leg of a two-legged tie (a tie it decided is reverted first, with every check).
+      const matchId = payload.matchId as number;
+      const leg = payload.leg as number;
+      const result = await withTournamentMutationLock(params.data.id, mutationActor, async (tx) => {
+        await lockLatestUndoableAction(tx, params.data.id, lastAction.id);
+        const [current] = await tx.select({ revision: matchLegsTable.revision }).from(matchLegsTable)
+          .where(and(eq(matchLegsTable.matchId, matchId), eq(matchLegsTable.leg, leg)));
+        if (!current) throw new TwoLegTieError("LEG_NOT_FOUND");
+        return revertLegResult({ matchId, leg, expectedRevision: current.revision, actor: mutationActor, expectedActionId: lastAction.id }, tx);
+      });
+      const [undone] = await db.select().from(actionLogTable).where(eq(actionLogTable.id, lastAction.id));
+      res.json({ action: mapActionLog(undone ?? lastAction), message: `Cofnięto: ${lastAction.description}`, matchRevision: result.match.revision });
+      return;
+    }
     if (payload.type === "revert_match") {
       const matchId = payload.matchId as number;
       if (!Number.isInteger(matchId) || matchId < 1) {
@@ -2857,6 +2881,13 @@ router.patch("/matches/:id", async (req, res): Promise<void> => {
   }
   const { expectedRevision, ...changes } = parsed.data;
   const changesState = changes.status != null || changes.bestOf != null;
+  if (changesState && await isTwoLeggedTie(db, params.data.id)) {
+    res.status(422).json({
+      error: "W dwumeczu stan i długość ustala się dla każdego spotkania osobno — wpisz wynik albo termin konkretnego spotkania.",
+      code: "TWO_LEGS_TIE_OPERATION_UNSUPPORTED",
+    });
+    return;
+  }
   if (changesState && expectedRevision == null) {
     res.status(422).json({ error: REVISION_REQUIRED_MESSAGE, code: "EXPECTED_REVISION_REQUIRED" });
     return;
@@ -3109,6 +3140,10 @@ router.post("/matches/:id/cancel", async (req, res): Promise<void> => {
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
   const [match] = await db.select().from(matchesTable).where(eq(matchesTable.id, params.data.id));
   if (!match) { res.status(404).json({ error: "Match not found" }); return; }
+  if (await isTwoLeggedTie(db, match.id)) {
+    res.status(422).json({ error: "Dwumeczu nie anuluje się w całości — wpisz wyniki obu spotkań, a przy remisie w sumie rozstrzygnij awans.", code: "TWO_LEGS_TIE_OPERATION_UNSUPPORTED" });
+    return;
+  }
   const access = await requireTournamentWrite(req, res, match.tournamentId);
   if (!access) return;
   const updated = await withTournamentMutationLock(
@@ -3272,6 +3307,8 @@ router.post("/matches/:id/swap-players", async (req, res): Promise<void> => {
         .for("update");
       if (!lockedMatch) throw new Error("Match disappeared during swap");
       if (lockedMatch.status === "completed") throw new Error("MATCH_CANNOT_SWAP");
+      // V5.10: after a leg is played the tie's sides are fixed (leg scores belong to participant 1 and 2).
+      if (lockedMatch.status !== "pending" && await isTwoLeggedTie(tx, lockedMatch.id)) throw new Error("MATCH_CANNOT_SWAP");
       // Not idempotent by nature (a second swap undoes the first), so a stale or repeated request is refused.
       if (lockedMatch.revision !== expectedSwapRevision) throw new MatchRevisionConflict(lockedMatch);
       const [saved] = await tx

@@ -3,3 +3,4 @@ export * from "./tournament-teams";
 export * from "./tournament-routing";
 export * from "./steam-game-catalog";
 export * from "./tournament-correction-operations";
+export * from "./two-leg-ties";

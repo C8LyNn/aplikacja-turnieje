@@ -16,6 +16,7 @@ import tournamentAiConfigRouter from "./tournament-ai-config";
 import tournamentTeamsRouter from "./tournament-teams";
 import authRouter from "./auth";
 import leagueRouter from "./league";
+import twoLegTiesRouter from "./two-leg-ties";
 
 const router: IRouter = Router();
 
@@ -27,6 +28,7 @@ router.use(tournamentPresetsRouter);
 router.use(tournamentAiConfigRouter);
 router.use(tournamentTeamsRouter);
 router.use(leagueRouter);
+router.use(twoLegTiesRouter);
 router.use(qualificationRoutingPreviewRouter);
 router.use(resultCorrectionPreviewRouter);
 router.use(tournamentSeCorrectionPreflightRouter);

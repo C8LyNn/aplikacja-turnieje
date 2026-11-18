@@ -943,19 +943,19 @@ export interface LeagueRules {
   tieBreakers?: LeagueRulesTieBreakersItem[];
 }
 
-export type MatchRulesKind = typeof MatchRulesKind[keyof typeof MatchRulesKind];
+export type SetMatchRulesKind = typeof SetMatchRulesKind[keyof typeof SetMatchRulesKind];
 
 
-export const MatchRulesKind = {
+export const SetMatchRulesKind = {
   sets: 'sets',
 } as const;
 
 /**
- * V5.7: what decides a match. Every set uses the same rules; the match score is sets won.
+ * V5.7: every set uses the same rules; the match score is sets won.
  */
-export interface MatchRules {
+export interface SetMatchRules {
   version: 1;
-  kind: MatchRulesKind;
+  kind: SetMatchRulesKind;
   /**
      * @minimum 1
      * @maximum 4
@@ -972,6 +972,38 @@ export interface MatchRules {
      */
   winBy: number;
 }
+
+export type TwoLegMatchRulesKind = typeof TwoLegMatchRulesKind[keyof typeof TwoLegMatchRulesKind];
+
+
+export const TwoLegMatchRulesKind = {
+  two_legs: 'two_legs',
+} as const;
+
+/**
+ * Only policy: the organizer decides a level aggregate (default).
+ */
+export type TwoLegMatchRulesLevelAggregate = typeof TwoLegMatchRulesLevelAggregate[keyof typeof TwoLegMatchRulesLevelAggregate];
+
+
+export const TwoLegMatchRulesLevelAggregate = {
+  organizer_decision: 'organizer_decision',
+} as const;
+
+/**
+ * V5.10: two-legged knockout tie (single elimination only). Two games between the same pair; the aggregate decides. A level aggregate is decided by the organizer with a reason (no away-goals rule, nothing invented).
+ */
+export interface TwoLegMatchRules {
+  version: 1;
+  kind: TwoLegMatchRulesKind;
+  /** Only policy: the organizer decides a level aggregate (default). */
+  levelAggregate?: TwoLegMatchRulesLevelAggregate;
+}
+
+/**
+ * What decides a match (level B): sets (V5.7) or a two-legged knockout tie (V5.10). Absent/null keeps the stage's existing meaning (one game, a best-of series, or a draw league game).
+ */
+export type MatchRules = SetMatchRules | TwoLegMatchRules;
 
 /**
  * V5.3: round 1 on startDate, every next round intervalDays later, at defaultTime (local, in scheduleTimeZone).
@@ -2108,6 +2140,101 @@ export interface SetScore {
   score2: number;
 }
 
+export type MatchLegLeg = typeof MatchLegLeg[keyof typeof MatchLegLeg];
+
+
+export const MatchLegLeg = {
+  NUMBER_1: 1,
+  NUMBER_2: 2,
+} as const;
+
+export type MatchLegHomeSide = typeof MatchLegHomeSide[keyof typeof MatchLegHomeSide];
+
+
+export const MatchLegHomeSide = {
+  NUMBER_1: 1,
+  NUMBER_2: 2,
+} as const;
+
+export type MatchLegStatus = typeof MatchLegStatus[keyof typeof MatchLegStatus];
+
+
+export const MatchLegStatus = {
+  pending: 'pending',
+  completed: 'completed',
+} as const;
+
+/**
+ * V5.10: one leg of a two-legged tie. Scores are from the tie's point of view: score1 = participant 1 (home in leg 1), score2 = participant 2 (home in leg 2).
+ */
+export interface MatchLeg {
+  leg: MatchLegLeg;
+  homeSide: MatchLegHomeSide;
+  status: MatchLegStatus;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  score1: number | null;
+  /**
+     * @minimum 0
+     * @nullable
+     */
+  score2: number | null;
+  /** @nullable */
+  scheduledAt: string | null;
+  /** @nullable */
+  completedAt: string | null;
+  /** @minimum 1 */
+  revision: number;
+}
+
+export type TieSummaryState = typeof TieSummaryState[keyof typeof TieSummaryState];
+
+
+export const TieSummaryState = {
+  not_started: 'not_started',
+  first_leg_played: 'first_leg_played',
+  awaiting_decision: 'awaiting_decision',
+  decided: 'decided',
+} as const;
+
+/**
+ * @nullable
+ */
+export type TieSummaryDecidedBy = typeof TieSummaryDecidedBy[keyof typeof TieSummaryDecidedBy] | null;
+
+
+export const TieSummaryDecidedBy = {
+  aggregate: 'aggregate',
+  organizer: 'organizer',
+} as const;
+
+/**
+ * V5.10: aggregate of a two-legged tie. state: not_started, first_leg_played, awaiting_decision (level aggregate, advancement blocked), decided.
+ */
+export interface TieSummary {
+  state: TieSummaryState;
+  /** @minimum 0 */
+  total1: number;
+  /** @minimum 0 */
+  total2: number;
+  /**
+     * @minimum 0
+     * @maximum 2
+     */
+  completedLegs: number;
+  /** @nullable */
+  decidedBy: TieSummaryDecidedBy;
+  /**
+     * Organizer's reason for deciding a level aggregate (public).
+     * @nullable
+     */
+  decisionReason: string | null;
+  /** @nullable */
+  decisionWinnerId: number | null;
+}
+
 export interface Match {
   /** V5.7: played sets (stages decided by sets); null otherwise — older results never get invented sets. */
   sets?: SetScore[] | null;
@@ -2142,8 +2269,15 @@ export interface Match {
   resultReason?: string | null;
   /** @minimum 1 */
   bestOf: number;
-  /** @nullable */
+  /**
+     * V5.10: organizer's free-text note — returned only to the organizer and support staff, never to viewers.
+     * @nullable
+     */
   note?: string | null;
+  /** V5.10: both legs of a two-legged tie; null for other matches. */
+  legs?: MatchLeg[] | null;
+  /** V5.10: aggregate of a two-legged tie; null for other matches. */
+  tie?: TieSummary | null;
   status: MatchStatus;
   /** @nullable */
   nextMatchId?: number | null;
@@ -2520,6 +2654,62 @@ export interface Standing {
   setPointsFor?: number;
   /** V5.7: points conceded inside sets (stages decided by sets only). */
   setPointsAgainst?: number;
+}
+
+export interface LegResultInput {
+  /**
+     * Participant 1 of the tie (home in leg 1).
+     * @minimum 0
+     * @maximum 999
+     */
+  score1: number;
+  /**
+     * Participant 2 of the tie (home in leg 2).
+     * @minimum 0
+     * @maximum 999
+     */
+  score2: number;
+  /**
+     * Revision of this leg the client saw.
+     * @minimum 1
+     */
+  expectedRevision: number;
+}
+
+export interface LegRevertInput {
+  /**
+     * Revision of this leg the client saw.
+     * @minimum 1
+     */
+  expectedRevision: number;
+}
+
+export interface LegScheduleInput {
+  /**
+     * ISO date-time of the leg, or null to clear.
+     * @nullable
+     */
+  scheduledAt: string | null;
+  /**
+     * The leg's date the client saw.
+     * @nullable
+     */
+  expectedScheduledAt: string | null;
+}
+
+export interface TieDecisionInput {
+  /** Required for a level aggregate: the participant who advances. */
+  winnerId?: number;
+  /**
+     * Required for a level aggregate: why (e.g. penalties 4:3). Shown to viewers.
+     * @maxLength 300
+     */
+  reason?: string;
+  /**
+     * Revision of the tie (match) the client saw.
+     * @minimum 1
+     */
+  expectedRevision: number;
 }
 
 export interface StageMatchRulesUpdateRequest {
@@ -4229,6 +4419,94 @@ export type TournamentBackupV3ActionLogItem = {
   createdAt: string;
 };
 
+export type TournamentBackupV3TieLegsItemLeg = typeof TournamentBackupV3TieLegsItemLeg[keyof typeof TournamentBackupV3TieLegsItemLeg];
+
+
+export const TournamentBackupV3TieLegsItemLeg = {
+  NUMBER_1: 1,
+  NUMBER_2: 2,
+} as const;
+
+export type TournamentBackupV3TieLegsItemStatus = typeof TournamentBackupV3TieLegsItemStatus[keyof typeof TournamentBackupV3TieLegsItemStatus];
+
+
+export const TournamentBackupV3TieLegsItemStatus = {
+  pending: 'pending',
+  completed: 'completed',
+} as const;
+
+export type TournamentBackupV3TieLegsItem = {
+  matchBackupId: number;
+  leg: TournamentBackupV3TieLegsItemLeg;
+  status: TournamentBackupV3TieLegsItemStatus;
+  /**
+     * @minimum 0
+     * @maximum 999
+     * @nullable
+     */
+  score1: number | null;
+  /**
+     * @minimum 0
+     * @maximum 999
+     * @nullable
+     */
+  score2: number | null;
+  /** @nullable */
+  scheduledAt: string | null;
+  /** @nullable */
+  completedAt: string | null;
+  /** @minimum 1 */
+  revision: number;
+};
+
+export type TournamentBackupV3TieDecisionsItem = {
+  matchBackupId: number;
+  winnerBackupId: number;
+  /**
+     * @minLength 1
+     * @maxLength 300
+     */
+  reason: string;
+  decidedAt: string;
+};
+
+export type TournamentBackupV3TieHistoryItemEvent = typeof TournamentBackupV3TieHistoryItemEvent[keyof typeof TournamentBackupV3TieHistoryItemEvent];
+
+
+export const TournamentBackupV3TieHistoryItemEvent = {
+  leg_recorded: 'leg_recorded',
+  leg_reverted: 'leg_reverted',
+  decision_recorded: 'decision_recorded',
+  decision_reverted: 'decision_reverted',
+} as const;
+
+/**
+ * @nullable
+ */
+export type TournamentBackupV3TieHistoryItemLeg = typeof TournamentBackupV3TieHistoryItemLeg[keyof typeof TournamentBackupV3TieHistoryItemLeg] | null;
+
+
+export const TournamentBackupV3TieHistoryItemLeg = {
+  NUMBER_1: 1,
+  NUMBER_2: 2,
+} as const;
+
+export type TournamentBackupV3TieHistoryItem = {
+  matchBackupId: number;
+  event: TournamentBackupV3TieHistoryItemEvent;
+  /** @nullable */
+  leg: TournamentBackupV3TieHistoryItemLeg;
+  /** @nullable */
+  score1: number | null;
+  /** @nullable */
+  score2: number | null;
+  /** @nullable */
+  winnerBackupId: number | null;
+  /** @nullable */
+  reason: string | null;
+  recordedAt: string;
+};
+
 export type TournamentBackupV3DeadlockBansItem = {
   playerBackupId: number;
   bannedHeroIds: string[];
@@ -4414,6 +4692,12 @@ export interface TournamentBackupV3 {
   matches: TournamentBackupV3MatchesItem[];
   resultHistory: TournamentBackupV3ResultHistoryItem[];
   actionLog: TournamentBackupV3ActionLogItem[];
+  /** V5.10: both legs of every two-legged tie (present only when the tournament has any). Scores in tie orientation (score1 = participant 1, home in leg 1). */
+  tieLegs?: TournamentBackupV3TieLegsItem[];
+  /** V5.10: organizer decisions of level aggregates (present only when any exist). */
+  tieDecisions?: TournamentBackupV3TieDecisionsItem[];
+  /** V5.10: history of legs and decisions of two-legged ties (present only when any exist). */
+  tieHistory?: TournamentBackupV3TieHistoryItem[];
   /** Per-player Deadlock hero bans (optional, present only for Deadlock tournaments) */
   deadlockBans?: TournamentBackupV3DeadlockBansItem[];
   /** Per-game hero picks for each match (optional, present only when picks exist) */

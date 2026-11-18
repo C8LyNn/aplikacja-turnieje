@@ -122,7 +122,7 @@ export function buildLiveStageStandings(input: {
   const { stage, groups, memberships, players, matches } = input;
   const rules = leagueRulesFromStorage(stage.leagueRules);
   const matchRules = matchRulesFromStorage(stage.matchRules);
-  const setPoints = (list: MatchRow[]) => (matchRules ? setPointTotals(list) : null);
+  const setPoints = (list: MatchRow[]) => (matchRules?.kind === "sets" ? setPointTotals(list) : null);
   const final = stage.status === "completed";
   const counted = (list: MatchRow[]) => ({
     matchesPlayed: list.filter((match) => match.status === "completed" && match.resultType !== "bye").length,
@@ -134,7 +134,7 @@ export function buildLiveStageStandings(input: {
     status: stage.status,
     final,
     leagueRules: rules,
-    rulesSummary: rules ? describeLeagueRules(rules, { sets: matchRules != null }) : null,
+    rulesSummary: rules ? describeLeagueRules(rules, { sets: matchRules?.kind === "sets" }) : null,
     matchRules,
     matchRulesSummary: describeMatchRules(matchRules, { bestOf: stage.bestOf, allowDraws: !!rules?.allowDraws }),
   };
@@ -192,7 +192,7 @@ export async function getLiveStageStandings(input: { tournamentId: number; stage
     const matchRules = matchRulesFromStorage(stage.matchRules);
     return {
       stageId: stage.id, format: stage.format, status: stage.status, final: false,
-      leagueRules: rules, rulesSummary: rules ? describeLeagueRules(rules, { sets: matchRules != null }) : null,
+      leagueRules: rules, rulesSummary: rules ? describeLeagueRules(rules, { sets: matchRules?.kind === "sets" }) : null,
       matchRules, matchRulesSummary: describeMatchRules(matchRules, { bestOf: stage.bestOf, allowDraws: !!rules?.allowDraws }),
       advancingPlaces: stage.format === "group_stage" ? stage.qualifiersPerGroup ?? null : stage.advancingCount ?? null,
       tables: [],

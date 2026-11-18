@@ -6,9 +6,9 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type MatchRulesKind = typeof MatchRulesKind[keyof typeof MatchRulesKind];
+export type SetMatchRulesKind = typeof SetMatchRulesKind[keyof typeof SetMatchRulesKind];
 
 
-export const MatchRulesKind = {
+export const SetMatchRulesKind = {
   sets: 'sets',
 } as const;

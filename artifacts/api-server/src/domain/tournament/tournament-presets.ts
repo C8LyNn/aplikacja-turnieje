@@ -1,4 +1,4 @@
-import { describeMatchRules, type MatchRules } from "@workspace/match-rules";
+import { describeMatchRules, TWO_LEGS_DESCRIPTION, type MatchRules } from "@workspace/match-rules";
 /**
  * V5 · Stage A — parameterised tournament presets.
  *
@@ -67,7 +67,9 @@ export type PresetParamKey =
   /** V5.7: points needed to win a set. */
   | "setPoints"
   /** V5.7: lead needed to win a set (1 or 2). */
-  | "setWinBy";
+  | "setWinBy"
+  /** V5.10: 1 = every pairing of the single-elimination bracket is a two-legged tie (aggregate decides). */
+  | "twoLegs";
 
 /** V5.4: labels for enumerated params (index = value). */
 export const PRESET_PARAM_OPTION_LABELS: Partial<Record<PresetParamKey, string[]>> = {
@@ -76,6 +78,7 @@ export const PRESET_PARAM_OPTION_LABELS: Partial<Record<PresetParamKey, string[]
   qualifierSeeding: ["Najpierw zwycięzcy grup, potem drugie miejsca", "Według łącznego rankingu"],
   setsToWin: ["Bez setów", "Jeden set", "Do 2 wygranych setów", "Do 3 wygranych setów", "Do 4 wygranych setów"],
   setWinBy: ["", "Bez przewagi", "Przewaga 2 punktów"],
+  twoLegs: ["Jeden mecz", "Dwumecz (suma dwóch spotkań)"],
 };
 
 export type PresetParams = Partial<Record<PresetParamKey, number>>;
@@ -275,17 +278,18 @@ export const PRESET_PARAM_TEXT: Record<PresetParamKey, { label: string; help: st
   setsToWin: { label: "Mecz na sety", help: "Ile setów trzeba wygrać, aby wygrać mecz. Długość meczu wynika wtedy z setów; „Bez setów” wraca do zwykłego meczu (jedna gra albo seria gier)." },
   setPoints: { label: "Set do … punktów", help: "Ile punktów trzeba zdobyć, aby wygrać set." },
   setWinBy: { label: "Przewaga w secie", help: "2 = przy remisie blisko końca seta gra się dalej, aż ktoś zdobędzie 2 punkty przewagi." },
+  twoLegs: { label: "Dwumecz w drabince", help: "Każda para w drabince gra dwa spotkania (raz jako gospodarz, raz jako gość). Awansuje zwycięzca sumy; przy równej sumie rozstrzyga organizator (np. po dogrywce lub rzutach karnych) i podaje powód." },
 };
 
 /** Parameters a user (or an imported AI file) may set per preset; participantCount comes from the answers. */
 export const PRESET_TUNABLE_PARAMS: Record<PresetId, PresetParamKey[]> = {
-  single_elimination: ["bestOf", "entrySeeding", "setsToWin", "setPoints", "setWinBy"],
+  single_elimination: ["bestOf", "entrySeeding", "setsToWin", "setPoints", "setWinBy", "twoLegs"],
   double_elimination: ["bestOf", "entrySeeding", "setsToWin", "setPoints", "setWinBy"],
   swiss: ["bestOf", "swissRounds", "entrySeeding", "setsToWin", "setPoints", "setWinBy"],
   round_robin: ["bestOf", "legs", "allowDraws", "pointsWin", "pointsDraw", "pointsLoss", "entrySeeding", "setsToWin", "setPoints", "setWinBy"],
-  groups_playoff: ["bestOf", "playoffBestOf", "groupCount", "qualifiersPerGroup", "allowDraws", "pointsWin", "pointsDraw", "pointsLoss", "entrySeeding", "groupPlacement", "qualifierSeeding", "setsToWin", "setPoints", "setWinBy"],
-  swiss_playoff: ["bestOf", "playoffBestOf", "swissRounds", "advancingCount", "entrySeeding", "setsToWin", "setPoints", "setWinBy"],
-  league_playoff: ["bestOf", "playoffBestOf", "advancingCount", "legs", "allowDraws", "pointsWin", "pointsDraw", "pointsLoss", "entrySeeding", "setsToWin", "setPoints", "setWinBy"],
+  groups_playoff: ["bestOf", "playoffBestOf", "groupCount", "qualifiersPerGroup", "allowDraws", "pointsWin", "pointsDraw", "pointsLoss", "entrySeeding", "groupPlacement", "qualifierSeeding", "setsToWin", "setPoints", "setWinBy", "twoLegs"],
+  swiss_playoff: ["bestOf", "playoffBestOf", "swissRounds", "advancingCount", "entrySeeding", "setsToWin", "setPoints", "setWinBy", "twoLegs"],
+  league_playoff: ["bestOf", "playoffBestOf", "advancingCount", "legs", "allowDraws", "pointsWin", "pointsDraw", "pointsLoss", "entrySeeding", "setsToWin", "setPoints", "setWinBy", "twoLegs"],
 };
 
 /** V5.7: points-per-set choices offered by presets (the API accepts 3–99 through stage rules). */
@@ -405,6 +409,8 @@ function leagueRulesFromParams(input: PresetParams, bestOf: StageBestOf, limits:
 
 interface Built {
   leagueRules?: LeagueRules;
+  /** V5.10: the bracket stage(s) are two-legged ties. */
+  twoLegs?: boolean;
   /** V5.7: set rules applied to every stage (null = series / one game as before). */
   matchRules?: MatchRules | null;
   params: PresetParams & { participantCount: number; bestOf: StageBestOf };
@@ -444,6 +450,22 @@ function build(presetId: PresetId, rawInput: PresetParams, accurate: boolean): B
   const setWinBy = pick(rawInput.setWinBy, [1, 2], 2, "setWinBy");
   let input = rawInput;
   let matchRules: MatchRules | null = null;
+  // V5.10: two-legged ties in the single-elimination bracket (the whole bracket of this preset, or its play-off).
+  const twoLegs = pick(rawInput.twoLegs, [0, 1], 0, "twoLegs") === 1;
+  const twoLegsTunable = PRESET_TUNABLE_PARAMS[presetId].includes("twoLegs");
+  if (twoLegs) {
+    if (!twoLegsTunable) {
+      throw new PresetError("PRESET_PARAM_CONFLICT", "Dwumecz działa w drabince pojedynczej eliminacji — także jako play-off po grupach, lidze albo systemie szwajcarskim.", "twoLegs");
+    }
+    if (setsToWin > 0) {
+      throw new PresetError("PRESET_PARAM_CONFLICT", "Dwumecz i mecz na sety nie łączą się — każde spotkanie dwumeczu to jedna gra na bramki lub punkty.", "twoLegs");
+    }
+    const bracketKey = presetId === "single_elimination" ? "bestOf" : "playoffBestOf";
+    if (rawInput[bracketKey] != null && rawInput[bracketKey] !== 1) {
+      throw new PresetError("PRESET_PARAM_CONFLICT", "W dwumeczu każde spotkanie to jedna gra — seria (BO3, BO5) nie łączy się z dwumeczem.", bracketKey);
+    }
+    input = { ...input, [bracketKey]: 1 };
+  }
   if (setsToWin > 0) {
     const derived = (2 * setsToWin - 1) as StageBestOf;
     for (const key of ["bestOf", "playoffBestOf"] as const) {
@@ -459,6 +481,23 @@ function build(presetId: PresetId, rawInput: PresetParams, accurate: boolean): B
   }
   const built = buildStructure(presetId, input, accurate);
   built.paramLimits.push(limit("setsToWin", [0, 1, 2, 3, 4], setsToWin), limit("setPoints", SET_POINT_OPTIONS, setPoints), limit("setWinBy", [1, 2], setWinBy));
+  if (twoLegsTunable) built.paramLimits.push(limit("twoLegs", [0, 1], twoLegs ? 1 : 0));
+  if (twoLegs) {
+    // Listed only when chosen, so every existing preview keeps exactly its shape.
+    const rules: MatchRules = { version: 1, kind: "two_legs", levelAggregate: "organizer_decision" };
+    built.params.twoLegs = 1;
+    built.twoLegs = true;
+    built.stages = built.stages.map((stage) => (stage.format === "single_elimination" ? { ...stage, matchRules: rules } : stage));
+    if (presetId === "single_elimination") built.matchRules = rules;
+    built.summaries = built.summaries.map((summary) => (summary.format === "single_elimination"
+      ? {
+          ...summary,
+          matches: { min: summary.matches.min * 2, max: summary.matches.max * 2 },
+          advancementText: `${summary.advancementText} Każda para gra dwa spotkania (dwumecz) — awansuje zwycięzca sumy.`,
+        }
+      : summary));
+    built.tieRules = [...built.tieRules.filter((rule) => !rule.startsWith("W play-off remisów nie ma")), "W dwumeczu jedno spotkanie może skończyć się remisem; awansuje zwycięzca sumy. Przy równej sumie organizator wskazuje zwycięzcę i podaje powód — do tego czasu awans jest wstrzymany."];
+  }
   if (matchRules) {
     // Listed only when sets are chosen, so every existing preview keeps exactly its shape.
     built.params.setsToWin = setsToWin;
@@ -721,7 +760,7 @@ function buildStructure(presetId: PresetId, input: PresetParams, accurate: boole
 const ALLOWED_PARAM_KEYS = new Set<PresetParamKey>([
   "participantCount", "bestOf", "playoffBestOf", "swissRounds", "groupCount", "qualifiersPerGroup", "advancingCount", "legs",
   "allowDraws", "pointsWin", "pointsDraw", "pointsLoss", "entrySeeding", "groupPlacement", "qualifierSeeding",
-  "setsToWin", "setPoints", "setWinBy",
+  "setsToWin", "setPoints", "setWinBy", "twoLegs",
 ]);
 
 export interface PresetPreviewRequest {
@@ -826,7 +865,9 @@ export function previewPreset(request: PresetPreviewRequest): PresetPreview {
     warnings: built.warnings,
     leagueRules: built.leagueRules ?? null,
     matchRules: built.matchRules ?? null,
-    matchRulesSummary: describeMatchRules(built.matchRules ?? null, { bestOf: built.params.bestOf, allowDraws: !!built.leagueRules?.allowDraws }),
+    matchRulesSummary: built.twoLegs && !built.singleStage
+      ? `${describeMatchRules(null, { bestOf: built.params.bestOf, allowDraws: !!built.leagueRules?.allowDraws })} W play-off: ${TWO_LEGS_DESCRIPTION}`
+      : describeMatchRules(built.matchRules ?? null, { bestOf: built.params.bestOf, allowDraws: !!built.leagueRules?.allowDraws }),
     schedule: null,
   };
 }

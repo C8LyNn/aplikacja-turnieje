@@ -2666,6 +2666,172 @@ paths:
               schema:
                 $ref: "#/components/schemas/DomainError"
 
+  /matches/{id}/legs/{leg}/result:
+    post:
+      operationId: recordMatchLegResult
+      tags: [matches]
+      summary: "V5.10: record the score of one leg of a two-legged tie"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: leg
+          in: path
+          required: true
+          schema:
+            type: integer
+            enum: [1, 2]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LegResultInput"
+      responses:
+        "200":
+          description: Leg saved; the tie with both legs is returned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Match"
+        "409":
+          description: The leg or tie changed concurrently, or a later match or stage depends on it
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "422":
+          description: Input or the current state does not allow it
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+
+  /matches/{id}/legs/{leg}/revert:
+    post:
+      operationId: revertMatchLegResult
+      tags: [matches]
+      summary: "V5.10: undo the score of one leg (a decided tie is reverted first, with the usual dependency checks)"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: leg
+          in: path
+          required: true
+          schema:
+            type: integer
+            enum: [1, 2]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LegRevertInput"
+      responses:
+        "200":
+          description: Leg reverted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Match"
+        "409":
+          description: The leg or tie changed concurrently, or a later match or stage depends on it
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "422":
+          description: Input or the current state does not allow it
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+
+  /matches/{id}/legs/{leg}/schedule:
+    put:
+      operationId: scheduleMatchLeg
+      tags: [matches]
+      summary: "V5.10: set or clear the date of one leg"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: leg
+          in: path
+          required: true
+          schema:
+            type: integer
+            enum: [1, 2]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LegScheduleInput"
+      responses:
+        "200":
+          description: Leg date saved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Match"
+        "409":
+          description: The leg or tie changed concurrently, or a later match or stage depends on it
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "422":
+          description: Input or the current state does not allow it
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+
+  /matches/{id}/tie-decision:
+    post:
+      operationId: decideMatchTie
+      tags: [matches]
+      summary: "V5.10: decide a two-legged tie (level aggregate: winner and reason; otherwise confirms the aggregate)"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TieDecisionInput"
+      responses:
+        "200":
+          description: Tie decided
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Match"
+        "409":
+          description: The leg or tie changed concurrently, or a later match or stage depends on it
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+        "422":
+          description: Input or the current state does not allow it
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DomainError"
+
   /matches/{id}/cancel:
     post:
       operationId: cancelMatch
@@ -4515,6 +4681,18 @@ components:
         note:
           type: ["string", "null"]
           description: "V5.10: organizer's free-text note — returned only to the organizer and support staff, never to viewers."
+        legs:
+          description: "V5.10: both legs of a two-legged tie; null for other matches."
+          oneOf:
+            - type: array
+              items:
+                $ref: "#/components/schemas/MatchLeg"
+            - type: "null"
+        tie:
+          description: "V5.10: aggregate of a two-legged tie; null for other matches."
+          oneOf:
+            - $ref: "#/components/schemas/TieSummary"
+            - type: "null"
         status:
           type: string
           enum: [pending, in_progress, postponed, completed, cancelled]
@@ -4854,16 +5032,94 @@ components:
           description: "V5.7: points conceded inside sets (stages decided by sets only)."
 
     MatchRules:
+      description: "What decides a match (level B): sets (V5.7) or a two-legged knockout tie (V5.10). Absent/null keeps the stage's existing meaning (one game, a best-of series, or a draw league game)."
+      oneOf:
+        - $ref: "#/components/schemas/SetMatchRules"
+        - $ref: "#/components/schemas/TwoLegMatchRules"
+
+    SetMatchRules:
       type: object
       additionalProperties: false
       required: [version, kind, setsToWin, pointsPerSet, winBy]
-      description: "V5.7: what decides a match. Every set uses the same rules; the match score is sets won."
+      description: "V5.7: every set uses the same rules; the match score is sets won."
       properties:
         version: { type: integer, const: 1 }
         kind: { type: string, enum: [sets] }
         setsToWin: { type: integer, minimum: 1, maximum: 4 }
         pointsPerSet: { type: integer, minimum: 3, maximum: 99 }
         winBy: { type: integer, minimum: 1, maximum: 2 }
+
+    TwoLegMatchRules:
+      type: object
+      additionalProperties: false
+      required: [version, kind]
+      description: "V5.10: two-legged knockout tie (single elimination only). Two games between the same pair; the aggregate decides. A level aggregate is decided by the organizer with a reason (no away-goals rule, nothing invented)."
+      properties:
+        version: { type: integer, const: 1 }
+        kind: { type: string, enum: [two_legs] }
+        levelAggregate: { type: string, enum: [organizer_decision], description: "Only policy: the organizer decides a level aggregate (default)." }
+
+    MatchLeg:
+      type: object
+      additionalProperties: false
+      required: [leg, homeSide, status, score1, score2, scheduledAt, completedAt, revision]
+      description: "V5.10: one leg of a two-legged tie. Scores are from the tie's point of view: score1 = participant 1 (home in leg 1), score2 = participant 2 (home in leg 2)."
+      properties:
+        leg: { type: integer, enum: [1, 2] }
+        homeSide: { type: integer, enum: [1, 2] }
+        status: { type: string, enum: [pending, completed] }
+        score1: { type: ["integer", "null"], minimum: 0 }
+        score2: { type: ["integer", "null"], minimum: 0 }
+        scheduledAt: { type: ["string", "null"] }
+        completedAt: { type: ["string", "null"] }
+        revision: { type: integer, minimum: 1 }
+
+    TieSummary:
+      type: object
+      additionalProperties: false
+      required: [state, total1, total2, completedLegs, decidedBy, decisionReason, decisionWinnerId]
+      description: "V5.10: aggregate of a two-legged tie. state: not_started, first_leg_played, awaiting_decision (level aggregate, advancement blocked), decided."
+      properties:
+        state: { type: string, enum: [not_started, first_leg_played, awaiting_decision, decided] }
+        total1: { type: integer, minimum: 0 }
+        total2: { type: integer, minimum: 0 }
+        completedLegs: { type: integer, minimum: 0, maximum: 2 }
+        decidedBy: { type: ["string", "null"], enum: [aggregate, organizer, null] }
+        decisionReason: { type: ["string", "null"], description: "Organizer's reason for deciding a level aggregate (public)." }
+        decisionWinnerId: { type: ["integer", "null"] }
+
+    LegResultInput:
+      type: object
+      additionalProperties: false
+      required: [score1, score2, expectedRevision]
+      properties:
+        score1: { type: integer, minimum: 0, maximum: 999, description: "Participant 1 of the tie (home in leg 1)." }
+        score2: { type: integer, minimum: 0, maximum: 999, description: "Participant 2 of the tie (home in leg 2)." }
+        expectedRevision: { type: integer, minimum: 1, description: "Revision of this leg the client saw." }
+
+    LegRevertInput:
+      type: object
+      additionalProperties: false
+      required: [expectedRevision]
+      properties:
+        expectedRevision: { type: integer, minimum: 1, description: "Revision of this leg the client saw." }
+
+    LegScheduleInput:
+      type: object
+      additionalProperties: false
+      required: [scheduledAt, expectedScheduledAt]
+      properties:
+        scheduledAt: { type: ["string", "null"], description: "ISO date-time of the leg, or null to clear." }
+        expectedScheduledAt: { type: ["string", "null"], description: "The leg's date the client saw." }
+
+    TieDecisionInput:
+      type: object
+      additionalProperties: false
+      required: [expectedRevision]
+      properties:
+        winnerId: { type: integer, description: "Required for a level aggregate: the participant who advances." }
+        reason: { type: string, maxLength: 300, description: "Required for a level aggregate: why (e.g. penalties 4:3). Shown to viewers." }
+        expectedRevision: { type: integer, minimum: 1, description: "Revision of the tie (match) the client saw." }
 
     SetScore:
       type: object
@@ -6142,6 +6398,50 @@ components:
                 additionalProperties: true
               isUndone: { type: boolean }
               createdAt: { type: string }
+        tieLegs:
+          type: array
+          description: "V5.10: both legs of every two-legged tie (present only when the tournament has any). Scores in tie orientation (score1 = participant 1, home in leg 1)."
+          items:
+            type: object
+            additionalProperties: false
+            required: [matchBackupId, leg, status, score1, score2, scheduledAt, completedAt, revision]
+            properties:
+              matchBackupId: { type: integer }
+              leg: { type: integer, enum: [1, 2] }
+              status: { type: string, enum: [pending, completed] }
+              score1: { type: ["integer", "null"], minimum: 0, maximum: 999 }
+              score2: { type: ["integer", "null"], minimum: 0, maximum: 999 }
+              scheduledAt: { type: ["string", "null"] }
+              completedAt: { type: ["string", "null"] }
+              revision: { type: integer, minimum: 1 }
+        tieDecisions:
+          type: array
+          description: "V5.10: organizer decisions of level aggregates (present only when any exist)."
+          items:
+            type: object
+            additionalProperties: false
+            required: [matchBackupId, winnerBackupId, reason, decidedAt]
+            properties:
+              matchBackupId: { type: integer }
+              winnerBackupId: { type: integer }
+              reason: { type: string, minLength: 1, maxLength: 300 }
+              decidedAt: { type: string }
+        tieHistory:
+          type: array
+          description: "V5.10: history of legs and decisions of two-legged ties (present only when any exist)."
+          items:
+            type: object
+            additionalProperties: false
+            required: [matchBackupId, event, leg, score1, score2, winnerBackupId, reason, recordedAt]
+            properties:
+              matchBackupId: { type: integer }
+              event: { type: string, enum: [leg_recorded, leg_reverted, decision_recorded, decision_reverted] }
+              leg: { type: ["integer", "null"], enum: [1, 2, null] }
+              score1: { type: ["integer", "null"] }
+              score2: { type: ["integer", "null"] }
+              winnerBackupId: { type: ["integer", "null"] }
+              reason: { type: ["string", "null"] }
+              recordedAt: { type: string }
         deadlockBans:
           type: array
           description: Per-player Deadlock hero bans (optional, present only for Deadlock tournaments)

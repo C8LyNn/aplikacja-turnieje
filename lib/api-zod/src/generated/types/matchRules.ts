@@ -5,27 +5,10 @@
  * Tournament Manager API
  * OpenAPI spec version: 0.1.0
  */
-import type { MatchRulesKind } from './matchRulesKind';
+import type { SetMatchRules } from './setMatchRules';
+import type { TwoLegMatchRules } from './twoLegMatchRules';
 
 /**
- * V5.7: what decides a match. Every set uses the same rules; the match score is sets won.
+ * What decides a match (level B): sets (V5.7) or a two-legged knockout tie (V5.10). Absent/null keeps the stage's existing meaning (one game, a best-of series, or a draw league game).
  */
-export interface MatchRules {
-  version: 1;
-  kind: MatchRulesKind;
-  /**
-     * @minimum 1
-     * @maximum 4
-     */
-  setsToWin: number;
-  /**
-     * @minimum 3
-     * @maximum 99
-     */
-  pointsPerSet: number;
-  /**
-     * @minimum 1
-     * @maximum 2
-     */
-  winBy: number;
-}
+export type MatchRules = SetMatchRules | TwoLegMatchRules;

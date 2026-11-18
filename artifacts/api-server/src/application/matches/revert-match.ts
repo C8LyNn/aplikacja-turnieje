@@ -1,8 +1,11 @@
-import { evaluateSetMatch, matchRulesFromStorage, setsFromStorage, type MatchRules } from "@workspace/match-rules";
+import { evaluateSetMatch, matchRulesFromStorage, setsFromStorage, tieAggregate, type MatchRules } from "@workspace/match-rules";
 import { and, desc, eq, gt, inArray } from "drizzle-orm";
 import {
   actionLogTable,
   db,
+  matchLegsTable,
+  matchTieDecisionsTable,
+  matchTieHistoryTable,
   matchesTable,
   playersTable,
   qualificationProposalsTable,
@@ -118,10 +121,17 @@ interface ConsistentResult {
   loserId: number | null;
 }
 
+/** V5.10: the stored legs and decision of a two-legged tie (read in the revert transaction). */
+interface StoredTie {
+  legs: Array<typeof matchLegsTable.$inferSelect>;
+  decision: typeof matchTieDecisionsTable.$inferSelect | null;
+}
+
 function requireConsistentResult(
   match: typeof matchesTable.$inferSelect,
   leagueRules: LeagueRules | null,
   matchRules: MatchRules | null = null,
+  tie: StoredTie | null = null,
 ): ConsistentResult {
   if (match.completedAt == null || match.resultType == null) {
     throw new RevertMatchError("RESULT_INCONSISTENT");
@@ -137,7 +147,24 @@ function requireConsistentResult(
   // results saved without sets (none exist today, but old data is never given invented sets).
   const storedSets = setsFromStorage(match.setScores);
   if (match.setScores != null && (!storedSets || match.resultType !== "played")) throw new RevertMatchError("RESULT_INCONSISTENT");
-  if (storedSets && matchRules) {
+  if (matchRules?.kind === "two_legs") {
+    // V5.10: a tie's result is the aggregate of its legs; a level aggregate needs the stored organizer decision.
+    if (match.resultType !== "played" || match.score1 == null || match.score2 == null || match.winnerId == null || match.resultReason != null || !tie) {
+      throw new RevertMatchError("RESULT_INCONSISTENT");
+    }
+    const aggregate = tieAggregate(tie.legs.map((leg) => ({ leg: leg.leg as 1 | 2, status: leg.status, score1: leg.score1, score2: leg.score2 })));
+    if (!aggregate.complete || aggregate.total1 !== match.score1 || aggregate.total2 !== match.score2) throw new RevertMatchError("RESULT_INCONSISTENT");
+    const expectedWinner = aggregate.aggregateWinner != null
+      ? (aggregate.aggregateWinner === 1 ? match.player1Id : match.player2Id)
+      : tie.decision?.winnerId ?? null;
+    if (expectedWinner == null || match.winnerId !== expectedWinner) throw new RevertMatchError("RESULT_INCONSISTENT");
+    return {
+      resultType: "played",
+      winnerId: match.winnerId,
+      loserId: match.winnerId === match.player1Id ? match.player2Id : match.player1Id,
+    };
+  }
+  if (storedSets && matchRules?.kind === "sets") {
     const evaluated = evaluateSetMatch(storedSets, matchRules);
     if (!evaluated.ok || evaluated.value.setsWon1 !== match.score1 || evaluated.value.setsWon2 !== match.score2) {
       throw new RevertMatchError("RESULT_INCONSISTENT");
@@ -352,7 +379,14 @@ export async function revertMatch(
         throw new RevertMatchError("CONCURRENT_MODIFICATION");
       }
     }
-    const result = requireConsistentResult(match, leagueRulesFromStorage(stage.leagueRules), matchRulesFromStorage(stage.matchRules));
+    const stageMatchRules = matchRulesFromStorage(stage.matchRules);
+    const storedTie: StoredTie | null = stageMatchRules?.kind === "two_legs"
+      ? {
+        legs: await tx.select().from(matchLegsTable).where(eq(matchLegsTable.matchId, match.id)).orderBy(matchLegsTable.leg).for("update"),
+        decision: (await tx.select().from(matchTieDecisionsTable).where(eq(matchTieDecisionsTable.matchId, match.id)).for("update"))[0] ?? null,
+      }
+      : null;
+    const result = requireConsistentResult(match, leagueRulesFromStorage(stage.leagueRules), stageMatchRules, storedTie);
 
     const participantIds = [match.player1Id, match.player2Id].filter(
       (playerId): playerId is number => playerId != null,
@@ -635,10 +669,13 @@ export async function revertMatch(
       if (!cleared) throw new RevertMatchError("CONCURRENT_MODIFICATION");
     }
 
+    // V5.10: a reopened two-legged tie keeps its played legs, so it is "in progress" (both legs may still stand,
+    // e.g. when only the organizer's decision is reverted); its decision is removed and kept in the history.
+    const reopenedTieStatus = storedTie && storedTie.legs.some((leg) => leg.status === "completed") ? "in_progress" as const : "pending" as const;
     const [revertedMatch] = await tx
       .update(matchesTable)
       .set({
-        status: "pending",
+        status: reopenedTieStatus,
         resultType: null,
         resultReason: null,
         score1: null,
@@ -650,6 +687,13 @@ export async function revertMatch(
       .where(and(eq(matchesTable.id, match.id), eq(matchesTable.status, "completed")))
       .returning();
     if (!revertedMatch) throw new RevertMatchError("CONCURRENT_MODIFICATION");
+    if (storedTie?.decision) {
+      await tx.delete(matchTieDecisionsTable).where(eq(matchTieDecisionsTable.matchId, match.id));
+      await tx.insert(matchTieHistoryTable).values({
+        tournamentId: match.tournamentId, stageId: match.stageId, matchId: match.id, event: "decision_reverted",
+        winnerId: storedTie.decision.winnerId, reason: storedTie.decision.reason,
+      });
+    }
 
     await testHooks.afterMatchReset?.();
 

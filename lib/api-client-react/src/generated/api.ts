@@ -44,6 +44,9 @@ import type {
   GetSingleEliminationCorrectionSafetyParams,
   HealthStatus,
   ImportResult,
+  LegResultInput,
+  LegRevertInput,
+  LegScheduleInput,
   LegacyOrganizerUpgradeInput,
   LiveStageStandings,
   MarvelEliminationStageError,
@@ -101,6 +104,7 @@ import type {
   TeamSummary,
   TeamUpdateInput,
   TeamsOverview,
+  TieDecisionInput,
   Tournament,
   TournamentBackupV3,
   TournamentCreationResponse,
@@ -6323,6 +6327,300 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return useMutation(getCompleteMatchMutationOptions(options));
+    }
+
+export const getRecordMatchLegResultUrl = (id: number,
+    leg: 1 | 2,) => {
+
+
+
+
+  return `/api/matches/${id}/legs/${leg}/result`
+}
+
+/**
+ * @summary V5.10: record the score of one leg of a two-legged tie
+ */
+export const recordMatchLegResult = async (id: number,
+    leg: 1 | 2,
+    legResultInput: LegResultInput, options?: RequestInit): Promise<Match> => {
+
+  return customFetch<Match>(getRecordMatchLegResultUrl(id,leg),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      legResultInput,)
+  }
+);}
+
+
+
+
+export const getRecordMatchLegResultMutationOptions = <TError = ErrorType<DomainError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof recordMatchLegResult>>, TError,{id: number;leg: 1 | 2;data: BodyType<LegResultInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof recordMatchLegResult>>, TError,{id: number;leg: 1 | 2;data: BodyType<LegResultInput>}, TContext> => {
+
+const mutationKey = ['recordMatchLegResult'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof recordMatchLegResult>>, {id: number;leg: 1 | 2;data: BodyType<LegResultInput>}> = (props) => {
+          const {id,leg,data} = props ?? {};
+
+          return  recordMatchLegResult(id,leg,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RecordMatchLegResultMutationResult = NonNullable<Awaited<ReturnType<typeof recordMatchLegResult>>>
+    export type RecordMatchLegResultMutationBody = BodyType<LegResultInput>
+    export type RecordMatchLegResultMutationError = ErrorType<DomainError>
+
+    /**
+ * @summary V5.10: record the score of one leg of a two-legged tie
+ */
+export const useRecordMatchLegResult = <TError = ErrorType<DomainError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof recordMatchLegResult>>, TError,{id: number;leg: 1 | 2;data: BodyType<LegResultInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof recordMatchLegResult>>,
+        TError,
+        {id: number;leg: 1 | 2;data: BodyType<LegResultInput>},
+        TContext
+      > => {
+      return useMutation(getRecordMatchLegResultMutationOptions(options));
+    }
+
+export const getRevertMatchLegResultUrl = (id: number,
+    leg: 1 | 2,) => {
+
+
+
+
+  return `/api/matches/${id}/legs/${leg}/revert`
+}
+
+/**
+ * @summary V5.10: undo the score of one leg (a decided tie is reverted first, with the usual dependency checks)
+ */
+export const revertMatchLegResult = async (id: number,
+    leg: 1 | 2,
+    legRevertInput: LegRevertInput, options?: RequestInit): Promise<Match> => {
+
+  return customFetch<Match>(getRevertMatchLegResultUrl(id,leg),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      legRevertInput,)
+  }
+);}
+
+
+
+
+export const getRevertMatchLegResultMutationOptions = <TError = ErrorType<DomainError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revertMatchLegResult>>, TError,{id: number;leg: 1 | 2;data: BodyType<LegRevertInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof revertMatchLegResult>>, TError,{id: number;leg: 1 | 2;data: BodyType<LegRevertInput>}, TContext> => {
+
+const mutationKey = ['revertMatchLegResult'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof revertMatchLegResult>>, {id: number;leg: 1 | 2;data: BodyType<LegRevertInput>}> = (props) => {
+          const {id,leg,data} = props ?? {};
+
+          return  revertMatchLegResult(id,leg,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RevertMatchLegResultMutationResult = NonNullable<Awaited<ReturnType<typeof revertMatchLegResult>>>
+    export type RevertMatchLegResultMutationBody = BodyType<LegRevertInput>
+    export type RevertMatchLegResultMutationError = ErrorType<DomainError>
+
+    /**
+ * @summary V5.10: undo the score of one leg (a decided tie is reverted first, with the usual dependency checks)
+ */
+export const useRevertMatchLegResult = <TError = ErrorType<DomainError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof revertMatchLegResult>>, TError,{id: number;leg: 1 | 2;data: BodyType<LegRevertInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof revertMatchLegResult>>,
+        TError,
+        {id: number;leg: 1 | 2;data: BodyType<LegRevertInput>},
+        TContext
+      > => {
+      return useMutation(getRevertMatchLegResultMutationOptions(options));
+    }
+
+export const getScheduleMatchLegUrl = (id: number,
+    leg: 1 | 2,) => {
+
+
+
+
+  return `/api/matches/${id}/legs/${leg}/schedule`
+}
+
+/**
+ * @summary V5.10: set or clear the date of one leg
+ */
+export const scheduleMatchLeg = async (id: number,
+    leg: 1 | 2,
+    legScheduleInput: LegScheduleInput, options?: RequestInit): Promise<Match> => {
+
+  return customFetch<Match>(getScheduleMatchLegUrl(id,leg),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      legScheduleInput,)
+  }
+);}
+
+
+
+
+export const getScheduleMatchLegMutationOptions = <TError = ErrorType<DomainError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof scheduleMatchLeg>>, TError,{id: number;leg: 1 | 2;data: BodyType<LegScheduleInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof scheduleMatchLeg>>, TError,{id: number;leg: 1 | 2;data: BodyType<LegScheduleInput>}, TContext> => {
+
+const mutationKey = ['scheduleMatchLeg'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof scheduleMatchLeg>>, {id: number;leg: 1 | 2;data: BodyType<LegScheduleInput>}> = (props) => {
+          const {id,leg,data} = props ?? {};
+
+          return  scheduleMatchLeg(id,leg,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ScheduleMatchLegMutationResult = NonNullable<Awaited<ReturnType<typeof scheduleMatchLeg>>>
+    export type ScheduleMatchLegMutationBody = BodyType<LegScheduleInput>
+    export type ScheduleMatchLegMutationError = ErrorType<DomainError>
+
+    /**
+ * @summary V5.10: set or clear the date of one leg
+ */
+export const useScheduleMatchLeg = <TError = ErrorType<DomainError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof scheduleMatchLeg>>, TError,{id: number;leg: 1 | 2;data: BodyType<LegScheduleInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof scheduleMatchLeg>>,
+        TError,
+        {id: number;leg: 1 | 2;data: BodyType<LegScheduleInput>},
+        TContext
+      > => {
+      return useMutation(getScheduleMatchLegMutationOptions(options));
+    }
+
+export const getDecideMatchTieUrl = (id: number,) => {
+
+
+
+
+  return `/api/matches/${id}/tie-decision`
+}
+
+/**
+ * @summary V5.10: decide a two-legged tie (level aggregate: winner and reason; otherwise confirms the aggregate)
+ */
+export const decideMatchTie = async (id: number,
+    tieDecisionInput: TieDecisionInput, options?: RequestInit): Promise<Match> => {
+
+  return customFetch<Match>(getDecideMatchTieUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      tieDecisionInput,)
+  }
+);}
+
+
+
+
+export const getDecideMatchTieMutationOptions = <TError = ErrorType<DomainError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof decideMatchTie>>, TError,{id: number;data: BodyType<TieDecisionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof decideMatchTie>>, TError,{id: number;data: BodyType<TieDecisionInput>}, TContext> => {
+
+const mutationKey = ['decideMatchTie'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof decideMatchTie>>, {id: number;data: BodyType<TieDecisionInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  decideMatchTie(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DecideMatchTieMutationResult = NonNullable<Awaited<ReturnType<typeof decideMatchTie>>>
+    export type DecideMatchTieMutationBody = BodyType<TieDecisionInput>
+    export type DecideMatchTieMutationError = ErrorType<DomainError>
+
+    /**
+ * @summary V5.10: decide a two-legged tie (level aggregate: winner and reason; otherwise confirms the aggregate)
+ */
+export const useDecideMatchTie = <TError = ErrorType<DomainError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof decideMatchTie>>, TError,{id: number;data: BodyType<TieDecisionInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof decideMatchTie>>,
+        TError,
+        {id: number;data: BodyType<TieDecisionInput>},
+        TContext
+      > => {
+      return useMutation(getDecideMatchTieMutationOptions(options));
     }
 
 export const getCancelMatchUrl = (id: number,) => {
