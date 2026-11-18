@@ -795,6 +795,7 @@ export default function TournamentAudience() {
             stageLabel={hasMultipleStages && publicStage ? publicStage.name : undefined}
             planned={stagePlanned}
             groupLabelById={groupLabelById}
+            matchRules={publicStage?.matchRules ?? null}
           />
         </ReadQueryState>}
         {activeSection === "table" && (
@@ -920,12 +921,15 @@ function PublicMatchesSection({
   stageLabel,
   planned = false,
   groupLabelById,
+  matchRules = null,
 }: {
   matches: Match[];
   format?: string;
   stageLabel?: string;
   planned?: boolean;
   groupLabelById?: ReadonlyMap<number, string>;
+  /** V5.7: a set stage says sets instead of BO. */
+  matchRules?: { setsToWin: number } | null;
 }) {
   // V5.4-006: matches of the shown stage, grouped by round ("Kolejka" in a league), group shown per match.
   const rounds = new Map<number, Match[]>();
@@ -954,7 +958,7 @@ function PublicMatchesSection({
                         {when && <span className="block text-white/55">{when}</span>}
                       </div>
                       <div className="flex flex-wrap items-center justify-end gap-2 text-xs md:col-start-3 md:row-start-1">
-                        {match.bestOf && match.bestOf > 1 && <span className="font-mono text-cyan-400/60">BO{match.bestOf}</span>}
+                        {match.bestOf && match.bestOf > 1 && <span className="font-mono text-cyan-400/60">{matchRules ? `sety do ${matchRules.setsToWin}` : `BO${match.bestOf}`}</span>}
                         <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-white/55">
                           {MATCH_STATUS_LABELS[match.status] ?? match.status}
                         </span>

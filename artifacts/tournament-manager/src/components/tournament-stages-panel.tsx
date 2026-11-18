@@ -1085,6 +1085,7 @@ export function TournamentStagesPanel({
                 canManage={canWriteResults}
                 canReset={canManage}
                 onChanged={refresh}
+                matchRules={selected.matchRules ?? null}
                 // V5.7: set results are entered only in the match editor (Stable included), never in a short form.
                 openMatchHref={isExperimental || selected.matchRules ? (matchId) => tournamentHref(tournamentId, isExperimental, `/host?match=${matchId}`) : undefined}
               />

@@ -76,6 +76,7 @@ import { MATCH_STATUS_LABELS } from "@/lib/match-operation-feedback";
 import { PLAYER_STATUS_LABELS, TOURNAMENT_STATUS_LABELS } from "@/lib/tournament-stages-ui";
 import { tournamentHref, useTournamentRoute } from "@/features/experimental-tournaments/experimental-tournament-routing";
 import { matchLengthText } from "@/features/experimental-tournaments/experimental-create-wizard-model";
+import { setsText } from "@/components/set-score-editor";
 import { ExperimentalTournamentContextBar } from "@/features/experimental-tournaments/experimental-tournament-context-bar";
 import { ExperimentalTournamentChecklist } from "@/features/experimental-tournaments/experimental-tournament-checklist";
 import { ExperimentalPlayerToolbar, type ExperimentalPlayerSort, type ExperimentalPlayerStatusFilter } from "@/features/experimental-tournaments/experimental-player-toolbar";
@@ -1518,7 +1519,7 @@ export default function TournamentDetail() {
                         <div className="flex items-center gap-3 mb-2 md:mb-0">
                           <Badge variant="outline">R{m.round}</Badge>
                           <span className="text-xs text-muted-foreground">M{m.matchNumber}</span>
-                          {m.bestOf && m.bestOf > 1 && <Badge variant="outline" className="text-xs">BO{m.bestOf}</Badge>}
+                          {m.bestOf && m.bestOf > 1 && <Badge variant="outline" className="text-xs">{(() => { const rules = stages?.find((stage) => stage.id === m.stageId)?.matchRules; return rules ? `sety do ${rules.setsToWin}` : `BO${m.bestOf}`; })()}</Badge>}
                         </div>
                         <div className="flex items-center gap-4">
                           <div className={`text-right w-28 truncate text-sm ${m.winnerId === m.player1Id ? "font-bold text-primary" : ""}`}>
@@ -1531,6 +1532,7 @@ export default function TournamentDetail() {
                                <span>{m.resultType === "walkover" ? "W.O." : m.resultType === "bye" ? "BYE" : "N/C"}</span>
                              )}
                           </div>
+                          {m.sets?.length ? <span className="text-xs text-muted-foreground tabular-nums" title="Wyniki setów">({setsText(m.sets)})</span> : null}
                           <div className={`w-28 truncate text-sm ${m.winnerId === m.player2Id ? "font-bold text-primary" : ""}`}>
                             {m.player2Name || "TBD"}
                           </div>

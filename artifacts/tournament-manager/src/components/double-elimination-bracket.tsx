@@ -40,6 +40,8 @@ interface DoubleEliminationBracketProps {
   onOpenMatch?: (matchId: number) => void;
   /** Same as `onOpenMatch`, as a link (outside the host page). */
   openMatchHref?: (matchId: number) => string;
+  /** V5.7: a set stage says sets instead of BO. */
+  matchRules?: { setsToWin: number } | null;
 }
 
 /** Inline score form rendered below the canvas for ready matches. */
@@ -133,6 +135,7 @@ export function DoubleEliminationBracket({
   showDropLines = true,
   onOpenMatch,
   openMatchHref,
+  matchRules = null,
 }: DoubleEliminationBracketProps) {
   const opensEditor = !!onOpenMatch || !!openMatchHref;
   const queryClient = useQueryClient();
@@ -327,7 +330,7 @@ export function DoubleEliminationBracket({
               return <li key={match.matchKey} className="flex flex-wrap items-center gap-2 rounded-lg border bg-card p-3">
                 <span className="min-w-0 flex-1">
                   <span className="block text-sm font-semibold">{names}</span>
-                  <span className="block text-xs text-muted-foreground">{match.name} · {done ? `wynik ${current?.score1 ?? match.score1}:${current?.score2 ?? match.score2}` : `BO${match.bestOf ?? 1}`}</span>
+                  <span className="block text-xs text-muted-foreground">{match.name} · {done ? `wynik ${current?.score1 ?? match.score1}:${current?.score2 ?? match.score2}` : matchRules ? `sety do ${matchRules.setsToWin}` : `BO${match.bestOf ?? 1}`}</span>
                 </span>
                 {onOpenMatch
                   ? <Button type="button" size="sm" variant={done ? "outline" : "default"} onClick={() => onOpenMatch(match.matchId!)}>{label}</Button>

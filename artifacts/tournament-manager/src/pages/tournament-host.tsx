@@ -2394,6 +2394,7 @@ export default function TournamentHost() {
                 canManage={capabilities.canWriteTournamentResults}
                 canReset={capabilities.canManageLifecycle}
                 onOpenMatch={openInEditor}
+                matchRules={doubleEliminationStage.matchRules ?? null}
               />
             ) : doubleEliminationStage && doubleEliminationQuery.isPending ? (
               <div className="rounded-lg border p-6 text-sm text-muted-foreground">Ładowanie drabinki Double Elimination…</div>
