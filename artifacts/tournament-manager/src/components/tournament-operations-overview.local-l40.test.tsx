@@ -13,7 +13,7 @@ afterEach(()=>{cleanup();globalThis.fetch=initialFetch;});
 
 test('failed advisory refetch cannot leave a clickable stale recommendation',async()=>{
   const id=74;
-  const client=new QueryClient({defaultOptions:{queries:{retry:false,refetchOnMount:true}}});
+  const client=new QueryClient({defaultOptions:{queries:{retry:false,refetchOnMount:true,gcTime:0}}});
   client.setQueryData(getGetTournamentAssistantQueryKey(id),{operations:{
     version:1,advisory:true,progress:{completed:0,total:1,percent:0,inProgress:0,pending:1,postponed:0,cancelled:0},
     recommendedAction:{title:'Zatwierdź',description:'Ostatni poprawny odczyt',href:`/tournaments/${id}?tab=stages`,availability:'ready',requiresConfirmation:true},blockers:[],
@@ -34,7 +34,7 @@ test('V5.2: Experimental folds the advisory panel and opens it by itself when so
   const id = 75;
   const clients: QueryClient[] = [];
   const make = (blockers: { code: string; message: string; severity: 'blocking' | 'warning' }[]) => {
-    const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });
+    const client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity, gcTime: 0 } } });
     clients.push(client);
     client.setQueryData(getGetTournamentAssistantQueryKey(id), { operations: {
       version: 1, advisory: true, progress: { completed: 0, total: 0, percent: null, inProgress: 0, pending: 0, postponed: 0, cancelled: 0 },

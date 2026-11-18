@@ -21,7 +21,7 @@ const routing = {
 };
 afterEach(() => { cleanup(); globalThis.fetch = originalFetch; });
 function mount() {
-  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
   const location = memoryLocation({ path: "/tournaments/71", record: true });
   render(<QueryClientProvider client={client}><Router hook={location.hook}>
     <TournamentQualificationRoutingPanel tournamentId={71} enabled />

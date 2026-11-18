@@ -274,6 +274,9 @@ export function ParticipantFieldsManager({ tournamentId, participantNoun = "ucze
   const save = useSaveParticipantFields();
   const [open, setOpen] = useState(false);
   const [fields, setFields] = useState<FieldDef[]>(saved);
+  // V5.8: the library is searchable; categories with no match fold away.
+  const [libraryQuery, setLibraryQuery] = useState("");
+  const libraryNeedle = libraryQuery.trim().toLowerCase();
   const [dirty, setDirty] = useState(false);
   const [panel, setPanel] = useState<"none" | "library" | "custom">("none");
   const [editing, setEditing] = useState<string | null>(null);
@@ -378,8 +381,15 @@ export function ParticipantFieldsManager({ tournamentId, participantNoun = "ucze
 
           {panel === "library" && (
             <div className="participant-fields-library">
+              <label className="participant-fields-library-search flex items-center gap-2">
+                <span className="sr-only">Szukaj w bibliotece pól</span>
+                <input type="search" className="participant-field-control flex-1" placeholder="Szukaj pola, np. ranga, wiek, klub" value={libraryQuery} onChange={(event) => setLibraryQuery(event.target.value)} autoComplete="off" />
+              </label>
+              {libraryNeedle && !libraryFields.some((entry) => `${entry.label} ${entry.description ?? ""}`.toLowerCase().includes(libraryNeedle)) && (
+                <p className="text-xs text-muted-foreground" role="status">Brak takiego pola w bibliotece — dodaj „Własne pole”.</p>
+              )}
               {categories.map((category) => {
-                const entries = libraryFields.filter((entry) => entry.category === category.id);
+                const entries = libraryFields.filter((entry) => entry.category === category.id && (!libraryNeedle || `${entry.label} ${entry.description ?? ""}`.toLowerCase().includes(libraryNeedle)));
                 if (!entries.length) return null;
                 return (
                   <fieldset key={category.id}>

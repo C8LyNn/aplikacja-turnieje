@@ -326,11 +326,16 @@ export function ExperimentalAdvancedEditor() {
   const setRules = shown?.matchRules?.kind === "sets" ? shown.matchRules : null;
   const matchesSummary = setRules
     ? [`do ${setRules.setsToWin} wygranych setów`, `set do ${setRules.pointsPerSet}`, setRules.winBy > 1 ? `przewaga ${setRules.winBy}` : null].filter(Boolean).join(" · ")
-    : [limitText(limits.get("bestOf")), limits.get("playoffBestOf") ? `play-off: ${limitText(limits.get("playoffBestOf"))?.toLowerCase()}` : null, shown?.leagueRules?.allowDraws ? "remisy" : null].filter(Boolean).join(" · ");
+    : [limitText(limits.get("bestOf")),
+        // V5.8: a play-off with its own length is an exception, and the summary says so.
+        limits.get("playoffBestOf") && (params.playoffBestOf ?? limits.get("playoffBestOf")!.value) !== (params.bestOf ?? limits.get("bestOf")?.value)
+          ? `play-off inaczej: ${limitText(limits.get("playoffBestOf"))?.toLowerCase()}` : null,
+        shown?.leagueRules?.allowDraws ? "remisy" : null].filter(Boolean).join(" · ");
   const scoringSummary = shown?.leagueRules
-    ? `${shown.leagueRules.allowDraws ? `${shown.leagueRules.points.win}/${shown.leagueRules.points.draw}/${shown.leagueRules.points.loss}` : `${shown.leagueRules.points.win}/${shown.leagueRules.points.loss}`} pkt${draft.schedule ? " · terminarz" : ""}`
+    ? [`zwycięstwo ${shown.leagueRules.points.win}`, shown.leagueRules.allowDraws ? `remis ${shown.leagueRules.points.draw}` : "bez remisów", `porażka ${shown.leagueRules.points.loss}`, draft.schedule ? "terminarz" : null].filter(Boolean).join(" · ")
     : "—";
-  const seedingSummary = custom ? "według planu z pliku" : [limitText(limits.get("entrySeeding")), limitText(limits.get("groupPlacement"))].filter(Boolean).join(" · ");
+  const advancement = shown && shown.stages.length > 1 ? shown.stages[0]?.advancementText ?? null : null;
+  const seedingSummary = custom ? "według planu z pliku" : [limitText(limits.get("entrySeeding")), limitText(limits.get("groupPlacement")), advancement].filter(Boolean).join(" · ");
   const participantsSummary = answers.participantType === "teams"
     ? `Drużyny${draft.rosterMin != null ? ` · min. ${draft.rosterMin} w podstawie` : ""}`
     : "Gracze";

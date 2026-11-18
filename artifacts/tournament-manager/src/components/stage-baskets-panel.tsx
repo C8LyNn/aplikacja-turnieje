@@ -1009,7 +1009,8 @@ export function StageBasketsPanel({ tournamentId, tournamentStatus, orgToken }: 
       {basketConfig?.legacyDefaulted && !advancedMode && (
         <div className="rounded-lg border border-border bg-muted/20 px-4 py-2.5 flex items-center gap-2 text-sm text-muted-foreground">
           <Info className="w-4 h-4 shrink-0" />
-          Domyślna konfiguracja koszyków — wygenerowana automatycznie. Przed startem możesz ją dostosować w trybie zaawansowanym.
+          {/* V5.8: after the start the "before the start" advice no longer applies (the locked note says why). */}
+          {isLocked ? "Domyślna konfiguracja koszyków — wygenerowana automatycznie." : "Domyślna konfiguracja koszyków — wygenerowana automatycznie. Przed startem możesz ją dostosować w trybie zaawansowanym."}
         </div>
       )}
 
@@ -1060,6 +1061,10 @@ export function StageBasketsPanel({ tournamentId, tournamentStatus, orgToken }: 
           <h3 className="font-semibold">Przepływ uczestników</h3>
           <p className="text-sm text-muted-foreground mt-1">
             Kto zaczyna w którym etapie i kto awansuje dalej.
+          </p>
+          {/* V5.8: the words used below, once — basket, group and advancing set are different things. */}
+          <p className="text-xs text-muted-foreground mt-1" data-testid="baskets-terms">
+            „Start” to koszyk uczestników, którzy zaczynają etap; „Awans” — tych, którzy z niego przechodzą dalej. Grupy powstają z koszyka startowego przy losowaniu etapu.
           </p>
           <FlowSummary stages={stages} registered={players?.length ?? null} flowCountsByStage={showDerivedFlow ? flowCountsByStage : undefined} />
         </div>
