@@ -66,3 +66,6 @@
 /* "‹ Turnieje" above the tournament name: a real target (was 20 px tall) without moving the title. */
 .experimental-tournament-shell .experimental-context-bar a { min-height: 2rem; }
 .experimental-tournament-shell .experimental-context-bar--compact { margin-block: -.375rem; }
+
+/* Tabela tab: the current stage's group tables get room for full names (three narrow columns cut them). */
+.experimental-tournament-shell [data-testid="current-stage-table"] .stage-live-tables > div { grid-template-columns: repeat(auto-fit, minmax(min(100%, 28rem), 1fr)); }

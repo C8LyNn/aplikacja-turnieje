@@ -242,8 +242,9 @@ export function tournamentAction(t: { id: number; status: string; activity?: Tou
     return { group: "advance", label: "Następny krok", hint: "Brak meczów do rozegrania — rozpocznij rundę lub etap", href: `${base}/host` };
   }
   if (t.status === "draft") {
-    // V5.11: drafts follow the engine's start readiness of the first stage (exact sizes, baskets, seeds).
-    const readiness = a.startReadiness;
+    // V5.11: drafts follow the engine's start readiness of the first stage (exact sizes, baskets, seeds);
+    // fewer than 2 participants always asks for participants first (V5.8 rule).
+    const readiness = a.playerCount >= 2 ? a.startReadiness : null;
     if (readiness) {
       if (readiness.ready) return { group: "start", label: "Uruchom turniej", hint: `${plural(a.playerCount, "uczestnik", "uczestników", "uczestników")} — wszystko gotowe`, href: base };
       if (readiness.reasonCode === "STAGE_PARTICIPANTS_INCONSISTENT" && readiness.participantCount < readiness.requiredParticipantCount) {

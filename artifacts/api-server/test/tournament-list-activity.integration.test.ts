@@ -75,10 +75,43 @@ test("list reports player, ready and live match counts per tournament", async ()
     response.body.map((t: { id: number }) => [t.id, t]),
   );
 
-  assert.deepEqual(byId.get(draftEmpty.id)?.activity, { playerCount: 0, readyMatchCount: 0, liveMatchCount: 0 });
-  assert.deepEqual(byId.get(draftReady.id)?.activity, { playerCount: 3, readyMatchCount: 0, liveMatchCount: 0 });
-  assert.deepEqual(byId.get(active.id)?.activity, { playerCount: 8, readyMatchCount: 2, liveMatchCount: 1 });
+  // V5.11 adds optional stage fields; the three V4 counts keep their meaning.
+  const counts = (activity?: { playerCount: number; readyMatchCount: number; liveMatchCount: number }) =>
+    activity && { playerCount: activity.playerCount, readyMatchCount: activity.readyMatchCount, liveMatchCount: activity.liveMatchCount };
+  assert.deepEqual(counts(byId.get(draftEmpty.id)?.activity), { playerCount: 0, readyMatchCount: 0, liveMatchCount: 0 });
+  assert.deepEqual(counts(byId.get(draftReady.id)?.activity), { playerCount: 3, readyMatchCount: 0, liveMatchCount: 0 });
+  assert.deepEqual(counts(byId.get(active.id)?.activity), { playerCount: 8, readyMatchCount: 2, liveMatchCount: 1 });
   assert.equal(byId.has(hidden.id), false, "private_offline tournaments stay unlisted");
+});
+
+test("V5.11: activity carries the stage plan, the current stage and the draft's start readiness from the engine", async () => {
+  const preview = await request(app).post("/api/tournaments/presets/preview")
+    .send({ presetId: "groups_playoff", params: { participantCount: 16, groupCount: 4, qualifiersPerGroup: 2 } }).expect(200);
+  const created = await request(app).post("/api/tournaments")
+    .send({ name: `Activity plan ${randomUUID()}`, organizerPassword: `pw-${randomUUID()}`, ...preview.body.creation }).expect(201);
+  for (let i = 1; i <= 5; i++) {
+    await request(app).post(`/api/tournaments/${created.body.id}/players`).set("x-organizer-token", created.body.organizerToken)
+      .send({ name: `Gracz ${i}`, seed: i }).expect(201);
+  }
+  const response = await request(app).get("/api/tournaments").expect(200);
+  const listed = response.body.find((t: { id: number }) => t.id === created.body.id);
+  assert.deepEqual(listed.activity.stageFormats, ["group_stage", "single_elimination"]);
+  assert.equal(listed.activity.currentStage.format, "group_stage");
+  assert.equal(listed.activity.currentStage.status, "planned");
+  assert.equal(listed.activity.currentStage.matchesTotal, 0);
+  assert.deepEqual(listed.activity.startReadiness, { ready: false, reasonCode: "STAGE_PARTICIPANTS_INCONSISTENT", participantCount: 5, requiredParticipantCount: 16 });
+  // Readiness is read for drafts only.
+  const active = response.body.find((t: { status: string; activity?: unknown }) => t.status === "active");
+  if (active) assert.equal("startReadiness" in (active.activity ?? {}), false);
+});
+
+test("V5.11: the dashboard talks about the active stage, else the next planned one, else the last one", async () => {
+  const { pickActivityStage } = await import("../src/routes/tournaments");
+  const stage = (position: number, status: string) => ({ position, status });
+  assert.deepEqual(pickActivityStage([stage(2, "planned"), stage(1, "active")]), stage(1, "active"));
+  assert.deepEqual(pickActivityStage([stage(1, "completed"), stage(2, "planned"), stage(3, "planned")]), stage(2, "planned"));
+  assert.deepEqual(pickActivityStage([stage(2, "completed"), stage(1, "completed")]), stage(2, "completed"));
+  assert.equal(pickActivityStage([]), null);
 });
 
 test("single-tournament endpoint is unchanged (no activity field)", async () => {
