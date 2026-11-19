@@ -729,6 +729,31 @@ export const TournamentParticipantType = {
   teams: 'teams',
 } as const;
 
+export interface TournamentActivityStage {
+  id: number;
+  name: string;
+  format: string;
+  status: string;
+  position: number;
+  /** @minimum 0 */
+  matchesCompleted: number;
+  /** @minimum 0 */
+  matchesTotal: number;
+  /** @nullable */
+  currentRound: number | null;
+  /** @nullable */
+  plannedRounds: number | null;
+}
+
+export interface TournamentActivityStartReadiness {
+  ready: boolean;
+  reasonCode: string;
+  /** @minimum 0 */
+  participantCount: number;
+  /** @minimum 0 */
+  requiredParticipantCount: number;
+}
+
 /**
  * Read-only workload summary, present only in the tournament list. Clients must treat it as optional.
  */
@@ -745,6 +770,12 @@ export interface TournamentActivity {
      * @minimum 0
      */
   liveMatchCount: number;
+  /** V5.11 — stage formats in plan order (empty without a stage plan). */
+  stageFormats?: string[];
+  /** V5.11 — the active stage, else the next planned one, else the last one. */
+  currentStage?: TournamentActivityStage | null;
+  /** V5.11 — drafts only; the engine's start readiness of the first planned stage. */
+  startReadiness?: TournamentActivityStartReadiness | null;
 }
 
 export interface TournamentPresentationSettings {

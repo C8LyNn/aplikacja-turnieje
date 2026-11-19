@@ -244,7 +244,15 @@ test("More exposes only areas backed by each credential", () => {
 test("planned stage without proven readiness has no start CTA", () => {
   const model = nextStep({ stages: [stage()], matches: [], readiness: readiness(false) });
   assert.equal(model.kind, "stage_preparation");
-  assert.equal(model.actionLabel, "Sprawdź gotowość etapu");
+  // V5.11: a first stage that only lacks entrants asks for them (engine counts: 7 of 8).
+  assert.equal(model.title, "Dodaj jeszcze 1 uczestnika");
+  assert.equal(model.actionLabel, "Dodaj uczestników");
+  assert.equal(model.actionHref, "/tournaments/41?tab=players");
+  const seedsOnly = nextStep({ stages: [stage()], matches: [], readiness: { ...readiness(false), participantCount: 8 } });
+  assert.equal(seedsOnly.title, "Etap wymaga przygotowania");
+  assert.equal(seedsOnly.actionLabel, "Sprawdź gotowość etapu");
+  const later = nextStep({ stages: [stage({ status: "completed" }), stage({ id: 12, position: 2, stageKey: "stage-2" })], matches: [], readiness: readiness(false) });
+  assert.equal(later.actionLabel, "Sprawdź gotowość etapu", "a later stage is fed by qualification, not by adding entrants");
 });
 
 test("planned stage with backend readiness gets one organizer start CTA", () => {
@@ -259,10 +267,11 @@ test("preparation next-step keeps stage and zero counts visible without repeatin
   const html = renderToStaticMarkup(<OrganizerNextStep step={model} onAction={() => undefined} />);
   const element = document.createElement("div");
   element.innerHTML = html;
-  assert.match(element.textContent ?? "", /Finał: Liczba uczestników nie odpowiada wymaganiom etapu/);
-  assert.match(element.textContent ?? "", /Oczekiwano: 16 · Aktualnie: 0/);
+  assert.match(element.textContent ?? "", /Dodaj jeszcze 16 uczestników/);
+  assert.match(element.textContent ?? "", /Finał: na liście 0 z 16/);
   assert.doesNotMatch(element.textContent ?? "", /Szczegółowa diagnoza/);
-  assert.equal(element.querySelector("button")?.textContent, "Sprawdź gotowość etapu");
+  assert.doesNotMatch(element.textContent ?? "", /w zakładce Gracze/, "the action is the button, not a repeated sentence");
+  assert.equal(element.querySelector("button")?.textContent, "Dodaj uczestników");
 });
 
 test("ready to roster mutation to pending refetch hides CTA until not-ready arrives", () => {
@@ -282,7 +291,7 @@ test("ready to roster mutation to pending refetch hides CTA until not-ready arri
       matches: [],
       readiness: availableStageStartReadiness(readiness(false), false),
     }).actionLabel,
-    "Sprawdź gotowość etapu",
+    "Dodaj uczestników",
   );
 });
 

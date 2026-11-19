@@ -40,7 +40,7 @@ function blockerLabel(count: number): string {
   return `${count} blokad`;
 }
 
-export function TournamentOperationsOverview({ tournamentId, enabled, collapsible = false }: {tournamentId: number; enabled: boolean; collapsible?: boolean}) {
+export function TournamentOperationsOverview({ tournamentId, enabled, collapsible = false, blockersExplained = false }: {tournamentId: number; enabled: boolean; collapsible?: boolean; /** V5.11: the next-step card already explains the blocker. */ blockersExplained?: boolean}) {
   const [location] = useLocation();
   const experimental = isExperimentalTournamentPath(location);
   const query = useGetTournamentAssistant(tournamentId, {
@@ -178,7 +178,7 @@ export function TournamentOperationsOverview({ tournamentId, enabled, collapsibl
   // Experimental: the "next step" card above already says what to do; details stay one click away
   // and open by themselves when something blocks progress or the data is stale.
   return (
-    <details className="experimental-ops-details rounded-xl border border-border/80 bg-card/40" open={stale || blockerCount > 0} data-testid="operations-details">
+    <details className="experimental-ops-details rounded-xl border border-border/80 bg-card/40" open={stale || (blockerCount > 0 && !blockersExplained)} data-testid="operations-details">
       <summary className="cursor-pointer select-none px-4 py-3 text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
         Szczegóły dla zaawansowanych: diagnostyka, korekty wyników, kwalifikacja
         {blockerCount > 0 ? ` · ${blockerLabel(blockerCount)}` : ""}

@@ -3706,6 +3706,43 @@ components:
           type: integer
           minimum: 0
           description: Matches in progress.
+        stageFormats:
+          type: array
+          description: V5.11 — stage formats in plan order (empty without a stage plan).
+          items: { type: string }
+        currentStage:
+          description: V5.11 — the active stage, else the next planned one, else the last one.
+          oneOf:
+            - $ref: "#/components/schemas/TournamentActivityStage"
+            - type: "null"
+        startReadiness:
+          description: V5.11 — drafts only; the engine's start readiness of the first planned stage.
+          oneOf:
+            - $ref: "#/components/schemas/TournamentActivityStartReadiness"
+            - type: "null"
+
+    TournamentActivityStage:
+      type: object
+      required: [id, name, format, status, position, matchesCompleted, matchesTotal, currentRound, plannedRounds]
+      properties:
+        id: { type: integer }
+        name: { type: string }
+        format: { type: string }
+        status: { type: string }
+        position: { type: integer }
+        matchesCompleted: { type: integer, minimum: 0 }
+        matchesTotal: { type: integer, minimum: 0 }
+        currentRound: { type: [integer, "null"] }
+        plannedRounds: { type: [integer, "null"] }
+
+    TournamentActivityStartReadiness:
+      type: object
+      required: [ready, reasonCode, participantCount, requiredParticipantCount]
+      properties:
+        ready: { type: boolean }
+        reasonCode: { type: string }
+        participantCount: { type: integer, minimum: 0 }
+        requiredParticipantCount: { type: integer, minimum: 0 }
 
     TournamentTemplatePreview:
       type: object

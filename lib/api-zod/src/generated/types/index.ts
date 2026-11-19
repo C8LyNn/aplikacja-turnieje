@@ -296,6 +296,8 @@ export * from './tieSummaryDecidedBy';
 export * from './tieSummaryState';
 export * from './tournament';
 export * from './tournamentActivity';
+export * from './tournamentActivityStage';
+export * from './tournamentActivityStartReadiness';
 export * from './tournamentBackup';
 export * from './tournamentBackupV2';
 export * from './tournamentBackupV2ActionLogItem';

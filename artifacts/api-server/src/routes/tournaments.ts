@@ -704,15 +704,48 @@ function parseCsv(csv: string) {
 
 // ========== TOURNAMENT ROUTES ==========
 
+export interface TournamentActivityStage {
+  id: number;
+  name: string;
+  format: string;
+  status: string;
+  position: number;
+  matchesCompleted: number;
+  matchesTotal: number;
+  currentRound: number | null;
+  plannedRounds: number | null;
+}
+export interface TournamentActivitySummary {
+  playerCount: number;
+  readyMatchCount: number;
+  liveMatchCount: number;
+  /** V5.11: stage formats in plan order (empty for a tournament without a stage plan). */
+  stageFormats?: string[];
+  /** V5.11: the active stage, else the next planned one, else the last one. */
+  currentStage?: TournamentActivityStage | null;
+  /** V5.11: drafts only — the engine's start readiness of the first planned stage. */
+  startReadiness?: { ready: boolean; reasonCode: string; participantCount: number; requiredParticipantCount: number } | null;
+}
+
+/** V5.11: which stage the dashboard talks about — the active one, else the next planned one, else the last one. */
+export function pickActivityStage<S extends { status: string; position: number }>(stages: readonly S[]): S | null {
+  const ordered = [...stages].sort((a, b) => a.position - b.position);
+  return ordered.find((stage) => stage.status === "active")
+    ?? ordered.find((stage) => stage.status === "planned")
+    ?? ordered[ordered.length - 1]
+    ?? null;
+}
+
 /**
  * Read-only workload summary for the tournament list (SWARM-006 V4 dashboard).
- * Two grouped aggregate queries, independent of the number of tournaments.
+ * Grouped aggregate queries, independent of the number of tournaments; V5.11 adds the stage plan and,
+ * for drafts, the authoritative start readiness of the first stage (one readiness read per draft).
  */
-export async function loadTournamentActivityMap(tournamentIds: number[]) {
-  const activity = new Map<number, { playerCount: number; readyMatchCount: number; liveMatchCount: number }>();
+export async function loadTournamentActivityMap(tournamentIds: number[], options: { draftIds?: readonly number[] } = {}) {
+  const activity = new Map<number, TournamentActivitySummary>();
   if (tournamentIds.length === 0) return activity;
-  for (const id of tournamentIds) activity.set(id, { playerCount: 0, readyMatchCount: 0, liveMatchCount: 0 });
-  const [playerRows, matchRows] = await Promise.all([
+  for (const id of tournamentIds) activity.set(id, { playerCount: 0, readyMatchCount: 0, liveMatchCount: 0, stageFormats: [], currentStage: null });
+  const [playerRows, matchRows, stageRows, stageMatchRows] = await Promise.all([
     db
       .select({ tournamentId: playersTable.tournamentId, count: sql<number>`count(*)::int` })
       .from(playersTable)
@@ -727,6 +760,28 @@ export async function loadTournamentActivityMap(tournamentIds: number[]) {
       .from(matchesTable)
       .where(and(inArray(matchesTable.tournamentId, tournamentIds), inArray(matchesTable.status, ["pending", "in_progress"])))
       .groupBy(matchesTable.tournamentId),
+    db
+      .select({
+        id: tournamentStagesTable.id,
+        tournamentId: tournamentStagesTable.tournamentId,
+        position: tournamentStagesTable.position,
+        name: tournamentStagesTable.name,
+        format: tournamentStagesTable.format,
+        status: tournamentStagesTable.status,
+        plannedRounds: tournamentStagesTable.plannedRounds,
+      })
+      .from(tournamentStagesTable)
+      .where(inArray(tournamentStagesTable.tournamentId, tournamentIds)),
+    db
+      .select({
+        stageId: matchesTable.stageId,
+        total: sql<number>`count(*) filter (where ${matchesTable.status} <> 'cancelled')::int`,
+        completed: sql<number>`count(*) filter (where ${matchesTable.status} = 'completed')::int`,
+        maxRound: sql<number | null>`max(${matchesTable.round})::int`,
+      })
+      .from(matchesTable)
+      .where(inArray(matchesTable.tournamentId, tournamentIds))
+      .groupBy(matchesTable.stageId),
   ]);
   for (const row of playerRows) {
     const entry = activity.get(row.tournamentId);
@@ -737,6 +792,47 @@ export async function loadTournamentActivityMap(tournamentIds: number[]) {
     if (entry) {
       entry.readyMatchCount = Number(row.ready) || 0;
       entry.liveMatchCount = Number(row.live) || 0;
+    }
+  }
+  const stageMatches = new Map(stageMatchRows.filter((row) => row.stageId != null).map((row) => [row.stageId as number, row]));
+  const stagesByTournament = new Map<number, typeof stageRows>();
+  for (const stage of stageRows) stagesByTournament.set(stage.tournamentId, [...(stagesByTournament.get(stage.tournamentId) ?? []), stage]);
+  for (const [tournamentId, stages] of stagesByTournament) {
+    const entry = activity.get(tournamentId);
+    if (!entry) continue;
+    const ordered = [...stages].sort((a, b) => a.position - b.position);
+    entry.stageFormats = ordered.map((stage) => stage.format);
+    const current = pickActivityStage(ordered);
+    if (current) {
+      const counts = stageMatches.get(current.id);
+      entry.currentStage = {
+        id: current.id,
+        name: current.name,
+        format: current.format,
+        status: current.status,
+        position: current.position,
+        matchesCompleted: Number(counts?.completed) || 0,
+        matchesTotal: Number(counts?.total) || 0,
+        currentRound: counts?.maxRound == null ? null : Number(counts.maxRound),
+        plannedRounds: current.plannedRounds ?? null,
+      };
+    }
+  }
+  for (const tournamentId of options.draftIds ?? []) {
+    const entry = activity.get(tournamentId);
+    const first = [...(stagesByTournament.get(tournamentId) ?? [])].sort((a, b) => a.position - b.position)[0];
+    if (!entry || !first || first.status !== "planned") continue;
+    try {
+      const readiness = await getStageStartReadiness({ tournamentId, stageId: first.id });
+      entry.startReadiness = {
+        ready: readiness.ready,
+        reasonCode: readiness.reasonCode,
+        participantCount: readiness.participantCount,
+        requiredParticipantCount: readiness.requiredParticipantCount,
+      };
+    } catch (error) {
+      if (!(error instanceof StageLifecycleError)) throw error;
+      entry.startReadiness = { ready: false, reasonCode: error.code, participantCount: entry.playerCount, requiredParticipantCount: entry.playerCount };
     }
   }
   return activity;
@@ -751,7 +847,7 @@ router.get("/tournaments", async (_req, res): Promise<void> => {
   const ids = tournaments.map((tournament) => tournament.id);
   const [gameConfigs, activity] = await Promise.all([
     loadTournamentGameConfigMap(ids),
-    loadTournamentActivityMap(ids),
+    loadTournamentActivityMap(ids, { draftIds: tournaments.filter((tournament) => tournament.status === "draft").map((tournament) => tournament.id) }),
   ]);
   res.json(
     tournaments.map((tournament) => ({

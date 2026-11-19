@@ -3,6 +3,7 @@ import { Link } from "wouter";
 import { format } from "date-fns";
 import { pl } from "date-fns/locale";
 import { Download, Trash2 } from "lucide-react";
+import type { TournamentActivity } from "@workspace/api-client-react";
 import { tournamentHref } from "@/features/experimental-tournaments/experimental-tournament-routing";
 import { ACTION_GROUPS, tournamentAction, type TournamentAction, type TournamentActionGroup } from "@/features/experimental-tournaments/experimental-v4-model";
 import type { ExperimentalTournamentStatusFilter } from "@/features/experimental-tournaments/experimental-dashboard-toolbar";
@@ -16,7 +17,7 @@ export interface ExperimentalTournamentListItem {
   maxPlayers?: number | null;
   createdAt: string;
   /** v4: workload summary from the list API; absent on older servers. */
-  activity?: { playerCount: number; readyMatchCount: number; liveMatchCount: number } | null;
+  activity?: TournamentActivity | null;
   currentRound?: number | null;
   totalRounds?: number | null;
 }
@@ -32,8 +33,53 @@ const ACTION_LIFECYCLE: Record<TournamentActionGroup, string> = {
   advance: "active",
   start: "draft",
   roster: "draft",
+  prepare: "draft",
   done: "completed",
 };
+
+/** V5.11: stage names for the card's format line ("Faza grupowa → Play-off"); the engine's stage formats. */
+const STAGE_FORMAT_SHORT: Record<string, string> = {
+  group_stage: "Faza grupowa",
+  round_robin: "Każdy z każdym",
+  swiss: "System szwajcarski",
+  single_elimination: "Play-off",
+  double_elimination: "Podwójna eliminacja",
+};
+
+export function tournamentFormatText(
+  tournament: { format: string; activity?: { stageFormats?: string[] | null } | null },
+  labels: Record<string, string>,
+): string {
+  const stages = tournament.activity?.stageFormats ?? [];
+  if (stages.length > 1) return stages.map((format) => STAGE_FORMAT_SHORT[format] ?? labels[format] ?? format).join(" → ");
+  if (stages.length === 1) return labels[stages[0]!] ?? STAGE_FORMAT_SHORT[stages[0]!] ?? stages[0]!;
+  return labels[tournament.format] ?? tournament.format;
+}
+
+/** V5.11: progress of the current stage from its matches (rounds alone mislead for brackets). */
+export function tournamentProgress(tournament: {
+  status: string;
+  currentRound?: number | null;
+  totalRounds?: number | null;
+  activity?: { stageFormats?: string[] | null; currentStage?: { name: string; format: string; matchesCompleted: number; matchesTotal: number; currentRound: number | null; plannedRounds: number | null } | null } | null;
+}): { label: string; percent: number | null } | null {
+  if (tournament.status !== "active") return null;
+  const stage = tournament.activity?.currentStage;
+  if (stage && stage.matchesTotal > 0) {
+    const parts = [
+      (tournament.activity?.stageFormats?.length ?? 0) > 1 ? stage.name : null,
+      stage.format === "swiss" && stage.currentRound ? `Runda ${stage.currentRound}${stage.plannedRounds ? ` z ${stage.plannedRounds}` : ""}` : null,
+      `${stage.matchesCompleted}/${stage.matchesTotal} meczów`,
+    ].filter(Boolean);
+    return { label: parts.join(" · "), percent: Math.min(100, Math.round((stage.matchesCompleted / stage.matchesTotal) * 100)) };
+  }
+  if (!tournament.currentRound) return null;
+  const total = tournament.totalRounds ?? null;
+  return {
+    label: `Runda ${tournament.currentRound}${total ? ` z ${total}` : ""}`,
+    percent: total ? Math.min(100, Math.round((tournament.currentRound / total) * 100)) : null,
+  };
+}
 
 const STATUS_TEXT: Record<string, string> = {
   active: "Trwa",
@@ -117,11 +163,7 @@ export function ExperimentalTournamentList({
             <ul className="experimental-tlist-items">
               {group.items.map((tournament) => {
                 const action = actions.get(tournament.id) ?? null;
-                const round =
-                  tournament.status === "active" && tournament.currentRound
-                    ? { current: tournament.currentRound, total: tournament.totalRounds ?? null }
-                    : null;
-                const progress = round?.total ? Math.min(100, Math.round((round.current / round.total) * 100)) : null;
+                const progress = tournamentProgress(tournament);
                 return (
                   <li key={tournament.id} className="experimental-tlist-row" data-status={tournament.status}>
                     <span className="experimental-tlist-mono" aria-hidden="true">
@@ -132,7 +174,7 @@ export function ExperimentalTournamentList({
                         {tournament.name}
                       </Link>
                       <p className="experimental-tlist-meta">
-                        <span>{labels[tournament.format] ?? tournament.format}</span>
+                        <span>{tournamentFormatText(tournament, labels)}</span>
                         {tournament.maxPlayers ? <span>{tournament.maxPlayers} miejsc</span> : null}
                         <span>
                           Utworzono {format(new Date(tournament.createdAt), "d MMM yyyy", { locale: pl })}
@@ -149,14 +191,12 @@ export function ExperimentalTournamentList({
                         <span aria-hidden="true" className="experimental-tlist-dot" />
                         {STATUS_TEXT[tournament.status] ?? tournament.status}
                       </span>
-                      {round ? (
+                      {progress ? (
                         <div className="experimental-tlist-round">
-                          <span className="tabular-nums">
-                            Runda {round.current}{round.total ? ` z ${round.total}` : ""}
-                          </span>
-                          {progress !== null && (
+                          <span className="tabular-nums">{progress.label}</span>
+                          {progress.percent !== null && (
                             <span className="experimental-tlist-bar" aria-hidden="true">
-                              <span style={{ width: `${progress}%` }} />
+                              <span style={{ width: `${progress.percent}%` }} />
                             </span>
                           )}
                         </div>

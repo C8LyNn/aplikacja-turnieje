@@ -31,6 +31,7 @@ export function experimentalDraftNextStep<T extends { kind: string; title: strin
   if (input.tournamentStatus === "draft" && count != null && count < 2 && step && ["stage_preparation", "not_ready", "planned_stage"].includes(step.kind)) {
     return {
       kind: "stage_preparation" as const,
+      reason: "needs_entrants" as const,
       title: "Dodaj uczestników",
       description: count === 0
         ? "Turniej jest gotowy do zapisów. Dodaj co najmniej 2 uczestników — pojedynczo lub z pliku CSV."

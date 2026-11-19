@@ -1,0 +1,18 @@
+/* SWARM-006 V5.11 · Experimental only. Every selector starts with an Experimental root class
+   (checked by qa/local-addons-20261119/ux-v511-experimental-scope.test.mjs), so Stable never changes. */
+
+/* Header: work links first, then one quiet group of view tools (appearance, density, role). */
+.experimental-tournament-shell .experimental-nav-tools { display: flex; align-items: center; gap: .5rem; margin-left: .25rem; padding-left: .75rem; border-left: 1px solid var(--x-line); }
+@media (max-width: 767px) {
+  .experimental-tournament-shell .experimental-nav-tools { flex-direction: column; align-items: stretch; margin: .35rem 0 0; padding: .5rem 0 0; border-left: 0; border-top: 1px solid var(--x-line); }
+  .experimental-tournament-shell .experimental-nav-tools > * { width: 100%; }
+}
+
+/* Host queue: the group of a group-stage match, and reorder arrows large enough to hit (were 16 px). */
+.experimental-tournament-shell .experimental-queue-group { padding: .05rem .45rem; border-radius: 999px; background: var(--x-accent-soft); color: var(--x-text); font-size: .6875rem; font-weight: 700; letter-spacing: .02em; white-space: nowrap; }
+.experimental-tournament-shell .experimental-queue-reorder { gap: .125rem; }
+.experimental-tournament-shell .experimental-queue-reorder button { display: inline-flex; align-items: center; justify-content: center; min-width: 1.75rem; min-height: 1.625rem; border-radius: .375rem; color: var(--x-text-2); }
+.experimental-tournament-shell .experimental-queue-reorder button:hover:not(:disabled) { background: var(--x-glass-2); color: var(--x-text); }
+.experimental-tournament-shell .experimental-queue-reorder button:focus-visible { outline: 2px solid var(--x-a1); outline-offset: 1px; }
+.experimental-tournament-shell .experimental-queue-reorder button:disabled { opacity: .25; }
+.experimental-tournament-shell .experimental-queue-reorder svg { width: .875rem; height: .875rem; }

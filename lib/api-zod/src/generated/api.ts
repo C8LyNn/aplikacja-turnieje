@@ -27,6 +27,14 @@ export const listTournamentsResponseActivityReadyMatchCountMin = 0;
 
 export const listTournamentsResponseActivityLiveMatchCountMin = 0;
 
+export const listTournamentsResponseActivityCurrentStageOneMatchesCompletedMin = 0;
+
+export const listTournamentsResponseActivityCurrentStageOneMatchesTotalMin = 0;
+
+export const listTournamentsResponseActivityStartReadinessOneParticipantCountMin = 0;
+
+export const listTournamentsResponseActivityStartReadinessOneRequiredParticipantCountMin = 0;
+
 export const listTournamentsResponseGameConfigOneConfigBansPerPlayerMin = 0;
 export const listTournamentsResponseGameConfigOneConfigBansPerPlayerMax = 20;
 
@@ -71,7 +79,25 @@ export const ListTournamentsResponseItem = zod.object({
   "activity": zod.object({
   "playerCount": zod.number().min(listTournamentsResponseActivityPlayerCountMin),
   "readyMatchCount": zod.number().min(listTournamentsResponseActivityReadyMatchCountMin).describe('Pending matches with both participants assigned.'),
-  "liveMatchCount": zod.number().min(listTournamentsResponseActivityLiveMatchCountMin).describe('Matches in progress.')
+  "liveMatchCount": zod.number().min(listTournamentsResponseActivityLiveMatchCountMin).describe('Matches in progress.'),
+  "stageFormats": zod.array(zod.string()).optional().describe('V5.11 — stage formats in plan order (empty without a stage plan).'),
+  "currentStage": zod.union([zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "format": zod.string(),
+  "status": zod.string(),
+  "position": zod.number(),
+  "matchesCompleted": zod.number().min(listTournamentsResponseActivityCurrentStageOneMatchesCompletedMin),
+  "matchesTotal": zod.number().min(listTournamentsResponseActivityCurrentStageOneMatchesTotalMin),
+  "currentRound": zod.number().nullable(),
+  "plannedRounds": zod.number().nullable()
+}),zod.null()]).optional().describe('V5.11 — the active stage, else the next planned one, else the last one.'),
+  "startReadiness": zod.union([zod.object({
+  "ready": zod.boolean(),
+  "reasonCode": zod.string(),
+  "participantCount": zod.number().min(listTournamentsResponseActivityStartReadinessOneParticipantCountMin),
+  "requiredParticipantCount": zod.number().min(listTournamentsResponseActivityStartReadinessOneRequiredParticipantCountMin)
+}),zod.null()]).optional().describe('V5.11 — drafts only; the engine\'s start readiness of the first planned stage.')
 }).optional().describe('Read-only workload summary, present only in the tournament list. Clients must treat it as optional.'),
   "gameConfig": zod.union([zod.object({
   "gameId": zod.literal("deadlock"),
@@ -773,6 +799,14 @@ export const getTournamentResponseActivityReadyMatchCountMin = 0;
 
 export const getTournamentResponseActivityLiveMatchCountMin = 0;
 
+export const getTournamentResponseActivityCurrentStageOneMatchesCompletedMin = 0;
+
+export const getTournamentResponseActivityCurrentStageOneMatchesTotalMin = 0;
+
+export const getTournamentResponseActivityStartReadinessOneParticipantCountMin = 0;
+
+export const getTournamentResponseActivityStartReadinessOneRequiredParticipantCountMin = 0;
+
 export const getTournamentResponseGameConfigOneConfigBansPerPlayerMin = 0;
 export const getTournamentResponseGameConfigOneConfigBansPerPlayerMax = 20;
 
@@ -817,7 +851,25 @@ export const GetTournamentResponse = zod.object({
   "activity": zod.object({
   "playerCount": zod.number().min(getTournamentResponseActivityPlayerCountMin),
   "readyMatchCount": zod.number().min(getTournamentResponseActivityReadyMatchCountMin).describe('Pending matches with both participants assigned.'),
-  "liveMatchCount": zod.number().min(getTournamentResponseActivityLiveMatchCountMin).describe('Matches in progress.')
+  "liveMatchCount": zod.number().min(getTournamentResponseActivityLiveMatchCountMin).describe('Matches in progress.'),
+  "stageFormats": zod.array(zod.string()).optional().describe('V5.11 — stage formats in plan order (empty without a stage plan).'),
+  "currentStage": zod.union([zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "format": zod.string(),
+  "status": zod.string(),
+  "position": zod.number(),
+  "matchesCompleted": zod.number().min(getTournamentResponseActivityCurrentStageOneMatchesCompletedMin),
+  "matchesTotal": zod.number().min(getTournamentResponseActivityCurrentStageOneMatchesTotalMin),
+  "currentRound": zod.number().nullable(),
+  "plannedRounds": zod.number().nullable()
+}),zod.null()]).optional().describe('V5.11 — the active stage, else the next planned one, else the last one.'),
+  "startReadiness": zod.union([zod.object({
+  "ready": zod.boolean(),
+  "reasonCode": zod.string(),
+  "participantCount": zod.number().min(getTournamentResponseActivityStartReadinessOneParticipantCountMin),
+  "requiredParticipantCount": zod.number().min(getTournamentResponseActivityStartReadinessOneRequiredParticipantCountMin)
+}),zod.null()]).optional().describe('V5.11 — drafts only; the engine\'s start readiness of the first planned stage.')
 }).optional().describe('Read-only workload summary, present only in the tournament list. Clients must treat it as optional.'),
   "gameConfig": zod.union([zod.object({
   "gameId": zod.literal("deadlock"),
@@ -913,6 +965,14 @@ export const updateTournamentResponseActivityReadyMatchCountMin = 0;
 
 export const updateTournamentResponseActivityLiveMatchCountMin = 0;
 
+export const updateTournamentResponseActivityCurrentStageOneMatchesCompletedMin = 0;
+
+export const updateTournamentResponseActivityCurrentStageOneMatchesTotalMin = 0;
+
+export const updateTournamentResponseActivityStartReadinessOneParticipantCountMin = 0;
+
+export const updateTournamentResponseActivityStartReadinessOneRequiredParticipantCountMin = 0;
+
 export const updateTournamentResponseGameConfigOneConfigBansPerPlayerMin = 0;
 export const updateTournamentResponseGameConfigOneConfigBansPerPlayerMax = 20;
 
@@ -957,7 +1017,25 @@ export const UpdateTournamentResponse = zod.object({
   "activity": zod.object({
   "playerCount": zod.number().min(updateTournamentResponseActivityPlayerCountMin),
   "readyMatchCount": zod.number().min(updateTournamentResponseActivityReadyMatchCountMin).describe('Pending matches with both participants assigned.'),
-  "liveMatchCount": zod.number().min(updateTournamentResponseActivityLiveMatchCountMin).describe('Matches in progress.')
+  "liveMatchCount": zod.number().min(updateTournamentResponseActivityLiveMatchCountMin).describe('Matches in progress.'),
+  "stageFormats": zod.array(zod.string()).optional().describe('V5.11 — stage formats in plan order (empty without a stage plan).'),
+  "currentStage": zod.union([zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "format": zod.string(),
+  "status": zod.string(),
+  "position": zod.number(),
+  "matchesCompleted": zod.number().min(updateTournamentResponseActivityCurrentStageOneMatchesCompletedMin),
+  "matchesTotal": zod.number().min(updateTournamentResponseActivityCurrentStageOneMatchesTotalMin),
+  "currentRound": zod.number().nullable(),
+  "plannedRounds": zod.number().nullable()
+}),zod.null()]).optional().describe('V5.11 — the active stage, else the next planned one, else the last one.'),
+  "startReadiness": zod.union([zod.object({
+  "ready": zod.boolean(),
+  "reasonCode": zod.string(),
+  "participantCount": zod.number().min(updateTournamentResponseActivityStartReadinessOneParticipantCountMin),
+  "requiredParticipantCount": zod.number().min(updateTournamentResponseActivityStartReadinessOneRequiredParticipantCountMin)
+}),zod.null()]).optional().describe('V5.11 — drafts only; the engine\'s start readiness of the first planned stage.')
 }).optional().describe('Read-only workload summary, present only in the tournament list. Clients must treat it as optional.'),
   "gameConfig": zod.union([zod.object({
   "gameId": zod.literal("deadlock"),
@@ -3563,6 +3641,14 @@ export const startTournamentResponseActivityReadyMatchCountMin = 0;
 
 export const startTournamentResponseActivityLiveMatchCountMin = 0;
 
+export const startTournamentResponseActivityCurrentStageOneMatchesCompletedMin = 0;
+
+export const startTournamentResponseActivityCurrentStageOneMatchesTotalMin = 0;
+
+export const startTournamentResponseActivityStartReadinessOneParticipantCountMin = 0;
+
+export const startTournamentResponseActivityStartReadinessOneRequiredParticipantCountMin = 0;
+
 export const startTournamentResponseGameConfigOneConfigBansPerPlayerMin = 0;
 export const startTournamentResponseGameConfigOneConfigBansPerPlayerMax = 20;
 
@@ -3607,7 +3693,25 @@ export const StartTournamentResponse = zod.object({
   "activity": zod.object({
   "playerCount": zod.number().min(startTournamentResponseActivityPlayerCountMin),
   "readyMatchCount": zod.number().min(startTournamentResponseActivityReadyMatchCountMin).describe('Pending matches with both participants assigned.'),
-  "liveMatchCount": zod.number().min(startTournamentResponseActivityLiveMatchCountMin).describe('Matches in progress.')
+  "liveMatchCount": zod.number().min(startTournamentResponseActivityLiveMatchCountMin).describe('Matches in progress.'),
+  "stageFormats": zod.array(zod.string()).optional().describe('V5.11 — stage formats in plan order (empty without a stage plan).'),
+  "currentStage": zod.union([zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "format": zod.string(),
+  "status": zod.string(),
+  "position": zod.number(),
+  "matchesCompleted": zod.number().min(startTournamentResponseActivityCurrentStageOneMatchesCompletedMin),
+  "matchesTotal": zod.number().min(startTournamentResponseActivityCurrentStageOneMatchesTotalMin),
+  "currentRound": zod.number().nullable(),
+  "plannedRounds": zod.number().nullable()
+}),zod.null()]).optional().describe('V5.11 — the active stage, else the next planned one, else the last one.'),
+  "startReadiness": zod.union([zod.object({
+  "ready": zod.boolean(),
+  "reasonCode": zod.string(),
+  "participantCount": zod.number().min(startTournamentResponseActivityStartReadinessOneParticipantCountMin),
+  "requiredParticipantCount": zod.number().min(startTournamentResponseActivityStartReadinessOneRequiredParticipantCountMin)
+}),zod.null()]).optional().describe('V5.11 — drafts only; the engine\'s start readiness of the first planned stage.')
 }).optional().describe('Read-only workload summary, present only in the tournament list. Clients must treat it as optional.'),
   "gameConfig": zod.union([zod.object({
   "gameId": zod.literal("deadlock"),
@@ -3710,6 +3814,14 @@ export const generateNextRoundResponseActivityReadyMatchCountMin = 0;
 
 export const generateNextRoundResponseActivityLiveMatchCountMin = 0;
 
+export const generateNextRoundResponseActivityCurrentStageOneMatchesCompletedMin = 0;
+
+export const generateNextRoundResponseActivityCurrentStageOneMatchesTotalMin = 0;
+
+export const generateNextRoundResponseActivityStartReadinessOneParticipantCountMin = 0;
+
+export const generateNextRoundResponseActivityStartReadinessOneRequiredParticipantCountMin = 0;
+
 export const generateNextRoundResponseGameConfigOneConfigBansPerPlayerMin = 0;
 export const generateNextRoundResponseGameConfigOneConfigBansPerPlayerMax = 20;
 
@@ -3754,7 +3866,25 @@ export const GenerateNextRoundResponse = zod.object({
   "activity": zod.object({
   "playerCount": zod.number().min(generateNextRoundResponseActivityPlayerCountMin),
   "readyMatchCount": zod.number().min(generateNextRoundResponseActivityReadyMatchCountMin).describe('Pending matches with both participants assigned.'),
-  "liveMatchCount": zod.number().min(generateNextRoundResponseActivityLiveMatchCountMin).describe('Matches in progress.')
+  "liveMatchCount": zod.number().min(generateNextRoundResponseActivityLiveMatchCountMin).describe('Matches in progress.'),
+  "stageFormats": zod.array(zod.string()).optional().describe('V5.11 — stage formats in plan order (empty without a stage plan).'),
+  "currentStage": zod.union([zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "format": zod.string(),
+  "status": zod.string(),
+  "position": zod.number(),
+  "matchesCompleted": zod.number().min(generateNextRoundResponseActivityCurrentStageOneMatchesCompletedMin),
+  "matchesTotal": zod.number().min(generateNextRoundResponseActivityCurrentStageOneMatchesTotalMin),
+  "currentRound": zod.number().nullable(),
+  "plannedRounds": zod.number().nullable()
+}),zod.null()]).optional().describe('V5.11 — the active stage, else the next planned one, else the last one.'),
+  "startReadiness": zod.union([zod.object({
+  "ready": zod.boolean(),
+  "reasonCode": zod.string(),
+  "participantCount": zod.number().min(generateNextRoundResponseActivityStartReadinessOneParticipantCountMin),
+  "requiredParticipantCount": zod.number().min(generateNextRoundResponseActivityStartReadinessOneRequiredParticipantCountMin)
+}),zod.null()]).optional().describe('V5.11 — drafts only; the engine\'s start readiness of the first planned stage.')
 }).optional().describe('Read-only workload summary, present only in the tournament list. Clients must treat it as optional.'),
   "gameConfig": zod.union([zod.object({
   "gameId": zod.literal("deadlock"),
@@ -3794,6 +3924,14 @@ export const getTournamentBracketResponseTournamentActivityPlayerCountMin = 0;
 export const getTournamentBracketResponseTournamentActivityReadyMatchCountMin = 0;
 
 export const getTournamentBracketResponseTournamentActivityLiveMatchCountMin = 0;
+
+export const getTournamentBracketResponseTournamentActivityCurrentStageOneMatchesCompletedMin = 0;
+
+export const getTournamentBracketResponseTournamentActivityCurrentStageOneMatchesTotalMin = 0;
+
+export const getTournamentBracketResponseTournamentActivityStartReadinessOneParticipantCountMin = 0;
+
+export const getTournamentBracketResponseTournamentActivityStartReadinessOneRequiredParticipantCountMin = 0;
 
 export const getTournamentBracketResponseTournamentGameConfigOneConfigBansPerPlayerMin = 0;
 export const getTournamentBracketResponseTournamentGameConfigOneConfigBansPerPlayerMax = 20;
@@ -3859,7 +3997,25 @@ export const GetTournamentBracketResponse = zod.object({
   "activity": zod.object({
   "playerCount": zod.number().min(getTournamentBracketResponseTournamentActivityPlayerCountMin),
   "readyMatchCount": zod.number().min(getTournamentBracketResponseTournamentActivityReadyMatchCountMin).describe('Pending matches with both participants assigned.'),
-  "liveMatchCount": zod.number().min(getTournamentBracketResponseTournamentActivityLiveMatchCountMin).describe('Matches in progress.')
+  "liveMatchCount": zod.number().min(getTournamentBracketResponseTournamentActivityLiveMatchCountMin).describe('Matches in progress.'),
+  "stageFormats": zod.array(zod.string()).optional().describe('V5.11 — stage formats in plan order (empty without a stage plan).'),
+  "currentStage": zod.union([zod.object({
+  "id": zod.number(),
+  "name": zod.string(),
+  "format": zod.string(),
+  "status": zod.string(),
+  "position": zod.number(),
+  "matchesCompleted": zod.number().min(getTournamentBracketResponseTournamentActivityCurrentStageOneMatchesCompletedMin),
+  "matchesTotal": zod.number().min(getTournamentBracketResponseTournamentActivityCurrentStageOneMatchesTotalMin),
+  "currentRound": zod.number().nullable(),
+  "plannedRounds": zod.number().nullable()
+}),zod.null()]).optional().describe('V5.11 — the active stage, else the next planned one, else the last one.'),
+  "startReadiness": zod.union([zod.object({
+  "ready": zod.boolean(),
+  "reasonCode": zod.string(),
+  "participantCount": zod.number().min(getTournamentBracketResponseTournamentActivityStartReadinessOneParticipantCountMin),
+  "requiredParticipantCount": zod.number().min(getTournamentBracketResponseTournamentActivityStartReadinessOneRequiredParticipantCountMin)
+}),zod.null()]).optional().describe('V5.11 — drafts only; the engine\'s start readiness of the first planned stage.')
 }).optional().describe('Read-only workload summary, present only in the tournament list. Clients must treat it as optional.'),
   "gameConfig": zod.union([zod.object({
   "gameId": zod.literal("deadlock"),

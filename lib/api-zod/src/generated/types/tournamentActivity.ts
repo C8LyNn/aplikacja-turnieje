@@ -5,6 +5,8 @@
  * Tournament Manager API
  * OpenAPI spec version: 0.1.0
  */
+import type { TournamentActivityStage } from './tournamentActivityStage';
+import type { TournamentActivityStartReadiness } from './tournamentActivityStartReadiness';
 
 /**
  * Read-only workload summary, present only in the tournament list. Clients must treat it as optional.
@@ -22,4 +24,10 @@ export interface TournamentActivity {
      * @minimum 0
      */
   liveMatchCount: number;
+  /** V5.11 — stage formats in plan order (empty without a stage plan). */
+  stageFormats?: string[];
+  /** V5.11 — the active stage, else the next planned one, else the last one. */
+  currentStage?: TournamentActivityStage | null;
+  /** V5.11 — drafts only; the engine's start readiness of the first planned stage. */
+  startReadiness?: TournamentActivityStartReadiness | null;
 }

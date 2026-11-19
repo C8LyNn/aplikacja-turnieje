@@ -29,7 +29,7 @@ export function OrganizerNextStep({
           <p className="mt-1 text-sm text-muted-foreground">{step.description}</p>
           {step.readinessFeedback && <>
             <p className="mt-1 text-sm font-medium tabular-nums">{step.readinessFeedback.counts}</p>
-            <p className="mt-1 text-sm">{step.readinessFeedback.action}</p>
+            {step.readinessFeedback.action && <p className="mt-1 text-sm">{step.readinessFeedback.action}</p>}
           </>}
         </div>
         {action && actionHref && !onAction && (

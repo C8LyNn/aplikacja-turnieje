@@ -835,6 +835,7 @@ export function TournamentStagesPanel({
   const needsEntrants = !!selected && !!readinessQuery.data && firstStageNeedsEntrants(readinessQuery.data, selected.position === 1);
   const startBlockedReason = readinessQuery.isError ? "Nie udało się sprawdzić gotowości. Ponów sprawdzenie."
     : readinessQuery.isFetching || !readinessQuery.data ? "Sprawdzanie gotowości etapu…"
+    : needsEntrants ? `Najpierw dodaj uczestników (${readinessQuery.data.participantCount} z ${readinessQuery.data.requiredParticipantCount}).`
     : !readinessQuery.data.ready ? stageReadinessFeedback(readinessQuery.data, selected?.name ?? "Etap", { firstStage: selected?.position === 1 }).summary
     : !ceremonyReady ? "Dokończ ceremonię losowania przed rozpoczęciem etapu." : undefined;
   const actionStartBlockedReason = actionReadiness.isError || actionCeremony.isError
@@ -1015,13 +1016,15 @@ export function TournamentStagesPanel({
           </Card>
 
           {selected.status === "planned" && <div aria-label="Gotowość etapu" data-exp-ready={readinessQuery.data?.ready ? "true" : "false"} className="organizer-readiness rounded-lg border bg-card p-4 space-y-2">
-            <h4 className="font-semibold">{startBlockedReason ? "Etap wymaga przygotowania" : "Gotowy do rozpoczęcia"}</h4>
+            <h4 className="font-semibold">{needsEntrants && readinessQuery.data
+              ? `Brakuje ${readinessQuery.data.requiredParticipantCount - readinessQuery.data.participantCount} uczestników`
+              : startBlockedReason ? "Etap wymaga przygotowania" : "Gotowy do rozpoczęcia"}</h4>
             {readinessQuery.isError ? <><p>Nie udało się sprawdzić gotowości etapu.</p><Button variant="outline" onClick={() => void readinessQuery.refetch()}>Ponów sprawdzenie</Button></>
               : !readinessQuery.data ? <p role="status">Sprawdzanie gotowości etapu…</p>
               : <>
-                {!readinessQuery.data.ready && <p className="text-sm">{readinessFeedback?.summary}</p>}
+                {!readinessQuery.data.ready && !needsEntrants && <p className="text-sm">{readinessFeedback?.summary}</p>}
                 <p className="text-sm font-medium tabular-nums">{readinessFeedback?.counts}</p>
-                {!readinessQuery.data.ready && <p className="text-sm">{readinessFeedback?.action}</p>}
+                {!readinessQuery.data.ready && !needsEntrants && <p className="text-sm">{readinessFeedback?.action}</p>}
                 {!ceremonyReady && <p className="text-sm">Dokończ ceremonię losowania przed rozpoczęciem etapu.</p>}
                 {needsEntrants && <Button asChild><Link href={tournamentHref(tournamentId, isExperimental, "?tab=players")}>Dodaj uczestników</Link></Button>}
                 {!needsEntrants && (readinessQuery.data.missingSeeds.length > 0 || !ceremonyReady || readinessQuery.data.reasonCode.startsWith("SEEDING_")) &&

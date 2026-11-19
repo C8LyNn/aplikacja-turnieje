@@ -28,6 +28,8 @@ export interface MatchWorkInfo {
   action: { kind: MatchWorkActionKind; label: string };
   /** Planned start in the league's calendar, when the match has one. */
   slot: { date: string; time: string } | null;
+  /** V5.11: true when the reason only says "no date, play any time" — lists may leave it out. */
+  routine?: boolean;
 }
 
 export interface MatchWorkInput {
@@ -139,7 +141,8 @@ export function matchWorkState(
   if (slot && planned!.getTime() <= now.getTime()) {
     return info("due", `Planowany start ${slot.time} minął, a mecz nie jest oznaczony jako rozpoczęty.`, start);
   }
-  return info("ready", slot ? `Start: ${formatLocalSlot(slot.date, slot.time)}.` : "Bez terminu — można rozegrać w dowolnej chwili.", start);
+  if (!slot) return { ...info("ready", "Bez terminu — można rozegrać w dowolnej chwili.", start), routine: true };
+  return info("ready", `Start: ${formatLocalSlot(slot.date, slot.time)}.`, start);
 }
 
 export function countWorkStates(infos: readonly MatchWorkInfo[]): Record<MatchWorkState, number> {

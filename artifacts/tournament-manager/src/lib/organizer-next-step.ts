@@ -5,7 +5,7 @@ import type {
   TournamentStage,
 } from "@workspace/api-client-react";
 import type { OrganizerCapabilities } from "@/lib/organizer-capabilities";
-import { stageReadinessFeedback } from "./stage-lifecycle-feedback";
+import { firstStageNeedsEntrants, stageReadinessFeedback } from "./stage-lifecycle-feedback";
 import { organizerStageSummary } from "./organizer-stage-summary";
 
 export type OrganizerSurface = "details" | "conducting";
@@ -26,6 +26,8 @@ export interface OrganizerNextStepModel {
   title: string;
   description: string;
   readinessFeedback?: ReturnType<typeof stageReadinessFeedback>;
+  /** V5.11: set when the step itself explains the only blocker (entrants missing), so diagnostics can stay folded. */
+  reason?: "needs_entrants";
   actionLabel?: string;
   actionHref?: string;
   stageId?: number;
@@ -153,7 +155,21 @@ export function deriveOrganizerNextStep(input: {
     const hasCompletedPredecessor = plannedIndex > 0 && stages[plannedIndex - 1].status === "completed";
     const readiness = input.plannedStageReadiness;
     if (!readiness?.ready) {
-      const feedback = readiness ? stageReadinessFeedback(readiness, planned.name) : undefined;
+      const firstStage = plannedIndex === 0;
+      const feedback = readiness ? stageReadinessFeedback(readiness, planned.name, { firstStage }) : undefined;
+      // V5.11: the most common beginner case gets a concrete instruction from the engine's own counts.
+      if (readiness && firstStageNeedsEntrants(readiness, firstStage)) {
+        const missing = readiness.requiredParticipantCount - readiness.participantCount;
+        return {
+          kind: "stage_preparation",
+          reason: "needs_entrants",
+          title: `Dodaj jeszcze ${missing} ${missing === 1 ? "uczestnika" : "uczestników"}`,
+          description: `${planned.name}: na liście ${readiness.participantCount} z ${readiness.requiredParticipantCount}. Całą listę możesz wkleić naraz.`,
+          actionLabel: capabilities.canManageParticipants ? "Dodaj uczestników" : undefined,
+          actionHref: capabilities.canManageParticipants ? `/tournaments/${tournament.id}?tab=players` : undefined,
+          stageId: planned.id,
+        };
+      }
       return {
         kind: "stage_preparation",
         title: "Etap wymaga przygotowania",

@@ -15,12 +15,14 @@ import {
   useGetTournamentBracket,
   useGetActionLog, useUndoLastAction,
   useListTournamentStages,
+  useGetTournamentStage,
   useGetDoubleEliminationStage,
   useCancelMatch, useRestoreCancelledMatch, useSwapMatchPlayers, useReorderMatches,
   getGetTournamentQueryKey, getListMatchesQueryKey, getGetTournamentBracketQueryKey,
   getGetTournamentStatsQueryKey, getGetTournamentStandingsQueryKey, getGetResultsHistoryQueryKey,
   getGetTournamentAssistantQueryKey, getGetActionLogQueryKey,
   getListTournamentStagesQueryKey,
+  getGetTournamentStageQueryKey,
   getGetDoubleEliminationStageQueryKey,
 } from "@workspace/api-client-react";
 import { Badge } from "@/components/ui/badge";
@@ -132,6 +134,11 @@ export default function TournamentHost() {
   });
   const { data: stages } = stagesQuery;
   const activeStage = stages?.find((stage) => stage.status === "active");
+  // V5.11: group names for the match list of a group stage ("Grupa B"), from the stage's own groups.
+  const groupStageDetail = useGetTournamentStage(id, activeStage?.id ?? 0, {
+    query: { enabled: !!id && isAuthReady && activeStage?.format === "group_stage", queryKey: getGetTournamentStageQueryKey(id, activeStage?.id ?? 0), staleTime: 60_000 },
+  });
+  const groupNameById = useMemo(() => new Map((groupStageDetail.data?.groups ?? []).map((group) => [group.id, `Grupa ${group.groupKey}`])), [groupStageDetail.data]);
   const operationalMatches = activeStage
     ? matches?.filter((match) => match.stageId === activeStage.id)
     : stages?.length === 0 ? matches : [];
@@ -2040,7 +2047,7 @@ export default function TournamentHost() {
                           }`}
                         >
                           {/* Reorder arrows */}
-                          {capabilities.canUseLegacyMatchTools && m.status === "pending" && queueFilter === "all" && <div className="flex flex-col py-1 pl-1 shrink-0">
+                          {capabilities.canUseLegacyMatchTools && m.status === "pending" && queueFilter === "all" && <div className="experimental-queue-reorder flex flex-col py-1 pl-1 shrink-0">
                             <button
                               className="p-0.5 text-muted-foreground/40 hover:text-muted-foreground disabled:opacity-20 disabled:cursor-not-allowed"
                               onClick={() => handleMoveInQueue(m.id, "up")}
@@ -2070,6 +2077,9 @@ export default function TournamentHost() {
                                   R{m.round}
                                 </Badge>
                                 <span className="text-xs text-muted-foreground">M{m.matchNumber}</span>
+                                {isExperimental && m.stageGroupId != null && groupNameById.get(m.stageGroupId) && (
+                                  <span className="experimental-queue-group">{groupNameById.get(m.stageGroupId)}</span>
+                                )}
                                 {m.bestOf && m.bestOf > 1 && (
                                   <span className="text-[10px] text-muted-foreground/60">{matchLengthTag(m)}</span>
                                 )}
@@ -2079,7 +2089,7 @@ export default function TournamentHost() {
                                 <span className="text-muted-foreground font-normal">vs</span>{" "}
                                 {m.player2Name}
                               </div>
-                              {isExperimental && <div className="experimental-work-reason">{workInfos.get(m.id)?.reason}</div>}
+                              {isExperimental && !workInfos.get(m.id)?.routine && <div className="experimental-work-reason">{workInfos.get(m.id)?.reason}</div>}
                             </div>
                             {m.status === "in_progress" && <span className="text-sm font-mono tabular-nums" title={isTwoLegTie(m) ? "Suma po rozegranych spotkaniach dwumeczu" : undefined}>{isTwoLegTie(m) ? tieScoreText(m) ?? "dwumecz" : `${m.score1 ?? 0}:${m.score2 ?? 0}`}</span>}
                             {isExperimental ? (

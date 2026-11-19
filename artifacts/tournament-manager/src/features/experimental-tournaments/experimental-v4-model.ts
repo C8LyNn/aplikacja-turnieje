@@ -183,7 +183,7 @@ export function matchFlow<M extends FlowMatch>(matches: ReadonlyArray<M> | null 
 
 /* ── Dashboard: group tournaments by the action they need ───────────────── */
 
-export type TournamentActionGroup = "play" | "advance" | "start" | "roster" | "done";
+export type TournamentActionGroup = "play" | "advance" | "start" | "roster" | "prepare" | "done";
 export interface TournamentAction {
   group: TournamentActionGroup;
   /** Visible label of the primary action, e.g. "Prowadź mecze". */
@@ -198,6 +198,7 @@ export const ACTION_GROUPS: ReadonlyArray<{ group: TournamentActionGroup; title:
   { group: "advance", title: "Czekają na kolejny krok" },
   { group: "start", title: "Gotowe do startu" },
   { group: "roster", title: "Brakuje uczestników" },
+  { group: "prepare", title: "Wymagają przygotowania" },
   { group: "done", title: "Zakończone" },
 ];
 
@@ -225,9 +226,32 @@ export function tournamentAction(t: { id: number; status: string; activity?: Tou
       ].filter(Boolean);
       return { group: "play", label: "Prowadź mecze", hint: parts.join(" · "), href: `${base}/host` };
     }
+    // V5.11: the engine's stage summary names the move instead of a generic "next step".
+    const stage = a.currentStage;
+    if (stage?.status === "active" && stage.matchesTotal > 0 && stage.matchesCompleted >= stage.matchesTotal) {
+      if (stage.format === "swiss" && stage.currentRound && stage.plannedRounds && stage.currentRound < stage.plannedRounds) {
+        return { group: "advance", label: `Generuj rundę ${stage.currentRound + 1}`, hint: `Runda ${stage.currentRound} z ${stage.plannedRounds} zakończona`, href: `${base}/host` };
+      }
+      if (stage.format !== "swiss" || stage.plannedRounds) {
+        return { group: "advance", label: "Zakończ etap", hint: `Wszystkie mecze etapu „${stage.name}” mają wyniki — zatwierdź tabelę i awans`, href: `${base}?tab=stages&stage=${stage.id}&action=complete` };
+      }
+    }
+    if (stage?.status === "planned") {
+      return { group: "advance", label: "Rozpocznij etap", hint: `Etap „${stage.name}” czeka na start`, href: `${base}?tab=stages&stage=${stage.id}&action=start` };
+    }
     return { group: "advance", label: "Następny krok", hint: "Brak meczów do rozegrania — rozpocznij rundę lub etap", href: `${base}/host` };
   }
   if (t.status === "draft") {
+    // V5.11: drafts follow the engine's start readiness of the first stage (exact sizes, baskets, seeds).
+    const readiness = a.startReadiness;
+    if (readiness) {
+      if (readiness.ready) return { group: "start", label: "Uruchom turniej", hint: `${plural(a.playerCount, "uczestnik", "uczestników", "uczestników")} — wszystko gotowe`, href: base };
+      if (readiness.reasonCode === "STAGE_PARTICIPANTS_INCONSISTENT" && readiness.participantCount < readiness.requiredParticipantCount) {
+        const missing = readiness.requiredParticipantCount - readiness.participantCount;
+        return { group: "roster", label: "Dodaj uczestników", hint: `Dodaj jeszcze ${missing} · na liście ${readiness.participantCount} z ${readiness.requiredParticipantCount}`, href: `${base}?tab=players` };
+      }
+      return { group: "prepare", label: "Sprawdź przygotowanie", hint: "Pierwszy etap wymaga przygotowania przed startem", href: `${base}?tab=stages` };
+    }
     if (a.playerCount >= 2) return { group: "start", label: "Uruchom turniej", hint: plural(a.playerCount, "uczestnik", "uczestników", "uczestników"), href: base };
     return { group: "roster", label: "Dodaj uczestników", hint: a.playerCount === 1 ? "Jest 1 uczestnik, potrzeba 2" : "Brak uczestników", href: `${base}?tab=players` };
   }

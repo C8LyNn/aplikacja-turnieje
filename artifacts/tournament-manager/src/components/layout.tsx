@@ -53,7 +53,7 @@ export function Layout({ children, deadlockTheme, colorPreset }: { children: Rea
                 Experimental
               </span>
             )}
-            {location !== roleHome && (
+            {location !== roleHome && !(isExperimentalTournamentView && role === "organizer") && (
               <RoleHomeLink
                 fallbackHref={fallbackHref}
                 fallbackLabel={fallbackLabel}
@@ -74,8 +74,7 @@ export function Layout({ children, deadlockTheme, colorPreset }: { children: Rea
             </button>
           )}
           {/* V5.1: on narrow screens Stable's nav scrolls inside the header instead of widening the page. */}
-          <nav id={isExperimentalTournamentView ? "experimental-app-nav" : undefined} data-open={isExperimentalTournamentView && navOpen ? "true" : undefined} className={`flex items-center gap-3 text-sm font-medium text-muted-foreground ${isExperimentalTournamentView ? "" : "min-w-0 overflow-x-auto whitespace-nowrap [scrollbar-width:none]"}`}>{isExperimentalTournamentView && <ExperimentalAppearanceControl />}{isExperimentalTournamentView && <ExperimentalDensityControl />}
-            {role && (
+          <nav id={isExperimentalTournamentView ? "experimental-app-nav" : undefined} data-open={isExperimentalTournamentView && navOpen ? "true" : undefined} className={`flex items-center gap-3 text-sm font-medium text-muted-foreground ${isExperimentalTournamentView ? "experimental-app-nav" : "min-w-0 overflow-x-auto whitespace-nowrap [scrollbar-width:none]"}`}>{!isExperimentalTournamentView && role && (
               <RoleSelectionLink className="border border-border rounded-full px-2.5 py-1 text-xs" />
             )}
             {role === "organizer" && (
@@ -88,6 +87,13 @@ export function Layout({ children, deadlockTheme, colorPreset }: { children: Rea
                   Nowy turniej
                 </Link>
               </>
+            )}
+            {isExperimentalTournamentView && (
+              <div className="experimental-nav-tools" role="group" aria-label="Narzędzia widoku">
+                <ExperimentalAppearanceControl />
+                <ExperimentalDensityControl />
+                {role && <RoleSelectionLink className="border border-border rounded-full px-2.5 py-1 text-xs" />}
+              </div>
             )}
             <Link
               href="/help"

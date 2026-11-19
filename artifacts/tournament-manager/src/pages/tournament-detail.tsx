@@ -791,6 +791,7 @@ export default function TournamentDetail() {
             tournamentId={id}
             enabled={readOk && preparedAuthId === id}
             collapsible={isExperimental}
+            blockersExplained={(nextStep as { reason?: string } | null | undefined)?.reason === "needs_entrants"}
           />
         )}
         {startError && <p role="alert" className="rounded-lg border border-destructive/40 p-3 text-sm text-destructive">{startError}</p>}
