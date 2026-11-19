@@ -336,7 +336,7 @@ export default function Dashboard() {
         {/* Stable keeps the existing custom modal presentation. */}
         {!isExperimental && showTestDataModal && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-            <div className="bg-card border rounded-xl shadow-2xl max-w-sm w-full p-6 space-y-4">
+            <div className="bg-card border rounded-xl shadow-2xl max-w-sm w-full max-h-[calc(100dvh-2rem)] overflow-y-auto p-6 space-y-4">
               <div className="flex items-start gap-3">
                 <div className="bg-primary/15 rounded-full p-2 shrink-0">
                   <FlaskConical className="w-5 h-5 text-primary" />
@@ -396,7 +396,7 @@ export default function Dashboard() {
         {/* Delete confirmation overlay — Stable only. */}
         {!isExperimental && confirmDeleteId && confirmTarget && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-            <div className="bg-card border border-destructive/50 rounded-xl shadow-2xl max-w-md w-full p-6 space-y-4">
+            <div className="bg-card border border-destructive/50 rounded-xl shadow-2xl max-w-md w-full max-h-[calc(100dvh-2rem)] overflow-y-auto p-6 space-y-4">
               {/* Header */}
               <div className="flex items-start gap-4">
                 <div className="bg-destructive/15 rounded-full p-2.5 shrink-0 mt-0.5">

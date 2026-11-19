@@ -202,3 +202,20 @@ test("V5.6: with the host match editor the bracket opens matches there and keeps
   await user.click(screen.getByRole("button", { name: "Wpisz wynik w edytorze meczu" }));
   assert.deepEqual(opened, [101]);
 });
+
+test("QW-01: the DE toolbar wraps on a phone instead of widening the page", () => {
+  const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
+  clients.add(queryClient);
+  render(
+    <QueryClientProvider client={queryClient}>
+      <DoubleEliminationBracket tournamentId={1} stageId={2} state={state} />
+    </QueryClientProvider>,
+  );
+  const info = screen.getByText("Uczestnik odpada po drugiej porażce.").parentElement!;
+  const finals = screen.getByRole("button", { name: /Finały:/ }).parentElement!;
+  const bar = info.parentElement!;
+  for (const [name, el] of [["toolbar", bar], ["info group", info], ["action group", finals]] as const) {
+    assert.ok(el.classList.contains("flex-wrap"), `${name} must wrap`);
+    assert.ok(el.classList.contains("min-w-0"), `${name} must be allowed to shrink`);
+  }
+});

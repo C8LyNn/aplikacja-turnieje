@@ -258,14 +258,15 @@ export function DoubleEliminationBracket({
   return (
     <div className="space-y-4" aria-label="Drabinka podwójnej eliminacji">
       {/* Top bar */}
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
+      {/* QW-01: both groups wrap, so the toolbar never widens the page on a phone (it pushed 360 px screens sideways). */}
+      <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
+        <div className="flex min-w-0 flex-wrap items-center gap-2 text-sm text-muted-foreground">
           <Shield className="h-4 w-4" />
           <span>Uczestnik odpada po drugiej porażce.</span>
           {/* V5.8: the state revision is an operator detail — Experimental viewers do not see it. */}
           {(!experimentalView || canManage) && <Badge variant="outline">Rewizja {state.revision}</Badge>}
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex min-w-0 flex-wrap items-center gap-2">
           {/* Finals position toggle */}
           {!finalsPositionProp && (
             <Button

@@ -1024,3 +1024,21 @@ test("V5.7: a set match is entered set by set in the same editor and saved with 
   await waitFor(() => assert.deepEqual(body, { resultType: "played", expectedRevision: 1, score1: 2, score2: 1, sets: [{ score1: 11, score2: 7 }, { score1: 9, score2: 11 }, { score1: 11, score2: 5 }] }));
   await screen.findByText(/Zapisano \d\d:\d\d: Gracz A1 – Gracz B1 2:1 \(11:7, 9:11, 11:5\)/);
 });
+
+test("QW-01: on a phone the selected-match header wraps and each score fits its own player column", async () => {
+  const user = await renderOperationalHost({ matches: Array.from({ length: 3 }, (_, i) => hostMatch(i + 1)) });
+  const queue = await screen.findByRole("region", { name: "Mecze bieżącego etapu" });
+  await user.click(within(queue).getByRole("button", { name: /Gracz A2 vs Gracz B2/ }));
+  const header = screen.getByText("Wybrany mecz").parentElement!;
+  assert.ok(header.classList.contains("flex-wrap"), "badges wrap instead of running under the length selector");
+  assert.ok(header.parentElement!.classList.contains("flex-wrap"), "the length selector and star move to a new line when needed");
+  for (const name of ["Gracz A2", "Gracz B2"]) {
+    const plus = screen.getByRole("button", { name: `Zwiększ wynik: ${name}` });
+    const row = plus.parentElement!;
+    assert.ok(row.classList.contains("flex-wrap"), `${name}: the − score + row may wrap`);
+    assert.ok(row.parentElement!.classList.contains("@container"), `${name}: the player column is the size container`);
+    const score = [...row.children].find((el) => el.tagName === "DIV")!;
+    assert.ok(score.classList.contains("@max-[12.5rem]:basis-full") && score.classList.contains("@max-[12.5rem]:order-first"),
+      `${name}: in a column narrower than the row the score sits above the buttons`);
+  }
+});
