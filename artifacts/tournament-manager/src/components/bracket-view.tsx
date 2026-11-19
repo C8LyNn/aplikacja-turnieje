@@ -195,6 +195,7 @@ function MatchBox({
 
   return (
     <div
+      data-bracket-card={isLive ? "live" : isDone ? "done" : isBye ? "bye" : "open"}
       className={`border rounded-md overflow-hidden flex flex-col w-full h-full transition-colors ${borderClass}`}
     >
       {/* Match header */}

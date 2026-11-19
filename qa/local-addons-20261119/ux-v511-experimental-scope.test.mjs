@@ -7,7 +7,7 @@ import path from 'node:path';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../artifacts/tournament-manager/src');
 const src = (file) => readFileSync(path.join(root, file), 'utf8');
-const ROOTS = /^(?::is\((?:\.experimental-tournament-(?:shell|create|public|entry)(?:,\s*)?)+\)|\.experimental-tournament-(?:shell|create|public|entry))(?=[\s.:[>]|$)/;
+const ROOTS = /^(?::(?:is|where)\((?:\.experimental-tournament-(?:shell|create|public|entry)(?:,\s*)?)+\)|\.experimental-tournament-(?:shell|create|public|entry))(?=[\s.:[>]|$)/;
 
 function selectors(css) {
   const out = [];

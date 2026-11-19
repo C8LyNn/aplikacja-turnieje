@@ -11,8 +11,39 @@
 /* Host queue: the group of a group-stage match, and reorder arrows large enough to hit (were 16 px). */
 .experimental-tournament-shell .experimental-queue-group { padding: .05rem .45rem; border-radius: 999px; background: var(--x-accent-soft); color: var(--x-text); font-size: .6875rem; font-weight: 700; letter-spacing: .02em; white-space: nowrap; }
 .experimental-tournament-shell .experimental-queue-reorder { gap: .125rem; }
-.experimental-tournament-shell .experimental-queue-reorder button { display: inline-flex; align-items: center; justify-content: center; min-width: 1.75rem; min-height: 1.625rem; border-radius: .375rem; color: var(--x-text-2); }
+.experimental-tournament-shell .experimental-queue-reorder button { display: inline-flex; align-items: center; justify-content: center; min-width: 2rem; min-height: 2rem; border-radius: .375rem; color: var(--x-text-2); }
 .experimental-tournament-shell .experimental-queue-reorder button:hover:not(:disabled) { background: var(--x-glass-2); color: var(--x-text); }
 .experimental-tournament-shell .experimental-queue-reorder button:focus-visible { outline: 2px solid var(--x-a1); outline-offset: 1px; }
 .experimental-tournament-shell .experimental-queue-reorder button:disabled { opacity: .25; }
 .experimental-tournament-shell .experimental-queue-reorder svg { width: .875rem; height: .875rem; }
+
+/* Wizard at 320 px: grid tracks may shrink below their content, so no step scrolls sideways (was 17–50 px). */
+:is(.experimental-tournament-shell, .experimental-tournament-create) .experimental-wizard { grid-template-columns: minmax(0, 1fr); }
+:is(.experimental-tournament-shell, .experimental-tournament-create) :is(.experimental-wizard, .experimental-wizard-body, .experimental-wizard-top) > * { min-width: 0; }
+:is(.experimental-tournament-shell, .experimental-tournament-create) :is(.experimental-wizard-title, .experimental-wizard-lead) { overflow-wrap: anywhere; }
+@media (max-width: 480px) {
+  /* Stepper: the current step keeps its name on screen; the others show their number (names stay for screen readers). */
+  :is(.experimental-tournament-shell, .experimental-tournament-create) .experimental-wizard-stepper ol { display: flex; }
+  :is(.experimental-tournament-shell, .experimental-tournament-create) .experimental-wizard-stepper li { flex: 0 0 auto; min-width: 0; }
+  :is(.experimental-tournament-shell, .experimental-tournament-create) .experimental-wizard-stepper li[data-state="current"] { flex: 1 1 auto; }
+  :is(.experimental-tournament-shell, .experimental-tournament-create) .experimental-wizard-stepper li:not([data-state="current"]) .experimental-wizard-stepper-label { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+  :is(.experimental-tournament-shell, .experimental-tournament-create) .experimental-wizard-stepper li:not([data-state="current"]) button { padding-inline: .5rem; justify-content: center; }
+}
+
+/* League schedule rows: the match name is the row's target, so it gets a comfortable height (was 24 px). */
+.experimental-tournament-shell .experimental-league-open { min-height: 2rem; display: inline-flex; align-items: center; text-align: left; }
+
+/* Host queue on phones: names get the full row; the row's action moves under them instead of truncating the names. */
+@media (max-width: 639px) {
+  .experimental-tournament-shell li[data-work-state] { flex-wrap: wrap; }
+  .experimental-tournament-shell li[data-work-state] .experimental-queue-main { flex: 1 1 calc(100% - 2.75rem); }
+  .experimental-tournament-shell li[data-work-state] .experimental-queue-main .truncate { white-space: normal; overflow: visible; }
+  .experimental-tournament-shell li[data-work-state] .experimental-queue-action { margin: 0 .35rem .45rem auto; min-height: 2.25rem; }
+}
+
+/* Brackets: a played match is information, not a faded leftover — full contrast and a visible frame. */
+:is(.experimental-tournament-shell, .experimental-tournament-public) [data-bracket-card="done"] { opacity: 1; border-color: var(--x-line-strong); background: var(--x-card-bot); }
+:is(.experimental-tournament-shell, .experimental-tournament-public) [data-bracket-card="open"] { border-color: var(--x-line-strong); }
+
+/* Keyboard focus is always visible in Experimental (component rules with their own ring still win). */
+:where(.experimental-tournament-shell, .experimental-tournament-create, .experimental-tournament-public) :where(a, button, summary, [role="tab"], [role="button"], input, select, textarea):focus-visible { outline: 2px solid var(--x-a1, hsl(var(--primary))); outline-offset: 2px; }

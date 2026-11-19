@@ -813,9 +813,9 @@ export function ExperimentalCreateWizard() {
                 value={answers.grouping}
                 onChange={(grouping) => setAnswers({ grouping })}
                 options={[
-                  { value: "any", label: "Wszystko jedno" },
-                  { value: "yes", label: "Tak, z grupami" },
-                  { value: "no", label: "Bez grup" },
+                  { value: "any", label: "Wszystko jedno", hint: "Pokażemy obie możliwości." },
+                  { value: "yes", label: "Tak, z grupami", hint: "Grupy, potem drabinka." },
+                  { value: "no", label: "Bez grup", hint: "Jedna tabela albo drabinka." },
                 ]}
               />
               <ChoiceGroup

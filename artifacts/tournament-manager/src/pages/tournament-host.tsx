@@ -2068,7 +2068,7 @@ export default function TournamentHost() {
                             </button>
                           </div>}
                           <button
-                            className="flex-1 text-left px-2 py-2 flex items-center gap-2 hover:bg-muted/20 transition-colors min-w-0"
+                            className="experimental-queue-main flex-1 text-left px-2 py-2 flex items-center gap-2 hover:bg-muted/20 transition-colors min-w-0"
                             onClick={() => setSelectedMatchId(m.id)}
                           >
                             <div className="flex flex-col gap-0.5 min-w-0 flex-1">
@@ -2110,17 +2110,17 @@ export default function TournamentHost() {
                           {isExperimental && m.id !== focusedMatchId && (() => {
                             const action = workInfos.get(m.id)?.action;
                             if (action?.kind === "start" && capabilities.canUseLegacyMatchTools) {
-                              return <Button variant="outline" size="sm" className="h-8 shrink-0 gap-1 px-2 text-primary" onClick={() => { setSelectedMatchId(m.id); handleSetInProgress(m.id); }}>
+                              return <Button variant="outline" size="sm" className="experimental-queue-action h-8 shrink-0 gap-1 px-2 text-primary" onClick={() => { setSelectedMatchId(m.id); handleSetInProgress(m.id); }}>
                                 <Play className="h-3.5 w-3.5" aria-hidden="true" /> Rozpocznij
                               </Button>;
                             }
                             if (action?.kind === "restore" && capabilities.canUseLegacyMatchTools) {
-                              return <Button variant="outline" size="sm" className="h-8 shrink-0 gap-1 px-2" onClick={() => handleRestore(m.id)} disabled={updateMatch.isPending}>
+                              return <Button variant="outline" size="sm" className="experimental-queue-action h-8 shrink-0 gap-1 px-2" onClick={() => handleRestore(m.id)} disabled={updateMatch.isPending}>
                                 <SkipForward className="h-3.5 w-3.5" aria-hidden="true" /> Przywróć
                               </Button>;
                             }
                             if (action?.kind === "enter_result" && capabilities.canWriteTournamentResults) {
-                              return <Button variant="outline" size="sm" className="h-8 shrink-0 px-2" onClick={() => openInEditor(m.id)}>Wpisz wynik</Button>;
+                              return <Button variant="outline" size="sm" className="experimental-queue-action h-8 shrink-0 px-2" onClick={() => openInEditor(m.id)}>Wpisz wynik</Button>;
                             }
                             return null;
                           })()}
