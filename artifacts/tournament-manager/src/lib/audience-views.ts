@@ -36,11 +36,12 @@ export function audienceSectionsFor(stage: Pick<StageLike, "format"> | undefined
   return sections;
 }
 
-/** The view that best shows the stage: a live match first, otherwise the table or the bracket. */
-export function primarySectionFor(stage: Pick<StageLike, "format"> | undefined, hasLiveMatch: boolean): AudienceSectionId {
-  if (hasLiveMatch || !stage) return "live";
-  if (stageHasTable(stage.format)) return "table";
-  if (stageHasBracket(stage.format)) return "bracket";
+/**
+ * The view a public link opens. QW-05 (#323): always the "Na żywo" summary — NOW → NEXT → RECENT, with the table's
+ * top and a link to the full bracket/table — so a viewer first learns what is happening; the full structure is one
+ * tap away. Links that name a section (?section=bracket|table|…) keep opening it.
+ */
+export function primarySectionFor(_stage: Pick<StageLike, "format"> | undefined, _hasLiveMatch: boolean): AudienceSectionId {
   return "live";
 }
 
@@ -57,6 +58,7 @@ export function resolveAudienceSection(
   // tournament's compatibility format.
   if (!stage) return requested && (["live", "table", "bracket", "matches", "players", "stats"] as string[]).includes(requested) ? requested as AudienceSectionId : "live";
   if (requested === "bracket" && stage && stageHasTable(stage.format)) return "table";
+  if (requested === "table" && stage && stageHasBracket(stage.format)) return "bracket";
   if (requested && (sections as string[]).includes(requested)) return requested as AudienceSectionId;
   return primarySectionFor(stage, hasLiveMatch);
 }

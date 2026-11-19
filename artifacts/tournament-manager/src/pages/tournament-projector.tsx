@@ -44,6 +44,7 @@ import { MarvelEliminationStage } from "@/components/marvel-elimination-stage";
 import { selectPublicStage, publicStageBracket, publicStageLabel } from "@/lib/public-stage";
 import { useTournamentRoute } from "@/features/experimental-tournaments/experimental-tournament-routing";
 import { parseProjectorNumber, parseProjectorInteger } from "@/lib/projector-url-settings";
+import { PrivateTournamentGate, pollUnlessDenied, useLatchedAccessDenied } from "@/components/private-tournament-gate";
 
 // ─── Preset definitions ───────────────────────────────────────────────────────
 
@@ -128,11 +129,12 @@ export default function TournamentProjector() {
     query: {
       enabled: !!id,
       queryKey: getGetTournamentQueryKey(id),
-      refetchInterval: 10000,
+      refetchInterval: pollUnlessDenied(10000),
       retry: false,
     },
   });
   const { data: tournament } = tournamentQuery;
+  const accessDenied = useLatchedAccessDenied(tournamentQuery.error, !!tournament);
 
   const stagesQuery = useListTournamentStages(id, {
     query: {
@@ -161,7 +163,7 @@ export default function TournamentProjector() {
     deStage?.id ?? 0,
     {
       query: {
-        enabled: !!id && !!deStage,
+        enabled: !!id && !!deStage && deStage.status !== "planned",
         retry: false,
         queryKey: getGetDoubleEliminationStageQueryKey(id, deStage?.id ?? 0),
         refetchInterval: 10000,
@@ -207,6 +209,11 @@ export default function TournamentProjector() {
     containerStyle.minHeight = "unset";
     containerStyle.transform = `scale(${zoom})`;
     containerStyle.transformOrigin = "top left";
+  }
+
+  // QW-05: the projector never sends credentials (OBS/browser source), so a private tournament gets an explanation.
+  if (!tournament && accessDenied) {
+    return <PrivateTournamentGate tournamentId={id} code={accessDenied} allowViewerLogin={false} />;
   }
 
   if (!tournament) {

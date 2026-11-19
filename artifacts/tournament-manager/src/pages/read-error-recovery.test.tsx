@@ -84,7 +84,8 @@ const listCases: { view: View; target: string; empty: RegExp; data: string }[] =
   { view: "audience-players", target: "/players", empty: /Nie dodano jeszcze uczestników/, data: "Kontrolny Alfa" },
   { view: "security", target: "/auth/support-sessions", empty: /Brak aktywnych sesji wsparcia/, data: "Operator odczytu" },
   { view: "security-log", target: "/audit-log", empty: /Brak logów działań/, data: "Zapis kontrolny" },
-  { view: "live", target: "/matches", empty: /^Przerwa$/, data: "Kontrolny Alfa" },
+  // QW-05: an active tournament with no matches says so plainly (it used to promise "Przerwa — mecze wznowią się wkrótce").
+  { view: "live", target: "/matches", empty: /^Brak meczów do rozegrania$/, data: "Kontrolny Alfa" },
 ];
 
 for (const scenario of listCases) {

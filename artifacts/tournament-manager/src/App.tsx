@@ -21,7 +21,7 @@ import TournamentAudience from "@/pages/tournament-audience";
 import TournamentProjector from "@/pages/tournament-projector";
 import HelpPage from "@/pages/help";
 import TournamentsHome from "@/pages/tournaments-home";
-import TournamentInterfaceChoice from "@/pages/tournament-interface-choice";
+import TournamentInterfaceChoice from "@/pages/tournament-interface-choice"; import { shouldRetryRead } from "@/components/private-tournament-gate";
 
 // V5.1: lab and research pages are loaded on demand; tournament pages (Stable and
 // Experimental) stay in the main bundle so the emergency path never waits for a chunk.
@@ -51,7 +51,7 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       refetchOnWindowFocus: false,
-      staleTime: 1000 * 30,
+      staleTime: 1000 * 30, retry: shouldRetryRead, // QW-05: a 4xx read is final; do not retry it for ~7 s
     },
   },
 });

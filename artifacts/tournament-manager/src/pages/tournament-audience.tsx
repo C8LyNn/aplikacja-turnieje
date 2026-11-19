@@ -25,16 +25,13 @@ import {
   type Standing,
 } from "@workspace/api-client-react";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Link2, Lock, Search, Trophy, Settings2 } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
-import { ViewerLoginModal } from "@/components/viewer-login-modal";
-import { useAuth } from "@/context/auth-context";
+import { Link2, Search, Trophy, Settings2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { PrivateTournamentGate, pollUnlessDenied, useLatchedAccessDenied } from "@/components/private-tournament-gate";
+import { useTournamentReadAuth } from "@/hooks/use-tournament-read-auth";
 import { getMgmtFlag } from "@/lib/auth";
 import { isTwoLegTie, setRulesOf, tieScoreText } from "@/lib/two-leg-tie-view";
 import { TwoLegTieSummary } from "@/components/two-leg-tie";
-import { useVerifiedSupportSession } from "@/hooks/use-tournament-auth";
-import { setActiveOrganizerToken, setActiveSupportToken, setActiveViewerToken } from "@workspace/api-client-react";
 import { AppLogoLink, RoleHomeLink } from "@/components/app-navigation";
 import { BracketView } from "@/components/bracket-view";
 import { ForcedHeroBadge } from "@/components/deadlock-game-config";
@@ -58,10 +55,12 @@ import {
   chooseViewStage,
   resolveAudienceSection,
   roundHeading,
+  stageHasBracket,
   stageHasTable,
   STAGE_STATE_LABELS,
   type AudienceSectionId,
 } from "@/lib/audience-views";
+import { audiencePollMs, buildAudienceNow, matchCode, matchTitle, roundText, updatedAtText } from "@/lib/audience-now";
 import { LiveTablesLegend, StageLiveTables, useStageLiveStandings } from "@/components/stage-live-tables";
 import { ParticipantFieldChips, useParticipantFields } from "@/features/experimental-tournaments/experimental-participant-fields";
 
@@ -107,34 +106,16 @@ export default function TournamentAudience() {
   const [searchParams] = useSearchParams();
   // show-drops=0 in the URL hides UB→LB loser-drop connector lines (default: visible)
   const showDropLines = searchParams.get("show-drops") !== "0";
-  const { getOrgToken, getSupSession, getViewerTok, storeViewerToken } = useAuth();
-  const [showViewerModal, setShowViewerModal] = useState(false);
-  const [preparedAuthId, setPreparedAuthId] = useState<number | null>(null);
+  // QW-05: the session's own credentials (organizer, support, viewer) are prepared by the shared read hook.
+  const { ready: authReady, organizerToken, supportSession } = useTournamentReadAuth(id);
   const requestedSection = searchParams.get("section");
   const requestedStageId = Number.parseInt(searchParams.get("stage") ?? "", 10) || null;
   // V5.8: a direct link to one match (?mecz=ID) opens the matches of its stage and scrolls to it.
   const requestedMatchId = Number.parseInt(searchParams.get("mecz") ?? "", 10) || null;
 
-  const organizerToken = getOrgToken(id);
-  const storedSupportSession = getSupSession(id);
-  const { supportSession, isChecking: isSupportChecking } =
-    useVerifiedSupportSession(id, organizerToken ? null : storedSupportSession);
-
-  useEffect(() => {
-    const viewerToken = getViewerTok(id);
-    if (organizerToken) { setActiveOrganizerToken(organizerToken); setActiveSupportToken(null); setActiveViewerToken(null); }
-    else if (supportSession) { setActiveSupportToken(supportSession.token); setActiveOrganizerToken(null); setActiveViewerToken(null); }
-    else if (viewerToken) { setActiveViewerToken(viewerToken); setActiveOrganizerToken(null); setActiveSupportToken(null); }
-    else { setActiveOrganizerToken(null); setActiveSupportToken(null); setActiveViewerToken(null); }
-    setPreparedAuthId(isSupportChecking ? null : id);
-    return () => {
-      setPreparedAuthId(null);
-      setActiveOrganizerToken(null); setActiveSupportToken(null); setActiveViewerToken(null);
-    };
-  }, [id, isSupportChecking, organizerToken, supportSession?.token]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const tournamentQuery = useGetTournament(id, {
-    query: { enabled: !!id && preparedAuthId === id, queryKey: getGetTournamentQueryKey(id), refetchInterval: 5000, staleTime: 4500, refetchOnWindowFocus: false, refetchOnReconnect: false, retry: false },
+    query: { enabled: authReady, queryKey: getGetTournamentQueryKey(id), refetchInterval: (query) => pollUnlessDenied(audiencePollMs(5000, query.state.data?.status))(query), staleTime: 4500, refetchOnWindowFocus: false, refetchOnReconnect: false, retry: false },
   });
 
   const { data: tournament, error: tournamentError, refetch: refetchTournament } = tournamentQuery;
@@ -156,7 +137,7 @@ export default function TournamentAudience() {
 
   // Staggered co-prime intervals: matches=6s, stages=7s, bracket=9s, standings=11s, players=13s
   const matchesQuery = useListMatches(id, {
-    query: { enabled: !!id && fetchPhase >= 1, queryKey: getListMatchesQueryKey(id), refetchInterval: 6000, staleTime: 5500, refetchOnWindowFocus: false, refetchOnReconnect: false },
+    query: { enabled: !!id && fetchPhase >= 1, queryKey: getListMatchesQueryKey(id), refetchInterval: () => audiencePollMs(6000, tournament?.status), staleTime: 5500, refetchOnWindowFocus: false, refetchOnReconnect: false },
   });
   const { data: matches } = matchesQuery;
   const standingsQuery = useGetTournamentStandings(id, {
@@ -217,7 +198,8 @@ export default function TournamentAudience() {
     doubleEliminationStage?.id ?? 0,
     {
       query: {
-        enabled: !!id && !!doubleEliminationStage,
+        // QW-05: a planned (not started) stage has no bracket yet; asking for it only produced an error.
+        enabled: !!id && !!doubleEliminationStage && !stagePlanned,
         retry: false,
         queryKey: getGetDoubleEliminationStageQueryKey(id, doubleEliminationStage?.id ?? 0),
         refetchInterval: 10000,
@@ -228,21 +210,8 @@ export default function TournamentAudience() {
     },
   );
 
-  const accessError = tournamentError as { status?: number; data?: { code?: string } } | null;
-  const rawAccessDeniedCode = accessError?.status === 401 || accessError?.status === 403 ? accessError.data?.code : undefined;
-
-  // Latch the access-denied code so that background refetches (which temporarily
-  // clear tournamentError while the HTTP request is in-flight) do not cause the
-  // password gate to unmount and remount every 4 s.
-  // The latch is set whenever the error is present and cleared only when the
-  // query actually succeeds (tournament data is available).
-  const lockedOutCodeRef = useRef<string | undefined>(undefined);
-  if (rawAccessDeniedCode) {
-    lockedOutCodeRef.current = rawAccessDeniedCode;
-  } else if (tournament) {
-    lockedOutCodeRef.current = undefined;
-  }
-  const accessDeniedCode = lockedOutCodeRef.current;
+  // Latched so background refetches (which clear the error while in flight) do not remount the password gate.
+  const accessDeniedCode = useLatchedAccessDenied(tournamentError, !!tournament);
 
   // Must be before any early returns so React hooks order stays stable.
   const rawPs = (tournament as any)?.presentationSettings as Record<string, unknown> | null | undefined;
@@ -328,57 +297,26 @@ export default function TournamentAudience() {
   }, [audienceHistory]);
 
   if (!tournament && accessDeniedCode) {
-    const viewerMayLogin = accessDeniedCode === "VIEWER_PASSWORD_REQUIRED";
-    return (
-      <div className="min-h-screen bg-background text-white flex flex-col items-center justify-center gap-4 px-4 text-center">
-        <RoleHomeLink
-          fallbackHref="/fan"
-          fallbackLabel="Wróć do turniejów"
-          className="absolute left-4 top-4 text-white/60 hover:text-white focus-visible:ring-cyan-400"
-        />
-        <Lock className="w-10 h-10 text-white/50" />
-        <h1 className="text-xl font-semibold">Turniej prywatny</h1>
-        <p className="text-sm text-white/50 max-w-sm">
-          {viewerMayLogin ? "Podaj hasło widza, aby otworzyć transmisję." : "Ten turniej nie jest dostępny dla widzów."}
-        </p>
-        {viewerMayLogin && <Button onClick={() => setShowViewerModal(true)}>Podaj hasło widza</Button>}
-        <ViewerLoginModal
-          open={showViewerModal}
-          onClose={() => setShowViewerModal(false)}
-          onCancel={() => setShowViewerModal(false)}
-          tournamentId={id}
-          tournamentName={`Turniej #${id}`}
-          onSuccess={(token) => {
-            storeViewerToken(id, token);
-            setActiveViewerToken(token);
-            setShowViewerModal(false);
-            void refetchTournament();
-          }}
-        />
-      </div>
-    );
+    return <PrivateTournamentGate tournamentId={id} code={accessDeniedCode} onAuthorized={() => { void refetchTournament(); }} />;
   }
 
   if (!tournament) return <div className="min-h-dvh bg-background text-foreground flex items-center justify-center p-4">
     <ReadQueryState query={tournamentQuery} loadingMessage="Ładowanie turnieju…" errorMessage={(tournamentError as { status?: number } | null)?.status === 404 ? "Nie znaleziono turnieju. Sprawdź adres." : "Nie udało się pobrać turnieju."} />
   </div>;
 
-  const nextMatches = matches
-    ?.filter(
-      (m) =>
-        m.status === "pending" &&
-        m.player1Id &&
-        m.player2Id &&
-        m.id !== heroMatch?.id,
-    )
-    .slice(0, 5) ?? [];
+  // QW-05: NOW → NEXT → RECENT, only from what the public API returns (lib/audience-now).
+  const now = buildAudienceNow({ tournament, matches, stage: publicStage, stages, featuredMatchId: tournament.featuredMatchId });
+  const otherLiveMatches = now.live.filter((m) => m.id !== heroMatch?.id);
+  const nextMatches = now.next.filter((m) => m.id !== heroMatch?.id);
+  const recentResults = now.recent;
+  const fullViewSection: AudienceSectionId | null = publicStage && stageHasTable(publicStage.format) ? "table" : publicStage && stageHasBracket(publicStage.format) ? "bracket" : null;
+  // QW-05: the summary ends with the full structure (bracket or table) on the same page — item 4 of the hierarchy.
+  const fullBelow = activeSection === "live" && now.phase !== "draft" ? fullViewSection : null;
+  const roundLabel = now.phase === "active" ? roundText(publicStage ?? tournament, publicStage?.format ?? tournament.format) : null;
+  const updatedLabel = updatedAtText(Math.max(tournamentQuery.dataUpdatedAt, matchesQuery.dataUpdatedAt));
 
-  const recentResults = matches
-    ?.filter((m) => m.status === "completed")
-    .slice(-5)
-    .reverse() ?? [];
-
-  const topStandings = standings?.slice(0, 8) ?? [];
+  // QW-05: before the start every row is 0–0; an empty ranking says nothing to a viewer.
+  const topStandings = now.phase === "draft" ? [] : standings?.slice(0, 8) ?? [];
 
   const currentRoundMatches = matches?.filter((m) => m.round === tournament?.currentRound) ?? [];
 
@@ -510,6 +448,19 @@ export default function TournamentAudience() {
         <ReadQueryState query={standingsQuery} loadingMessage="Ładowanie klasyfikacji…" errorMessage="Nie udało się pobrać klasyfikacji." />
         <ReadQueryState query={playersQuery} loadingMessage="Ładowanie listy graczy…" errorMessage="Nie udało się pobrać listy graczy." />
 
+        {/* ══ TERAZ — where the tournament stands (QW-05) ══ */}
+        <section aria-label="Teraz" data-audience-now={now.phase} className="experimental-audience-now w-full max-w-5xl rounded-xl border border-white/10 bg-card/60 px-4 py-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm">
+          <span className="text-xs font-black uppercase tracking-[0.15em] text-white/70">Teraz</span>
+          <Badge variant="outline" className={now.phase === "active" ? "border-cyan-500/40 text-cyan-300" : now.phase === "completed" ? "border-yellow-500/40 text-yellow-300" : "border-white/20 text-white/60"}>
+            {now.phase === "active" ? "W trakcie" : now.phase === "completed" ? "Zakończony" : "Jeszcze się nie rozpoczął"}
+          </Badge>
+          {publicStage && <span className="text-white/75">{publicStage.name}</span>}
+          {roundLabel && <span className="text-white/55">{roundLabel}</span>}
+          {now.progress && <span className="text-white/55 tabular-nums">{now.progress.done} z {now.progress.total} meczów rozegranych</span>}
+          {now.live.length > 0 && <span className="text-red-300 tabular-nums">{now.live.length === 1 ? "1 mecz w toku" : `${now.live.length} mecze w toku`}</span>}
+          {updatedLabel && <span className="ml-auto text-xs text-white/40 tabular-nums" title="Widok odświeża się sam co kilka sekund">Zaktualizowano {updatedLabel}</span>}
+        </section>
+
         {/* ══ FEATURED / LIVE MATCH ══ */}
         {heroMatch ? (
           <section className="w-full max-w-5xl">
@@ -537,7 +488,7 @@ export default function TournamentAudience() {
               {/* Match meta */}
               <div className="flex items-center justify-center gap-3 py-3 border-b border-white/6">
                 <span className="text-[11px] text-white/35 uppercase tracking-widest font-mono">
-                  Runda {heroMatch.round} · Mecz {heroMatch.matchNumber}
+                  {matchTitle(heroMatch)}
                 </span>
                 {bo > 1 && (
                   <Badge className="bg-cyan-500/15 text-cyan-400 border-cyan-500/30 text-[11px] font-bold tracking-wider px-2">
@@ -645,14 +596,27 @@ export default function TournamentAudience() {
               <div className="w-20 h-20 rounded-full border-2 border-white/15 flex items-center justify-center bg-white/5">
                 <span className="text-4xl">⏸</span>
               </div>
-              <h2 className="text-3xl font-bold text-white/50 tracking-tight">{hasNextMatches ? "Teraz nie trwa żaden mecz" : "Przerwa"}</h2>
-              <p className="text-white/30">{hasNextMatches ? "Kolejne mecze znajdziesz poniżej." : "Mecze wznowią się wkrótce"}</p>
-              {tournament?.currentRound && tournament?.totalRounds && (
-                <Badge className="bg-white/5 text-white/40 border-white/10">
-                  Runda {tournament.currentRound}/{tournament.totalRounds}
-                </Badge>
-              )}
+              <h2 className="text-3xl font-bold text-white/50 tracking-tight">{now.phase === "draft" ? "Turniej jeszcze się nie rozpoczął" : hasNextMatches ? "Teraz nie trwa żaden mecz" : "Brak meczów do rozegrania"}</h2>
+              <p className="text-white/40">{hasNextMatches ? "Następne mecze znajdziesz poniżej." : now.waiting ?? "Na razie żaden mecz nie jest gotowy do rozegrania."}</p>
             </div>
+          </section>
+        )}
+
+        {/* ══ OTHER MATCHES MARKED IN PROGRESS (QW-05: all of them, not only the hero) ══ */}
+        {otherLiveMatches.length > 0 && (
+          <section aria-label="Także w toku" className="w-full max-w-5xl">
+            <Panel title={`Także w toku (${otherLiveMatches.length})`}>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                {otherLiveMatches.map((m) => (
+                  <div key={m.id} data-exp-match-state={m.status} className="experimental-audience-match-row flex items-center gap-2 px-3 py-2 rounded-lg border border-cyan-500/30 bg-cyan-500/5">
+                    <span className="text-[10px] text-white/35 font-mono shrink-0" title={matchTitle(m)}>{matchCode(m)}</span>
+                    <span className="text-sm font-bold flex-1 truncate text-white/80">{m.player1Name}</span>
+                    <span className="font-mono text-sm font-bold text-white/60 shrink-0 tabular-nums px-1">{tieScoreText(m) ?? `${m.score1 ?? 0}:${m.score2 ?? 0}`}</span>
+                    <span className="text-sm font-bold flex-1 truncate text-right text-white/80">{m.player2Name}</span>
+                  </div>
+                ))}
+              </div>
+            </Panel>
           </section>
         )}
 
@@ -662,14 +626,19 @@ export default function TournamentAudience() {
 
             {/* ── KOLEJNE MECZE ── */}
             {hasNextMatches && (
-              <Panel title="Kolejne mecze" className={!hasResults && !hasStandings ? "lg:col-span-3" : !hasResults || !hasStandings ? "lg:col-span-2" : ""}>
+              <Panel title="Następne mecze" className={!hasResults && !hasStandings ? "lg:col-span-3" : !hasResults || !hasStandings ? "lg:col-span-2" : ""}>
                 <div className="space-y-2.5">
                   {nextMatches.map((m) => (
                     <div key={m.id} className="flex items-center gap-2">
-                      <span className="text-[10px] text-white/25 font-mono w-10 shrink-0">R{m.round}M{m.matchNumber}</span>
+                      <span className="text-[10px] text-white/25 font-mono min-w-10 shrink-0 whitespace-nowrap" title={matchTitle(m)}>{matchCode(m)}</span>
                       <span className="text-sm font-semibold text-white/80 flex-1 truncate">{m.player1Name}</span>
                       <span className="text-[10px] text-white/30 shrink-0">vs</span>
                       <span className="text-sm font-semibold text-white/80 flex-1 truncate text-right">{m.player2Name}</span>
+                      {m.scheduledAt && (
+                        <time dateTime={m.scheduledAt} className="text-[10px] text-white/45 shrink-0 tabular-nums">
+                          {new Date(m.scheduledAt).toLocaleString("pl-PL", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" })}
+                        </time>
+                      )}
                       {m.bestOf && m.bestOf > 1 && (
                         <span className="text-[10px] text-cyan-500/50 shrink-0 font-mono">{rulesOf(m) ? `sety do ${rulesOf(m)!.setsToWin}` : `BO${m.bestOf}`}</span>
                       )}
@@ -686,7 +655,7 @@ export default function TournamentAudience() {
                   {recentResults.map((m) => (
                     <div key={m.id}>
                     <div className="flex items-center gap-2">
-                      <span className="text-[10px] text-white/25 font-mono w-10 shrink-0">R{m.round}M{m.matchNumber}</span>
+                      <span className="text-[10px] text-white/25 font-mono min-w-10 shrink-0 whitespace-nowrap" title={matchTitle(m)}>{matchCode(m)}</span>
                       <span className={`text-sm flex-1 truncate ${m.winnerId === m.player1Id ? "font-bold text-white" : "text-white/40"}`}>
                         {m.player1Name}
                       </span>
@@ -705,7 +674,7 @@ export default function TournamentAudience() {
             )}
 
             {/* ── TABELA ETAPU (V5.4: engine-ranked, stage-scoped) ── */}
-            {liveStandings && liveStandings.tables.length > 0 && (
+            {liveStandings && liveStandings.tables.length > 0 && fullBelow !== "table" && (
               <Panel title={liveStandings.tables.length > 1 ? `${publicStage?.name ?? "Etap"} — czołówka grup` : publicStage?.format === "swiss" ? "Ranking" : "Tabela"} className={!hasNextMatches && !hasResults ? "lg:col-span-3" : ""}>
                 <div className="audience-live-tables space-y-3 text-foreground">
                   <StageLiveTables data={liveStandings} compact rowLimit={liveStandings.tables.length > 1 ? Math.max(2, liveStandings.advancingPlaces ?? 2) : 8} />
@@ -811,7 +780,7 @@ export default function TournamentAudience() {
             matchHref={matchHref}
           />
         </ReadQueryState>}
-        {activeSection === "table" && (
+        {(activeSection === "table" || fullBelow === "table") && (
           <AudienceSectionShell
             title={publicStage?.format === "group_stage" ? "Grupy" : publicStage?.format === "swiss" ? "Ranking" : "Tabela"}
             description={publicStage ? `${hasMultipleStages ? `${publicStage.name} · ` : ""}${STAGE_STATE_LABELS[publicStage.status] ?? publicStage.status}` : "Brak etapu."}
@@ -848,7 +817,7 @@ export default function TournamentAudience() {
           />
           </ReadQueryState>
         )}
-        {activeSection === "bracket" && <ReadQueryState query={stagesQuery} loadingMessage="Ładowanie etapów…" errorMessage="Nie udało się pobrać etapów.">
+        {(activeSection === "bracket" || fullBelow === "bracket") && <ReadQueryState query={stagesQuery} loadingMessage="Ładowanie etapów…" errorMessage="Nie udało się pobrać etapów.">
           {!publicStage || stagePlanned ? (
             <AudienceSectionShell title="Drabinka" description={publicStage && !noStageStarted ? `${publicStage.name} · ${STAGE_STATE_LABELS.planned}` : stages ? "Brak rozpoczętego etapu." : "Ładowanie etapów…"}>
               <EmptyAudienceSection>{publicStage && !noStageStarted ? "Drabinka powstanie, gdy zakończy się poprzedni etap i znani będą awansujący." : "Drabinka nie jest jeszcze dostępna."}</EmptyAudienceSection>

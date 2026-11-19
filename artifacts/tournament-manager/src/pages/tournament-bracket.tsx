@@ -27,6 +27,8 @@ import { usePresentationTheme, resolvePresentationSettings } from "@/lib/present
 import { selectPublicStage, publicStageBracket, publicStageLabel } from "@/lib/public-stage";
 import { tournamentHref, useTournamentRoute } from "@/features/experimental-tournaments/experimental-tournament-routing";
 import { STAGE_FORMAT_LABELS } from "@/lib/tournament-stages-ui";
+import { PrivateTournamentGate, pollUnlessDenied, useLatchedAccessDenied } from "@/components/private-tournament-gate";
+import { useTournamentReadAuth } from "@/hooks/use-tournament-read-auth";
 
 const FORMAT_LABELS: Record<string, string> = {
   single_elimination: "Drabinka eliminacyjna",
@@ -41,10 +43,13 @@ const ZOOM_STEP = 0.1;
 export default function TournamentBracket() {
   const { id, isExperimental } = useTournamentRoute("bracket");
 
+  // QW-05: send the session's own credentials first (a private tournament needs them), stop polling while refused.
+  const { ready: authReady } = useTournamentReadAuth(id);
   const tournamentQuery = useGetTournament(id, {
-    query: { enabled: !!id, queryKey: getGetTournamentQueryKey(id), refetchInterval: 10000 },
+    query: { enabled: authReady, queryKey: getGetTournamentQueryKey(id), refetchInterval: pollUnlessDenied(10000) },
   });
   const { data: tournament } = tournamentQuery;
+  const accessDenied = useLatchedAccessDenied(tournamentQuery.error, !!tournament);
 
   // Phase-offset enabling: stagger initial fetches after tournament loads so
   // bracket, standings/history, and stages don't all fire in the same render.
@@ -92,7 +97,7 @@ export default function TournamentBracket() {
     doubleEliminationStage?.id ?? 0,
     {
       query: {
-        enabled: !!id && !!doubleEliminationStage,
+        enabled: !!id && !!doubleEliminationStage && doubleEliminationStage.status !== "planned",
         retry: false,
         queryKey: getGetDoubleEliminationStageQueryKey(id, doubleEliminationStage?.id ?? 0),
         refetchInterval: 10000,
@@ -175,6 +180,10 @@ export default function TournamentBracket() {
       setZoom((z) => clampZoom(z - e.deltaY * 0.001));
     }
   };
+
+  if (!tournament && accessDenied) {
+    return <PrivateTournamentGate tournamentId={id} code={accessDenied} onAuthorized={() => { void tournamentQuery.refetch(); }} />;
+  }
 
   if (!tournament) {
     return <div className="min-h-dvh bg-background text-foreground flex items-center justify-center p-4">

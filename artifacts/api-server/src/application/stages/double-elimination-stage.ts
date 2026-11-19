@@ -23,6 +23,7 @@ import {
   loadCompiledRoutingPlanV2,
   type LoadedCompiledRoutingPlan,
 } from "../routing/routing-plan-persistence";
+import { RoutingPlanPersistenceError } from "../routing/routing-plan-errors";
 import {
   lockDoubleEliminationRuntime,
   resetDoubleEliminationRuntime,
@@ -67,7 +68,17 @@ async function stageContext(tournamentId: number, stageId: number) {
   if (!stage || stage.format !== "double_elimination") {
     throw new DoubleEliminationStageError("STAGE_NOT_FOUND");
   }
-  const plan = await loadCompiledRoutingPlanV2({ tournamentId });
+  let plan: LoadedCompiledRoutingPlan;
+  try {
+    plan = await loadCompiledRoutingPlanV2({ tournamentId });
+  } catch (error) {
+    // QW-05: a draft tournament has no routing plan until it starts. That is "no bracket yet" (404), not a server
+    // error; corrupted or mismatching plans still surface as failures.
+    if (error instanceof RoutingPlanPersistenceError && error.code === "ROUTING_PLAN_NOT_FOUND") {
+      throw new DoubleEliminationStageError("DOUBLE_ELIMINATION_EXECUTION_NOT_FOUND");
+    }
+    throw error;
+  }
   return { stage, plan };
 }
 

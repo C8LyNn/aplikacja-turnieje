@@ -22,6 +22,7 @@ export function ViewerLoginModal({ open, tournamentId, tournamentName, onSuccess
   const backdropRef = useRef<HTMLDivElement>(null);
   const passwordInputId = useId();
   const passwordErrorId = useId();
+  const titleId = useId();
 
   useEffect(() => {
     if (!open) { setPassword(""); setError(null); setLoading(false); return; }
@@ -53,7 +54,8 @@ export function ViewerLoginModal({ open, tournamentId, tournamentName, onSuccess
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
       onClick={(e) => { if (e.target === backdropRef.current) onClose(); }}
     >
-      <div className="relative bg-card border border-border rounded-xl shadow-2xl w-full max-w-sm mx-4 p-6">
+      {/* QW-05: announced as a modal dialog, like the organizer login. */}
+      <div role="dialog" aria-modal="true" aria-labelledby={titleId} className="relative bg-card border border-border rounded-xl shadow-2xl w-full max-w-sm mx-4 p-6">
         <button
           type="button"
           onClick={onClose}
@@ -68,7 +70,7 @@ export function ViewerLoginModal({ open, tournamentId, tournamentName, onSuccess
             <Eye className="w-5 h-5 text-blue-400" />
           </div>
           <div>
-            <h2 className="text-lg font-semibold">Hasło widza</h2>
+            <h2 id={titleId} className="text-lg font-semibold">Hasło widza</h2>
             <p className="text-xs text-muted-foreground truncate max-w-[200px]">{tournamentName}</p>
           </div>
         </div>

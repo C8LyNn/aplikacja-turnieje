@@ -692,3 +692,33 @@ test("serializes CompleteMatch against correction and correction against reset",
     .flatMap((match: { slots: Array<string | null> }) => match.slots.filter(Boolean));
   assert.equal(new Set(activeParticipantKeys).size, activeParticipantKeys.length);
 });
+
+test("QW-05: a draft Double Elimination stage answers 404 (no bracket yet) instead of a server error", async () => {
+  const created = await request(app)
+    .post("/api/tournaments")
+    .send({
+      organizerPassword: "de-regression-password",
+      name: `Draft Double Elimination ${randomUUID()}`,
+      // The creation payload of the "double_elimination" preset: one stage, no stage plan, so no routing plan
+      // exists until the start (this is what returned 500 on V5.11).
+      format: "double_elimination",
+      maxPlayers: 4,
+      defaultBestOf: 1,
+    })
+    .expect(201);
+  const tournamentId = created.body.id as number;
+  const organizer = { "x-organizer-token": created.body.organizerToken as string };
+  for (let seed = 1; seed <= 4; seed += 1) {
+    await request(app).post(`/api/tournaments/${tournamentId}/players`).set(organizer).send({ name: `Draft ${seed}`, seed }).expect(201);
+  }
+  const stages = await request(app).get(`/api/tournaments/${tournamentId}/stages`).expect(200);
+  const stageId = (stages.body as Array<{ id: number; format: string; status: string }>).find((stage) => stage.format === "double_elimination")!.id;
+  for (const headers of [{}, organizer]) {
+    const response = await request(app).get(`/api/tournaments/${tournamentId}/stages/${stageId}/double-elimination`).set(headers).expect(404);
+    assert.equal(response.body.code, "DOUBLE_ELIMINATION_EXECUTION_NOT_FOUND");
+  }
+  // After the start the same endpoint serves the bracket.
+  await request(app).post(`/api/tournaments/${tournamentId}/start`).set(organizer).send({}).expect(200);
+  const started = await request(app).get(`/api/tournaments/${tournamentId}/stages/${stageId}/double-elimination`).expect(200);
+  assert.ok(Array.isArray(started.body.matches) && started.body.matches.length > 0);
+});

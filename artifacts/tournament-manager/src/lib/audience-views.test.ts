@@ -21,9 +21,13 @@ test("league, Swiss, brackets get their own primary view and labels", () => {
   assert.deepEqual(audienceSectionsFor({ format: "round_robin" } as never).map((s) => s.label), ["Na żywo", "Tabela", "Terminarz", "Uczestnicy", "Statystyki"]);
   assert.deepEqual(audienceSectionsFor({ format: "swiss" } as never).map((s) => s.label), ["Na żywo", "Ranking", "Rundy", "Uczestnicy", "Statystyki"]);
   assert.deepEqual(audienceSectionsFor({ format: "double_elimination" } as never).map((s) => s.id), ["live", "bracket", "matches", "players", "stats"]);
-  assert.equal(primarySectionFor({ format: "round_robin" } as never, false), "table");
-  assert.equal(primarySectionFor({ format: "single_elimination" } as never, false), "bracket");
-  assert.equal(primarySectionFor({ format: "single_elimination" } as never, true), "live", "a live match wins");
+  // QW-05 (#323): a public link opens the NOW → NEXT → RECENT summary; the table/bracket is one tap away.
+  for (const format of ["round_robin", "swiss", "group_stage", "single_elimination", "double_elimination"]) {
+    assert.equal(primarySectionFor({ format } as never, false), "live", `${format} opens the summary`);
+    assert.equal(resolveAudienceSection(null, { format } as never, false), "live");
+  }
+  assert.equal(resolveAudienceSection("bracket", { format: "single_elimination" } as never, false), "bracket", "a named section still opens directly");
+  assert.equal(resolveAudienceSection("table", { format: "round_robin" } as never, false), "table");
 });
 
 test("legacy section names keep working", () => {
