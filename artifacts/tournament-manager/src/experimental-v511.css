@@ -59,3 +59,6 @@
 :is(.experimental-tournament-shell, .experimental-tournament-public, .experimental-tournament-create, .experimental-tournament-entry) :is([role="dialog"], [role="alertdialog"]) { border-color: var(--x-line-strong); border-radius: var(--x-radius-lg, 1rem); }
 /* The checklist dialog had a fixed info-blue frame (with !important); it now takes the set's accent. */
 .experimental-tournament-shell .experimental-checklist-dialog { border-color: color-mix(in oklab, var(--x-a1) 42%, transparent) !important; }
+
+/* Dashboard cards: format and size stay as chips; the creation date is plain secondary text, not a third chip. */
+.experimental-tournament-shell .experimental-tlist-meta > span.experimental-tlist-created { padding-inline: 0; border-color: transparent; background: none; color: var(--x-text-2); }

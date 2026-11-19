@@ -178,6 +178,15 @@ export function relevantOrganizerAreas(stages: ReadonlyArray<{ format: string }>
   return areas;
 }
 
+/** V5.11 (Experimental): the bracket area is named after what it shows for this tournament's stages. */
+export function bracketAreaLabel(stages: ReadonlyArray<{ format: string }> | null | undefined): string {
+  const formats = new Set((stages ?? []).map((stage) => stage.format));
+  const bracket = formats.has("single_elimination") || formats.has("double_elimination");
+  if (formats.has("group_stage")) return bracket ? "Grupy i drabinka" : "Grupy";
+  if (formats.has("swiss")) return bracket ? "Rundy i drabinka" : "Rundy";
+  return "Drabinka";
+}
+
 export function TournamentOrganizerNavigation({
   tournamentId,
   active,
@@ -203,7 +212,8 @@ export function TournamentOrganizerNavigation({
     .map((item) => ({
       ...item,
       // V5.8: players and teams are both "Uczestnicy" in Experimental.
-      label: isExperimental && item.area === "players" ? "Uczestnicy" : item.label,
+      label: isExperimental && item.area === "players" ? "Uczestnicy"
+        : isExperimental && item.area === "bracket" ? bracketAreaLabel(stages) : item.label,
       href: tournamentModeHref(item.href, isExperimental),
     }));
   const more = organizerMoreItems(tournamentId, capabilities, { broadcast: isExperimental }).map((item) => ({

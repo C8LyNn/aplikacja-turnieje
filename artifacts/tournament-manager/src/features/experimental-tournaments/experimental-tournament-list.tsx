@@ -176,7 +176,7 @@ export function ExperimentalTournamentList({
                       <p className="experimental-tlist-meta">
                         <span>{tournamentFormatText(tournament, labels)}</span>
                         {tournament.maxPlayers ? <span>{tournament.maxPlayers} miejsc</span> : null}
-                        <span>
+                        <span className="experimental-tlist-created">
                           Utworzono {format(new Date(tournament.createdAt), "d MMM yyyy", { locale: pl })}
                         </span>
                       </p>

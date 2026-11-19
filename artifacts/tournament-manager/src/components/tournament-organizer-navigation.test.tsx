@@ -116,3 +116,13 @@ test("active More is current and no hidden menu item duplicates aria-current", (
   assert.equal(current[0].textContent?.includes("Więcej"), true);
   assert.equal(document.querySelectorAll('[aria-current="page"]').length, 1);
 });
+
+test("V5.11: the bracket area is named after what it shows (groups, Swiss rounds, bracket)", async () => {
+  const { bracketAreaLabel } = await import("./tournament-organizer-navigation");
+  assert.equal(bracketAreaLabel([{ format: "single_elimination" }]), "Drabinka");
+  assert.equal(bracketAreaLabel([{ format: "double_elimination" }]), "Drabinka");
+  assert.equal(bracketAreaLabel([{ format: "group_stage" }, { format: "single_elimination" }]), "Grupy i drabinka");
+  assert.equal(bracketAreaLabel([{ format: "swiss" }]), "Rundy");
+  assert.equal(bracketAreaLabel([{ format: "swiss" }, { format: "single_elimination" }]), "Rundy i drabinka");
+  assert.equal(bracketAreaLabel(null), "Drabinka");
+});
