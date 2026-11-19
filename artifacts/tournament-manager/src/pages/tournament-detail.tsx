@@ -66,6 +66,7 @@ import { ExperimentalBulkPaste, type BulkImportOutcome } from "@/features/experi
 import { ExperimentalTeamRosters } from "@/features/experimental-tournaments/experimental-team-rosters";
 import { useGetTournamentTeams } from "@workspace/api-client-react";
 import { TournamentOperationsOverview } from "@/components/tournament-operations-overview";
+import { StageLiveTables, useStageLiveStandings } from "@/components/stage-live-tables";
 import { useOrganizerOperation } from "@/hooks/use-organizer-operation";
 import { deriveOrganizerCapabilities, managementRoleForCapabilities } from "@/lib/organizer-capabilities";
 import { invalidateTournamentRosterQueries } from "@/lib/tournament-roster-cache";
@@ -210,6 +211,11 @@ export default function TournamentDetail() {
   const stageScopeUnknown = stages === undefined || stagesQuery.isError;
   const hasMultipleStages = !stageScopeUnknown && (stages?.length ?? 0) > 1;
   const standingsInformational = hasMultipleStages || stageScopeUnknown;
+  // V5.11: the stage whose table the "Tabela" tab shows first — the active one, else the last played table stage.
+  const tableStage = [...(stages ?? [])].sort((a, b) => a.position - b.position)
+    .filter((stage) => ["group_stage", "round_robin", "swiss"].includes(stage.format) && stage.status !== "planned")
+    .sort((a, b) => (a.status === "active" ? -1 : 0) - (b.status === "active" ? -1 : 0) || b.position - a.position)[0];
+  const liveStageStandings = useStageLiveStandings(id, tableStage?.id, { enabled: isExperimental && hasMultipleStages && !!tableStage });
   useRoundRobinReadback(id, stages, matches, readOk && !stagesQuery.isError);
   const isDeadlock = tournament?.gameConfig?.gameId === "deadlock";
   // Computed before any early returns so React hooks order is stable.
@@ -1566,6 +1572,12 @@ export default function TournamentDetail() {
           </TabsContent>
 
           <TabsContent value="standings" className="pt-6">
+            {isExperimental && hasMultipleStages && tableStage && liveStageStandings.data?.tables.length ? (
+              <Card className="mb-6" data-testid="current-stage-table">
+                <CardHeader><CardTitle>Tabela etapu „{tableStage.name}”</CardTitle></CardHeader>
+                <CardContent><StageLiveTables data={liveStageStandings.data} /></CardContent>
+              </Card>
+            ) : null}
             <Card>
               <CardHeader><CardTitle>{hasMultipleStages ? "Bilans łączny meczów — wszystkie etapy" : stageScopeUnknown ? "Bilans informacyjny — zakres etapów niepotwierdzony" : tournament.format === "single_elimination" ? "Bilans informacyjny" : "Klasyfikacja"}</CardTitle></CardHeader>
               <CardContent>

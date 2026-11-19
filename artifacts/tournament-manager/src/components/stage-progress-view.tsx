@@ -14,6 +14,7 @@ import { BracketView } from "@/components/bracket-view";
 import { DoubleEliminationBracket } from "@/components/double-elimination-bracket";
 import { SwissRoundsView } from "@/components/swiss-rounds-view";
 import { RoundRobinView } from "@/components/round-robin-view";
+import { StageLiveTables, useStageLiveStandings } from "@/components/stage-live-tables";
 import {
   StageGroupTables,
   ParticipantTable,
@@ -71,6 +72,14 @@ export function StageProgressView({
       stages[0];
     setSelectedStageId(preferred.id);
   }, [activeStageId, selectedStageId, stages]);
+
+  // V5.11: the same engine-ranked tables as the viewer (points, draws, advancing places); the record-based
+  // table stays as the fallback for stages without live standings.
+  const selectedForLive = stages.find((stage) => stage.id === selectedStageId);
+  const liveQuery = useStageLiveStandings(tournamentId, selectedStageId, {
+    enabled: !!selectedForLive && selectedForLive.status !== "planned" && ["group_stage", "round_robin", "swiss"].includes(selectedForLive.format),
+  });
+  const live = liveQuery.data?.tables.length ? liveQuery.data : undefined;
 
   const detailQuery = useGetTournamentStage(
     tournamentId,
@@ -224,6 +233,7 @@ export function StageProgressView({
               <StageGroupTables
                 details={detail}
                 matches={selectedMatches}
+                live={live}
               />
             );
           }
@@ -291,7 +301,7 @@ export function StageProgressView({
           if (selected.format === "swiss") {
             return (
               <div className="space-y-6">
-                <ParticipantTable
+                {live ? <StageLiveTables data={live} /> : <ParticipantTable
                   participants={detail.participants}
                   matches={selectedMatches}
                   title={
@@ -299,7 +309,7 @@ export function StageProgressView({
                       ? "Końcowe miejsca etapu"
                       : "Ranking bieżący etapu"
                   }
-                />
+                />}
                 <div>
                   <h4 className="mb-3 text-sm font-semibold">Rundy</h4>
                   <div
@@ -320,7 +330,7 @@ export function StageProgressView({
           if (selected.format === "round_robin") {
             return (
               <div className="space-y-6">
-                <ParticipantTable
+                {live ? <StageLiveTables data={live} /> : <ParticipantTable
                   participants={detail.participants}
                   matches={selectedMatches}
                   title={
@@ -328,7 +338,7 @@ export function StageProgressView({
                       ? "Klasyfikacja końcowa etapu"
                       : "Klasyfikacja bieżąca etapu"
                   }
-                />
+                />}
                 <div>
                   <h4 className="mb-3 text-sm font-semibold">Terminarz</h4>
                   <div
