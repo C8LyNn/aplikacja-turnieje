@@ -79,6 +79,45 @@ namespace CoreClash.Presentation
             }
             var old=GUI.color;GUI.color=color;GUI.DrawTexture(new Rect(center.x-radius,center.y-radius,radius*2,radius*2),sprite);GUI.color=old;
         }
+        // W21: HP ring. `segments` equal arcs starting at the top, clockwise; the first `lit`
+        // are drawn (pass lit=segments for the whole track). One cached sprite per shape.
+        static readonly Dictionary<long,Texture2D> arcs=new Dictionary<long,Texture2D>();
+        public static void Segments(Vector2 center,float radius,Color color,float width,int segments,int lit,float fill=.82f)
+        {
+            if(radius<=0||width<=0||segments<=0||lit<=0)return;
+            lit=Mathf.Min(lit,segments);
+            int thickness=Mathf.Clamp(Mathf.RoundToInt(width/radius*64),1,64);
+            long key=thickness+((long)segments<<8)+((long)lit<<16)+((long)Mathf.RoundToInt(fill*100)<<24);
+            if(!arcs.TryGetValue(key,out var sprite)||sprite==null)
+            {
+                const int size=128;
+                sprite=new Texture2D(size,size,TextureFormat.RGBA32,false){name="Core Clash HP ring",filterMode=FilterMode.Bilinear,wrapMode=TextureWrapMode.Clamp,hideFlags=HideFlags.HideAndDontSave};
+                float inner=size*.5f-Mathf.Max(1.5f,thickness/64f*size*.5f);
+                var pixels=new Color[size*size];
+                for(int y=0;y<size;y++)
+                for(int x=0;x<size;x++)
+                {
+                    // Texture rows start at the bottom, so +dy is up on screen.
+                    float dx=x+.5f-size*.5f,dy=y+.5f-size*.5f,distance=Mathf.Sqrt(dx*dx+dy*dy);
+                    float alpha=Mathf.Clamp01(size*.5f-distance)*Mathf.Clamp01(distance-inner+1);
+                    if(alpha>0&&segments>1)
+                    {
+                        float turn=Mathf.Atan2(dx,dy)/(2*Mathf.PI);if(turn<0)turn+=1;
+                        float at=turn*segments;int index=Mathf.Min(segments-1,(int)at);
+                        if(index>=lit)alpha=0;
+                        else
+                        {
+                            float inside=at-index-(1-fill)*.5f;
+                            float edge=Mathf.Min(inside,fill-inside)*distance*2*Mathf.PI/segments;
+                            alpha*=Mathf.Clamp01(edge+.5f);
+                        }
+                    }
+                    pixels[y*size+x]=new Color(1,1,1,alpha);
+                }
+                sprite.SetPixels(pixels);sprite.Apply(false,true);arcs[key]=sprite;
+            }
+            var old=GUI.color;GUI.color=color;GUI.DrawTexture(new Rect(center.x-radius,center.y-radius,radius*2,radius*2),sprite);GUI.color=old;
+        }
         // W20: text with a soft dark edge so it reads on any arena background.
         public static void Label(Rect r,string text,int size,Color color,TextAnchor align=TextAnchor.MiddleCenter,bool bold=true)
         {

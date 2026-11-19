@@ -24,6 +24,7 @@ namespace CoreClash.Testing
         static readonly string[] DenseTypes = {
             "normal","fire","ice","mine","timebomb","web","plague","leech","medic","shield","magnet","anchor","ram","phase",
             "dart","splitter","colossus","tesla","quake","glue","pulse","breaker","bomb","regen","normal","mine","timebomb","fire" };
+        static readonly string[] IconBatch = BallIcons.Ids.ToArray();
         CoreClashApp app;
         string output = "", profile = "Desktop";
         float started;
@@ -52,10 +53,43 @@ namespace CoreClash.Testing
             StartCoroutine(Guarded());
         }
 
+        bool sheet, rosterSheet;
         void OnGUI()
         {
+            if (sheet) { GUI.depth = -1000; DrawSheet(); }
             if (Event.current.type != EventType.Repaint || lastRepaint == Time.frameCount) return;
             lastRepaint = Time.frameCount; repaints++;
+        }
+
+        // Comparison sheet: identical cell, orb size and caption layout for every icon.
+        // Top line = name shown in the game, second line = catalog name when it differs, third = id.
+        void DrawSheet()
+        {
+            if (Event.current.type != EventType.Repaint) return;
+            GUI.matrix = Matrix4x4.identity;
+            float width = Screen.width, height = Screen.height;
+            Draw.Rect(new Rect(0, 0, width, height), Theme.Background);
+            bool wide = width >= height;
+            // W22: the same sheet can show just the active roster, in roster order.
+            string[] batch = rosterSheet ? app.Catalog.Roster.ActiveIds.ToArray() : IconBatch;
+            int columns = wide ? (rosterSheet ? 8 : 7) : 6, rows = Mathf.CeilToInt(batch.Length / (float)columns);
+            float top = Mathf.Max(30, height * .06f), cellW = width / columns, cellH = (height - top) / rows;
+            float orb = Mathf.Floor(Mathf.Min(cellW * .42f, cellH * .46f));
+            int big = Mathf.Clamp(Mathf.RoundToInt(orb * .26f), 8, 20), small = Mathf.Clamp(Mathf.RoundToInt(orb * .19f), 7, 14);
+            Draw.Text(new Rect(0, 0, width, top), (rosterSheet ? "CORE CLASH  /  W22 ACTIVE ROSTER  /  " : "CORE CLASH  /  W21 ICON SHEET  /  ") + batch.Length + " BALLS", Mathf.Clamp(Mathf.RoundToInt(top * .42f), 10, 22), Theme.Text, TextAnchor.MiddleCenter, true);
+            for (int i = 0; i < batch.Length; i++)
+            {
+                var definition = app.Catalog.Ball(batch[i]);
+                if (definition == null) continue;
+                float x = (i % columns) * cellW, y = top + (i / columns) * cellH;
+                Draw.Rect(new Rect(x + 2, y + 2, cellW - 4, cellH - 4), Theme.Panel);
+                BallView.Preview(new Rect(x + (cellW - orb) / 2, y + cellH * .1f, orb, orb), definition, 0);
+                string shown = BallIcons.Name(definition);
+                float text = y + cellH * .1f + orb + cellH * .07f, line = (y + cellH - 4 - text) / 3;
+                Draw.Text(new Rect(x, text, cellW, line), shown, big, Theme.Text, TextAnchor.MiddleCenter, true);
+                Draw.Text(new Rect(x, text + line, cellW, line), shown == definition.name ? "" : "was " + definition.name, small, Theme.Select, TextAnchor.MiddleCenter, false);
+                Draw.Text(new Rect(x, text + line * 2, cellW, line), definition.id, small, Theme.Muted, TextAnchor.MiddleCenter, false);
+            }
         }
 
         // Flattens nested steps so every exception and the time limit are handled in one place.
@@ -218,6 +252,93 @@ namespace CoreClash.Testing
             app.ShowRuntimeBallDetails(inspected.id);
             yield return Capture("12-ball-details");
             app.CloseBallDetails();
+
+            // W21: every ball of the first icon batch, both owners, at full and reduced HP.
+            if (IconBatch.Length > 0)
+            {
+                app.StartLocalMatch();
+                sim = app.Simulation;
+                for (int i = 0; i < IconBatch.Length; i++)
+                {
+                    int row = i / 6, column = i % 6;
+                    var ball = Place(sim, row < 3 ? 1 : 0, IconBatch[i], 60 + column * 84, 122 + row * 108);
+                    if (i % 3 == 1) sim.Damage(ball, Mathf.Min(10, ball.hp - 5), true);
+                    if (i % 5 == 2 && ball.hp > 5) sim.Damage(ball, Mathf.Min(15, ball.hp - 5), true);
+                }
+                Still(sim);
+                yield return Seconds(1.6f);
+                yield return Capture("13-icon-batch");
+                // One sheet with every icon at the same size and layout, with its names.
+                sheet = true;
+                yield return Capture("14-icon-sheet");
+                sheet = false;
+            }
+
+            // W21: an ordinary match with the other two featured decks. Every ball is chosen from
+            // the deck and launched with the normal pointer gesture; nothing is staged.
+            app.SelectDeck(0, "featured_death_engine"); app.SelectDeck(1, "featured_reality_hackers");
+            app.StartLocalMatch();
+            sim = app.Simulation;
+            yield return Seconds(1f);
+            float[] offsets = { -150, 120, -60, 170, 30, -190, 90, -110 };
+            for (int shot = 0; shot < offsets.Length && sim.State.phase != MatchPhase.Over; shot++)
+            {
+                int turn = sim.State.turn, serial = sim.State.actionSerial;
+                var cards = sim.State.players[turn].stock.Where(entry => entry.remaining > 0).ToList();
+                if (cards.Count > 0) app.SelectBall(cards[(shot / 2) % cards.Count].id);
+                yield return null;
+                Vector2 from = ScreenPoint(270, turn == 0 ? 853 : 47), to = ScreenPoint(270 + offsets[shot], turn == 0 ? 640 - shot * 22 : 260 + shot * 22);
+                app.PresentationPointer(new PointerSample { id = 90 + shot, position = from, down = true, held = true });
+                for (int i = 1; i <= 20; i++) { app.PresentationPointer(new PointerSample { id = 90 + shot, position = Vector2.Lerp(from, to, i / 20f), held = true }); yield return null; }
+                if (shot == 2) yield return Capture("15-play-aim");
+                app.PresentationPointer(new PointerSample { id = 90 + shot, position = to, up = true });
+                Require(sim.State.actionSerial == serial + 1, "play scene: the pointer gesture did not launch a ball");
+                float settle = Time.realtimeSinceStartup + 25;
+                while (sim.State.phase == MatchPhase.Moving && Time.realtimeSinceStartup < settle) yield return null;
+                yield return Seconds(.9f);
+                if (shot == 3) yield return Capture("16-play-after-4-shots");
+            }
+            yield return Capture("17-play-after-8-shots");
+
+            // W22: active roster and freezer. Normal setup and builder, the developer roster, then an
+            // ordinary match between two roster decks played through the pointer gesture.
+            if (app.Catalog.Roster != null)
+            {
+                app.ReturnToSetup();
+                app.SelectDeck(0, app.Catalog.Roster.Decks[0].id); app.SelectDeck(1, app.Catalog.Roster.Decks[1].id);
+                yield return Capture("18-roster-setup");
+                app.OpenDeckBuilder(0);
+                yield return Capture("19-roster-builder-active-only");
+                app.SetDeveloperRoster(true);
+                yield return Capture("20-developer-builder-frozen-shown");
+                app.ReturnToSetup();
+                yield return Capture("21-developer-setup");
+                app.SetDeveloperRoster(false);
+                rosterSheet = true; sheet = true;
+                yield return Capture("22-active-roster-sheet");
+                sheet = false; rosterSheet = false;
+                app.StartLocalMatch();
+                sim = app.Simulation;
+                Require(sim.ActiveRosterOnly, "a match between two roster decks did not use the active roster policy");
+                yield return Seconds(1f);
+                for (int shot = 0; shot < offsets.Length && sim.State.phase != MatchPhase.Over; shot++)
+                {
+                    int turn = sim.State.turn, serial = sim.State.actionSerial;
+                    var cards = sim.State.players[turn].stock.Where(entry => entry.remaining > 0).ToList();
+                    if (cards.Count > 0) app.SelectBall(cards[(shot / 2 * 2 + turn) % cards.Count].id);
+                    yield return null;
+                    Vector2 from = ScreenPoint(270, turn == 0 ? 853 : 47), to = ScreenPoint(270 + offsets[shot], turn == 0 ? 640 - shot * 22 : 260 + shot * 22);
+                    app.PresentationPointer(new PointerSample { id = 110 + shot, position = from, down = true, held = true });
+                    for (int i = 1; i <= 20; i++) { app.PresentationPointer(new PointerSample { id = 110 + shot, position = Vector2.Lerp(from, to, i / 20f), held = true }); yield return null; }
+                    app.PresentationPointer(new PointerSample { id = 110 + shot, position = to, up = true });
+                    Require(sim.State.actionSerial == serial + 1, "roster match: the pointer gesture did not launch a ball");
+                    float settle = Time.realtimeSinceStartup + 25;
+                    while (sim.State.phase == MatchPhase.Moving && Time.realtimeSinceStartup < settle) yield return null;
+                    yield return Seconds(.9f);
+                }
+                Require(sim.State.balls.All(ball => ball.dead || app.Catalog.IsActive(ball.type) || app.Catalog.Ball(ball.type).hidden), "a frozen ball appeared in an active-roster match");
+                yield return Capture("23-roster-match");
+            }
 
             File.WriteAllText(Path.Combine(output, "showcase.txt"),
                 "unity=" + Application.unityVersion + "\nscreen=" + Screen.width + "x" + Screen.height + "\nprofile=" + profile + "\nlogical=" + app.UiWidth.ToString("0.#", CultureInfo.InvariantCulture) + "x" + app.UiHeight.ToString("0.#", CultureInfo.InvariantCulture) + "\ndpi=" + Screen.dpi.ToString(CultureInfo.InvariantCulture) +

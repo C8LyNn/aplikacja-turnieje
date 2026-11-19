@@ -9,9 +9,12 @@ namespace CoreClash.Presentation
     // neighbour: Render() paints the body (shadow, ownership ring, sphere, type mark),
     // RenderBadges() then paints everything around it (HP plate, shield, status chips,
     // threat badge, Replay chip) from the shared BallBadges layout.
-    //   type      = body colour + letter mark (inside the ball)
-    //   owner     = ring: P1 solid, P2 segmented (colour is never the only cue)
-    //   HP        = plate outside the ball; no P1/P2 text over balls
+    //   type      = body colour + icon inside the ball (W21: BallIcons; a ball without an
+    //               icon yet keeps its letter mark)
+    //   HP        = W21: ring around the body, one segment per 5 HP, lost segments dimmed,
+    //               plus the exact number on a plate outside the ball
+    //   owner     = ring colour + owner pip: a triangle on the ring, on top of the viewer's own
+    //               balls and under the opponent's (colour is never the only cue); no P1/P2 text
     public static class BallView
     {
         const int SpriteSize = 96;
@@ -46,10 +49,27 @@ namespace CoreClash.Presentation
                 float reach = radius + Theme.SelectionRing * scale;
                 Draw.Ring(point, reach, Color.white, Mathf.Max(1.5f, 2 * scale), 4, .7f);
             }
-            DrawOrb(body, definition, ball.owner, scale, 1);
+            DrawOrb(body, definition, ball.owner, scale, 1, BallBadges.HpSegments(ball.maxHp), BallBadges.HpLit(ball.hp, ball.maxHp), BallBadges.PipSide(ball.owner, localOwner), BallBadges.PipSize(scale));
+            DrawIdentity(body, definition, color, radius, false);
+        }
+
+        // Icon when the ball has one, otherwise the W20 letter mark.
+        static void DrawIdentity(Rect body, BallDefinition definition, Color bodyColor, float radius, bool preview)
+        {
+            string spec = definition == null ? null : BallIcons.Spec(definition.id);
+            if (spec != null)
+            {
+                bool dark = Luminance(bodyColor) > .6f;
+                float half = radius * Theme.IconSize * .5f;
+                var box = new Rect(body.center.x - half, body.center.y - half, half * 2, half * 2);
+                float lift = Mathf.Max(1, radius * .06f);
+                Glyphs.Paint(new Rect(box.x, box.y + lift, box.width, box.height), spec, dark ? new Color(1, 1, 1, .4f) : new Color(.01f, .03f, .05f, .6f));
+                Glyphs.Paint(box, spec, dark ? new Color(.03f, .07f, .11f, .95f) : new Color(.97f, .99f, 1, .97f));
+                return;
+            }
             string mark = Mark(definition);
-            int markSize = Mathf.Max(7, Mathf.RoundToInt(radius * (mark.Length > 2 ? .6f : .72f)));
-            MarkLabel(body, mark, markSize, color);
+            int size = preview ? Mathf.Clamp(Mathf.RoundToInt(body.width * (mark.Length > 2 ? .3f : .36f)), 7, 22) : Mathf.Max(7, Mathf.RoundToInt(radius * (mark.Length > 2 ? .6f : .72f)));
+            MarkLabel(body, mark, size, bodyColor);
         }
 
         // Second pass: HP, shield, states, threat and Replay chip around the ball.
@@ -57,20 +77,17 @@ namespace CoreClash.Presentation
         {
             float scale = board.width / 540f;
             var point = ViewPoint(board,x,y,localOwner);
-            var layout = BallBadges.Layout(ball,point.x,point.y,scale,replay,field);
+            var layout = BallBadges.Layout(ball,point.x,point.y,scale,replay,field,localOwner);
             int font = layout.Font;
             Color team = Draw.Owner(ball.owner);
 
-            // HP plate in the owner's colour. A damaged ball also gets a thin bar that shortens
-            // and turns amber, then red; a full-health plate stays plain.
+            // HP plate in the owner's colour: the exact number. How much is missing is the ring's
+            // job (W21), so the plate has no bar; a hurt ball's number turns amber, then red.
             var hp = RectOf(layout.Hp);
             float fraction = ball.maxHp > 0 ? Mathf.Clamp01((float)ball.hp / ball.maxHp) : 1;
-            bool hurt = ball.hp < ball.maxHp;
             Color health = fraction < Theme.HpCriticalBelow ? Theme.HpCritical : fraction < Theme.HpHurtBelow ? Theme.HpHurt : Theme.HpGood;
             Draw.Chip(hp, Alpha(Theme.Plate, Theme.PlateAlpha), Alpha(team, .9f));
-            float bar = Mathf.Max(1.5f, 2 * scale);
-            Draw.Text(new Rect(hp.x, hp.y - (hurt ? bar * .5f + .5f : 0), hp.width, hp.height), ball.hp.ToString(), font, fraction < Theme.HpHurtBelow ? health : Theme.Text, TextAnchor.MiddleCenter, true);
-            if (hurt) Draw.Rect(new Rect(hp.x + 3, hp.yMax - bar - 1.5f, (hp.width - 6) * fraction, bar), health);
+            Draw.Text(hp, ball.hp.ToString(), font, fraction < Theme.HpHurtBelow ? health : Theme.Text, TextAnchor.MiddleCenter, true);
 
             if (layout.HasShield)
             {
@@ -128,25 +145,37 @@ namespace CoreClash.Presentation
                 Draw.Circle(Expand(body, 7 * unit), Alpha(Theme.Select, .07f));
                 Draw.Circle(Expand(body, 4.5f * unit), Alpha(Theme.Select, .12f));
             }
-            DrawOrb(body, definition, owner, unit, selected ? 1 : .8f);
-            if(body.width>=24&&definition!=null)
-            {
-                string mark=Mark(definition);
-                MarkLabel(body,mark,Mathf.Clamp(Mathf.RoundToInt(body.width*(mark.Length>2?.3f:.36f)),7,22),Draw.Hex(definition.color));
-            }
+            // A catalog orb is at full health: the ring shows how many 5 HP segments the type starts with.
+            int segments = body.width >= 24 && definition != null ? BallBadges.HpSegments(definition.hp) : 1;
+            DrawOrb(body, definition, owner, unit, selected ? 1 : .8f, segments, segments, body.width >= 24 ? -1 : 0, Mathf.Max(5, 7.5f * unit));
+            if (definition != null && (body.width >= 24 || body.width >= 12 && BallIcons.Has(definition.id)))
+                DrawIdentity(body, definition, Draw.Hex(definition.color), body.width * .5f, true);
         }
 
-        // Shadow, ownership ring (P1 solid, P2 segmented) and the shaded sphere.
-        static void DrawOrb(Rect body, BallDefinition definition, int owner, float scale, float ringAlpha)
+        // Shadow, HP ring in the owner's colour (dim track + lit 5 HP segments), owner pip and the shaded sphere.
+        static void DrawOrb(Rect body, BallDefinition definition, int owner, float scale, float ringAlpha, int segments, int lit, int pip, float pipSize)
         {
             Color team = Draw.Owner(owner);
             var center = body.center;
-            float radius = body.width * .5f, ring = Mathf.Max(2, Theme.OwnerRing * scale), gap = Mathf.Max(1, Theme.OwnerGap * scale);
+            float radius = body.width * .5f, ring = Mathf.Max(2, Theme.HpRing * scale), gap = Mathf.Max(1, Theme.OwnerGap * scale);
+            float outer = radius + gap + ring;
             Draw.Circle(new Rect(body.x + scale, body.y + 3.5f * scale, body.width, body.height), new Color(0, 0, 0, Theme.ShadowAlpha));
             Draw.Circle(Expand(body, gap + ring + .5f), Theme.Ink);
-            if (owner == 1) Draw.Ring(center, radius + gap + ring, Alpha(team, ringAlpha), ring, Theme.P2RingSegments, Theme.P2RingFill);
-            else Draw.Ring(center, radius + gap + ring, Alpha(team, ringAlpha), ring);
+            if (pip != 0) OwnerPip(center, outer, pip, pipSize, Alpha(team, ringAlpha));
+            Draw.Segments(center, outer, Alpha(team, Theme.HpTrack * ringAlpha), ring, segments, segments);
+            Draw.Segments(center, outer, Alpha(team, ringAlpha), ring, segments, lit);
             DrawBody(body, definition);
+        }
+
+        // Owner pip: a triangle sitting on the ring. side -1 = on top pointing up (the viewer's
+        // own balls), 1 = underneath pointing down (the opponent's).
+        const string PipUp = "+P 0 -1 1 .7 -1 .7", PipDown = "+P 0 1 1 -.7 -1 -.7";
+        static void OwnerPip(Vector2 center, float outer, int side, float size, Color team)
+        {
+            float tip = outer + size * .62f;
+            var box = new Rect(center.x - size * .5f, side < 0 ? center.y - tip : center.y + tip - size, size, size);
+            Glyphs.Paint(Expand(box, 1.5f), side < 0 ? PipUp : PipDown, Theme.Ink);
+            Glyphs.Paint(box, side < 0 ? PipUp : PipDown, team);
         }
 
         static void DrawBody(Rect body, BallDefinition definition)
@@ -221,8 +250,7 @@ namespace CoreClash.Presentation
         // Type mark: dark on light bodies, light on dark ones, with a thin opposite edge.
         static void MarkLabel(Rect body, string text, int size, Color bodyColor)
         {
-            float luminance = bodyColor.r * .299f + bodyColor.g * .587f + bodyColor.b * .114f;
-            bool darkText = luminance > .6f;
+            bool darkText = Luminance(bodyColor) > .6f;
             Color ink = darkText ? new Color(.03f, .07f, .11f, .95f) : new Color(.97f, .99f, 1, .97f);
             Color edge = darkText ? new Color(1, 1, 1, .35f) : new Color(.01f, .03f, .05f, .7f);
             var box = new Rect(body.x - 4, body.y, body.width + 8, body.height);
@@ -230,6 +258,7 @@ namespace CoreClash.Presentation
             Draw.Text(box, text, size, ink, TextAnchor.MiddleCenter, true);
         }
 
+        static float Luminance(Color color) => color.r * .299f + color.g * .587f + color.b * .114f;
         static Vector2 ViewPoint(Rect board,float x,float y,int localOwner)
         {
             float scale = board.width / 540f;

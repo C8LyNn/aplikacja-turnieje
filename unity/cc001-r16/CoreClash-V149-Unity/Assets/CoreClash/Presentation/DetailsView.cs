@@ -12,7 +12,7 @@ namespace CoreClash.Presentation
             var d=Catalog.Ball(current?.Type??inspect);if(d==null){CloseBallDetails();return;}
             Draw.Rect(new Rect(0,0,UiWidth,UiHeight),new Color(.018f,.032f,.052f,.97f));float w=Math.Min(640,UiWidth-32),h=Math.Min(700,UiHeight-80),x=(UiWidth-w)/2,y=(UiHeight-h)/2;
             bool narrow=w<440;Draw.Surface(new Rect(x,y,w,h),Draw.Panel);BallView.Preview(new Rect(x+28,y+27,narrow?52:76,narrow?52:76),d,current?.Owner??Simulation.State.turn,true);
-            Draw.Text(new Rect(x+(narrow?96:125),y+(narrow?70:27),narrow?w-116:w-240,narrow?47:42),d.name,narrow?22:30,Color.white,TextAnchor.MiddleLeft,true);
+            Draw.Text(new Rect(x+(narrow?96:125),y+(narrow?70:27),narrow?w-116:w-240,narrow?47:42),BallIcons.Name(d),narrow?22:30,Color.white,TextAnchor.MiddleLeft,true);
             string health=current!=null?BallInspection.OwnerMark(current.Owner)+"  /  "+current.Hp+" / "+current.MaxHp+" HP":inspectBallId>0?"NO LONGER ON THE BOARD":d.hp+" HP  /  "+d.size.ToUpperInvariant();
             Draw.Text(new Rect(x+(narrow?96:126),y+(narrow?121:73),narrow?w-116:w-200,25),health,narrow?12:14,Draw.Gold,TextAnchor.MiddleLeft,true);
             if(Draw.Button(new Rect(x+w-92,y+16,76,44),"CLOSE",size:12))CloseBallDetails();
@@ -86,6 +86,8 @@ namespace CoreClash.Presentation
             float w=Math.Min(430,UiWidth-24),x=UiWidth-w-12,y=70,h=Math.Min(620,UiHeight-90);Draw.Surface(new Rect(x,y,w,h),new Color(.025f,.04f,.065f),Draw.Gold);
             Draw.Text(new Rect(x+18,y+12,w-100,26),"DEVELOPER OVERLAY / F1",14,Draw.Gold,TextAnchor.MiddleLeft,true);
             if(Draw.Button(new Rect(x+w-60,y+8,44,44),"×",Draw.Gold,size:22))SetDeveloperOverlay(false);
+            // W22: the overlay disables the rest of the UI, so its own roster switch is re-enabled here.
+            if(Catalog.Roster!=null&&setup){bool was=GUI.enabled;GUI.enabled=true;if(Draw.Button(new Rect(x+w-222,y+8,154,44),DeveloperRoster?"FROZEN: SHOWN":"FROZEN: HIDDEN",Draw.Gold,DeveloperRoster,true,11))SetDeveloperRoster(!DeveloperRoster);GUI.enabled=was;}
             string id=inspectBallId>0?BallInspection.Read(Simulation.State,inspectBallId)?.Type??inspect:inspect.Length>0?inspect:selected;var d=Catalog.Ball(id);var a=Catalog.Ability(d.abilityId);var s=Simulation.State;
             var ngo=NetworkLink==null?null:GetComponent<CoreClash.Networking.NgoGameSession>();
             string networkDebug=W9NetworkDiagnostics(NetworkLink!=null,NetworkLink!=null&&NetworkLink.IsAuthority,

@@ -44,18 +44,20 @@ namespace CoreClash.Presentation
 
         // The builder roster exactly as before W19-01 (visible specials, name or
         // archetype search) with the optional readiness filter applied on top.
-        public static BallDefinition[] Visible(Catalog catalog,string search,RosterReadinessFilter filter=RosterReadinessFilter.All)
+        // W22: activeOnly hides frozen balls (normal play); the developer roster passes false.
+        public static BallDefinition[] Visible(Catalog catalog,string search,RosterReadinessFilter filter=RosterReadinessFilter.All,bool activeOnly=false)
         {
             search=search??"";
             return catalog.Data.balls.Where(b=>!b.hidden&&b.id!="normal"&&
-                (b.name.IndexOf(search,StringComparison.OrdinalIgnoreCase)>=0||b.archetype.IndexOf(search,StringComparison.OrdinalIgnoreCase)>=0)&&
+                (b.name.IndexOf(search,StringComparison.OrdinalIgnoreCase)>=0||BallIcons.Name(b).IndexOf(search,StringComparison.OrdinalIgnoreCase)>=0||b.archetype.IndexOf(search,StringComparison.OrdinalIgnoreCase)>=0)&&
+                (!activeOnly||catalog.IsActive(b.id))&&
                 Passes(catalog,b.id,filter)).ToArray();
         }
 
         // Result counts shown on the filter buttons, for the current search text.
-        public static Dictionary<RosterReadinessFilter,int> Counts(Catalog catalog,string search)
+        public static Dictionary<RosterReadinessFilter,int> Counts(Catalog catalog,string search,bool activeOnly=false)
         {
-            var all=Visible(catalog,search);
+            var all=Visible(catalog,search,RosterReadinessFilter.All,activeOnly);
             return new Dictionary<RosterReadinessFilter,int>{
                 {RosterReadinessFilter.All,all.Length},
                 {RosterReadinessFilter.ReadyOnly,all.Count(b=>Passes(catalog,b.id,RosterReadinessFilter.ReadyOnly))},

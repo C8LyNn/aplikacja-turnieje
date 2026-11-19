@@ -29,7 +29,16 @@ namespace CoreClash.Presentation
         public static bool Compact(float scale)=>scale<.45f;
         public static float RowHeight(float scale)=>Compact(scale)?10f:Math.Max(12f,14f*scale);
         public static int Font(float scale)=>Compact(scale)?8:Math.Max(9,(int)Math.Round(11*scale));
-        public static float RingOut(float scale)=>Math.Max(2.5f,3.4f*scale);
+        public static float RingOut(float scale)=>Math.Max(3f,5f*scale);
+        // W21 owner pip: a triangle on the ring, at the top of the viewer's own balls and at the
+        // bottom of the opponent's. PipSize is its box, PipOut how far it sticks out of the ring.
+        public static float PipSize(float scale)=>Compact(scale)?5f:Math.Max(6f,7.5f*scale);
+        public static float PipOut(float scale)=>PipSize(scale)*.62f;
+        public static int PipSide(int owner,int localOwner)=>owner==localOwner?-1:1;
+        // One segment per 5 HP; very large pools switch to 10 HP segments so arcs stay readable.
+        public static int HpUnit(int maxHp)=>maxHp>60?10:5;
+        public static int HpSegments(int maxHp)=>Math.Max(1,(Math.Max(1,maxHp)+HpUnit(maxHp)-1)/HpUnit(maxHp));
+        public static int HpLit(int hp,int maxHp)=>hp<=0?0:Math.Min(HpSegments(maxHp),(hp+HpUnit(maxHp)-1)/HpUnit(maxHp));
         public static float ReplayPulse(float scale)=>11.2f*scale;
         public static float ReplayChip(float scale)=>Compact(scale)?10f:Math.Max(12f,14f*scale);
         public static float ThreatSize(float scale)=>Compact(scale)?11f:Math.Max(14f,17f*scale);
@@ -48,10 +57,11 @@ namespace CoreClash.Presentation
             return null;
         }
 
-        public static BallBadgeLayout Layout(BallRuntime ball,float cx,float cy,float scale,bool replay,UiBox field)
-            =>ball==null?new BallBadgeLayout():Layout(cx,cy,ball.radius*scale,scale,ball.hp,ball.shield,Chips(ball),Threat(ball)!=null,replay,field);
+        public static BallBadgeLayout Layout(BallRuntime ball,float cx,float cy,float scale,bool replay,UiBox field,int localOwner=0)
+            =>ball==null?new BallBadgeLayout():Layout(cx,cy,ball.radius*scale,scale,ball.hp,ball.shield,Chips(ball),Threat(ball)!=null,replay,field,PipSide(ball.owner,localOwner));
 
-        public static BallBadgeLayout Layout(float cx,float cy,float radius,float scale,int hp,int shield,BallStateLabel[] chips,bool threat,bool replay,UiBox field)
+        // pip: -1 = owner pip on top of the ring, 1 = under it, 0 = none. Rows on the pip's side start past it.
+        public static BallBadgeLayout Layout(float cx,float cy,float radius,float scale,int hp,int shield,BallStateLabel[] chips,bool threat,bool replay,UiBox field,int pip=0)
         {
             var layout=new BallBadgeLayout();
             if(chips==null)chips=Array.Empty<BallStateLabel>();
@@ -73,10 +83,11 @@ namespace CoreClash.Presentation
             float overflowW=layout.Hidden>0?(Digits(layout.Hidden)+1)*digit+rowH*.5f:0;
             if(layout.Hidden>0)secondRow+=overflowW+(shown>0?gap:0);
             int rows=secondRow>0?2:1;
-            float need=rows*rowH+(rows-1)*gap,below=cy+radius+ring+gap;
+            float pipOut=pip==0?0:PipOut(scale);
+            float need=rows*rowH+(rows-1)*gap,below=cy+radius+ring+gap+(pip>0?pipOut:0),above=cy-radius-ring-gap-(pip<0?pipOut:0);
             // Rows normally sit under the ball; next to the bottom wall they move above it.
-            layout.Above=below+need>field.Bottom-1&&cy-radius-ring-gap-need>=field.y+1;
-            float y1=layout.Above?cy-radius-ring-gap-rowH:below;
+            layout.Above=below+need>field.Bottom-1&&above-need>=field.y+1;
+            float y1=layout.Above?above-rowH:below;
             float y2=layout.Above?y1-gap-rowH:y1+rowH+gap;
             float x1=ClampX(cx-firstRow/2,firstRow,field);
             layout.Hp=new UiBox(x1,y1,hpW,rowH);
@@ -94,6 +105,7 @@ namespace CoreClash.Presentation
             if(replay){float size=ReplayChip(scale);layout.HasReplay=true;layout.Replay=new UiBox(cx-radius*.3f-size,layout.Above?cy+radius-size*.45f:cy-radius-size*.55f,size,size);}
             float reach=radius+ring+(replay?ReplayPulse(scale):0);
             var bounds=new UiBox(cx-reach,cy-reach,2*reach,2*reach);
+            if(pip!=0){float size=PipSize(scale),far=radius+ring+pipOut;bounds=Union(bounds,new UiBox(cx-size*.5f,pip<0?cy-far:cy+far-size,size,size));}
             bounds=Union(bounds,layout.Hp);
             if(layout.HasShield)bounds=Union(bounds,layout.Shield);
             for(int i=0;i<shown;i++)bounds=Union(bounds,layout.Chips[i].Box);

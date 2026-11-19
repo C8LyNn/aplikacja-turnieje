@@ -46,6 +46,15 @@ namespace CoreClash.Presentation
             var old=GUI.color;GUI.color=color;GUI.DrawTexture(rect,texture);GUI.color=old;
         }
 
+        // W21: ball icons use the same shape language; the shape list is the cache key.
+        static readonly Dictionary<string,Texture2D> SpecCache=new Dictionary<string,Texture2D>();
+        public static void Paint(Rect rect,string spec,Color color)
+        {
+            if(string.IsNullOrEmpty(spec))return;
+            if(!SpecCache.TryGetValue(spec,out var texture)||texture==null){texture=Build(spec);SpecCache[spec]=texture;}
+            var old=GUI.color;GUI.color=color;GUI.DrawTexture(rect,texture);GUI.color=old;
+        }
+
         static Texture2D Build(string spec)
         {
             var distance=new float[Size*Size];

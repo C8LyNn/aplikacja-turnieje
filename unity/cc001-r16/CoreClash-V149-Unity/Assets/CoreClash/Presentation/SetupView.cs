@@ -12,11 +12,12 @@ namespace CoreClash.Presentation
             float playersY=68,playersH=wide?76:140,titleY=playersY+playersH+16,listY=titleY+56;
             if(shortView){titleY=68;listY=124;}else{PlayerChoice(0,new Rect(left,playersY,wide?(width-16)/2:width,wide?76:64));PlayerChoice(1,new Rect(wide?left+(width+16)/2:left,wide?playersY:playersY+76,wide?(width-16)/2:width,wide?76:64));}
             Draw.Text(new Rect(left,titleY,width,28),"CHOOSE YOUR SHOWCASE",wide?24:19,Color.white,TextAnchor.MiddleLeft,true);
-            Draw.Text(new Rect(left,titleY+31,width,22),"Four ways to bend the rules. Pick a deck for each player.",13,Draw.Muted);
-            float listH=Math.Max(32,UiHeight-listY-92),rows=(float)Math.Ceiling(Catalog.Featured.Length/(float)columns);
+            Draw.Text(new Rect(left,titleY+31,width,22),DeveloperRoster?"DEVELOPER ROSTER (F2): frozen balls and legacy decks are available for testing.":"Four ways to bend the rules. Pick a deck for each player.",13,DeveloperRoster?Draw.Gold:Draw.Muted);
+            var setupDecks=SetupDecks;
+            float listH=Math.Max(32,UiHeight-listY-92),rows=(float)Math.Ceiling(setupDecks.Length/(float)columns);
             setupScroll=Draw.ScrollView(new Rect(left,listY,width,listH),setupScroll,new Rect(0,0,width-18,rows*(cardH+gap)));
             float cardW=(width-18-gap*(columns-1))/columns;
-            for(int i=0;i<Catalog.Featured.Length;i++)FeaturedCard(Catalog.Featured[i],i,new Rect((i%columns)*(cardW+gap),(i/columns)*(cardH+gap),cardW,cardH));
+            for(int i=0;i<setupDecks.Length;i++)FeaturedCard(setupDecks[i],i,new Rect((i%columns)*(cardW+gap),(i/columns)*(cardH+gap),cardW,cardH));
             GUI.EndScrollView();float foot=UiHeight-74,primary=wide?Math.Min(440,width*.48f):width*.49f;
             if(Draw.Button(new Rect(left,foot,primary,48),"START LOCAL MATCH",Draw.Cyan,true,size:wide?16:12))StartLocalMatch();
             if(Draw.Button(new Rect(left+primary+12,foot,width-primary-12,48),wide?"ALL DECKS / DECK BUILDER":"ALL DECKS / BUILDER",size:wide?14:11)){library=true;presetScroll=Vector2.zero;}
@@ -33,7 +34,7 @@ namespace CoreClash.Presentation
         void FeaturedCard(DeckDefinition deck,int index,Rect r)
         {
             Color accent=DeckAccent(deck);Draw.Surface(r,Draw.Panel);Draw.Round(new Rect(r.x+12,r.y+12,3,r.height-24),accent);
-            Draw.Text(new Rect(r.x+24,r.y+13,r.width-48,16),"FEATURED 0"+(index+1)+"  /  CLASS DEMO",10,accent,TextAnchor.MiddleLeft,true);
+            Draw.Text(new Rect(r.x+24,r.y+13,r.width-48,16),(Catalog.Roster!=null&&!Catalog.Roster.IsActiveDeck(deck)?"FROZEN DECK  /  DEVELOPER":"FEATURED 0"+(index+1)+"  /  CLASS DEMO"),10,accent,TextAnchor.MiddleLeft,true);
             bool compact=r.height<190;Draw.Text(new Rect(r.x+24,r.y+(compact?28:33),r.width-48,27),deck.name,r.width>430?23:19,Color.white,TextAnchor.MiddleLeft,true);
             Draw.Text(new Rect(r.x+24,r.y+(compact?54:65),r.width-48,compact?27:38),Identity(deck),compact?11:13,Draw.Muted);
             float actionH=UiViewport.TargetSize>=44?44:31;
@@ -48,7 +49,8 @@ namespace CoreClash.Presentation
         {
             bool shortView=UiHeight<440;float left=24,width=UiWidth-48;Draw.Text(new Rect(left,78,width-(shortView?360:110),30),"ALL DECKS",shortView?18:25,Color.white,TextAnchor.MiddleLeft,true);
             if(Draw.Button(new Rect(UiWidth-120,76,96,UiViewport.TargetSize),"BACK"))library=false;
-            const string helper="All canonical presets and every ball remain here. Build your own nine-ball deck.";
+            var decks=LibraryDecks;
+            string helper=ActiveRosterOnly?"Ready-made decks from the active roster. Build your own nine-ball deck.":"All canonical presets and every ball remain here. Build your own nine-ball deck.";
             float helperH=Math.Max(27,Draw.TextHeight(helper,width,13)),playersY=124+helperH+11;
             if(!shortView)Draw.Text(new Rect(left,124,width,helperH),helper,13,Draw.Muted);
             bool wide=width>700||(UiHeight<600&&width>520);float half=(width-14)/2;
@@ -81,18 +83,21 @@ namespace CoreClash.Presentation
             bool shortView=UiHeight<440;float left=24,width=UiWidth-48;Color team=Draw.Owner(builderOwner);string title="PLAYER "+(builderOwner+1)+" / DECK BUILDER";int titleSize=width<500?16:24;
             float titleH=Math.Max(32,Draw.TextHeight(title,width-120,titleSize,true));Draw.Text(new Rect(left,77,width-120,titleH),title,titleSize,team,TextAnchor.MiddleLeft,true);
             if(Draw.Button(new Rect(UiWidth-120,76,96,UiViewport.TargetSize),"BACK"))builder=false;
+            bool activeOnly=ActiveRosterOnly;
+            // A deck carried over from the developer roster may hold frozen balls; normal play drops them.
+            if(activeOnly)custom.RemoveAll(id=>!Catalog.IsActive(id));
             const string helper="Choose nine different special balls. Standard is always available separately.";
             float helperY=Math.Max(124,77+titleH+7),helperH=Math.Max(24,Draw.TextHeight(helper,width,13)),searchY=Math.Max(153,helperY+helperH+13),selectedY=searchY+UiViewport.TargetSize+9,filterY=selectedY+31,rosterY=filterY+UiViewport.TargetSize+8;
             if(shortView){searchY=124;selectedY=134;filterY=174;rosterY=filterY+UiViewport.TargetSize+6;}else Draw.Text(new Rect(left,helperY,width,helperH),helper,13,Draw.Muted);
             float searchW=shortView?width*.62f:width;
             search=GUI.TextField(new Rect(left,searchY,searchW,UiViewport.TargetSize),search);
             // W19-01 (#289): optional readiness filter (ALL by default); it only changes visible tiles.
-            var roster=RosterReadiness.Visible(Catalog,search,rosterFilter);
+            var roster=RosterReadiness.Visible(Catalog,search,rosterFilter,activeOnly);
             int hiddenPicked=custom.Count(id=>!roster.Any(b=>b.id==id));
             Draw.Text(new Rect(shortView?left+searchW+12:left,selectedY,shortView?width-searchW-12:width,23),custom.Count+" / 9 SELECTED"+(hiddenPicked>0&&rosterFilter!=RosterReadinessFilter.All?"  ("+hiddenPicked+" hidden by filter)":""),14,team,TextAnchor.MiddleLeft,true);
             float selectedStep=Math.Min(29,(width-144)/9);
             if(!shortView)for(int i=0;i<custom.Count;i++)BallView.Preview(new Rect(left+144+i*selectedStep,selectedY-1,Math.Min(22,selectedStep-1),Math.Min(22,selectedStep-1)),Catalog.Ball(custom[i]),builderOwner);
-            var counts=RosterReadiness.Counts(Catalog,search);var filterBoxes=RosterReadinessLayout.FilterButtons(left,filterY,width,UiViewport.TargetSize);
+            var counts=RosterReadiness.Counts(Catalog,search,activeOnly);var filterBoxes=RosterReadinessLayout.FilterButtons(left,filterY,width,UiViewport.TargetSize);
             for(int f=0;f<RosterFilters.Length;f++)if(Draw.Button(RectOf(filterBoxes[f]),RosterReadiness.FilterLabel(RosterFilters[f],counts[RosterFilters[f]]),team,rosterFilter==RosterFilters[f],true,width<420?10:12)){rosterFilter=RosterFilters[f];rosterScroll=Vector2.zero;}
             int columns=UiWidth>950?3:UiWidth>600?2:1;float cardW=(width-24-(columns-1)*10)/columns,cardH=shortView?78:86,content=(float)Math.Ceiling(roster.Length/(float)columns)*(cardH+10);
             rosterScroll=Draw.ScrollView(new Rect(left,rosterY,width,Math.Max(32,UiHeight-rosterY-(shortView?68:80))),rosterScroll,new Rect(0,0,width-22,Math.Max(content,40)));
@@ -101,7 +106,7 @@ namespace CoreClash.Presentation
                 var d=roster[i];bool picked=custom.Contains(d.id);var r=new Rect((i%columns)*(cardW+10),(i/columns)*(cardH+10),cardW,cardH);Draw.Surface(r,Draw.Panel,picked?team:Draw.Edge);
                 if(GUI.Button(new Rect(r.x,r.y,r.width-62,r.height),GUIContent.none,GUIStyle.none)){if(picked)custom.Remove(d.id);else if(custom.Count<9)custom.Add(d.id);}
                 var cl=RosterReadinessLayout.Card(new UiBox(r.x,r.y,r.width,r.height),shortView);
-                BallView.Preview(RectOf(cl.Preview),d,builderOwner,picked);Draw.Text(RectOf(cl.Name),d.name,14,Color.white,TextAnchor.MiddleLeft,true);Draw.Text(RectOf(cl.Stats),d.hp+" HP  /  "+d.size,11,Draw.Muted);
+                BallView.Preview(RectOf(cl.Preview),d,builderOwner,picked);Draw.Text(RectOf(cl.Name),BallIcons.Name(d),14,Color.white,TextAnchor.MiddleLeft,true);Draw.Text(RectOf(cl.Stats),d.hp+" HP  /  "+d.size+(Catalog.IsActive(d.id)?"":"  /  FROZEN"),11,Catalog.IsActive(d.id)?Draw.Muted:Draw.Gold);
                 ReadinessChip(RectOf(cl.Badge),RosterReadiness.Badge(Catalog,d.id));
                 if(Draw.Button(RectOf(cl.Info),"i",size:15))ShowBallDetails(d.id);
             }GUI.EndScrollView();

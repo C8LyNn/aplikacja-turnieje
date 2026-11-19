@@ -60,8 +60,9 @@ namespace CoreClash.Presentation
             float reach=radius+ring+BallBadges.ReplayPulse(scale);
             float halfW=Math.Max(reach,Math.Max(radius*.3f+BallBadges.ReplayChip(scale),radius*.35f+BallBadges.ThreatSize(scale)));
             halfW=Math.Max(halfW,rowH*(statusRows>0?2.6f:1.9f));
-            float top=Math.Max(reach,radius+Math.Max(BallBadges.ReplayChip(scale),BallBadges.ThreatSize(scale))*.55f);
-            float bottom=Math.Max(reach,radius+ring+gap+(1+Math.Max(0,statusRows))*(rowH+gap));
+            float pip=BallBadges.PipOut(scale);
+            float top=Math.Max(Math.Max(reach,radius+ring+pip),radius+Math.Max(BallBadges.ReplayChip(scale),BallBadges.ThreatSize(scale))*.55f);
+            float bottom=Math.Max(reach,radius+ring+pip+gap+(1+Math.Max(0,statusRows))*(rowH+gap));
             halfW+=pad;top+=pad;bottom+=pad;
             return new UiBox(cx-halfW,cy-top,halfW*2,top+bottom);
         }
@@ -123,7 +124,7 @@ namespace CoreClash.Presentation
             float scale=Scale(bw);var list=new List<UiBox>();
             for(int owner=0;owner<2;owner++){var c=View(270,owner==0?853:47,viewOwner,bx,by,bw);list.Add(BoardLabelLayout.LauncherKeepOut(c.x,c.y,scale));}
             var field=Field(viewOwner,bx,by,bw);
-            if(s?.balls!=null)foreach(var b in s.balls)if(b!=null&&!b.dead&&!b.banished){var c=View(b.x,b.y,viewOwner,bx,by,bw);list.Add(BallBadges.Inflate(BallBadges.Layout(b,c.x,c.y,scale,true,field).Bounds,4*scale));}
+            if(s?.balls!=null)foreach(var b in s.balls)if(b!=null&&!b.dead&&!b.banished){var c=View(b.x,b.y,viewOwner,bx,by,bw);list.Add(BallBadges.Inflate(BallBadges.Layout(b,c.x,c.y,scale,true,field,viewOwner).Bounds,4*scale));}
             if(s?.structures!=null)foreach(var g in s.structures)if(g!=null&&!g.dead){var c=View(g.x,g.y,viewOwner,bx,by,bw);float r=(g.radius+6)*scale;list.Add(new UiBox(c.x-r,c.y-r,2*r,2*r));}
             return list;
         }
