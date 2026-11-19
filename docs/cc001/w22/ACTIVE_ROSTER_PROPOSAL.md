@@ -1,6 +1,6 @@
 # CC-001 W22 — aktywna pula i zamrażarka (PROPOZYCJA DO DECYZJI)
 
-Stan: **propozycja, nic nie zmienia w grze.** Źródło: katalog (227 typów), rejestr `AbilitySupport` i kod `Core` na `claude/cc001-w21-ball-identity`.
+Stan: **pula zatwierdzona przez właściciela; wdrożona w kolejnych commitach W22.** Źródło: katalog (227 typów), rejestr `AbilitySupport` i kod `Core` na `claude/cc001-w21-ball-identity`.
 
 ## Fakty, które ograniczają wybór
 
@@ -167,10 +167,10 @@ Kulka wraca do puli aktywnej, gdy spełnia wszystkie:
    - wybór w kreatorze talii — `RosterReadiness.Visible` (Presentation);
    - lista gotowych talii — pokazywać tylko talie złożone w całości z aktywnych typów;
    - **losowa transformacja Wildcard** — `RealityEffects.cs:38`, dziś losuje ze wszystkich nieukrytych, także DATA_ONLY;
-   - **losowe kulki Genesis** — `LifecycleEffects.cs:124`, ta sama pula.
+   - **losowy powrót Revenanta** — `LifecycleEffects.cs:124`, ta sama pula. (Poprawka po wdrożeniu: to losowanie należy do Revenanta. Genesis tworzy tylko strefę białej dziury i w Unity nie losuje jeszcze kulek.)
    To jedyne dwa losowania typu w `Core`. Mimic, Doppelgänger, Assimilator, Collector, Echo i wskrzeszenia biorą typy tylko z kulek obecnych w meczu, więc przy aktywnych taliach nie wprowadzą zamrożonych.
 5. **Tryb deweloperski:** istniejący przełącznik deweloperski ustawia `All` i pokazuje zamrożone typy z plakietką FROZEN.
-6. **Testy:** każde ID z listy istnieje w katalogu; każda gotowa talia w normalnym trybie jest legalna; przy `ActiveOnly` 10 000 losowań Wildcard/Genesis nie daje zamrożonego typu; przy `All` obecne 515 testów bez zmian.
+6. **Testy:** każde ID z listy istnieje w katalogu; każda gotowa talia w normalnym trybie jest legalna; przy `ActiveOnly` tysiące losowań Wildcard nie daje zamrożonego typu; przy `All` obecne 515 testów bez zmian.
 
 ### Szczególne przypadki i otwarte punkty
 

@@ -23,7 +23,11 @@ namespace CoreClash.Data
         public BallDefinition Ball(string id) => balls.TryGetValue(id ?? "",out var value)?value:null;
         public AbilityDefinition Ability(string id) => abilities.TryGetValue(id ?? "",out var value)?value:null;
         public IEnumerable<DeckDefinition> AllDecks => Featured.Concat(Data.decks ?? Array.Empty<DeckDefinition>());
-        public DeckDefinition Deck(string id) => AllDecks.FirstOrDefault(x=>x.id==id);
+        public DeckDefinition Deck(string id) => AllDecks.FirstOrDefault(x=>x.id==id) ?? Roster?.Decks.FirstOrDefault(x=>x.id==id);
+        // W22: optional active roster. Without one every ball counts as active (the behaviour before W22).
+        public Roster Roster {get;private set;}
+        public void UseRoster(RosterData data){Roster=data==null?null:new Roster(this,data);}
+        public bool IsActive(string id)=>Roster==null?Ball(id)!=null:Roster.IsActive(id);
         public void ValidateDeck(DeckDefinition deck)
         {
             if(deck==null || deck.balls==null || deck.balls.Length!=9 || deck.balls.Distinct().Count()!=9)

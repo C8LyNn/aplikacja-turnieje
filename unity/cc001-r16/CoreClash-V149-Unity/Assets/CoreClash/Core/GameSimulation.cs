@@ -15,6 +15,10 @@ namespace CoreClash.Core
         public readonly TurnSystem Turns;
         public readonly AbilityResolver Abilities;
         public readonly StructureSystem Structures;
+        // W22: when set, random type picks (Wildcard, Revenant) only draw active balls. It is
+        // match policy, not gameplay state: it is never serialized and defaults to off.
+        public bool ActiveRosterOnly;
+        public bool InRandomPool(string id)=>!ActiveRosterOnly||Catalog.IsActive(id);
         public GameSimulation(Catalog c,DeckDefinition a,DeckDefinition b)
         {
             Catalog=c;c.ValidateDeck(a);c.ValidateDeck(b);

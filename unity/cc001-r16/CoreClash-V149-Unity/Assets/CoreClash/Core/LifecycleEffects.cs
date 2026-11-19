@@ -122,7 +122,7 @@ namespace CoreClash.Core
         void RevenantDeathEffect(BallRuntime source)
         {
             var pool=sim.Catalog.Data.balls.Where(d=>d!=null&&!d.hidden&&
-                d.id!="revenant"&&d.id!="mirage"&&d.tier!="unique").ToArray();
+                d.id!="revenant"&&d.id!="mirage"&&d.tier!="unique"&&sim.InRandomPool(d.id)).ToArray();
             if(pool.Length==0)return;
             var type=pool[RandomIndex(pool.Length)];
             var returned=CreateReturnedForm(source,type.id,10,Math.Max(10,type.hp),

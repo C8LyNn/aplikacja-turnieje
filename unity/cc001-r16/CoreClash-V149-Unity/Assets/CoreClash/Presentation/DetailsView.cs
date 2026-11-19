@@ -86,6 +86,8 @@ namespace CoreClash.Presentation
             float w=Math.Min(430,UiWidth-24),x=UiWidth-w-12,y=70,h=Math.Min(620,UiHeight-90);Draw.Surface(new Rect(x,y,w,h),new Color(.025f,.04f,.065f),Draw.Gold);
             Draw.Text(new Rect(x+18,y+12,w-100,26),"DEVELOPER OVERLAY / F1",14,Draw.Gold,TextAnchor.MiddleLeft,true);
             if(Draw.Button(new Rect(x+w-60,y+8,44,44),"×",Draw.Gold,size:22))SetDeveloperOverlay(false);
+            // W22: the overlay disables the rest of the UI, so its own roster switch is re-enabled here.
+            if(Catalog.Roster!=null&&setup){bool was=GUI.enabled;GUI.enabled=true;if(Draw.Button(new Rect(x+w-222,y+8,154,44),DeveloperRoster?"FROZEN: SHOWN":"FROZEN: HIDDEN",Draw.Gold,DeveloperRoster,true,11))SetDeveloperRoster(!DeveloperRoster);GUI.enabled=was;}
             string id=inspectBallId>0?BallInspection.Read(Simulation.State,inspectBallId)?.Type??inspect:inspect.Length>0?inspect:selected;var d=Catalog.Ball(id);var a=Catalog.Ability(d.abilityId);var s=Simulation.State;
             var ngo=NetworkLink==null?null:GetComponent<CoreClash.Networking.NgoGameSession>();
             string networkDebug=W9NetworkDiagnostics(NetworkLink!=null,NetworkLink!=null&&NetworkLink.IsAuthority,

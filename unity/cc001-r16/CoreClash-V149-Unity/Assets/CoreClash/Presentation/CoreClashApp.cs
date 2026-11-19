@@ -18,6 +18,21 @@ namespace CoreClash.Presentation
         public bool IsModalOpen=>inspect.Length>0||builder||exitGuard.Open;
         public bool IsExitConfirmOpen=>exitGuard.Open;
         public bool DeveloperOverlay {get;private set;}
+        // W22: normal play offers only the active roster. The developer roster (F2, or the button
+        // in the F1 overlay) also offers frozen balls and the legacy decks for testing.
+        public bool DeveloperRoster {get;private set;}
+        public bool ActiveRosterOnly=>Catalog?.Roster!=null&&!DeveloperRoster;
+        DeckDefinition[] SetupDecks=>Catalog.Roster==null?Catalog.Featured:ActiveRosterOnly?Catalog.Roster.Decks:Catalog.Roster.Decks.Concat(Catalog.Featured).ToArray();
+        DeckDefinition[] LibraryDecks=>Catalog.Roster==null?decks:ActiveRosterOnly?Catalog.Roster.Decks:Catalog.Roster.Decks.Concat(decks).ToArray();
+        public void OpenDeckBuilder(int owner){if(setup&&(owner==0||owner==1))OpenBuilder(owner);}
+        public void SetDeveloperRoster(bool value)
+        {
+            if(Catalog?.Roster==null||DeveloperRoster==value)return;
+            DeveloperRoster=value;setupScroll=presetScroll=rosterScroll=Vector2.zero;
+            // Leaving the developer roster never leaves a frozen deck selected.
+            if(!value)for(int owner=0;owner<2;owner++)if(!Catalog.Roster.IsActiveDeck(chosen[owner])){chosen[owner]=Catalog.Roster.Decks[owner%Catalog.Roster.Decks.Length];if(builder&&builderOwner==owner)custom=chosen[owner].balls.ToList();}
+            Debug.Log("CORE_CLASH_DEVELOPER_ROSTER "+value);
+        }
         public bool IsBoardInspection=>boardInspection;
         public Rect ArenaRect=>UiViewport.ToScreen(board);
         public Rect UiArenaRect=>board;
@@ -53,6 +68,12 @@ namespace CoreClash.Presentation
                 string featuredJson=featured.text;
                 if(Application.platform!=RuntimePlatform.WebGLPlayer){string path=Path.Combine(Application.persistentDataPath,"featured-decks.json");if(File.Exists(path))featuredJson=File.ReadAllText(path);}
                 Catalog=new Catalog(JsonUtility.FromJson<CatalogData>(source.text),JsonUtility.FromJson<FeaturedDeckData>(featuredJson));decks=Catalog.AllDecks.ToArray();chosen[0]=decks[0];chosen[1]=decks[1];
+                var rosterSource=Resources.Load<TextAsset>("Data/roster");
+                if(rosterSource!=null){
+                    var rosterData=JsonUtility.FromJson<RosterData>(rosterSource.text);Catalog.UseRoster(rosterData);
+                    foreach(var deck in rosterData.decks??Array.Empty<RosterDeck>())deckCopy[deck.id]=new DeckCopy{id=deck.id,identity=deck.identity,accent=deck.accent};
+                    if(Catalog.Roster.Decks.Length>=2){chosen[0]=Catalog.Roster.Decks[0];chosen[1]=Catalog.Roster.Decks[1];}
+                }
                 BallView.SetIdentity(new BallIdentity(Catalog.Data.balls));
                 var copy=Resources.Load<TextAsset>("Data/presentation-copy");if(copy!=null){var data=JsonUtility.FromJson<PresentationCopy>(copy.text);foreach(var item in data.balls??Array.Empty<BallCopy>())ballCopy[item.id]=item;foreach(var item in data.decks??Array.Empty<DeckCopy>())deckCopy[item.id]=item;}
                 Simulation=new GameSimulation(Catalog,chosen[0],chosen[1]);session=new NetworkGameSession(Simulation);Layout();
@@ -75,6 +96,7 @@ namespace CoreClash.Presentation
         {
             if(Catalog==null)return;if(UiViewport.Refresh()){CancelPointer();Layout();}
             if(UnityEngine.Input.GetKeyDown(KeyCode.F1))SetDeveloperOverlay(!DeveloperOverlay);
+            if(UnityEngine.Input.GetKeyDown(KeyCode.F2)&&setup)SetDeveloperRoster(!DeveloperRoster);
             if(exitGuard.Open&&!externalModal&&(UnityEngine.Input.GetKeyDown(KeyCode.Return)||UnityEngine.Input.GetKeyDown(KeyCode.KeypadEnter)||UnityEngine.Input.GetKeyDown(KeyCode.JoystickButton0)))ConfirmLeaveMatch();
             else if(exitGuard.Open&&!externalModal&&(UnityEngine.Input.GetKeyDown(KeyCode.Escape)||UnityEngine.Input.GetKeyDown(KeyCode.JoystickButton1)))CancelLeaveMatch();
             else if(UnityEngine.Input.GetKeyDown(KeyCode.Escape)&&!externalModal){if(inspect.Length>0)CloseBallDetails();else if(DeveloperOverlay)SetDeveloperOverlay(false);else if(boardInspection)SetBoardInspection(false);else if(builder)builder=false;else if(library)library=false;else if(!setup)RequestLeaveMatch();}
@@ -116,7 +138,11 @@ namespace CoreClash.Presentation
         }
         public void SelectDeck(int owner,string id){if(owner<0||owner>1)return;var deck=Catalog.Deck(id);if(deck!=null)chosen[owner]=deck;}
         public void StartLocalMatch(){NetworkLink?.Disconnect();GetComponent<NgoGameSession>()?.Disconnect();StartMatchState();}
-        void StartMatchState(){remoteBallSmoother.Reset();remoteLastEventId=remoteLastRevision=0;NetworkLink=null;Simulation=new GameSimulation(Catalog,chosen[0],chosen[1]);session=new NetworkGameSession(Simulation);feedback=new FeedbackTimeline();feedback.Observe(Simulation.State,Time.unscaledTime);receivedRemoteState=false;sequence=0;setup=false;exitGuard.Reset();builder=library=boardInspection=false;inspectBallId=0;selected="normal";CancelPointer();notice="";trayScroll=matchScroll=Vector2.zero;Debug.Log("CORE_CLASH_MATCH_START "+chosen[0].id+" vs "+chosen[1].id);}
+        void StartMatchState(){remoteBallSmoother.Reset();remoteLastEventId=remoteLastRevision=0;NetworkLink=null;Simulation=new GameSimulation(Catalog,chosen[0],chosen[1]);
+            // W22: a match between two active decks keeps random type picks inside the active roster.
+            // A match with a frozen deck (developer roster, tests, drivers) runs exactly as before.
+            Simulation.ActiveRosterOnly=Catalog.Roster!=null&&Catalog.Roster.IsActiveDeck(chosen[0])&&Catalog.Roster.IsActiveDeck(chosen[1]);
+            session=new NetworkGameSession(Simulation);feedback=new FeedbackTimeline();feedback.Observe(Simulation.State,Time.unscaledTime);receivedRemoteState=false;sequence=0;setup=false;exitGuard.Reset();builder=library=boardInspection=false;inspectBallId=0;selected="normal";CancelPointer();notice="";trayScroll=matchScroll=Vector2.zero;Debug.Log("CORE_CLASH_MATCH_START "+chosen[0].id+" vs "+chosen[1].id+(Simulation.ActiveRosterOnly?" roster=active":""));}
         public void SelectBall(string id){if(CanChoose&&Catalog.Ball(id)!=null&&BallSelection.CanSelect(Simulation,Simulation.State.turn,id)){selected=id;gesture.Active=false;Debug.Log("CORE_CLASH_SELECT "+id);}}
         public void ShowBallDetails(string id){if(Catalog.Ball(id)!=null){inspect=id;inspectBallId=0;boardInspection=false;infoScroll=Vector2.zero;gesture.Active=false;Debug.Log("CORE_CLASH_DETAILS "+id+" developer="+DeveloperOverlay);}}
         public void ShowRuntimeBallDetails(int id){var current=BallInspection.Read(Simulation?.State,id);if(current!=null&&Catalog.Ball(current.Type)!=null){ShowBallDetails(current.Type);inspectBallId=id;boardInspection=false;}}

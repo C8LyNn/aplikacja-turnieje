@@ -1,0 +1,128 @@
+{
+ "version": "W22-1",
+ "active": [
+  "normal",
+  "bomb",
+  "mine",
+  "timebomb",
+  "fire",
+  "furnace",
+  "bonfire",
+  "ice",
+  "shatterer",
+  "frosttrap",
+  "venom",
+  "blightpool",
+  "plagueleech",
+  "gravitymine",
+  "web",
+  "harpoon",
+  "pulse",
+  "timeshift",
+  "gatekeeper",
+  "slingshot",
+  "pinballer",
+  "vortexmedic",
+  "ward",
+  "halo",
+  "cascade",
+  "agony",
+  "singularity",
+  "reclaimer",
+  "traitor",
+  "chronomancer",
+  "echo"
+ ],
+ "rework": [
+  "wallmaker",
+  "mitosis",
+  "hatchery",
+  "wildcard",
+  "genesis",
+  "mimic",
+  "collector",
+  "banish",
+  "phase",
+  "warp",
+  "frostguard",
+  "martyr",
+  "phoenix",
+  "mirage",
+  "tesla",
+  "colossus"
+ ],
+ "decks": [
+  {
+   "id": "roster_element_storm",
+   "name": "ELEMENT STORM",
+   "description": "Fire, frost and toxin: apply a status, then cash it in.",
+   "identity": "Burn, freeze and poison. Apply a status, then cash it in.",
+   "accent": "#ff8a45",
+   "balls": [
+    "fire",
+    "furnace",
+    "ice",
+    "shatterer",
+    "frosttrap",
+    "venom",
+    "blightpool",
+    "plagueleech",
+    "ward"
+   ]
+  },
+  {
+   "id": "roster_demolition",
+   "name": "DEMOLITION",
+   "description": "Explosives and board control.",
+   "identity": "Set traps, move the enemy into them and reshape the arena.",
+   "accent": "#c98bff",
+   "balls": [
+    "bomb",
+    "mine",
+    "timebomb",
+    "gravitymine",
+    "harpoon",
+    "pulse",
+    "slingshot",
+    "pinballer",
+    "web"
+   ]
+  },
+  {
+   "id": "roster_afterlife",
+   "name": "AFTERLIFE",
+   "description": "Death effects on demand.",
+   "identity": "Your balls are worth more when they fall. Trigger it on your terms.",
+   "accent": "#ffa46a",
+   "balls": [
+    "bonfire",
+    "cascade",
+    "singularity",
+    "agony",
+    "reclaimer",
+    "echo",
+    "halo",
+    "vortexmedic",
+    "bomb"
+   ]
+  },
+  {
+   "id": "roster_trickster",
+   "name": "TRICKSTER",
+   "description": "Position and ownership tricks.",
+   "identity": "Swap places, open portals, rewind and turn their best ball.",
+   "accent": "#8ea7ff",
+   "balls": [
+    "timeshift",
+    "gatekeeper",
+    "traitor",
+    "chronomancer",
+    "echo",
+    "web",
+    "harpoon",
+    "halo",
+    "pulse"
+   ]
+  }
+ ]
+}

@@ -35,7 +35,7 @@ namespace CoreClash.Core
                 case "timeshift":case "swap":var enemy=Near(b,100,false).FirstOrDefault();if(enemy!=null){float x=b.x,y=b.y;b.x=enemy.x;b.y=enemy.y;enemy.x=x;enemy.y=y;sim.Emit("SWAP",b,"Positions exchanged",enemy.id);}break;
                 case "chronomancer":if(b.chronoSave==null){b.chronoSave=Save(b);sim.Emit("SAVE",b,"Chronomancer saved state");}else{Restore(b,b.chronoSave);b.chronoSave=null;}break;
                 case "paradox":if(b.paradoxSave!=null)Restore(b,b.paradoxSave);break;
-                case "wildcard":var pool=sim.Catalog.Data.balls.Where(d=>!d.hidden&&d.id!="normal"&&d.id!=b.type&&d.tier!="unique").ToArray();if(pool.Length>0)Transmute(b,pool[RandomIndex(pool.Length)].id);break;
+                case "wildcard":var pool=sim.Catalog.Data.balls.Where(d=>!d.hidden&&d.id!="normal"&&d.id!=b.type&&d.tier!="unique"&&sim.InRandomPool(d.id)).ToArray();if(pool.Length>0)Transmute(b,pool[RandomIndex(pool.Length)].id);break;
                 case "echo":foreach(var target in Near(b,165).Where(x=>x.type!="echo"&&(sim.Catalog.Ability(sim.Catalog.Ball(x.type).abilityId)?.events??Array.Empty<string>()).Contains("STOP")))Stop(target,true);sim.Emit("ECHO",b,"Repeated nearby STOP effects");break;
                 case "collector":CollectSignature(b);break;
             }
