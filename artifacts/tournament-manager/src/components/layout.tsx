@@ -45,8 +45,10 @@ export function Layout({ children, deadlockTheme, colorPreset }: { children: Rea
       </a>
       <header className="border-b border-border bg-card sticky top-0 z-10">
         <div className="container mx-auto px-4 md:px-8 h-14 flex items-center justify-between gap-3">
-          <div className={`flex items-center gap-4 ${isExperimentalTournamentView ? "" : "min-w-0"}`}>
-            <AppLogoLink fallbackHref={fallbackHref} className="text-xl" />
+          {/* QW-01: the group keeps room for the logo and the back arrow (on a phone Stable shows the arrow only), so it
+              no longer shrinks under its own content and spills over the navigation. */}
+          <div className="flex items-center gap-4">
+            <AppLogoLink fallbackHref={fallbackHref} className="text-xl shrink-0" />
             {isExperimentalTournamentView && (
               <span className="experimental-mode-badge">
                 <FlaskConical className="h-3.5 w-3.5" aria-hidden="true" />
@@ -58,6 +60,7 @@ export function Layout({ children, deadlockTheme, colorPreset }: { children: Rea
                 fallbackHref={fallbackHref}
                 fallbackLabel={fallbackLabel}
                 className={`border-l border-border pl-4${isExperimentalTournamentView ? " experimental-role-home" : ""}`}
+                labelClassName={isExperimentalTournamentView ? undefined : "sr-only sm:not-sr-only"}
               />
             )}
           </div>
@@ -73,8 +76,9 @@ export function Layout({ children, deadlockTheme, colorPreset }: { children: Rea
               Menu
             </button>
           )}
-          {/* V5.1: on narrow screens Stable's nav scrolls inside the header instead of widening the page. */}
-          <nav id={isExperimentalTournamentView ? "experimental-app-nav" : undefined} data-open={isExperimentalTournamentView && navOpen ? "true" : undefined} className={`flex items-center gap-3 text-sm font-medium text-muted-foreground ${isExperimentalTournamentView ? "experimental-app-nav" : "min-w-0 overflow-x-auto whitespace-nowrap [scrollbar-width:none]"}`}>{!isExperimentalTournamentView && role && (
+          {/* V5.1: on narrow screens Stable's nav scrolls inside the header instead of widening the page.
+              QW-01: its items keep their width (their touch-size min-w-11 let them squash to 44 px and overlap). */}
+          <nav id={isExperimentalTournamentView ? "experimental-app-nav" : undefined} data-open={isExperimentalTournamentView && navOpen ? "true" : undefined} className={`flex items-center gap-3 text-sm font-medium text-muted-foreground ${isExperimentalTournamentView ? "experimental-app-nav" : "min-w-0 overflow-x-auto whitespace-nowrap [scrollbar-width:none] [&>*]:shrink-0"}`}>{!isExperimentalTournamentView && role && (
               <RoleSelectionLink className="border border-border rounded-full px-2.5 py-1 text-xs" />
             )}
             {role === "organizer" && (

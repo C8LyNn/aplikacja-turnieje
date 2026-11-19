@@ -54,8 +54,8 @@ export function ViewerLoginModal({ open, tournamentId, tournamentName, onSuccess
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm"
       onClick={(e) => { if (e.target === backdropRef.current) onClose(); }}
     >
-      {/* QW-05: announced as a modal dialog, like the organizer login. */}
-      <div role="dialog" aria-modal="true" aria-labelledby={titleId} className="relative bg-card border border-border rounded-xl shadow-2xl w-full max-w-sm mx-4 p-6">
+      {/* QW-05: announced as a modal dialog, like the organizer login. QW-01: capped to the screen, scrolls inside. */}
+      <div role="dialog" aria-modal="true" aria-labelledby={titleId} className="relative bg-card border border-border rounded-xl shadow-2xl w-full max-w-sm mx-4 max-h-[calc(100dvh-2rem)] overflow-y-auto p-6">
         <button
           type="button"
           onClick={onClose}

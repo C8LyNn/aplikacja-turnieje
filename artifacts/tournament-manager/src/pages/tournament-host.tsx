@@ -1234,8 +1234,9 @@ export default function TournamentHost() {
               : "border-border"
       }`}>
         {/* Header row */}
-        <div className="bg-muted/20 border-b px-4 py-2.5 flex items-center gap-3 justify-between">
-          <div className="flex items-center gap-2 min-w-0">
+        {/* QW-01: both groups wrap — on a phone the badges used to run under the length selector and the star. */}
+        <div className="bg-muted/20 border-b px-4 py-2.5 flex flex-wrap items-center gap-x-3 gap-y-2 justify-between">
+          <div className="flex flex-wrap items-center gap-2 min-w-0">
             <span className="text-sm font-semibold">Wybrany mecz</span>
             <span className="text-xs text-muted-foreground">{stages?.find(stage => stage.id === focusedMatch.stageId)?.name}</span>
             <Badge variant="outline" className="text-xs shrink-0">Runda {focusedMatch.round}</Badge>
@@ -1371,7 +1372,7 @@ export default function TournamentHost() {
           <p className="mb-4 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">{allowDraws ? "Wynik meczu" : bo > 1 ? "Wygrane gry / mapy" : "Wynik"}</p>
           <div className="flex items-center justify-center gap-3 md:gap-6">
             {/* Player 1 */}
-            <div className="flex-1 flex flex-col items-center gap-4 min-w-0">
+            <div className="@container flex-1 flex flex-col items-center gap-4 min-w-0">
               {isDeadlock && (() => {
                 const latestPick = focusedMatchPicks && focusedMatchPicks.length > 0
                   ? [...focusedMatchPicks].sort((a, b) => b.gameNumber - a.gameNumber)[0]
@@ -1390,7 +1391,9 @@ export default function TournamentHost() {
               {isDeadlock && focusedMatch.player1Id && ((tournament?.gameConfig as any)?.config?.bansPerPlayer ?? 5) > 0 && (
                 <PlayerBansRow bannedHeroIds={playerBansMap.get(focusedMatch.player1Id) ?? []} size={30} maxBans={(tournament?.gameConfig as any)?.config?.bansPerPlayer ?? 5} />
               )}
-              <div className="flex items-center gap-3">
+              {/* QW-01: "− score +" needs 12 rem; in a narrower player column the score sits above the buttons
+                  instead of the two players' controls overlapping each other and the screen edges. */}
+              <div className="flex flex-wrap items-center justify-center gap-3">
                 <Button
                   variant="outline"
                   size="icon"
@@ -1403,7 +1406,7 @@ export default function TournamentHost() {
                   <Minus className="w-5 h-5" />
                 </Button>
                 <div
-                  className={`text-5xl md:text-6xl font-black font-mono w-20 text-center select-none transition-colors ${
+                  className={`text-5xl md:text-6xl font-black font-mono w-20 text-center select-none transition-colors @max-[12.5rem]:order-first @max-[12.5rem]:basis-full ${
                     s1 > s2 ? "text-primary" : s1 < s2 ? "text-muted-foreground/40" : "text-foreground"
                   }`}
                 >
@@ -1437,7 +1440,7 @@ export default function TournamentHost() {
             </div>
 
             {/* Player 2 */}
-            <div className="flex-1 flex flex-col items-center gap-4 min-w-0">
+            <div className="@container flex-1 flex flex-col items-center gap-4 min-w-0">
               {isDeadlock && (() => {
                 const latestPick = focusedMatchPicks && focusedMatchPicks.length > 0
                   ? [...focusedMatchPicks].sort((a, b) => b.gameNumber - a.gameNumber)[0]
@@ -1456,7 +1459,9 @@ export default function TournamentHost() {
               {isDeadlock && focusedMatch.player2Id && ((tournament?.gameConfig as any)?.config?.bansPerPlayer ?? 5) > 0 && (
                 <PlayerBansRow bannedHeroIds={playerBansMap.get(focusedMatch.player2Id) ?? []} size={30} maxBans={(tournament?.gameConfig as any)?.config?.bansPerPlayer ?? 5} />
               )}
-              <div className="flex items-center gap-3">
+              {/* QW-01: "− score +" needs 12 rem; in a narrower player column the score sits above the buttons
+                  instead of the two players' controls overlapping each other and the screen edges. */}
+              <div className="flex flex-wrap items-center justify-center gap-3">
                 <Button
                   variant="outline"
                   size="icon"
@@ -1469,7 +1474,7 @@ export default function TournamentHost() {
                   <Minus className="w-5 h-5" />
                 </Button>
                 <div
-                  className={`text-5xl md:text-6xl font-black font-mono w-20 text-center select-none transition-colors ${
+                  className={`text-5xl md:text-6xl font-black font-mono w-20 text-center select-none transition-colors @max-[12.5rem]:order-first @max-[12.5rem]:basis-full ${
                     s2 > s1 ? "text-primary" : s2 < s1 ? "text-muted-foreground/40" : "text-foreground"
                   }`}
                 >

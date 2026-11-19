@@ -56,10 +56,13 @@ export function RoleHomeLink({
   fallbackHref = "/",
   fallbackLabel = "Wróć do strony głównej",
   className = "",
+  labelClassName = "",
 }: {
   fallbackHref?: string;
   fallbackLabel?: string;
   className?: string;
+  /** QW-01: lets a tight header keep only the arrow visible (the label stays the accessible name). */
+  labelClassName?: string;
 }) {
   const { role } = useAuth();
   const [location] = useLocation();
@@ -74,10 +77,10 @@ export function RoleHomeLink({
   return (
     <Link
       href={destination.href}
-      className={`inline-flex items-center gap-1.5 rounded-md text-sm font-medium text-muted-foreground transition-colors hover:text-foreground ${navigationTouch} ${navigationFocus} ${className}`}
+      className={`inline-flex min-w-0 items-center gap-1.5 rounded-md text-sm font-medium text-muted-foreground transition-colors hover:text-foreground ${navigationTouch} ${navigationFocus} ${className}`}
     >
-      <ArrowLeft className="w-4 h-4" aria-hidden="true" />
-      <span>{destination.label}</span>
+      <ArrowLeft className="w-4 h-4 shrink-0" aria-hidden="true" />
+      <span className={labelClassName || undefined}>{destination.label}</span>
     </Link>
   );
 }

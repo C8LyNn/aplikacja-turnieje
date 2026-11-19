@@ -1,6 +1,6 @@
 import { MATCH_PARAM_KEYS, MatchRulesChoice } from "./experimental-match-rules-choice";
 import { LEAGUE_PARAM_KEYS, LeagueOptions } from "./experimental-league-options";
-import { useCallback, useEffect, useId, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import {
   AlertTriangle,
@@ -284,6 +284,17 @@ export function StageFlow({ preview }: { preview: PresetPreview }) {
   );
 }
 
+/** Publishes the action bar's rendered height as --x-wizard-actions-h on the wizard root; returns the cleanup. */
+export function syncActionBarHeight(root: HTMLElement | null, bar: HTMLElement | null): (() => void) | undefined {
+  if (!root || !bar) return undefined;
+  const apply = () => root.style.setProperty("--x-wizard-actions-h", `${Math.ceil(bar.getBoundingClientRect().height)}px`);
+  apply();
+  if (typeof ResizeObserver === "undefined") return undefined;
+  const observer = new ResizeObserver(apply);
+  observer.observe(bar);
+  return () => observer.disconnect();
+}
+
 export function PreviewPanel({
   preview,
   noun,
@@ -517,6 +528,10 @@ export function ExperimentalCreateWizard() {
   const [imported, setImported] = useState(false);
   const submitInFlight = useRef(false);
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const wizardRef = useRef<HTMLDivElement>(null);
+  const actionsRef = useRef<HTMLDivElement>(null);
+  // QW-01: the sticky preview column must end above the sticky action bar, whatever height the bar has.
+  useLayoutEffect(() => syncActionBarHeight(wizardRef.current, actionsRef.current), [importOpen]);
   const nameRef = useRef<HTMLInputElement>(null);
   const organizerRef = useRef<HTMLInputElement>(null);
   const supportRef = useRef<HTMLInputElement>(null);
@@ -741,7 +756,7 @@ export function ExperimentalCreateWizard() {
   ][step];
 
   return (
-    <div className="experimental-wizard" data-step={step}>
+    <div ref={wizardRef} className="experimental-wizard" data-step={step}>
       <header className="experimental-wizard-top">
         <div>
           <p className="experimental-wizard-eyebrow">Nowe rozgrywki · krok {step + 1} z {WIZARD_STEPS.length}</p>
@@ -1142,7 +1157,7 @@ export function ExperimentalCreateWizard() {
         )}
       </div>
 
-      {!importOpen && <div className="experimental-wizard-actions">
+      {!importOpen && <div ref={actionsRef} className="experimental-wizard-actions">
         {step >= 1 && shownPreview && (
           <p className="experimental-wizard-actions-summary" aria-live="polite">
             <strong>{shownPreview.label}</strong> · {rangeText(shownPreview.totals.matches)} {plural(shownPreview.totals.matches.max, "mecz", "mecze", "meczów")} · {rangeText(shownPreview.totals.rounds)} {plural(shownPreview.totals.rounds.max, "runda", "rundy", "rund")}

@@ -62,7 +62,7 @@ export function SupportLoginModal({ open, onClose, tournamentId, tournamentName,
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
       onClick={handleBackdropClick}
     >
-      <div className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-sm p-6 space-y-5">
+      <div className="bg-card border border-border rounded-xl shadow-2xl w-full max-w-sm max-h-[calc(100dvh-2rem)] overflow-y-auto p-6 space-y-5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-3">
             <div className="bg-green-500/15 rounded-full p-2 shrink-0">
