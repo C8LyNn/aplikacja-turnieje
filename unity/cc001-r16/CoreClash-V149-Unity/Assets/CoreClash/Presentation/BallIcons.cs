@@ -6,7 +6,8 @@ using CoreClash.Data;
 namespace CoreClash.Presentation
 {
     // CC-001 W21: real ball icons and short display names for Standard, five basics and the
-    // four featured decks (42 balls). The other 185 balls are deliberately left alone.
+    // four W21 featured decks (42 balls), plus the 8 W22 active-roster balls that had no icon
+    // yet. Every active ball has an icon; frozen balls are not given new ones.
     // Keyed by the stable catalog id; ids, abilities, saves and the network protocol
     // never see this table. A ball without an entry keeps its letter mark and its
     // catalog name, so the batch can grow without touching anything else.
@@ -22,7 +23,7 @@ namespace CoreClash.Presentation
     // '+' adds a shape, '-' cuts it out of what is already there.
     public static class BallIcons
     {
-        public const int BatchSize=42;
+        public const int BatchSize=50;
         const string Shield="+P -.72 -.8 .72 -.8 .72 .1 0 .92 -.72 .1";
         const string Trefoil="+C 0 -.28 .26;+C -.26 .17 .26;+C .26 .17 .26";
         const string Flame="+C 0 .3 .55;+P -.12 -.98 .5 .16 -.52 .2;+P .42 -.52 .6 .34 .1 .3;-C -.02 .5 .2";
@@ -80,6 +81,15 @@ namespace CoreClash.Presentation
             Add("timeshift","+L -.6 -.36 .45 -.36 .18;+P .92 -.36 .4 -.72 .4 0;+L .6 .36 -.45 .36 .18;+P -.92 .36 -.4 0 -.4 .72","Swap");
             Add("chronomancer","+R 0 0 .8 .16;+L 0 0 0 -.5 .16;+L 0 0 .36 .2 .16","Rewind");
             Add("paradox","+R 0 .05 .66 .18;-P 0 .05 1.2 -1.15 1.2 .05;+P .66 -.5 .3 -.02 1.02 -.02","Snapback");
+            // W22 active roster: the eight active balls that had no icon.
+            Add("timebomb","+C -.1 .22 .62;+L .32 -.28 .58 -.62 .2;+C .7 -.8 .15;-L -.1 .24 -.1 -.14 .15;-L -.1 .24 .22 .24 .15");
+            Add("furnace","+P -.82 -.82 .82 -.82 .82 .88 -.82 .88;-P -.52 -.46 .52 -.46 .52 .88 -.52 .88;+C 0 .42 .3;+P -.06 -.3 .28 .36 -.28 .38");
+            Add("shatterer","+L -.85 0 .85 0 .26;+L -.43 -.74 .43 .74 .26;+L .43 -.74 -.43 .74 .26;-L -.12 -1 .16 -.3 .15;-L .16 -.3 -.16 .3 .15;-L -.16 .3 .12 1 .15");
+            Add("frosttrap","+P 0 -.98 .98 0 0 .98 -.98 0;-P 0 -.74 .74 0 0 .74 -.74 0;+L -.42 0 .42 0 .16;+L -.21 -.36 .21 .36 .16;+L .21 -.36 -.21 .36 .16");
+            Add("venom","+C 0 -.42 .42;+C -.4 .3 .42;+C .4 .3 .42;-C 0 .05 .17");
+            Add("pulse","+P 0 -.96 .3 -.5 -.3 -.5;+P 0 .96 .3 .5 -.3 .5;+P -.96 0 -.5 .3 -.5 -.3;+P .96 0 .5 .3 .5 -.3;+C 0 0 .28");
+            Add("slingshot","+L 0 .92 0 .12 .22;+L 0 .12 -.56 -.6 .22;+L 0 .12 .56 -.6 .22;+L -.56 -.76 .56 -.76 .12;+C 0 -.76 .17");
+            Add("pinballer","+L -.92 .82 .92 .82 .2;+C 0 .4 .42;+L -.78 -.72 -.3 -.02 .14;+L .3 -.02 .78 -.72 .14;+P .98 -.98 .5 -.84 .86 -.44");
             Add("traitor","+P -.46 -.82 -.92 .2 0 .2;+P .46 .82 0 -.2 .92 -.2");
         }
 

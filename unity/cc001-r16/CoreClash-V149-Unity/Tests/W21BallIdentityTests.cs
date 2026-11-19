@@ -13,7 +13,7 @@ public static partial class Program
 {
     static void W21BallIdentityTests()
     {
-        Test("W21 icon batch: 42 catalog ids, valid distinct shape lists, catalog untouched",()=>{
+        Test("W21 icon batch: 50 catalog ids, valid distinct shape lists, catalog untouched",()=>{
             var ids=BallIcons.Ids.ToArray();
             Eq(BallIcons.BatchSize,ids.Length);
             foreach(string id in ids)
@@ -22,13 +22,15 @@ public static partial class Program
                 True(BallIcons.Valid(BallIcons.Spec(id)),"malformed shape list: "+id);
             }
             Eq(ids.Length,ids.Select(BallIcons.Spec).Distinct(StringComparer.Ordinal).Count());
-            Eq(42,ids.Length);
+            Eq(50,ids.Length);
             // every featured deck, plus Standard, is fully covered; nothing beyond that batch has an icon yet
             Eq(4,catalog.Featured.Length);
             foreach(var deck in catalog.Featured)
                 foreach(string id in deck.balls)True(BallIcons.Has(id),deck.id+" ball without an icon: "+id);
             var planned=new HashSet<string>(catalog.Featured.SelectMany(deck=>deck.balls).Concat(new[]{"normal","fire","ice","mine","bomb","medic"}));
-            True(planned.SetEquals(ids),"icon batch is not exactly the featured decks plus the six basics");
+            // W22 added icons only for active-roster balls that had none
+            planned.UnionWith(new[]{"timebomb","furnace","shatterer","frosttrap","venom","pulse","slingshot","pinballer"});
+            True(planned.SetEquals(ids),"icon batch is not exactly the featured decks, the six basics and the W22 roster additions");
             True(BallIcons.Has("normal"));
             // a ball outside the batch keeps its letter mark and catalog name
             var other=catalog.Data.balls.First(b=>!BallIcons.Has(b.id));
