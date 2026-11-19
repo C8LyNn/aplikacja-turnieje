@@ -62,3 +62,7 @@
 
 /* Dashboard cards: format and size stay as chips; the creation date is plain secondary text, not a third chip. */
 .experimental-tournament-shell .experimental-tlist-meta > span.experimental-tlist-created { padding-inline: 0; border-color: transparent; background: none; color: var(--x-text-2); }
+
+/* "‹ Turnieje" above the tournament name: a real target (was 20 px tall) without moving the title. */
+.experimental-tournament-shell .experimental-context-bar a { min-height: 2rem; }
+.experimental-tournament-shell .experimental-context-bar--compact { margin-block: -.375rem; }

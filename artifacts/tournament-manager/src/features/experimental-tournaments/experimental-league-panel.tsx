@@ -223,8 +223,8 @@ export function ExperimentalLeaguePanel({
                       {match.scheduleState === "completed"
                         ? matchResultLabel({ resultType: "played", score1: match.score1, score2: match.score2, winnerId: match.winnerId ?? (match.isDraw ? null : -1) })
                         : SCHEDULE_STATE_LABELS[match.scheduleState]}
-                      {/* V5.11: "Bez terminu · bez terminu" said the same thing twice. */}
-                      {match.scheduleState !== "unscheduled" && <>{" · "}{formatSlot(match)}</>}
+                      {/* V5.11: no "· bez terminu" after "Bez terminu" or after a result played without a date. */}
+                      {(match.localDate || (match.scheduleState !== "unscheduled" && match.scheduleState !== "completed")) && <>{" · "}{formatSlot(match)}</>}
                       {(() => { const note = returnLegNote(allScheduleMatches, match); return note ? <span className="block text-xs opacity-80" data-testid="league-return-leg">{note}</span> : null; })()}
                     </span>
                     {canEditDates && match.scheduleState !== "completed" && match.scheduleState !== "cancelled" && (
