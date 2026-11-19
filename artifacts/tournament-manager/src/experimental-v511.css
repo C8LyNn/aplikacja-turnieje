@@ -53,3 +53,9 @@
 :is(.experimental-tournament-shell, .experimental-tournament-create) .experimental-advanced-section-tag[data-changed="true"] { border-color: color-mix(in oklab, var(--x-a1) 55%, transparent); background: var(--x-accent-soft); color: var(--x-text); }
 :is(.experimental-tournament-shell, .experimental-tournament-create) .experimental-advanced-section-reset { margin-top: .75rem; padding-top: .75rem; border-top: 1px dashed var(--x-line); color: var(--x-text-2); font-size: .8125rem; }
 @media (max-width: 480px) { :is(.experimental-tournament-shell, .experimental-tournament-create) .experimental-advanced-section-head { flex-wrap: wrap; row-gap: .35rem; } }
+
+/* Dialogs follow the chosen set completely: corner shape (radius tokens of the shape setting) and the
+   set's line colour, not a fixed cyan frame and 8 px corners (measured in V5.10 for every set). */
+:is(.experimental-tournament-shell, .experimental-tournament-public, .experimental-tournament-create, .experimental-tournament-entry) :is([role="dialog"], [role="alertdialog"]) { border-color: var(--x-line-strong); border-radius: var(--x-radius-lg, 1rem); }
+/* The checklist dialog had a fixed info-blue frame (with !important); it now takes the set's accent. */
+.experimental-tournament-shell .experimental-checklist-dialog { border-color: color-mix(in oklab, var(--x-a1) 42%, transparent) !important; }
