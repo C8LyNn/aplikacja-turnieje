@@ -41,6 +41,7 @@ import { MATCH_PARAM_KEYS, MatchRulesChoice } from "./experimental-match-rules-c
 import {
   ALL_PRESET_IDS,
   PRESET_LABELS,
+  PRESET_PARAM_KEYS_BY_PRESET,
   WIZARD_DRAFT_KEY,
   bestOfLabel,
   buildCreatePayload,
@@ -54,6 +55,7 @@ import {
   type PresetId,
   type PresetParamKey,
   type PresetParamLimit,
+  type PresetParams,
   type PresetPreview,
   type Visibility,
   type WizardDraft,
@@ -102,6 +104,11 @@ function limitText(limit: PresetParamLimit | undefined): string | null {
   return `${limit.label.toLowerCase()}: ${limit.value}`;
 }
 
+/** V5.11: own settings of a section (keys the organizer set explicitly; the rest are the preset's defaults). */
+export function sectionOverrides(id: SectionId, params: PresetParams, tunable: readonly PresetParamKey[]): PresetParamKey[] {
+  return SECTION_PARAMS[id].filter((key) => key !== "participantCount" && tunable.includes(key) && params[key] != null);
+}
+
 function Section({
   id,
   title,
@@ -109,6 +116,8 @@ function Section({
   summary,
   open,
   invalid,
+  overrides,
+  onReset,
   onToggle,
   children,
 }: {
@@ -118,6 +127,9 @@ function Section({
   summary: string;
   open: boolean;
   invalid?: boolean;
+  /** V5.11: undefined = the section has no preset defaults to compare with. */
+  overrides?: number;
+  onReset?: () => void;
   onToggle: (id: SectionId) => void;
   children: ReactNode;
 }) {
@@ -129,11 +141,26 @@ function Section({
           <span className="experimental-advanced-section-icon" aria-hidden="true">{icon}</span>
           <span className="experimental-advanced-section-title">{title}</span>
           <span className="experimental-advanced-section-summary">{summary}</span>
+          {overrides !== undefined && (
+            <span className="experimental-advanced-section-tag" data-changed={overrides > 0 ? "true" : "false"}>
+              {overrides > 0 ? `zmienione: ${overrides}` : "domyślne"}
+            </span>
+          )}
           {invalid && <AlertTriangle className="h-4 w-4 shrink-0 text-destructive" aria-label="Wymaga poprawy" />}
           <ChevronDown className="experimental-advanced-section-chevron h-4 w-4 shrink-0" aria-hidden="true" />
         </button>
       </h3>
-      {open && <div id={bodyId} className="experimental-advanced-section-body">{children}</div>}
+      {open && (
+        <div id={bodyId} className="experimental-advanced-section-body">
+          {children}
+          {onReset && overrides !== undefined && overrides > 0 && (
+            <p className="experimental-advanced-section-reset">
+              <button type="button" className="experimental-wizard-link" onClick={onReset}>Przywróć domyślne w tej sekcji</button>
+              <span> — zdejmuje tylko Twoje zmiany z tej sekcji; reszta ustawień zostaje.</span>
+            </p>
+          )}
+        </div>
+      )}
     </section>
   );
 }
@@ -225,6 +252,15 @@ export function ExperimentalAdvancedEditor() {
       return;
     }
     update({ params: { ...params, [key]: value } });
+  };
+
+  // V5.11: per-section "own settings" against the preset's defaults, and a reset that removes only those.
+  const tunable = custom || !presetId ? [] : PRESET_PARAM_KEYS_BY_PRESET[presetId];
+  const overridesOf = (id: SectionId) => (custom ? undefined : sectionOverrides(id, params, tunable).length);
+  const resetSection = (id: SectionId) => {
+    const next = { ...params };
+    for (const key of sectionOverrides(id, params, tunable)) delete next[key];
+    update({ params: next });
   };
 
   const choosePreset = (next: PresetId) => {
@@ -357,7 +393,7 @@ export function ExperimentalAdvancedEditor() {
 
       <div className="experimental-wizard-body" data-has-preview="true">
         <div className="experimental-wizard-main experimental-advanced-sections">
-          <Section id="structure" title="Format i etapy" icon={<Layers className="h-4 w-4" />} summary={structureSummary} open={open === "structure"} invalid={errorSection === "structure"} onToggle={toggle}>
+          <Section id="structure" overrides={overridesOf("structure")} onReset={() => resetSection("structure")} title="Format i etapy" icon={<Layers className="h-4 w-4" />} summary={structureSummary} open={open === "structure"} invalid={errorSection === "structure"} onToggle={toggle}>
             <fieldset className="experimental-wizard-field">
               <legend className="experimental-wizard-legend">Format</legend>
               <div className="experimental-advanced-formats" role="radiogroup" aria-label="Format">
@@ -390,7 +426,7 @@ export function ExperimentalAdvancedEditor() {
           </Section>
 
           {!custom && (
-            <Section id="matches" title="Mecze" icon={<Swords className="h-4 w-4" />} summary={matchesSummary} open={open === "matches"} invalid={errorSection === "matches"} onToggle={toggle}>
+            <Section id="matches" overrides={overridesOf("matches")} onReset={() => resetSection("matches")} title="Mecze" icon={<Swords className="h-4 w-4" />} summary={matchesSummary} open={open === "matches"} invalid={errorSection === "matches"} onToggle={toggle}>
               {shown && (
                 <MatchRulesChoice
                   preview={shown}
@@ -403,7 +439,7 @@ export function ExperimentalAdvancedEditor() {
           )}
 
           {hasTable && shown && (
-            <Section id="scoring" title="Punktacja i terminy" icon={<Scale className="h-4 w-4" />} summary={scoringSummary} open={open === "scoring"} invalid={errorSection === "scoring"} onToggle={toggle}>
+            <Section id="scoring" overrides={overridesOf("scoring")} onReset={() => resetSection("scoring")} title="Punktacja i terminy" icon={<Scale className="h-4 w-4" />} summary={scoringSummary} open={open === "scoring"} invalid={errorSection === "scoring"} onToggle={toggle}>
               <LeagueOptions
                 preview={shown}
                 params={params}
@@ -415,7 +451,7 @@ export function ExperimentalAdvancedEditor() {
             </Section>
           )}
 
-          <Section id="seeding" title="Rozstawienie i awanse" icon={<ListOrdered className="h-4 w-4" />} summary={seedingSummary} open={open === "seeding"} invalid={errorSection === "seeding"} onToggle={toggle}>
+          <Section id="seeding" overrides={overridesOf("seeding")} onReset={() => resetSection("seeding")} title="Rozstawienie i awanse" icon={<ListOrdered className="h-4 w-4" />} summary={seedingSummary} open={open === "seeding"} invalid={errorSection === "seeding"} onToggle={toggle}>
             {shown && <FlowSteps preview={shown} noun={noun} />}
             {!custom && paramControls(SECTION_PARAMS.seeding)}
             <p className="experimental-wizard-help">

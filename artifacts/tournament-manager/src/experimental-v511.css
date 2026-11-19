@@ -47,3 +47,9 @@
 
 /* Keyboard focus is always visible in Experimental (component rules with their own ring still win). */
 :where(.experimental-tournament-shell, .experimental-tournament-create, .experimental-tournament-public) :where(a, button, summary, [role="tab"], [role="button"], input, select, textarea):focus-visible { outline: 2px solid var(--x-a1, hsl(var(--primary))); outline-offset: 2px; }
+
+/* Advanced editor: each section says whether it follows the preset ("domyślne") or has own settings. */
+:is(.experimental-tournament-shell, .experimental-tournament-create) .experimental-advanced-section-tag { flex: 0 0 auto; padding: .1rem .5rem; border: 1px solid var(--x-line); border-radius: 999px; color: var(--x-text-2); font-size: .6875rem; font-weight: 600; white-space: nowrap; }
+:is(.experimental-tournament-shell, .experimental-tournament-create) .experimental-advanced-section-tag[data-changed="true"] { border-color: color-mix(in oklab, var(--x-a1) 55%, transparent); background: var(--x-accent-soft); color: var(--x-text); }
+:is(.experimental-tournament-shell, .experimental-tournament-create) .experimental-advanced-section-reset { margin-top: .75rem; padding-top: .75rem; border-top: 1px dashed var(--x-line); color: var(--x-text-2); font-size: .8125rem; }
+@media (max-width: 480px) { :is(.experimental-tournament-shell, .experimental-tournament-create) .experimental-advanced-section-head { flex-wrap: wrap; row-gap: .35rem; } }
