@@ -191,7 +191,8 @@ namespace CoreClash.Testing
             for (int i = 0; i < 240 && sim.State.phase == MatchPhase.Moving; i++)
             {
                 if (clips) Shot(clip, sim);
-                if (!shotTaken && sim.State.eventSerial > eventsBefore + 1 && sim.State.events.Any(e => e.id > eventsBefore && e.kind == "DAMAGE"))
+                // The moment of contact: a second ball starts to move (or, failing that, a fixed moment of the shot).
+                if (!shotTaken && (sim.State.balls.Count(item => !item.dead && item.moving) >= 2 || sim.State.events.Any(e => e.id > eventsBefore && e.kind == "DAMAGE") || i == 70))
                 { shotTaken = true; yield return null; yield return null; if (!clips) yield return Capture("10-strong-collision"); }
                 yield return null;
             }

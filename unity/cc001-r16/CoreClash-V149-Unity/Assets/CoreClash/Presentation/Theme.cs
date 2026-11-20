@@ -25,28 +25,31 @@ namespace CoreClash.Presentation
         public const float P2RingFill=.62f;
 
         // Surfaces and text (HUD). Panel = white card, PanelLight = a cell inside a card.
-        public static readonly Color Background=C("#5d93ff"),BackdropTop=C("#4fa8ff"),BackdropBottom=C("#7c63f2"),Header=C("#3550c8"),
+        public static readonly Color Background=C("#5d93ff"),BackdropTop=C("#55b9ff"),BackdropBottom=C("#9a6cf5"),Header=C("#3550c8"),
             Panel=C("#ffffff"),PanelLight=C("#eef3ff"),PanelRaised=C("#dfe8ff"),
-            Edge=C("#d3dcf5"),EdgeStrong=C("#9eb0e6"),Plate=C("#1b2550"),Scrim=C("#141c44");
+            Edge=C("#d3dcf5"),EdgeStrong=C("#9eb0e6"),Plate=C("#ffffff"),Scrim=C("#141c44");
         public static readonly Color Text=C("#1b2550"),TextSoft=C("#3a4678"),Muted=C("#6c78a6"),Disabled=C("#a9b2d0"),Ink=C("#1b2550"),
-            OnColor=C("#ffffff"),PlateText=C("#ffffff"),PlateSoft=C("#c9d4f7");
+            OnColor=C("#ffffff"),PlateText=C("#1b2550"),PlateSoft=C("#6c78a6");
         public const int FontTitle=17,FontBody=13,FontSmall=11,FontTiny=9;
 
         // Meaning. Select is the bright amber for rings and fills; SelectInk is its text shade on white.
         public static readonly Color Select=C("#ffb81f"),SelectInk=C("#a86400"),Threat=C("#ff8a1f"),Damage=C("#ef3b54"),Heal=C("#1fb872"),Shield=C("#35a7ff"),Info=C("#8a63ff");
 
         // Arena: a deep tray, a light floor, white rim.
-        public static readonly Color BoardOuter=C("#27336e"),BoardLip=C("#3b4a95"),FloorEdge=C("#d7e3fb"),FloorCentre=C("#f5f9ff"),Rim=C("#ffffff"),Centre=C("#6f7fc4");
-        public const float ZoneFillNear=.34f,ZoneFillFar=.07f,ZonePattern=.1f,ZoneEdge=.9f,ZoneLabel=.75f;
-        public const float CentreRing=.55f,CentreFill=.5f,CentreLabel=.6f,MidLine=.28f,RimAlpha=1f;
+        public static readonly Color BoardOuter=C("#5a44b8"),BoardLip=C("#7c66dd"),FloorEdge=C("#ffeccb"),FloorCentre=C("#fff9ec"),Rim=C("#ffffff"),Centre=C("#e3a13a");
+        public const float ZoneFillNear=.42f,ZoneFillFar=.12f,ZonePattern=0f,ZoneEdge=.9f,ZoneLabel=.75f;
+        public const float CentreRing=.7f,CentreFill=.75f,CentreLabel=0f,MidLine=0f,RimAlpha=1f;
 
         // Balls.
         public const float OwnerGap=1.5f,SelectionRing=8f,BodyDark=.38f,BodyHighlight=.9f,ShadowAlpha=.3f;
         public const float WakeLength=64f,WakeAlpha=.3f;
         public const int WakeSteps=5;
         // W21: HP ring around the body, one segment per 5 HP (lost segments stay as a dim track).
-        public const float HpRing=5f,HpTrack=.3f,IconSize=1.24f;
+        public const float HpRing=5f,HpTrack=.55f,IconSize=1.36f;
         public static readonly Color HpGood=C("#ffffff"),HpHurt=C("#ffe07a"),HpCritical=C("#ffd0d6");
+        // W24 (owner decision): a ball's HP is read from its ring only; no number under the ball.
+        // The exact value stays in the ball details. Set to true to bring the number plate back.
+        public static readonly bool ShowHpNumber=false;
         public const float HpHurtBelow=.6f,HpCriticalBelow=.3f,PlateAlpha=.95f;
 
         // Statuses: one colour per kind, used by the chip, its glyph and its feedback.

@@ -177,13 +177,19 @@ namespace CoreClash.Presentation
             float fraction = ball.maxHp > 0 ? Mathf.Clamp01((float)ball.hp / ball.maxHp) : 1;
             bool critical = fraction < Theme.HpCriticalBelow;
             Color health = critical ? Theme.HpCritical : fraction < Theme.HpHurtBelow ? Theme.HpHurt : Theme.HpGood;
-            Draw.Chip(hp, team, critical ? Theme.Damage : Alpha(Theme.Ink, .9f));
-            Draw.Text(new Rect(hp.x, hp.y + 1, hp.width, hp.height), ball.hp.ToString(), font, new Color(0, 0, 0, .3f), TextAnchor.MiddleCenter, true);
-            Draw.Text(hp, ball.hp.ToString(), font, health, TextAnchor.MiddleCenter, true);
+            if (Theme.ShowHpNumber)
+            {
+                Draw.Chip(hp, team, critical ? Theme.Damage : Color.white);
+                Draw.Text(new Rect(hp.x, hp.y + 1, hp.width, hp.height), ball.hp.ToString(), font, new Color(0, 0, 0, .3f), TextAnchor.MiddleCenter, true);
+                Draw.Text(hp, ball.hp.ToString(), font, health, TextAnchor.MiddleCenter, true);
+            }
+            // Without the number, the shield plate is centred and the status row moves up into the free row.
+            float rowShift = Theme.ShowHpNumber ? 0 : (layout.RowHeight + Mathf.Max(1f, 1.5f * scale)) * (layout.Above ? 1 : -1);
+            float shieldShift = Theme.ShowHpNumber ? 0 : -(hp.width + Mathf.Max(1f, 1.5f * scale)) * .5f;
 
             if (layout.HasShield)
             {
-                var shield = RectOf(layout.Shield);
+                var shield = RectOf(layout.Shield); shield.x += shieldShift; if (!Theme.ShowHpNumber && layout.Chips.Length > 0) shield.x -= shield.width * .5f + 1;
                 Draw.Chip(shield, Alpha(Theme.Plate, Theme.PlateAlpha), Theme.Shield);
                 float glyph = shield.height - 3;
                 Glyphs.Paint(new Rect(shield.x + 2, shield.y + 1.5f, glyph, glyph), StatusKind.Shield, Theme.Shield);
@@ -191,7 +197,7 @@ namespace CoreClash.Presentation
             }
             foreach (var chip in layout.Chips)
             {
-                var box = RectOf(chip.Box);
+                var box = RectOf(chip.Box); if (layout.HasShield && !Theme.ShowHpNumber) box.x += RectOf(layout.Shield).width * .5f + 1; else box.y += rowShift;
                 Color tint = Theme.Status(chip.Kind);
                 Draw.Chip(box, Alpha(Theme.Plate, Theme.PlateAlpha), Alpha(tint, .95f));
                 float glyph = box.height - 3;
@@ -201,7 +207,7 @@ namespace CoreClash.Presentation
             }
             if (layout.Hidden > 0)
             {
-                var more = RectOf(layout.Overflow);
+                var more = RectOf(layout.Overflow); if (layout.HasShield && !Theme.ShowHpNumber) more.x += RectOf(layout.Shield).width * .5f + 1; else more.y += rowShift;
                 Draw.Chip(more, Alpha(Theme.Plate, Theme.PlateAlpha), Alpha(Theme.PlateSoft, .7f));
                 Draw.Text(new Rect(more.x, more.y - 1, more.width, more.height), "+" + layout.Hidden, font, Theme.PlateSoft, TextAnchor.MiddleCenter, true);
             }
@@ -252,10 +258,11 @@ namespace CoreClash.Presentation
             float radius = body.width * .5f, ring = Mathf.Max(2, Theme.HpRing * scale), gap = Mathf.Max(1, Theme.OwnerGap * scale);
             float outer = radius + gap + ring;
             Draw.Glow(new Vector2(center.x + scale, center.y + radius * .5f + 3 * scale), outer * 1.28f, new Color(.07f, .1f, .3f, Theme.ShadowAlpha));
-            Draw.Circle(Expand(body, gap + ring + Mathf.Max(1, 1.5f * scale)), Theme.Ink);
+            Draw.Circle(Expand(body, gap + ring + Mathf.Max(1.5f, 2.5f * scale)), Alpha(Theme.Ink, .28f));
+            Draw.Circle(Expand(body, gap + ring + Mathf.Max(1, 1.6f * scale)), Color.white);
             if (pip != 0) OwnerPip(center, outer, pip, pipSize, Alpha(team, ringAlpha));
-            Draw.Segments(center, outer, Alpha(Color.Lerp(team, Color.white, .55f), Theme.HpTrack * ringAlpha), ring, segments, segments);
-            if (lostLit > lit && lostFade > 0) Draw.Segments(center, outer, Alpha(Color.white, lostFade), ring, segments, lostLit);
+            Draw.Segments(center, outer, Alpha(new Color(.8f, .83f, .92f), Theme.HpTrack * ringAlpha), ring, segments, segments);
+            if (lostLit > lit && lostFade > 0) Draw.Segments(center, outer, Alpha(Theme.Damage, lostFade), ring, segments, lostLit);
             Draw.Segments(center, outer, Alpha(team, ringAlpha), ring, segments, lit);
             DrawBody(body, definition);
         }

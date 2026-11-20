@@ -222,9 +222,12 @@ namespace CoreClash.Presentation
             foreach(var p in AimGuide.StrokeStamps(new AimPoint(a.x,a.y),new AimPoint(b.x,b.y),width,0,0,Mathf.Max(.5f,width*.5f),512))
                 Circle(new Rect(p.x-width*.5f,p.y-width*.5f,width,width),color);
         }
+        // W24: a rounded system typeface when the device has one; otherwise the built-in font.
+        static Font friendly;static bool fontTried;
+        static Font Friendly(){if(!fontTried){fontTried=true;try{var installed=new HashSet<string>(Font.GetOSInstalledFontNames());foreach(string name in new[]{"Arial Rounded MT Bold","Nunito","Varela Round","Quicksand","Segoe UI Semibold","Roboto Medium","Segoe UI"})if(installed.Contains(name)){friendly=Font.CreateDynamicFontFromOSFont(name,16);break;}}catch(System.Exception){friendly=null;}}return friendly;}
         static GUIStyle LabelStyle(int size,TextAnchor align,bool bold)
         {
-            int key=size*100+(int)align*2+(bold?1:0);if(!labels.TryGetValue(key,out var style)){style=new GUIStyle(GUI.skin.label){fontSize=size,alignment=align,wordWrap=true,richText=false,fontStyle=bold?FontStyle.Bold:FontStyle.Normal,padding=new RectOffset(0,0,0,0)};labels[key]=style;}return style;
+            int key=size*100+(int)align*2+(bold?1:0);if(!labels.TryGetValue(key,out var style)){style=new GUIStyle(GUI.skin.label){font=Friendly()??GUI.skin.label.font,fontSize=size,alignment=align,wordWrap=true,richText=false,fontStyle=bold?FontStyle.Bold:FontStyle.Normal,padding=new RectOffset(0,0,0,0)};labels[key]=style;}return style;
         }
         public static float TextHeight(string text,float width,int size,bool bold=false)=>Mathf.Ceil(LabelStyle(size,TextAnchor.UpperLeft,bold).CalcHeight(new GUIContent(text),Mathf.Max(1,width)))+3;
         public static void Text(Rect r,string text,int size,Color color,TextAnchor align=TextAnchor.UpperLeft,bool bold=false)

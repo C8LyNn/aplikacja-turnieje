@@ -19,7 +19,7 @@ namespace CoreClash.Presentation
             bool shortView=UiHeight<440;float width=Math.Min(1120,UiWidth-(UiWidth<500?24:40)),left=(UiWidth-width)/2;bool wide=width>700||(UiHeight<600&&width>520);int columns=wide?2:1;float gap=14,cardH=shortView?184:UiViewport.TargetSize>=44?214:UiHeight<700?170:198;
             float playersY=68,playersH=wide?76:140,titleY=playersY+playersH+12,listY=titleY+(wide?56:50);
             if(shortView){titleY=66;listY=118;}else{PlayerChoice(0,new Rect(left,playersY,wide?(width-16)/2:width,wide?76:64));PlayerChoice(1,new Rect(wide?left+(width+16)/2:left,wide?playersY:playersY+76,wide?(width-16)/2:width,wide?76:64));}
-            Heading(new Rect(left,titleY,width,28),"PICK YOUR DECKS",wide?24:19);
+            Heading(new Rect(left,titleY,width,28),"Pick your decks",wide?24:19);
             Draw.Text(new Rect(left,titleY+(wide?31:27),width,22),DeveloperRoster?"DEVELOPER ROSTER (F2): frozen balls and legacy decks are available for testing.":"Four ways to bend the rules. One deck for each player.",wide?13:12,DeveloperRoster?Theme.Select:OnBackdropSoft,TextAnchor.UpperLeft,true);
             var setupDecks=SetupDecks;
             float listH=Math.Max(32,UiHeight-listY-80),rows=(float)Math.Ceiling(setupDecks.Length/(float)columns);
@@ -29,10 +29,10 @@ namespace CoreClash.Presentation
             GUI.EndScrollView();
             // Footer: play, all decks, and the effects setting (full or reduced motion).
             float foot=UiHeight-68,fxW=wide?168:52,primary=wide?Math.Min(440,width*.44f):(width-fxW-16)*.56f,rest=width-primary-fxW-16;
-            if(Draw.Button(new Rect(left,foot,primary,52),wide?"START LOCAL MATCH":"START MATCH",Go,true,size:wide?17:14))StartLocalMatch();
-            if(Draw.Button(new Rect(left+primary+8,foot,rest,52),wide?"ALL DECKS / DECK BUILDER":"ALL DECKS",size:wide?14:12)){library=true;presetScroll=Vector2.zero;}
+            if(Draw.Button(new Rect(left,foot,primary,52),"Play!",Go,true,size:wide?17:14))StartLocalMatch();
+            if(Draw.Button(new Rect(left+primary+8,foot,rest,52),wide?"All decks & builder":"All decks",size:wide?14:12)){library=true;presetScroll=Vector2.zero;}
             var fx=new Rect(left+width-fxW,foot,fxW,52);
-            if(wide?Draw.Button(fx,Fx.ReducedMotion?"EFFECTS: REDUCED":"EFFECTS: FULL",Theme.Info,!Fx.ReducedMotion,true,12):Draw.IconButton(fx,Fx.Star,Theme.Info,!Fx.ReducedMotion))Fx.SetReducedMotion(!Fx.ReducedMotion);
+            if(wide?Draw.Button(fx,Fx.ReducedMotion?"Effects: calm":"Effects: full",Theme.Info,!Fx.ReducedMotion,true,12):Draw.IconButton(fx,Fx.Star,Theme.Info,!Fx.ReducedMotion))Fx.SetReducedMotion(!Fx.ReducedMotion);
         }
         void PlayerChoice(int owner,Rect r)
         {
@@ -47,7 +47,7 @@ namespace CoreClash.Presentation
             Draw.Text(new Rect(x,r.y+8,r.xMax-x-actionW-18,22),deck.name,r.width<420?14:16,Theme.Text,TextAnchor.MiddleLeft,true);
             float step=Math.Min(24,(r.xMax-x-actionW-22)/9);
             for(int i=0;i<9&&i<deck.balls.Length;i++)BallView.Preview(new Rect(x+2+i*step,r.y+(r.height>70?41:36),r.height>70?18:15,r.height>70?18:15),Catalog.Ball(deck.balls[i]),owner);
-            if(Draw.Button(new Rect(r.xMax-actionW-10,r.y+(r.height-actionH)/2,actionW,actionH),"EDIT DECK",color,size:12))OpenBuilder(owner);
+            if(Draw.Button(new Rect(r.xMax-actionW-10,r.y+(r.height-actionH)/2,actionW,actionH),"Edit",color,size:12))OpenBuilder(owner);
         }
         void FeaturedCard(DeckDefinition deck,int index,Rect r)
         {
@@ -65,14 +65,14 @@ namespace CoreClash.Presentation
             float orb=Math.Min(compact?28:34,(r.width-48)/10.5f),step=(r.width-32-orb)/8,orbY=r.yMax-actionH-18-orb-(compact?4:8);
             for(int i=0;i<9;i++)BallView.Preview(new Rect(r.x+16+i*step,orbY,orb,orb),Catalog.Ball(deck.balls[i]),0);
             float buttonW=(r.width-44)/2;
-            if(Draw.Button(new Rect(r.x+16,r.yMax-actionH-12,buttonW,actionH),"PLAYER 1",Draw.Cyan,chosen[0].id==deck.id,size:13))SelectDeck(0,deck.id);
-            if(Draw.Button(new Rect(r.x+28+buttonW,r.yMax-actionH-12,buttonW,actionH),"PLAYER 2",Draw.Pink,chosen[1].id==deck.id,size:13))SelectDeck(1,deck.id);
+            if(Draw.Button(new Rect(r.x+16,r.yMax-actionH-12,buttonW,actionH),"Player 1",Draw.Cyan,chosen[0].id==deck.id,size:13))SelectDeck(0,deck.id);
+            if(Draw.Button(new Rect(r.x+28+buttonW,r.yMax-actionH-12,buttonW,actionH),"Player 2",Draw.Pink,chosen[1].id==deck.id,size:13))SelectDeck(1,deck.id);
         }
         void OpenBuilder(int owner){builder=true;builderOwner=owner;custom=chosen[owner].balls.ToList();search="";rosterScroll=Vector2.zero;}
         void RenderLibrary()
         {
-            bool shortView=UiHeight<440;float left=24,width=UiWidth-48;Heading(new Rect(left,78,width-(shortView?360:110),30),"ALL DECKS",shortView?18:25);
-            if(Draw.Button(new Rect(UiWidth-120,76,96,UiViewport.TargetSize),"BACK"))library=false;
+            bool shortView=UiHeight<440;float left=24,width=UiWidth-48;Heading(new Rect(left,78,width-(shortView?360:110),30),"All decks",shortView?18:25);
+            if(Draw.Button(new Rect(UiWidth-120,76,96,UiViewport.TargetSize),"Back"))library=false;
             var decks=LibraryDecks;
             string helper=ActiveRosterOnly?"Ready-made decks from the active roster. Build your own nine-ball deck.":"All canonical presets and every ball remain here. Build your own nine-ball deck.";
             float helperH=Math.Max(27,Draw.TextHeight(helper,width,13)),playersY=124+helperH+11;
@@ -90,7 +90,7 @@ namespace CoreClash.Presentation
                 if(Draw.Button(SetupRect(row.Player1,y),"P1",Draw.Cyan,chosen[0].id==deck.id))SelectDeck(0,deck.id);
                 if(Draw.Button(SetupRect(row.Player2,y),"P2",Draw.Pink,chosen[1].id==deck.id))SelectDeck(1,deck.id);
                 y+=row.Height+8;
-            }GUI.EndScrollView();if(Draw.Button(new Rect(left,UiHeight-68,width,52),"START LOCAL MATCH",Go,true,size:16))StartLocalMatch();
+            }GUI.EndScrollView();if(Draw.Button(new Rect(left,UiHeight-68,width,52),"Play!",Go,true,size:16))StartLocalMatch();
         }
         static Rect SetupRect(UiBox box,float y)=>new Rect(box.x,box.y+y,box.width,box.height);
         static readonly RosterReadinessFilter[] RosterFilters={RosterReadinessFilter.All,RosterReadinessFilter.ReadyOnly,RosterReadinessFilter.ReadyOrPartial};
@@ -106,7 +106,7 @@ namespace CoreClash.Presentation
         {
             bool shortView=UiHeight<440;float left=24,width=UiWidth-48;Color team=Draw.Owner(builderOwner);string title="PLAYER "+(builderOwner+1)+" / DECK BUILDER";int titleSize=width<500?16:24;
             float titleH=Math.Max(32,Draw.TextHeight(title,width-120,titleSize,true));Heading(new Rect(left,77,width-120,titleH),title,titleSize);
-            if(Draw.Button(new Rect(UiWidth-120,76,96,UiViewport.TargetSize),"BACK"))builder=false;
+            if(Draw.Button(new Rect(UiWidth-120,76,96,UiViewport.TargetSize),"Back"))builder=false;
             bool activeOnly=ActiveRosterOnly;
             // A deck carried over from the developer roster may hold frozen balls; normal play drops them.
             if(activeOnly)custom.RemoveAll(id=>!Catalog.IsActive(id));
@@ -134,7 +134,7 @@ namespace CoreClash.Presentation
                 ReadinessChip(RectOf(cl.Badge),RosterReadiness.Badge(Catalog,d.id));
                 if(Draw.Button(RectOf(cl.Info),"i",size:15))ShowBallDetails(d.id);
             }GUI.EndScrollView();
-            if(Draw.Button(new Rect(left,UiHeight-66,width,50),"USE THIS DECK",Go,true,custom.Count==9,15)){chosen[builderOwner]=new DeckDefinition{id="custom_"+builderOwner,name="Custom Deck / Player "+(builderOwner+1),balls=custom.ToArray(),description="A deck you created."};builder=false;}
+            if(Draw.Button(new Rect(left,UiHeight-66,width,50),"Use this deck",Go,true,custom.Count==9,15)){chosen[builderOwner]=new DeckDefinition{id="custom_"+builderOwner,name="Custom Deck / Player "+(builderOwner+1),balls=custom.ToArray(),description="A deck you created."};builder=false;}
         }
     }
 }

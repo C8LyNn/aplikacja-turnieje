@@ -30,8 +30,8 @@ namespace CoreClash.Presentation
             var remoteVisual=NetworkLink!=null&&!NetworkLink.IsAuthority&&NetworkLink.IsConnected?remoteBallSmoother:null;
             BoardView.Render(board,Simulation,gesture,Catalog.Ball(selected),feedback,remoteVisual,ViewOwner,gesture.Active?replayId:0);
             if(layout.CompactLandscape){RenderCompactLandscape();RenderResult();return;}
-            if(layout.PhonePortrait){ScoreStrip(RectOf(layout.PhoneStrip));RenderPhoneTray();RenderResult();return;}
-            if(layout.Portrait){ScoreStrip(new Rect(12,66,UiWidth-24,44));Draw.Label(new Rect(12,111,UiWidth-24,14),TurnText(),11,Theme.OnColor,TextAnchor.MiddleCenter,true);}
+            if(layout.PhonePortrait){RenderPhoneTray();RenderResult();return;}
+            if(layout.Portrait){ScoreStrip(new Rect(12,66,UiWidth-24,44));Draw.Label(new Rect(12,111,UiWidth-24,14),Soft(TurnText()),11,Theme.OnColor,TextAnchor.MiddleCenter,true);}
             RenderSidePanel(displayOwner,visualOwner);
             RenderResult();
         }
@@ -45,10 +45,10 @@ namespace CoreClash.Presentation
             ScorePill(new Rect(r.x,r.y,w,r.height),0);
             ScorePill(new Rect(r.xMax-w,r.y,w,r.height),1);
             var badge=new Rect(r.x+w+gap,r.y,mid,r.height);
-            Draw.Shadow(badge,.16f,6,3);Draw.Round(badge,Theme.Plate);
-            Draw.Text(new Rect(badge.x,badge.y+3,badge.width,13),over?"RESULT":"TURN",9,Theme.PlateSoft,TextAnchor.MiddleCenter,true);
+            Draw.Shadow(badge,.16f,6,3);Draw.Round(badge,Theme.Ink);
+            Draw.Text(new Rect(badge.x,badge.y+3,badge.width,13),over?"Result":"Turn",9,new Color(1,1,1,.75f),TextAnchor.MiddleCenter,true);
             string big=over?(state.winner<0?"DRAW":"P"+(state.winner+1)):state.turnNumber+"/50";
-            Draw.Text(new Rect(badge.x,badge.y+14,badge.width,badge.height-16),big,badge.height>=44?16:14,over?Theme.Select:Theme.PlateText,TextAnchor.MiddleCenter,true);
+            Draw.Text(new Rect(badge.x,badge.y+14,badge.width,badge.height-16),big,badge.height>=44?16:14,over?Theme.Select:Theme.OnColor,TextAnchor.MiddleCenter,true);
         }
         void ScorePill(Rect cell,int owner)
         {
@@ -90,7 +90,7 @@ namespace CoreClash.Presentation
                 // Turn ribbon in the acting player's colour.
                 var turn=RectOf(rows.Turn);Color ribbon=over?Theme.Select:Draw.Owner(state.turn);
                 Draw.Round(turn,over?Theme.SelectInk:Theme.TeamDeep(state.turn));Draw.Round(new Rect(turn.x,turn.y,turn.width,turn.height-3),ribbon);
-                string status=TurnText();int cut=status.IndexOf("     ",StringComparison.Ordinal);
+                string status=Soft(TurnText());int cut=status.IndexOf("     ",StringComparison.Ordinal);
                 Color onRibbon=over?Theme.Ink:Theme.OnColor;
                 if(cut<0)Draw.Text(new Rect(turn.x+14,turn.y,turn.width-26,turn.height-3),status,status.Length>22?13:17,onRibbon,TextAnchor.MiddleLeft,true);
                 else
@@ -108,24 +108,24 @@ namespace CoreClash.Presentation
             BallView.Preview(new Rect(strip.x+15+(strip.height-(rows.Tight?22:26)-orb)/2,strip.y+(strip.height-orb)/2,orb,orb),d,visualOwner,true);
             float textX=strip.x+(strip.height-(rows.Tight?22:26))+32,textWidth=strip.xMax-textX-10;
             Draw.Text(new Rect(textX,strip.y+(rows.Tight?5:7),textWidth,22),BallIcons.Name(d),rows.Tight?16:19,Theme.Text,TextAnchor.MiddleLeft,true);
-            string stockText=selected=="normal"?"UNLIMITED":LocalDeckContent.StockLabel(Simulation,displayOwner,selected);
+            string stockText=selected=="normal"?"unlimited":LocalDeckContent.StockLabel(Simulation,displayOwner,selected);
             string facts=(string.IsNullOrEmpty(d.archetype)||d.archetype=="base"?"":d.archetype.ToUpperInvariant()+"  ·  ")+d.hp+" HP  ·  "+stockText;
             Draw.Text(new Rect(textX,strip.y+(rows.Tight?27:30),textWidth,16),facts,Theme.FontSmall,Theme.SelectInk,TextAnchor.MiddleLeft,true);
             if(!rows.Tight)Draw.Text(new Rect(textX,strip.y+47,textWidth,16),Cue(selected),Theme.FontSmall,Theme.Muted,TextAnchor.MiddleLeft);
-            string deckHeading=NetworkLink==null?"ACTIVE DECK":displayOwner<0?"DECK UNAVAILABLE":"YOUR DECK";
+            string deckHeading=NetworkLink==null?"Deck":displayOwner<0?"Deck unavailable":"Your deck";
             var heading=RectOf(rows.Heading);
             Draw.Text(heading,deckHeading,10,Theme.Muted,TextAnchor.MiddleLeft,true);
-            if(!UiViewport.IsTouch&&heading.width>=330)Draw.Text(heading,"KEYS 1-9  ·  0 STANDARD",Theme.FontTiny,Theme.Disabled,TextAnchor.MiddleRight,true);
+            if(!UiViewport.IsTouch&&heading.width>=330)Draw.Text(heading,"Keys 1-9  ·  0 Standard",Theme.FontTiny,Theme.Disabled,TextAnchor.MiddleRight,true);
             var ids=LocalDeckContent.StockIds(state,displayOwner);
             for(int i=0;i<ids.Length&&i<rows.Cards.Length;i++)BallCard(RectOf(rows.Cards[i]),ids[i]);
             bool normalSelected=selected=="normal";var standard=RectOf(rows.Standard);
-            if(Draw.Button(standard,"STANDARD  ·  UNLIMITED",Draw.Owner(visualOwner),normalSelected,CanChoose,12))SelectBall("normal");
+            if(Draw.Button(standard,"Standard  ·  unlimited",Draw.Owner(visualOwner),normalSelected,CanChoose,12))SelectBall("normal");
             BallView.Preview(new Rect(standard.x+13,standard.y+(standard.height-4-20)/2,20,20),Catalog.Ball("normal"),visualOwner,false);
             bool touch=UiViewport.TargetSize>=44;int actionFont=rows.Width<380?10:touch?12:11;
-            if(Draw.Button(RectOf(rows.Actions[0]),"DETAILS",size:actionFont))ShowBallDetails(selected);
-            if(Draw.Button(RectOf(rows.Actions[1]),boardInspection?"CANCEL":"INSPECT",Theme.Info,boardInspection,true,actionFont))SetBoardInspection(!boardInspection);
-            if(Draw.Button(RectOf(rows.Actions[2]),BoardView.ShowStopEstimate?"STOP MARK ON":"STOP MARK OFF",Theme.Select,BoardView.ShowStopEstimate,true,actionFont))ToggleStopEstimate();
-            if(Draw.Button(RectOf(rows.Actions[3]),"SETUP",size:actionFont))RequestLeaveMatch();
+            if(Draw.Button(RectOf(rows.Actions[0]),"Details",size:actionFont))ShowBallDetails(selected);
+            if(Draw.Button(RectOf(rows.Actions[1]),boardInspection?"Cancel":"Inspect",Theme.Info,boardInspection,true,actionFont))SetBoardInspection(!boardInspection);
+            if(Draw.Button(RectOf(rows.Actions[2]),BoardView.ShowStopEstimate?"Stop mark: on":"Stop mark: off",Theme.Select,BoardView.ShowStopEstimate,true,actionFont))ToggleStopEstimate();
+            if(Draw.Button(RectOf(rows.Actions[3]),"Leave",size:actionFont))RequestLeaveMatch();
             string hint=boardInspection?"TAP A BALL TO INSPECT":over?(state.winner<0?"DRAW":("PLAYER "+(state.winner+1)+" WINS")):
                 LocalTurnPresentation.ActionHint(state,NetworkLink==null?-1:NetworkLink.LocalOwner,
                     NetworkLink!=null,NetworkLink==null||NetworkLink.IsConnected,gesture.Active,
@@ -140,7 +140,7 @@ namespace CoreClash.Presentation
             else detail=state.bonusPending?"Player 2 gets one extra spawn on the opening turn.":"A glowing home ball can Replay before you spawn.";
             var hintBox=RectOf(rows.Hint);
             Draw.Round(hintBox,Theme.PanelLight);
-            Draw.Text(new Rect(hintBox.x+10,hintBox.y+3,hintBox.width-20,17),hint,12,active,TextAnchor.MiddleLeft,true);
+            Draw.Text(new Rect(hintBox.x+10,hintBox.y+3,hintBox.width-20,17),Soft(hint),13,active,TextAnchor.MiddleLeft,true);
             Draw.Text(new Rect(hintBox.x+10,hintBox.y+20,hintBox.width-20,hintBox.height-22),detail??"",rows.Tight?10:11,result?Theme.Text:Theme.Muted,TextAnchor.UpperLeft,result);
             if(rows.Scrolls)GUI.EndScrollView();else GUI.EndGroup();
         }
@@ -178,8 +178,8 @@ namespace CoreClash.Presentation
                 LocalTurnPresentation.ActionMessage(state,NetworkLink==null?-1:NetworkLink.LocalOwner,
                     NetworkLink!=null,NetworkLink==null||NetworkLink.IsConnected,gesture.Active,
                     gesture.AimX-gesture.OriginX,gesture.AimY-gesture.OriginY,"DRAG FROM LAUNCHER",notice);
-            Draw.Text(new Rect(textX,choice.y+23,choice.xMax-textX-136,19),hint,11,Theme.Muted,TextAnchor.MiddleLeft,true);
-            if(Draw.Button(new Rect(choice.xMax-128,choice.y,128,44),"STANDARD",Draw.Owner(tintOwner),selected=="normal",CanChoose,12))SelectBall("normal");
+            Draw.Text(new Rect(textX,choice.y+23,choice.xMax-textX-136,19),Soft(hint),11,Theme.Muted,TextAnchor.MiddleLeft,true);
+            if(Draw.Button(new Rect(choice.xMax-128,choice.y,128,44),"Standard",Draw.Owner(tintOwner),selected=="normal",CanChoose,12))SelectBall("normal");
 
             if(over){
                 Draw.Round(cards,Color.Lerp(Theme.Panel,Theme.Select,.25f));
@@ -192,17 +192,17 @@ namespace CoreClash.Presentation
             }
 
             float actionW=(actions.width-12)/4;
-            if(Draw.Button(new Rect(actions.x,actions.y,actionW,44),"DETAILS",size:12))ShowBallDetails(selected);
-            if(Draw.Button(new Rect(actions.x+actionW+4,actions.y,actionW,44),boardInspection?"CANCEL":"INSPECT",Theme.Info,boardInspection,true,12))SetBoardInspection(!boardInspection);
-            if(Draw.Button(new Rect(actions.x+2*(actionW+4),actions.y,actionW,44),BoardView.ShowStopEstimate?"STOP ON":"STOP OFF",Theme.Select,BoardView.ShowStopEstimate,true,12))ToggleStopEstimate();
-            if(Draw.Button(new Rect(actions.x+3*(actionW+4),actions.y,actionW,44),"SETUP",size:12))RequestLeaveMatch();
+            if(Draw.Button(new Rect(actions.x,actions.y,actionW,44),"Details",size:12))ShowBallDetails(selected);
+            if(Draw.Button(new Rect(actions.x+actionW+4,actions.y,actionW,44),boardInspection?"Cancel":"Inspect",Theme.Info,boardInspection,true,12))SetBoardInspection(!boardInspection);
+            if(Draw.Button(new Rect(actions.x+2*(actionW+4),actions.y,actionW,44),BoardView.ShowStopEstimate?"Stop: on":"Stop: off",Theme.Select,BoardView.ShowStopEstimate,true,12))ToggleStopEstimate();
+            if(Draw.Button(new Rect(actions.x+3*(actionW+4),actions.y,actionW,44),"Leave",size:12))RequestLeaveMatch();
             if(feedbackRow.height>=20){
                 string message=over?TurnText():
                     boardInspection?"CANCEL INSPECT TO AIM":
                     LocalTurnPresentation.ActionMessage(state,NetworkLink==null?-1:NetworkLink.LocalOwner,
                         NetworkLink!=null,NetworkLink==null||NetworkLink.IsConnected,gesture.Active,
                         gesture.AimX-gesture.OriginX,gesture.AimY-gesture.OriginY,"SELECT A BALL AND DRAG TO AIM",notice);
-                Draw.Text(feedbackRow,message,12,over?Theme.SelectInk:Theme.TeamDeep(owner),TextAnchor.MiddleLeft,true);
+                Draw.Text(feedbackRow,Soft(message),12,over?Theme.SelectInk:Theme.TeamDeep(owner),TextAnchor.MiddleLeft,true);
             }
         }
 
@@ -218,7 +218,7 @@ namespace CoreClash.Presentation
             float orb=30*SelectPulse();
             BallView.Preview(new Rect(inner.x+20-orb/2,y+21-orb/2,orb,orb),d,tintOwner,true);
             Draw.Text(new Rect(inner.x+44,y+2,textW-44,22),owner<0?"DECK UNAVAILABLE":BallIcons.Name(d),15,Theme.Text,TextAnchor.MiddleLeft,true);
-            string stock=selected=="normal"?"UNLIMITED":LocalDeckContent.StockLabel(Simulation,owner,selected);
+            string stock=selected=="normal"?"unlimited":LocalDeckContent.StockLabel(Simulation,owner,selected);
             Draw.Text(new Rect(inner.x+44,y+23,textW-44,17),d.hp+" HP · "+stock,10,Theme.Muted,TextAnchor.MiddleLeft,true);
             float bx=inner.xMax-buttonsW;
             if(Draw.IconButton(new Rect(bx,y,button,button),IconInfo))ShowBallDetails(selected);
@@ -240,7 +240,21 @@ namespace CoreClash.Presentation
                 LocalTurnPresentation.ActionMessage(state,NetworkLink==null?-1:NetworkLink.LocalOwner,
                     NetworkLink!=null,NetworkLink==null||NetworkLink.IsConnected,gesture.Active,
                     gesture.AimX-gesture.OriginX,gesture.AimY-gesture.OriginY,"DRAG FROM YOUR LAUNCHER TO AIM",notice);
-            Draw.Text(new Rect(inner.x,inner.yMax-hintH,inner.width,hintH),hint,10,over?Theme.SelectInk:Theme.TeamDeep(state.turn),TextAnchor.MiddleCenter,true);
+            Draw.Text(new Rect(inner.x,inner.yMax-hintH,inner.width,hintH),(over?"":"Turn "+state.turnNumber+"  ·  ")+Soft(hint),11,over?Theme.SelectInk:Theme.TeamDeep(state.turn),TextAnchor.MiddleCenter,true);
+        }
+        // W24: sentence case reads friendlier than capitals. Display only; the source strings are unchanged.
+        static string Soft(string text)
+        {
+            if(string.IsNullOrEmpty(text))return text??"";
+            var chars=text.ToLowerInvariant().ToCharArray();bool start=true;
+            for(int i=0;i<chars.Length;i++)
+            {
+                if(start&&char.IsLetter(chars[i])){chars[i]=char.ToUpperInvariant(chars[i]);start=false;}
+                else if(chars[i]=='·'||chars[i]=='.'||chars[i]=='!')start=true;
+                else if(!char.IsWhiteSpace(chars[i]))start=false;
+                if(chars[i]=='p'&&i+1<chars.Length&&(chars[i+1]=='1'||chars[i+1]=='2')&&(i==0||!char.IsLetter(chars[i-1])))chars[i]='P';
+            }
+            return new string(chars).Replace(" hp"," HP").Replace("player","Player");
         }
         string TurnText()=>LocalTurnPresentation.Status(Simulation.State,NetworkLink==null?-1:NetworkLink.LocalOwner,
             NetworkLink!=null,NetworkLink==null||NetworkLink.IsConnected);
@@ -275,9 +289,9 @@ namespace CoreClash.Presentation
             if(!available)Draw.Round(new Rect(face.x+2,face.y+2,face.width-4,face.height-7),new Color(1,1,1,.66f));
             // Stock badge in the corner: how many are left, a loop for the unlimited Standard, H for a ball in hand.
             var badge=new Rect(face.xMax-24,face.y+3,21,15);
-            Draw.Chip(badge,handReady?Theme.Select:available?Theme.Plate:Theme.Disabled);
-            if(standard)Glyphs.Paint(new Rect(badge.center.x-7,badge.center.y-7,14,14),IconEndless,Theme.PlateText);
-            else Draw.Text(new Rect(badge.x,badge.y-1,badge.width,badge.height),handReady?"H":stock.ToString(),10,handReady?Theme.Ink:Theme.PlateText,TextAnchor.MiddleCenter,true);
+            Draw.Chip(badge,handReady?Theme.Select:available?Theme.Ink:Theme.Disabled);
+            if(standard)Glyphs.Paint(new Rect(badge.center.x-7,badge.center.y-7,14,14),IconEndless,Theme.OnColor);
+            else Draw.Text(new Rect(badge.x,badge.y-1,badge.width,badge.height),handReady?"H":stock.ToString(),10,handReady?Theme.Ink:Theme.OnColor,TextAnchor.MiddleCenter,true);
         }
 
         // Deck card. Tall cards stack orb / name / cue; short ones put the orb on the left

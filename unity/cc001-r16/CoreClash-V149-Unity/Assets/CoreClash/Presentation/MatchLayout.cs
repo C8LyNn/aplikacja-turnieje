@@ -27,11 +27,11 @@ namespace CoreClash.Presentation
         // same geometry that the managed presentation tests can inspect.
         public bool CompactLandscape;
         public UiBox CompactHud,CompactChoice,CompactCards,CompactActions,CompactFeedback;
-        // W24 phone portrait: the score strip sits in the top bar (next to the menu button), so
-        // the arena starts right under it and is as wide as the tray's fixed height allows.
+        // W24 phone portrait: no top bar at all. The arena starts at the top edge and is as large
+        // as the screen allows; base HP is shown on the arena itself (bars and numbers on the walls).
         public bool PhonePortrait;
         public UiBox PhoneStrip;
-        public const float PhoneTray=212f,PhoneMenu=52f;
+        public const float PhoneTray=186f,PhoneMenu=52f;
         public static MatchLayout For(float width,float height)=>For(width,height,DeviceProfile.Desktop);
         public static MatchLayout For(float width,float height,DeviceProfile profile)
         {
@@ -58,7 +58,7 @@ namespace CoreClash.Presentation
                 return layout;
             }
             if(layout.Portrait&&profile==DeviceProfile.Phone){
-                float top=64f,h=Math.Min(height>=600?height-top-PhoneTray-14f:(height-146f)*.52f,(width-20f)/.6f),w=h*.6f;
+                float top=6f,h=Math.Min(height>=600?height-top-PhoneTray-12f:(height-146f)*.52f,(width-8f)/.6f),w=h*.6f;
                 layout.PhonePortrait=true;
                 layout.PhoneStrip=new UiBox(8f,8f,Math.Max(120f,width-16f-PhoneMenu),44f);
                 layout.Board=new UiBox((width-w)/2,top,w,h);

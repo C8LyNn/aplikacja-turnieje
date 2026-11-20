@@ -26,7 +26,7 @@ namespace CoreClash.Presentation
             Rect area=board.width>=280?board:new Rect(0,60,UiWidth,UiHeight-60);
             if(resultHidden)
             {
-                if(Draw.Button(new Rect(area.center.x-70,area.y+10,140,40),"SHOW RESULT",Theme.Select,true,true,12))resultHidden=false;
+                if(Draw.Button(new Rect(area.center.x-70,area.y+10,140,40),"Show result",Theme.Select,true,true,12))resultHidden=false;
                 return;
             }
             float t=Fx.ReducedMotion?1:Mathf.Clamp01((now-resultAt)/Theme.ResultRise),ease=1-(1-t)*(1-t)*(1-t);
@@ -65,8 +65,8 @@ namespace CoreClash.Presentation
                 Draw.Text(new Rect(cell.x+28,cell.y,cell.width-36,cell.height),state.players[owner].hp+" / 20",14,Theme.Text,TextAnchor.MiddleRight,true);
             }
             float buttonY=card.yMax-5-44-10,buttonW=local?(card.width-36)/2:card.width-24;
-            if(local&&Draw.Button(new Rect(card.x+12,buttonY,buttonW,44),"PLAY AGAIN",tint,true,true,14))StartLocalMatch();
-            if(Draw.Button(new Rect(local?card.x+24+buttonW:card.x+12,buttonY,buttonW,44),local?"DECKS":"LEAVE",size:14))RequestLeaveMatch();
+            if(local&&Draw.Button(new Rect(card.x+12,buttonY,buttonW,44),"Play again",tint,true,true,14))StartLocalMatch();
+            if(Draw.Button(new Rect(local?card.x+24+buttonW:card.x+12,buttonY,buttonW,44),local?"Decks":"Leave",size:14))RequestLeaveMatch();
             if(Draw.Button(new Rect(card.xMax-40,card.y+6,32,24),"×",size:14))resultHidden=true;
         }
     }
