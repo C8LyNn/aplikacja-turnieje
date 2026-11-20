@@ -27,6 +27,18 @@ export function experimentalDraftNextStep<T extends { kind: string; title: strin
   step: T | null | undefined,
   input: { tournamentStatus?: string; participantCount: number | null | undefined; tournamentId: number },
 ) {
+  const entrants = draftEntrantsStep(step, input);
+  return entrants === step ? experimentalNextStep(step) : entrants;
+}
+
+/**
+ * QW-04 · the same rule without the Experimental wording, for the Stable host's "Co teraz?": a draft with fewer
+ * than 2 participants asks for participants instead of showing stage-consistency diagnostics.
+ */
+export function draftEntrantsStep<T extends { kind: string; title: string }>(
+  step: T | null | undefined,
+  input: { tournamentStatus?: string; participantCount: number | null | undefined; tournamentId: number },
+) {
   const count = input.participantCount;
   if (input.tournamentStatus === "draft" && count != null && count < 2 && step && ["stage_preparation", "not_ready", "planned_stage"].includes(step.kind)) {
     return {
@@ -40,5 +52,5 @@ export function experimentalDraftNextStep<T extends { kind: string; title: strin
       actionHref: `/tournaments/${input.tournamentId}?tab=players`,
     };
   }
-  return experimentalNextStep(step);
+  return step;
 }

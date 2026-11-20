@@ -72,7 +72,7 @@ for (const surface of ["Host", "Detail", "Etapy"] as const) {
     await waitFor(() => assert.match(step().textContent ?? "", /Wykonaj routing/));
     state.routed = true; await refresh();
     await waitFor(() => assert.match(step().textContent ?? "", /Finał QA.*Rozpocznij etap/));
-    assert.equal(within(step()).getByRole("link", { name: "Rozpocznij etap" }).getAttribute("href"), "/tournaments/1?tab=stages&stage=2&action=start");
+    assert.equal(within(step()).getByRole("link", { name: "Rozpocznij etap" }).getAttribute("href"), `/tournaments/1?tab=stages&stage=2&action=start${surface === "Host" ? "&return=host" : ""}`); // QW-04: from the host, back to the host
   });
 }
 

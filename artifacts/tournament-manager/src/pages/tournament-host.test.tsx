@@ -760,7 +760,7 @@ test("Host advances from a completed no-contest match after the refreshed state"
   await user.click(screen.getByRole("button", { name: "Zapisz brak rozstrzygnięcia" }));
   // RR allows no-contest; its last completed match leads to stage completion.
   const nextStep = await screen.findByRole("region", { name: "Sprawdź zakończenie etapu" });
-  assert.equal(within(nextStep).getByRole("link", { name: "Zakończ etap" }).getAttribute("href"), "/tournaments/1?tab=stages&stage=2&action=complete");
+  assert.equal(within(nextStep).getByRole("link", { name: "Zakończ etap" }).getAttribute("href"), "/tournaments/1?tab=stages&stage=2&action=complete&return=host"); // QW-04: back to the host after the action
   await waitFor(() => {
     assert.equal(screen.queryByText(/Zapisywanie i odświeżanie stanu/), null);
     assert.equal(screen.queryByRole("button", { name: "Zwiększ wynik: Gracz A1" }), null);
@@ -1040,5 +1040,41 @@ test("QW-01: on a phone the selected-match header wraps and each score fits its 
     const score = [...row.children].find((el) => el.tagName === "DIV")!;
     assert.ok(score.classList.contains("@max-[12.5rem]:basis-full") && score.classList.contains("@max-[12.5rem]:order-first"),
       `${name}: in a column narrower than the row the score sits above the buttons`);
+  }
+});
+
+test("QW-04: 'Co teraz?' opens the live match's result in one tap, lists the ready ones and shares by visibility", async () => {
+  const matches = [hostMatch(1, 2, "in_progress"), hostMatch(2), hostMatch(3)];
+  const user = await renderOperationalHost({ matches });
+  const panel = await screen.findByRole("region", { name: "Wpisz wynik meczu w toku" });
+  assert.ok(within(panel).getByText("Co teraz?"));
+  assert.ok(within(panel).getByRole("button", { name: /Wpisz wynik: Gracz A1 – Gracz B1/ }));
+  const ready = within(panel).getByRole("list", { name: "Następne gotowe mecze" });
+  await user.click(within(ready).getByRole("button", { name: /Gracz A3 – Gracz B3/ }));
+  await waitFor(() => assert.ok(screen.getByRole("button", { name: "Zwiększ wynik: Gracz A3" }), "one tap opens that match in the editor"));
+  assert.ok(within(panel).getByRole("button", { name: /Kopiuj link dla kibiców/ }));
+  assert.ok(within(panel).getByText(/Każdy z tym linkiem może śledzić turniej/));
+});
+
+test("QW-04: a private offline tournament offers no viewers' link, only the reason", async () => {
+  await renderOperationalHost({ matches: [hostMatch(1)], intercept: async (path) => path === "/api/tournaments/1" ? jsonResponse({
+    id: 1, name: "Turniej szkoleniowy", status: "active", format: "single_elimination", activeStageId: 2, currentRound: 1, totalRounds: 2,
+    defaultBestOf: 3, featuredMatchId: null, hasOrganizerPassword: true, resultModelVersion: "series_v1", visibility: "private_offline",
+  }) : undefined });
+  const panel = await screen.findByRole("region", { name: "Rozegraj następny mecz" });
+  assert.equal(within(panel).queryByRole("button", { name: /Kopiuj link dla kibiców/ }), null);
+  assert.ok(within(panel).getByText(/widzowie nie mają dostępu/));
+});
+
+test("QW-04: long names in 'Co teraz?' truncate inside the panel instead of widening a phone screen", async () => {
+  const long = (id: number) => ({ ...hostMatch(id), player1Name: `Aleksandra Wiśniewska-Kowalczyk ${id}`, player2Name: `Grażyna Lewandowska-Dąbrowska ${id}` });
+  await renderOperationalHost({ matches: [long(1), long(2), long(3)] });
+  const panel = await screen.findByRole("region", { name: "Rozegraj następny mecz" });
+  const primary = within(panel).getByRole("button", { name: /Wpisz wynik:/ });
+  assert.ok(primary.className.includes("min-w-0") && primary.className.includes("max-w-full") && primary.className.includes("overflow-hidden"));
+  for (const chip of within(within(panel).getByRole("list", { name: "Następne gotowe mecze" })).getAllByRole("button")) {
+    assert.ok(chip.className.includes("min-w-0") && chip.className.includes("max-w-full"), "chip can shrink");
+    assert.ok(chip.parentElement!.className.includes("max-w-full") && chip.parentElement!.className.includes("min-w-0"), "its list item can shrink");
+    assert.ok(chip.querySelector(".truncate")?.className.includes("min-w-0"), "the names truncate");
   }
 });

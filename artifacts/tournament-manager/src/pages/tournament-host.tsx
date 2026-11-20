@@ -55,8 +55,9 @@ import { OrganizerLoginModal } from "@/components/organizer-login-modal";
 import { OrganizerRecoveryNotice } from "@/components/organizer-recovery-notice";
 import { SupportLoginModal } from "@/components/support-login-modal";
 import { organizerAreaForHostTab, organizerHostTab, TournamentOrganizerNavigation } from "@/components/tournament-organizer-navigation";
-import { OrganizerNextStep } from "@/components/organizer-next-step";
-import { experimentalDraftNextStep } from "@/features/experimental-tournaments/experimental-next-step";
+import { OrganizerNowPanel } from "@/components/organizer-now-panel";
+import { deriveOrganizerNow, viewerShareFor } from "@/lib/organizer-now";
+import { draftEntrantsStep, experimentalDraftNextStep } from "@/features/experimental-tournaments/experimental-next-step";
 import { useOrganizerOperation } from "@/hooks/use-organizer-operation";
 import { deriveOrganizerCapabilities, managementRoleForCapabilities } from "@/lib/organizer-capabilities";
 import { invalidateTournamentDependentQueries } from "@/lib/tournament-query-invalidation";
@@ -272,7 +273,7 @@ export default function TournamentHost() {
   // V5.8: the host and the tournament page show the same next step for a draft (shared rule).
   const nextStep = isExperimental
     ? experimentalDraftNextStep(operation.nextStep, { tournamentStatus: tournament?.status, participantCount: operation.readiness.data?.participantCount, tournamentId: id })
-    : operation.nextStep;
+    : draftEntrantsStep(operation.nextStep, { tournamentStatus: tournament?.status, participantCount: operation.readiness.data?.participantCount, tournamentId: id });
 
   // V5.6: an unsaved score survives a reload, a lost connection and an expired session (this browser tab only).
   const [restoredDrafts] = useState(() => readHostResultDrafts(id));
@@ -1158,6 +1159,19 @@ export default function TournamentHost() {
     return { id: stageId, name: stage?.name ?? (stageId === null ? "Mecze bez przypisanego etapu" : `Etap ${stageId}`), position: stage?.position ?? Number.MAX_SAFE_INTEGER };
   }).sort((a, b) => a.position - b.position);
   const canGenerateRound = nextStep?.kind === "swiss_round";
+  // QW-04 · "Co teraz?": the authoritative next step (lifecycle actions are capability-gated in the model) plus
+  // one tap to any match in progress or ready; a lifecycle action opened from here returns to the host.
+  const hostStep = nextStep?.actionHref?.includes("action=") ? { ...nextStep, actionHref: `${nextStep.actionHref}&return=host` } : nextStep;
+  const organizerNow = deriveOrganizerNow({
+    step: hostStep,
+    queue: queueMatches,
+    canWriteResults: capabilities.canWriteTournamentResults,
+    stepRunsInPlace: nextStep?.kind === "swiss_round" && capabilities.canGenerateRound,
+  });
+  const shareRule = viewerShareFor(tournament.visibility);
+  const viewerShare = capabilities.canManageSharing && typeof window !== "undefined"
+    ? { link: `${window.location.origin}${tournamentHref(id, isExperimental)}`, rule: shareRule }
+    : null;
   const tournamentCompleted = tournament.status === "completed";
   const winnerMatch = tournament.winnerId == null ? undefined : matches?.find(match =>
     match.player1Id === tournament.winnerId || match.player2Id === tournament.winnerId);
@@ -1917,13 +1931,14 @@ export default function TournamentHost() {
         {hostPending && <p role="status" className="organizer-notice organizer-notice--pending flex items-center gap-2 text-sm text-primary"><Loader2 className="h-4 w-4 animate-spin" /> Zapisywanie i odświeżanie stanu…</p>}
         {selectionNotice && <p role="status" className="rounded-lg border p-3 text-sm">{selectionNotice}</p>}
         <fieldset disabled={hostPending || dataLoading || dataError} className="contents">
-        {nextStep && !tournamentCompleted && !dataLoading && !dataError && !(isExperimental && nextStep.kind === "active_matches") && (
-          <OrganizerNextStep
-            step={isExperimental && nextStep.actionHref?.includes("action=")
-              ? { ...nextStep, actionHref: `${nextStep.actionHref}&return=host` }
-              : nextStep}
-            onAction={nextStep.kind === "swiss_round" ? handleGenerateRound : undefined}
+        {organizerNow && !tournamentCompleted && !dataLoading && !dataError && (
+          <OrganizerNowPanel
+            now={organizerNow}
+            focusedMatchId={focusedMatchId}
+            onOpenMatch={openInEditor}
+            onStepAction={nextStep?.kind === "swiss_round" ? handleGenerateRound : undefined}
             pending={generateNextRound.isPending}
+            share={viewerShare}
           />
         )}
         {capabilities.canUndo && lastUndoableAction && !undoConfirm && (
@@ -2595,7 +2610,8 @@ export default function TournamentHost() {
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground uppercase tracking-wide">Widok widzów (publiczny)</Label>
+              {/* QW-04: the label and note follow the tournament's visibility (it used to call every link public). */}
+              <Label className="text-xs text-muted-foreground uppercase tracking-wide">{shareRule.kind === "public" ? "Widok widzów (publiczny)" : shareRule.kind === "password" ? "Widok widzów (z hasłem widza)" : "Link turnieju (widzowie nie mają dostępu)"}</Label>
               <div className="flex gap-2">
                 <Input
                   readOnly
@@ -2611,7 +2627,7 @@ export default function TournamentHost() {
                   {copiedKey === "viewer" ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
                 </Button>
               </div>
-              <p className="text-xs text-muted-foreground">Każdy z tym linkiem może śledzić turniej (tylko odczyt).</p>
+              <p className="text-xs text-muted-foreground">{shareRule.note}</p>
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground uppercase tracking-wide">Panel prowadzącego</Label>
