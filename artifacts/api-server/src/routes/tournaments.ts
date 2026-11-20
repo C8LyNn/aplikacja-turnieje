@@ -41,11 +41,13 @@ import {
   getTournamentMutationActor,
   revalidateTournamentMutationActor,
   requireOrganizer,
+  requireTournamentPermission,
   requireTournamentRead,
   requireTournamentWrite,
   TournamentMutationAuthorizationError,
   withTournamentMutationLock,
 } from "../access-policy";
+import type { SupportPermission } from "../application/auth/support-permissions";
 import {
   organizerPasswordInputError,
   ORGANIZER_PASSWORD_TOO_SHORT_CODE,
@@ -1328,7 +1330,7 @@ router.put(
       });
       return;
     }
-    const access = await requireTournamentWrite(req, res, params.data.id);
+    const access = await requireTournamentPermission(req, res, params.data.id, "results.write");
     if (!access) return;
     try {
       res.json(await submitMarvelGroupResult({
@@ -1360,7 +1362,7 @@ router.put(
       });
       return;
     }
-    const access = await requireTournamentWrite(req, res, params.data.id);
+    const access = await requireTournamentPermission(req, res, params.data.id, "stages.rounds");
     if (!access) return;
     try {
       res.json(await assignMarvelManualGroups({
@@ -1539,11 +1541,17 @@ router.patch("/tournaments/:id", async (req, res): Promise<void> => {
     ...Object.keys(parsed.data),
     ...(hasPresentationSettings ? ["presentationSettings"] : []),
   ];
-  const onlyOperationalFields =
+  // #331: support may change only the match on screen (presentation.featured) and the broadcast look
+  // (presentation.settings); every other tournament field stays with the organizer.
+  const presentationOnly =
     changedFields.length > 0 &&
-    changedFields.every((field) => field === "featuredMatchId");
-  const access = onlyOperationalFields
-    ? await requireTournamentWrite(req, res, params.data.id)
+    changedFields.every((field) => field === "featuredMatchId" || field === "presentationSettings");
+  const presentationPermissions: SupportPermission[] = [
+    ...(changedFields.includes("featuredMatchId") ? ["presentation.featured" as const] : []),
+    ...(changedFields.includes("presentationSettings") ? ["presentation.settings" as const] : []),
+  ];
+  const access = presentationOnly
+    ? await requireTournamentPermission(req, res, params.data.id, presentationPermissions)
     : await requireOrganizer(req, res, params.data.id);
   if (!access) return;
   if (Object.prototype.hasOwnProperty.call(req.body ?? {}, "hostCode")) {
@@ -1714,7 +1722,7 @@ router.post("/tournaments/:id/start", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Tournament not found" });
     return;
   }
-  const access = await requireTournamentWrite(req, res, tournament.id);
+  const access = await requireTournamentPermission(req, res, tournament.id, "stages.rounds");
   if (!access) return;
   const mutationActor = getTournamentMutationActor(access);
 
@@ -1976,7 +1984,7 @@ router.post("/tournaments/:id/generate-round", async (req, res): Promise<void> =
     return;
   }
 
-  const access = await requireTournamentWrite(req, res, params.data.id);
+  const access = await requireTournamentPermission(req, res, params.data.id, "stages.rounds");
   if (!access) return;
   const mutationActor = getTournamentMutationActor(access);
 
@@ -2426,7 +2434,7 @@ router.put("/players/:id/custom-fields", async (req, res): Promise<void> => {
   if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
   const [existing] = await db.select({ tournamentId: playersTable.tournamentId }).from(playersTable).where(eq(playersTable.id, params.data.id));
   if (!existing) { res.status(404).json({ error: "Player not found" }); return; }
-  const access = await requireTournamentWrite(req, res, existing.tournamentId);
+  const access = await requireTournamentPermission(req, res, existing.tournamentId, "participants.manage");
   if (!access) return;
   const audience = fieldAudienceOf(access.actor);
   try {
@@ -2455,7 +2463,7 @@ router.post("/tournaments/:id/players", async (req, res): Promise<void> => {
     res.status(400).json({ error: parsed.error.message });
     return;
   }
-  const access = await requireTournamentWrite(req, res, params.data.id);
+  const access = await requireTournamentPermission(req, res, params.data.id, "participants.manage");
   if (!access) return;
   const audience = fieldAudienceOf(access.actor);
   try {
@@ -2490,7 +2498,7 @@ router.post("/tournaments/:id/players/import", async (req, res): Promise<void> =
     return;
   }
 
-  const access = await requireTournamentWrite(req, res, params.data.id);
+  const access = await requireTournamentPermission(req, res, params.data.id, "participants.manage");
   if (!access) return;
   try {
     const result = await importTournamentPlayers({
@@ -2527,7 +2535,7 @@ router.patch("/players/:id", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Player not found" });
     return;
   }
-  const access = await requireTournamentWrite(req, res, existing.tournamentId);
+  const access = await requireTournamentPermission(req, res, existing.tournamentId, "participants.manage");
   if (!access) return;
   try {
     const player = await updateTournamentPlayer({
@@ -2554,7 +2562,7 @@ router.delete("/players/:id", async (req, res): Promise<void> => {
   }
   const [toDelete] = await db.select().from(playersTable).where(eq(playersTable.id, params.data.id));
   if (!toDelete) { res.status(404).json({ error: "Player not found" }); return; }
-  const access = await requireTournamentWrite(req, res, toDelete.tournamentId);
+  const access = await requireTournamentPermission(req, res, toDelete.tournamentId, "participants.manage");
   if (!access) return;
   try {
     await deleteTournamentPlayer({
@@ -2666,7 +2674,7 @@ router.post("/tournaments/:id/undo-last", async (req, res): Promise<void> => {
     return;
   }
 
-  const access = await requireTournamentWrite(req, res, params.data.id);
+  const access = await requireTournamentPermission(req, res, params.data.id, "results.correct");
   if (!access) return;
   const mutationActor = getTournamentMutationActor(access);
   const expectedActionRaw = req.body && typeof req.body === "object" ? (req.body as Record<string, unknown>).expectedActionId : undefined;
@@ -2991,7 +2999,7 @@ router.patch("/matches/:id", async (req, res): Promise<void> => {
   // Read previous state before update for logging
   const [prevMatch] = await db.select().from(matchesTable).where(eq(matchesTable.id, params.data.id));
   if (!prevMatch) { res.status(404).json({ error: "Match not found" }); return; }
-  const access = await requireTournamentWrite(req, res, prevMatch.tournamentId);
+  const access = await requireTournamentPermission(req, res, prevMatch.tournamentId, "matches.run");
   if (!access) return;
   const match = await withTournamentMutationLock(
     prevMatch.tournamentId,
@@ -3137,7 +3145,7 @@ router.post("/matches/:id/complete", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Match not found" });
     return;
   }
-  const access = await requireTournamentWrite(req, res, matchReference.tournamentId);
+  const access = await requireTournamentPermission(req, res, matchReference.tournamentId, "results.write");
   if (!access) return;
 
   try {
@@ -3182,7 +3190,7 @@ router.post("/matches/:id/revert", async (req, res): Promise<void> => {
     res.status(404).json({ error: "Mecz nie istnieje.", code: "MATCH_NOT_FOUND" });
     return;
   }
-  const access = await requireTournamentWrite(req, res, matchReference.tournamentId);
+  const access = await requireTournamentPermission(req, res, matchReference.tournamentId, "results.correct");
   if (!access) return;
   const expectedRevision = readExpectedRevision(req.body);
   if (expectedRevision == null) {
@@ -3240,7 +3248,7 @@ router.post("/matches/:id/cancel", async (req, res): Promise<void> => {
     res.status(422).json({ error: "Dwumeczu nie anuluje się w całości — wpisz wyniki obu spotkań, a przy remisie w sumie rozstrzygnij awans.", code: "TWO_LEGS_TIE_OPERATION_UNSUPPORTED" });
     return;
   }
-  const access = await requireTournamentWrite(req, res, match.tournamentId);
+  const access = await requireTournamentPermission(req, res, match.tournamentId, "results.correct");
   if (!access) return;
   const updated = await withTournamentMutationLock(
     match.tournamentId,
@@ -3320,7 +3328,7 @@ router.post("/matches/:id/restore-cancelled", async (req, res): Promise<void> =>
   }
   const [match] = await db.select().from(matchesTable).where(eq(matchesTable.id, params.data.id));
   if (!match) { res.status(404).json({ error: "Match not found" }); return; }
-  const access = await requireTournamentWrite(req, res, match.tournamentId);
+  const access = await requireTournamentPermission(req, res, match.tournamentId, "results.correct");
   if (!access) return;
   const updated = await withTournamentMutationLock(
     match.tournamentId,
@@ -3390,7 +3398,7 @@ router.post("/matches/:id/swap-players", async (req, res): Promise<void> => {
   }
   const [match] = await db.select().from(matchesTable).where(eq(matchesTable.id, params.data.id));
   if (!match) { res.status(404).json({ error: "Match not found" }); return; }
-  const access = await requireTournamentWrite(req, res, match.tournamentId);
+  const access = await requireTournamentPermission(req, res, match.tournamentId, "results.correct");
   if (!access) return;
   const updated = await withTournamentMutationLock(
     match.tournamentId,
@@ -3475,7 +3483,7 @@ router.post("/tournaments/:id/reorder-matches", async (req, res): Promise<void> 
   if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
   const parsed = ReorderMatchesBody.safeParse(req.body);
   if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
-  const access = await requireTournamentWrite(req, res, params.data.id);
+  const access = await requireTournamentPermission(req, res, params.data.id, "matches.run");
   if (!access) return;
   const mutationActor = getTournamentMutationActor(access);
   const { matchIds } = parsed.data;
@@ -3752,7 +3760,7 @@ router.put("/players/:id/bans", async (req, res): Promise<void> => {
     .where(eq(playersTable.id, pid));
   if (!player) { res.status(404).json({ error: "Player not found" }); return; }
 
-  const access = await requireTournamentWrite(req, res, player.tournamentId);
+  const access = await requireTournamentPermission(req, res, player.tournamentId, "matches.run");
   if (!access) return;
 
   // Enforce configured bansPerPlayer limit from game config
@@ -3852,7 +3860,7 @@ router.put("/matches/:id/game-picks/:gameNumber", async (req, res): Promise<void
     .where(eq(matchesTable.id, mid));
   if (!matchRef) { res.status(404).json({ error: "Match not found" }); return; }
 
-  const access = await requireTournamentWrite(req, res, matchRef.tournamentId);
+  const access = await requireTournamentPermission(req, res, matchRef.tournamentId, "results.write");
   if (!access) return;
 
   const p1 = (p1Raw as string | null | undefined) ?? null;

@@ -83,7 +83,7 @@ export default function SupportEntry() {
             <Users className="w-5 h-5 text-green-400" />
             <h1 className="text-2xl font-bold">Wsparcie organizatora</h1>
           </div>
-          <p className="text-muted-foreground text-sm">Wybierz turniej i zaloguj się hasłem wsparcia.</p>
+          <p className="text-muted-foreground text-sm">Wybierz turniej i zaloguj się hasłem wsparcia lub osobistym kodem od organizatora.</p>
         </div>
 
         {isError && hasLoadedList && (
@@ -207,7 +207,7 @@ export default function SupportEntry() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="support-entry-password" className="flex items-center gap-1.5"><Lock aria-hidden="true" className="w-3.5 h-3.5" />Hasło wsparcia</Label>
+                <Label htmlFor="support-entry-password" className="flex items-center gap-1.5"><Lock aria-hidden="true" className="w-3.5 h-3.5" />Hasło wsparcia lub osobisty kod</Label>
                 <Input
                   id="support-entry-password"
                   type="password"

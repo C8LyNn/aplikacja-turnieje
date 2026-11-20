@@ -27,6 +27,7 @@ import {
 import {
   getTournamentMutationActor,
   requireOrganizer,
+  requireTournamentPermission,
   requireTournamentRead,
   requireTournamentWrite,
   TournamentMutationAuthorizationError,
@@ -393,7 +394,7 @@ router.put("/matches/:id/schedule", async (req, res): Promise<void> => {
     res.status(422).json({ error: "W dwumeczu termin ustawia się dla każdego spotkania osobno.", code: "TWO_LEGS_TIE_OPERATION_UNSUPPORTED" });
     return;
   }
-  const access = await requireTournamentWrite(req, res, reference.tournamentId);
+  const access = await requireTournamentPermission(req, res, reference.tournamentId, "matches.run");
   if (!access) return;
   try {
     const saved = await withTournamentMutationLock(reference.tournamentId, getTournamentMutationActor(access), async (tx) => {

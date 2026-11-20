@@ -67,6 +67,7 @@ function lifecycle(operation: "cancel" | "restore", patchBody?: Record<string, u
     CancelMatchParams: params, CancelMatchBody: schema, RestoreCancelledMatchParams: params,
     UpdateMatchParams: params, UpdateMatchBody: schema,
     requireTournamentWrite: async () => ({ actor: { type: "organizer" } }),
+    requireTournamentPermission: async () => ({ actor: { type: "organizer" } }),
     getTournamentMutationActor: () => ({ type: "organizer" }),
     withTournamentMutationLock: async (_id: number, _actor: unknown, run: any) => {
       queued.resolve(); await release.promise; held = true;
@@ -153,6 +154,7 @@ for (const endpoint of ["change-support-password", "change-viewer-password", "ch
     const run = handler(auth, `${endpoint === "viewer-password" ? "delete" : "post"}("/tournaments/:id/auth/${endpoint}"`, {
       db: { transaction: async (fn: any) => fn(tx) }, tournamentsTable, eq,
       parseId: () => 7, requireOrganizerAccess: async () => ({ actor: { type: "organizer" } }),
+      requireTournamentPermission: async () => ({ actor: { type: "organizer" } }),
       hashPassword: async () => "synthetic-password-hash", NEW_CREDENTIAL_MIN_LENGTH: 8,
       revalidateLockedOrganizer, logAuditAction: async () => { audits++; },
     });

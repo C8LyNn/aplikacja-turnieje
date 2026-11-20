@@ -5,7 +5,8 @@
 import { Router, type IRouter, type Response } from "express";
 import { eq } from "drizzle-orm";
 import { db, matchesTable } from "@workspace/db";
-import { getTournamentMutationActor, requireTournamentWrite } from "../access-policy";
+import { getTournamentMutationActor, requireTournamentPermission } from "../access-policy";
+import type { SupportPermission } from "../application/auth/support-permissions";
 import { CompleteMatchError } from "../application/matches/complete-match";
 import { RevertMatchError } from "../application/matches/revert-match";
 import {
@@ -48,20 +49,20 @@ function sendError(res: Response, error: unknown): boolean {
   return false;
 }
 
-async function writeAccess(req: Parameters<typeof requireTournamentWrite>[0], res: Response, matchId: number) {
+async function writeAccess(req: Parameters<typeof requireTournamentPermission>[0], res: Response, matchId: number, permission: SupportPermission) {
   const [reference] = await db.select({ tournamentId: matchesTable.tournamentId }).from(matchesTable).where(eq(matchesTable.id, matchId));
   if (!reference) {
     res.status(404).json({ error: "Mecz nie istnieje.", code: "MATCH_NOT_FOUND" });
     return null;
   }
-  const access = await requireTournamentWrite(req, res, reference.tournamentId);
+  const access = await requireTournamentPermission(req, res, reference.tournamentId, permission);
   return access ? getTournamentMutationActor(access) : null;
 }
 
 router.post("/matches/:id/legs/:leg/result", async (req, res): Promise<void> => {
   const ids = readIds(req.params);
   if (!ids || ids.leg == null) { res.status(400).json({ error: "Nieprawidłowy mecz lub numer spotkania (1 albo 2).", code: "INVALID_LEG" }); return; }
-  const actor = await writeAccess(req, res, ids.matchId);
+  const actor = await writeAccess(req, res, ids.matchId, "results.write");
   if (!actor) return;
   const input = body(req.body);
   try {
@@ -76,7 +77,7 @@ router.post("/matches/:id/legs/:leg/result", async (req, res): Promise<void> => 
 router.post("/matches/:id/legs/:leg/revert", async (req, res): Promise<void> => {
   const ids = readIds(req.params);
   if (!ids || ids.leg == null) { res.status(400).json({ error: "Nieprawidłowy mecz lub numer spotkania (1 albo 2).", code: "INVALID_LEG" }); return; }
-  const actor = await writeAccess(req, res, ids.matchId);
+  const actor = await writeAccess(req, res, ids.matchId, "results.correct");
   if (!actor) return;
   try {
     const result = await revertLegResult({ matchId: ids.matchId, leg: ids.leg, expectedRevision: body(req.body).expectedRevision, actor });
@@ -90,7 +91,7 @@ router.post("/matches/:id/legs/:leg/revert", async (req, res): Promise<void> => 
 router.put("/matches/:id/legs/:leg/schedule", async (req, res): Promise<void> => {
   const ids = readIds(req.params);
   if (!ids || ids.leg == null) { res.status(400).json({ error: "Nieprawidłowy mecz lub numer spotkania (1 albo 2).", code: "INVALID_LEG" }); return; }
-  const actor = await writeAccess(req, res, ids.matchId);
+  const actor = await writeAccess(req, res, ids.matchId, "matches.run");
   if (!actor) return;
   const input = body(req.body);
   if (!("scheduledAt" in input) || !("expectedScheduledAt" in input)) {
@@ -109,7 +110,7 @@ router.put("/matches/:id/legs/:leg/schedule", async (req, res): Promise<void> =>
 router.post("/matches/:id/tie-decision", async (req, res): Promise<void> => {
   const ids = readIds(req.params);
   if (!ids) { res.status(400).json({ error: "Nieprawidłowy mecz.", code: "INVALID_MATCH" }); return; }
-  const actor = await writeAccess(req, res, ids.matchId);
+  const actor = await writeAccess(req, res, ids.matchId, "results.write");
   if (!actor) return;
   const input = body(req.body);
   try {

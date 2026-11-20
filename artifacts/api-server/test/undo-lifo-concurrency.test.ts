@@ -140,6 +140,7 @@ function fixture(candidate: Action, blocked = false) {
     and, eq, desc, sql, lockLatestUndoableAction, UndoActionChangedError,
     UndoLastActionParams: { safeParse: () => ({ success: true, data: { id: 7 } }) },
     requireTournamentWrite: async () => ({ actor: { type: "organizer" } }),
+    requireTournamentPermission: async () => ({ actor: { type: "organizer" } }),
     getTournamentMutationActor: () => ({ type: "organizer" }),
     withTournamentMutationLock: async (_id: number, _actor: unknown, operation: any) => db.transaction(operation),
     undoTournamentRosterAction, TournamentRosterError, sendTournamentRosterError,

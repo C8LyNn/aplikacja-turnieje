@@ -54,6 +54,7 @@ import { useSyncTournamentAuth } from "@/hooks/use-tournament-auth";
 import { OrganizerLoginModal } from "@/components/organizer-login-modal";
 import { OrganizerRecoveryNotice } from "@/components/organizer-recovery-notice";
 import { SupportLoginModal } from "@/components/support-login-modal";
+import { SupportPermissionsNote } from "@/components/support-permissions-note";
 import { organizerAreaForHostTab, organizerHostTab, TournamentOrganizerNavigation } from "@/components/tournament-organizer-navigation";
 import { OrganizerNowPanel } from "@/components/organizer-now-panel";
 import { TournamentVisibilityControl } from "@/components/tournament-visibility-control";
@@ -96,6 +97,7 @@ export default function TournamentHost() {
   const {
     orgToken,
     supSession,
+    supportPermissions,
     isAuthenticated: isNewAuthTokenPresent,
     isReady: isAuthReady,
   } = useSyncTournamentAuth(id);
@@ -255,6 +257,7 @@ export default function TournamentHost() {
           hasOrganizerToken: !!orgToken,
           hasSupportSession: !!supSession,
           hasVerifiedLegacyHost: false,
+          supportPermissions,
         })
       : deriveOrganizerCapabilities({
           role,
@@ -262,7 +265,7 @@ export default function TournamentHost() {
           hasOrganizerToken: false,
           hasSupportSession: false,
         }),
-    [orgToken, role, supSession, tournament],
+    [orgToken, role, supSession, supportPermissions, tournament],
   );
   const lastUndoableAction = capabilities.canUndo
     ? actionLog?.find((action) => action.canUndo)
@@ -659,14 +662,14 @@ export default function TournamentHost() {
   };
 
   const handleCancel = (matchId: number) => {
-    if (!capabilities.canUseLegacyMatchTools) return;
+    if (!capabilities.canCorrectResults) return;
     const candidate = matches?.find(match => match.id === matchId);
     if (!candidate || resultDrafts.isStale(candidate)) return;
     resultDrafts.capture(candidate);
     setCancelConfirm(matchId);
   };
   const doCancel = (matchId: number) => {
-    if (!capabilities.canUseLegacyMatchTools) return;
+    if (!capabilities.canCorrectResults) return;
     const candidate = matches?.find(match => match.id === matchId);
     if (!candidate || resultDrafts.isStale(candidate)) {
       setCancelConfirm(null);
@@ -683,7 +686,7 @@ export default function TournamentHost() {
   };
 
   const handleRestoreCancelled = (matchId: number) => {
-    if (!capabilities.canUseLegacyMatchTools) return;
+    if (!capabilities.canCorrectResults) return;
     const match = matches?.find((entry) => entry.id === matchId);
     if (!match) return;
     restoreCancelledMatch.mutate({ id: matchId, data: { expectedRevision: match.revision } }, {
@@ -774,12 +777,12 @@ export default function TournamentHost() {
   };
 
   const handleSwapPlayers = (matchId: number) => {
-    if (!capabilities.canUseLegacyMatchTools) return;
+    if (!capabilities.canCorrectResults) return;
     confirmRevision.current[`swap:${matchId}`] = matches?.find((entry) => entry.id === matchId)?.revision;
     setSwapConfirm(matchId);
   };
   const doSwapPlayers = (matchId: number) => {
-    if (!capabilities.canUseLegacyMatchTools) return;
+    if (!capabilities.canCorrectResults) return;
     const revision = confirmRevision.current[`swap:${matchId}`] ?? matches?.find((entry) => entry.id === matchId)?.revision;
     if (revision == null) return;
     swapMatchPlayers.mutate({ id: matchId, data: { expectedRevision: revision } }, {
@@ -807,7 +810,7 @@ export default function TournamentHost() {
   };
 
   const handleSetFeatured = (matchId: number) => {
-    if (!capabilities.canUseLegacyMatchTools) return;
+    if (!capabilities.canFeatureMatch) return;
     const isCurrent = tournament?.featuredMatchId === matchId;
     updateTournament.mutate(
       { id, data: { featuredMatchId: isCurrent ? null : matchId } as any },
@@ -883,7 +886,7 @@ export default function TournamentHost() {
   };
 
   const handleRevert = (matchId: number) => {
-    if (!capabilities.canWriteTournamentResults) return;
+    if (!capabilities.canRevertResults) return;
     const revision = confirmRevision.current[`revert:${matchId}`] ?? matches?.find((entry) => entry.id === matchId)?.revision;
     if (revision == null) return;
     revertMatch.mutate({ id: matchId, data: { expectedRevision: revision } }, {
@@ -1170,10 +1173,11 @@ export default function TournamentHost() {
     stepRunsInPlace: nextStep?.kind === "swiss_round" && capabilities.canGenerateRound,
   });
   const shareRule = viewerShareFor(tournament.visibility);
-  const viewerShare = capabilities.canManageSharing && typeof window !== "undefined"
+  const viewerShare = (capabilities.canManageSharing || capabilities.canPublishVisibility) && typeof window !== "undefined"
     ? { link: `${window.location.origin}${tournamentHref(id, isExperimental)}`, rule: shareRule,
         // #330: publish / hide right where the organizer shares the tournament
-        control: <TournamentVisibilityControl tournamentId={id} status={tournament.status} visibility={tournament.visibility} orgToken={orgToken} compact /> }
+        control: <TournamentVisibilityControl tournamentId={id} status={tournament.status} visibility={tournament.visibility} orgToken={orgToken}
+          supportToken={!orgToken && capabilities.canPublishVisibility ? supSession?.token : null} compact /> }
     : null;
   const tournamentCompleted = tournament.status === "completed";
   const winnerMatch = tournament.winnerId == null ? undefined : matches?.find(match =>
@@ -1309,7 +1313,9 @@ export default function TournamentHost() {
               ))}
             </div>
             )}
-            {/* Featured toggle */}
+            </>}
+            {/* Featured toggle (#331: support only with "presentation.featured") */}
+            {capabilities.canFeatureMatch && (
             <Button
               variant="ghost"
               size="sm"
@@ -1320,7 +1326,7 @@ export default function TournamentHost() {
             >
               <Star className={`w-4 h-4 ${isFeatured ? "fill-yellow-400" : ""}`} />
             </Button>
-            </>}
+            )}
           </div>
         </div>
 
@@ -1696,7 +1702,7 @@ export default function TournamentHost() {
           )}
 
           {/* Restore cancelled action */}
-          {!conflictedDraft && capabilities.canUseLegacyMatchTools && isCancelled && (
+          {!conflictedDraft && capabilities.canCorrectResults && isCancelled && (
             <div className="mt-5 pt-4 border-t flex items-center justify-between gap-2">
               <p className="text-sm text-destructive/80">Ten mecz jest anulowany.</p>
               <Button
@@ -1719,7 +1725,7 @@ export default function TournamentHost() {
                     <Play className="w-4 h-4 mr-2" /> Rozpocznij mecz
                   </Button>
                 )}
-                {!conflictedDraft && !isDone && (capabilities.canUseLegacyMatchTools || capabilities.canWriteTournamentResults) && (
+                {!conflictedDraft && !isDone && (capabilities.canUseLegacyMatchTools || capabilities.canWriteTournamentResults || capabilities.canCorrectResults) && (
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild><Button variant="outline" disabled={hostPending}>Więcej akcji</Button></DropdownMenuTrigger>
                     <DropdownMenuContent align="start">
@@ -1727,11 +1733,13 @@ export default function TournamentHost() {
                         <DropdownMenuItem disabled={staleDraft || completeMatch.isPending} onSelect={() => handleWalkover(focusedMatch.id)}>Walkower (W.O.)</DropdownMenuItem>
                         {allowsNoContest && <DropdownMenuItem disabled={staleDraft || completeMatch.isPending} onSelect={() => handleNoContest(focusedMatch.id)}>Brak rozstrzygnięcia (no contest)</DropdownMenuItem>}
                       </>}
+                      {capabilities.canCorrectResults && focusedMatch.player1Id && focusedMatch.player2Id && <DropdownMenuItem disabled={swapMatchPlayers.isPending} onSelect={() => handleSwapPlayers(focusedMatch.id)}><ArrowLeftRight /> Zamień strony</DropdownMenuItem>}
                       {capabilities.canUseLegacyMatchTools && <>
-                        {focusedMatch.player1Id && focusedMatch.player2Id && <DropdownMenuItem disabled={swapMatchPlayers.isPending} onSelect={() => handleSwapPlayers(focusedMatch.id)}><ArrowLeftRight /> Zamień strony</DropdownMenuItem>}
                         {!isPostponed
                           ? <DropdownMenuItem disabled={updateMatch.isPending} onSelect={() => handlePostpone(focusedMatch.id)}><Clock /> Przełóż</DropdownMenuItem>
                           : <DropdownMenuItem disabled={updateMatch.isPending} onSelect={() => handleRestore(focusedMatch.id)}><SkipForward /> Przywróć</DropdownMenuItem>}
+                      </>}
+                      {capabilities.canCorrectResults && <>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" disabled={cancelMatch.isPending} onSelect={() => handleCancel(focusedMatch.id)}><Ban /> Anuluj mecz</DropdownMenuItem>
                       </>}
@@ -1740,7 +1748,7 @@ export default function TournamentHost() {
                 )}
               </div>
               <div className="flex gap-2">
-                {!conflictedDraft && capabilities.canWriteTournamentResults && isDone && (
+                {!conflictedDraft && capabilities.canRevertResults && isDone && (
                   <Button variant="outline" onClick={() => openCorrection(focusedMatch.id)}><RotateCcw className="w-4 h-4 mr-2" /> Popraw wynik</Button>
                 )}
                 {capabilities.canWriteTournamentResults && !isDone && !isPostponed && (
@@ -1934,6 +1942,8 @@ export default function TournamentHost() {
         {hostPending && <p role="status" className="organizer-notice organizer-notice--pending flex items-center gap-2 text-sm text-primary"><Loader2 className="h-4 w-4 animate-spin" /> Zapisywanie i odświeżanie stanu…</p>}
         {selectionNotice && <p role="status" className="rounded-lg border p-3 text-sm">{selectionNotice}</p>}
         <fieldset disabled={hostPending || dataLoading || dataError} className="contents">
+        {/* #331: a support person sees what they may do; other actions stay hidden. */}
+        {!orgToken && supSession && <SupportPermissionsNote nick={supSession.nick} permissions={supportPermissions} />}
         {organizerNow && !tournamentCompleted && !dataLoading && !dataError && (
           <OrganizerNowPanel
             now={organizerNow}
@@ -2206,7 +2216,7 @@ export default function TournamentHost() {
                             </div>
                           )}
                           {m.sets?.length ? <p className="mt-1 text-center text-xs text-muted-foreground tabular-nums" title="Wyniki setów">Sety: {setsText(m.sets)}</p> : null}
-                          {capabilities.canWriteTournamentResults && m.resultType !== "bye" && <Button variant="ghost" size="sm" className="mt-1" aria-label={`Popraw wynik: ${m.player1Name} – ${m.player2Name}`} onClick={() => openCorrection(m.id)}>Popraw wynik</Button>}
+                          {capabilities.canRevertResults && m.resultType !== "bye" && <Button variant="ghost" size="sm" className="mt-1" aria-label={`Popraw wynik: ${m.player1Name} – ${m.player2Name}`} onClick={() => openCorrection(m.id)}>Popraw wynik</Button>}
                         </div>
                       ))}
                     </div>
@@ -2271,7 +2281,7 @@ export default function TournamentHost() {
                         <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground hover:text-foreground" onClick={() => setSelectedMatchId(m.id)}>
                           Pokaż
                         </Button>
-                        {capabilities.canUseLegacyMatchTools && <Button
+                        {capabilities.canCorrectResults && <Button
                           variant="outline"
                           size="sm"
                           className="h-7 text-xs border-destructive/40 text-destructive/70 hover:bg-destructive/10"
@@ -2321,7 +2331,7 @@ export default function TournamentHost() {
                         <span className="font-mono tabular-nums">{match.status === "completed" ? matchResultLabel(match) : `${match.score1 ?? 0}:${match.score2 ?? 0}`}</span>
                         {match.sets?.length ? <span className="text-xs text-muted-foreground tabular-nums" title="Wyniki setów">({setsText(match.sets)})</span> : null}
                         <Badge variant="outline" className={match.status === "in_progress" ? "text-secondary border-secondary" : ""}>{MATCH_STATUS_LABELS[match.status] ?? "Nieznany"}</Badge>
-                        {capabilities.canWriteTournamentResults && match.status === "completed" && match.resultType !== "bye" ?
+                        {capabilities.canRevertResults && match.status === "completed" && match.resultType !== "bye" ?
                           <Button variant="outline" size="sm" aria-label={`Popraw wynik: ${match.player1Name} – ${match.player2Name}`} onClick={() => openCorrection(match.id)}>Popraw wynik</Button>
                           : <Button variant="ghost" size="sm" onClick={() => openInEditor(match.id)}>{isExperimental && match.status !== "cancelled" && match.status !== "postponed" ? "Otwórz w edytorze" : "Pokaż mecz"}</Button>}
                       </div>
@@ -2531,7 +2541,7 @@ export default function TournamentHost() {
                             <span className="text-xs text-muted-foreground">
                               {new Date(entry.createdAt).toLocaleTimeString("pl", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
                             </span>
-                            {capabilities.canWriteTournamentResults && entry.actionType === "match_result_submitted" && !entry.isUndone && matches?.find((m) => m.id === entry.matchId && m.status === "completed" && m.resultType !== "bye") && (
+                            {capabilities.canRevertResults && entry.actionType === "match_result_submitted" && !entry.isUndone && matches?.find((m) => m.id === entry.matchId && m.status === "completed" && m.resultType !== "bye") && (
                               <Button
                                 variant="outline"
                                 size="sm"

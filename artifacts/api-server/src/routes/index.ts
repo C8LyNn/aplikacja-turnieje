@@ -17,12 +17,14 @@ import tournamentTeamsRouter from "./tournament-teams";
 import authRouter from "./auth";
 import leagueRouter from "./league";
 import twoLegTiesRouter from "./two-leg-ties";
+import supportMembersRouter from "./support-members";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
 router.use(coreClashMultiplayerRouter);
 router.use(authRouter);
+router.use(supportMembersRouter);
 router.use(tournamentPlanPreviewRouter);
 router.use(tournamentPresetsRouter);
 router.use(tournamentAiConfigRouter);

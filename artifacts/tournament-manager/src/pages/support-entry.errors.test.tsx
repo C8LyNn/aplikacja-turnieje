@@ -31,14 +31,14 @@ test("L21: support form announces failure, unlocks retry, and avoids duplicate P
   await user.click(await screen.findByRole("button", { name: /Turniej/ }));
   const nick = screen.getByRole("textbox", { name: /Twój nick/ });
   await user.type(nick, "Sędzia");
-  await user.type(screen.getByLabelText("Hasło wsparcia"), "niepoprawne");
+  await user.type(screen.getByLabelText("Hasło wsparcia lub osobisty kod"), "niepoprawne");
   const form = ui.container.querySelector("form")!;
   fireEvent.submit(form); fireEvent.submit(form);
   await waitFor(() => assert.equal(submissions, 1));
   rejectFirst();
   assert.match((await screen.findByRole("alert")).textContent ?? "", /Złe hasło/);
-  await user.clear(screen.getByLabelText("Hasło wsparcia"));
-  await user.type(screen.getByLabelText("Hasło wsparcia"), "poprawne");
+  await user.clear(screen.getByLabelText("Hasło wsparcia lub osobisty kod"));
+  await user.type(screen.getByLabelText("Hasło wsparcia lub osobisty kod"), "poprawne");
   assert.equal(screen.queryByRole("alert"), null);
   fireEvent.submit(form);
   await waitFor(() => assert.equal(submissions, 2));

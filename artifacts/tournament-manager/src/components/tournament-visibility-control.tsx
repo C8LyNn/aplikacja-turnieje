@@ -7,7 +7,7 @@ import {
   AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription,
   AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { apiChangeVisibility } from "@/lib/auth";
+import { apiChangeVisibilityAs } from "@/lib/auth";
 
 export type TournamentVisibility = "public_online" | "private_online" | "private_offline";
 
@@ -34,6 +34,7 @@ export function TournamentVisibilityControl({
   status,
   visibility,
   orgToken,
+  supportToken,
   compact = false,
 }: {
   tournamentId: number;
@@ -41,6 +42,8 @@ export function TournamentVisibilityControl({
   visibility: string | null | undefined;
   /** Only the organizer publishes or hides; without a token the state is shown read-only. */
   orgToken?: string | null;
+  /** #331: a support session holding "visibility.publish" (pass it only then). */
+  supportToken?: string | null;
   compact?: boolean;
 }) {
   const queryClient = useQueryClient();
@@ -49,12 +52,14 @@ export function TournamentVisibilityControl({
   const [message, setMessage] = useState<string | null>(null);
   const [confirmHide, setConfirmHide] = useState(false);
   const state = visibilityActions(visibility, status);
+  const canChange = !!orgToken || !!supportToken;
+  const note = !orgToken && state.visibility === "private_online" ? "Dostęp z hasłem widza zmienia organizator." : state.note;
 
   const change = async (next: TournamentVisibility) => {
-    if (!orgToken) return;
+    if (!canChange || next === "private_online") return;
     setPending(true); setError(null); setMessage(null);
     try {
-      await apiChangeVisibility(tournamentId, orgToken, next);
+      await apiChangeVisibilityAs(tournamentId, { orgToken, supportToken }, next);
       await queryClient.invalidateQueries({ queryKey: getGetTournamentQueryKey(tournamentId) });
       setMessage(next === "public_online" ? "Turniej jest publiczny — widzowie zobaczą go pod tym samym linkiem." : "Turniej jest ukryty — widzowie nie mają do niego dostępu.");
     } catch (e) {
@@ -73,18 +78,18 @@ export function TournamentVisibilityControl({
       >
         <Icon aria-hidden="true" className="h-3.5 w-3.5" /> {state.label}
       </span>
-      {orgToken && state.canPublish && (
+      {canChange && state.canPublish && (
         <Button size="sm" onClick={() => void change("public_online")} disabled={pending} aria-busy={pending}>
           {pending ? <Loader2 aria-hidden="true" className="mr-1.5 h-3.5 w-3.5 animate-spin" /> : <Eye aria-hidden="true" className="mr-1.5 h-3.5 w-3.5" />}
           Opublikuj turniej
         </Button>
       )}
-      {orgToken && state.canHide && (
+      {canChange && state.canHide && (
         <Button size="sm" variant="outline" onClick={() => setConfirmHide(true)} disabled={pending}>
           <EyeOff aria-hidden="true" className="mr-1.5 h-3.5 w-3.5" /> Ukryj turniej
         </Button>
       )}
-      {orgToken && state.note && <span className="text-xs text-muted-foreground">{state.note}</span>}
+      {canChange && note && <span className="text-xs text-muted-foreground">{note}</span>}
       {message && <span role="status" className="basis-full text-xs text-muted-foreground">{message}</span>}
       {error && <span role="alert" className="basis-full text-xs text-destructive">{error}</span>}
       <AlertDialog open={confirmHide} onOpenChange={setConfirmHide}>

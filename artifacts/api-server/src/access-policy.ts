@@ -1,13 +1,24 @@
 import type { Request, Response } from "express";
 import { and, eq, sql } from "drizzle-orm";
-import { db, supportSessionsTable, tournamentsTable } from "@workspace/db";
+import { db, supportSessionsTable, tournamentSupportMembersTable, tournamentsTable } from "@workspace/db";
 import { organizerCredentialFingerprint, verifyOrganizerToken, verifyViewerToken } from "./auth";
 import { logger } from "./lib/logger";
+import { isSupportPermission, LEGACY_SUPPORT_PERMISSIONS, SUPPORT_PERMISSION_LABELS, type SupportPermission } from "./application/auth/support-permissions";
 
 export type TournamentActor =
   | { type: "anonymous" }
   | { type: "viewer" }
-  | { type: "support"; nick: string; sessionId: number }
+  | {
+    type: "support";
+    nick: string;
+    sessionId: number;
+    /** #331: the personal-code member, or null for a shared-support-password session. */
+    memberId: number | null;
+    /** #331: what this session may do right now (read fresh from the database on every request). */
+    permissions: readonly SupportPermission[];
+    /** #331: set by requireTournamentPermission; re-checked inside the mutation lock. */
+    requiredPermissions?: readonly SupportPermission[];
+  }
   | { type: "organizer"; credentialFingerprint: string };
 
 export interface TournamentAccess {
@@ -63,6 +74,7 @@ export async function revalidateTournamentMutationActor(
   const [session] = await tx
     .select({
       passwordVersion: supportSessionsTable.passwordVersion,
+      memberId: supportSessionsTable.memberId,
     })
     .from(supportSessionsTable)
     .where(
@@ -72,10 +84,19 @@ export async function revalidateTournamentMutationActor(
       ),
     )
     .for("update");
-  if (
-    !session ||
-    session.passwordVersion !== tournament.supportPasswordVersion
-  ) {
+  if (!session) throw new TournamentMutationAuthorizationError();
+  if (session.memberId == null) {
+    if (session.passwordVersion !== tournament.supportPasswordVersion) throw new TournamentMutationAuthorizationError();
+    return;
+  }
+  // #331: a revoked person or a permission taken away while the request waited stops the mutation here.
+  const [member] = await tx
+    .select({ permissions: tournamentSupportMembersTable.permissions, revokedAt: tournamentSupportMembersTable.revokedAt })
+    .from(tournamentSupportMembersTable)
+    .where(and(eq(tournamentSupportMembersTable.id, session.memberId), eq(tournamentSupportMembersTable.tournamentId, tournament.id)))
+    .for("update");
+  if (!member || member.revokedAt) throw new TournamentMutationAuthorizationError();
+  if ((actor.requiredPermissions ?? []).some((permission) => !member.permissions.includes(permission))) {
     throw new TournamentMutationAuthorizationError();
   }
 }
@@ -163,8 +184,16 @@ async function resolveActor(
         id: supportSessionsTable.id,
         nick: supportSessionsTable.nick,
         passwordVersion: supportSessionsTable.passwordVersion,
+        memberId: supportSessionsTable.memberId,
+        memberName: tournamentSupportMembersTable.name,
+        memberPermissions: tournamentSupportMembersTable.permissions,
+        memberRevokedAt: tournamentSupportMembersTable.revokedAt,
       })
       .from(supportSessionsTable)
+      .leftJoin(tournamentSupportMembersTable, and(
+        eq(tournamentSupportMembersTable.id, supportSessionsTable.memberId),
+        eq(tournamentSupportMembersTable.tournamentId, tournament.id),
+      ))
       .where(
         and(
           eq(supportSessionsTable.tournamentId, tournament.id),
@@ -172,11 +201,18 @@ async function resolveActor(
         ),
       );
 
-    if (session && session.passwordVersion === tournament.supportPasswordVersion) {
+    if (session && session.memberId == null && session.passwordVersion === tournament.supportPasswordVersion) {
+      return { type: "support", nick: session.nick, sessionId: session.id, memberId: null, permissions: LEGACY_SUPPORT_PERMISSIONS };
+    }
+    // #331: a personal-code session lives exactly as long as its person is not revoked; its permissions are
+    // the person's current ones, so a change by the organizer applies to the next request.
+    if (session && session.memberId != null && session.memberName != null && !session.memberRevokedAt) {
       return {
         type: "support",
-        nick: session.nick,
+        nick: session.memberName,
         sessionId: session.id,
+        memberId: session.memberId,
+        permissions: (session.memberPermissions ?? []).filter(isSupportPermission),
       };
     }
   }
@@ -272,6 +308,37 @@ export async function requireTournamentWrite(
     return { actor: await authorizeResolvedActor(actor), tournament };
   }
 
+  res.status(403).json({ error: "Wymagany token organizatora lub wsparcia" });
+  return null;
+}
+
+/**
+ * #331 · an operation the organizer may delegate: the organizer always passes, a support session only with every
+ * listed permission (read fresh on this request), everyone else is refused.
+ */
+export async function requireTournamentPermission(
+  req: Request,
+  res: Response,
+  tournamentId: number,
+  required: SupportPermission | readonly SupportPermission[],
+): Promise<TournamentAccess | null> {
+  const tournament = await loadTournament(res, tournamentId);
+  if (!tournament) return null;
+  const permissions = (Array.isArray(required) ? required : [required]) as readonly SupportPermission[];
+  const actor = await resolveActor(req, tournament);
+  if (actor.type === "organizer") return { actor: await authorizeResolvedActor(actor), tournament };
+  if (actor.type === "support") {
+    const missing = permissions.filter((permission) => !actor.permissions.includes(permission));
+    if (missing.length === 0) {
+      return { actor: await authorizeResolvedActor({ ...actor, requiredPermissions: permissions }), tournament };
+    }
+    res.status(403).json({
+      error: `Brak uprawnienia: ${missing.map((permission) => SUPPORT_PERMISSION_LABELS[permission]).join(", ")}. Poproś organizatora o jego nadanie.`,
+      code: "SUPPORT_PERMISSION_REQUIRED",
+      permissions: missing,
+    });
+    return null;
+  }
   res.status(403).json({ error: "Wymagany token organizatora lub wsparcia" });
   return null;
 }

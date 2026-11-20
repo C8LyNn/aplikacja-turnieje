@@ -22,7 +22,7 @@ afterEach(() => {
 test("L13-RTL-01: both support fields have names, stable IDs, and accessible close action", async () => {
   renderModal();
   const nick = screen.getByRole("textbox", { name: "Twój nick" }) as HTMLInputElement;
-  const password = screen.getByLabelText("Hasło wsparcia") as HTMLInputElement;
+  const password = screen.getByLabelText("Hasło wsparcia lub osobisty kod") as HTMLInputElement;
   assert.equal(nick.id, "support-login-nick");
   assert.equal(password.id, "support-login-password");
   assert.equal(password.type, "password");
@@ -37,7 +37,7 @@ test("L13-RTL-02: failed support login announces a readable alert", async () => 
   globalThis.fetch = async () => response({ error: "Nieprawidłowe hasło wsparcia" }, 403);
   renderModal();
   await user.type(screen.getByRole("textbox", { name: "Twój nick" }), "Sędzia1");
-  const password = screen.getByLabelText("Hasło wsparcia") as HTMLInputElement;
+  const password = screen.getByLabelText("Hasło wsparcia lub osobisty kod") as HTMLInputElement;
   await user.type(password, "zle-haslo");
   await user.click(screen.getByRole("button", { name: "Zaloguj" }));
   const alert = await screen.findByRole("alert");
@@ -59,7 +59,7 @@ test("L13-RTL-03: valid login preserves API payload and existing success callbac
   };
   renderModal((token, nick) => calls.push([token, nick]));
   await user.type(screen.getByRole("textbox", { name: "Twój nick" }), "Sędzia1");
-  await user.type(screen.getByLabelText("Hasło wsparcia"), "haslo-sedziego");
+  await user.type(screen.getByLabelText("Hasło wsparcia lub osobisty kod"), "haslo-sedziego");
   await user.click(screen.getByRole("button", { name: "Zaloguj" }));
   await waitFor(() => assert.deepEqual(calls, [["token-sedziego", "Sędzia1"]]));
   assert.equal(sent, 1);

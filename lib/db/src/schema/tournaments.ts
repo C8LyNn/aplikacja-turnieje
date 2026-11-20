@@ -1074,6 +1074,25 @@ export const actionLogTable = pgTable(
   ],
 );
 
+/** #331 (0048): a person the organizer grants support access to, with a personal code and explicit permissions. */
+export const tournamentSupportMembersTable = pgTable(
+  "tournament_support_members",
+  {
+    id: serial("id").primaryKey(),
+    tournamentId: integer("tournament_id")
+      .notNull()
+      .references(() => tournamentsTable.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    accessCodeHash: text("access_code_hash").notNull(),
+    permissions: text("permissions").array().notNull().default(sql`'{}'::text[]`),
+    permissionsVersion: integer("permissions_version").notNull().default(1),
+    revokedAt: timestamp("revoked_at"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [index("tournament_support_members_tournament_idx").on(table.tournamentId)],
+);
+
 export const supportSessionsTable = pgTable("support_sessions", {
   id: serial("id").primaryKey(),
   tournamentId: integer("tournament_id")
@@ -1082,6 +1101,8 @@ export const supportSessionsTable = pgTable("support_sessions", {
   nick: text("nick").notNull(),
   sessionToken: text("session_token").notNull(),
   passwordVersion: integer("password_version").notNull().default(1),
+  /** #331: set for a personal-code session; NULL = the shared support password (former rights). */
+  memberId: integer("member_id").references(() => tournamentSupportMembersTable.id, { onDelete: "cascade" }),
   lastActiveAt: timestamp("last_active_at").notNull().defaultNow(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
 });
@@ -1187,6 +1208,7 @@ export type ResultHistory = typeof resultHistoryTable.$inferSelect;
 
 export type ActionLog = typeof actionLogTable.$inferSelect;
 export type SupportSession = typeof supportSessionsTable.$inferSelect;
+export type TournamentSupportMember = typeof tournamentSupportMembersTable.$inferSelect;
 export type AuthAuditLog = typeof authAuditLogTable.$inferSelect;
 export type AuthCredentialRateLimit =
   typeof authCredentialRateLimitsTable.$inferSelect;

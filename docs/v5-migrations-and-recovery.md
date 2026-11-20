@@ -1,5 +1,13 @@
-# V5 schema migrations (0041–0047): procedure and recovery
+# V5 schema migrations (0041–0048): procedure and recovery
 
+> **#331 (next combined release)** adds `0048_support_members.sql`: the table `tournament_support_members` (one row per
+> support person: name, personal access code stored only as a password hash, explicit `permissions text[]` checked
+> against the 8-key catalog, `permissions_version`, `revoked_at`) and the nullable `support_sessions.member_id`
+> (FK, `ON DELETE CASCADE`, indexed). NULL keeps every existing shared-support-password session with exactly its former
+> rights. The token becomes `apply-0041-0048`; the marker is `v512_support_members_0048`. A V5.10/V5.11 database
+> (0001–0047) has exactly one pending migration: 0048. No existing row is rewritten. Members are not part of
+> backups (their codes are secrets): after a restore the organizer grants access again.
+>
 > **V5.10** adds `0047_two_leg_ties.sql`: three new tables for two-legged knockout ties — `match_legs` (both legs
 > of a tie: own date, score in the tie's orientation, revision), `match_tie_decisions` (the organizer's winner and
 > public reason for a level aggregate) and `match_tie_history` (legs and decisions, recorded/reverted). The
@@ -51,7 +59,7 @@ violate a new CHECK constraint, missing `players(tournament_id, id)` key.
 
 ## 3. Apply (one transaction, all or nothing)
 ```
-DATABASE_URL=... DATABASE_SCHEMA=public V5_MIGRATION_CONFIRM=apply-0041-0047 \
+DATABASE_URL=... DATABASE_SCHEMA=public V5_MIGRATION_CONFIRM=apply-0041-0048 \
   APP_COMMIT=<sha> DEPLOYMENT_ENVIRONMENT=<env> pnpm --filter @workspace/db migrate:v5
 ```
 Advisory lock, `lock_timeout 10s`, preflight inside the transaction, migration SQL, catalog
@@ -66,6 +74,12 @@ Run the preflight again: `"status": "applied"`. Start the API: the log line
 * **Apply failed** – nothing was changed (single transaction). Fix the reported blocker and rerun.
 * **API refuses to start** (`SchemaIncompatibleError`) – the schema lacks a migration; run steps 2–3,
   or roll the API back to the previous build (old builds ignore the new columns/tables).
+* **Need to undo #331 only (0048)** – first end every personal support session, because an older API ignores
+  `member_id` and would treat such a session as a shared-password session:
+  `DELETE FROM support_sessions WHERE member_id IS NOT NULL;` then roll the code back to V5.11. To remove 0048
+  (all personal support access is lost; shared-password support keeps working):
+  `ALTER TABLE support_sessions DROP COLUMN IF EXISTS member_id; DROP TABLE IF EXISTS tournament_support_members;`
+  `DELETE FROM app_schema_migrations WHERE migration_key = 'v512_support_members_0048';`
 * **Need to undo V5.10 only (0047)** – roll the code back to V5.9.1 first. The V5.9.1 API does not know the
   `two_legs` kind: it would read such a stage as having no rules and treat each tie as a single game (its stored
   aggregate would no longer validate) — finish or export (Backup V3 keeps legs, decisions and history) every

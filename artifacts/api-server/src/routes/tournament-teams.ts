@@ -1,5 +1,5 @@
 import { Router, type IRouter, type Request, type Response } from "express";
-import { requireOrganizer, requireTournamentRead, requireTournamentWrite } from "../access-policy";
+import { requireOrganizer, requireTournamentPermission, requireTournamentRead } from "../access-policy";
 import {
   TeamRosterError,
   addTeamMember,
@@ -55,28 +55,28 @@ router.put("/tournaments/:id/team-settings", async (req, res): Promise<void> => 
 router.patch("/tournaments/:id/teams/:entryId", async (req, res): Promise<void> => {
   const parsed = ids(req, res, ["id", "entryId"]);
   if (!parsed) return;
-  if (!await requireTournamentWrite(req, res, parsed[0])) return;
+  if (!await requireTournamentPermission(req, res, parsed[0], "participants.manage")) return;
   try { res.json(await updateTeamDetails(parsed[0], parsed[1], req.body)); } catch (error) { fail(error, res); }
 });
 
 router.post("/tournaments/:id/teams/:entryId/members", async (req, res): Promise<void> => {
   const parsed = ids(req, res, ["id", "entryId"]);
   if (!parsed) return;
-  if (!await requireTournamentWrite(req, res, parsed[0])) return;
+  if (!await requireTournamentPermission(req, res, parsed[0], "participants.manage")) return;
   try { res.status(201).json(await addTeamMember(parsed[0], parsed[1], req.body)); } catch (error) { fail(error, res); }
 });
 
 router.patch("/tournaments/:id/teams/:entryId/members/:memberId", async (req, res): Promise<void> => {
   const parsed = ids(req, res, ["id", "entryId", "memberId"]);
   if (!parsed) return;
-  if (!await requireTournamentWrite(req, res, parsed[0])) return;
+  if (!await requireTournamentPermission(req, res, parsed[0], "participants.manage")) return;
   try { res.json(await changeTeamMemberRole(parsed[0], parsed[1], parsed[2], req.body)); } catch (error) { fail(error, res); }
 });
 
 router.delete("/tournaments/:id/teams/:entryId/members/:memberId", async (req, res): Promise<void> => {
   const parsed = ids(req, res, ["id", "entryId", "memberId"]);
   if (!parsed) return;
-  if (!await requireTournamentWrite(req, res, parsed[0])) return;
+  if (!await requireTournamentPermission(req, res, parsed[0], "participants.manage")) return;
   try { res.json(await removeTeamMember(parsed[0], parsed[1], parsed[2])); } catch (error) { fail(error, res); }
 });
 

@@ -181,7 +181,7 @@ export async function apiSetInitialOrganizerPassword(
   return body.token;
 }
 
-export async function apiSupportLogin(tournamentId: number, password: string, nick: string): Promise<{ sessionToken: string; nick: string }> {
+export async function apiSupportLogin(tournamentId: number, password: string, nick: string): Promise<{ sessionToken: string; nick: string; memberId?: number | null }> {
   const res = await fetch(`${BASE}/api/tournaments/${tournamentId}/auth/support-login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -194,7 +194,15 @@ export async function apiSupportLogin(tournamentId: number, password: string, ni
   return res.json();
 }
 
-export async function apiVerifySupportSession(tournamentId: number, token: string): Promise<void> {
+export interface VerifiedSupportSession {
+  nick?: string;
+  /** #331: the personal-code member, or null for the shared support password. */
+  memberId?: number | null;
+  /** #331: what this session may do right now (read fresh by the server). */
+  permissions?: string[];
+}
+
+export async function apiVerifySupportSession(tournamentId: number, token: string): Promise<VerifiedSupportSession> {
   const res = await fetch(`${BASE}/api/tournaments/${tournamentId}/auth/support-session`, {
     headers: { "X-Support-Token": token },
   });
@@ -203,6 +211,7 @@ export async function apiVerifySupportSession(tournamentId: number, token: strin
     error.status = res.status;
     throw error;
   }
+  return await res.json().catch(() => ({})) as VerifiedSupportSession;
 }
 
 /** Read-only organizer check via an existing organizer-only GET; throws with the HTTP status. */
@@ -281,6 +290,72 @@ export async function apiChangeVisibility(
     throw new Error((err as any).error || "Błąd zmiany widoczności");
   }
   return res.json();
+}
+
+/** #330/#331: publish or hide as the organizer, or as a support person holding "visibility.publish". */
+export async function apiChangeVisibilityAs(
+  tournamentId: number,
+  credential: { orgToken?: string | null; supportToken?: string | null },
+  visibility: "public_online" | "private_offline",
+) {
+  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  if (credential.orgToken) headers["X-Organizer-Token"] = credential.orgToken;
+  else if (credential.supportToken) headers["X-Support-Token"] = credential.supportToken;
+  const res = await fetch(`${BASE}/api/tournaments/${tournamentId}/auth/change-visibility`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ visibility }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as any).error || "Błąd zmiany widoczności");
+  }
+  return res.json();
+}
+
+// ── #331 · support people (organizer only) ───────────────────────────────────
+export interface SupportMember {
+  id: number;
+  name: string;
+  permissions: string[];
+  permissionsVersion: number;
+  revokedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  activeSessions: number;
+}
+export interface SupportMembersResponse {
+  members: SupportMember[];
+  catalog: { key: string; label: string }[];
+  presets: { key: string; label: string; permissions: string[] }[];
+}
+
+async function supportMembersRequest<T>(url: string, orgToken: string, init: RequestInit = {}): Promise<T> {
+  const res = await fetch(`${BASE}/api${url}`, {
+    ...init,
+    headers: { "Content-Type": "application/json", "X-Organizer-Token": orgToken, ...(init.headers ?? {}) },
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as any).error || "Nie udało się zapisać zmian osoby wspierającej.");
+  }
+  return res.json() as Promise<T>;
+}
+
+export function apiListSupportMembers(tournamentId: number, orgToken: string) {
+  return supportMembersRequest<SupportMembersResponse>(`/tournaments/${tournamentId}/support-members`, orgToken);
+}
+export function apiCreateSupportMember(tournamentId: number, orgToken: string, body: { name: string; permissions: string[] }) {
+  return supportMembersRequest<{ member: SupportMember; accessCode: string }>(
+    `/tournaments/${tournamentId}/support-members`, orgToken, { method: "POST", body: JSON.stringify(body) });
+}
+export function apiUpdateSupportMember(tournamentId: number, orgToken: string, memberId: number, body: { name?: string; permissions?: string[] }) {
+  return supportMembersRequest<{ member: SupportMember }>(
+    `/tournaments/${tournamentId}/support-members/${memberId}`, orgToken, { method: "PATCH", body: JSON.stringify(body) });
+}
+export function apiRevokeSupportMember(tournamentId: number, orgToken: string, memberId: number) {
+  return supportMembersRequest<{ member: SupportMember }>(
+    `/tournaments/${tournamentId}/support-members/${memberId}/revoke`, orgToken, { method: "POST" });
 }
 
 export async function apiGetAuditLog(tournamentId: number, token: string) {

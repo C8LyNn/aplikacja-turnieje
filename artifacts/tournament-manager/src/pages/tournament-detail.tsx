@@ -52,6 +52,8 @@ import { useAuth } from "@/context/auth-context";
 import { setActiveOrganizerToken, setActiveSupportToken, setActiveViewerToken } from "@workspace/api-client-react";
 import { OrganizerLoginModal } from "@/components/organizer-login-modal";
 import { SupportLoginModal } from "@/components/support-login-modal";
+import { SupportPermissionsNote } from "@/components/support-permissions-note";
+import { SupportMembersPanel } from "@/components/support-members-panel";
 import { ViewerLoginModal } from "@/components/viewer-login-modal";
 import { SharingPanel } from "@/components/sharing-panel";
 import { TournamentStagesPanel } from "@/components/tournament-stages-panel";
@@ -114,7 +116,7 @@ export default function TournamentDetail() {
   // This effect only handles restoration from sessionStorage on mount / tournament change.
   const orgToken = getOrgToken(id);
   const storedSupportSession = getSupSession(id);
-  const { supportSession: supSession, isChecking: isSupportChecking } =
+  const { supportSession: supSession, isChecking: isSupportChecking, supportPermissions } =
     useVerifiedSupportSession(id, orgToken ? null : storedSupportSession);
   useOrganizerTokenCheck(id, orgToken);
   const viewerToken = getViewerTok(id);
@@ -315,6 +317,7 @@ export default function TournamentDetail() {
           hasOrganizerToken: !!orgToken,
           hasSupportSession: !!supSession,
           hasVerifiedLegacyHost: false,
+          supportPermissions,
         })
       : deriveOrganizerCapabilities({
           role,
@@ -322,7 +325,7 @@ export default function TournamentDetail() {
           hasOrganizerToken: false,
           hasSupportSession: false,
         }),
-    [false, orgToken, role, supSession, tournament],
+    [false, orgToken, role, supSession, supportPermissions, tournament],
   );
   const managementRole = managementRoleForCapabilities(capabilities, !!orgToken, !!supSession, role);
   const activeDetailTab = organizerDetailTab(search, capabilities, { experimental: isExperimental });
@@ -721,9 +724,11 @@ export default function TournamentDetail() {
             {/* #330: visibility (hidden / public) is not the play status; the organizer publishes or hides here. */}
             {isAuthenticated && (
               <div className="mb-2">
-                <TournamentVisibilityControl tournamentId={id} status={tournament.status} visibility={tournament.visibility} orgToken={orgToken} />
+                <TournamentVisibilityControl tournamentId={id} status={tournament.status} visibility={tournament.visibility} orgToken={orgToken}
+                  supportToken={!orgToken && capabilities.canPublishVisibility ? supSession?.token : null} />
               </div>
             )}
+            {!orgToken && supSession && <SupportPermissionsNote className="mb-2" nick={supSession.nick} permissions={supportPermissions} />}
             {tournament.description && <p className="text-muted-foreground">{tournament.description}</p>}
             <p className="text-sm text-muted-foreground mt-1">
               {/* V5.8: the format is named once, also when the stage carries the format's name. */}
@@ -1949,7 +1954,7 @@ export default function TournamentDetail() {
             </TabsContent>
           )}
 
-          {capabilities.canManageOrganizerSettings && (
+          {(capabilities.canManageOrganizerSettings || capabilities.canEditPresentation) && (
             <TabsContent value="visuals" className="pt-6">
               <TournamentPresentationPanel tournament={tournament} />
             </TabsContent>
@@ -1962,6 +1967,7 @@ export default function TournamentDetail() {
                 hasOrganizerPassword={!!tournament.hasOrganizerPassword}
                 onOrganizerPasswordSet={() => refetchTournament()}
               />
+              {orgToken && <SupportMembersPanel tournamentId={id} orgToken={orgToken} />}
             </TabsContent>
           )}
 
@@ -1973,7 +1979,7 @@ export default function TournamentDetail() {
 
           {isExperimental && capabilities.canAccessConducting && (
             <TabsContent value="broadcast" className="pt-6">
-              <ExperimentalBroadcastPanel tournament={tournament} matches={matches ?? []} stages={stages ?? []} canFeature={capabilities.canWriteTournamentResults} />
+              <ExperimentalBroadcastPanel tournament={tournament} matches={matches ?? []} stages={stages ?? []} canFeature={capabilities.canFeatureMatch && (!!orgToken || !!supSession)} />
             </TabsContent>
           )}
 

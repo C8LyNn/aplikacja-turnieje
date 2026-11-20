@@ -5,7 +5,7 @@ import {
   actionLogTable, db, matchesTable, qualificationProposalsTable, resultHistoryTable,
   stageBasketRouteExecutionsTable, tournamentStagesTable,
 } from "@workspace/db";
-import { requireTournamentWrite } from "../access-policy";
+import { requireTournamentPermission } from "../access-policy";
 import { getDoubleEliminationCorrectionImpact } from "../application/operations/tournament-de-routing-preview";
 import { stageMatchVersionVector } from "../application/operations/tournament-preview-coherence";
 import { deriveCorrectionRecoveryPlan } from "../application/operations/tournament-correction-recovery-plan";
@@ -63,7 +63,7 @@ router.post("/tournaments/:id/operations/result-correction-preview", async (req,
   }
 
   // This is a privileged operational read, not permission to mutate anything.
-  const access = await requireTournamentWrite(req, res, tournamentId);
+  const access = await requireTournamentPermission(req, res, tournamentId, "results.correct");
   if (!access) return;
   const [match] = await db.select().from(matchesTable).where(and(
     eq(matchesTable.id, data.matchId), eq(matchesTable.tournamentId, tournamentId),

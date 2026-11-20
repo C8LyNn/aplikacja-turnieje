@@ -44,6 +44,7 @@ export function useVerifiedSupportSession(
     token: string;
     verified: boolean;
     checking: boolean;
+    permissions?: string[] | null;
   } | null>(null);
   const token = storedSession?.token ?? "";
 
@@ -55,9 +56,11 @@ export function useVerifiedSupportSession(
     }
     setVerification({ tournamentId, token, verified: false, checking: true });
     void apiVerifySupportSession(tournamentId, token)
-      .then(() => {
+      .then((session) => {
         if (generation.current !== currentGeneration) return;
-        setVerification({ tournamentId, token, verified: true, checking: false });
+        // #331: keep the permissions the server read for this session (older servers send none → legacy set).
+        const permissions = Array.isArray(session?.permissions) ? session.permissions : null;
+        setVerification({ tournamentId, token, verified: true, checking: false, permissions });
       })
       .catch((error: unknown) => {
         if (generation.current !== currentGeneration) return;
@@ -74,6 +77,7 @@ export function useVerifiedSupportSession(
     supportSession:
       appliesToCurrentSession && verification.verified ? storedSession : null,
     isChecking: !!token && (!appliesToCurrentSession || verification.checking),
+    supportPermissions: appliesToCurrentSession && verification.verified ? verification.permissions ?? null : null,
   };
 }
 
@@ -91,7 +95,7 @@ export function useSyncTournamentAuth(tournamentId: number) {
 
   const orgToken = getOrgToken(tournamentId);
   const storedSupportSession = getSupSession(tournamentId);
-  const { supportSession: supSession, isChecking: isSupportChecking } =
+  const { supportSession: supSession, isChecking: isSupportChecking, supportPermissions } =
     useVerifiedSupportSession(tournamentId, orgToken ? null : storedSupportSession);
   useOrganizerTokenCheck(tournamentId, orgToken);
 
@@ -115,6 +119,7 @@ export function useSyncTournamentAuth(tournamentId: number) {
   return {
     orgToken,
     supSession,
+    supportPermissions,
     isAuthenticated: !!(orgToken || supSession),
     isReady: !isSupportChecking,
   };

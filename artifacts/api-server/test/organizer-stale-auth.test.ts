@@ -6,6 +6,7 @@ import {
   organizerCredentialFingerprint, signVersionedOrganizerToken,
   verifyOrganizerToken, verifyViewerToken,
 } from "../src/auth";
+import { isSupportPermission, LEGACY_SUPPORT_PERMISSIONS, SUPPORT_PERMISSION_LABELS } from "../src/application/auth/support-permissions";
 
 // Execute the real policy/DELETE handler with controlled database ports.
 // This is not a substitute for the PostgreSQL integration race.
@@ -55,6 +56,7 @@ function fixture(blocked = false) {
   const api = compile(policy, {
     db, ...tables, organizerCredentialFingerprint, verifyOrganizerToken, verifyViewerToken,
     eq: () => undefined, and: () => undefined, sql: () => undefined, logger: { warn() {} },
+    tournamentSupportMembersTable: {}, isNull: () => undefined, isSupportPermission, LEGACY_SUPPORT_PERMISSIONS, SUPPORT_PERMISSION_LABELS,
   }, "({ requireOrganizer, getTournamentMutationActor, withTournamentMutationLock, revalidateTournamentMutationActor, TournamentMutationAuthorizationError })");
   const token = signVersionedOrganizerToken(original.id, original.organizerPasswordHash);
   const req = { headers: { "x-organizer-token": token }, params: { id: "7" } };

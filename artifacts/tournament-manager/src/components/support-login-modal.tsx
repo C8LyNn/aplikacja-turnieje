@@ -100,7 +100,7 @@ export function SupportLoginModal({ open, onClose, tournamentId, tournamentName,
           <div className="space-y-1.5">
             <Label htmlFor="support-login-password" className="flex items-center gap-1.5">
               <Lock aria-hidden="true" className="w-3.5 h-3.5" />
-              Hasło wsparcia
+              Hasło wsparcia lub osobisty kod
             </Label>
             <Input
               id="support-login-password"
@@ -108,6 +108,7 @@ export function SupportLoginModal({ open, onClose, tournamentId, tournamentName,
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Podane przez organizatora"
+              title="Z osobistym kodem zobaczysz się pod imieniem nadanym przez organizatora."
               autoComplete="current-password"
               aria-describedby={error ? "support-login-error" : undefined}
               required

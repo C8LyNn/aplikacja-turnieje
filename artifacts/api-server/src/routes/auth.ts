@@ -1,10 +1,13 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { eq, and, desc } from "drizzle-orm";
-import { db, tournamentsTable, supportSessionsTable, authAuditLogTable } from "@workspace/db";
+import { db, tournamentsTable, supportSessionsTable, authAuditLogTable, tournamentSupportMembersTable } from "@workspace/db";
+import { isNull } from "drizzle-orm";
 import { hashPassword, verifyPassword, signVersionedOrganizerToken, verifyOrganizerToken, generateSessionToken, signViewerToken, verifyViewerToken } from "../auth";
 import {
   requireOrganizer as requireOrganizerAccess,
+  requireTournamentPermission,
   requireTournamentWrite,
+  revalidateTournamentMutationActor,
   TournamentMutationAuthorizationError,
 } from "../access-policy";
 import {
@@ -72,14 +75,14 @@ async function requireSupportOrOrganizer(
   req: Request,
   res: Response,
   tournamentId: number,
-): Promise<{ actorType: "organizer" | "support"; actorNick: string } | null> {
+): Promise<{ actorType: "organizer" | "support"; actorNick: string; memberId?: number | null; permissions?: readonly string[] } | null> {
   const access = await requireTournamentWrite(req, res, tournamentId);
   if (!access) return null;
   if (access.actor.type === "organizer") {
     return { actorType: "organizer", actorNick: "Organizator" };
   }
   return access.actor.type === "support"
-    ? { actorType: "support", actorNick: access.actor.nick }
+    ? { actorType: "support", actorNick: access.actor.nick, memberId: access.actor.memberId, permissions: access.actor.permissions }
     : null;
 }
 
@@ -286,6 +289,7 @@ router.post("/tournaments/:id/auth/support-login", async (req, res) => {
     const session = await executeCredentialAttempt<{
       sessionToken: string;
       nick: string;
+      memberId: number | null;
     }>({
       tournamentId: id,
       credentialType: "support",
@@ -298,23 +302,38 @@ router.post("/tournaments/:id/auth/support-login", async (req, res) => {
           })
           .from(tournamentsTable)
           .where(eq(tournamentsTable.id, id));
-        const storedHash =
-          tournament?.supportPasswordHash ?? AUTH_DUMMY_PASSWORD_HASH;
-        if (!(await verifyPassword(password, storedHash)) || !tournament?.supportPasswordHash) {
+        if (!tournament) {
+          await verifyPassword(password, AUTH_DUMMY_PASSWORD_HASH);
           return { ok: false } as const;
         }
+        const storedHash = tournament.supportPasswordHash ?? AUTH_DUMMY_PASSWORD_HASH;
+        const sharedMatches = (await verifyPassword(password, storedHash)) && !!tournament.supportPasswordHash;
+        // #331: otherwise a personal access code of a support person who has not been revoked.
+        let member: { id: number; name: string } | null = null;
+        if (!sharedMatches) {
+          const members = await tx
+            .select({ id: tournamentSupportMembersTable.id, name: tournamentSupportMembersTable.name, hash: tournamentSupportMembersTable.accessCodeHash })
+            .from(tournamentSupportMembersTable)
+            .where(and(eq(tournamentSupportMembersTable.tournamentId, id), isNull(tournamentSupportMembersTable.revokedAt)));
+          for (const candidate of members) {
+            if (await verifyPassword(password, candidate.hash)) { member = { id: candidate.id, name: candidate.name }; break; }
+          }
+          if (!member) return { ok: false } as const;
+        }
         const sessionToken = generateSessionToken();
+        const sessionNick = member ? member.name : nick.trim();
         await tx.insert(supportSessionsTable).values({
           tournamentId: id,
-          nick: nick.trim(),
+          nick: sessionNick,
           sessionToken,
           passwordVersion: tournament.supportPasswordVersion,
+          memberId: member?.id ?? null,
           lastActiveAt: new Date(),
           createdAt: new Date(),
         });
         return {
           ok: true,
-          value: { sessionToken, nick: nick.trim() },
+          value: { sessionToken, nick: sessionNick, memberId: member?.id ?? null },
         } as const;
       },
     });
@@ -340,7 +359,7 @@ router.get("/tournaments/:id/auth/support-session", async (req, res) => {
     res.status(403).json({ error: "Wymagana aktywna sesja wsparcia" });
     return;
   }
-  res.json({ valid: true, nick: actor.actorNick });
+  res.json({ valid: true, nick: actor.actorNick, memberId: actor.memberId ?? null, permissions: actor.permissions ?? [] });
 });
 
 router.get("/tournaments/:id/auth/support-sessions", async (req, res) => {
@@ -504,13 +523,18 @@ router.post("/tournaments/:id/auth/change-viewer-password", async (req, res) => 
 router.post("/tournaments/:id/auth/change-visibility", async (req, res) => {
   const id = parseId(req, res);
   if (id === null) return;
-  const actor = await requireOrganizerAccess(req, res, id);
+  // #330/#331: the owner decides; a support person only with an explicit "visibility.publish" permission.
+  const actor = await requireTournamentPermission(req, res, id, "visibility.publish");
   if (!actor) return;
 
   const { visibility, viewerPassword } = req.body as { visibility?: string; viewerPassword?: string };
   const allowed = ["public_online", "private_online", "private_offline"];
   if (!visibility || !allowed.includes(visibility)) {
     res.status(400).json({ error: "Nieprawidłowy tryb widoczności" }); return;
+  }
+  if (actor.actor.type === "support" && visibility === "private_online") {
+    res.status(403).json({ error: "Hasło widza ustawia tylko organizator. Wsparcie może opublikować lub ukryć turniej.", code: "SUPPORT_PERMISSION_REQUIRED" });
+    return;
   }
   if (
     visibility === "private_online" &&
@@ -539,12 +563,18 @@ router.post("/tournaments/:id/auth/change-visibility", async (req, res) => {
         organizerPasswordHash: tournamentsTable.organizerPasswordHash,
         status: tournamentsTable.status,
         visibility: tournamentsTable.visibility,
+        id: tournamentsTable.id,
+        supportPasswordVersion: tournamentsTable.supportPasswordVersion,
       })
       .from(tournamentsTable)
       .where(eq(tournamentsTable.id, id))
       .for("update");
     if (!tournament) throw new Error("Tournament disappeared during visibility change");
-    revalidateLockedOrganizer(req, id, tournament.organizerPasswordHash);
+    if (actor.actor.type === "support") {
+      await revalidateTournamentMutationActor(tx, tournament as typeof tournamentsTable.$inferSelect, actor.actor);
+    } else {
+      revalidateLockedOrganizer(req, id, tournament.organizerPasswordHash);
+    }
     // #330: a tournament is hidden (private offline) only before it starts; once viewers may follow it,
     // hiding it would pull results away from them. Publishing or the viewer password stay available.
     if (visibility === "private_offline" && tournament.visibility !== "private_offline" && tournament.status !== "draft") {
@@ -571,7 +601,12 @@ router.post("/tournaments/:id/auth/change-visibility", async (req, res) => {
     private_online: "Ustawił dostęp z hasłem widza",
     private_offline: "Ukrył turniej (niewidoczny dla widzów)",
   };
-  await logAuditAction(id, "organizer", "Organizator", VISIBILITY_LOG[visibility] ?? `Zmienił widoczność turnieju na: ${visibility}`);
+  await logAuditAction(
+    id,
+    actor.actor.type === "support" ? "support" : "organizer",
+    actor.actor.type === "support" ? actor.actor.nick : "Organizator",
+    VISIBILITY_LOG[visibility] ?? `Zmienił widoczność turnieju na: ${visibility}`,
+  );
   res.json({ ok: true });
 });
 

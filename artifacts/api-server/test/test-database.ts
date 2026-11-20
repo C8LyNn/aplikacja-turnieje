@@ -128,6 +128,9 @@ const MATCH_SET_RULES_MIGRATION_URL = new URL(
 const TWO_LEG_TIES_MIGRATION_URL = new URL(
   "../../../lib/db/migrations/0047_two_leg_ties.sql", import.meta.url,
 );
+const SUPPORT_MEMBERS_MIGRATION_URL = new URL(
+  "../../../lib/db/migrations/0048_support_members.sql", import.meta.url,
+);
 const ROUND_ROBIN_LEGS_MIGRATION_URL = new URL(
   "../../../lib/db/migrations/0041_round_robin_legs.sql", import.meta.url,
 );
@@ -468,6 +471,12 @@ export async function resetTestSchema(pool: TestPool, schema: string): Promise<v
       );
       await pool.query(twoLegTiesSql);
       await pool.query(twoLegTiesSql);
+      // #331: support people with personal codes and per-action permissions (idempotent like the others).
+      const supportMembersSql = renderSeriesV1MigrationForTestSchema(
+        await readFile(SUPPORT_MEMBERS_MIGRATION_URL, "utf8"), schema,
+      );
+      await pool.query(supportMembersSql);
+      await pool.query(supportMembersSql);
       await pool.query("COMMIT");
     } catch (error) {
       await pool.query("ROLLBACK");

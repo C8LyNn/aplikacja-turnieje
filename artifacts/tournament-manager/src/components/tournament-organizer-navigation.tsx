@@ -58,7 +58,7 @@ export function organizerDetailTab(
     return requested as OrganizerDetailTab;
   }
   if (requested === "game-rules" && capabilities.canManageOrganizerSettings) return requested;
-  if (requested === "visuals" && capabilities.canManageOrganizerSettings) return requested;
+  if (requested === "visuals" && (capabilities.canManageOrganizerSettings || capabilities.canEditPresentation)) return requested;
   if (requested === "sharing" && capabilities.canManageSharing) return requested;
   if (requested === "backup" && capabilities.canManageBackup) return requested;
   if (requested === "security" && capabilities.canManageOrganizerSettings) return requested;
@@ -141,6 +141,9 @@ export function organizerMoreItems(
   ];
   if (capabilities.canManageOrganizerSettings) {
     items.push({ area: "game-rules", label: "Reguły gry", href: `/tournaments/${tournamentId}?tab=game-rules` });
+  }
+  // #331: the look of the broadcast can be delegated ("presentation.settings").
+  if (capabilities.canManageOrganizerSettings || capabilities.canEditPresentation) {
     items.push({ area: "visuals", label: "Wizualia", href: `/tournaments/${tournamentId}?tab=visuals` });
   }
   if (capabilities.canUndo) {
