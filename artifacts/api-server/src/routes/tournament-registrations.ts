@@ -33,8 +33,11 @@ import { logAuditAction } from "./auth";
 
 const router: IRouter = Router();
 
-/** Sign-up attempts per source and per tournament in a sliding window (in-process; one API instance). */
-export const REGISTRATION_RATE_LIMIT = Object.freeze({ windowMs: 10 * 60 * 1000, perSource: 6, perTournament: 120 });
+/**
+ * Sign-up attempts per source and per tournament in a sliding window (in-process; one API instance).
+ * perSource is generous on purpose: at a LAN venue many people share one public address.
+ */
+export const REGISTRATION_RATE_LIMIT = Object.freeze({ windowMs: 10 * 60 * 1000, perSource: 20, perTournament: 120 });
 const attempts = new Map<string, number[]>();
 function rateLimited(key: string, limit: number, now: number): boolean {
   const recent = (attempts.get(key) ?? []).filter((time) => now - time < REGISTRATION_RATE_LIMIT.windowMs);
@@ -48,6 +51,18 @@ function rateLimited(key: string, limit: number, now: number): boolean {
 }
 /** Test hook: forget all counted attempts. */
 export function resetRegistrationRateLimit() { attempts.clear(); }
+
+/**
+ * The visitor's address only when it is really known: behind a proxy that the API does not trust
+ * (TRUSTED_PROXY_CIDRS unset), `req.ip` is the proxy itself, and a per-source limit would throttle every
+ * visitor together. Then only the per-tournament limit (and the place limit) applies.
+ */
+export function registrationSourceKey(req: Request): string | null {
+  const forwarded = req.headers["x-forwarded-for"] !== undefined || req.headers.forwarded !== undefined;
+  const trusted = Boolean(req.app?.get?.("trust proxy"));
+  if (forwarded && !trusted) return null;
+  return fingerprintCredentialSource(getRequestSource(req));
+}
 
 function ids(req: Request): { tournamentId: number; registrationId: number | null } | null {
   const tournamentId = Number(req.params.id);
@@ -96,8 +111,8 @@ router.post("/tournaments/:id/registrations", async (req, res): Promise<void> =>
   const access = await requireTournamentRead(req, res, parsed.tournamentId);
   if (!access) return;
   const now = Date.now();
-  const source = fingerprintCredentialSource(getRequestSource(req));
-  if (rateLimited(`s:${parsed.tournamentId}:${source}`, REGISTRATION_RATE_LIMIT.perSource, now)
+  const source = registrationSourceKey(req);
+  if ((source !== null && rateLimited(`s:${parsed.tournamentId}:${source}`, REGISTRATION_RATE_LIMIT.perSource, now))
     || rateLimited(`t:${parsed.tournamentId}`, REGISTRATION_RATE_LIMIT.perTournament, now)) {
     res.setHeader("Retry-After", String(Math.ceil(REGISTRATION_RATE_LIMIT.windowMs / 1000)));
     res.status(429).json({ error: "Za dużo zgłoszeń w krótkim czasie. Spróbuj ponownie za kilka minut.", code: "REGISTRATION_RATE_LIMITED" });

@@ -14,7 +14,7 @@ import { RegistrationPanel } from "./registration-panel";
 
 const testClient = () => new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0, refetchInterval: false }, mutations: { retry: false, gcTime: 0 } } });
 const originalFetch = globalThis.fetch;
-afterEach(() => { cleanup(); globalThis.fetch = originalFetch; });
+afterEach(() => { cleanup(); globalThis.fetch = originalFetch; sessionStorage.clear(); });
 
 type Call = { method: string; url: string; body: any };
 function mockApi(handler: (call: Call) => { status?: number; body: unknown } | undefined) {
@@ -100,6 +100,34 @@ test("#329: full, closed, started and private tournaments show no form — only 
   mockApi((call) => (call.url.endsWith("/registration") ? { status: 403, body: { error: "prywatny", code: "PRIVATE_OFFLINE" } } : undefined));
   mountSignup();
   assert.match((await screen.findByRole("alert")).textContent ?? "", /Turniej jest prywatny/);
+});
+
+test("#329 fix: the sign-up page reads with the viewer password or organizer session this browser already holds", async () => {
+  const seen: Array<{ viewer: string | null; organizer: string | null }> = [];
+  globalThis.fetch = (async (input: RequestInfo | URL, init?: RequestInit) => {
+    const headers = new Headers(init?.headers);
+    if (String(input).endsWith("/registration")) seen.push({ viewer: headers.get("x-viewer-token"), organizer: headers.get("x-organizer-token") });
+    const body = String(input).endsWith("/registration") ? page(headers.get("x-organizer-token") ? "hidden" : "open") : { fields: [], categories: [], types: [] };
+    return new Response(JSON.stringify(body), { status: 200, headers: { "content-type": "application/json" } });
+  }) as typeof fetch;
+  sessionStorage.setItem("tm_viewer_7", "viewer-7");
+  mountSignup();
+  assert.equal((await screen.findByTestId("signup-state")).textContent, "Zapisy są otwarte.");
+  assert.deepEqual(seen[0], { viewer: "viewer-7", organizer: null }, "a private tournament with the viewer password is readable");
+  cleanup(); seen.length = 0; sessionStorage.clear();
+  localStorage.setItem("tm_role", "organizer");
+  sessionStorage.setItem("tm_org_7", "org-7");
+  mountSignup();
+  assert.match((await screen.findByTestId("signup-state")).textContent ?? "", /ukryty/, "the organizer's preview explains a hidden tournament");
+  assert.equal(seen[0].organizer, "org-7");
+  localStorage.removeItem("tm_role");
+});
+
+test("#329 fix: a private tournament without credentials points to the viewer password", async () => {
+  mockApi((call) => (call.url.endsWith("/registration") ? { status: 403, body: { error: "prywatny" } } : undefined));
+  mountSignup();
+  await screen.findByRole("alert");
+  assert.ok(screen.getByRole("link", { name: "widoku widza" }).getAttribute("href")?.endsWith("/tournaments/7/audience"));
 });
 
 function list(overrides: Record<string, unknown> = {}) {

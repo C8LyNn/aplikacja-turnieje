@@ -7,6 +7,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useLocation, useParams } from "wouter";
 import { CheckCircle2, ClipboardList, Clock, Loader2, Lock, UserPlus } from "lucide-react";
 import { Layout } from "@/components/layout";
+import { useTournamentReadAuth } from "@/hooks/use-tournament-read-auth";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -30,6 +31,9 @@ export default function TournamentSignup() {
   const id = Number(params.id);
   const [location] = useLocation();
   const experimental = isExperimentalTournamentPath(location);
+  // The organizer, a verified support person or a viewer with the viewer password reads (and previews) with what this
+  // browser already holds — same as the audience page; anonymous visitors send nothing.
+  const { ready: authReady } = useTournamentReadAuth(id);
   const [page, setPage] = useState<PublicRegistration | null>(null);
   const [loadError, setLoadError] = useState<{ status?: number; message: string } | null>(null);
   const [name, setName] = useState("");
@@ -49,7 +53,7 @@ export default function TournamentSignup() {
       setLoadError({ status, message: registrationErrorMessage(failure, "Nie udało się wczytać zapisów.") });
     }
   }, [id]);
-  useEffect(() => { if (id > 0) void load(); }, [id, load]);
+  useEffect(() => { if (id > 0 && authReady) void load(); }, [id, authReady, load]);
 
   const state = page?.registration.state;
   const canSignUp = state === "open";
@@ -92,6 +96,11 @@ export default function TournamentSignup() {
             <p className="flex items-center gap-2 font-semibold"><Lock aria-hidden="true" className="h-4 w-4" />
               {loadError.status === 403 ? "Turniej jest prywatny — zapisy nie są dostępne pod tym linkiem." : loadError.status === 404 ? "Nie ma takiego turnieju." : loadError.message}
             </p>
+            {loadError.status === 403 && (
+              <p className="text-sm text-muted-foreground">
+                Jeśli masz hasło widza, podaj je w <Link href={tournamentHref(id, experimental, "/audience")} className="text-primary underline">widoku widza</Link> i wróć tutaj.
+              </p>
+            )}
             {loadError.status !== 404 && <Button variant="outline" size="sm" onClick={() => void load()}>Spróbuj ponownie</Button>}
           </div>
         )}

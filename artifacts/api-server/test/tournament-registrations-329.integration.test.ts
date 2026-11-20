@@ -221,7 +221,7 @@ test("#329: a question added after sign-ups keeps earlier answers and marks what
 });
 
 test("#329: settings are the organizer's; input is validated; bursts are rate-limited", async () => {
-  const t = await tournament({ players: 0 });
+  const t = await tournament({ players: 0, maxPlayers: 64 });
   const people = await supportWith(t, "Zapisy", ["participants.manage"]);
   assert.equal((await settings({ ...t, org: people as unknown as typeof t.org }, { enabled: true, open: true })).status, 403, "support cannot open sign-ups");
   assert.equal((await settings(t, { enabled: true, foo: 1 })).status, 422);
@@ -233,7 +233,23 @@ test("#329: settings are the organizer's; input is validated; bursts are rate-li
   assert.ok(audit.some((entry) => entry.action === "Włączył zapisy") && audit.some((entry) => entry.action === "Otworzył zapisy"));
   resetRateLimit();
   const statuses: number[] = [];
-  for (let i = 0; i < 7; i++) statuses.push((await signUp(t, { name: `Spam ${i}` }, {}, true)).status);
-  assert.deepEqual(statuses, [201, 201, 201, 201, 201, 201, 429]);
+  for (let i = 0; i < 21; i++) statuses.push((await signUp(t, { name: `Spam ${i}` }, {}, true)).status);
+  assert.deepEqual(statuses.slice(0, 20), Array(20).fill(201), "a LAN venue sharing one address can sign up 20 people");
+  assert.equal(statuses[20], 429);
+  resetRateLimit();
+});
+
+test("#329 fix: behind an untrusted proxy visitors are not throttled together; the tournament limit still holds", async () => {
+  const t = await tournament({ players: 0, maxPlayers: 256 });
+  await settings(t, { enabled: true, open: true }).expect(200);
+  resetRateLimit();
+  // Every request arrives from the proxy (same req.ip) with a forwarded header the API does not trust.
+  const viaProxy = (i: number) => signUp(t, { name: `Przez proxy ${i}` }, { "x-forwarded-for": `198.51.100.${i}` }, true);
+  const statuses: number[] = [];
+  for (let i = 0; i < 25; i++) statuses.push((await viaProxy(i)).status);
+  assert.ok(statuses.every((status) => status === 201), `no shared per-source block: ${statuses.join(",")}`);
+  const { REGISTRATION_RATE_LIMIT } = await import("../src/routes/tournament-registrations");
+  for (let i = 25; i < REGISTRATION_RATE_LIMIT.perTournament; i++) await viaProxy(i);
+  assert.equal((await viaProxy(999)).status, 429, "the per-tournament cap applies to everyone");
   resetRateLimit();
 });
