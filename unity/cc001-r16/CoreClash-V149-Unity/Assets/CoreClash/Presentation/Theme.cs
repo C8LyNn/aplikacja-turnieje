@@ -1,11 +1,13 @@
 using UnityEngine;
 namespace CoreClash.Presentation
 {
-    // CC-001 W20: the one place that defines how the match screen looks.
-    // Colour says what a thing IS, so the same hue never means two things:
-    //   neutral board   slate blues            active objects  the two team colours
-    //   selection       gold                   threat          hazard orange
-    //   result          damage red / heal green / shield blue (never a team colour)
+    // CC-001 W20: the one place that defines how the game looks.
+    // CC-001 W24: bright mobile look ("Candy Arena"). A saturated sky backdrop, a light
+    // arena tray, white cards with soft shadows, navy text, candy buttons.
+    // Colour still says what a thing IS, so the same hue never means two things:
+    //   neutral board   light blue-greys       active objects  the two team colours
+    //   selection       amber                  threat          hazard orange
+    //   result          damage red / heal green / shield sky blue (never a team colour)
     // Sizes are in arena units (540 x 900) unless noted; times are seconds.
     public static class Theme
     {
@@ -15,50 +17,54 @@ namespace CoreClash.Presentation
         // Teams. Colour is never the only cue. On a ball the cue is the owner pip (W21): a small
         // triangle on the ring that points the way the ball's side attacks. Launchers, zones
         // and structures keep the W20 ring pattern: P1 solid, P2 segmented.
-        public static readonly Color P1=C("#4cc9f0"),P2=C("#ff5d73");
+        public static readonly Color P1=C("#2f7bff"),P2=C("#ff4f7a");
         public static Color Team(int owner)=>owner==0?P1:P2;
+        // Darker team shade: button lips, text on white.
+        public static Color TeamDeep(int owner)=>owner==0?C("#1c56c9"):C("#d42c5a");
         public const int P2RingSegments=8;
         public const float P2RingFill=.62f;
 
-        // Surfaces and text (HUD).
-        public static readonly Color Background=C("#070d16"),Header=C("#0a121d"),Panel=C("#0d1826"),PanelLight=C("#132235"),PanelRaised=C("#1b3049"),
-            Edge=C("#24384d"),EdgeStrong=C("#3a5670"),Plate=C("#050b13");
-        public static readonly Color Text=C("#f3f7fb"),TextSoft=C("#c4d2de"),Muted=C("#8a9db0"),Disabled=C("#56677a"),Ink=C("#07111c");
+        // Surfaces and text (HUD). Panel = white card, PanelLight = a cell inside a card.
+        public static readonly Color Background=C("#5d93ff"),BackdropTop=C("#4fa8ff"),BackdropBottom=C("#7c63f2"),Header=C("#3550c8"),
+            Panel=C("#ffffff"),PanelLight=C("#eef3ff"),PanelRaised=C("#dfe8ff"),
+            Edge=C("#d3dcf5"),EdgeStrong=C("#9eb0e6"),Plate=C("#1b2550"),Scrim=C("#141c44");
+        public static readonly Color Text=C("#1b2550"),TextSoft=C("#3a4678"),Muted=C("#6c78a6"),Disabled=C("#a9b2d0"),Ink=C("#1b2550"),
+            OnColor=C("#ffffff"),PlateText=C("#ffffff"),PlateSoft=C("#c9d4f7");
         public const int FontTitle=17,FontBody=13,FontSmall=11,FontTiny=9;
 
-        // Meaning.
-        public static readonly Color Select=C("#ffd166"),Threat=C("#ff9f1c"),Damage=C("#ff4d4d"),Heal=C("#6fe08a"),Shield=C("#6fb8ff"),Info=C("#d9c7ff");
+        // Meaning. Select is the bright amber for rings and fills; SelectInk is its text shade on white.
+        public static readonly Color Select=C("#ffb81f"),SelectInk=C("#a86400"),Threat=C("#ff8a1f"),Damage=C("#ef3b54"),Heal=C("#1fb872"),Shield=C("#35a7ff"),Info=C("#8a63ff");
 
-        // Arena.
-        public static readonly Color BoardOuter=C("#04080f"),FloorEdge=C("#08121d"),FloorCentre=C("#0e1d2e"),Rim=C("#b9d6ea"),Centre=C("#dcecf8");
-        public const float ZoneFillNear=.17f,ZoneFillFar=.04f,ZonePattern=.085f,ZoneEdge=.9f,ZoneLabel=.55f;
-        public const float CentreRing=.6f,CentreFill=.04f,CentreLabel=.34f,MidLine=.13f,RimAlpha=.75f;
+        // Arena: a deep tray, a light floor, white rim.
+        public static readonly Color BoardOuter=C("#27336e"),BoardLip=C("#3b4a95"),FloorEdge=C("#d7e3fb"),FloorCentre=C("#f5f9ff"),Rim=C("#ffffff"),Centre=C("#6f7fc4");
+        public const float ZoneFillNear=.34f,ZoneFillFar=.07f,ZonePattern=.1f,ZoneEdge=.9f,ZoneLabel=.75f;
+        public const float CentreRing=.55f,CentreFill=.5f,CentreLabel=.6f,MidLine=.28f,RimAlpha=1f;
 
         // Balls.
-        public const float OwnerGap=1f,SelectionRing=7f,BodyDark=.38f,BodyHighlight=.9f,ShadowAlpha=.5f;
-        public const float WakeLength=64f,WakeAlpha=.2f;
+        public const float OwnerGap=1.5f,SelectionRing=8f,BodyDark=.38f,BodyHighlight=.9f,ShadowAlpha=.3f;
+        public const float WakeLength=64f,WakeAlpha=.3f;
         public const int WakeSteps=5;
         // W21: HP ring around the body, one segment per 5 HP (lost segments stay as a dim track).
-        public const float HpRing=4f,HpTrack=.26f,IconSize=1.22f;
-        public static readonly Color HpGood=C("#8be28f"),HpHurt=C("#ffd166"),HpCritical=C("#ff5d5d");
-        public const float HpHurtBelow=.6f,HpCriticalBelow=.3f,PlateAlpha=.93f;
+        public const float HpRing=5f,HpTrack=.3f,IconSize=1.24f;
+        public static readonly Color HpGood=C("#ffffff"),HpHurt=C("#ffe07a"),HpCritical=C("#ffd0d6");
+        public const float HpHurtBelow=.6f,HpCriticalBelow=.3f,PlateAlpha=.95f;
 
         // Statuses: one colour per kind, used by the chip, its glyph and its feedback.
         public static Color Status(StatusKind kind)
         {
             switch(kind)
             {
-                case StatusKind.Fire:return C("#ff7a2f");
-                case StatusKind.Ice:return C("#7fdcff");
-                case StatusKind.Frozen:return C("#d6f3ff");
-                case StatusKind.Frostguard:return C("#9fe3ff");
-                case StatusKind.Toxin:return C("#9bdc4a");
-                case StatusKind.Rooted:return C("#c79a5b");
+                case StatusKind.Fire:return C("#ff6a1f");
+                case StatusKind.Ice:return C("#22c3f0");
+                case StatusKind.Frozen:return C("#8fe2ff");
+                case StatusKind.Frostguard:return C("#4fc4ee");
+                case StatusKind.Toxin:return C("#6fcf22");
+                case StatusKind.Rooted:return C("#c98a45");
                 case StatusKind.Shield:return Shield;
-                case StatusKind.Divine:return C("#ffe9a8");
+                case StatusKind.Divine:return C("#ffd45a");
                 case StatusKind.Armed:case StatusKind.Fuse:return Threat;
                 case StatusKind.Jammed:return C("#b58cff");
-                case StatusKind.Sticky:return C("#d9b45a");
+                case StatusKind.Sticky:return C("#e0b548");
                 case StatusKind.Phased:return C("#a79cff");
                 case StatusKind.Veteran:case StatusKind.Ancestral:return Select;
                 default:return C("#a9bccb");
@@ -67,11 +73,13 @@ namespace CoreClash.Presentation
 
         // Effects. Strength scales every effect's opacity; set to 0 to silence them.
         public const float EffectStrength=1f;
-        public const float NumberRise=30f,ImpactFlash=.18f,ImpactRadius=30f;
+        public const float NumberRise=34f,ImpactFlash=.18f,ImpactRadius=30f;
         public const float ExplosionFlash=.3f,ExplosionRadius=104f,ExplosionSparks=12;
         public const float StatusPop=.32f,ShieldPop=.45f,TurnCue=1.05f,BaseFlash=.7f;
+        // W24 interface motion (seconds). Short on purpose: nothing here delays input.
+        public const float ScreenFade=.22f,SelectPop=.2f,ResultRise=.45f;
 
         // Aim.
-        public const float AimUnderlay=.55f,AimPull=.3f;
+        public const float AimUnderlay=.6f,AimPull=.45f;
     }
 }

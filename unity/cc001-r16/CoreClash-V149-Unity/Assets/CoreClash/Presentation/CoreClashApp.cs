@@ -51,7 +51,8 @@ namespace CoreClash.Presentation
         MatchLayout layout;
         bool setup=true,builder,library,initialized,externalModal,boardInspection;
         int builderOwner,replayId,sequence,pointerReadyFrame,inspectBallId,remoteLastEventId,remoteLastRevision;
-        float accumulator;
+        float accumulator,selectedAt=-9,screenAt=-9;
+        int screenShown=-1;
         string selected="normal",notice="",search="",inspect="",fatal="",networkNotice="";
         Vector2 setupScroll,presetScroll,rosterScroll,infoScroll,matchScroll,trayScroll;
         List<string> custom=new List<string>();
@@ -142,8 +143,8 @@ namespace CoreClash.Presentation
             // W22: a match between two active decks keeps random type picks inside the active roster.
             // A match with a frozen deck (developer roster, tests, drivers) runs exactly as before.
             Simulation.ActiveRosterOnly=Catalog.Roster!=null&&Catalog.Roster.IsActiveDeck(chosen[0])&&Catalog.Roster.IsActiveDeck(chosen[1]);
-            session=new NetworkGameSession(Simulation);feedback=new FeedbackTimeline();feedback.Observe(Simulation.State,Time.unscaledTime);receivedRemoteState=false;sequence=0;setup=false;exitGuard.Reset();builder=library=boardInspection=false;inspectBallId=0;selected="normal";CancelPointer();notice="";trayScroll=matchScroll=Vector2.zero;Debug.Log("CORE_CLASH_MATCH_START "+chosen[0].id+" vs "+chosen[1].id+(Simulation.ActiveRosterOnly?" roster=active":""));}
-        public void SelectBall(string id){if(CanChoose&&Catalog.Ball(id)!=null&&BallSelection.CanSelect(Simulation,Simulation.State.turn,id)){selected=id;gesture.Active=false;Debug.Log("CORE_CLASH_SELECT "+id);}}
+            session=new NetworkGameSession(Simulation);feedback=new FeedbackTimeline();feedback.Observe(Simulation.State,Time.unscaledTime);Fx.Reset();resultHidden=false;receivedRemoteState=false;sequence=0;setup=false;exitGuard.Reset();builder=library=boardInspection=false;inspectBallId=0;selected="normal";CancelPointer();notice="";trayScroll=matchScroll=Vector2.zero;Debug.Log("CORE_CLASH_MATCH_START "+chosen[0].id+" vs "+chosen[1].id+(Simulation.ActiveRosterOnly?" roster=active":""));}
+        public void SelectBall(string id){if(CanChoose&&Catalog.Ball(id)!=null&&BallSelection.CanSelect(Simulation,Simulation.State.turn,id)){if(selected!=id)selectedAt=Time.unscaledTime;selected=id;gesture.Active=false;Debug.Log("CORE_CLASH_SELECT "+id);}}
         public void ShowBallDetails(string id){if(Catalog.Ball(id)!=null){inspect=id;inspectBallId=0;boardInspection=false;infoScroll=Vector2.zero;gesture.Active=false;Debug.Log("CORE_CLASH_DETAILS "+id+" developer="+DeveloperOverlay);}}
         public void ShowRuntimeBallDetails(int id){var current=BallInspection.Read(Simulation?.State,id);if(current!=null&&Catalog.Ball(current.Type)!=null){ShowBallDetails(current.Type);inspectBallId=id;boardInspection=false;}}
         public void CloseBallDetails(){inspect="";inspectBallId=0;}
@@ -192,12 +193,27 @@ namespace CoreClash.Presentation
         void RenderUi()
         {
             GUI.skin.button.fontSize=14;GUI.skin.label.fontSize=14;GUI.skin.textField.fontSize=16;
-            Draw.Rect(new Rect(0,0,UiWidth,UiHeight),Draw.Background);Draw.Rect(new Rect(0,0,UiWidth,60),Theme.Header);Draw.Rect(new Rect(0,59,UiWidth,1),Draw.Edge);
-            Draw.Text(new Rect(UiWidth<500?16:24,11,UiWidth<360?130:UiWidth<500?190:310,28),"CORE CLASH",UiWidth<360?16:UiWidth<500?23:25,Color.white,TextAnchor.MiddleLeft,true);if(UiWidth>700)Draw.Text(new Rect(228,16,170,23),"CLASS DEMO  /  V149",11,Draw.Gold,TextAnchor.MiddleLeft,true);
-            if(fatal.Length>0){Draw.Text(new Rect(30,100,UiWidth-60,200),fatal,18,Draw.Pink);return;}if(Catalog==null)return;
+            Fx.Load();
+            Draw.Backdrop(new Rect(0,0,UiWidth,UiHeight));
+            // Top bar: the logo, except in a match on an upright phone, where the score strip takes its place.
+            bool stripInBar=!setup&&layout.PhonePortrait;
+            if(!stripInBar)
+            {
+                bool small=UiWidth<500;float x=small?14:24;int size=UiWidth<360?17:small?23:27;
+                Draw.Circle(new Rect(x,17,22,22),Theme.Ink);Draw.Circle(new Rect(x+2,19,18,18),Theme.P1);
+                Draw.Circle(new Rect(x+14,21,22,22),Theme.Ink);Draw.Circle(new Rect(x+16,23,18,18),Theme.P2);
+                Draw.Text(new Rect(x+44,13,UiWidth<360?130:small?190:330,30),"CORE CLASH",size,new Color(.07f,.1f,.3f,.45f),TextAnchor.MiddleLeft,true);
+                Draw.Text(new Rect(x+44,11,UiWidth<360?130:small?190:330,30),"CORE CLASH",size,Theme.OnColor,TextAnchor.MiddleLeft,true);
+            }
+            if(fatal.Length>0){Draw.Text(new Rect(30,100,UiWidth-60,200),fatal,18,Theme.OnColor);return;}if(Catalog==null)return;
+            int screen=setup?(builder?1:library?2:0):3;
+            if(screen!=screenShown){screenShown=screen;screenAt=Time.unscaledTime;}
             bool prior=GUI.enabled;GUI.enabled=!externalModal&&inspect.Length==0&&!DeveloperOverlay;
             GUI.enabled=GUI.enabled&&!exitGuard.Open;
             if(setup){if(builder)RenderBuilder();else if(library)RenderLibrary();else RenderSetup();}else RenderMatch();GUI.enabled=prior;
+            // Screen change: the new screen fades in from the backdrop. Input is never held back.
+            float fade=Fx.ReducedMotion?0:1-Mathf.Clamp01((Time.unscaledTime-screenAt)/Theme.ScreenFade);
+            if(fade>0&&Event.current.type==EventType.Repaint)Draw.Rect(new Rect(0,60,UiWidth,UiHeight-60),Theme.A(Color.Lerp(Theme.BackdropTop,Theme.BackdropBottom,.5f),fade*fade));
             if(exitGuard.Open&&!setup)RenderExitConfirm();
             if(inspect.Length>0)RenderInfo();if(DeveloperOverlay)RenderDeveloper();
             GetComponent<NgoLanLobby>()?.Render();

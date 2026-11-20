@@ -242,7 +242,7 @@ namespace CoreClash.Testing
             Place(sim, 0, "normal", 200, 640); Place(sim, 1, "normal", 320, 280);
             Still(sim);
             yield return Seconds(.6f);
-            sim.Rules.DamageBase(1, 20); sim.Rules.Finish(0, "Base destroyed");
+            sim.State.players[1].hp = 0; sim.Rules.Finish(0, "Base destroyed");
             yield return Seconds(1.2f);
             yield return Capture("16-match-result");
 

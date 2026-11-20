@@ -40,9 +40,18 @@ namespace CoreClash.Presentation
             int previousViewOwner=viewOwner;viewOwner=localOwner==1?1:0;
             var state = simulation.State;
             bool dragging = aim != null && aim.Active;
+            float now = Time.unscaledTime;
+            if (Event.current.type == EventType.Repaint) Fx.Observe(simulation, now);
+            // W24: the arena is a tray lying on the backdrop; a hard hit nudges it for a moment.
+            var shake = Fx.ShakeOffset(now, rect.width / 540f);
+            rect = new Rect(rect.x + shake.x, rect.y + shake.y, rect.width, rect.height);
+            float trayPad = Mathf.Max(3, 6 * rect.width / 540f);
+            var tray = new Rect(rect.x - trayPad, rect.y - trayPad, rect.width + trayPad * 2, rect.height + trayPad * 2);
+            Draw.Shadow(tray, .34f, 16, 8);
+            Draw.Round(tray, Theme.BoardLip);
+            Draw.Round(new Rect(tray.x, tray.y + trayPad * .5f, tray.width, tray.height - trayPad * .5f), Theme.BoardOuter);
             GUI.BeginGroup(rect);
             var board = new Rect(0, 0, rect.width, rect.height);
-            Draw.Rect(board, Theme.BoardOuter);
             RenderArena(board);
 
             // Clip gameplay glows and effects to the actual field, as in the V148 canvas.
@@ -54,6 +63,7 @@ namespace CoreClash.Presentation
             RenderZones(clippedBoard, state);
             RenderTurnSweep(clippedBoard, state, feedback, dragging);
             RenderStructures(clippedBoard, state);
+            Fx.RenderUnder(clippedBoard, viewOwner, now);
             // Pass 1: bodies. Pass 2: plates and chips, so no ball hides another ball's information.
             drawn.Clear();
             foreach (var ball in state.balls)
@@ -67,6 +77,7 @@ namespace CoreClash.Presentation
                     drawn.Add((ball,renderX,renderY,replay));
                 }
             foreach (var item in drawn) BallView.RenderBadges(clippedBoard,item.ball,item.replay,item.x,item.y,viewOwner,visible);
+            Fx.RenderOver(clippedBoard, viewOwner, now);
             RenderEvents(clippedBoard,feedback,dragging);
             // W19-05: banner first, then counter; both avoid balls, chips, launchers, structures and each other.
             marginNotes.Clear();var keepOut=BoardKeepOuts(clippedBoard,state);
@@ -86,21 +97,22 @@ namespace CoreClash.Presentation
         {
             Rect field = Box(board, Left, Top, Right - Left, Bottom - Top);
             float scale = board.width / 540;
-            // Calm floor: darker toward both base walls, lighter at the centre line. No grid.
+            // Light floor: brightest across the middle, a touch deeper toward both base walls.
             Draw.VGradient(new Rect(field.x, field.y, field.width, field.height * .5f + .5f), Theme.FloorEdge, Theme.FloorCentre);
             Draw.VGradient(new Rect(field.x, field.y + field.height * .5f, field.width, field.height * .5f), Theme.FloorCentre, Theme.FloorEdge);
+            Draw.Tile(field, Pattern(false), Mathf.Max(22, 36 * scale), Theme.A(Theme.Centre, .07f));
             RenderHomeZone(board, 1, Top, ZoneP2Bottom);
             RenderHomeZone(board, 0, ZoneP1Top, Bottom);
 
             // Centre: neutral (never a team colour). The ring is the rules' centre radius.
             Vector2 centre = Point(board, CentreX, CentreY);
             Color neutral = Theme.Centre;
-            Line(board, Left, CentreY, CentreX - CentreRadius, CentreY, Theme.A(neutral, Theme.MidLine), 1.2f);
-            Line(board, CentreX + CentreRadius, CentreY, Right, CentreY, Theme.A(neutral, Theme.MidLine), 1.2f);
-            Draw.Circle(Box(board, CentreX - CentreRadius, CentreY - CentreRadius, CentreRadius * 2, CentreRadius * 2), Theme.A(neutral, Theme.CentreFill));
-            Draw.Ring(centre, CentreRadius * scale, Theme.A(neutral, Theme.CentreRing), Mathf.Max(1.5f, 2.2f * scale));
-            Draw.Ring(centre, (CentreRadius - 8) * scale, Theme.A(neutral, .12f), Mathf.Max(.8f, scale), 40, .5f);
-            Draw.Circle(new Rect(centre.x - 3 * scale, centre.y - 3 * scale, 6 * scale, 6 * scale), Theme.A(neutral, .4f));
+            Line(board, Left, CentreY, CentreX - CentreRadius, CentreY, Theme.A(neutral, Theme.MidLine), 2f);
+            Line(board, CentreX + CentreRadius, CentreY, Right, CentreY, Theme.A(neutral, Theme.MidLine), 2f);
+            Draw.Circle(Box(board, CentreX - CentreRadius, CentreY - CentreRadius, CentreRadius * 2, CentreRadius * 2), Theme.A(Color.white, Theme.CentreFill));
+            Draw.Ring(centre, CentreRadius * scale, Theme.A(neutral, Theme.CentreRing), Mathf.Max(2, 3.2f * scale));
+            Draw.Ring(centre, (CentreRadius - 9) * scale, Theme.A(neutral, .3f), Mathf.Max(1, 1.6f * scale), 40, .5f);
+            Glyphs.Paint(new Rect(centre.x - 13 * scale, centre.y - 13 * scale, 26 * scale, 26 * scale), Fx.Star, Theme.A(neutral, .3f));
             int font = Mathf.Max(8, Mathf.RoundToInt(10 * scale));
             Draw.Text(new Rect(centre.x - 100 * scale, centre.y + (CentreRadius + 5) * scale, 200 * scale, font + 8), "CENTRE", font,
                 Theme.A(neutral, Theme.CentreLabel), TextAnchor.MiddleCenter, true);
@@ -117,14 +129,14 @@ namespace CoreClash.Presentation
             Color near = Theme.A(team, Theme.ZoneFillNear), far = Theme.A(team, Theme.ZoneFillFar);
             Draw.VGradient(zone, baseAtViewTop ? near : far, baseAtViewTop ? far : near);
             Draw.Tile(zone, Pattern(owner == 0), Mathf.Max(20, 30 * scale), Theme.A(team, Theme.ZonePattern));
-            float edge = owner == 0 ? top : bottom, inner = owner == 0 ? 5 : -5;
-            Line(board, Left, edge, Right, edge, Theme.A(team, Theme.ZoneEdge), 2.2f);
-            Line(board, Left, edge + inner, Right, edge + inner, Theme.A(team, .25f), 1);
+            float edge = owner == 0 ? top : bottom, inner = owner == 0 ? 6 : -6;
+            Line(board, Left, edge, Right, edge, Theme.A(team, Theme.ZoneEdge), 3f);
+            Line(board, Left, edge + inner, Right, edge + inner, Theme.A(team, .3f), 1.4f);
             Vector2 corner = Point(board, Left, edge);
             int font = Mathf.Max(8, Mathf.RoundToInt(9 * scale));
             float height = font + 6;
             var label = new Rect(corner.x + 7 * scale, baseAtViewTop ? corner.y - 3 * scale - height : corner.y + 3 * scale, Mathf.Max(96, 150 * scale), height);
-            Draw.Text(label, "P" + (owner + 1) + " HOME ZONE", font, Theme.A(team, Theme.ZoneLabel), TextAnchor.MiddleLeft, true);
+            Draw.Text(label, "P" + (owner + 1) + " HOME ZONE", font, Theme.A(Theme.TeamDeep(owner), Theme.ZoneLabel), TextAnchor.MiddleLeft, true);
         }
 
         static Texture2D Pattern(bool diagonal)
@@ -159,12 +171,23 @@ namespace CoreClash.Presentation
             Color team = Draw.Owner(owner);
             bool active = state.turn == owner && state.phase == MatchPhase.Aiming;
             var center = Point(board, 270, y);
-            Draw.Circle(Box(board, 270 - 36, y - 36, 72, 72), Theme.A(Theme.Ink, .5f));
-            Draw.Ring(center, 34 * scale, Theme.A(team, active ? .95f : .32f), Mathf.Max(1.5f, 2.2f * scale), owner == 1 ? Theme.P2RingSegments : 0, Theme.P2RingFill);
+            // A pad in the team colour: white dish, team ring (P2 segmented), chevrons into the field.
+            Draw.Glow(new Vector2(center.x, center.y + 4 * scale), 52 * scale, new Color(.07f, .1f, .3f, .28f));
+            Draw.Circle(Box(board, 270 - 38, y - 38, 76, 76), active ? team : Color.Lerp(team, Color.white, .45f));
+            Draw.Circle(Box(board, 270 - 31, y - 31, 62, 62), Color.Lerp(Color.white, team, .12f));
+            Draw.Ring(center, 34.5f * scale, Theme.A(Theme.TeamDeep(owner), active ? .95f : .4f), Mathf.Max(1.5f, 2.4f * scale), owner == 1 ? Theme.P2RingSegments : 0, Theme.P2RingFill);
+            bool up = !BoardOverlayPlanner.AtViewTop(owner, viewOwner);
             if (active)
             {
-                float pulse = 44 + Mathf.Sin(Time.unscaledTime * 3) * 2.5f;
-                Draw.Ring(center, pulse * scale, Theme.A(team, .32f), Mathf.Max(1, 1.4f * scale));
+                float pulse = Fx.ReducedMotion ? 46 : 46 + Mathf.Sin(Time.unscaledTime * 3) * 3f;
+                Draw.Ring(center, pulse * scale, Theme.A(team, .55f), Mathf.Max(1.5f, 2.6f * scale));
+                Draw.Ring(center, (pulse + 7) * scale, Theme.A(team, .22f), Mathf.Max(1, 1.6f * scale));
+                for (int i = 0; i < 2; i++)
+                {
+                    float travel = Fx.ReducedMotion ? 0 : Mathf.Repeat(Time.unscaledTime * 1.6f + i * .5f, 1);
+                    float size = 20 * scale, offset = (58 + i * 15 + travel * 6) * scale * (up ? -1 : 1);
+                    Glyphs.Paint(new Rect(center.x - size / 2, center.y + offset - size / 2, size, size), up ? Fx.Chevron : "+L -.7 -.45 0 .45 .34;+L 0 .45 .7 -.45 .34", Theme.A(team, .8f - i * .35f));
+                }
                 bool aimingHere = aim == null || !aim.Active || (Mathf.Abs(aim.OriginX - 270) < .1f && Mathf.Abs(aim.OriginY - y) < .1f);
                 if (selected != null && aimingHere)
                 {
@@ -184,29 +207,30 @@ namespace CoreClash.Presentation
                 bool ice = zone.kind == "frosttrap" || zone.kind.Contains("ice");
                 bool toxin = zone.kind == "sporetrap" || zone.kind == "blight";
                 Color color = fire ? Theme.Status(StatusKind.Fire) : ice ? Theme.Status(StatusKind.Ice) : toxin ? Theme.Status(StatusKind.Toxin)
-                    : zone.kind == "consecrated" ? new Color(1, .9f, .4f)
-                    : zone.kind == "web" ? new Color(.4f, 1, .65f)
+                    : zone.kind == "consecrated" ? new Color(1, .76f, .1f)
+                    : zone.kind == "web" ? new Color(.15f, .78f, .5f)
                     : zone.kind == "portal" ? new Color(.6f, .4f, 1)
-                    : zone.kind == "blackHole" ? new Color(.45f, .2f, .8f) : new Color(.5f, .7f, .8f);
+                    : zone.kind == "blackHole" ? new Color(.45f, .2f, .8f) : new Color(.42f, .56f, .8f);
                 bool dense = zone.kind == "portal" || zone.kind == "blackHole";
                 var center = Point(board, zone.x, zone.y);
-                Draw.Circle(Box(board, zone.x - zone.radius, zone.y - zone.radius, zone.radius * 2, zone.radius * 2), Theme.A(color, dense ? .45f : .17f));
-                Draw.Ring(center, zone.radius * scale, Theme.A(color, dense ? .9f : .5f), Mathf.Max(1, 1.4f * scale));
+                Draw.Circle(Box(board, zone.x - zone.radius, zone.y - zone.radius, zone.radius * 2, zone.radius * 2), Theme.A(color, dense ? .6f : .26f));
+                Draw.Ring(center, zone.radius * scale, Theme.A(Color.Lerp(color, Theme.Ink, .15f), dense ? .95f : .8f), Mathf.Max(1.5f, 2.4f * scale), dense ? 0 : 24, .62f);
+                if (dense && !Fx.ReducedMotion) Draw.Ring(center, zone.radius * scale * (.55f + .2f * Mathf.Sin(Time.unscaledTime * 3 + zone.id)), Theme.A(Color.white, .5f), Mathf.Max(1, 1.6f * scale), 6, .45f);
                 if (dense)
-                    Draw.Circle(Box(board, zone.x - zone.radius * .68f, zone.y - zone.radius * .68f, zone.radius * 1.36f, zone.radius * 1.36f), new Color(.025f, .02f, .06f));
-                if (zone.kind == "web") Draw.Text(Box(board, zone.x - 12, zone.y - 12, 24, 24), "+", 12, Color.white, TextAnchor.MiddleCenter);
+                    Draw.Circle(Box(board, zone.x - zone.radius * .68f, zone.y - zone.radius * .68f, zone.radius * 1.36f, zone.radius * 1.36f), new Color(.14f, .08f, .32f));
+                if (zone.kind == "web") Draw.Text(Box(board, zone.x - 12, zone.y - 12, 24, 24), "+", 12, Theme.Ink, TextAnchor.MiddleCenter);
                 if(zone.kind=="embertrap"||zone.kind=="frosttrap"||zone.kind=="sporetrap")
                 {
                     // Trap: the owner's ring pattern outside, the element symbol inside.
                     Draw.Ring(center,(zone.radius+3)*scale,Theme.A(Draw.Owner(zone.owner),.85f),Mathf.Max(1,1.5f*scale),zone.owner==1?Theme.P2RingSegments*2:0,Theme.P2RingFill);
                     float glyph=Mathf.Max(10,15*scale);
-                    Glyphs.Paint(new Rect(center.x-glyph/2,center.y-glyph/2,glyph,glyph),fire?StatusKind.Fire:ice?StatusKind.Ice:StatusKind.Toxin,Theme.A(color,.95f));
+                    Draw.Circle(new Rect(center.x-glyph*.8f,center.y-glyph*.8f,glyph*1.6f,glyph*1.6f),Theme.Ink);Glyphs.Paint(new Rect(center.x-glyph/2,center.y-glyph/2,glyph,glyph),fire?StatusKind.Fire:ice?StatusKind.Ice:StatusKind.Toxin,color);
                 }
                 else if(fire||ice||toxin)
                 {
                     // Element field: the same symbol its status uses on a ball.
                     float glyph=Mathf.Max(11,18*scale);
-                    Glyphs.Paint(new Rect(center.x-glyph/2,center.y-glyph/2,glyph,glyph),fire?StatusKind.Fire:ice?StatusKind.Ice:StatusKind.Toxin,Theme.A(color,.6f));
+                    Glyphs.Paint(new Rect(center.x-glyph/2,center.y-glyph/2,glyph,glyph),fire?StatusKind.Fire:ice?StatusKind.Ice:StatusKind.Toxin,Theme.A(Color.Lerp(color,Theme.Ink,.25f),.8f));
                 }
             }
         }
@@ -227,12 +251,12 @@ namespace CoreClash.Presentation
                 float radius = structure.radius;
                 var center = Point(board, structure.x, structure.y);
                 Draw.Circle(Box(board, structure.x - radius, structure.y - radius, radius * 2, radius * 2), Theme.Ink);
-                Draw.Circle(Box(board, structure.x - radius + 2, structure.y - radius + 2, radius * 2 - 4, radius * 2 - 4), Theme.PanelRaised);
+                Draw.Circle(Box(board, structure.x - radius + 2, structure.y - radius + 2, radius * 2 - 4, radius * 2 - 4), Color.white);
                 Draw.Ring(center, radius * scale, Theme.A(team, .95f), Mathf.Max(1.5f, 2.4f * scale), structure.owner == 1 ? Theme.P2RingSegments : 0, Theme.P2RingFill);
                 if(structure.kind=="bumper")Draw.Ring(center,(radius-5)*scale,new Color(1,.46f,.78f,.85f),Mathf.Max(1,scale));
                 string symbol=structure.kind=="bumper"?"B":structure.kind=="engineerWall"?"E":"W";
                 Draw.Text(Box(board, structure.x-radius,structure.y-radius+1,radius*2,12), symbol,
-                    Mathf.Max(7,Mathf.RoundToInt(8*scale)),Theme.TextSoft,TextAnchor.MiddleCenter,true);
+                    Mathf.Max(7,Mathf.RoundToInt(8*scale)),Theme.Muted,TextAnchor.MiddleCenter,true);
                 Draw.Text(Box(board, structure.x-radius,structure.y-9,radius*2,18), structure.hp+"/"+structure.maxHp,
                     Mathf.Max(7,Mathf.RoundToInt(8*scale)),Theme.Text,TextAnchor.MiddleCenter,true);
             }
@@ -247,7 +271,7 @@ namespace CoreClash.Presentation
             var center = Point(board, x, y);
             float beat = .5f + .5f * Mathf.Sin(Time.unscaledTime * (ball.mineArmed ? 5 : 3) + ball.id);
             float reach = (ball.radius + (ball.mineArmed ? 13 + beat * 3 : 13)) * scale;
-            Draw.Circle(new Rect(center.x - reach, center.y - reach, reach * 2, reach * 2), Theme.A(Theme.Threat, .07f + beat * .06f));
+            Draw.Circle(new Rect(center.x - reach, center.y - reach, reach * 2, reach * 2), Theme.A(Theme.Threat, .16f + beat * .1f));
             if (ball.mineArmed) Draw.Ring(center, reach, Theme.A(Theme.Threat, .6f + beat * .35f), Mathf.Max(1.5f, 2.4f * scale), 12, .5f);
             else Draw.Ring(center, reach, Theme.A(Theme.Threat, .55f + beat * .3f), Mathf.Max(1.5f, 2 * scale));
         }
@@ -271,7 +295,7 @@ namespace CoreClash.Presentation
             if (!TurnCue(state, feedback, dragging, out float alpha, out float progress, out int owner)) return;
             float edge = owner == 0 ? ZoneP1Top : ZoneP2Bottom;
             float travel = (owner == 0 ? -1 : 1) * 90 * Mathf.SmoothStep(0, 1, progress);
-            Line(board, Left, edge + travel, Right, edge + travel, Alpha(Draw.Owner(owner), alpha * .55f), 3);
+            Line(board, Left, edge + travel, Right, edge + travel, Alpha(Draw.Owner(owner), alpha * .7f), 5);
         }
         static void RenderTurnCue(Rect board, GameState state, FeedbackTimeline feedback, bool dragging, List<UiBox> avoid)
         {
@@ -294,8 +318,8 @@ namespace CoreClash.Presentation
             if (!BoardLabelLayout.TryPlace(field, width, height, avoid, slots, 8, out var box)) return;
             avoid.Add(box);
             var pill = RectOf(box);
-            Draw.Chip(pill, Alpha(Theme.Plate, .88f * alpha), Alpha(team, alpha));
-            Draw.Text(pill, text, font, Alpha(team, alpha), TextAnchor.MiddleCenter, true);
+            Draw.Chip(pill, Alpha(team, alpha), Alpha(Theme.Ink, .9f * alpha));
+            Draw.Text(pill, text, font, Alpha(Theme.OnColor, alpha), TextAnchor.MiddleCenter, true);
         }
 
         static Color EffectColor(FeedbackClass kind)
@@ -311,8 +335,8 @@ namespace CoreClash.Presentation
                 case FeedbackClass.Freeze: return Theme.Status(StatusKind.Frozen);
                 case FeedbackClass.Toxin: return Theme.Status(StatusKind.Toxin);
                 case FeedbackClass.Root: return Theme.Status(StatusKind.Rooted);
-                case FeedbackClass.Defeat: case FeedbackClass.Structure: return Theme.TextSoft;
-                default: return Theme.Info;
+                case FeedbackClass.Defeat: case FeedbackClass.Structure: return Theme.PlateSoft;
+                default: return Color.Lerp(Theme.Info, Color.white, .5f);
             }
         }
         // The symbol shown inside a status label; false for events without a state symbol.
@@ -352,11 +376,10 @@ namespace CoreClash.Presentation
                 // HP and state labels travel with their ball; the contact flash stays where it happened.
                 if(FeedbackStyle.FollowsBall(kind))
                     foreach(var item in drawn)if(item.ball.id==effect.ballId){origin=Point(board,item.x,item.y);break;}
-                Burst(kind==FeedbackClass.Damage?contact:origin,kind,age,scale,effect.ballId,veil);
                 string text=FeedbackStyle.HasLabel(kind)?FeedbackStyle.Label(effect.kind,effect.text):"";
                 if(text.Length==0)continue;
                 bool number=FeedbackStyle.IsNumber(kind);
-                int font=number?Mathf.Max(11,Mathf.RoundToInt((FeedbackStyle.Amount(effect.text)>=10?17:15)*scale)):Mathf.Max(9,Mathf.RoundToInt(11*scale));
+                int font=number?Mathf.Max(12,Mathf.RoundToInt((FeedbackStyle.Amount(effect.text)>=10?20:17)*scale)):Mathf.Max(9,Mathf.RoundToInt(11*scale));
                 float height=font+7,icon=EffectGlyph(kind,out _)?height-2:0;
                 float width=Mathf.Min(field.width-4,text.Length*font*(number?.7f:.64f)+14+icon);
                 float rise=(26+Theme.NumberRise*Mathf.Clamp01(age/FeedbackTimeline.Life))*scale;
@@ -374,8 +397,12 @@ namespace CoreClash.Presentation
                 if(FeedbackStyle.IsNumber(item.kind))
                 {
                     // Damage and healing: a filled plate with the authoritative amount.
-                    Draw.Chip(rect,Theme.A(tint,.94f*fade),Theme.A(Theme.Ink,.9f*fade));
-                    Draw.Text(rect,item.text,item.font,Theme.A(item.kind==FeedbackClass.Heal?Theme.Ink:Color.white,fade),TextAnchor.MiddleCenter,true);
+                    // A short pop on arrival, then it rises and fades.
+                    float pop=Fx.ReducedMotion?1:1+.35f*Mathf.Clamp01(1-item.age/.14f);
+                    var grown=new Rect(rect.center.x-rect.width*pop/2,rect.center.y-rect.height*pop/2,rect.width*pop,rect.height*pop);
+                    Draw.Chip(grown,Theme.A(tint,.96f*fade),Theme.A(Theme.Ink,.92f*fade));
+                    Draw.Text(new Rect(grown.x,grown.y+1,grown.width,grown.height),item.text,Mathf.RoundToInt(item.font*pop),Theme.A(Color.black,.25f*fade),TextAnchor.MiddleCenter,true);
+                    Draw.Text(grown,item.text,Mathf.RoundToInt(item.font*pop),Theme.A(Color.white,fade),TextAnchor.MiddleCenter,true);
                     continue;
                 }
                 Draw.Chip(rect,Theme.A(Theme.Plate,.88f*fade),Theme.A(tint,.85f*fade));
@@ -386,82 +413,6 @@ namespace CoreClash.Presentation
                     Glyphs.Paint(new Rect(rect.x+4,rect.y+2,size,size),glyph,Theme.A(tint,fade));
                 }
                 Draw.Text(new Rect(rect.x+pad,rect.y,rect.width-pad,rect.height),item.text,item.font,Theme.A(tint,fade),TextAnchor.MiddleCenter,true);
-            }
-        }
-
-        static void Disc(Vector2 center,float radius,Color color){if(radius>0)Draw.Circle(new Rect(center.x-radius,center.y-radius,radius*2,radius*2),color);}
-        static void Sparks(Vector2 origin,Color color,float age,float life,int count,float from,float to,float scale,int seed,float strength)
-        {
-            float t=Mathf.Clamp01(age/life);if(t>=1)return;
-            float ease=1-(1-t)*(1-t),reach=(from+(to-from)*ease)*scale,size=Mathf.Max(2,3.2f*scale)*(1-t*.5f);
-            for(int i=0;i<count;i++)
-            {
-                float angle=i*2*Mathf.PI/count+seed*.7f;
-                var p=origin+new Vector2(Mathf.Cos(angle),Mathf.Sin(angle))*reach;
-                Draw.Circle(new Rect(p.x-size/2,p.y-size/2,size,size),Theme.A(color,(1-t)*.9f*strength));
-            }
-        }
-        static void Burst(Vector2 origin,FeedbackClass kind,float age,float scale,int seed,float strength)
-        {
-            Color tint=EffectColor(kind);
-            switch(kind)
-            {
-                case FeedbackClass.Damage:
-                {
-                    // Contact: a white flash, then a tight red ring with a few sparks.
-                    if(age<Theme.ImpactFlash){float flash=1-age/Theme.ImpactFlash;Disc(origin,(10+14*(1-flash))*scale,Theme.A(Color.white,.7f*flash*strength));}
-                    float t=Mathf.Clamp01(age/.4f);
-                    if(t<1){Draw.Ring(origin,(16+(Theme.ImpactRadius-16)*t)*scale,Theme.A(tint,(1-t)*.9f*strength),Mathf.Max(1.5f,2.6f*scale));Sparks(origin,tint,age,.4f,6,14,36,scale,seed,strength);}
-                    break;
-                }
-                case FeedbackClass.Absorbed:
-                case FeedbackClass.Shield:
-                {
-                    // Shield change: a segmented ring closes around the ball and lingers briefly.
-                    float t=Mathf.Clamp01(age/Theme.ShieldPop),linger=Mathf.Clamp01((FeedbackTimeline.Life-age)/.5f);
-                    Draw.Ring(origin,(42-14*t)*scale,Theme.A(tint,(t<1?.95f-.4f*t:.5f*linger)*strength),Mathf.Max(1.5f,2.5f*scale),6,.8f);
-                    break;
-                }
-                case FeedbackClass.Heal:
-                {
-                    float t=Mathf.Clamp01(age/.5f);
-                    if(t<1)Draw.Ring(origin,(40-16*t)*scale,Theme.A(tint,(1-t)*.8f*strength),Mathf.Max(1.5f,2.2f*scale));
-                    break;
-                }
-                case FeedbackClass.Explosion:
-                {
-                    // Flash, then a shock ring with sparks. A stylised size: the event carries no radius.
-                    if(age<Theme.ExplosionFlash)
-                    {
-                        float flash=1-age/Theme.ExplosionFlash;
-                        Disc(origin,Theme.ExplosionRadius*(.35f+.65f*(1-flash))*scale,Theme.A(Theme.Threat,.45f*flash*strength));
-                        Disc(origin,Theme.ExplosionRadius*.4f*(1-flash*.5f)*scale,Theme.A(Color.white,.7f*flash*strength));
-                    }
-                    float t=Mathf.Clamp01(age/.7f);
-                    if(t<1)
-                    {
-                        float ease=1-(1-t)*(1-t);
-                        Draw.Ring(origin,(20+(Theme.ExplosionRadius-20)*ease)*scale,Theme.A(Theme.Threat,(1-t)*strength),Mathf.Max(2,(1+5*(1-t))*scale));
-                        Draw.Ring(origin,(10+(Theme.ExplosionRadius*.7f-10)*ease)*scale,Theme.A(Color.white,(1-t)*.5f*strength),Mathf.Max(1,2*scale));
-                        Sparks(origin,Theme.Threat,age,.7f,(int)Theme.ExplosionSparks,20,Theme.ExplosionRadius*1.05f,scale,seed,strength);
-                    }
-                    break;
-                }
-                case FeedbackClass.Defeat:
-                {
-                    float t=Mathf.Clamp01(age/.6f);
-                    if(t<1){Draw.Ring(origin,(28-18*t)*scale,Theme.A(Color.white,(1-t)*.8f*strength),Mathf.Max(1.5f,2*scale));Sparks(origin,tint,age,.6f,8,8,42,scale,seed,strength);}
-                    break;
-                }
-                case FeedbackClass.BaseDamage:
-                    break;
-                default:
-                {
-                    // Status applied and other events: one ring in the event's colour.
-                    float t=Mathf.Clamp01(age/.55f);
-                    if(t<1)Draw.Ring(origin,(20+26*t)*scale,Theme.A(tint,(1-t)*.75f*strength),Mathf.Max(1.2f,2*scale));
-                    break;
-                }
             }
         }
 
@@ -479,7 +430,7 @@ namespace CoreClash.Presentation
             var preview=AimGuide.Preview(aim.OriginX,aim.OriginY,aim.AimX,aim.AimY,state.turn,fromLauncher?(selected?.radius??17):(replay?.radius??17));
             if (!GameSimulation.Finite(preview.Distance)) return;
             Color team = Draw.Owner(state.turn);
-            Color vector = preview.Ready ? Color.Lerp(team, Color.white, .45f) : Alpha(team, .5f);
+            Color vector = preview.Ready ? Color.Lerp(team, Color.white, .12f) : Alpha(Color.Lerp(team, Color.white, .35f), .7f);
             // W20: every aim stroke sits on a dark edge, so it reads on both home zones.
             Color under = Alpha(Theme.Ink, Theme.AimUnderlay);
             Draw.Ring(origin, 33 * scale, under, Mathf.Max(2.5f, 4.2f * scale));
@@ -510,7 +461,7 @@ namespace CoreClash.Presentation
             }
             Draw.Ring(finger, 11 * scale, under, Mathf.Max(2.5f, 3.8f * scale));
             Draw.Ring(finger, 10 * scale, Alpha(team, .9f), Mathf.Max(1.2f, 1.8f * scale));
-            Draw.Circle(new Rect(finger.x - 2.5f * scale, finger.y - 2.5f * scale, 5 * scale, 5 * scale), new Color(.89f, .98f, 1, .95f));
+            Draw.Circle(new Rect(finger.x - 3f * scale, finger.y - 3f * scale, 6 * scale, 6 * scale), Color.white);
 
             // A10-approved W10 presentation: trajectory length/tint is the only board power cue.
             // Readiness wording lives in MatchView so the board remains unobscured.
@@ -535,14 +486,14 @@ namespace CoreClash.Presentation
             {
                 var lines=BaseDamageTracker.Lines(baseReport.Latest,owner,type=>simulation.Catalog.Ball(type)==null?type:BallIcons.Name(simulation.Catalog.Ball(type)));if(lines.Length==0)continue;
                 var plan=BoardOverlayPlanner.Banner(lines,owner,viewOwner,field,scale,avoid);
-                if(!plan.Placed){marginNotes.Add((plan.Top,lines[0],Theme.Damage));continue;}
-                var rect=RectOf(plan.Box);Draw.Chip(rect,Alpha(Theme.Plate,.9f),Alpha(Theme.Damage,.7f));
+                if(!plan.Placed){marginNotes.Add((plan.Top,lines[0],Color.Lerp(Theme.Damage,Color.white,.45f)));continue;}
+                var rect=RectOf(plan.Box);Draw.Chip(rect,Alpha(Theme.Plate,.94f),Theme.Damage);
                 if(plan.TwoLines)
                 {
-                    Draw.Text(new Rect(rect.x,rect.y+2,rect.width,plan.LineHeight),lines[0],plan.Font,Theme.Damage,TextAnchor.MiddleCenter,true);
-                    Draw.Text(new Rect(rect.x,rect.y+plan.LineHeight+2,rect.width,plan.LineHeight),lines[1],Mathf.Max(8,plan.Font-1),Theme.Text,TextAnchor.MiddleCenter,false);
+                    Draw.Text(new Rect(rect.x,rect.y+2,rect.width,plan.LineHeight),lines[0],plan.Font,Color.Lerp(Theme.Damage,Color.white,.45f),TextAnchor.MiddleCenter,true);
+                    Draw.Text(new Rect(rect.x,rect.y+plan.LineHeight+2,rect.width,plan.LineHeight),lines[1],Mathf.Max(8,plan.Font-1),Theme.PlateText,TextAnchor.MiddleCenter,false);
                 }
-                else Draw.Text(rect,lines[0],plan.Font,Theme.Damage,TextAnchor.MiddleCenter,true);
+                else Draw.Text(rect,lines[0],plan.Font,Color.Lerp(Theme.Damage,Color.white,.45f),TextAnchor.MiddleCenter,true);
             }
         }
 
@@ -554,10 +505,10 @@ namespace CoreClash.Presentation
             var state=simulation.State;if(state.phase!=MatchPhase.Aiming||(aim!=null&&aim.Active))return;
             string label=ReplayAffordance.CounterLabel(state.turn,ReplayAffordance.Eligible(simulation).Count);if(label.Length==0)return;
             var plan=BoardOverlayPlanner.Counter(label,state.turn,viewOwner,VisibleField(board),board.width/540,avoid);
-            if(!plan.Placed){marginNotes.Add((plan.Top,label,Draw.Gold));return;}
+            if(!plan.Placed){marginNotes.Add((plan.Top,label,Theme.Select));return;}
             var rect=RectOf(plan.Box);
-            Draw.Chip(rect,Alpha(Theme.Plate,.9f),Alpha(Draw.Gold,.7f));
-            Draw.Text(rect,label,plan.Font,Draw.Gold,TextAnchor.MiddleCenter,true);
+            Draw.Chip(rect,Alpha(Theme.Plate,.94f),Theme.Select);
+            Draw.Text(rect,label,plan.Font,Theme.Select,TextAnchor.MiddleCenter,true);
         }
 
         // Last resort when the field is full: a one-line note in the outer frame band.
@@ -571,7 +522,7 @@ namespace CoreClash.Presentation
                 var n=marginNotes[i];bool sameSideBefore=false;for(int j=0;j<i;j++)if(marginNotes[j].top==n.top)sameSideBefore=true;
                 float w=Mathf.Min(n.text.Length*font*.66f+12,board.width*.48f),x=sameSideBefore?board.xMax-w-4:board.x+4;
                 var rect=new Rect(x,n.top?board.y+1:fieldBottom+1,w,band-2);
-                Draw.Rect(rect,Alpha(Theme.Plate,.95f));Draw.Text(rect,n.text,font,n.color,TextAnchor.MiddleCenter,true);
+                Draw.Chip(rect,Alpha(Theme.Plate,.95f));Draw.Text(rect,n.text,font,n.color,TextAnchor.MiddleCenter,true);
             }
         }
 
@@ -593,9 +544,10 @@ namespace CoreClash.Presentation
             }
             var e=stopCache;if(e==null||!e.Valid)return;
             Color mark=Alpha(vector,e.Obstructed?.45f:.8f);
-            for(int i=1;i<e.Path.Count;i++)AimStroke(Point(board,e.Path[i-1].x,e.Path[i-1].y),Point(board,e.Path[i].x,e.Path[i].y),Alpha(vector,.2f),Mathf.Max(1,1.2f*scale),3*scale,6*scale);
+            for(int i=1;i<e.Path.Count;i++)AimStroke(Point(board,e.Path[i-1].x,e.Path[i-1].y),Point(board,e.Path[i].x,e.Path[i].y),Alpha(vector,.4f),Mathf.Max(1.2f,1.6f*scale),3*scale,6*scale);
             Vector2 stop=Point(board,e.StopX,e.StopY);float r=e.Start.Radius*scale;
-            Draw.Ring(stop,r+scale,Alpha(Theme.Ink,.5f),Mathf.Max(2.5f,3.6f*scale));
+            Draw.Circle(new Rect(stop.x-r,stop.y-r,r*2,r*2),Alpha(vector,e.Obstructed?.12f:.22f));
+            Draw.Ring(stop,r+scale,Alpha(Theme.Ink,.55f),Mathf.Max(2.5f,3.8f*scale));
             Draw.Ring(stop,r,mark,Mathf.Max(1,1.6f*scale),12,.6f);
             AimStroke(stop-new Vector2(r*.45f,0),stop+new Vector2(r*.45f,0),mark,Mathf.Max(1,1.2f*scale));
             AimStroke(stop-new Vector2(0,r*.45f),stop+new Vector2(0,r*.45f),mark,Mathf.Max(1,1.2f*scale));
@@ -606,7 +558,7 @@ namespace CoreClash.Presentation
             // W20: the label keeps to the field (W19-04) and now also moves off balls and their plates.
             var standard=BoardLabelLayout.Fit(VisibleField(board),stop.x,stop.y+r+4,stop.y-r-4-h,w,h);
             var rect=RectOf(BoardLabelLayout.FitAvoiding(standard,VisibleField(board),stop.x,stop.y+r+4,stop.y-r-4-h,w,h,BoardKeepOuts(board,state),h+2));
-            Draw.Chip(rect,Alpha(Theme.Plate,.82f));Draw.Text(rect,label,font,mark,TextAnchor.MiddleCenter,true);
+            Draw.Chip(rect,Alpha(Theme.Plate,.9f));Draw.Text(rect,label,font,Alpha(Color.Lerp(vector,Color.white,.55f),e.Obstructed?.75f:1f),TextAnchor.MiddleCenter,true);
         }
 
         // Frame: neutral side walls; each base wall carries its player's colour and that
@@ -614,32 +566,24 @@ namespace CoreClash.Presentation
         static void RenderFrame(Rect board, GameState state, FeedbackTimeline feedback)
         {
             Color rim = Alpha(Theme.Rim, Theme.RimAlpha);
-            Line(board, Left, Top, Left, Bottom, rim, 2.4f);
-            Line(board, Right, Top, Right, Bottom, rim, 2.4f);
+            Line(board, Left, Top, Left, Bottom, rim, 3.2f);
+            Line(board, Right, Top, Right, Bottom, rim, 3.2f);
             for (int owner = 0; owner < 2; owner++)
             {
                 Color team = Draw.Owner(owner);
                 float wall = owner == 0 ? Bottom : Top, band = owner == 0 ? Bottom + 8 : Top - 8;
                 float from = Left + 4, span = Right - Left - 8;
-                Line(board, Left, wall, Right, wall, Alpha(team, .95f), 2.6f);
-                Line(board, from, band, from + span, band, Alpha(team, .2f), 7);
+                Line(board, Left, wall, Right, wall, team, 3.6f);
+                Line(board, from, band, from + span, band, Alpha(Color.white, .22f), 8);
                 float hp = Mathf.Clamp01(state.players[owner].hp / 20f);
-                if (hp > 0) Line(board, from, band, from + span * hp, band, Alpha(team, .95f), 7);
+                if (hp > 0) Line(board, from, band, from + span * hp, band, Color.Lerp(team, Color.white, .12f), 8);
                 for (int i = 1; i < 4; i++) Line(board, from + span * i / 4, band - 4, from + span * i / 4, band + 4, Theme.BoardOuter, 1.6f);
                 float flash = BaseFlash(feedback, owner);
                 if (flash > 0)
                 {
-                    Line(board, Left, wall, Right, wall, Alpha(Theme.Damage, flash), 6);
-                    Line(board, from, band, from + span, band, Alpha(Color.white, flash * .6f), 7);
+                    Line(board, Left, wall, Right, wall, Alpha(Theme.Damage, flash), 8);
+                    Line(board, from, band, from + span, band, Alpha(Color.white, flash * .7f), 8);
                 }
-            }
-            // Corner brackets make the playable boundary unmistakable.
-            foreach (float x in new[] { Left, Right })
-            foreach (float y in new[] { Top, Bottom })
-            {
-                float inX = x == Left ? 20 : -20, inY = y == Top ? 20 : -20;
-                Line(board, x, y, x + inX, y, Theme.Rim, 3.6f);
-                Line(board, x, y, x, y + inY, Theme.Rim, 3.6f);
             }
         }
         static float BaseFlash(FeedbackTimeline feedback, int owner)

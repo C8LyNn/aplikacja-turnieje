@@ -103,12 +103,14 @@ namespace CoreClash.Networking
             app?.SetExternalModal(open&&!app.IsModalOpen);
             if(app==null||app.Catalog==null||app.IsModalOpen)return;
             float sw=UiViewport.Width,sh=UiViewport.Height;
-            if(Draw.Button(new Rect(sw-168,10,150,44),"MULTIPLAYER",Draw.Cyan,open)){open=!open;app.SetExternalModal(open);}
+            // W24: in a match on an upright phone the top bar belongs to the score strip, so the entry is an icon.
+            bool compact=!app.IsSetup&&UiViewport.Profile==DeviceProfile.Phone&&sw<sh;
+            if(compact?Draw.IconButton(new Rect(sw-52,8,44,44),"+C -.4 -.38 .3;+C .4 -.38 .3;+C -.4 .56 .42;+C .4 .56 .42",Draw.Cyan,open):Draw.Button(new Rect(sw-168,8,150,44),"MULTIPLAYER",Draw.Cyan,open)){open=!open;app.SetExternalModal(open);}
             if(!open)return;
-            Draw.Rect(new Rect(0,0,sw,sh),new Color(.018f,.034f,.058f,1));
+            Draw.Backdrop(new Rect(0,0,sw,sh));
             float width=Mathf.Min(660,sw-20),height=Mathf.Min(730,sh-20),x=(sw-width)/2,y=(sh-height)/2;
             var modal=new Rect(x,y,width,height);Draw.Surface(modal,Draw.Panel,Draw.Edge);
-            Draw.Text(new Rect(x+20,y+12,width-90,34),"PLAY TOGETHER",23,Color.white,TextAnchor.MiddleLeft,true);
+            Draw.Text(new Rect(x+20,y+12,width-90,34),"PLAY TOGETHER",23,Theme.Text,TextAnchor.MiddleLeft,true);
             if(Draw.Button(new Rect(x+width-64,y+10,44,44),"×",Draw.Pink)){open=false;app.SetExternalModal(false);return;}
             Draw.Text(new Rect(x+20,y+51,width-40,35),"Two players · Windows host · the same game on every device",12,Draw.Muted);
             bool active=Active;float top=y+94;
@@ -138,12 +140,12 @@ namespace CoreClash.Networking
         {
 #if UNITY_WEBGL || UNITY_ANDROID
             Draw.Text(new Rect(0,0,width,40),"CREATE ON A WINDOWS PC",18,Draw.Cyan,TextAnchor.UpperLeft,true);
-            Draw.Text(new Rect(0,48,width,105),"The Windows game hosts the match. Ask the host to create an Internet game and send its game code, or choose LAN on the same Wi-Fi.",15,Color.white);
+            Draw.Text(new Rect(0,48,width,105),"The Windows game hosts the match. Ask the host to create an Internet game and send its game code, or choose LAN on the same Wi-Fi.",15,Theme.Text);
             if(Draw.Button(new Rect(0,167,width,44),"JOIN GAME",Draw.Pink)){joinTab=true;scroll=Vector2.zero;}
             if(notice.Length>0)Draw.Text(new Rect(0,224,width,95),notice,13,Draw.Gold);
             RenderAdvanced(width,325);
 #else
-            Draw.Text(new Rect(0,0,width,44),internetMode?"PLAY ACROSS THE INTERNET":"PLAY ON THE SAME NETWORK",17,Color.white,TextAnchor.MiddleLeft,true);
+            Draw.Text(new Rect(0,0,width,44),internetMode?"PLAY ACROSS THE INTERNET":"PLAY ON THE SAME NETWORK",17,Theme.Text,TextAnchor.MiddleLeft,true);
             Draw.Text(new Rect(0,51,width,65),internetMode?"You play as Player 1. Choose both decks in Match Setup, then share the game code with Player 2.":"Your game appears on the same Wi-Fi / LAN. Choose both decks in Match Setup; you play as Player 1.",13,Draw.Muted);
             Draw.Text(new Rect(0,125,width,25),"ROOM NAME  ·  OPTIONAL",11,Draw.Cyan,TextAnchor.MiddleLeft,true);
             roomName=Field(new Rect(0,156,width,44),roomName,LanDiscoveryProtocol.MaxNameLength);
@@ -158,21 +160,21 @@ namespace CoreClash.Networking
             float y=0;
             if(internetMode){
                 Draw.Text(new Rect(0,y,width,34),"ENTER A GAME CODE",18,Draw.Pink,TextAnchor.MiddleLeft,true);y+=45;
-                Draw.Text(new Rect(0,y,width,67),"Ask the Windows host for the six-character code, or paste its Internet invitation link.",14,Color.white);y+=78;
+                Draw.Text(new Rect(0,y,width,67),"Ask the Windows host for the six-character code, or paste its Internet invitation link.",14,Theme.Text);y+=78;
                 invitation=Field(new Rect(0,y,width,44),invitation,2048);y+=58;
                 bool valid=OnlineJoinAddress.TryParse(invitation,out _);
                 if(Draw.Button(new Rect(0,y,width,46),"JOIN GAME",Draw.Pink,false,app.IsSetup&&link.CanStart&&valid))JoinInternet();y+=60;
             }else{
 #if UNITY_WEBGL
                 Draw.Text(new Rect(0,y,width,34),"JOIN WITH A LAN INVITATION",17,Draw.Pink,TextAnchor.MiddleLeft,true);y+=45;
-                Draw.Text(new Rect(0,y,width,78),"Open the host’s LAN invitation on the same Wi-Fi. Browsers cannot search the local network.",14,Color.white);y+=90;
+                Draw.Text(new Rect(0,y,width,78),"Open the host’s LAN invitation on the same Wi-Fi. Browsers cannot search the local network.",14,Theme.Text);y+=90;
 #else
                 Draw.Text(new Rect(0,y,width,34),"AVAILABLE LAN GAMES",17,Draw.Pink,TextAnchor.MiddleLeft,true);y+=45;
                 List<LanRoom> rooms=discovery==null?new List<LanRoom>():discovery.Rooms;
                 if(rooms.Count==0){Draw.Text(new Rect(0,y,width,72),discovery==null?"Looking for games… Paste a LAN invitation below, or use Advanced.":"Searching your local network…\nThe host should create a LAN game on the same Wi-Fi.",13,Draw.Muted);y+=84;}
                 foreach(var room in rooms){
                     Draw.Surface(new Rect(0,y,width,64),Draw.PanelLight);
-                    Draw.Text(new Rect(10,y+6,width-105,27),room.Name,15,Color.white,TextAnchor.MiddleLeft,true);
+                    Draw.Text(new Rect(10,y+6,width-105,27),room.Name,15,Theme.Text,TextAnchor.MiddleLeft,true);
                     Draw.Text(new Rect(10,y+35,width-105,20),room.PlayerCount+" / 2 players",11,Draw.Muted);
                     if(Draw.Button(new Rect(width-88,y+10,80,44),room.PlayerCount<2?"JOIN":"FULL",Draw.Pink,false,app.IsSetup&&link.CanStart&&room.PlayerCount<2))JoinGame(room.Host,room.Port);
                     y+=72;
@@ -192,7 +194,7 @@ namespace CoreClash.Networking
             bool hosting=link.Hosting,online=link.UsingInternet;
             bool listening=manager!=null&&manager.IsListening;
             Draw.Text(new Rect(0,0,width,61),hosting?(link.IsConnected?"PLAYER 2 CONNECTED":listening?"WAITING FOR PLAYER 2":"PREPARING YOUR GAME…"):(link.IsConnected?"CONNECTED AS PLAYER 2":"CONNECTING TO GAME…"),19,hosting?Draw.Cyan:Draw.Pink,TextAnchor.MiddleLeft,true);
-            Draw.Text(new Rect(0,70,width,70),online?link.Status:hosting?roomName+"  ·  "+link.LobbyPlayerCount+" / 2 players":link.Status,14,Color.white);
+            Draw.Text(new Rect(0,70,width,70),online?link.Status:hosting?roomName+"  ·  "+link.LobbyPlayerCount+" / 2 players":link.Status,14,Theme.Text);
             float bottom=155;
             if(hosting&&listening){
                 if(online){
@@ -240,7 +242,7 @@ namespace CoreClash.Networking
         }
         string Field(Rect rect,string text,int maxLength)
         {
-            if(fieldStyle==null){fieldStyle=new GUIStyle(GUI.skin.textField){fontSize=15,padding=new RectOffset(10,10,10,8)};fieldStyle.normal.textColor=Color.white;fieldStyle.focused.textColor=Color.white;}
+            if(fieldStyle==null){fieldStyle=new GUIStyle(GUI.skin.textField){fontSize=15,padding=new RectOffset(10,10,10,8)};fieldStyle.normal.textColor=Theme.Text;fieldStyle.focused.textColor=Theme.Text;}
             Draw.Surface(rect,Draw.Background,Draw.Edge);return GUI.TextField(Draw.Inset(rect,2),text,maxLength,fieldStyle);
         }
         void CreateGame()

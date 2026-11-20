@@ -27,6 +27,11 @@ namespace CoreClash.Presentation
         // same geometry that the managed presentation tests can inspect.
         public bool CompactLandscape;
         public UiBox CompactHud,CompactChoice,CompactCards,CompactActions,CompactFeedback;
+        // W24 phone portrait: the score strip sits in the top bar (next to the menu button), so
+        // the arena starts right under it and is as wide as the tray's fixed height allows.
+        public bool PhonePortrait;
+        public UiBox PhoneStrip;
+        public const float PhoneTray=212f,PhoneMenu=52f;
         public static MatchLayout For(float width,float height)=>For(width,height,DeviceProfile.Desktop);
         public static MatchLayout For(float width,float height,DeviceProfile profile)
         {
@@ -50,6 +55,14 @@ namespace CoreClash.Presentation
                 layout.CompactCards=new UiBox(x,y,w,cards);y+=cards+2f;
                 layout.CompactActions=new UiBox(x,y,w,44f);y+=48f;
                 layout.CompactFeedback=new UiBox(x,y,w,Math.Max(0,layout.Panel.Bottom-4f-y));
+                return layout;
+            }
+            if(layout.Portrait&&profile==DeviceProfile.Phone){
+                float top=64f,h=Math.Min(height>=600?height-top-PhoneTray-14f:(height-146f)*.52f,(width-20f)/.6f),w=h*.6f;
+                layout.PhonePortrait=true;
+                layout.PhoneStrip=new UiBox(8f,8f,Math.Max(120f,width-16f-PhoneMenu),44f);
+                layout.Board=new UiBox((width-w)/2,top,w,h);
+                layout.Panel=new UiBox(8f,layout.Board.Bottom+8f,width-16f,height-layout.Board.Bottom-14f);
                 return layout;
             }
             if(layout.Portrait){

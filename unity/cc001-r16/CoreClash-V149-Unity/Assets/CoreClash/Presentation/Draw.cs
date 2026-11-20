@@ -11,7 +11,7 @@ namespace CoreClash.Presentation
         static GUIStyle rounded;
         static readonly Dictionary<int,GUIStyle> labels=new Dictionary<int,GUIStyle>();
         // W20: every colour comes from Theme (one place to retune the look).
-        public static Color Cyan=Theme.P1,Pink=Theme.P2,Muted=Theme.Muted,Gold=Theme.Select;
+        public static Color Cyan=Theme.P1,Pink=Theme.P2,Muted=Theme.Muted,Gold=Theme.SelectInk;
         public static Color Background=Theme.Background,Panel=Theme.Panel,PanelLight=Theme.PanelLight,Edge=Theme.Edge;
         public static Color Owner(int owner)=>Theme.Team(owner);
         public static Color Hex(string text){return ColorUtility.TryParseHtmlString(text,out var c)?c:Color.white;}
@@ -19,11 +19,43 @@ namespace CoreClash.Presentation
         public static Rect Inset(Rect r,float amount)=>new Rect(r.x+amount,r.y+amount,Mathf.Max(0,r.width-amount*2),Mathf.Max(0,r.height-amount*2));
         public static void Round(Rect r,Color color)
         {
-            if(r.width<24||r.height<24){Rect(r,color);return;}
-            if(rounded==null){var texture=new Texture2D(32,32,TextureFormat.RGBA32,false);for(int y=0;y<32;y++)for(int x=0;x<32;x++){float dx=Mathf.Max(Mathf.Abs(x-15.5f)-6,0),dy=Mathf.Max(Mathf.Abs(y-15.5f)-6,0);texture.SetPixel(x,y,new Color(1,1,1,Mathf.Clamp01(10-Mathf.Sqrt(dx*dx+dy*dy))));}texture.Apply();rounded=new GUIStyle{border=new RectOffset(12,12,12,12)};rounded.normal.background=texture;}
+            if(r.width<24||r.height<24){Chip(r,color);return;}
+            if(rounded==null){const int n=48;var texture=new Texture2D(n,n,TextureFormat.RGBA32,false){filterMode=FilterMode.Bilinear,wrapMode=TextureWrapMode.Clamp,hideFlags=HideFlags.HideAndDontSave};for(int y=0;y<n;y++)for(int x=0;x<n;x++){float dx=Mathf.Max(Mathf.Abs(x-23.5f)-12,0),dy=Mathf.Max(Mathf.Abs(y-23.5f)-12,0);texture.SetPixel(x,y,new Color(1,1,1,Mathf.Clamp01(11.5f-Mathf.Sqrt(dx*dx+dy*dy))));}texture.Apply();rounded=new GUIStyle{border=new RectOffset(12,12,12,12)};rounded.normal.background=texture;}
             var old=GUI.color;GUI.color=color;rounded.Draw(r,GUIContent.none,false,false,false,false);GUI.color=old;
         }
-        public static void Surface(Rect r,Color fill,Color? border=null){Round(r,border??Edge);Round(Inset(r,1),fill);}
+        public static void Surface(Rect r,Color fill,Color? border=null){Round(r,border??Edge);Round(Inset(r,border.HasValue?2:1),fill);}
+        // W24: soft drop shadow under a card or a button (one cached 9-slice texture).
+        static GUIStyle shadow;
+        public static void Shadow(Rect r,float alpha=.2f,float spread=10,float drop=4)
+        {
+            if(Event.current.type!=EventType.Repaint||alpha<=0)return;
+            if(shadow==null){const int n=64;var texture=new Texture2D(n,n,TextureFormat.RGBA32,false){filterMode=FilterMode.Bilinear,wrapMode=TextureWrapMode.Clamp,hideFlags=HideFlags.HideAndDontSave};for(int y=0;y<n;y++)for(int x=0;x<n;x++){float dx=Mathf.Max(Mathf.Abs(x-31.5f)-10,0),dy=Mathf.Max(Mathf.Abs(y-31.5f)-10,0),d=Mathf.Clamp01(1-(Mathf.Sqrt(dx*dx+dy*dy)-2)/20f);texture.SetPixel(x,y,new Color(1,1,1,d*d*(3-2*d)));}texture.Apply();shadow=new GUIStyle{border=new RectOffset(24,24,24,24)};shadow.normal.background=texture;}
+            var old=GUI.color;GUI.color=new Color(.07f,.1f,.3f,alpha*old.a);shadow.Draw(new Rect(r.x-spread,r.y-spread+drop,r.width+spread*2,r.height+spread*2),GUIContent.none,false,false,false,false);GUI.color=old;
+        }
+        // W24: a white card with a soft shadow.
+        public static void Card(Rect r,Color? fill=null,Color? border=null,float shadowAlpha=.18f)
+        {
+            Shadow(r,shadowAlpha);
+            if(border.HasValue){Round(r,border.Value);Round(Inset(r,2),fill??Panel);}else Round(r,fill??Panel);
+        }
+        // W24: soft round glow / contact shadow (smooth falloff).
+        static Texture2D glow;
+        public static void Glow(Vector2 center,float radius,Color color)
+        {
+            if(radius<=0||color.a<=0)return;
+            if(glow==null){const int n=64;glow=new Texture2D(n,n,TextureFormat.RGBA32,false){filterMode=FilterMode.Bilinear,wrapMode=TextureWrapMode.Clamp,hideFlags=HideFlags.HideAndDontSave};for(int y=0;y<n;y++)for(int x=0;x<n;x++){float d=Vector2.Distance(new Vector2(x+.5f,y+.5f),new Vector2(n*.5f,n*.5f))/(n*.5f);float a=Mathf.Clamp01(1-d);glow.SetPixel(x,y,new Color(1,1,1,a*a*(3-2*a)));}glow.Apply();}
+            var old=GUI.color;GUI.color=color;GUI.DrawTexture(new Rect(center.x-radius,center.y-radius,radius*2,radius*2),glow);GUI.color=old;
+        }
+        // W24: full-screen backdrop, sky blue to violet, with a few large soft lights.
+        public static void Backdrop(Rect r)
+        {
+            VGradient(r,Theme.BackdropTop,Theme.BackdropBottom);
+            if(Event.current.type!=EventType.Repaint)return;
+            float unit=Mathf.Max(r.width,r.height);
+            Glow(new Vector2(r.x+r.width*.12f,r.y+r.height*.1f),unit*.42f,new Color(1,1,1,.14f));
+            Glow(new Vector2(r.x+r.width*.95f,r.y+r.height*.8f),unit*.5f,new Color(1,.55f,.85f,.16f));
+            Glow(new Vector2(r.x+r.width*.75f,r.y+r.height*.05f),unit*.3f,new Color(.45f,1,.95f,.12f));
+        }
         // W20: small rounded plate for HP, status chips and board labels (9-slice, crisp from 10 px up).
         static GUIStyle chip;
         public static void Chip(Rect r,Color color)
@@ -124,17 +156,42 @@ namespace CoreClash.Presentation
             Text(new Rect(r.x,r.y+1,r.width,r.height),text,size,new Color(.01f,.03f,.05f,.85f*color.a),align,bold);
             Text(r,text,size,color,align,bold);
         }
+        // W24 candy button: a face on a darker lip. Selected = filled with the accent (white text);
+        // an accent without selection = white face with accent text; no accent = neutral white.
         public static bool Button(Rect r,string text,Color? accent=null,bool selected=false,bool enabled=true,int size=13)
         {
-            Color tint=accent??Cyan;bool hover=r.Contains(Event.current.mousePosition)&&enabled;
-            Surface(r,selected?Color.Lerp(Panel,tint,.24f):hover?PanelLight:Panel,selected?tint:hover?Color.Lerp(Edge,tint,.5f):Edge);
+            Color tint=accent??Cyan;bool hover=r.Contains(Event.current.mousePosition)&&enabled&&GUI.enabled;
+            float lip=r.height>=40?4:3;
+            var face=new Rect(r.x,r.y+(hover?1:0),r.width,r.height-lip);
+            Color fill,edge,ink;
+            if(!enabled){fill=new Color(.9f,.92f,.97f);edge=new Color(.8f,.83f,.92f);ink=Theme.Disabled;}
+            else if(selected){fill=hover?Color.Lerp(tint,Color.white,.12f):tint;edge=Color.Lerp(tint,Theme.Ink,.32f);ink=Theme.OnColor;}
+            else{fill=hover?Theme.PanelLight:Theme.Panel;edge=accent.HasValue?Color.Lerp(tint,Color.white,.35f):Theme.EdgeStrong;ink=accent.HasValue?Color.Lerp(tint,Theme.Ink,.28f):Theme.Text;}
+            if(Event.current.type==EventType.Repaint)
+            {
+                if(enabled)Shadow(r,.12f,6,3);
+                Round(new Rect(r.x,r.y+lip,r.width,r.height-lip),edge);
+                Round(face,selected||!enabled?fill:edge);
+                if(!selected&&enabled)Round(Inset(face,accent.HasValue?2:1.5f),fill);
+                if(selected&&face.height>=24)Round(new Rect(face.x+3,face.y+2,face.width-6,Mathf.Min(face.height*.42f,16)),new Color(1,1,1,.16f));
+            }
             bool prior=GUI.enabled;GUI.enabled=prior&&enabled;bool click=GUI.Button(r,GUIContent.none,GUIStyle.none);GUI.enabled=prior;
-            Text(Inset(r,5),text,size,enabled?(selected?tint:Color.white):new Color(.36f,.43f,.5f),TextAnchor.MiddleCenter,true);return click;
+            if(selected&&enabled)Text(new Rect(face.x+4,face.y+1,face.width-8,face.height),text,size,new Color(0,0,0,.22f),TextAnchor.MiddleCenter,true);
+            Text(new Rect(face.x+4,face.y,face.width-8,face.height),text,size,ink,TextAnchor.MiddleCenter,true);return click;
+        }
+        // W24: icon button (a Glyphs shape instead of a word). `on` fills it with the accent.
+        public static bool IconButton(Rect r,string spec,Color? accent=null,bool on=false,bool enabled=true)
+        {
+            bool click=Button(r,"",accent,on,enabled);
+            float lip=r.height>=40?4:3,size=Mathf.Min(r.width,r.height-lip)*.5f;
+            var box=new Rect(r.center.x-size/2,r.y+(r.height-lip-size)/2,size,size);
+            Glyphs.Paint(box,spec,!enabled?Theme.Disabled:on?Theme.OnColor:accent.HasValue?Color.Lerp(accent.Value,Theme.Ink,.28f):Theme.Text);
+            return click;
         }
         public static Vector2 ScrollView(Rect view,Vector2 scroll,Rect content,bool horizontal=false)
         {
             int id=GUIUtility.GetControlID(FocusType.Passive);var e=Event.current;
-            if(UiViewport.IsTouch||UiViewport.Profile==DeviceProfile.Phone||UiViewport.Profile==DeviceProfile.Tablet){
+            {
                 if(e.type==EventType.MouseDown&&e.button==0&&view.Contains(e.mousePosition)){scrollDragId=id;scrollStart=scrollLast=e.mousePosition;scrolling=false;}
                 else if(scrollDragId==id&&e.type==EventType.MouseDrag){
                     if(scrolling||Vector2.Distance(scrollStart,e.mousePosition)>8){
@@ -145,7 +202,9 @@ namespace CoreClash.Presentation
                     }
                 }else if(scrollDragId==id&&e.rawType==EventType.MouseUp){if(scrolling){GUIUtility.hotControl=0;e.Use();}scrollDragId=0;scrolling=false;}
             }
-            return horizontal?GUI.BeginScrollView(view,scroll,content,false,false,GUIStyle.none,GUIStyle.none):GUI.BeginScrollView(view,scroll,content);
+            // W24: no skin scrollbars. Lists move by drag or wheel; a slim thumb shows the position.
+            if(!horizontal&&content.height>view.height+1&&e.type==EventType.Repaint){float track=view.height-8,size=Mathf.Max(28,track*view.height/content.height),at=(track-size)*Mathf.Clamp01(scroll.y/(content.height-view.height));Chip(new Rect(view.xMax-6,view.y+4+at,5,size),new Color(1,1,1,.7f));}
+            return GUI.BeginScrollView(view,scroll,content,false,false,GUIStyle.none,GUIStyle.none);
         }
         public static void Circle(Rect r,Color c)
         {
