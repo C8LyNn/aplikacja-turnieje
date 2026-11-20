@@ -85,6 +85,7 @@ import { ExperimentalPlayerToolbar, type ExperimentalPlayerSort, type Experiment
 import { ExperimentalTournamentOverview } from "@/features/experimental-tournaments/experimental-tournament-overview";
 import { isTwoLegTie, tieScoreText } from "@/lib/two-leg-tie-view";
 import { TwoLegTieSummary } from "@/components/two-leg-tie";
+import { TournamentVisibilityControl } from "@/components/tournament-visibility-control";
 
 const FORMAT_LABELS: Record<string, string> = {
   single_elimination: "Drabinka eliminacyjna",
@@ -717,6 +718,12 @@ export default function TournamentDetail() {
                 {TOURNAMENT_STATUS_LABELS[tournament.status] ?? "Nieznany"}
               </Badge>
             </div>
+            {/* #330: visibility (hidden / public) is not the play status; the organizer publishes or hides here. */}
+            {isAuthenticated && (
+              <div className="mb-2">
+                <TournamentVisibilityControl tournamentId={id} status={tournament.status} visibility={tournament.visibility} orgToken={orgToken} />
+              </div>
+            )}
             {tournament.description && <p className="text-muted-foreground">{tournament.description}</p>}
             <p className="text-sm text-muted-foreground mt-1">
               {/* V5.8: the format is named once, also when the stage carries the format's name. */}

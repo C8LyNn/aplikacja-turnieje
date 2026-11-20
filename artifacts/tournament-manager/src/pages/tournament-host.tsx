@@ -56,6 +56,7 @@ import { OrganizerRecoveryNotice } from "@/components/organizer-recovery-notice"
 import { SupportLoginModal } from "@/components/support-login-modal";
 import { organizerAreaForHostTab, organizerHostTab, TournamentOrganizerNavigation } from "@/components/tournament-organizer-navigation";
 import { OrganizerNowPanel } from "@/components/organizer-now-panel";
+import { TournamentVisibilityControl } from "@/components/tournament-visibility-control";
 import { deriveOrganizerNow, viewerShareFor } from "@/lib/organizer-now";
 import { draftEntrantsStep, experimentalDraftNextStep } from "@/features/experimental-tournaments/experimental-next-step";
 import { useOrganizerOperation } from "@/hooks/use-organizer-operation";
@@ -1170,7 +1171,9 @@ export default function TournamentHost() {
   });
   const shareRule = viewerShareFor(tournament.visibility);
   const viewerShare = capabilities.canManageSharing && typeof window !== "undefined"
-    ? { link: `${window.location.origin}${tournamentHref(id, isExperimental)}`, rule: shareRule }
+    ? { link: `${window.location.origin}${tournamentHref(id, isExperimental)}`, rule: shareRule,
+        // #330: publish / hide right where the organizer shares the tournament
+        control: <TournamentVisibilityControl tournamentId={id} status={tournament.status} visibility={tournament.visibility} orgToken={orgToken} compact /> }
     : null;
   const tournamentCompleted = tournament.status === "completed";
   const winnerMatch = tournament.winnerId == null ? undefined : matches?.find(match =>

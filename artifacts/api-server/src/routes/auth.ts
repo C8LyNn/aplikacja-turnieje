@@ -532,17 +532,24 @@ router.post("/tournaments/:id/auth/change-visibility", async (req, res) => {
     updateValues.viewerPasswordHash = null;
   }
 
-  await db.transaction(async (tx) => {
+  const outcome = await db.transaction(async (tx) => {
     const [tournament] = await tx
       .select({
         viewerPasswordVersion: tournamentsTable.viewerPasswordVersion,
         organizerPasswordHash: tournamentsTable.organizerPasswordHash,
+        status: tournamentsTable.status,
+        visibility: tournamentsTable.visibility,
       })
       .from(tournamentsTable)
       .where(eq(tournamentsTable.id, id))
       .for("update");
     if (!tournament) throw new Error("Tournament disappeared during visibility change");
     revalidateLockedOrganizer(req, id, tournament.organizerPasswordHash);
+    // #330: a tournament is hidden (private offline) only before it starts; once viewers may follow it,
+    // hiding it would pull results away from them. Publishing or the viewer password stay available.
+    if (visibility === "private_offline" && tournament.visibility !== "private_offline" && tournament.status !== "draft") {
+      return "hide_after_start" as const;
+    }
     await tx
       .update(tournamentsTable)
       .set({
@@ -550,8 +557,21 @@ router.post("/tournaments/:id/auth/change-visibility", async (req, res) => {
         viewerPasswordVersion: tournament.viewerPasswordVersion + 1,
       } as any)
       .where(eq(tournamentsTable.id, id));
+    return "changed" as const;
   });
-  await logAuditAction(id, "organizer", "Organizator", `Zmienił widoczność turnieju na: ${visibility}`);
+  if (outcome === "hide_after_start") {
+    res.status(409).json({
+      error: "Turniej został już rozpoczęty, więc nie można go ukryć. Ukrycie jest możliwe tylko przed startem.",
+      code: "HIDE_AFTER_START_NOT_ALLOWED",
+    });
+    return;
+  }
+  const VISIBILITY_LOG: Record<string, string> = {
+    public_online: "Opublikował turniej (widoczny dla widzów)",
+    private_online: "Ustawił dostęp z hasłem widza",
+    private_offline: "Ukrył turniej (niewidoczny dla widzów)",
+  };
+  await logAuditAction(id, "organizer", "Organizator", VISIBILITY_LOG[visibility] ?? `Zmienił widoczność turnieju na: ${visibility}`);
   res.json({ ok: true });
 });
 

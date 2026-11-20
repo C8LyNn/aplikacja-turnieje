@@ -66,7 +66,7 @@ export type ViewerShare =
 /** What the organizer may tell viewers, following the tournament's visibility (the sharing panel's rules). */
 export function viewerShareFor(visibility: string | null | undefined): ViewerShare {
   if (visibility === "private_offline") {
-    return { kind: "closed", note: "Turniej prywatny offline: widzowie nie mają dostępu. Widoczność zmienisz w Udostępnianiu." };
+    return { kind: "closed", note: "Turniej jest ukryty: widzowie nie mają dostępu, także pod znanym linkiem. Opublikuj go, gdy będzie gotowy." };
   }
   if (visibility === "private_online") {
     return { kind: "password", note: "Kibice otworzą link po podaniu hasła widza." };

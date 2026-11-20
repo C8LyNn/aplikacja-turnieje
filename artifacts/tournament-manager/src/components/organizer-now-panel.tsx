@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import type { Match } from "@workspace/api-client-react";
 import { ArrowRight, Loader2, PenLine, Radio } from "lucide-react";
@@ -28,7 +29,7 @@ export function OrganizerNowPanel({
   onStepAction?: () => void;
   pending?: boolean;
   /** Only for the organizer (sharing is an organizer capability). */
-  share?: { link: string; rule: ViewerShare } | null;
+  share?: { link: string; rule: ViewerShare; control?: ReactNode } | null;
 }) {
   const [location] = useLocation();
   const experimental = isExperimentalTournamentPath(location);
@@ -90,6 +91,7 @@ export function OrganizerNowPanel({
         <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-primary/15 pt-3 text-sm">
           <span className="font-medium">Udostępnij kibicom</span>
           {share.rule.kind !== "closed" && <CopyLinkButton text={share.link} label="Kopiuj link dla kibiców" />}
+          {share.control}
           <span className="basis-full text-xs text-muted-foreground">{share.rule.note}</span>
         </div>
       )}
