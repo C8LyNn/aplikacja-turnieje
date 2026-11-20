@@ -81,6 +81,7 @@ import { usePresentationTheme, resolvePresentationSettings } from "@/lib/present
 import { MATCH_STATUS_LABELS } from "@/lib/match-operation-feedback";
 import { PLAYER_STATUS_LABELS, TOURNAMENT_STATUS_LABELS } from "@/lib/tournament-stages-ui";
 import { tournamentHref, useTournamentRoute } from "@/features/experimental-tournaments/experimental-tournament-routing";
+import { historyEmptyText, matchesEmptyState, standingsEmptyText } from "@/lib/organizer-empty-states";
 import { bestOfLabel, matchLengthText } from "@/features/experimental-tournaments/experimental-create-wizard-model";
 import { setsText } from "@/components/set-score-editor";
 import { ExperimentalTournamentContextBar } from "@/features/experimental-tournaments/experimental-tournament-context-bar";
@@ -1069,7 +1070,7 @@ export default function TournamentDetail() {
             {(capabilities.canManageOrganizerSettings || capabilities.canManageParticipants) && (
               <RegistrationPanel tournamentId={tournament.id} experimental={isExperimental}
                 canConfigure={capabilities.canManageOrganizerSettings} canReview={capabilities.canManageParticipants}
-                participantNoun={teamEntries ? "drużyn" : "uczestników"} />
+                participantNoun={teamEntries ? "drużyn" : "uczestników"} tournamentName={tournament.name} />
             )}
             {isExperimental && <ExperimentalRosterHealth players={players} maxPlayers={tournament.maxPlayers} teamsNotReady={teamsNotReady} nextHref={tournament.status === "draft" && capabilities.canManageLifecycle ? tournamentHref(tournament.id, true, "/host?tab=prowadzenie") : undefined} requiredCount={tournament.status === "draft" && (stages?.length ?? 0) > 1 ? stages?.find((stage) => stage.position === 1)?.participantCount : undefined} />}
             {isExperimental && <ExperimentalPlayerToolbar query={playerSearch} onQueryChange={setPlayerSearch} status={playerStatusFilter} onStatusChange={setPlayerStatusFilter} sort={playerSort} onSortChange={setPlayerSort} total={players?.length ?? 0} visible={displayedPlayers.length} teams={!!teamEntries} />}
@@ -1562,9 +1563,16 @@ export default function TournamentDetail() {
             <Card>
               <CardHeader><CardTitle>Mecze</CardTitle></CardHeader>
               <CardContent>
-                {!matches || matches.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">Brak meczów.</div>
-                ) : (
+                {!matches || matches.length === 0 ? (() => {
+                  // QW-10: say why the list is empty and where the next step is.
+                  const empty = matchesEmptyState({ status: tournament.status, playerCount: players?.length ?? 0, canManage: capabilities.canManageParticipants });
+                  return (
+                    <div className="text-center py-8 text-muted-foreground space-y-3" data-testid="matches-empty">
+                      <p>{empty.text}</p>
+                      {empty.tab && <Button asChild variant="outline" size="sm"><Link href={tournamentHref(id, isExperimental, `?tab=${empty.tab.value}`)}>{empty.tab.label}</Link></Button>}
+                    </div>
+                  );
+                })() : (
                   <div className="space-y-2">
                     {matches.map((m) => (
                       <div key={m.id}>
@@ -1631,7 +1639,7 @@ export default function TournamentDetail() {
                   </p>
                 )}
                 {!standings || standings.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">Brak danych klasyfikacji.</div>
+                  <div className="text-center py-8 text-muted-foreground" data-testid="standings-empty">{standingsEmptyText(tournament.status)}</div>
                 ) : tournament.format === "single_elimination" ? (
                   <div>
                     {!standingsInformational && (
@@ -1735,7 +1743,7 @@ export default function TournamentDetail() {
               <CardHeader><CardTitle>Historia wyników</CardTitle></CardHeader>
               <CardContent>
                 {!history || history.length === 0 ? (
-                  <div className="text-center py-8 text-muted-foreground">Brak ukończonych meczów.</div>
+                  <div className="text-center py-8 text-muted-foreground" data-testid="history-empty">{historyEmptyText(capabilities.canWriteTournamentResults)}</div>
                 ) : (
                   <div className="space-y-2">
                     {history.map((r) => {

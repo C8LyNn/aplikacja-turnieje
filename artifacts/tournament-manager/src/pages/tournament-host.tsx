@@ -6,6 +6,11 @@ import { LeagueTableNotes } from "@/components/league-table-notes";
 import { standingsHavePoints } from "@/lib/league-results";
 import { checkScore, matchResultLabel, scoreCap, scoreEntryHint, stageAllowsDraws } from "@/lib/league-results";
 import { useSearch, useLocation, Link } from "wouter";
+import { CopyLinkButton } from "@/components/copy-link-button";
+import { ScoreInput } from "@/components/score-input";
+import { queueEmptyText, standingsEmptyText } from "@/lib/organizer-empty-states";
+import { ShareLinkButton } from "@/components/share-link-button";
+import { shareText } from "@/lib/link-share";
 import { Layout } from "@/components/layout";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import {
@@ -35,7 +40,7 @@ import {
   ArrowLeft, Swords, Play, CheckCircle2, RotateCcw, Monitor, AlertTriangle,
   Star, Minus, Plus, SkipForward, Clock, Undo2, Shield, History,
   Ban, ArrowUp, ArrowDown, ArrowLeftRight,
-  Share2, Lock, Key, Copy, Check, Eye, EyeOff, Loader2, RefreshCw,
+  Share2, Lock, Key, Eye, EyeOff, Loader2, RefreshCw,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
@@ -385,7 +390,6 @@ export default function TournamentHost() {
   const [legacyUpgradePending, setLegacyUpgradePending] = useState(false);
   const [codeError, setCodeError] = useState<string | null>(null);
   const [showCodeInput, setShowCodeInput] = useState(false);
-  const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   // --- Focused match (hoisted before any early return for Rules of Hooks compliance) ---
   const _featuredMatch = tournament?.featuredMatchId
@@ -479,13 +483,6 @@ export default function TournamentHost() {
     return map;
   }, [isDeadlock, focusedMatchId, focusedMatchPicks]);
 
-  const copyToClipboard = (text: string, key: string) => {
-    navigator.clipboard.writeText(text).then(() => {
-      setCopiedKey(key);
-      setTimeout(() => setCopiedKey(null), 2000);
-    });
-  };
-
   const handleLegacyUpgrade = async () => {
     setCodeError(null);
     setLegacyUpgradePending(true);
@@ -541,6 +538,14 @@ export default function TournamentHost() {
         at: Date.now(),
       },
     }));
+  };
+
+  // QW-10: a typed score goes through the same clamped draft update as the −/+ buttons.
+  const setScoreValue = (matchId: number, player: 1 | 2, value: number, bo: number) => {
+    const match = matches?.find((entry) => entry.id === matchId);
+    if (!match) return;
+    const current = getS(matchId, player, player === 1 ? match.score1 : match.score2);
+    if (value !== current) adjustScore(matchId, player, value - current, bo);
   };
 
   // --- Save states (V5.6): editing → saving → saved, or an error that keeps the entered result ---
@@ -1174,7 +1179,7 @@ export default function TournamentHost() {
   });
   const shareRule = viewerShareFor(tournament.visibility);
   const viewerShare = (capabilities.canManageSharing || capabilities.canPublishVisibility) && typeof window !== "undefined"
-    ? { link: `${window.location.origin}${tournamentHref(id, isExperimental)}`, rule: shareRule,
+    ? { link: `${window.location.origin}${tournamentHref(id, isExperimental)}`, rule: shareRule, title: tournament.name,
         // #330: publish / hide right where the organizer shares the tournament
         control: <TournamentVisibilityControl tournamentId={id} status={tournament.status} visibility={tournament.visibility} orgToken={orgToken}
           supportToken={!orgToken && capabilities.canPublishVisibility ? supSession?.token : null} compact /> }
@@ -1428,13 +1433,18 @@ export default function TournamentHost() {
                 >
                   <Minus className="w-5 h-5" />
                 </Button>
-                <div
-                  className={`text-5xl md:text-6xl font-black font-mono w-20 text-center select-none transition-colors @max-[12.5rem]:order-first @max-[12.5rem]:basis-full ${
+                {/* QW-10: the score can be typed (numeric keypad on phones, ↑/↓ on a keyboard); it only edits the draft */}
+                <ScoreInput
+                  value={s1}
+                  max={maxScore}
+                  name={focusedMatch.player1Name ?? "Zawodnik A"}
+                  disabled={!capabilities.canWriteTournamentResults || isDone || staleDraft}
+                  onFocus={() => resultDrafts.capture(focusedMatch)}
+                  onChange={(next) => setScoreValue(focusedMatch.id, 1, next, bo)}
+                  className={`score-input text-5xl md:text-6xl font-black font-mono w-20 text-center bg-transparent rounded-lg border border-transparent hover:border-border focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:cursor-default disabled:hover:border-transparent transition-colors @max-[12.5rem]:order-first @max-[12.5rem]:basis-full ${
                     s1 > s2 ? "text-primary" : s1 < s2 ? "text-muted-foreground/40" : "text-foreground"
                   }`}
-                >
-                  {s1}
-                </div>
+                />
                 <Button
                   variant="outline"
                   size="icon"
@@ -1496,13 +1506,18 @@ export default function TournamentHost() {
                 >
                   <Minus className="w-5 h-5" />
                 </Button>
-                <div
-                  className={`text-5xl md:text-6xl font-black font-mono w-20 text-center select-none transition-colors @max-[12.5rem]:order-first @max-[12.5rem]:basis-full ${
+                {/* QW-10: the score can be typed (numeric keypad on phones, ↑/↓ on a keyboard); it only edits the draft */}
+                <ScoreInput
+                  value={s2}
+                  max={maxScore}
+                  name={focusedMatch.player2Name ?? "Zawodnik B"}
+                  disabled={!capabilities.canWriteTournamentResults || isDone || staleDraft}
+                  onFocus={() => resultDrafts.capture(focusedMatch)}
+                  onChange={(next) => setScoreValue(focusedMatch.id, 2, next, bo)}
+                  className={`score-input text-5xl md:text-6xl font-black font-mono w-20 text-center bg-transparent rounded-lg border border-transparent hover:border-border focus-visible:border-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 disabled:cursor-default disabled:hover:border-transparent transition-colors @max-[12.5rem]:order-first @max-[12.5rem]:basis-full ${
                     s2 > s1 ? "text-primary" : s2 < s1 ? "text-muted-foreground/40" : "text-foreground"
                   }`}
-                >
-                  {s2}
-                </div>
+                />
                 <Button
                   variant="outline"
                   size="icon"
@@ -2066,7 +2081,7 @@ export default function TournamentHost() {
                     </div>
                   )}
                   {shownQueue.length === 0 ? (
-                    <p className="text-xs text-muted-foreground text-center py-4">{queueFilter !== "all" ? "Brak meczów w tym stanie." : "Brak oczekujących meczów"}</p>
+                    <p className="text-xs text-muted-foreground text-center py-4">{queueEmptyText({ status: tournament.status, filtered: queueFilter !== "all" })}</p>
                   ) : (
                     <ol className={`grid grid-cols-1 gap-1.5 ${showResultsSidebar ? "" : "xl:grid-cols-2"}`}>
                       {shownQueue.map((m) => (
@@ -2345,7 +2360,7 @@ export default function TournamentHost() {
           {/* ═══ TABELA ═══ */}
           <TabsContent value="tabela" className="pt-4">
             {!standings || standings.length === 0 ? (
-              <div className="text-center py-12 text-muted-foreground">Brak danych klasyfikacji.</div>
+              <div className="text-center py-12 text-muted-foreground">{standingsEmptyText(tournament.status)}</div>
             ) : tournament.format === "single_elimination" ? (
               <div>
                 <p className="mb-4 text-sm text-muted-foreground">
@@ -2625,39 +2640,29 @@ export default function TournamentHost() {
             <div className="space-y-1.5">
               {/* QW-04: the label and note follow the tournament's visibility (it used to call every link public). */}
               <Label className="text-xs text-muted-foreground uppercase tracking-wide">{shareRule.kind === "public" ? "Widok widzów (publiczny)" : shareRule.kind === "password" ? "Widok widzów (z hasłem widza)" : "Link turnieju (widzowie nie mają dostępu)"}</Label>
-              <div className="flex gap-2">
+              {/* QW-06b: the shared copy button (feedback + manual fallback instead of a silent failure) and the share sheet */}
+              <div className="flex flex-wrap items-center gap-2">
                 <Input
                   readOnly
                   value={`${window.location.origin}${tournamentHref(id, isExperimental)}`}
-                  className="text-xs font-mono bg-muted/40"
+                  className="min-w-0 flex-1 text-xs font-mono bg-muted/40"
                 />
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="shrink-0"
-                  onClick={() => copyToClipboard(`${window.location.origin}${tournamentHref(id, isExperimental)}`, "viewer")}
-                >
-                  {copiedKey === "viewer" ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
-                </Button>
+                <CopyLinkButton text={`${window.location.origin}${tournamentHref(id, isExperimental)}`} label="Kopiuj link widza" />
+                {shareRule.kind !== "closed" && (
+                  <ShareLinkButton target={{ url: `${window.location.origin}${tournamentHref(id, isExperimental)}`, title: tournament.name, text: shareText(shareRule.kind, tournament.name) }} label="Udostępnij link widza" />
+                )}
               </div>
               <p className="text-xs text-muted-foreground">{shareRule.note}</p>
             </div>
             <div className="space-y-1.5">
               <Label className="text-xs text-muted-foreground uppercase tracking-wide">Panel prowadzącego</Label>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Input
                   readOnly
                   value={`${window.location.origin}${tournamentHref(id, isExperimental, "/host")}`}
-                  className="text-xs font-mono bg-muted/40"
+                  className="min-w-0 flex-1 text-xs font-mono bg-muted/40"
                 />
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="shrink-0"
-                  onClick={() => copyToClipboard(`${window.location.origin}${tournamentHref(id, isExperimental, "/host")}`, "host")}
-                >
-                  {copiedKey === "host" ? <Check className="w-4 h-4 text-green-500" /> : <Copy className="w-4 h-4" />}
-                </Button>
+                <CopyLinkButton text={`${window.location.origin}${tournamentHref(id, isExperimental, "/host")}`} label="Kopiuj link panelu prowadzącego" />
               </div>
               <p className="text-xs text-muted-foreground">
                 Dostęp do mutacji wymaga tokenu organizatora albo aktywnej sesji wsparcia. Sam link nie nadaje uprawnień.

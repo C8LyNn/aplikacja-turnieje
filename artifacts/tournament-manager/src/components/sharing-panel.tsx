@@ -1,5 +1,8 @@
 import { useState } from "react";
 import { CopyLinkButton } from "./copy-link-button";
+import { ShareLinkButton } from "./share-link-button";
+import { shareText } from "@/lib/link-share";
+import { viewerShareFor } from "@/lib/organizer-now";
 import { ObsScoreOverlayLink } from "./obs-score-overlay-link";
 import { Check, Link2, Globe, Lock, EyeOff, Eye, EyeOff as EyeOffIcon, Monitor, Key, Shield, AlertTriangle, Tv2, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -39,7 +42,7 @@ const VISIBILITY_INFO: Record<Visibility, { label: string; icon: React.ReactNode
     label: "Prywatny online",
     icon: <Lock className="w-4 h-4 text-yellow-400" />,
     desc: "Dostępny przez link, ale widz musi podać hasło widza. Widoczny na dashboardzie.",
-    badge: "Chroniiony hasłem",
+    badge: "Chroniony hasłem",
   },
   private_offline: {
     label: "Ukryty (prywatny offline)",
@@ -71,6 +74,7 @@ export function SharingPanel({ tournament, orgToken }: Props) {
     ? "/experimental/tournaments"
     : "/tournaments";
   const currentVisibility = (tournament.visibility ?? "public_online") as Visibility;
+  const viewerShare = viewerShareFor(currentVisibility);
 
   const [newVisibility, setNewVisibility] = useState<Visibility>(currentVisibility);
   const [viewerPass, setViewerPass] = useState("");
@@ -175,11 +179,21 @@ export function SharingPanel({ tournament, orgToken }: Props) {
           <CardDescription>Udostępnij te linki odpowiednim osobom</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          <LinkRow
-            label="Link widza (główny link turnieju)"
-            url={links.viewer}
-            icon={<Eye className="w-3.5 h-3.5" />}
-          />
+          {/* QW-06b: the viewer link says what a viewer gets (public / password / hidden) and can go to the share sheet */}
+          <div className="space-y-1.5" data-testid="sharing-viewer-link">
+            <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+              <Eye className="w-3.5 h-3.5" />
+              {viewerShare.kind === "public" ? "Link widza — publiczny" : viewerShare.kind === "password" ? "Link widza — wymaga hasła widza" : "Link turnieju — widzowie nie mają dostępu"}
+            </div>
+            <div className="flex flex-wrap items-center gap-2 bg-muted/40 rounded-lg px-3 py-2 border border-border/50">
+              <span className="text-xs text-foreground/80 truncate flex-1 font-mono">{links.viewer}</span>
+              <CopyLinkButton text={links.viewer} label="Kopiuj: link widza" />
+              {viewerShare.kind !== "closed" && (
+                <ShareLinkButton target={{ url: links.viewer, title: tournament.name, text: shareText(viewerShare.kind, tournament.name) }} label="Udostępnij link widza" />
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">{viewerShare.note}</p>
+          </div>
           <LinkRow
             label="Link organizatora (otwiera okno logowania)"
             url={links.organizer}

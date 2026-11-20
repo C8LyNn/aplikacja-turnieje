@@ -4,6 +4,8 @@ import type { Match } from "@workspace/api-client-react";
 import { ArrowRight, Loader2, PenLine, Radio } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { CopyLinkButton } from "@/components/copy-link-button";
+import { ShareLinkButton } from "@/components/share-link-button";
+import { shareText } from "@/lib/link-share";
 import type { OrganizerNow, ViewerShare } from "@/lib/organizer-now";
 import { pairText } from "@/lib/organizer-now";
 import { isExperimentalTournamentPath, tournamentModeHref } from "@/features/experimental-tournaments/experimental-tournament-routing";
@@ -29,7 +31,7 @@ export function OrganizerNowPanel({
   onStepAction?: () => void;
   pending?: boolean;
   /** Only for the organizer (sharing is an organizer capability). */
-  share?: { link: string; rule: ViewerShare; control?: ReactNode } | null;
+  share?: { link: string; rule: ViewerShare; control?: ReactNode; title?: string } | null;
 }) {
   const [location] = useLocation();
   const experimental = isExperimentalTournamentPath(location);
@@ -91,6 +93,9 @@ export function OrganizerNowPanel({
         <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-primary/15 pt-3 text-sm">
           <span className="font-medium">Udostępnij kibicom</span>
           {share.rule.kind !== "closed" && <CopyLinkButton text={share.link} label="Kopiuj link dla kibiców" />}
+          {share.rule.kind !== "closed" && (
+            <ShareLinkButton target={{ url: share.link, title: share.title ?? "Turniej", text: shareText(share.rule.kind, share.title ?? "") }} label="Udostępnij link dla kibiców" />
+          )}
           {share.control}
           <span className="basis-full text-xs text-muted-foreground">{share.rule.note}</span>
         </div>

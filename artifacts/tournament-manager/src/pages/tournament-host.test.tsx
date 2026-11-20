@@ -1037,7 +1037,7 @@ test("QW-01: on a phone the selected-match header wraps and each score fits its 
     const row = plus.parentElement!;
     assert.ok(row.classList.contains("flex-wrap"), `${name}: the − score + row may wrap`);
     assert.ok(row.parentElement!.classList.contains("@container"), `${name}: the player column is the size container`);
-    const score = [...row.children].find((el) => el.tagName === "DIV")!;
+    const score = [...row.children].find((el) => el.tagName === "INPUT")!; // QW-10: the score is a typed field
     assert.ok(score.classList.contains("@max-[12.5rem]:basis-full") && score.classList.contains("@max-[12.5rem]:order-first"),
       `${name}: in a column narrower than the row the score sits above the buttons`);
   }
@@ -1077,4 +1077,34 @@ test("QW-04: long names in 'Co teraz?' truncate inside the panel instead of wide
     assert.ok(chip.parentElement!.className.includes("max-w-full") && chip.parentElement!.className.includes("min-w-0"), "its list item can shrink");
     assert.ok(chip.querySelector(".truncate")?.className.includes("min-w-0"), "the names truncate");
   }
+});
+
+test("QW-10: a score can be typed; Enter and arrows only edit the draft, saving stays on the button", async () => {
+  const matches = [hostMatch(1)];
+  let request: unknown;
+  let writes = 0;
+  const user = await renderOperationalHost({ matches, intercept: async (path, init) => {
+    if (!path.endsWith("/complete")) return undefined;
+    writes++;
+    request = JSON.parse(String(init?.body));
+    matches[0] = { ...matches[0], status: "completed", resultType: "played", score1: 2, score2: 1 };
+    return jsonResponse(matches[0]);
+  } });
+  const a = await screen.findByRole("textbox", { name: "Wynik: Gracz A1" }) as HTMLInputElement;
+  const b = screen.getByRole("textbox", { name: "Wynik: Gracz B1" }) as HTMLInputElement;
+  assert.equal(a.getAttribute("inputmode"), "numeric", "phones open the numeric keypad");
+  await user.click(a);
+  await user.keyboard("2");
+  assert.equal(a.value, "2");
+  await user.keyboard("{Enter}");
+  await user.click(b);
+  await user.keyboard("5");
+  assert.equal(b.value, "0", "a score above the BO3 cap is not accepted");
+  await user.keyboard("{ArrowUp}");
+  assert.equal(b.value, "1");
+  await user.keyboard("{ArrowDown}{ArrowUp}{Enter}");
+  assert.equal(writes, 0, "Enter never saves a result");
+  await user.click(screen.getByRole("button", { name: "Zapisz wynik" }));
+  await waitFor(() => assert.deepEqual(request, { resultType: "played", expectedRevision: 1, score1: 2, score2: 1 }));
+  assert.equal(writes, 1);
 });

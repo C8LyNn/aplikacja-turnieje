@@ -7,7 +7,10 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { getListPlayersQueryKey } from "@workspace/api-client-react";
-import { Check, ClipboardList, Copy, ExternalLink, Loader2, X } from "lucide-react";
+import { Check, ClipboardList, ExternalLink, Loader2, X } from "lucide-react";
+import { CopyLinkButton } from "@/components/copy-link-button";
+import { ShareLinkButton } from "@/components/share-link-button";
+import { shareText } from "@/lib/link-share";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -42,6 +45,7 @@ export function RegistrationPanel({
   canConfigure,
   canReview,
   participantNoun = "uczestników",
+  tournamentName = "",
 }: {
   tournamentId: number;
   experimental: boolean;
@@ -50,6 +54,8 @@ export function RegistrationPanel({
   /** Owner or support with "participants.manage": accept / reject sign-ups. */
   canReview: boolean;
   participantNoun?: string;
+  /** QW-06b: names the tournament in the system share sheet. */
+  tournamentName?: string;
 }) {
   const client = useQueryClient();
   const fields = useParticipantFields(tournamentId);
@@ -58,7 +64,6 @@ export function RegistrationPanel({
   const [message, setMessage] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [draft, setDraft] = useState<{ approval: "manual" | "auto"; capacity: string; note: string } | null>(null);
-  const [copied, setCopied] = useState(false);
   const [rejecting, setRejecting] = useState<RegistrationRow | null>(null);
   const [completing, setCompleting] = useState<{ id: number; values: Record<string, unknown> } | null>(null);
   const [showDecided, setShowDecided] = useState(false);
@@ -188,10 +193,11 @@ export function RegistrationPanel({
         <>
           <div className="flex flex-wrap items-center gap-2 rounded-lg bg-muted/40 p-2">
             <code className="basis-full min-w-0 break-all text-xs sm:basis-auto sm:flex-1" data-testid="registration-link">{link}</code>
-            <Button size="sm" variant="outline" onClick={() => { void navigator.clipboard?.writeText(link).then(() => setCopied(true)).catch(() => setCopied(false)); }}>
-              {copied ? <Check aria-hidden="true" className="mr-1.5 h-3.5 w-3.5" /> : <Copy aria-hidden="true" className="mr-1.5 h-3.5 w-3.5" />}
-              {copied ? "Skopiowano" : "Kopiuj link"}
-            </Button>
+            {/* QW-06b: the shared copy button (feedback + manual fallback) and, while sign-ups are open, the system share sheet */}
+            <CopyLinkButton text={link} label="Kopiuj link do zapisów" showLabel />
+            {data.state === "open" && (
+              <ShareLinkButton target={{ url: link, title: tournamentName || "Zapisy", text: shareText("signup", tournamentName) }} label="Udostępnij zapisy" showLabel />
+            )}
             <Button size="sm" variant="outline" asChild>
               <a href={registrationPath(tournamentId, experimental)} target="_blank" rel="noopener noreferrer"><ExternalLink aria-hidden="true" className="mr-1.5 h-3.5 w-3.5" /> Podgląd</a>
             </Button>

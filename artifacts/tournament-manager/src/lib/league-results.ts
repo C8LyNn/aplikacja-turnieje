@@ -71,9 +71,9 @@ export function matchResultLabel(match: ResultLike): string {
 
 /** Plain hint for the result form. */
 export function scoreEntryHint(bestOf: number | null | undefined, allowDraws: boolean): string {
-  if (allowDraws) return "Wpisz wynik meczu przyciskami + i − (np. gole lub punkty). Równy wynik to remis.";
+  if (allowDraws) return "Wpisz wynik meczu (np. gole lub punkty) w polach albo przyciskami + i −. Równy wynik to remis.";
   const wins = scoreCap(bestOf, false);
-  return `Do wygrania meczu potrzeba ${wins} ${wins === 1 ? "wygranej" : "wygranych"}. Ustaw wynik przyciskami + i −.`;
+  return `Do wygrania meczu potrzeba ${wins} ${wins === 1 ? "wygranej" : "wygranych"}. Wpisz wynik w polach albo ustaw go przyciskami + i −.`;
 }
 
 export interface StandingLike {
