@@ -93,9 +93,25 @@ namespace CoreClash.Presentation
             UiViewport.SelectProfile(profile);CancelPointer();Layout();trayScroll=matchScroll=Vector2.zero;
             Debug.Log("CC_DEVICE_PROFILE requested="+profile+" effective="+UiViewport.Profile+" logical="+UiWidth+"x"+UiHeight);
         }
+        // W24: draw at the refresh rate of the screen the window is on. A fixed 60 on a 100 or 144 Hz
+        // screen shows every frame for an uneven number of refreshes, which reads as stutter.
+        float displayRateCheckedAt=-9;int displayRateFrame;
+        void FollowDisplayRate()
+        {
+#if UNITY_STANDALONE
+            float span=Time.unscaledTime-displayRateCheckedAt;if(span<1)return;
+            int frames=Time.frameCount-displayRateFrame;displayRateCheckedAt=Time.unscaledTime;displayRateFrame=Time.frameCount;
+            int rate=(int)Math.Round(Screen.mainWindowDisplayInfo.refreshRate.value);if(rate<30)return;
+            if(Application.targetFrameRate!=rate)Application.targetFrameRate=rate;
+            // Some windowed setups ignore v-sync and the game then runs flat out with uneven frames.
+            // When that is measured, fall back to the frame cap, which always holds.
+            if(QualitySettings.vSyncCount>0&&span<5&&frames/span>rate*1.3f)QualitySettings.vSyncCount=0;
+#endif
+        }
         void Update()
         {
             if(Catalog==null)return;if(UiViewport.Refresh()){CancelPointer();Layout();}
+            FollowDisplayRate();
             if(UnityEngine.Input.GetKeyDown(KeyCode.F1))SetDeveloperOverlay(!DeveloperOverlay);
             if(UnityEngine.Input.GetKeyDown(KeyCode.F2)&&setup)SetDeveloperRoster(!DeveloperRoster);
             if(exitGuard.Open&&!externalModal&&(UnityEngine.Input.GetKeyDown(KeyCode.Return)||UnityEngine.Input.GetKeyDown(KeyCode.KeypadEnter)||UnityEngine.Input.GetKeyDown(KeyCode.JoystickButton0)))ConfirmLeaveMatch();
