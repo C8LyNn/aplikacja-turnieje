@@ -34,6 +34,7 @@ export function Layout({ children, deadlockTheme, colorPreset }: { children: Rea
     <div
       className={`min-h-screen flex flex-col bg-background text-foreground dark transition-colors duration-200 ${isExperimentalTournamentView ? "experimental-tournament-shell" : ""}`}
       data-theme={colorPreset || (deadlockTheme ? "deadlock" : undefined)}
+      data-ui={isExperimentalTournamentView ? undefined : "classic"}
     >
       <a
         href={isExperimentalTournamentView ? "#experimental-main" : "#main-content"}

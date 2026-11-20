@@ -871,7 +871,7 @@
 }
 .experimental-tournament-public .experimental-audience-panel[data-exp-panel-title="Klasyfikacja"] { --exp-panel-tone: var(--exp-tone-info);
 }
-.experimental-tournament-public .experimental-audience-panel > h3 { color: hsl(var(--exp-panel-tone) / .82) !important;
+.experimental-tournament-public .experimental-audience-panel > :is(h2, h3) { color: hsl(var(--exp-panel-tone) / .82) !important;
 }
 .experimental-tournament-public .experimental-public-standing-card {
   border-color: hsl(var(--exp-tone-info) / .23) !important;

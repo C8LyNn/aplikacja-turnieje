@@ -1,0 +1,34 @@
+/*
+ * QW-08 · Klasyczny wygląd: prosto, statycznie, czytelnie — bez zmiany funkcji.
+ * Obowiązuje tylko w widokach oznaczonych data-ui="classic" (Layout bez powłoki Nowoczesnej, drabinka
+ * i widok widza w trybie Klasycznym). Nowoczesny widok, projektor i nakładki OBS są bez zmian.
+ */
+
+/* 1. Bez niekończącego się ruchu: pulsujące kropki i szkielety ładowania stoją w miejscu.
+      Kręcący się wskaźnik ładowania zostaje — mówi, że coś trwa. */
+[data-ui="classic"] :is(.animate-pulse, .animate-ping, .animate-bounce) {
+  animation: none;
+}
+
+/* 2. Bez rozmycia tła: pasek górny jest pełny, a nie półprzezroczysty z rozmyciem. */
+[data-ui="classic"] :is(.backdrop-blur, .backdrop-blur-sm, .backdrop-blur-md, .backdrop-blur-lg) {
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+[data-ui="classic"] header:is(.backdrop-blur, .backdrop-blur-sm) {
+  background-color: hsl(var(--background));
+}
+
+/* 3. Drobny tekst co najmniej 12 px — poza płótnem drabinki, które ma własne powiększenie. */
+[data-ui="classic"] :is(.text-\[9px\], .text-\[10px\], .text-\[11px\]):not(.experimental-bracket-canvas *) {
+  font-size: 0.75rem;
+  line-height: 1rem;
+}
+
+/* 4. Kontrast: najsłabsze odcienie tekstu nie schodzą poniżej czytelnego poziomu. */
+[data-ui="classic"] :is(.text-white\/15, .text-white\/20, .text-white\/25, .text-white\/30) {
+  color: hsl(var(--foreground) / 0.62);
+}
+[data-ui="classic"] :is(.text-white\/35, .text-white\/40) {
+  color: hsl(var(--foreground) / 0.7);
+}

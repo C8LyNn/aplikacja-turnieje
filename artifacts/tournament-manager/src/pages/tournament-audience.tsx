@@ -345,11 +345,12 @@ export default function TournamentAudience() {
     <div
       className={`min-h-screen bg-background text-white flex flex-col select-none overflow-x-hidden ${isExperimental ? "experimental-tournament-public" : ""}`}
       data-theme={presentationSettings.colorPreset || undefined}
-      style={{
+      data-ui={isExperimental ? undefined : "classic"}
+      style={isExperimental ? {
         backgroundImage:
           "radial-gradient(circle at 50% 0%, rgba(0,200,255,0.04) 0%, transparent 60%), radial-gradient(circle, rgba(255,255,255,0.02) 1px, transparent 1px)",
         backgroundSize: "100% 100%, 40px 40px",
-      }}
+      } : undefined}
     >
       {/* ── TOP BAR ── */}
       <header className="flex-none flex flex-wrap items-center justify-between gap-x-4 gap-y-2 min-w-0 px-4 sm:px-6 py-3 border-b border-white/8 bg-background/80 backdrop-blur-sm z-10">
@@ -603,7 +604,7 @@ export default function TournamentAudience() {
                 </div>
               )}
               <Badge className="mt-2 bg-yellow-500/15 text-yellow-400 border-yellow-500/30 text-sm px-4 py-1">
-                {(isExperimental ? (STAGE_FORMAT_LABELS as Record<string, string>)[tournament.format] : undefined) ?? FORMAT_LABELS[tournament.format] ?? tournament.format}
+                {(STAGE_FORMAT_LABELS as Record<string, string>)[tournament.format] ?? FORMAT_LABELS[tournament.format] ?? tournament.format}
               </Badge>
             </div>
           </section>
@@ -843,7 +844,7 @@ export default function TournamentAudience() {
           ) : marvelStage ? (
             <AudienceSectionShell
               title="Drabinka"
-              description={publicStageLabel(publicStage, isExperimental)}
+              description={publicStageLabel(publicStage, true)}
             >
               <div className="rounded-xl border border-white/8 bg-card p-4 text-foreground">
                 <MarvelEliminationStage
@@ -855,7 +856,7 @@ export default function TournamentAudience() {
           ) : doubleEliminationStage ? (
             <AudienceSectionShell
               title="Drabinka"
-              description={publicStageLabel(publicStage, isExperimental)}
+              description={publicStageLabel(publicStage, true)}
             >
               <ReadQueryState query={doubleEliminationQuery} loadingMessage="Ładowanie drabinki Double Elimination…" errorMessage="Nie udało się pobrać drabinki Double Elimination.">
                 {doubleEliminationQuery.data && <div className="rounded-xl border border-white/8 bg-card p-4 text-foreground">
@@ -867,7 +868,7 @@ export default function TournamentAudience() {
             <ReadQueryState query={bracketQuery} loadingMessage="Ładowanie drabinki…" errorMessage="Nie udało się pobrać drabinki.">
             <PublicBracketSection
               bracket={bracket}
-              stageLabel={publicStageLabel(publicStage, isExperimental)}
+              stageLabel={publicStageLabel(publicStage, true)}
               format={publicStage.format}
               currentRound={publicStage.currentRound}
               totalRounds={publicStage.totalRounds}
@@ -1245,7 +1246,7 @@ function Panel({
 }) {
   return (
     <div data-exp-panel-title={title} className={`experimental-audience-panel bg-card/80 border border-white/8 rounded-xl p-4 ${className}`}>
-      <h3 className="text-[10px] uppercase tracking-[0.2em] text-white/30 font-bold mb-3">{title}</h3>
+      <h2 className="text-[10px] uppercase tracking-[0.2em] text-white/30 font-bold mb-3">{title}</h2>
       {children}
     </div>
   );

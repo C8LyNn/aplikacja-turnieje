@@ -5,6 +5,7 @@
 @import "./experimental-tournaments.css";
 @import "./experimental-design-system.css";
 @import "./experimental-v511.css";
+@import "./classic.css";
 @plugin "@tailwindcss/typography";
 
 @custom-variant dark (&:is(.dark *));

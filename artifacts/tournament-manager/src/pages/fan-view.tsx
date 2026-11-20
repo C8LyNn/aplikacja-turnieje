@@ -28,7 +28,7 @@ export default function FanView() {
   const visible = tournaments?.filter((t) => t.status === "active" || t.status === "completed") ?? [];
 
   return (
-    <div className={`min-h-screen bg-background text-foreground dark flex flex-col ${isExperimental ? "experimental-tournament-entry experimental-fan-entry" : ""}`}>
+    <div className={`min-h-screen bg-background text-foreground dark flex flex-col ${isExperimental ? "experimental-tournament-entry experimental-fan-entry" : ""}`} data-ui={isExperimental ? undefined : "classic"}>
       <header className="border-b border-border bg-card sticky top-0 z-10">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -82,7 +82,7 @@ export default function FanView() {
         ) : visible.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center border rounded-xl bg-card/50">
             <Trophy className="w-12 h-12 text-muted-foreground mb-4 opacity-20" />
-            <h3 className="text-xl font-semibold mb-2">Brak turniejów do oglądania</h3>
+            <h2 className="text-xl font-semibold mb-2">Brak turniejów do oglądania</h2>
             <p className="text-muted-foreground text-sm">Obecnie nie ma turniejów aktywnych ani zakończonych. Wróć później.</p>
           </div>
         ) : (
@@ -91,14 +91,14 @@ export default function FanView() {
               <Link key={t.id} href={tournamentHref(t.id, isExperimental, "/audience")}>
                 <div data-exp-tournament-status={isExperimental ? t.status : undefined} className={`rounded-xl border border-border bg-card hover:border-orange-500/50 hover:bg-orange-500/5 transition-all cursor-pointer group p-5 flex flex-col gap-3 ${isExperimental ? "experimental-fan-card" : ""}`}>
                   <div className="flex justify-between items-start gap-2">
-                    <h3 className="font-bold text-base line-clamp-2 group-hover:text-orange-400 transition-colors">{t.name}</h3>
+                    <h2 className="font-bold text-base line-clamp-2 group-hover:text-orange-400 transition-colors">{t.name}</h2>
                     <span className={`shrink-0 text-xs font-bold px-2 py-0.5 rounded-full ${
                       t.status === "active" ? "bg-green-500/20 text-green-400" : "bg-muted text-muted-foreground"
                     }`}>
                       {STATUS_LABELS[t.status] ?? t.status}
                     </span>
                   </div>
-                  <p className="text-sm text-muted-foreground">{(isExperimental ? (STAGE_FORMAT_LABELS as Record<string, string>)[t.format] : undefined) ?? FORMAT_LABELS[t.format] ?? t.format}</p>
+                  <p className="text-sm text-muted-foreground">{(STAGE_FORMAT_LABELS as Record<string, string>)[t.format] ?? FORMAT_LABELS[t.format] ?? t.format}</p>
                   <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-border/50">
                     <span className="flex items-center gap-1"><Calendar className="w-3 h-3" />{format(new Date(t.createdAt), "d MMM yyyy", { locale: pl })}</span>
                     {t.maxPlayers && <span className="flex items-center gap-1"><Users className="w-3 h-3" />maks. {t.maxPlayers}</span>}

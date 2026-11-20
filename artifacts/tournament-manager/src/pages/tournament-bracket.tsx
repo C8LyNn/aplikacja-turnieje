@@ -30,11 +30,6 @@ import { STAGE_FORMAT_LABELS } from "@/lib/tournament-stages-ui";
 import { PrivateTournamentGate, pollUnlessDenied, useLatchedAccessDenied } from "@/components/private-tournament-gate";
 import { useTournamentReadAuth } from "@/hooks/use-tournament-read-auth";
 
-const FORMAT_LABELS: Record<string, string> = {
-  single_elimination: "Drabinka eliminacyjna",
-  swiss: "System szwajcarski",
-  round_robin: "Każdy z każdym",
-};
 
 const ZOOM_MIN = 0.2;
 const ZOOM_MAX = 2.0;
@@ -192,9 +187,12 @@ export default function TournamentBracket() {
   }
 
   return (
-    <div className={`${isSingleElimination ? "h-dvh" : "min-h-screen"} min-w-0 max-w-full bg-background text-foreground flex flex-col overflow-hidden ${isExperimental ? "experimental-tournament-stage-view experimental-bracket-view" : ""}`} data-exp-format={isExperimental ? publicStage?.format ?? "unknown" : undefined} data-exp-tournament-status={isExperimental ? tournament.status : undefined} data-theme={presentationSettings.colorPreset || undefined}>
-      {/* Floating navigation stays visible for keyboard and direct-URL users. */}
-      <div className="absolute top-0 left-0 w-full p-2 sm:p-4 flex flex-wrap justify-between items-start gap-2 z-50 bg-gradient-to-b from-background/80 to-transparent pointer-events-none">
+    <div className={`${isSingleElimination ? "h-dvh" : "min-h-screen"} min-w-0 max-w-full bg-background text-foreground flex flex-col overflow-hidden ${isExperimental ? "experimental-tournament-stage-view experimental-bracket-view" : ""}`} data-exp-format={isExperimental ? publicStage?.format ?? "unknown" : undefined} data-exp-tournament-status={isExperimental ? tournament.status : undefined} data-theme={presentationSettings.colorPreset || undefined} data-ui={isExperimental ? undefined : "classic"}>
+      {/* Navigation stays visible for keyboard and direct-URL users. QW-08: in Classic it is a plain row above
+          the title (it used to float over it and covered the name on phones). */}
+      <div className={isExperimental
+        ? "absolute top-0 left-0 w-full p-2 sm:p-4 flex flex-wrap justify-between items-start gap-2 z-50 bg-gradient-to-b from-background/80 to-transparent pointer-events-none"
+        : "flex-none w-full p-2 sm:p-3 flex flex-wrap justify-between items-center gap-2 border-b border-border bg-background"}>
         <a
           href={tournamentHref(id, isExperimental)}
           className="inline-flex min-h-11 items-center bg-background border border-border px-3 py-2 shadow-sm pointer-events-auto rounded-md text-sm font-medium text-foreground hover:bg-muted transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
@@ -279,15 +277,19 @@ export default function TournamentBracket() {
       </div>
 
       {/* Header */}
-      <div className="experimental-bracket-header flex-none py-5 px-8 flex flex-col items-center justify-center bg-card border-b border-border shadow-md z-10 relative">
-        <Trophy className="w-12 h-12 text-primary mb-4 absolute top-8 opacity-10 blur-xl scale-150" />
-        <h1 className="text-4xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent relative z-10 leading-tight font-deadlock">
+      <div className={`experimental-bracket-header flex-none ${isExperimental ? "py-5 px-8 shadow-md" : "py-4 px-4 sm:px-8"} flex flex-col items-center justify-center bg-card border-b border-border z-10 relative`}>
+        {isExperimental && <Trophy className="w-12 h-12 text-primary mb-4 absolute top-8 opacity-10 blur-xl scale-150" />}
+        <h1 className={isExperimental
+          ? "text-4xl font-black tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-primary to-accent relative z-10 leading-tight font-deadlock"
+          : "text-2xl sm:text-3xl font-bold leading-tight text-center break-words text-foreground"}>
           {tournament.name}
         </h1>
-        <p className="text-base text-muted-foreground mt-1 font-mono uppercase tracking-widest relative z-10">
-          {publicStageLabel(publicStage, isExperimental)} · {marvelStage
+        <p className={isExperimental
+          ? "text-base text-muted-foreground mt-1 font-mono uppercase tracking-widest relative z-10"
+          : "text-sm sm:text-base text-muted-foreground mt-1 text-center"}>
+          {publicStageLabel(publicStage, true)} · {marvelStage
             ? "Marvel — Eliminacyjne grupy"
-            : ((isExperimental ? (STAGE_FORMAT_LABELS as Record<string, string>)[publicStage?.format ?? ""] : undefined) ?? FORMAT_LABELS[publicStage?.format ?? ""] ?? publicStage?.format)}
+            : ((STAGE_FORMAT_LABELS as Record<string, string>)[publicStage?.format ?? ""] ?? publicStage?.format)}
           {publicStage?.currentRound && publicStage.totalRounds
             ? ` · Runda ${publicStage.currentRound}/${publicStage.totalRounds}`
             : ""}
@@ -301,11 +303,11 @@ export default function TournamentBracket() {
       <div
         ref={canvasRef}
         className="experimental-bracket-canvas flex-1 min-h-0 min-w-0 w-full overflow-auto"
-        style={{
+        style={isExperimental ? {
           backgroundImage:
             "radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px)",
           backgroundSize: "32px 32px",
-        }}
+        } : undefined}
         onWheel={handleWheel}
       >
         <ReadQueryState query={tournamentQuery} loadingMessage="Ładowanie turnieju…" errorMessage="Nie udało się pobrać turnieju." />
