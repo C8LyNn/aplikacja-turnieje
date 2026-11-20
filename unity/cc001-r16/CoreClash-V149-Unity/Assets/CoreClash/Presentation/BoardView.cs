@@ -21,6 +21,8 @@ namespace CoreClash.Presentation
         static float turnSince;
         // The end-position marker is optional (HUD button or E). Default on.
         public static bool ShowStopEstimate = true;
+        // Time already passed since the last simulation step, set by the app every frame.
+        public static float VisualLead;
         static Texture2D stripes, dots;
         static readonly List<(BallRuntime ball,float x,float y,bool replay)> drawn=new List<(BallRuntime,float,float,bool)>();
         static readonly List<UiBox> wantedLabels=new List<UiBox>();
@@ -77,6 +79,13 @@ namespace CoreClash.Presentation
                 if (!ball.dead && !ball.banished)
                 {
                     float renderX=ball.x,renderY=ball.y;
+                    // W24: the simulation advances in fixed 1/120 s steps, a frame rarely lands on one.
+                    // Draw a moving ball where it is at this frame's time (view only, state untouched).
+                    if(remoteVisual==null&&state.phase==MatchPhase.Moving&&ball.moving&&VisualLead>0)
+                    {
+                        renderX=Mathf.Clamp(ball.x+ball.vx*VisualLead,Left+ball.radius,Right-ball.radius);
+                        renderY=Mathf.Clamp(ball.y+ball.vy*VisualLead,Top+ball.radius,Bottom-ball.radius);
+                    }
                     if(state.phase==MatchPhase.Moving&&remoteVisual!=null&&remoteVisual.TryGetPosition(ball.id,Time.unscaledTime,out var px,out var py)){renderX=px;renderY=py;}
                     bool replay=ReplayAffordance.Advertise(simulation,ball);
                     RenderThreat(clippedBoard,ball,renderX,renderY);

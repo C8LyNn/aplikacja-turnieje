@@ -193,7 +193,6 @@ namespace CoreClash.Presentation
                 float angle = Rand(0, Mathf.PI * 2), speed = Rand(60, 150) + 240 * strength * Rand();
                 Add(cx, cy, Mathf.Cos(angle) * speed, Mathf.Sin(angle) * speed, Rand(.22f, .42f), Rand(4, 6) + 4 * strength, i % 3 == 0 ? Theme.Threat : Theme.Select, i % 2 == 0 ? Star : null, 0, 3.2f, -.6f);
             }
-            if (strength > .55f) Shake(now, .12f, 2.2f * strength);
         }
 
         static void React(GameSimulation simulation, GameEvent e, BallRuntime ball, BallRuntime other, float now)

@@ -62,7 +62,7 @@ namespace CoreClash.Presentation
         void Awake(){Initialize();}
         public void Initialize()
         {
-            if(initialized)return;initialized=true;Application.targetFrameRate=60;
+            if(initialized)return;initialized=true;Application.targetFrameRate=60;QualitySettings.vSyncCount=1;
             try{
                 var source=Resources.Load<TextAsset>("Data/catalog");var featured=Resources.Load<TextAsset>("Data/featured-decks");
                 if(source==null||featured==null)throw new Exception("Game data could not be loaded.");
@@ -102,8 +102,9 @@ namespace CoreClash.Presentation
             else if(exitGuard.Open&&!externalModal&&(UnityEngine.Input.GetKeyDown(KeyCode.Escape)||UnityEngine.Input.GetKeyDown(KeyCode.JoystickButton1)))CancelLeaveMatch();
             else if(UnityEngine.Input.GetKeyDown(KeyCode.Escape)&&!externalModal){if(inspect.Length>0)CloseBallDetails();else if(DeveloperOverlay)SetDeveloperOverlay(false);else if(phoneMenu)phoneMenu=false;else if(boardInspection)SetBoardInspection(false);else if(builder)builder=false;else if(library)library=false;else if(!setup)RequestLeaveMatch();}
             if(setup)return;
+            BoardView.VisualLead=0;
             if(MatchExitGuard.PausesSimulation(exitGuard.Open,NetworkLink!=null))accumulator=0;
-            else if(NetworkLink==null||NetworkLink.IsAuthority){accumulator=Math.Min(accumulator+Time.unscaledDeltaTime,.1f);while(accumulator>=1f/120){Simulation.Step(1f/120);accumulator-=1f/120;}}
+            else if(NetworkLink==null||NetworkLink.IsAuthority){accumulator=Math.Min(accumulator+Time.unscaledDeltaTime,.1f);while(accumulator>=1f/120){Simulation.Step(1f/120);accumulator-=1f/120;}BoardView.VisualLead=accumulator;}
             feedback.Observe(Simulation.State,Time.unscaledTime);
             if(Simulation.State.phase==MatchPhase.Aiming)selected=BallSelection.ForTurn(Simulation,selected);
             if(inspect.Length>0||DeveloperOverlay||externalModal||exitGuard.Open||phoneMenu){gesture.Active=false;return;}
