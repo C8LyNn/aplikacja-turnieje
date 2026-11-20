@@ -9,6 +9,9 @@ import {
 import { calculateMarvelRoundParticipantCounts } from "@workspace/game-catalog";
 import { Layout } from "@/components/layout";
 import { StagePlanEditor } from "@/components/stage-plan-editor";
+import { ClassicQuickPresets } from "@/components/classic-quick-presets";
+import { quickPresetPayload, type QuickBestOf } from "@/lib/classic-quick-presets";
+import type { PresetId, PresetPreview } from "@/features/experimental-tournaments/experimental-create-wizard-model";
 import { GameConfigPicker } from "@/components/deadlock-game-config";
 import { Button } from "@/components/ui/button";
 import {
@@ -162,6 +165,11 @@ function CreateTournamentForm() {
       bestOf: 3,
     },
   ]);
+  // QW-03b: a quick preset replaces the manual format section; the payload comes from the server preview.
+  const [quickPresetId, setQuickPresetId] = useState<PresetId | null>(null);
+  const [quickCount, setQuickCount] = useState("");
+  const [quickBestOf, setQuickBestOf] = useState<QuickBestOf>(1);
+  const [quickPreview, setQuickPreview] = useState<PresetPreview | null>(null);
   const [showValidation, setShowValidation] = useState(false);
   const [submitError, setSubmitError] = useState<string>();
   const [nameTouched, setNameTouched] = useState(false);
@@ -178,6 +186,25 @@ function CreateTournamentForm() {
   const marvelConfig =
     gameConfig?.gameId === "marvel" ? gameConfig.config : null;
 
+  const quickPresetActive = quickPresetId !== null && !marvelConfig;
+
+  const submitPayload = (payload: TournamentInput) => {
+    createTournament.mutate(
+      { data: payload },
+      {
+        onSuccess: (response) => {
+          submitInFlightRef.current = false;
+          // useCreateTournament returns TournamentCreationResponse (Tournament + organizerToken)
+          const { id, organizerToken } = response;
+          storeOrgToken(id, organizerToken);
+          setActiveOrganizerToken(organizerToken);
+          navigate(`/tournaments/${id}`);
+        },
+        onError: (error) => { submitInFlightRef.current = false; setSubmitError(getApiErrorMessage(error)); },
+      },
+    );
+  };
+
   const handleSubmit = (event: React.FormEvent) => {
     event.preventDefault();
     setSubmitError(undefined);
@@ -191,6 +218,21 @@ function CreateTournamentForm() {
     if (invalidField) {
       if (invalidField === "name") setNameTouched(true);
       if (invalidField === "organizerPassword") setOrganizerPasswordTouched(true);
+      return;
+    }
+    if (quickPresetActive) {
+      if (!quickPreview) {
+        setSubmitError("Układ z „Szybkiego wyboru” nie jest jeszcze gotowy. Sprawdź liczbę uczestników albo ustaw format ręcznie.");
+        return;
+      }
+      if (submitInFlightRef.current) return;
+      submitInFlightRef.current = true;
+      submitPayload(quickPresetPayload(
+        quickPreview,
+        { name, description, visibility },
+        { organizerPassword, supportPassword, viewerPassword },
+        gameConfig,
+      ));
       return;
     }
     if (stageMode && validationErrors.length > 0) return;
@@ -288,20 +330,7 @@ function CreateTournamentForm() {
         ? withOptionalStagePlan(legacyPayload, stageMode, stages)
         : { ...legacyPayload, stagePlan: singleStagePlan };
 
-    createTournament.mutate(
-      { data: payload },
-      {
-        onSuccess: (response) => {
-          submitInFlightRef.current = false;
-          // useCreateTournament returns TournamentCreationResponse (Tournament + organizerToken)
-          const { id, organizerToken } = response;
-          storeOrgToken(id, organizerToken);
-          setActiveOrganizerToken(organizerToken);
-          navigate(`/tournaments/${id}`);
-        },
-        onError: (error) => { submitInFlightRef.current = false; setSubmitError(getApiErrorMessage(error)); },
-      },
-    );
+    submitPayload(payload);
   };
 
   return (
@@ -363,6 +392,7 @@ function CreateTournamentForm() {
                 onChange={(next) => {
                   setGameConfig(next);
                   if (next?.gameId === "marvel") {
+                    setQuickPresetId(null);
                     setStageMode(false);
                     setMaxPlayers((current) => current || "32");
                     setDefaultBestOf("1");
@@ -370,6 +400,19 @@ function CreateTournamentForm() {
                 }}
               />
 
+              {!marvelConfig && (
+                <ClassicQuickPresets
+                  presetId={quickPresetId}
+                  count={quickCount}
+                  bestOf={quickBestOf}
+                  onSelect={(next) => { setQuickPresetId(next); setSubmitError(undefined); }}
+                  onCountChange={setQuickCount}
+                  onBestOfChange={setQuickBestOf}
+                  onPreview={setQuickPreview}
+                />
+              )}
+
+              {!quickPresetActive && (<>
               <div className="rounded-lg border p-4">
                 <div className="flex items-center justify-between gap-4">
                   <div className="flex items-start gap-3">
@@ -575,6 +618,7 @@ function CreateTournamentForm() {
                   </div>
                 </div>
               )}
+              </>)}
 
               <div className="rounded-lg border bg-muted/20 p-3 text-xs text-muted-foreground">
                 <p>
