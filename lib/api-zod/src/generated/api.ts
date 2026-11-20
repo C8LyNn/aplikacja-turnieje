@@ -928,7 +928,7 @@ export const UpdateTournamentBody = zod.object({
   "maxPlayers": zod.number().optional(),
   "swissRounds": zod.number().optional(),
   "defaultBestOf": zod.number().min(1).optional(),
-  "featuredMatchId": zod.number().optional(),
+  "featuredMatchId": zod.number().nullish().describe('The match put \"Na ekranie\"; null takes the match off the screen.'),
   "visibility": zod.enum(['public_online', 'private_online', 'private_offline']).optional(),
   "viewerPassword": zod.string().optional().describe('New viewer password (clears old viewer sessions)'),
   "gameConfig": zod.union([zod.object({

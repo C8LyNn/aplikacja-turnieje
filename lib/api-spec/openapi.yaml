@@ -4485,7 +4485,8 @@ components:
           type: integer
           minimum: 1
         featuredMatchId:
-          type: integer
+          type: ["integer", "null"]
+          description: The match put "Na ekranie"; null takes the match off the screen.
         visibility:
           type: string
           enum: [public_online, private_online, private_offline]

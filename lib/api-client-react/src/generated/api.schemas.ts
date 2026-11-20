@@ -1988,7 +1988,11 @@ export interface TournamentUpdate {
   swissRounds?: number;
   /** @minimum 1 */
   defaultBestOf?: number;
-  featuredMatchId?: number;
+  /**
+     * The match put "Na ekranie"; null takes the match off the screen.
+     * @nullable
+     */
+  featuredMatchId?: number | null;
   visibility?: TournamentUpdateVisibility;
   /** New viewer password (clears old viewer sessions) */
   viewerPassword?: string;
