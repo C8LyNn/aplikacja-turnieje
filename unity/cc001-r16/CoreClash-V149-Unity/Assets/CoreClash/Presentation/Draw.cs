@@ -161,6 +161,16 @@ namespace CoreClash.Presentation
         }
         // W24 candy button: a face on a darker lip. Selected = filled with the accent (white text);
         // an accent without selection = white face with accent text; no accent = neutral white.
+        // W24: light text field (search) instead of the dark default skin.
+        static Texture2D fieldTexture;
+        public static void StyleTextField()
+        {
+            if(fieldTexture==null){const int n=16;fieldTexture=new Texture2D(n,n,TextureFormat.RGBA32,false){hideFlags=HideFlags.HideAndDontSave};for(int y=0;y<n;y++)for(int x=0;x<n;x++){bool edge=x<2||y<2||x>=n-2||y>=n-2;fieldTexture.SetPixel(x,y,edge?Theme.Ink:Color.white);}fieldTexture.Apply();}
+            var style=GUI.skin.textField;if(style.normal.background==fieldTexture)return;
+            style.border=new RectOffset(4,4,4,4);style.padding=new RectOffset(12,12,6,6);style.alignment=TextAnchor.MiddleLeft;
+            style.normal.background=style.hover.background=style.focused.background=style.active.background=fieldTexture;
+            style.normal.textColor=style.hover.textColor=style.focused.textColor=style.active.textColor=Theme.Ink;
+        }
         // W24 cartoon look: text with an ink outline (four offset copies under the fill).
         public static void Inked(Rect r,string text,int size,Color color,TextAnchor align=TextAnchor.MiddleCenter,float width=1.5f)
         {

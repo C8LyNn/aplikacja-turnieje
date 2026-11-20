@@ -289,7 +289,7 @@ namespace CoreClash.Presentation
             Draw.Round(new Rect(face.x+2,face.y+2,face.width-4,face.height-7),picked?Color.Lerp(Theme.Panel,Theme.Select,.16f):hover?Theme.PanelLight:Theme.Panel);
             bool prior=GUI.enabled;GUI.enabled=prior&&canClick;if(GUI.Button(r,GUIContent.none,GUIStyle.none))SelectBall(id);GUI.enabled=prior;
             bool named=face.height>=72;
-            float room=face.height-3-(named?22:8),orb=Mathf.Clamp(Mathf.Min(face.width-24,room-18),16,44);
+            float room=face.height-3-(named?22:8),orb=Mathf.Clamp(Mathf.Min(face.width-20,room-13),16,46);
             if(picked)orb*=SelectPulse();
             var body=new Rect(face.center.x-orb/2,face.y+4+(room-orb)/2,orb,orb);
             BallView.Preview(body,d,owner>=0?owner:0,picked);
@@ -300,10 +300,10 @@ namespace CoreClash.Presentation
             }
             if(!available)Draw.Round(new Rect(face.x+2,face.y+2,face.width-4,face.height-7),new Color(1,1,1,.66f));
             // Stock badge in the corner: how many are left, a loop for the unlimited Standard, H for a ball in hand.
-            var badge=new Rect(face.xMax-24,face.y+3,21,15);
+            var badge=new Rect(face.xMax-26,face.y+3,24,17);
             Draw.Chip(badge,handReady?Theme.Select:available?Theme.Ink:Theme.Disabled);
             if(standard)Glyphs.Paint(new Rect(badge.center.x-7,badge.center.y-7,14,14),IconEndless,Theme.OnColor);
-            else Draw.Text(new Rect(badge.x,badge.y-1,badge.width,badge.height),handReady?"H":stock.ToString(),10,handReady?Theme.Ink:Theme.OnColor,TextAnchor.MiddleCenter,true);
+            else Draw.Text(new Rect(badge.x,badge.y-1,badge.width,badge.height),handReady?"H":stock.ToString(),12,handReady?Theme.Ink:Theme.OnColor,TextAnchor.MiddleCenter,true);
         }
 
         // Deck card. Tall cards stack orb / name / cue; short ones put the orb on the left

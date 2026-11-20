@@ -193,7 +193,7 @@ namespace CoreClash.Presentation
         void RenderUi()
         {
             GUI.skin.button.fontSize=14;GUI.skin.label.fontSize=14;GUI.skin.textField.fontSize=16;
-            Fx.Load();
+            Fx.Load();Draw.StyleTextField();GUI.skin.settings.cursorColor=Theme.Ink;
             Draw.Backdrop(new Rect(0,0,UiWidth,UiHeight));
             // Top bar: the logo, except in a match on an upright phone, where the score strip takes its place.
             bool stripInBar=!setup&&layout.PhonePortrait;

@@ -470,16 +470,17 @@ namespace CoreClash.Presentation
                 for(int i=1;i<path.Length;i++){
                     var from=Point(board,path[i-1].x,path[i-1].y);var to=Point(board,path[i].x,path[i].y);
                     if(i==1){float reach=(to-from).magnitude;if(reach<=clear+2)continue;from+=(to-from)/reach*clear;}
-                    AimStroke(from,to,under,Mathf.Max(4.5f,7.5f*scale));
-                    AimStroke(from,to,i==1?vector:Alpha(vector,.6f),Mathf.Max(2,3.2f*scale),i==1?10*scale:5*scale,6*scale);
+                    float bead=Mathf.Max(5,(i==1?9.5f:7f)*scale),step=Mathf.Max(8,(i==1?17f:15f)*scale);
+                    Beads(from,to,Theme.Ink,bead+Mathf.Max(2.5f,3.6f*scale),step);
+                    Beads(from,to,i==1?vector:Color.Lerp(vector,Color.white,.45f),bead,step);
                     if(i==1&&path.Length>2)Draw.Ring(to,6*scale,Alpha(vector,.9f),Mathf.Max(1,1.4f*scale));
                 }
                 Vector2 tip=Point(board,path[path.Length-1].x,path[path.Length-1].y),last=Point(board,path[path.Length-2].x,path[path.Length-2].y);Vector2 direction=(tip-last).normalized;
                 Vector2 wing = new Vector2(-direction.y, direction.x);
-                AimStroke(tip-direction*13*scale+wing*7*scale,tip,under,Mathf.Max(4,6*scale));
-                AimStroke(tip-direction*13*scale-wing*7*scale,tip,under,Mathf.Max(4,6*scale));
-                AimStroke(tip-direction*13*scale+wing*7*scale,tip,vector,Mathf.Max(1.6f,2.8f*scale));
-                AimStroke(tip-direction*13*scale-wing*7*scale,tip,vector,Mathf.Max(1.6f,2.8f*scale));
+                AimStroke(tip-direction*20*scale+wing*12*scale,tip,Theme.Ink,Mathf.Max(6,10*scale));
+                AimStroke(tip-direction*20*scale-wing*12*scale,tip,Theme.Ink,Mathf.Max(6,10*scale));
+                AimStroke(tip-direction*20*scale+wing*12*scale,tip,vector,Mathf.Max(3,5.5f*scale));
+                AimStroke(tip-direction*20*scale-wing*12*scale,tip,vector,Mathf.Max(3,5.5f*scale));
                 float pull=(finger-origin).magnitude;
                 if(pull>clear+4)AimStroke(origin+(finger-origin)/pull*clear,finger,Alpha(team,Theme.AimPull),Mathf.Max(1,1.4f*scale),4*scale,5*scale);
                 if(preview.Ready&&ShowStopEstimate)RenderStopEstimate(board,state,aim,selected,replay,catalog,vector,scale);
@@ -635,6 +636,12 @@ namespace CoreClash.Presentation
         static void Line(Rect board, float x1, float y1, float x2, float y2, Color color, float width)
             => Draw.Line(Point(board, x1, y1), Point(board, x2, y2), color, Mathf.Max(.65f, width * board.width / 540));
 
+        // W24: evenly spaced round beads along a segment (the trajectory).
+        static void Beads(Vector2 start,Vector2 end,Color color,float size,float step)
+        {
+            foreach(var p in AimGuide.StrokeStamps(new AimPoint(start.x,start.y),new AimPoint(end.x,end.y),size,0,0,step))
+                Draw.Circle(new Rect(p.x-size*.5f,p.y-size*.5f,size,size),color);
+        }
         // Aim-only stroke: field-local coordinates, no GUI.matrix rotation.
         static void AimStroke(Vector2 start,Vector2 end,Color color,float width,float dash=0,float gap=0)
         {
