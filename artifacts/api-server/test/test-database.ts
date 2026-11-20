@@ -131,6 +131,9 @@ const TWO_LEG_TIES_MIGRATION_URL = new URL(
 const SUPPORT_MEMBERS_MIGRATION_URL = new URL(
   "../../../lib/db/migrations/0048_support_members.sql", import.meta.url,
 );
+const REGISTRATIONS_MIGRATION_URL = new URL(
+  "../../../lib/db/migrations/0049_tournament_registrations.sql", import.meta.url,
+);
 const ROUND_ROBIN_LEGS_MIGRATION_URL = new URL(
   "../../../lib/db/migrations/0041_round_robin_legs.sql", import.meta.url,
 );
@@ -477,6 +480,12 @@ export async function resetTestSchema(pool: TestPool, schema: string): Promise<v
       );
       await pool.query(supportMembersSql);
       await pool.query(supportMembersSql);
+      // #329: optional public sign-ups (idempotent like the others).
+      const registrationsSql = renderSeriesV1MigrationForTestSchema(
+        await readFile(REGISTRATIONS_MIGRATION_URL, "utf8"), schema,
+      );
+      await pool.query(registrationsSql);
+      await pool.query(registrationsSql);
       await pool.query("COMMIT");
     } catch (error) {
       await pool.query("ROLLBACK");

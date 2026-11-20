@@ -64,6 +64,8 @@ export interface ParticipantFieldDefinition {
   defaultValue?: ParticipantFieldValue;
   /** Library entry this field was created from (informational). */
   libraryId?: string;
+  /** #329: asked on the public sign-up form (only when sign-ups are on). Never makes a value public by itself. */
+  askOnSignup?: boolean;
 }
 
 export interface ParticipantFieldSet {
@@ -274,7 +276,7 @@ export function parseParticipantFieldSet(input: unknown): { ok: true; value: Par
   list.slice(0, PARTICIPANT_FIELD_LIMITS.fields).forEach((raw, index) => {
     const path = `fields[${index}]`;
     if (!isRecord(raw)) { push(path, "INVALID", "Każde pole musi być obiektem."); return; }
-    const allowed = new Set(["key", "label", "type", "category", "kind", "description", "required", "visibility", "options", "min", "max", "maxLength", "defaultValue", "libraryId"]);
+    const allowed = new Set(["key", "label", "type", "category", "kind", "description", "required", "visibility", "options", "min", "max", "maxLength", "defaultValue", "libraryId", "askOnSignup"]);
     for (const extra of Object.keys(raw)) if (!allowed.has(extra)) push(`${path}.${extra}`, "UNKNOWN_PROPERTY", `Nieznana właściwość: ${extra.slice(0, 40)}.`);
     const key = typeof raw.key === "string" ? raw.key : "";
     if (!KEY_PATTERN.test(key) || key.length > PARTICIPANT_FIELD_LIMITS.keyLength) push(`${path}.key`, "INVALID_KEY", "Klucz: małe litery, cyfry i _, zaczyna się od litery, do 40 znaków.");
@@ -293,6 +295,7 @@ export function parseParticipantFieldSet(input: unknown): { ok: true; value: Par
     const visibility = raw.visibility === undefined ? "organizer" : PARTICIPANT_FIELD_VISIBILITY.includes(raw.visibility as ParticipantFieldVisibility) ? raw.visibility as ParticipantFieldVisibility : null;
     if (!visibility) push(`${path}.visibility`, "INVALID_VISIBILITY", "Widoczność: organizer, staff albo public.");
     if (raw.required !== undefined && typeof raw.required !== "boolean") push(`${path}.required`, "INVALID", "required: true albo false.");
+    if (raw.askOnSignup !== undefined && typeof raw.askOnSignup !== "boolean") push(`${path}.askOnSignup`, "INVALID", "askOnSignup: true albo false.");
     let description: string | undefined;
     if (raw.description !== undefined && raw.description !== "") {
       const text = cleanText(raw.description, PARTICIPANT_FIELD_LIMITS.descriptionLength);
@@ -336,6 +339,7 @@ export function parseParticipantFieldSet(input: unknown): { ok: true; value: Par
       ...(max !== undefined ? { max } : {}),
       ...(maxLength !== undefined ? { maxLength } : {}),
       ...(libraryId ? { libraryId } : {}),
+      ...(raw.askOnSignup === true ? { askOnSignup: true } : {}),
     };
     if (raw.defaultValue !== undefined && raw.defaultValue !== null) {
       const checked = normaliseFieldValue(definition, raw.defaultValue);

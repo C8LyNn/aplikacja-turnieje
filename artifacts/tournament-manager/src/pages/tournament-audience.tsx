@@ -49,6 +49,7 @@ import {
   resolvePresentationSettings,
 } from "@/lib/presentation-theme";
 import { tournamentHref, useTournamentRoute } from "@/features/experimental-tournaments/experimental-tournament-routing";
+import { fetchPublicRegistration, registrationPath } from "@/lib/registrations";
 import { STAGE_FORMAT_LABELS } from "@/lib/tournament-stages-ui";
 import {
   audienceSectionsFor,
@@ -186,6 +187,14 @@ export default function TournamentAudience() {
   const liveStandings = liveStandingsQuery.data;
   // V5.4-005: public participant fields (the API returns only what this viewer may see).
   const publicFields = useParticipantFields(id, isExperimental && !!tournament && fetchPhase >= 4);
+  // #329: while sign-ups are open, viewers get a link to the sign-up page (asked only for a draft).
+  const [signupOpen, setSignupOpen] = useState(false);
+  useEffect(() => {
+    if (!id || tournament?.status !== "draft") { setSignupOpen(false); return; }
+    let cancelled = false;
+    fetchPublicRegistration(id).then((page) => { if (!cancelled) setSignupOpen(page.registration.state === "open"); }).catch(() => { if (!cancelled) setSignupOpen(false); });
+    return () => { cancelled = true; };
+  }, [id, tournament?.status]);
   const groupLabelById = new Map((liveStandings?.tables ?? []).flatMap((table) => (table.groupId == null ? [] : [[table.groupId, table.label] as const])));
   const bracket = publicStageBracket(tournamentBracket, publicStage);
   const doubleEliminationStage = publicStage?.format === "double_elimination" ? publicStage : undefined;
@@ -368,6 +377,15 @@ export default function TournamentAudience() {
             <span className="shrink-0 text-xs text-white/40 font-mono hidden sm:block">
               R{tournament.currentRound}/{tournament.totalRounds}
             </span>
+          )}
+          {signupOpen && (
+            <Link
+              href={registrationPath(id, isExperimental)}
+              className="inline-flex shrink-0 whitespace-nowrap items-center gap-1.5 rounded-md bg-cyan-500/15 px-2.5 py-1.5 text-xs font-semibold text-cyan-300 hover:bg-cyan-500/25 transition-colors"
+              data-testid="audience-signup-link"
+            >
+              Zapisy otwarte — zapisz się
+            </Link>
           )}
           {(organizerToken || supportSession || (!!id && getMgmtFlag(id))) && (
             <Link

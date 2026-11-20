@@ -54,6 +54,7 @@ import { OrganizerLoginModal } from "@/components/organizer-login-modal";
 import { SupportLoginModal } from "@/components/support-login-modal";
 import { SupportPermissionsNote } from "@/components/support-permissions-note";
 import { SupportMembersPanel } from "@/components/support-members-panel";
+import { RegistrationPanel } from "@/components/registration-panel";
 import { ViewerLoginModal } from "@/components/viewer-login-modal";
 import { SharingPanel } from "@/components/sharing-panel";
 import { TournamentStagesPanel } from "@/components/tournament-stages-panel";
@@ -1063,6 +1064,12 @@ export default function TournamentDetail() {
               </div>
             )}
             {isExperimental && capabilities.canManageOrganizerSettings && <ParticipantFieldsManager tournamentId={tournament.id} participantNoun={teamEntries ? "drużyn" : "graczy"} />}
+            {/* #329: optional public sign-ups — same panel in Classic and Experimental */}
+            {(capabilities.canManageOrganizerSettings || capabilities.canManageParticipants) && (
+              <RegistrationPanel tournamentId={tournament.id} experimental={isExperimental}
+                canConfigure={capabilities.canManageOrganizerSettings} canReview={capabilities.canManageParticipants}
+                participantNoun={teamEntries ? "drużyn" : "uczestników"} />
+            )}
             {isExperimental && <ExperimentalRosterHealth players={players} maxPlayers={tournament.maxPlayers} teamsNotReady={teamsNotReady} nextHref={tournament.status === "draft" && capabilities.canManageLifecycle ? tournamentHref(tournament.id, true, "/host?tab=prowadzenie") : undefined} requiredCount={tournament.status === "draft" && (stages?.length ?? 0) > 1 ? stages?.find((stage) => stage.position === 1)?.participantCount : undefined} />}
             {isExperimental && <ExperimentalPlayerToolbar query={playerSearch} onQueryChange={setPlayerSearch} status={playerStatusFilter} onStatusChange={setPlayerStatusFilter} sort={playerSort} onSortChange={setPlayerSort} total={players?.length ?? 0} visible={displayedPlayers.length} teams={!!teamEntries} />}
             {teamEntries && tournament.status === "draft" && (

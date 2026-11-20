@@ -4,7 +4,8 @@
  */
 import type { ParticipantFieldDefinition } from "@workspace/api-client-react";
 
-export type FieldDef = ParticipantFieldDefinition;
+/** #329: `askOnSignup` — the question appears on the public sign-up form (server-validated like the rest). */
+export type FieldDef = ParticipantFieldDefinition & { askOnSignup?: boolean };
 export type FieldValue = string | number | boolean | string[];
 export type FieldValues = Record<string, FieldValue>;
 

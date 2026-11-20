@@ -177,6 +177,8 @@ export const tournamentsTable = pgTable(
     teamRosterMax: smallint("team_roster_max"),
     /** V5.4: participant field definitions ({ version: 1, fields }); null = no extra fields. */
     participantFields: jsonb("participant_fields"),
+    /** #329: optional public sign-ups; NULL = never configured (off). Shape validated by the API. */
+    registrationSettings: jsonb("registration_settings"),
     createdAt: timestamp("created_at").notNull().defaultNow(),
   },
   (table) => [
@@ -1092,6 +1094,26 @@ export const tournamentSupportMembersTable = pgTable(
   },
   (table) => [index("tournament_support_members_tournament_idx").on(table.tournamentId)],
 );
+
+/** #329 · a public sign-up: pending until the organizer (or permitted support) approves it into players. */
+export const tournamentRegistrationsTable = pgTable(
+  "tournament_registrations",
+  {
+    id: serial("id").primaryKey(),
+    tournamentId: integer("tournament_id").notNull().references(() => tournamentsTable.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    customFields: jsonb("custom_fields"),
+    status: text("status").notNull().default("pending"),
+    playerId: integer("player_id").references(() => playersTable.id, { onDelete: "set null" }),
+    clientToken: text("client_token").notNull(),
+    decidedAt: timestamp("decided_at"),
+    decidedBy: text("decided_by"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    updatedAt: timestamp("updated_at").notNull().defaultNow(),
+  },
+  (table) => [index("tournament_registrations_tournament_status_idx").on(table.tournamentId, table.status)],
+);
+export type TournamentRegistration = typeof tournamentRegistrationsTable.$inferSelect;
 
 export const supportSessionsTable = pgTable("support_sessions", {
   id: serial("id").primaryKey(),

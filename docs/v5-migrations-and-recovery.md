@@ -1,5 +1,13 @@
-# V5 schema migrations (0041–0048): procedure and recovery
+# V5 schema migrations (0041–0049): procedure and recovery
 
+> **#329 (next combined release)** adds `0049_tournament_registrations.sql`: the nullable `tournaments.registration_settings`
+> (jsonb object ≤ 4 KB; NULL = sign-ups off) and the table `tournament_registrations` (nick, answers to the organizer's
+> own questions, status `pending`/`approved`/`rejected`, the player row an approval created — `ON DELETE SET NULL` —,
+> a per-tournament unique client token for resend safety). The token becomes `apply-0041-0049`; the marker is
+> `v512_tournament_registrations_0049`. A #331 database (0001–0048) has exactly one pending migration: 0049. No
+> existing row is rewritten; every tournament starts with sign-ups off. Sign-ups are not part of backups (personal data);
+> the participants they became are.
+>
 > **#331 (next combined release)** adds `0048_support_members.sql`: the table `tournament_support_members` (one row per
 > support person: name, personal access code stored only as a password hash, explicit `permissions text[]` checked
 > against the 8-key catalog, `permissions_version`, `revoked_at`) and the nullable `support_sessions.member_id`
@@ -59,7 +67,7 @@ violate a new CHECK constraint, missing `players(tournament_id, id)` key.
 
 ## 3. Apply (one transaction, all or nothing)
 ```
-DATABASE_URL=... DATABASE_SCHEMA=public V5_MIGRATION_CONFIRM=apply-0041-0048 \
+DATABASE_URL=... DATABASE_SCHEMA=public V5_MIGRATION_CONFIRM=apply-0041-0049 \
   APP_COMMIT=<sha> DEPLOYMENT_ENVIRONMENT=<env> pnpm --filter @workspace/db migrate:v5
 ```
 Advisory lock, `lock_timeout 10s`, preflight inside the transaction, migration SQL, catalog
@@ -74,6 +82,12 @@ Run the preflight again: `"status": "applied"`. Start the API: the log line
 * **Apply failed** – nothing was changed (single transaction). Fix the reported blocker and rerun.
 * **API refuses to start** (`SchemaIncompatibleError`) – the schema lacks a migration; run steps 2–3,
   or roll the API back to the previous build (old builds ignore the new columns/tables).
+* **Need to undo #329 only (0049)** – roll the code back first (the #331 API ignores the new column and table).
+  Accepted participants stay in `players`; pending sign-ups and the sign-up settings are lost:
+  `DROP TABLE IF EXISTS tournament_registrations; ALTER TABLE tournaments DROP CONSTRAINT IF EXISTS tournaments_registration_settings_shape;`
+  `ALTER TABLE tournaments DROP COLUMN IF EXISTS registration_settings;`
+  `DELETE FROM app_schema_migrations WHERE migration_key = 'v512_tournament_registrations_0049';`
+  (Undo 0049 before 0048 when both are rolled back.)
 * **Need to undo #331 only (0048)** – first end every personal support session, because an older API ignores
   `member_id` and would treat such a session as a shared-password session:
   `DELETE FROM support_sessions WHERE member_id IS NOT NULL;` then roll the code back to V5.11. To remove 0048

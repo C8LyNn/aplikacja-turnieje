@@ -139,6 +139,60 @@
   .organizer-route button { height: auto; white-space: normal; text-align: start; }
 }
 
+/* #329 · participant fields (questions of the sign-up form) in Classic — same components as Experimental,
+   generated from the Experimental rules with Classic tokens (pattern of .stable-bulk-paste, QW-02). */
+.stable-participant-fields .participant-fields-manager { margin-bottom: 1rem; border: 1px solid hsl(var(--border)); border-radius: 1rem; background: hsl(var(--card)); }
+.stable-participant-fields .participant-fields-head { display: flex; width: 100%; align-items: center; gap: .6rem; padding: .75rem 1rem; background: transparent; border: 0; color: hsl(var(--foreground)); text-align: left; cursor: pointer; border-radius: 1rem; }
+.stable-participant-fields .participant-fields-head:hover { background: hsl(var(--muted) / .5); }
+.stable-participant-fields .participant-fields-head:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: -2px; }
+.stable-participant-fields .participant-fields-title { flex: none; font-weight: 700; }
+.stable-participant-fields .participant-fields-summary { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .8125rem; color: hsl(var(--muted-foreground)); text-align: right; }
+.stable-participant-fields .participant-fields-head[aria-expanded="true"] .participant-fields-chevron { transform: rotate(180deg); }
+.stable-participant-fields .participant-fields-body { display: grid; gap: .75rem; padding: 0 1rem 1rem; }
+.stable-participant-fields .participant-fields-list { display: grid; gap: .35rem; margin: 0; padding: 0; list-style: none; }
+.stable-participant-fields .participant-fields-list li { display: flex; flex-wrap: wrap; align-items: center; gap: .25rem .75rem; padding: .45rem .6rem; border-radius: .7rem; background: hsl(var(--muted) / .5); }
+.stable-participant-fields .participant-fields-name { font-weight: 600; color: hsl(var(--foreground)); }
+.stable-participant-fields .participant-fields-meta { flex: 1 1 auto; font-size: .75rem; color: hsl(var(--muted-foreground)); }
+.stable-participant-fields .participant-fields-actions { display: inline-flex; gap: .15rem; }
+.stable-participant-fields .participant-fields-actions button { display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: .5rem; border: 0; background: transparent; color: hsl(var(--muted-foreground)); }
+.stable-participant-fields .participant-fields-actions button:hover:not(:disabled) { background: hsl(var(--card)); color: hsl(var(--foreground)); }
+.stable-participant-fields .participant-fields-actions button:disabled { opacity: .35; }
+.stable-participant-fields .participant-fields-actions button:focus-visible { outline: 2px solid hsl(var(--ring)); }
+.stable-participant-fields .participant-fields-library { display: grid; gap: .6rem; }
+.stable-participant-fields .participant-fields-library fieldset { margin: 0; padding: 0; border: 0; }
+.stable-participant-fields .participant-fields-library legend { margin-bottom: .3rem; font-size: .75rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: hsl(var(--muted-foreground)); }
+.stable-participant-fields .participant-field-chip-toggle { display: inline-flex; align-items: center; gap: .3rem; padding: .3rem .65rem; border-radius: 999px; border: 1px solid hsl(var(--border)); background: transparent; color: hsl(var(--foreground)); font-size: .8125rem; }
+.stable-participant-fields .participant-field-chip-toggle[aria-pressed="true"] { border-color: transparent; background: hsl(var(--primary) / .25); }
+.stable-participant-fields .participant-field-chip-toggle:disabled { cursor: default; }
+.stable-participant-fields .participant-field-chip-toggle:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
+.stable-participant-fields .participant-fields-custom { display: grid; gap: .6rem; padding: .75rem; border-radius: .8rem; border: 1px dashed hsl(var(--border)); }
+.stable-participant-fields .participant-field-control { width: 100%; min-height: 2.25rem; padding: .4rem .6rem; border-radius: .55rem; border: 1px solid hsl(var(--border)); background: hsl(var(--muted) / .5); color: hsl(var(--foreground)); font-size: .875rem; }
+.stable-participant-fields .participant-field-control:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 1px; }
+.stable-participant-fields .participant-field-visibility { padding: 0 .4rem; border-radius: 999px; background: hsl(var(--muted) / .5); font-size: .6875rem; font-weight: 500; color: hsl(var(--muted-foreground)); }
+.stable-participant-fields .participant-fields-impact { display: grid; gap: .5rem; padding: .75rem; border-radius: .8rem; border: 1px solid hsl(var(--destructive)); background: hsl(var(--destructive) / .12); font-size: .875rem; }
+.stable-participant-fields .participant-fields-impact ul { margin: 0; padding-left: 1.1rem; }
+.stable-participant-fields .participant-fields-footer { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: .75rem; }
+.stable-participant-fields .participant-fields-sets > summary { cursor: pointer; font-size: .8125rem; color: hsl(var(--muted-foreground)); }
+.stable-participant-fields .participant-field-chips { display: flex; flex-wrap: wrap; gap: .3rem; margin: .35rem 0 0; padding: 0; list-style: none; }
+.stable-participant-fields .participant-field-chips li { display: inline-flex; align-items: center; gap: .3rem; max-width: 16rem; padding: .1rem .5rem; border-radius: 999px; background: hsl(var(--muted) / .5); font-size: .75rem; color: hsl(var(--foreground)); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.stable-participant-fields .participant-field-chip-label { color: hsl(var(--muted-foreground)); }
+.stable-participant-fields .participant-field-swatch { display: inline-block; width: .8rem; height: .8rem; border-radius: 3px; border: 1px solid hsl(var(--border)); }
+.stable-participant-fields .participant-field-more { color: hsl(var(--muted-foreground)); }
+.stable-participant-fields .experimental-v4-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: .4rem; min-height: 2.25rem; padding: .25rem .875rem;
+  border: 1px solid hsl(var(--border)); border-radius: calc(var(--radius) - 2px); background: transparent; color: hsl(var(--foreground));
+  font-size: .875rem; font-weight: 500; cursor: pointer;
+}
+.stable-participant-fields .experimental-v4-btn:hover:not(:disabled) { background: hsl(var(--muted) / .6); }
+.stable-participant-fields .experimental-v4-btn:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
+.stable-participant-fields .experimental-v4-btn[data-variant="ghost"] { border-color: transparent; color: hsl(var(--muted-foreground)); }
+.stable-participant-fields .experimental-v4-btn[data-variant="ghost"]:hover:not(:disabled) { color: hsl(var(--foreground)); }
+.stable-participant-fields .experimental-v4-btn[data-variant="primary"] { border-color: transparent; background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); font-weight: 600; }
+.stable-participant-fields .experimental-v4-btn[data-variant="primary"]:hover:not(:disabled) { background: hsl(var(--primary) / .9); }
+.stable-participant-fields .experimental-v4-btn[data-variant="danger"] { border-color: hsl(var(--destructive) / .6); color: hsl(var(--destructive)); }
+.stable-participant-fields .experimental-v4-btn:disabled { opacity: .5; cursor: not-allowed; }
+.stable-participant-fields .experimental-wizard-link { padding: 0; border: 0; background: none; color: hsl(var(--primary)); text-decoration: underline; cursor: pointer; font-size: .875rem; }
+
 /* QW-02 — Classic view of the shared "paste a participant list" panel (ExperimentalBulkPaste).
    Modern styles the same markup under .experimental-tournament-shell; Classic uses its own tokens. */
 .stable-bulk-paste { --sbp-ok: 142 70% 45%; --sbp-warn: 45 93% 55%; --sbp-bad: 0 84% 65%; --sbp-info: 213 94% 68%; }

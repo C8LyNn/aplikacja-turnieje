@@ -18,6 +18,7 @@ import authRouter from "./auth";
 import leagueRouter from "./league";
 import twoLegTiesRouter from "./two-leg-ties";
 import supportMembersRouter from "./support-members";
+import tournamentRegistrationsRouter from "./tournament-registrations";
 
 const router: IRouter = Router();
 
@@ -25,6 +26,7 @@ router.use(healthRouter);
 router.use(coreClashMultiplayerRouter);
 router.use(authRouter);
 router.use(supportMembersRouter);
+router.use(tournamentRegistrationsRouter);
 router.use(tournamentPlanPreviewRouter);
 router.use(tournamentPresetsRouter);
 router.use(tournamentAiConfigRouter);

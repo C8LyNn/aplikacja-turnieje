@@ -123,31 +123,49 @@ export async function addTournamentPlayer(input: {
       applyDefaults: true,
     });
     if (!checkedFields.ok) throw new ParticipantFieldsError("INVALID_FIELD_VALUES", { problems: checkedFields.problems });
-    const name = String(input.player.name).trim();
-    await assertUniqueName(tx, input.tournamentId, name);
-    const [{ playerCount }] = await tx
-      .select({ playerCount: count() })
-      .from(playersTable)
-      .where(eq(playersTable.tournamentId, input.tournamentId));
-    if (playerCount >= (tournament.maxPlayers ?? 256))
-      throw new TournamentRosterError("PLAYER_LIMIT_REACHED");
-
-    const player = await addPlayerWithStagePlanCompatibilityInTransaction(tx, {
-      ...input.player,
-      tournamentId: input.tournamentId,
-      name,
-      customFields: checkedFields.values,
-    });
-    await tx.insert(actionLogTable).values({
-      tournamentId: input.tournamentId,
-      actionType: "player_added",
-      description: `Dodano gracza: ${player.name}${player.seed ? ` (seed ${player.seed})` : ""}`,
-      undoPayload: JSON.stringify({ type: "delete_player", playerId: player.id }),
-      isUndone: false,
-    });
-    return player;
+    return insertRosterPlayerInTransaction(tx, tournament, input.player, checkedFields.values);
   });
 }
+
+/**
+ * #329: the one way a participant enters the roster once the tournament row is locked as a draft and the field
+ * values are validated — a manual add and an approved sign-up share exactly these checks and the undo entry.
+ */
+export async function insertRosterPlayerInTransaction(
+  tx: Parameters<Parameters<typeof db.transaction>[0]>[0],
+  tournament: typeof tournamentsTable.$inferSelect,
+  playerInput: PlayerInsert,
+  customFieldValues: Record<string, unknown> | null,
+  description?: string,
+) {
+  if (tournament.status !== "draft") throw new TournamentRosterError("ROSTER_LOCKED");
+  const name = String(playerInput.name).trim();
+  await assertUniqueName(tx, tournament.id, name);
+  const [{ playerCount }] = await tx
+    .select({ playerCount: count() })
+    .from(playersTable)
+    .where(eq(playersTable.tournamentId, tournament.id));
+  if (playerCount >= (tournament.maxPlayers ?? 256))
+    throw new TournamentRosterError("PLAYER_LIMIT_REACHED");
+
+  const player = await addPlayerWithStagePlanCompatibilityInTransaction(tx, {
+    ...playerInput,
+    tournamentId: tournament.id,
+    name,
+    customFields: customFieldValues,
+  });
+  await tx.insert(actionLogTable).values({
+    tournamentId: tournament.id,
+    actionType: "player_added",
+    description: description ?? `Dodano gracza: ${player.name}${player.seed ? ` (seed ${player.seed})` : ""}`,
+    undoPayload: JSON.stringify({ type: "delete_player", playerId: player.id }),
+    isUndone: false,
+  });
+  return player;
+}
+
+/** #329: the draft lock (with the mutation actor re-check) for callers composing their own roster transaction. */
+export const lockDraftTournamentForRoster = lockDraftTournament;
 
 export async function updateTournamentPlayer(input: {
   tournamentId: number;

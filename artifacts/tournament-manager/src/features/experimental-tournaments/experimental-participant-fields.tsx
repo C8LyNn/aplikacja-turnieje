@@ -236,9 +236,10 @@ interface Draft {
   description: string;
   min: string;
   max: string;
+  askOnSignup: boolean;
 }
 
-const EMPTY_DRAFT: Draft = { label: "", type: "short_text", optionsText: "", required: false, visibility: "organizer", kind: "profile", description: "", min: "", max: "" };
+const EMPTY_DRAFT: Draft = { label: "", type: "short_text", optionsText: "", required: false, visibility: "organizer", kind: "profile", description: "", min: "", max: "", askOnSignup: false };
 
 function draftToField(draft: Draft, key: string, base?: FieldDef): FieldDef {
   const options = draft.optionsText.split("\n").map((line) => line.trim()).filter(Boolean);
@@ -256,6 +257,7 @@ function draftToField(draft: Draft, key: string, base?: FieldDef): FieldDef {
     ...(draft.type === "number" && draft.min.trim() !== "" ? { min: Number(draft.min) } : {}),
     ...(draft.type === "number" && draft.max.trim() !== "" ? { max: Number(draft.max) } : {}),
     ...(base?.defaultValue !== undefined && base.type === draft.type ? { defaultValue: base.defaultValue } : {}),
+    ...(draft.askOnSignup ? { askOnSignup: true } : {}),
   };
 }
 
@@ -264,6 +266,7 @@ function fieldToDraft(field: FieldDef): Draft {
     label: field.label, type: field.type, optionsText: (field.options ?? []).join("\n"), required: field.required,
     visibility: field.visibility, kind: field.kind, description: field.description ?? "",
     min: field.min != null ? String(field.min) : "", max: field.max != null ? String(field.max) : "",
+    askOnSignup: field.askOnSignup === true,
   };
 }
 
@@ -360,8 +363,14 @@ export function ParticipantFieldsManager({ tournamentId, participantNoun = "ucze
               {fields.map((field, index) => (
                 <li key={field.key}>
                   <span className="participant-fields-name">{field.label}{field.required && <span className="text-destructive"> *</span>}</span>
-                  <span className="participant-fields-meta">{typeLabels.get(field.type) ?? field.type} · {VISIBILITY_SHORT[field.visibility]} · {KIND_LABELS[field.kind]}</span>
+                  <span className="participant-fields-meta">{typeLabels.get(field.type) ?? field.type} · {VISIBILITY_SHORT[field.visibility]} · {KIND_LABELS[field.kind]}{field.askOnSignup ? " · w formularzu zapisów" : ""}</span>
                   <span className="participant-fields-actions">
+                    {/* #329: ask this question on the public sign-up form */}
+                    <button type="button" className="participant-field-chip-toggle" aria-pressed={field.askOnSignup === true}
+                      aria-label={`Pytaj w zapisach: ${field.label}`} title="Pytaj o to w formularzu zapisów"
+                      onClick={() => change(fields.map((item) => (item.key === field.key ? { ...item, askOnSignup: item.askOnSignup ? undefined : true } : item)))}>
+                      Zapisy
+                    </button>
                     <button type="button" aria-label={`Przesuń wyżej: ${field.label}`} disabled={index === 0} onClick={() => move(index, -1)}><ArrowUp className="h-3.5 w-3.5" /></button>
                     <button type="button" aria-label={`Przesuń niżej: ${field.label}`} disabled={index === fields.length - 1} onClick={() => move(index, 1)}><ArrowDown className="h-3.5 w-3.5" /></button>
                     <button type="button" aria-label={`Edytuj pole: ${field.label}`} onClick={() => { setEditing(field.key); setDraft(fieldToDraft(field)); setPanel("custom"); }}><Pencil className="h-3.5 w-3.5" /></button>
@@ -442,6 +451,7 @@ export function ParticipantFieldsManager({ tournamentId, participantNoun = "ucze
               </label>
               <label className="grid gap-1 text-sm">Opis (opcjonalnie)<input className="participant-field-control" maxLength={200} value={draft.description} onChange={(event) => setDraft({ ...draft, description: event.target.value })} /></label>
               <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="h-4 w-4" checked={draft.required} onChange={(event) => setDraft({ ...draft, required: event.target.checked })} /> Wymagane przy dodawaniu</label>
+              <label className="flex items-center gap-2 text-sm"><input type="checkbox" className="h-4 w-4" checked={draft.askOnSignup} onChange={(event) => setDraft({ ...draft, askOnSignup: event.target.checked })} /> Pytaj w formularzu zapisów (odpowiedź widzi tylko to, co ustawisz w „Kto widzi”)</label>
               <div className="flex justify-end gap-2">
                 <button type="button" className="experimental-v4-btn" data-variant="ghost" onClick={() => { setPanel("none"); setEditing(null); }}>Anuluj</button>
                 <button type="button" className="experimental-v4-btn" data-variant="primary" onClick={commitDraft}>{editing ? "Zmień pole" : "Dodaj pole"}</button>

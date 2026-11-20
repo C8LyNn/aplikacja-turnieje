@@ -18,6 +18,7 @@ import TournamentDetail from "@/pages/tournament-detail";
 import TournamentBracket from "@/pages/tournament-bracket";
 import TournamentHost from "@/pages/tournament-host";
 import TournamentAudience from "@/pages/tournament-audience";
+import TournamentSignup from "@/pages/tournament-signup";
 import TournamentProjector from "@/pages/tournament-projector";
 import HelpPage from "@/pages/help";
 import TournamentsHome from "@/pages/tournaments-home";
@@ -157,6 +158,7 @@ function Router() {
       <Route path="/experimental/tournaments/fan" component={FanView} />
       <Route path="/experimental/tournaments/:id/bracket" component={TournamentBracket} />
       <Route path="/experimental/tournaments/:id/host" component={TournamentHost} />
+      <Route path="/experimental/tournaments/:id/zapisy" component={TournamentSignup} />
       <Route path="/experimental/tournaments/:id/audience" component={TournamentAudience} />
       <Route path="/experimental/tournaments/:id/projector" component={TournamentProjector} />
       <Route path="/experimental/tournaments/:id" component={TournamentDetail} />
@@ -165,6 +167,7 @@ function Router() {
       <Route path="/tournaments/new" component={CreateTournament} />
       <Route path="/tournaments/:id/bracket" component={TournamentBracket} />
       <Route path="/tournaments/:id/host" component={TournamentHost} />
+      <Route path="/tournaments/:id/zapisy" component={TournamentSignup} />
       <Route path="/tournaments/:id/audience" component={TournamentAudience} />
       <Route path="/tournaments/:id/projector" component={TournamentProjector} />
       <Route path="/tournaments/:id" component={TournamentDetail} />
