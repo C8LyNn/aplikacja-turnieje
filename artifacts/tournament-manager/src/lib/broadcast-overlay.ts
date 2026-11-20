@@ -16,8 +16,12 @@ export type OverlayPresetId = "arena" | "broadcast" | "minimal" | "sport" | "fut
 export interface OverlayConfig {
   tournamentId: number | null;
   kind: OverlayKind;
-  /** "ekran" follows the match the organizer puts "Na ekranie"; a number pins one match. */
-  match: "ekran" | number;
+  /**
+   * "ekran" follows the match the organizer puts "Na ekranie"; a number pins one match.
+   * QW-07 · "auto" needs no choice at all: the match "Na ekranie" if there is one, otherwise the match being
+   * played, otherwise the next ready one, otherwise the last result.
+   */
+  match: "ekran" | "auto" | number;
   /** Structure view: stage id (null = the current stage). */
   stage: number | null;
   /** Structure view: one bracket round (null = the whole bracket / all groups). */
@@ -73,12 +77,15 @@ export function parseOverlayParams(search: string | URLSearchParams): OverlayCon
   const kind = p.get("widok");
   const preset = p.get("styl") as OverlayPresetId | null;
   const scale = Number(p.get("tekst"));
-  const motion = Number(p.get("ruch"));
+  // QW-07 fix: an address without "ruch" means the default (gentle) animation. Number(null) is 0, so before
+  // this every default address was read as "no animation" and the panel wrote ruch=0 back after a reload.
+  const motionText = p.get("ruch");
+  const motion = motionText === "0" ? 0 : motionText === "2" ? 2 : 1;
   const group = p.get("grupa");
   return {
     tournamentId: positiveInt(p.get("t")),
     kind: kind === "struktura" || kind === "zapowiedz" ? kind : "wynik",
-    match: positiveInt(p.get("mecz")) ?? "ekran",
+    match: p.get("mecz") === "auto" ? "auto" : positiveInt(p.get("mecz")) ?? "ekran",
     stage: positiveInt(p.get("etap")),
     round: positiveInt(p.get("runda")),
     group: group && group.length <= 40 ? group : null,
@@ -87,7 +94,7 @@ export function parseOverlayParams(search: string | URLSearchParams): OverlayCon
     scoreSize: p.get("rozmiar") === "s" || p.get("rozmiar") === "l" ? (p.get("rozmiar") as "s" | "l") : "m",
     showTitle: p.get("tytul") !== "0",
     background: p.get("tlo") === "pelne" ? "pelne" : "przezroczyste",
-    motion: motion === 0 || motion === 2 ? motion : 1,
+    motion,
     textScale: scale === 1.25 || scale === 1.5 ? scale : 1,
     position: p.get("pozycja") === "gora" ? "gora" : "dol",
     showQueue: p.get("kolejka") === "1",
@@ -161,6 +168,8 @@ export interface PublicMatch {
   status: string;
   sets: { score1: number; score2: number }[] | null;
   scheduledAt: string | null;
+  /** QW-07 · when the result was saved; only used to find the latest result. */
+  completedAt?: string | null;
 }
 
 type Raw = Record<string, unknown>;
@@ -223,6 +232,7 @@ export function toPublicMatch(raw: Raw): PublicMatch {
     status: str(raw.status) ?? "",
     sets: sets && sets.length ? sets : null,
     scheduledAt: str(raw.scheduledAt),
+    completedAt: str(raw.completedAt),
   };
 }
 
@@ -344,9 +354,51 @@ export function matchCard(match: PublicMatch, stage: PublicStage | null, stageMa
   };
 }
 
-/** The match an overlay shows: the pinned one, or the one the organizer puts "Na ekranie". */
+const overlayTime = (value: string | null | undefined) => (value ? Date.parse(value) : Number.NaN);
+const overlayEngineOrder = (a: PublicMatch, b: PublicMatch) =>
+  a.round - b.round || (a.sortOrder ?? 0) - (b.sortOrder ?? 0) || a.matchNumber - b.matchNumber || a.id - b.id;
+
+/**
+ * QW-07 · the current match without any setup, from public statuses only (the same rules as the viewer's
+ * NOW / NEXT / RECENT, see audience-now.ts): the organizer's "Na ekranie" choice always wins; then a match marked
+ * in progress; then the next ready match of the current stage (scheduled ones first, by their real time); then the
+ * latest saved result. Byes are never shown. Nothing is guessed: with no such match the overlay says why.
+ */
+export function pickCurrentMatch(tournament: PublicTournament, matches: readonly PublicMatch[]):
+  { match: PublicMatch } | { match: null; reason: string } {
+  const real = matches.filter((m) => m.resultType !== "bye");
+  const featured = tournament.featuredMatchId != null ? matches.find((m) => m.id === tournament.featuredMatchId) : undefined;
+  if (featured) return { match: featured };
+  const live = real.filter((m) => m.status === "in_progress").sort(overlayEngineOrder)[0];
+  if (live) return { match: live };
+  if (tournament.status !== "draft" && tournament.status !== "completed") {
+    const ready = real.filter((m) => m.status === "pending" && m.player1Id != null && m.player2Id != null);
+    const inStage = ready.filter((m) => tournament.activeStageId == null || m.stageId === tournament.activeStageId);
+    const next = (inStage.length ? inStage : ready).sort((a, b) => {
+      const ta = overlayTime(a.scheduledAt), tb = overlayTime(b.scheduledAt);
+      if (!Number.isNaN(ta) || !Number.isNaN(tb)) {
+        if (Number.isNaN(ta)) return 1;
+        if (Number.isNaN(tb)) return -1;
+        if (ta !== tb) return ta - tb;
+      }
+      return overlayEngineOrder(a, b);
+    })[0];
+    if (next) return { match: next };
+  }
+  const last = real.filter((m) => m.status === "completed").sort((a, b) => {
+    const ta = overlayTime(a.completedAt), tb = overlayTime(b.completedAt);
+    if (!Number.isNaN(ta) && !Number.isNaN(tb) && ta !== tb) return tb - ta;
+    if (Number.isNaN(ta) !== Number.isNaN(tb)) return Number.isNaN(ta) ? 1 : -1;
+    return overlayEngineOrder(b, a);
+  })[0];
+  if (last) return { match: last };
+  return { match: null, reason: tournament.status === "draft" ? "Turniej jeszcze się nie rozpoczął." : "Na razie żaden mecz nie jest gotowy do rozegrania." };
+}
+
+/** The match an overlay shows: the pinned one, the one the organizer puts "Na ekranie", or (QW-07) the current one. */
 export function pickOverlayMatch(config: Pick<OverlayConfig, "match">, tournament: PublicTournament, matches: readonly PublicMatch[]):
   { match: PublicMatch } | { match: null; reason: string } {
+  if (config.match === "auto") return pickCurrentMatch(tournament, matches);
   const id = config.match === "ekran" ? tournament.featuredMatchId : config.match;
   if (id == null) return { match: null, reason: "Żaden mecz nie jest teraz „Na ekranie”." };
   const match = matches.find((candidate) => candidate.id === id);

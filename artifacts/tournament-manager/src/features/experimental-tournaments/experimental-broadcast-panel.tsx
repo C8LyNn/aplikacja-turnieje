@@ -246,10 +246,15 @@ export function ExperimentalBroadcastPanel({
                 <span className="block text-sm text-muted-foreground">Zmieniasz go wyżej albo gwiazdką w panelu prowadzącego.</span></span>
             </label>
             <label className="flex min-h-11 items-start gap-3">
-              <input type="radio" name="overlay-match" className="mt-1" checked={config.match !== "ekran"} onChange={() => set("match", featured?.id ?? selectable[0]?.id ?? "ekran")} disabled={!selectable.length} />
+              <input type="radio" name="overlay-match" className="mt-1" checked={config.match === "auto"} onChange={() => set("match", "auto")} />
+              <span><span className="block font-medium">Aktualny mecz (automatycznie)</span>
+                <span className="block text-sm text-muted-foreground">Mecz „Na ekranie”, a gdy go nie ma: mecz na żywo, potem najbliższy gotowy, potem ostatni wynik.</span></span>
+            </label>
+            <label className="flex min-h-11 items-start gap-3">
+              <input type="radio" name="overlay-match" className="mt-1" checked={typeof config.match === "number"} onChange={() => set("match", featured?.id ?? selectable[0]?.id ?? "ekran")} disabled={!selectable.length} />
               <span className="block font-medium">Zawsze ten sam mecz</span>
             </label>
-            {config.match !== "ekran" && (
+            {typeof config.match === "number" && (
               <label className="ml-7 flex max-w-xl flex-col gap-1 text-sm">
                 <span>Mecz</span>
                 <select className="min-h-11 rounded-md border bg-background px-3" value={config.match} onChange={(event) => set("match", Number(event.target.value))}>

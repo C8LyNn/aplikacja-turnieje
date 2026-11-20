@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { CopyLinkButton } from "./copy-link-button";
+import { ObsScoreOverlayLink } from "./obs-score-overlay-link";
 import { Check, Link2, Globe, Lock, EyeOff, Eye, EyeOff as EyeOffIcon, Monitor, Key, Shield, AlertTriangle, Tv2, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -82,7 +83,7 @@ export function SharingPanel({ tournament, orgToken }: Props) {
   const [vPwError, setVPwError] = useState<string | null>(null);
   const [vPwSuccess, setVPwSuccess] = useState(false);
 
-  const base = typeof window !== "undefined" ? window.location.origin + import.meta.env.BASE_URL.replace(/\/$/, "") : "";
+  const base = typeof window !== "undefined" ? window.location.origin + (import.meta.env?.BASE_URL ?? "/").replace(/\/$/, "") : "";
   const tid = tournament.id;
 
   // OBS projector URL builder state
@@ -285,6 +286,8 @@ export function SharingPanel({ tournament, orgToken }: Props) {
               </div>
             )}
           </div>
+          {/* QW-07: the score overlay address for Classic (Modern has it under Więcej → Transmisja) */}
+          {!experimental && <ObsScoreOverlayLink tournamentId={tid} visibility={currentVisibility} />}
         </CardContent>
       </Card>
 

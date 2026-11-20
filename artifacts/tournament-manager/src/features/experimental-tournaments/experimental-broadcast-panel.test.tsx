@@ -162,3 +162,24 @@ test("navigation: 'Transmisja' is an optional Experimental area under 'Więcej';
   const viewer = deriveOrganizerCapabilities({ role: null, tournament: { hasHostCode: false, hasOrganizerPassword: true }, hasOrganizerToken: false, hasSupportSession: false });
   assert.notEqual(organizerDetailTab("?tab=broadcast", viewer, { experimental: true }), "broadcast");
 });
+
+test("QW-07: 'Aktualny mecz (automatycznie)' writes mecz=auto, needs no match on screen and remembers the choice", async () => {
+  const user = userEvent.setup();
+  renderPanel({ featuredMatchId: null });
+  assert.ok(screen.getByText(/Żaden mecz nie jest „Na ekranie” — nakładka pokaże komunikat/));
+  await user.click(screen.getByRole("radio", { name: /Aktualny mecz \(automatycznie\)/ }));
+  assert.match(address(), /\/overlay\.html\?t=5&mecz=auto$/);
+  assert.equal(screen.queryByText(/Żaden mecz nie jest „Na ekranie” — nakładka pokaże komunikat/), null, "auto does not depend on the match on screen");
+  assert.equal(screen.queryByRole("combobox", { name: "Mecz" }), null);
+  assert.equal(screen.getByTitle("Podgląd nakładki").getAttribute("src"), address());
+  // the three choices exclude each other
+  await user.click(screen.getByRole("radio", { name: /Zawsze ten sam mecz/ }));
+  assert.match(address(), /mecz=11$/);
+  assert.equal((screen.getByRole("radio", { name: /Aktualny mecz/ }) as HTMLInputElement).checked, false);
+  await user.click(screen.getByRole("radio", { name: /Aktualny mecz/ }));
+  cleanup();
+  renderPanel({ featuredMatchId: null });
+  assert.match(address(), /mecz=auto$/, "remembered for this tournament in this browser");
+  await user.click(screen.getByRole("radio", { name: /Mecz „Na ekranie” \(zalecane\)/ }));
+  assert.match(address(), /\/overlay\.html\?t=5$/, "the V5.9 default address is unchanged");
+});
