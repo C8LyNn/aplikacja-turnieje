@@ -156,6 +156,8 @@ test("QW-03b: best of 3 goes into the preview and the created tournament; the su
   await chooseQuick("16", "groups_playoff");
   const summary = screen.getByTestId("quick-preset-summary");
   assert.ok(within(summary).getByRole("list", { name: "Układ etapów" }).querySelectorAll("li").length >= 2, "groups and play-off listed");
+  // #323-C: the same layout is drawn before creating (groups, then the play-off bracket).
+  assert.deepEqual([...within(summary).getByTestId("format-sketch").querySelectorAll("[data-format]")].map((node) => node.getAttribute("data-format")), ["group_stage", "single_elimination"]);
   fireEvent.click(within(summary).getByRole("button", { name: "BO3" }));
   await waitFor(() => assert.ok(calls.some((call) => call.url.includes("/presets/preview") && call.body.params.bestOf === 3)));
   await waitFor(() => assert.ok(!screen.getByTestId("quick-preset-summary").textContent?.includes("liczę układ")));

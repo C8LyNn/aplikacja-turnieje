@@ -3,6 +3,7 @@ import { Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FormatSketch } from "@/components/format-sketch";
 import {
   plural,
   stageChain,
@@ -198,6 +199,7 @@ export function ClassicQuickPresets({
               <ol className="list-decimal space-y-1 pl-5 text-xs" aria-label="Układ etapów">
                 {stageChain(current).map((line, index) => <li key={index}>{line}</li>)}
               </ol>
+              <FormatSketch stages={current.stages} accent="hsl(var(--primary))" />
               {current.warnings.length > 0 && (
                 <ul className="space-y-1 text-xs text-muted-foreground">
                   {current.warnings.map((warning, index) => <li key={index}>{warning}</li>)}

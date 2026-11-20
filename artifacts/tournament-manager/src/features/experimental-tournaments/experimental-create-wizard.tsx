@@ -74,6 +74,7 @@ import {
   type WizardSchedule,
 } from "./experimental-create-wizard-model";
 import { ExperimentalAiImport, type AiImportResult } from "./experimental-ai-import";
+import { FormatSketch } from "@/components/format-sketch";
 
 const ADVANCED_PATH = "/experimental/tournaments/new/advanced";
 /** V5.4: seeding rules live in the advanced editor; the simple wizard keeps the safe defaults. */
@@ -331,6 +332,8 @@ export function PreviewPanel({
         </p>
       </div>
       <PresetStats preview={preview} teams={noun(5) === "drużyn"} />
+      {/* #323-C: the layout drawn from the same preview numbers, before anything is created. */}
+      <FormatSketch stages={preview.stages} accent="var(--x-gold)" captions={!compact} className="experimental-wizard-sketch" />
       <StageFlow preview={preview} />
       {compact ? (
         <details className="experimental-wizard-more experimental-wizard-preview-more">
