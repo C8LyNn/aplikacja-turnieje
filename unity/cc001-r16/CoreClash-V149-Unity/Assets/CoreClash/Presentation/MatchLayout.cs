@@ -58,9 +58,11 @@ namespace CoreClash.Presentation
                 layout.CompactFeedback=new UiBox(x,y,w,Math.Max(0,layout.Panel.Bottom-4f-y));
                 return layout;
             }
-            if(layout.Portrait&&profile==DeviceProfile.Phone){
+            // Upright tablets use the same screen: arena on top, large-cell tray below.
+            if(layout.Portrait&&(profile==DeviceProfile.Phone||profile==DeviceProfile.Tablet)){
+                float tray=profile==DeviceProfile.Tablet?Math.Max(240f,height*.21f):PhoneTray;
                 float w=width/FieldShare,h=w/.6f;
-                if(h>height-PhoneTray){h=Math.Max(120f,height-PhoneTray);w=h*.6f;}
+                if(h>height-tray){h=Math.Max(120f,height-tray);w=h*.6f;}
                 layout.PhonePortrait=true;
                 layout.PhoneStrip=new UiBox(0f,0f,0f,0f);
                 layout.Board=new UiBox((width-w)/2,0f,w,h);

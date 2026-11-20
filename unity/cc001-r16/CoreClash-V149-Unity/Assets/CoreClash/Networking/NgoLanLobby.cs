@@ -104,7 +104,7 @@ namespace CoreClash.Networking
             if(app==null||app.Catalog==null||app.IsModalOpen)return;
             float sw=UiViewport.Width,sh=UiViewport.Height;
             // W24: in a match on an upright phone the top bar belongs to the score strip, so the entry is an icon.
-            bool compact=!app.IsSetup&&UiViewport.Profile==DeviceProfile.Phone&&sw<sh;
+            bool compact=!app.IsSetup&&(UiViewport.Profile==DeviceProfile.Phone||UiViewport.Profile==DeviceProfile.Tablet)&&sw<sh;
             // There is no top bar there at all, so the entry is offered from the deck screen only.
             if(compact&&!open)return;
             if(compact?Draw.IconButton(new Rect(sw-52,8,44,44),"+C -.4 -.38 .3;+C .4 -.38 .3;+C -.4 .56 .42;+C .4 .56 .42",Draw.Cyan,open):Draw.Button(new Rect(sw-168,8,150,44),"MULTIPLAYER",Draw.Cyan,open)){open=!open;app.SetExternalModal(open);}
