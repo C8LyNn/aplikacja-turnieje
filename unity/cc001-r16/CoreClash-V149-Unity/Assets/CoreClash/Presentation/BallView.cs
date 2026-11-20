@@ -147,18 +147,13 @@ namespace CoreClash.Presentation
             string spec = definition == null ? null : BallIcons.Spec(definition.id);
             if (spec != null)
             {
-                bool dark = Luminance(bodyColor) > .68f;
+                // One look for every ball: white symbol, even ink outline, short hard drop under it.
                 float half = radius * Theme.IconSize * .5f;
                 var box = new Rect(body.center.x - half, body.center.y - half, half * 2, half * 2);
-                float lift = Mathf.Max(1, radius * .08f);
-                Color edge = Color.Lerp(bodyColor, Theme.Ink, .72f);
-                float stroke = Mathf.Max(1, radius * .075f);
-                Color line = dark ? new Color(1, 1, 1, .95f) : Theme.Ink;
-                Glyphs.Paint(new Rect(box.x - stroke, box.y - stroke, box.width, box.height), spec, line);
-                Glyphs.Paint(new Rect(box.x + stroke, box.y - stroke, box.width, box.height), spec, line);
-                Glyphs.Paint(new Rect(box.x - stroke, box.y + stroke, box.width, box.height), spec, line);
-                Glyphs.Paint(new Rect(box.x + stroke, box.y + stroke + lift * .5f, box.width, box.height), spec, line);
-                Glyphs.Paint(box, spec, dark ? Theme.Ink : new Color(1, 1, 1, 1));
+                float lift = Mathf.Max(1, radius * .09f);
+                Glyphs.PaintOutline(new Rect(box.x, box.y + lift, box.width, box.height), spec, Theme.Ink);
+                Glyphs.PaintOutline(box, spec, Theme.Ink);
+                Glyphs.Paint(box, spec, Color.white);
                 return;
             }
             string mark = Mark(definition);

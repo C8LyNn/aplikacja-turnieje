@@ -55,6 +55,55 @@ namespace CoreClash.Presentation
             var old=GUI.color;GUI.color=color;GUI.DrawTexture(rect,texture);GUI.color=old;
         }
 
+        // W24: a true ink outline for an icon. The icon's own mask is grown evenly on every side
+        // (not four shifted copies), on a padded texture so the outline is never cut by the box.
+        const int OutlineSize=96;const float OutlinePad=1.3f,OutlineGrow=.17f;
+        static readonly Dictionary<string,Texture2D> OutlineCache=new Dictionary<string,Texture2D>();
+        public static void PaintOutline(Rect rect,string spec,Color color)
+        {
+            if(string.IsNullOrEmpty(spec))return;
+            if(!OutlineCache.TryGetValue(spec,out var texture)||texture==null){texture=BuildOutline(spec);OutlineCache[spec]=texture;}
+            float w=rect.width*OutlinePad,h=rect.height*OutlinePad;
+            var old=GUI.color;GUI.color=color;GUI.DrawTexture(new Rect(rect.center.x-w/2,rect.center.y-h/2,w,h),texture);GUI.color=old;
+        }
+        static Texture2D BuildOutline(string spec)
+        {
+            int n=OutlineSize;var inside=new bool[n*n];
+            var part=spec.Split(';');var shape=new char[part.Length];var add=new bool[part.Length];var values=new float[part.Length][];
+            for(int k=0;k<part.Length;k++)
+            {
+                string[] token=part[k].Split(' ');add[k]=token[0][0]=='+';shape[k]=token[0][1];values[k]=new float[token.Length-1];
+                for(int i=1;i<token.Length;i++)values[k][i-1]=float.Parse(token[i],NumberStyles.Float,CultureInfo.InvariantCulture);
+            }
+            for(int py=0;py<n;py++)
+            for(int px=0;px<n;px++)
+            {
+                float x=((px+.5f)/n*2-1)*OutlinePad,y=((py+.5f)/n*2-1)*OutlinePad,d=9f;
+                for(int k=0;k<part.Length;k++){float s=Shape(shape[k],values[k],x,y);d=add[k]?Mathf.Min(d,s):Mathf.Max(d,-s);}
+                inside[py*n+px]=d<0&&Mathf.Abs(x)<1&&Mathf.Abs(y)<1;
+            }
+            float grow=OutlineGrow/OutlinePad*n*.5f;int reach=Mathf.CeilToInt(grow)+1;
+            var texture=new Texture2D(n,n,TextureFormat.RGBA32,true){name="Core Clash icon outline",filterMode=FilterMode.Trilinear,wrapMode=TextureWrapMode.Clamp,hideFlags=HideFlags.HideAndDontSave};
+            var pixels=new Color[n*n];
+            for(int py=0;py<n;py++)
+            for(int px=0;px<n;px++)
+            {
+                float best=reach*reach+1;
+                for(int oy=-reach;oy<=reach&&best>0;oy++)
+                {
+                    int sy=py+oy;if(sy<0||sy>=n)continue;
+                    for(int ox=-reach;ox<=reach;ox++)
+                    {
+                        int sx=px+ox;if(sx<0||sx>=n||!inside[sy*n+sx])continue;
+                        float q=ox*ox+oy*oy;if(q<best)best=q;
+                    }
+                }
+                pixels[(n-1-py)*n+px]=new Color(1,1,1,Mathf.Clamp01(grow+.5f-Mathf.Sqrt(best)));
+            }
+            texture.SetPixels(pixels);texture.Apply(true,true);
+            return texture;
+        }
+
         static Texture2D Build(string spec)
         {
             var distance=new float[Size*Size];
