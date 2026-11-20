@@ -1050,7 +1050,7 @@ export function ExperimentalCreateWizard() {
                 options={[
                   { value: "public_online", label: "Każdy z linkiem", hint: "Publiczne wyniki.", icon: <Globe className="h-5 w-5" /> },
                   { value: "private_online", label: "Z hasłem", hint: "Widzowie podają hasło.", icon: <Lock className="h-5 w-5" /> },
-                  { value: "private_offline", label: "Tylko obsługa", hint: "Bez widoku dla widzów.", icon: <ShieldCheck className="h-5 w-5" /> },
+                  { value: "private_offline", label: "Ukryty", hint: "Widzowie nie widzą turnieju, aż go opublikujesz.", icon: <ShieldCheck className="h-5 w-5" /> },
                 ]}
               />
               {draft.visibility === "private_online" && (

@@ -606,8 +606,8 @@ function CreateTournamentForm() {
                   },
                   {
                     value: "private_offline",
-                    label: "Prywatny offline",
-                    description: "Dostęp tylko dla organizatora i wsparcia.",
+                    label: "Ukryty (prywatny offline)",
+                    description: "Niewidoczny dla widzów, aż go opublikujesz. Dostęp tylko dla organizatora i wsparcia.",
                   },
                 ].map((option) => (
                   <label

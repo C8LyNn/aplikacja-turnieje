@@ -76,7 +76,7 @@ const SECTION_PARAMS: Record<SectionId, readonly PresetParamKey[]> = {
 const VISIBILITY_TEXT: Record<Visibility, { label: string; hint: string }> = {
   public_online: { label: "Każdy z linkiem", hint: "Publiczne wyniki." },
   private_online: { label: "Z hasłem", hint: "Widzowie podają hasło." },
-  private_offline: { label: "Tylko obsługa", hint: "Bez widoku dla widzów." },
+  private_offline: { label: "Ukryty", hint: "Widzowie nie widzą turnieju, aż go opublikujesz." },
 };
 
 const WIZARD_PATH = "/experimental/tournaments/new";

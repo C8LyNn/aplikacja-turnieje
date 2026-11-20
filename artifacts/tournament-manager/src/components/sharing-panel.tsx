@@ -17,6 +17,8 @@ interface TournamentLike {
   name: string;
   visibility?: string;
   hasViewerPassword?: boolean;
+  /** #330: hiding is possible only before the start. */
+  status?: string;
 }
 
 interface Props {
@@ -40,7 +42,7 @@ const VISIBILITY_INFO: Record<Visibility, { label: string; icon: React.ReactNode
     badge: "Chroniiony hasłem",
   },
   private_offline: {
-    label: "Prywatny offline",
+    label: "Ukryty (prywatny offline)",
     icon: <EyeOff className="w-4 h-4 text-red-400" />,
     desc: "Niewidoczny na dashboardzie. Dostępny tylko dla organizatora i wsparcia przez bezpośredni link.",
     badge: "Ukryty",
@@ -302,10 +304,14 @@ export function SharingPanel({ tournament, orgToken }: Props) {
         <CardContent>
           <form onSubmit={handleSaveVisibility} className="space-y-4">
             <div className="space-y-2">
-              {(Object.entries(VISIBILITY_INFO) as [Visibility, typeof VISIBILITY_INFO[Visibility]][]).map(([val, meta]) => (
+              {(Object.entries(VISIBILITY_INFO) as [Visibility, typeof VISIBILITY_INFO[Visibility]][]).map(([val, meta]) => {
+                // #330: once the tournament has started it cannot be hidden (the server refuses with 409).
+                const hideLocked = val === "private_offline" && currentVisibility !== "private_offline" && !!tournament.status && tournament.status !== "draft";
+                return (
                 <label
                   key={val}
-                  className={`flex items-start gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
+                  aria-disabled={hideLocked || undefined}
+                  className={`flex items-start gap-3 p-3 rounded-lg border transition-colors ${hideLocked ? "cursor-not-allowed opacity-60" : "cursor-pointer"} ${
                     newVisibility === val
                       ? "border-primary bg-primary/5"
                       : "border-border hover:border-border/80 hover:bg-muted/20"
@@ -316,6 +322,7 @@ export function SharingPanel({ tournament, orgToken }: Props) {
                     name="visibility"
                     value={val}
                     checked={newVisibility === val}
+                    disabled={hideLocked}
                     onChange={() => setNewVisibility(val)}
                     className="mt-0.5 accent-primary"
                   />
@@ -325,9 +332,11 @@ export function SharingPanel({ tournament, orgToken }: Props) {
                       {meta.label}
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">{meta.desc}</p>
+                    {hideLocked && <p className="text-xs text-amber-400 mt-0.5">Po rozpoczęciu turnieju nie można go ukryć.</p>}
                   </div>
                 </label>
-              ))}
+                );
+              })}
             </div>
 
             {newVisibility === "private_online" && (visibilityChanged || !tournament.hasViewerPassword) && (
