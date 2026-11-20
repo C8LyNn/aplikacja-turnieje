@@ -11,7 +11,7 @@ namespace CoreClash.Presentation
     // '+' adds a shape, '-' cuts it out.
     public static class Glyphs
     {
-        const int Size=48;
+        const int Size=64;
         static readonly Dictionary<StatusKind,Texture2D> Cache=new Dictionary<StatusKind,Texture2D>();
         const string ShieldShape="+P -.72 -.8 .72 -.8 .72 .1 0 .92 -.72 .1";
 
@@ -74,13 +74,13 @@ namespace CoreClash.Presentation
                     distance[index]=add?Mathf.Min(distance[index],d):Mathf.Max(distance[index],-d);
                 }
             }
-            var texture=new Texture2D(Size,Size,TextureFormat.RGBA32,false){name="Core Clash state glyph",filterMode=FilterMode.Bilinear,wrapMode=TextureWrapMode.Clamp,hideFlags=HideFlags.HideAndDontSave};
+            var texture=new Texture2D(Size,Size,TextureFormat.RGBA32,true){name="Core Clash state glyph",filterMode=FilterMode.Trilinear,wrapMode=TextureWrapMode.Clamp,hideFlags=HideFlags.HideAndDontSave};
             var pixels=new Color[Size*Size];
             // Texture rows start at the bottom; the shape list is written y-down.
             for(int py=0;py<Size;py++)
             for(int px=0;px<Size;px++)
                 pixels[(Size-1-py)*Size+px]=new Color(1,1,1,Mathf.Clamp01(.5f-distance[py*Size+px]*Size*.5f));
-            texture.SetPixels(pixels);texture.Apply(false,true);
+            texture.SetPixels(pixels);texture.Apply(true,true);
             return texture;
         }
 

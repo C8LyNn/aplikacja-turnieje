@@ -206,41 +206,53 @@ namespace CoreClash.Presentation
             }
         }
 
-        // Phone portrait tray: selected ball + icon buttons, then the whole deck as a 5 x 2 grid.
+        // Phone portrait tray (W24): only what a thumb needs. Two rows of six large cells, edge to
+        // edge: Standard and the nine specials, then "about this ball" and one menu button. Everything
+        // else (inspect, STOP mark, effects, leave) lives in the menu, so there is never a row of
+        // small buttons to hit. No words: the chosen card lifts and glows.
+        const string IconMenu="+C -.62 0 .22;+C 0 0 .22;+C .62 0 .22";
+        bool phoneMenu;
         void RenderPhoneTray()
         {
-            var state=Simulation.State;bool over=state.phase==MatchPhase.Over;
-            Draw.Card(side);var inner=Draw.Inset(side,8);
+            var state=Simulation.State;
+            Draw.Rect(new Rect(side.x,side.y-3,side.width,3),Theme.Ink);
+            Draw.Rect(side,Theme.Panel);
             int owner=LocalDeckContent.DisplayOwner(state.turn,NetworkLink==null?(int?)null:NetworkLink.LocalOwner);
             int tintOwner=owner>=0?owner:state.turn;
-            var d=Catalog.Ball(selected);
-            float y=inner.y,button=44,gap=6,buttonsW=4*button+3*gap,textW=inner.width-buttonsW-6;
-            float orb=30*SelectPulse();
-            BallView.Preview(new Rect(inner.x+20-orb/2,y+21-orb/2,orb,orb),d,tintOwner,true);
-            Draw.Text(new Rect(inner.x+44,y+2,textW-44,22),owner<0?"DECK UNAVAILABLE":BallIcons.Name(d),15,Theme.Text,TextAnchor.MiddleLeft,true);
-            string stock=selected=="normal"?"unlimited":LocalDeckContent.StockLabel(Simulation,owner,selected);
-            Draw.Text(new Rect(inner.x+44,y+23,textW-44,17),d.hp+" HP · "+stock,10,Theme.Muted,TextAnchor.MiddleLeft,true);
-            float bx=inner.xMax-buttonsW;
-            if(Draw.IconButton(new Rect(bx,y,button,button),IconInfo))ShowBallDetails(selected);
-            if(Draw.IconButton(new Rect(bx+button+gap,y,button,button),IconInspect,Theme.Info,boardInspection))SetBoardInspection(!boardInspection);
-            if(Draw.IconButton(new Rect(bx+2*(button+gap),y,button,button),IconStop,Theme.Select,BoardView.ShowStopEstimate))ToggleStopEstimate();
-            if(Draw.IconButton(new Rect(bx+3*(button+gap),y,button,button),IconLeave))RequestLeaveMatch();
-            y+=button+gap;
-            const int columns=5;const float hintH=17;
+            // The tray carries the acting player's colour along its top edge.
+            Draw.Rect(new Rect(side.x,side.y,side.width,5),state.phase==MatchPhase.Over?Theme.Select:Draw.Owner(state.turn));
+            const int columns=6;const float gap=5,pad=6;
             var ids=LocalDeckContent.StockIds(state,owner);
-            float cardW=(inner.width-gap*(columns-1))/columns,cardH=Mathf.Max(44,(inner.yMax-y-hintH-4-gap)/2);
-            IconCard(new Rect(inner.x,y,cardW,cardH),"normal",tintOwner);
-            for(int i=0;i<ids.Length&&i<9;i++)
-            {
-                int slot=i+1;
-                IconCard(new Rect(inner.x+(slot%columns)*(cardW+gap),y+(slot/columns)*(cardH+gap),cardW,cardH),ids[i],owner);
-            }
-            string hint=over?(state.winner<0?"DRAW":"PLAYER "+(state.winner+1)+" WINS"):
-                boardInspection?"TAP A BALL TO INSPECT":
-                LocalTurnPresentation.ActionMessage(state,NetworkLink==null?-1:NetworkLink.LocalOwner,
-                    NetworkLink!=null,NetworkLink==null||NetworkLink.IsConnected,gesture.Active,
-                    gesture.AimX-gesture.OriginX,gesture.AimY-gesture.OriginY,"DRAG FROM YOUR LAUNCHER TO AIM",notice);
-            Draw.Text(new Rect(inner.x,inner.yMax-hintH,inner.width,hintH),(over?"":"Turn "+state.turnNumber+"  ·  ")+Soft(hint),11,over?Theme.SelectInk:Theme.TeamDeep(state.turn),TextAnchor.MiddleCenter,true);
+            float cellW=(side.width-pad*2-gap*(columns-1))/columns,cellH=(side.height-9-pad-gap)/2;
+            Rect Cell(int slot)=>new Rect(side.x+pad+(slot%columns)*(cellW+gap),side.y+9+(slot/columns)*(cellH+gap),cellW,cellH);
+            IconCard(Cell(0),"normal",tintOwner);
+            for(int i=0;i<ids.Length&&i<9;i++)IconCard(Cell(i+1),ids[i],owner);
+            if(Draw.IconButton(Cell(10),IconInfo))ShowBallDetails(selected);
+            if(Draw.IconButton(Cell(11),IconMenu,Theme.Info,phoneMenu))phoneMenu=!phoneMenu;
+            if(phoneMenu)RenderPhoneMenu();
+        }
+        // Four large buttons above the tray. A tap anywhere else closes it.
+        void RenderPhoneMenu()
+        {
+            if(GUI.Button(new Rect(0,0,UiWidth,side.y),GUIContent.none,GUIStyle.none)){phoneMenu=false;return;}
+            Draw.Rect(new Rect(0,0,UiWidth,side.y),Theme.A(Theme.Scrim,.45f));
+            float pad=12,gap=10,buttonH=64,w=UiWidth-pad*2,h=buttonH*2+gap+pad*2;
+            var sheet=new Rect(pad,side.y-h-10,w,h);
+            Draw.Card(sheet,null,null,.4f);
+            float cell=(w-pad*2-gap)/2;
+            Rect Slot(int i)=>new Rect(sheet.x+pad+(i%2)*(cell+gap),sheet.y+pad+(i/2)*(buttonH+gap),cell,buttonH);
+            if(MenuButton(Slot(0),IconInspect,boardInspection?"Stop inspecting":"Inspect a ball",Theme.Info,boardInspection)){SetBoardInspection(!boardInspection);phoneMenu=false;}
+            if(MenuButton(Slot(1),IconStop,BoardView.ShowStopEstimate?"Stop mark: on":"Stop mark: off",Theme.Select,BoardView.ShowStopEstimate))ToggleStopEstimate();
+            if(MenuButton(Slot(2),Fx.Star,Fx.ReducedMotion?"Effects: calm":"Effects: full",Theme.Heal,!Fx.ReducedMotion))Fx.SetReducedMotion(!Fx.ReducedMotion);
+            if(MenuButton(Slot(3),IconLeave,"Leave match",Theme.Damage,false)){phoneMenu=false;RequestLeaveMatch();}
+        }
+        static bool MenuButton(Rect r,string icon,string label,Color accent,bool on)
+        {
+            bool click=Draw.Button(r,"",accent,on);
+            float size=26;Color ink=on?Theme.OnColor:Color.Lerp(accent,Theme.Ink,.35f);
+            Glyphs.Paint(new Rect(r.x+16,r.y+(r.height-4-size)/2,size,size),icon,ink);
+            Draw.Text(new Rect(r.x+50,r.y,r.width-56,r.height-4),label,14,ink,TextAnchor.MiddleLeft,true);
+            return click;
         }
         // W24: sentence case reads friendlier than capitals. Display only; the source strings are unchanged.
         static string Soft(string text)
@@ -270,14 +282,14 @@ namespace CoreClash.Presentation
             bool available=standard||LocalDeckContent.VisibleAsAvailable(Simulation,owner,id);
             bool canClick=standard?CanChoose:LocalDeckContent.CanActivate(Simulation,owner,id,CanChoose),picked=canClick&&id==selected;
             bool hover=canClick&&GUI.enabled&&r.Contains(Event.current.mousePosition);
-            var face=picked?new Rect(r.x,r.y-2,r.width,r.height):r;
-            if(picked)Draw.Shadow(face,.3f,8,5);
+            var face=picked?new Rect(r.x,r.y-3,r.width,r.height):r;
+            Draw.Round(new Rect(face.x-1.5f,face.y-1.5f,face.width+3,face.height+3),Theme.Ink);
             Draw.Round(new Rect(face.x,face.y+3,face.width,face.height-3),picked?Theme.SelectInk:Theme.EdgeStrong);
             Draw.Round(new Rect(face.x,face.y,face.width,face.height-3),picked?Theme.Select:Theme.Edge);
             Draw.Round(new Rect(face.x+2,face.y+2,face.width-4,face.height-7),picked?Color.Lerp(Theme.Panel,Theme.Select,.16f):hover?Theme.PanelLight:Theme.Panel);
             bool prior=GUI.enabled;GUI.enabled=prior&&canClick;if(GUI.Button(r,GUIContent.none,GUIStyle.none))SelectBall(id);GUI.enabled=prior;
             bool named=face.height>=72;
-            float room=face.height-3-(named?22:8),orb=Mathf.Clamp(Mathf.Min(face.width-26,room-10),16,40);
+            float room=face.height-3-(named?22:8),orb=Mathf.Clamp(Mathf.Min(face.width-24,room-18),16,44);
             if(picked)orb*=SelectPulse();
             var body=new Rect(face.center.x-orb/2,face.y+4+(room-orb)/2,orb,orb);
             BallView.Preview(body,d,owner>=0?owner:0,picked);

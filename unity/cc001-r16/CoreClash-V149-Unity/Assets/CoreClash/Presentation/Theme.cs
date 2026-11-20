@@ -28,7 +28,7 @@ namespace CoreClash.Presentation
         public static readonly Color Background=C("#5d93ff"),BackdropTop=C("#55b9ff"),BackdropBottom=C("#9a6cf5"),Header=C("#3550c8"),
             Panel=C("#ffffff"),PanelLight=C("#eef3ff"),PanelRaised=C("#dfe8ff"),
             Edge=C("#d3dcf5"),EdgeStrong=C("#9eb0e6"),Plate=C("#ffffff"),Scrim=C("#141c44");
-        public static readonly Color Text=C("#1b2550"),TextSoft=C("#3a4678"),Muted=C("#6c78a6"),Disabled=C("#a9b2d0"),Ink=C("#1b2550"),
+        public static readonly Color Text=C("#1b2550"),TextSoft=C("#3a4678"),Muted=C("#6c78a6"),Disabled=C("#a9b2d0"),Ink=C("#1a1530"),
             OnColor=C("#ffffff"),PlateText=C("#1b2550"),PlateSoft=C("#6c78a6");
         public const int FontTitle=17,FontBody=13,FontSmall=11,FontTiny=9;
 
@@ -41,15 +41,21 @@ namespace CoreClash.Presentation
         public const float CentreRing=.7f,CentreFill=.75f,CentreLabel=0f,MidLine=0f,RimAlpha=1f;
 
         // Balls.
-        public const float OwnerGap=1.5f,SelectionRing=8f,BodyDark=.38f,BodyHighlight=.9f,ShadowAlpha=.3f;
+        public const float OwnerGap=.6f,SelectionRing=8f,BodyDark=.38f,BodyHighlight=.9f,ShadowAlpha=.3f;
         public const float WakeLength=64f,WakeAlpha=.3f;
         public const int WakeSteps=5;
         // W21: HP ring around the body, one segment per 5 HP (lost segments stay as a dim track).
-        public const float HpRing=5f,HpTrack=.55f,IconSize=1.36f;
+        public const float HpRing=4.4f,HpTrack=.55f,IconSize=1.42f;
         public static readonly Color HpGood=C("#ffffff"),HpHurt=C("#ffe07a"),HpCritical=C("#ffd0d6");
         // W24 (owner decision): a ball's HP is read from its ring only; no number under the ball.
         // The exact value stays in the ball details. Set to true to bring the number plate back.
         public static readonly bool ShowHpNumber=false;
+        // W24 (owner decision): the arena speaks in pictures. The acting player's zone lights up, the
+        // turn number is painted in the centre, base HP is a bar on each wall; word labels on the
+        // arena (turn pill, base report, Replay counter, STOP caption, state words) are off.
+        public static readonly bool BoardCaptions=false;
+        // W24 cartoon look: ink outline width in HUD units, hard shadow offset.
+        public const float InkLine=2.5f,HardShadow=4f;
         public const float HpHurtBelow=.6f,HpCriticalBelow=.3f,PlateAlpha=.95f;
 
         // Statuses: one colour per kind, used by the chip, its glyph and its feedback.

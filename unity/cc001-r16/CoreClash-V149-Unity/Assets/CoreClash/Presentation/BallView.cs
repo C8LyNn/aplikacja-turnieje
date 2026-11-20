@@ -34,7 +34,7 @@ namespace CoreClash.Presentation
         public static void Render(Rect board, BallRuntime ball, BallDefinition definition, bool replay,float x,float y,int localOwner=0,bool selected=false)
         {
             float scale = board.width / 540f, now = Time.unscaledTime;
-            float radius = ball.radius * scale * Fx.BodyScale(ball.id, now);
+            float radius = ball.radius * scale;
             var point = ViewPoint(board,x,y,localOwner);
             var body = new Rect(point.x - radius, point.y - radius, radius * 2, radius * 2);
             Color team = Draw.Owner(ball.owner);
@@ -56,7 +56,7 @@ namespace CoreClash.Presentation
                 Draw.Ring(point, reach, Color.white, Mathf.Max(1.5f, 2.2f * scale), 4, .7f);
             }
             // State glow under the ball: heat, cold. Real status fields only.
-            if (ball.fireStacks > 0) Draw.Glow(point, radius * (1.9f + .12f * Mathf.Sin(now * 9 + ball.id)), Alpha(Theme.Status(StatusKind.Fire), .42f));
+            if (ball.fireStacks > 0) Draw.Glow(point, radius * 1.95f, Alpha(Theme.Status(StatusKind.Fire), .42f));
             else if (ball.frozen > 0) Draw.Glow(point, radius * 1.9f, Alpha(Theme.Status(StatusKind.Frozen), .6f));
             else if (ball.iceStacks > 0) Draw.Glow(point, radius * 1.7f, Alpha(Theme.Status(StatusKind.Ice), .3f));
 
@@ -134,7 +134,7 @@ namespace CoreClash.Presentation
                 Draw.Ring(point, reach + breathe - 2.2f * scale, Alpha(Color.white, .55f), Mathf.Max(1, 1.2f * scale), 3, .22f);
             }
             float flash = Fx.HitFlash(ball.id, now);
-            if (flash > 0) Draw.Circle(body, Alpha(Color.white, .85f * flash));
+            if (flash > 0) Draw.Circle(body, Alpha(Color.white, .6f * flash));
             float heal = Fx.HealGlow(ball.id, now);
             if (heal > 0) { Draw.Circle(body, Alpha(Theme.Heal, .35f * heal)); Draw.Ring(point, radius + (10 - 6 * heal) * scale, Alpha(Theme.Heal, heal), Mathf.Max(1.5f, 2.4f * scale)); }
             float absorb = Fx.AbsorbGlow(ball.id, now);
@@ -152,8 +152,13 @@ namespace CoreClash.Presentation
                 var box = new Rect(body.center.x - half, body.center.y - half, half * 2, half * 2);
                 float lift = Mathf.Max(1, radius * .08f);
                 Color edge = Color.Lerp(bodyColor, Theme.Ink, .72f);
-                Glyphs.Paint(new Rect(box.x, box.y + lift, box.width, box.height), spec, dark ? new Color(1, 1, 1, .5f) : new Color(edge.r, edge.g, edge.b, .7f));
-                Glyphs.Paint(box, spec, dark ? new Color(.1f, .14f, .32f, .96f) : new Color(1, 1, 1, .98f));
+                float stroke = Mathf.Max(1, radius * .075f);
+                Color line = dark ? new Color(1, 1, 1, .95f) : Theme.Ink;
+                Glyphs.Paint(new Rect(box.x - stroke, box.y - stroke, box.width, box.height), spec, line);
+                Glyphs.Paint(new Rect(box.x + stroke, box.y - stroke, box.width, box.height), spec, line);
+                Glyphs.Paint(new Rect(box.x - stroke, box.y + stroke, box.width, box.height), spec, line);
+                Glyphs.Paint(new Rect(box.x + stroke, box.y + stroke + lift * .5f, box.width, box.height), spec, line);
+                Glyphs.Paint(box, spec, dark ? Theme.Ink : new Color(1, 1, 1, 1));
                 return;
             }
             string mark = Mark(definition);
@@ -257,8 +262,9 @@ namespace CoreClash.Presentation
             var center = body.center;
             float radius = body.width * .5f, ring = Mathf.Max(2, Theme.HpRing * scale), gap = Mathf.Max(1, Theme.OwnerGap * scale);
             float outer = radius + gap + ring;
-            Draw.Glow(new Vector2(center.x + scale, center.y + radius * .5f + 3 * scale), outer * 1.28f, new Color(.07f, .1f, .3f, Theme.ShadowAlpha));
-            Draw.Circle(Expand(body, gap + ring + Mathf.Max(1.5f, 2.5f * scale)), Alpha(Theme.Ink, .28f));
+            float rim = gap + ring + Mathf.Max(1.8f, 2.6f * scale);
+            Draw.Circle(new Rect(body.x - rim + 2 * scale, body.y - rim + 5 * scale, body.width + rim * 2, body.height + rim * 2), Alpha(Theme.Ink, Theme.ShadowAlpha));
+            Draw.Circle(Expand(body, rim), Theme.Ink);
             Draw.Circle(Expand(body, gap + ring + Mathf.Max(1, 1.6f * scale)), Color.white);
             if (pip != 0) OwnerPip(center, outer, pip, pipSize, Alpha(team, ringAlpha));
             Draw.Segments(center, outer, Alpha(new Color(.8f, .83f, .92f), Theme.HpTrack * ringAlpha), ring, segments, segments);
@@ -292,21 +298,22 @@ namespace CoreClash.Presentation
             GUI.color = old;
         }
 
-        // One material for every ball (W24): a glossy candy sphere lit from the upper left. A darker
-        // outline of the ball's own hue, a saturated body, a broad soft highlight with a small
-        // sharp glint, and a rim light on the lower right.
+        // One material for every ball (W24, cartoon): cel shading. Three flat tones with hard edges
+        // (shadow, body, light), one hard white glint, a few hatch strokes in the shadow and a thick
+        // ink outline that is heavier on the shadow side.
         static Texture2D CreateBodySprite(Color color)
         {
-            var sprite = new Texture2D(SpriteSize, SpriteSize, TextureFormat.RGBA32, false)
+            var sprite = new Texture2D(SpriteSize, SpriteSize, TextureFormat.RGBA32, true)
             {
                 name = "Core Clash orb",
-                filterMode = FilterMode.Bilinear,
+                filterMode = FilterMode.Trilinear,
                 wrapMode = TextureWrapMode.Clamp,
                 hideFlags = HideFlags.HideAndDontSave
             };
             var pixels = new Color[SpriteSize * SpriteSize];
-            Color navy = new Color(.1f, .12f, .3f);
-            Color deep = Color.Lerp(color, navy, Theme.BodyDark), outline = Color.Lerp(color, navy, .7f), bright = Color.Lerp(color, Color.white, .45f);
+            Color ink = Theme.Ink;
+            Color shade = Color.Lerp(color, new Color(.2f, .12f, .4f), Theme.BodyDark + .1f), bright = Color.Lerp(color, Color.white, .42f);
+            float pixel = 1f / (SpriteSize * .5f);
             for (int y = 0; y < SpriteSize; y++)
             for (int x = 0; x < SpriteSize; x++)
             {
@@ -315,24 +322,29 @@ namespace CoreClash.Presentation
                 float distance = Mathf.Sqrt(nx * nx + ny * ny);
                 if (distance > 1.02f) continue;
                 float nz = Mathf.Sqrt(Mathf.Max(0, 1 - distance * distance));
-                float light = Mathf.Clamp01(-nx * .42f - ny * .56f + nz * .62f);
-                Color pixel = Color.Lerp(deep, color, Mathf.SmoothStep(0, 1, light * 1.7f));
-                pixel = Color.Lerp(pixel, bright, Mathf.SmoothStep(0, 1, (light - .55f) * 2.2f) * .75f);
-                // Rim light from the floor on the lower right.
-                float bounce = Mathf.Clamp01(nx * .5f + ny * .62f - .32f) * Mathf.Clamp01(1 - nz * 1.2f);
-                pixel = Color.Lerp(pixel, bright, bounce * 1.1f);
-                // Broad soft highlight and a small sharp glint.
-                float soft = Mathf.Exp(-((nx + .3f) * (nx + .3f) * 5.5f + (ny + .42f) * (ny + .42f) * 9f));
-                pixel = Color.Lerp(pixel, Color.white, soft * .5f);
-                float glint = Mathf.Exp(-((nx + .4f) * (nx + .4f) + (ny + .47f) * (ny + .47f)) * 55);
-                pixel = Color.Lerp(pixel, Color.white, Mathf.Clamp01(glint * 1.3f) * Theme.BodyHighlight);
-                // Outline in the ball's own dark hue separates the sphere from the ring.
-                pixel = Color.Lerp(pixel, outline, Mathf.SmoothStep(0, 1, Mathf.InverseLerp(.87f, .97f, distance)));
-                pixel.a = Mathf.Clamp01((1 - distance) * SpriteSize * .5f);
-                pixels[y * SpriteSize + x] = pixel;
+                float light = -nx * .46f - ny * .6f + nz * .52f;
+                // Hard tone steps (a pixel of blending keeps the edge clean).
+                Color tone = Color.Lerp(shade, color, Mathf.Clamp01((light - .12f) / (pixel * 2.5f)));
+                tone = Color.Lerp(tone, bright, Mathf.Clamp01((light - .62f) / (pixel * 2.5f)));
+                // Hatch strokes inside the shadow tone.
+                if (light < .1f)
+                {
+                    float stripe = Mathf.Abs(Mathf.Repeat((nx - ny) * 5.2f, 1) - .5f);
+                    tone = Color.Lerp(tone, Color.Lerp(shade, ink, .45f), Mathf.Clamp01((.13f - stripe) / .05f) * Mathf.Clamp01((.1f - light) * 6));
+                }
+                // One hard glint, upper left, and a small second one.
+                float gx = nx + .38f, gy = ny + .46f;
+                float glint = Mathf.Clamp01((.2f - Mathf.Sqrt(gx * gx * .7f + gy * gy * 1.5f)) / (pixel * 2.5f));
+                float dot = Mathf.Clamp01((.065f - Mathf.Sqrt((nx + .08f) * (nx + .08f) + (ny + .68f) * (ny + .68f))) / (pixel * 2.5f));
+                tone = Color.Lerp(tone, Color.white, Mathf.Max(glint, dot) * Theme.BodyHighlight);
+                // Ink outline: thicker toward the lower right.
+                float edge = .9f - Mathf.Clamp01(nx * .5f + ny * .5f + .2f) * .06f;
+                tone = Color.Lerp(tone, ink, Mathf.Clamp01((distance - edge) / (pixel * 2.5f)));
+                tone.a = Mathf.Clamp01((1 - distance) * SpriteSize * .5f);
+                pixels[y * SpriteSize + x] = tone;
             }
             sprite.SetPixels(pixels);
-            sprite.Apply(false, true);
+            sprite.Apply(true, true);
             return sprite;
         }
 

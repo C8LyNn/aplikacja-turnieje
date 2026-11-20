@@ -30,13 +30,16 @@ namespace CoreClash.Presentation
         {
             if(Event.current.type!=EventType.Repaint||alpha<=0)return;
             if(shadow==null){const int n=64;var texture=new Texture2D(n,n,TextureFormat.RGBA32,false){filterMode=FilterMode.Bilinear,wrapMode=TextureWrapMode.Clamp,hideFlags=HideFlags.HideAndDontSave};for(int y=0;y<n;y++)for(int x=0;x<n;x++){float dx=Mathf.Max(Mathf.Abs(x-31.5f)-10,0),dy=Mathf.Max(Mathf.Abs(y-31.5f)-10,0),d=Mathf.Clamp01(1-(Mathf.Sqrt(dx*dx+dy*dy)-2)/20f);texture.SetPixel(x,y,new Color(1,1,1,d*d*(3-2*d)));}texture.Apply();shadow=new GUIStyle{border=new RectOffset(24,24,24,24)};shadow.normal.background=texture;}
-            var old=GUI.color;GUI.color=new Color(.07f,.1f,.3f,alpha*old.a);shadow.Draw(new Rect(r.x-spread,r.y-spread+drop,r.width+spread*2,r.height+spread*2),GUIContent.none,false,false,false,false);GUI.color=old;
+            // W24 cartoon look: a flat ink shadow, shifted down-right, instead of a blur.
+            float shift=Mathf.Min(Theme.HardShadow,drop+1);
+            Round(new Rect(r.x+shift*.6f,r.y+shift,r.width,r.height),new Color(Theme.Ink.r,Theme.Ink.g,Theme.Ink.b,Mathf.Clamp01(alpha*2.2f+.12f)));
         }
         // W24: a white card with a soft shadow.
         public static void Card(Rect r,Color? fill=null,Color? border=null,float shadowAlpha=.18f)
         {
             Shadow(r,shadowAlpha);
-            if(border.HasValue){Round(r,border.Value);Round(Inset(r,2),fill??Panel);}else Round(r,fill??Panel);
+            Round(r,Theme.Ink);
+            if(border.HasValue){Round(Inset(r,Theme.InkLine),border.Value);Round(Inset(r,Theme.InkLine+2),fill??Panel);}else Round(Inset(r,Theme.InkLine),fill??Panel);
         }
         // W24: soft round glow / contact shadow (smooth falloff).
         static Texture2D glow;
@@ -90,7 +93,7 @@ namespace CoreClash.Presentation
             if(!rings.TryGetValue(key,out var sprite)||sprite==null)
             {
                 const int size=128;
-                sprite=new Texture2D(size,size,TextureFormat.RGBA32,false){name="Core Clash ring",filterMode=FilterMode.Bilinear,wrapMode=TextureWrapMode.Clamp,hideFlags=HideFlags.HideAndDontSave};
+                sprite=new Texture2D(size,size,TextureFormat.RGBA32,true){name="Core Clash ring",filterMode=FilterMode.Trilinear,wrapMode=TextureWrapMode.Clamp,hideFlags=HideFlags.HideAndDontSave};
                 float inner=size*.5f-Mathf.Max(.6f,thickness/2048f*size*.5f);
                 var pixels=new Color[size*size];
                 for(int y=0;y<size;y++)
@@ -107,7 +110,7 @@ namespace CoreClash.Presentation
                     }
                     pixels[y*size+x]=new Color(1,1,1,alpha);
                 }
-                sprite.SetPixels(pixels);sprite.Apply(false,true);rings[key]=sprite;
+                sprite.SetPixels(pixels);sprite.Apply(true,true);rings[key]=sprite;
             }
             var old=GUI.color;GUI.color=color;GUI.DrawTexture(new Rect(center.x-radius,center.y-radius,radius*2,radius*2),sprite);GUI.color=old;
         }
@@ -123,7 +126,7 @@ namespace CoreClash.Presentation
             if(!arcs.TryGetValue(key,out var sprite)||sprite==null)
             {
                 const int size=128;
-                sprite=new Texture2D(size,size,TextureFormat.RGBA32,false){name="Core Clash HP ring",filterMode=FilterMode.Bilinear,wrapMode=TextureWrapMode.Clamp,hideFlags=HideFlags.HideAndDontSave};
+                sprite=new Texture2D(size,size,TextureFormat.RGBA32,true){name="Core Clash HP ring",filterMode=FilterMode.Trilinear,wrapMode=TextureWrapMode.Clamp,hideFlags=HideFlags.HideAndDontSave};
                 float inner=size*.5f-Mathf.Max(1.5f,thickness/64f*size*.5f);
                 var pixels=new Color[size*size];
                 for(int y=0;y<size;y++)
@@ -146,7 +149,7 @@ namespace CoreClash.Presentation
                     }
                     pixels[y*size+x]=new Color(1,1,1,alpha);
                 }
-                sprite.SetPixels(pixels);sprite.Apply(false,true);arcs[key]=sprite;
+                sprite.SetPixels(pixels);sprite.Apply(true,true);arcs[key]=sprite;
             }
             var old=GUI.color;GUI.color=color;GUI.DrawTexture(new Rect(center.x-radius,center.y-radius,radius*2,radius*2),sprite);GUI.color=old;
         }
@@ -158,6 +161,22 @@ namespace CoreClash.Presentation
         }
         // W24 candy button: a face on a darker lip. Selected = filled with the accent (white text);
         // an accent without selection = white face with accent text; no accent = neutral white.
+        // W24 cartoon look: text with an ink outline (four offset copies under the fill).
+        public static void Inked(Rect r,string text,int size,Color color,TextAnchor align=TextAnchor.MiddleCenter,float width=1.5f)
+        {
+            var ink=new Color(Theme.Ink.r,Theme.Ink.g,Theme.Ink.b,color.a);
+            Text(new Rect(r.x-width,r.y,r.width,r.height),text,size,ink,align,true);Text(new Rect(r.x+width,r.y,r.width,r.height),text,size,ink,align,true);
+            Text(new Rect(r.x,r.y-width,r.width,r.height),text,size,ink,align,true);Text(new Rect(r.x,r.y+width+1,r.width,r.height),text,size,ink,align,true);
+            Text(r,text,size,color,align,true);
+        }
+        // Same idea for a glyph: the shape in ink, slightly larger, under the coloured shape.
+        public static void InkedGlyph(Rect r,string spec,Color color,float width=1.5f)
+        {
+            var ink=new Color(Theme.Ink.r,Theme.Ink.g,Theme.Ink.b,color.a);
+            Glyphs.Paint(new Rect(r.x-width,r.y-width,r.width,r.height),spec,ink);Glyphs.Paint(new Rect(r.x+width,r.y-width,r.width,r.height),spec,ink);
+            Glyphs.Paint(new Rect(r.x-width,r.y+width,r.width,r.height),spec,ink);Glyphs.Paint(new Rect(r.x+width,r.y+width,r.width,r.height),spec,ink);
+            Glyphs.Paint(r,spec,color);
+        }
         public static bool Button(Rect r,string text,Color? accent=null,bool selected=false,bool enabled=true,int size=13)
         {
             Color tint=accent??Cyan;bool hover=r.Contains(Event.current.mousePosition)&&enabled&&GUI.enabled;
@@ -170,6 +189,8 @@ namespace CoreClash.Presentation
             if(Event.current.type==EventType.Repaint)
             {
                 if(enabled)Shadow(r,.12f,6,3);
+                // Ink outline around the whole button, then the lip and the face.
+                Round(new Rect(r.x-1.5f,r.y-1.5f+(hover?1:0),r.width+3,r.height+3-(hover?1:0)),enabled?Theme.Ink:new Color(.6f,.63f,.75f));
                 Round(new Rect(r.x,r.y+lip,r.width,r.height-lip),edge);
                 Round(face,selected||!enabled?fill:edge);
                 if(!selected&&enabled)Round(Inset(face,accent.HasValue?2:1.5f),fill);
@@ -208,7 +229,7 @@ namespace CoreClash.Presentation
         }
         public static void Circle(Rect r,Color c)
         {
-            if(disc==null){disc=new Texture2D(96,96,TextureFormat.RGBA32,false);for(int y=0;y<96;y++)for(int x=0;x<96;x++){float d=Vector2.Distance(new Vector2(x+.5f,y+.5f),new Vector2(48,48));disc.SetPixel(x,y,new Color(1,1,1,Mathf.Clamp01(48-d)));}disc.Apply();}
+            if(disc==null){disc=new Texture2D(128,128,TextureFormat.RGBA32,true){filterMode=FilterMode.Trilinear,wrapMode=TextureWrapMode.Clamp};for(int y=0;y<128;y++)for(int x=0;x<128;x++){float d=Vector2.Distance(new Vector2(x+.5f,y+.5f),new Vector2(64,64));disc.SetPixel(x,y,new Color(1,1,1,Mathf.Clamp01(63-d)));}disc.Apply(true);}
             var old=GUI.color;GUI.color=c;GUI.DrawTexture(r,disc);GUI.color=old;
         }
         public static void Line(Vector2 a,Vector2 b,Color color,float width=2)

@@ -100,13 +100,13 @@ namespace CoreClash.Presentation
             if(UnityEngine.Input.GetKeyDown(KeyCode.F2)&&setup)SetDeveloperRoster(!DeveloperRoster);
             if(exitGuard.Open&&!externalModal&&(UnityEngine.Input.GetKeyDown(KeyCode.Return)||UnityEngine.Input.GetKeyDown(KeyCode.KeypadEnter)||UnityEngine.Input.GetKeyDown(KeyCode.JoystickButton0)))ConfirmLeaveMatch();
             else if(exitGuard.Open&&!externalModal&&(UnityEngine.Input.GetKeyDown(KeyCode.Escape)||UnityEngine.Input.GetKeyDown(KeyCode.JoystickButton1)))CancelLeaveMatch();
-            else if(UnityEngine.Input.GetKeyDown(KeyCode.Escape)&&!externalModal){if(inspect.Length>0)CloseBallDetails();else if(DeveloperOverlay)SetDeveloperOverlay(false);else if(boardInspection)SetBoardInspection(false);else if(builder)builder=false;else if(library)library=false;else if(!setup)RequestLeaveMatch();}
+            else if(UnityEngine.Input.GetKeyDown(KeyCode.Escape)&&!externalModal){if(inspect.Length>0)CloseBallDetails();else if(DeveloperOverlay)SetDeveloperOverlay(false);else if(phoneMenu)phoneMenu=false;else if(boardInspection)SetBoardInspection(false);else if(builder)builder=false;else if(library)library=false;else if(!setup)RequestLeaveMatch();}
             if(setup)return;
             if(MatchExitGuard.PausesSimulation(exitGuard.Open,NetworkLink!=null))accumulator=0;
             else if(NetworkLink==null||NetworkLink.IsAuthority){accumulator=Math.Min(accumulator+Time.unscaledDeltaTime,.1f);while(accumulator>=1f/120){Simulation.Step(1f/120);accumulator-=1f/120;}}
             feedback.Observe(Simulation.State,Time.unscaledTime);
             if(Simulation.State.phase==MatchPhase.Aiming)selected=BallSelection.ForTurn(Simulation,selected);
-            if(inspect.Length>0||DeveloperOverlay||externalModal||exitGuard.Open){gesture.Active=false;return;}
+            if(inspect.Length>0||DeveloperOverlay||externalModal||exitGuard.Open||phoneMenu){gesture.Active=false;return;}
             if(CanChoose){
                 if(UnityEngine.Input.GetKeyDown(KeyCode.Alpha0)||UnityEngine.Input.GetKeyDown(KeyCode.Keypad0))SelectBall("normal");
                 for(int i=0;i<Simulation.State.players[Simulation.State.turn].stock.Count&&i<9;i++)if(UnityEngine.Input.GetKeyDown((KeyCode)((int)KeyCode.Alpha1+i))||UnityEngine.Input.GetKeyDown((KeyCode)((int)KeyCode.Keypad1+i)))SelectBall(Simulation.State.players[Simulation.State.turn].stock[i].id);
@@ -116,7 +116,7 @@ namespace CoreClash.Presentation
             if(UnityEngine.Input.touchCount==0&&UnityEngine.Input.GetMouseButtonDown(1)&&InspectAt(UnityEngine.Input.mousePosition))return;
             if(TouchInput.Read(out var pointer)||DesktopInput.Read(out pointer))HandlePointer(pointer);
         }
-        public void PresentationPointer(PointerSample pointer){if(!setup&&!IsModalOpen&&!DeveloperOverlay&&!externalModal)HandlePointer(pointer);}
+        public void PresentationPointer(PointerSample pointer){if(!setup&&!IsModalOpen&&!DeveloperOverlay&&!externalModal&&!phoneMenu)HandlePointer(pointer);}
         void HandlePointer(PointerSample p)
         {
             if(p.canceled){gesture.Cancel(p.id);return;}
@@ -143,7 +143,7 @@ namespace CoreClash.Presentation
             // W22: a match between two active decks keeps random type picks inside the active roster.
             // A match with a frozen deck (developer roster, tests, drivers) runs exactly as before.
             Simulation.ActiveRosterOnly=Catalog.Roster!=null&&Catalog.Roster.IsActiveDeck(chosen[0])&&Catalog.Roster.IsActiveDeck(chosen[1]);
-            session=new NetworkGameSession(Simulation);feedback=new FeedbackTimeline();feedback.Observe(Simulation.State,Time.unscaledTime);Fx.Reset();resultHidden=false;receivedRemoteState=false;sequence=0;setup=false;exitGuard.Reset();builder=library=boardInspection=false;inspectBallId=0;selected="normal";CancelPointer();notice="";trayScroll=matchScroll=Vector2.zero;Debug.Log("CORE_CLASH_MATCH_START "+chosen[0].id+" vs "+chosen[1].id+(Simulation.ActiveRosterOnly?" roster=active":""));}
+            session=new NetworkGameSession(Simulation);feedback=new FeedbackTimeline();feedback.Observe(Simulation.State,Time.unscaledTime);Fx.Reset();resultHidden=false;phoneMenu=false;receivedRemoteState=false;sequence=0;setup=false;exitGuard.Reset();builder=library=boardInspection=false;inspectBallId=0;selected="normal";CancelPointer();notice="";trayScroll=matchScroll=Vector2.zero;Debug.Log("CORE_CLASH_MATCH_START "+chosen[0].id+" vs "+chosen[1].id+(Simulation.ActiveRosterOnly?" roster=active":""));}
         public void SelectBall(string id){if(CanChoose&&Catalog.Ball(id)!=null&&BallSelection.CanSelect(Simulation,Simulation.State.turn,id)){if(selected!=id)selectedAt=Time.unscaledTime;selected=id;gesture.Active=false;Debug.Log("CORE_CLASH_SELECT "+id);}}
         public void ShowBallDetails(string id){if(Catalog.Ball(id)!=null){inspect=id;inspectBallId=0;boardInspection=false;infoScroll=Vector2.zero;gesture.Active=false;Debug.Log("CORE_CLASH_DETAILS "+id+" developer="+DeveloperOverlay);}}
         public void ShowRuntimeBallDetails(int id){var current=BallInspection.Read(Simulation?.State,id);if(current!=null&&Catalog.Ball(current.Type)!=null){ShowBallDetails(current.Type);inspectBallId=id;boardInspection=false;}}
@@ -202,8 +202,7 @@ namespace CoreClash.Presentation
                 bool small=UiWidth<500;float x=small?14:24;int size=UiWidth<360?17:small?23:27;
                 Draw.Circle(new Rect(x,17,22,22),Theme.Ink);Draw.Circle(new Rect(x+2,19,18,18),Theme.P1);
                 Draw.Circle(new Rect(x+14,21,22,22),Theme.Ink);Draw.Circle(new Rect(x+16,23,18,18),Theme.P2);
-                Draw.Text(new Rect(x+44,13,UiWidth<360?130:small?190:330,30),"CORE CLASH",size,new Color(.07f,.1f,.3f,.45f),TextAnchor.MiddleLeft,true);
-                Draw.Text(new Rect(x+44,11,UiWidth<360?130:small?190:330,30),"CORE CLASH",size,Theme.OnColor,TextAnchor.MiddleLeft,true);
+                Draw.Inked(new Rect(x+44,11,UiWidth<360?130:small?190:330,30),"CORE CLASH",size,Theme.Select,TextAnchor.MiddleLeft,2f);
             }
             if(fatal.Length>0){Draw.Text(new Rect(30,100,UiWidth-60,200),fatal,18,Theme.OnColor);return;}if(Catalog==null)return;
             int screen=setup?(builder?1:library?2:0):3;

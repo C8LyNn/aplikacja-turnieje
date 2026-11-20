@@ -9,8 +9,7 @@ namespace CoreClash.Presentation
         // W24: text that sits directly on the backdrop (not on a card).
         static void Heading(Rect r,string text,int size,TextAnchor align=TextAnchor.MiddleLeft)
         {
-            Draw.Text(new Rect(r.x,r.y+2,r.width,r.height),text,size,new Color(.07f,.1f,.3f,.4f),align,true);
-            Draw.Text(r,text,size,Theme.OnColor,align,true);
+            Draw.Inked(r,text,size,Theme.OnColor,align,size>=20?2f:1.5f);
         }
         static readonly Color OnBackdropSoft=new Color(1,1,1,.88f);
         static readonly Color Go=new Color(.12f,.76f,.45f);

@@ -184,7 +184,6 @@ namespace CoreClash.Presentation
                 float length = Mathf.Max(1, change);
                 cx = ball.x - dvx / length * ball.radius; cy = ball.y - dvy / length * ball.radius;
             }
-            if (tracks.TryGetValue(ball.id, out var track)) { track.hitAt = now; track.hitStrength = Mathf.Max(.25f, strength); }
             Push(Shape.Flash, cx, cy, cx, cy, now, .16f + .08f * strength, 13 + 24 * strength, Spark, ball.id);
             if (strength > .12f) Push(Shape.Ripple, cx, cy, cx, cy, now, .3f + .15f * strength, 16 + 30 * strength, Theme.Select, ball.id);
             if (ReducedMotion) return;
@@ -453,7 +452,7 @@ namespace CoreClash.Presentation
         {
             if (!tracks.TryGetValue(ballId, out var track)) return 0;
             float age = now - track.lostAt;
-            return age >= 0 && age < .16f ? 1 - age / .16f : 0;
+            return age >= 0 && age < .1f ? 1 - age / .1f : 0;
         }
         public static float HealGlow(int ballId, float now)
         {
@@ -473,8 +472,8 @@ namespace CoreClash.Presentation
             from = 0; fade = 0;
             if (!tracks.TryGetValue(ballId, out var track)) return false;
             float age = now - track.lostAt;
-            if (age < 0 || age >= .55f) return false;
-            from = track.lostFrom; fade = 1 - age / .55f; return true;
+            if (age < 0 || age >= .18f) return false;
+            from = track.lostFrom; fade = 1 - age / .18f; return true;
         }
 
         // ---------------------------------------------------------------- drawing
@@ -502,7 +501,7 @@ namespace CoreClash.Presentation
                         float ease = 1 - (1 - t) * (1 - t), radius = (e.radius * (.2f + .8f * ease)) * scale;
                         if (t < .5f) Draw.Circle(new Rect(at.x - radius, at.y - radius, radius * 2, radius * 2), Theme.A(e.color, (.5f - t) * .5f * strength));
                         Draw.Ring(at, radius, Theme.A(e.color, (1 - t) * .95f * strength), Mathf.Max(2, (7 * (1 - t) + 1.5f) * scale));
-                        Draw.Ring(at, radius + 2.5f * scale, Theme.A(Theme.Ink, (1 - t) * .22f * strength), Mathf.Max(1, 1.2f * scale));
+                        Draw.Ring(at, radius + 3f * scale, Theme.A(Theme.Ink, (1 - t) * .9f * strength), Mathf.Max(1.5f, 2.4f * scale));
                         break;
                     }
                     case Shape.Ripple:
@@ -594,7 +593,10 @@ namespace CoreClash.Presentation
                 Vector2 p = screen ? new Vector2(particles[i].x, particles[i].y) : View(board, viewOwner, particles[i].x, particles[i].y);
                 Color tint = Theme.A(particles[i].color, particles[i].color.a * Mathf.Clamp01((1 - t) * 2.2f) * Theme.EffectStrength);
                 var rect = new Rect(p.x - size / 2, p.y - size / 2, size, size);
-                if (particles[i].spec == null) Draw.Circle(rect, tint); else Glyphs.Paint(rect, particles[i].spec, tint);
+                // Cartoon look: each particle carries a thin ink edge.
+                var edge = new Rect(rect.x - 1.2f, rect.y - 1.2f, rect.width + 2.4f, rect.height + 2.4f); Color ink = Theme.A(Theme.Ink, tint.a * .85f);
+                if (particles[i].spec == null) { if (size > 4) Draw.Circle(edge, ink); Draw.Circle(rect, tint); }
+                else { if (size > 5) Glyphs.Paint(edge, particles[i].spec, ink); Glyphs.Paint(rect, particles[i].spec, tint); }
             }
         }
 
