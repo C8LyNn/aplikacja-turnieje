@@ -33,6 +33,8 @@ namespace CoreClash.Presentation
             var fx=new Rect(left+width-fxW,foot,fxW,52);
             if(wide?Draw.Button(fx,Fx.ReducedMotion?"Effects: calm":"Effects: full",Theme.Info,!Fx.ReducedMotion,true,12):Draw.IconButton(fx,Fx.Star,Theme.Info,!Fx.ReducedMotion))Fx.SetReducedMotion(!Fx.ReducedMotion);
         }
+        const string IconRobot="+P -.74 -.5 .74 -.5 .74 .74 -.74 .74;-C -.32 .02 .18;-C .32 .02 .18;-L -.26 .46 .26 .46 .12;+L 0 -.5 0 -.82 .18;+C 0 -.86 .16";
+        const string IconSwitch="+L -.6 -.36 .3 -.36 .26;+P .96 -.36 .3 -.8 .3 .08;+L .6 .36 -.3 .36 .26;+P -.96 .36 -.3 -.08 -.3 .8";
         void PlayerChoice(int owner,Rect r)
         {
             var deck=chosen[owner];var color=Draw.Owner(owner);
@@ -40,8 +42,16 @@ namespace CoreClash.Presentation
             // Team block on the left: the same colour and ring pattern as that player's balls.
             float block=Math.Min(58,r.height);
             Draw.Round(new Rect(r.x,r.y,block,r.height),color);Draw.Rect(new Rect(r.x+block-12,r.y,12,r.height),color);
-            Draw.Ring(new Vector2(r.x+block/2,r.y+r.height*.36f),9,Theme.OnColor,2.8f,owner==1?Theme.P2RingSegments:0,Theme.P2RingFill);
-            Draw.Text(new Rect(r.x,r.y+r.height*.52f,block,18),"P"+(owner+1),14,Theme.OnColor,TextAnchor.MiddleCenter,true);
+            // Player 2 can be the computer: tap the team block to switch.
+            bool computer=owner==1&&VersusAi;
+            if(computer)Glyphs.Paint(new Rect(r.x+block/2-12,r.y+r.height*.36f-13,24,24),IconRobot,Theme.OnColor);
+            else Draw.Ring(new Vector2(r.x+block/2,r.y+r.height*.36f),9,Theme.OnColor,2.8f,owner==1?Theme.P2RingSegments:0,Theme.P2RingFill);
+            Draw.Text(new Rect(r.x,r.y+r.height*.52f,block,18),computer?"AI":"P"+(owner+1),14,Theme.OnColor,TextAnchor.MiddleCenter,true);
+            if(owner==1)
+            {
+                Glyphs.Paint(new Rect(r.x+block/2-7,r.yMax-15,14,14),IconSwitch,Theme.A(Theme.OnColor,.85f));
+                if(GUI.Button(new Rect(r.x,r.y,block,r.height),GUIContent.none,GUIStyle.none))SetVersusAi(!VersusAi);
+            }
             float x=r.x+block+12,actionW=98,actionH=UiViewport.TargetSize;
             Draw.Text(new Rect(x,r.y+8,r.xMax-x-actionW-18,22),deck.name,r.width<420?14:16,Theme.Text,TextAnchor.MiddleLeft,true);
             float step=Math.Min(24,(r.xMax-x-actionW-22)/9);

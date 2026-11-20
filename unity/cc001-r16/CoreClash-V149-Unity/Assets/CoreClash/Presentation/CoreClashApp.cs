@@ -39,6 +39,12 @@ namespace CoreClash.Presentation
         public float UiWidth=>UiViewport.Width;
         public float UiHeight=>UiViewport.Height;
         NetworkGameSession session;
+        // W24: optional computer opponent in the Player 2 seat of a local match.
+        readonly AiOpponent ai=new AiOpponent();bool aiMatch;
+        public bool VersusAi{get;private set;}
+        public void SetVersusAi(bool value){VersusAi=value;PlayerPrefs.SetInt("cc.versusAi",value?1:0);}
+        bool AiTurn=>aiMatch&&NetworkLink==null&&Simulation.State.turn==1;
+        int? LocalSeat=>NetworkLink!=null?NetworkLink.LocalOwner:aiMatch?0:(int?)null;
         FeedbackTimeline feedback=new FeedbackTimeline();
         readonly RemoteBallSmoother remoteBallSmoother=new RemoteBallSmoother();
         bool receivedRemoteState;
@@ -58,11 +64,11 @@ namespace CoreClash.Presentation
         List<string> custom=new List<string>();
         DeckDefinition[] decks;
         int ViewOwner=>NetworkLink!=null?NetworkLink.LocalOwner:0;
-        bool CanChoose=>Simulation.State.phase==MatchPhase.Aiming&&(NetworkLink==null||(NetworkLink.IsConnected&&Simulation.State.turn==NetworkLink.LocalOwner));
+        bool CanChoose=>Simulation.State.phase==MatchPhase.Aiming&&!AiTurn&&(NetworkLink==null||(NetworkLink.IsConnected&&Simulation.State.turn==NetworkLink.LocalOwner));
         void Awake(){Initialize();}
         public void Initialize()
         {
-            if(initialized)return;initialized=true;Application.targetFrameRate=60;QualitySettings.vSyncCount=1;
+            if(initialized)return;initialized=true;VersusAi=PlayerPrefs.GetInt("cc.versusAi",0)==1;Application.targetFrameRate=60;QualitySettings.vSyncCount=1;
             try{
                 var source=Resources.Load<TextAsset>("Data/catalog");var featured=Resources.Load<TextAsset>("Data/featured-decks");
                 if(source==null||featured==null)throw new Exception("Game data could not be loaded.");
@@ -122,6 +128,11 @@ namespace CoreClash.Presentation
             if(MatchExitGuard.PausesSimulation(exitGuard.Open,NetworkLink!=null))accumulator=0;
             else if(NetworkLink==null||NetworkLink.IsAuthority){accumulator=Math.Min(accumulator+Time.unscaledDeltaTime,.1f);while(accumulator>=1f/120){Simulation.Step(1f/120);accumulator-=1f/120;}BoardView.VisualLead=accumulator;}
             feedback.Observe(Simulation.State,Time.unscaledTime);
+            if(AiTurn&&Simulation.State.phase==MatchPhase.Aiming&&!exitGuard.Open&&ai.Think(Simulation,chosen[0],chosen[1],Time.unscaledTime,Mathf.Min(.004f,.4f/Mathf.Max(30,Application.targetFrameRate)),out var aiCommand))
+            {
+                aiCommand.sequence=++sequence;
+                if(session.Submit(aiCommand.owner,aiCommand,out var aiReason))Debug.Log("CORE_CLASH_AI_LAUNCH type="+aiCommand.ballType);else Debug.LogWarning("AI shot rejected: "+aiReason);
+            }
             if(Simulation.State.phase==MatchPhase.Aiming)selected=BallSelection.ForTurn(Simulation,selected);
             if(inspect.Length>0||DeveloperOverlay||externalModal||exitGuard.Open||phoneMenu){gesture.Active=false;return;}
             if(CanChoose){
@@ -155,8 +166,8 @@ namespace CoreClash.Presentation
             }
         }
         public void SelectDeck(int owner,string id){if(owner<0||owner>1)return;var deck=Catalog.Deck(id);if(deck!=null)chosen[owner]=deck;}
-        public void StartLocalMatch(){NetworkLink?.Disconnect();GetComponent<NgoGameSession>()?.Disconnect();StartMatchState();}
-        void StartMatchState(){remoteBallSmoother.Reset();remoteLastEventId=remoteLastRevision=0;NetworkLink=null;Simulation=new GameSimulation(Catalog,chosen[0],chosen[1]);
+        public void StartLocalMatch(){NetworkLink?.Disconnect();GetComponent<NgoGameSession>()?.Disconnect();StartMatchState();aiMatch=VersusAi;}
+        void StartMatchState(){aiMatch=false;ai.Reset();remoteBallSmoother.Reset();remoteLastEventId=remoteLastRevision=0;NetworkLink=null;Simulation=new GameSimulation(Catalog,chosen[0],chosen[1]);
             // W22: a match between two active decks keeps random type picks inside the active roster.
             // A match with a frozen deck (developer roster, tests, drivers) runs exactly as before.
             Simulation.ActiveRosterOnly=Catalog.Roster!=null&&Catalog.Roster.IsActiveDeck(chosen[0])&&Catalog.Roster.IsActiveDeck(chosen[1]);

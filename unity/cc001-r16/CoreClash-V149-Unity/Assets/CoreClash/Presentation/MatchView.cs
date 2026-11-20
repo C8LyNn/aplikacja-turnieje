@@ -25,7 +25,7 @@ namespace CoreClash.Presentation
         void RenderMatch()
         {
             var state=Simulation.State;if(state.phase==MatchPhase.Aiming)selected=BallSelection.ForTurn(Simulation,selected);
-            int displayOwner=LocalDeckContent.DisplayOwner(state.turn,NetworkLink==null?(int?)null:NetworkLink.LocalOwner);
+            int displayOwner=LocalDeckContent.DisplayOwner(state.turn,LocalSeat);
             int visualOwner=displayOwner>=0?displayOwner:state.turn;
             var remoteVisual=NetworkLink!=null&&!NetworkLink.IsAuthority&&NetworkLink.IsConnected?remoteBallSmoother:null;
             BoardView.Render(board,Simulation,gesture,Catalog.Ball(selected),feedback,remoteVisual,ViewOwner,gesture.Active?replayId:0);
@@ -164,7 +164,7 @@ namespace CoreClash.Presentation
             Rect cards=RectOf(layout.CompactCards),actions=RectOf(layout.CompactActions);
             Rect feedbackRow=RectOf(layout.CompactFeedback);
             ScoreStrip(hud);
-            int displayOwner=LocalDeckContent.DisplayOwner(state.turn,NetworkLink==null?(int?)null:NetworkLink.LocalOwner);
+            int displayOwner=LocalDeckContent.DisplayOwner(state.turn,LocalSeat);
             int tintOwner=displayOwner>=0?displayOwner:owner;
 
             Draw.Round(choice,Theme.PanelLight);
@@ -217,7 +217,7 @@ namespace CoreClash.Presentation
             var state=Simulation.State;
             Draw.Rect(new Rect(side.x,side.y-3,side.width,3),Theme.Ink);
             Draw.Rect(side,Theme.Panel);
-            int owner=LocalDeckContent.DisplayOwner(state.turn,NetworkLink==null?(int?)null:NetworkLink.LocalOwner);
+            int owner=LocalDeckContent.DisplayOwner(state.turn,LocalSeat);
             int tintOwner=owner>=0?owner:state.turn;
             // The tray carries the acting player's colour along its top edge.
             Draw.Rect(new Rect(side.x,side.y,side.width,5),state.phase==MatchPhase.Over?Theme.Select:Draw.Owner(state.turn));
@@ -310,7 +310,7 @@ namespace CoreClash.Presentation
         // so nine cards still fit the panel. Selection is amber, never a team colour.
         void BallCard(Rect r,string id)
         {
-            var d=Catalog.Ball(id);int owner=LocalDeckContent.DisplayOwner(Simulation.State.turn,NetworkLink==null?(int?)null:NetworkLink.LocalOwner),stock=LocalDeckContent.Remaining(Simulation,owner,id);
+            var d=Catalog.Ball(id);int owner=LocalDeckContent.DisplayOwner(Simulation.State.turn,LocalSeat),stock=LocalDeckContent.Remaining(Simulation,owner,id);
             var source=LocalDeckContent.ActiveSource(Simulation,owner,id);
             bool available=LocalDeckContent.VisibleAsAvailable(Simulation,owner,id),handReady=source==BallSelectionSource.Hand;
             bool canClick=LocalDeckContent.CanActivate(Simulation,owner,id,CanChoose),picked=canClick&&id==selected;

@@ -50,7 +50,7 @@ namespace CoreClash.Presentation
             Draw.Shadow(ribbon,.22f,6,4);
             Draw.Round(ribbon,deep);Draw.Round(new Rect(ribbon.x,ribbon.y,ribbon.width,ribbon.height-5),tint);
             bool you=!local&&!draw&&NetworkLink.LocalOwner==state.winner;
-            string title=draw?"DRAW":local?"PLAYER "+(state.winner+1)+" WINS!":you?"YOU WIN!":"PLAYER "+(state.winner+1)+" WINS";
+            string title=draw?"DRAW":aiMatch?(state.winner==0?"YOU WIN!":"AI WINS"):local?"PLAYER "+(state.winner+1)+" WINS!":you?"YOU WIN!":"PLAYER "+(state.winner+1)+" WINS";
             Draw.Text(new Rect(ribbon.x,ribbon.y+1,ribbon.width,ribbon.height-5),title,w<280?20:24,new Color(0,0,0,.22f),TextAnchor.MiddleCenter,true);
             Draw.Text(new Rect(ribbon.x,ribbon.y-1,ribbon.width,ribbon.height-5),title,w<280?20:24,draw?Theme.Ink:Theme.OnColor,TextAnchor.MiddleCenter,true);
             Draw.Text(new Rect(card.x+12,ribbon.yMax+6,card.width-24,20),string.IsNullOrEmpty(state.resultReason)?"Match over":state.resultReason,13,Theme.Text,TextAnchor.MiddleCenter,true);
