@@ -1,6 +1,7 @@
 import {
   Activity,
   Clock3,
+  CopyPlus,
   Eye,
   ListChecks,
   PenLine,
@@ -137,11 +138,12 @@ export function ExperimentalHostCommandCenter({
         <div className="mt-4 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm" data-testid="host-completed-summary">
           {/* V5.6: the winner is named once, in the heading above. */}
           <p className="font-semibold">Co dalej</p>
-          <p className="mt-1 text-muted-foreground">Sprawdź końcowe miejsca, pokaż wyniki widzom i zapisz kopię zapasową.</p>
+          <p className="mt-1 text-muted-foreground">Sprawdź końcowe miejsca, pokaż wyniki widzom, zapisz kopię zapasową i przygotuj następny turniej.</p>
           <div className="mt-2 flex flex-wrap gap-2">
             <Link href={finalPlacesHref ?? tournamentHref(tournamentId, true, "?tab=standings")} className={linkClass}><Trophy className="h-4 w-4" aria-hidden="true" />Końcowe miejsca</Link>
             <Link href={tournamentHref(tournamentId, true, "/audience")} className={linkClass}><Eye className="h-4 w-4" aria-hidden="true" />Widok widzów</Link>
             <Link href={tournamentHref(tournamentId, true, "?tab=backup")} className={linkClass}><ListChecks className="h-4 w-4" aria-hidden="true" />Kopia zapasowa</Link>
+            <Link href={tournamentHref(tournamentId, true, "?tab=backup&kopiuj=1")} className={linkClass}><CopyPlus className="h-4 w-4" aria-hidden="true" />Następny turniej</Link>
           </div>
         </div>
       )}

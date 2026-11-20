@@ -10,6 +10,7 @@ import { LeagueTableNotes } from "@/components/league-table-notes";
 import { standingsHavePoints, standingsHaveSets } from "@/lib/league-results";
 import { ReadQueryState } from "@/components/read-query-state";
 import { useSearch, Link } from "wouter";
+import { SettingsCopyCard } from "@/components/settings-copy-dialog";
 import { Layout } from "@/components/layout";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import {
@@ -1801,6 +1802,8 @@ export default function TournamentDetail() {
           {/* ═══ BACKUP — organizer token required ═══ */}
           {capabilities.canManageBackup && <TabsContent value="backup" className="pt-6">
             <div className="space-y-6 max-w-2xl">
+              {/* QW-09: the next event with the same settings (no participants, results or history). */}
+              <SettingsCopyCard tournamentId={id} experimental={isExperimental} autoOpen={new URLSearchParams(search).get("kopiuj") === "1"} />
 
               {/* Tip banner */}
               <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 flex items-start gap-3">

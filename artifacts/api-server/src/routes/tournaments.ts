@@ -36,6 +36,7 @@ import {
   signVersionedOrganizerToken,
 } from "../auth";
 import { logAuditAction } from "./auth";
+import { loadSettingsCopy, SettingsCopyError } from "../application/stages/tournament-settings-copy";
 import { NEW_CREDENTIAL_MIN_LENGTH } from "../application/auth/credential-rate-limit";
 import {
   getTournamentMutationActor,
@@ -860,14 +861,26 @@ router.get("/tournaments", async (_req, res): Promise<void> => {
 });
 
 router.post("/tournaments", async (req, res): Promise<void> => {
-  if (Object.prototype.hasOwnProperty.call(req.body ?? {}, "hostCode")) {
+  await createTournamentFromBody(req.body, res);
+});
+
+/**
+ * The one create path: POST /tournaments and QW-09 "Nowy turniej z tymi ustawieniami" both go through it.
+ * `copied` carries stored columns of the source tournament (validated when they were saved) and a history line.
+ */
+async function createTournamentFromBody(
+  requestBody: any,
+  res: import("express").Response,
+  copied?: { columns: Record<string, unknown>; auditLine: string },
+): Promise<void> {
+  if (Object.prototype.hasOwnProperty.call(requestBody ?? {}, "hostCode")) {
     res.status(422).json({
       error: "hostCode jest historycznym poświadczeniem i nie może być ustawiany dla nowego turnieju.",
       code: "HOST_CODE_LEGACY_ONLY",
     });
     return;
   }
-  const organizerPasswordError = organizerPasswordInputError(req.body?.organizerPassword);
+  const organizerPasswordError = organizerPasswordInputError(requestBody?.organizerPassword);
   if (organizerPasswordError) {
     res.status(400).json({
       error: organizerPasswordError,
@@ -875,7 +888,6 @@ router.post("/tournaments", async (req, res): Promise<void> => {
     });
     return;
   }
-  const requestBody = req.body;
   const rawGameConfig = ownValue(requestBody, "gameConfig");
   const parsed = CreateTournamentBody.safeParse(requestBody);
   if (!parsed.success) {
@@ -942,7 +954,7 @@ router.post("/tournaments", async (req, res): Promise<void> => {
     res.status(422).json({ error: rosterSettings.message, code: "INVALID_TEAM_SETTINGS" });
     return;
   }
-  const insertValues: any = { ...rest };
+  const insertValues: any = { ...rest, ...(copied?.columns ?? {}) };
   insertValues.organizerPasswordHash = await hashPassword(rawOrganizerPassword);
   if (supportPassword) insertValues.supportPasswordHash = await hashPassword(supportPassword);
   if (viewerPassword) insertValues.viewerPasswordHash = await hashPassword(viewerPassword);
@@ -956,6 +968,7 @@ router.post("/tournaments", async (req, res): Promise<void> => {
       schedulePlan: rawSchedulePlan,
       matchRules: rawMatchRules,
     });
+    if (copied) await logAuditAction(created.tournament.id, "organizer", "Organizator", copied.auditLine);
     res.status(201).json({
       ...mapTournament(created.tournament, created.gameConfig),
       organizerToken: signVersionedOrganizerToken(
@@ -978,7 +991,7 @@ router.post("/tournaments", async (req, res): Promise<void> => {
     }
     throw error;
   }
-});
+}
 
 router.get("/tournaments/:id", async (req, res): Promise<void> => {
   const params = GetTournamentParams.safeParse(req.params);
@@ -989,6 +1002,55 @@ router.get("/tournaments/:id", async (req, res): Promise<void> => {
   const access = await requireTournamentRead(req, res, params.data.id);
   if (!access) return;
   res.json(await mapTournamentWithGameConfig(access.tournament));
+});
+
+// QW-09 · settings copy for the next event. Organizer only, any status (copying a finished event is the main use).
+function sendSettingsCopyError(error: SettingsCopyError, res: import("express").Response): void {
+  res.status(error.code === "SETTINGS_COPY_UNSUPPORTED" ? 409 : 422).json({ error: error.message, code: error.code });
+}
+
+router.get("/tournaments/:id/copy", async (req, res): Promise<void> => {
+  const params = GetTournamentParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
+  const access = await requireOrganizer(req, res, params.data.id);
+  if (!access) return;
+  res.setHeader("Cache-Control", "no-store");
+  try {
+    res.json((await loadSettingsCopy(access.tournament)).summary);
+  } catch (error) {
+    if (error instanceof SettingsCopyError) { sendSettingsCopyError(error, res); return; }
+    throw error;
+  }
+});
+
+const SETTINGS_COPY_INPUT_KEYS = new Set(["name", "organizerPassword", "supportPassword", "viewerPassword", "visibility", "participantCount"]);
+
+router.post("/tournaments/:id/copy", async (req, res): Promise<void> => {
+  const params = GetTournamentParams.safeParse(req.params);
+  if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
+  const input = typeof req.body === "object" && req.body !== null && !Array.isArray(req.body) ? req.body as Record<string, unknown> : null;
+  if (!input) { res.status(400).json({ error: "Podaj nazwę i hasło organizatora nowego turnieju." }); return; }
+  const unknown = Object.keys(input).filter((key) => !SETTINGS_COPY_INPUT_KEYS.has(key));
+  if (unknown.length) { res.status(400).json({ error: `Nieznane pola: ${unknown.map((key) => key.slice(0, 30)).join(", ")}.` }); return; }
+  if (input.participantCount !== undefined && typeof input.participantCount !== "number") {
+    res.status(422).json({ error: "Liczba uczestników musi być liczbą.", code: "INVALID_SETTINGS_COPY" });
+    return;
+  }
+  const access = await requireOrganizer(req, res, params.data.id);
+  if (!access) return;
+  let copy;
+  try {
+    copy = await loadSettingsCopy(access.tournament, { participantCount: input.participantCount as number | undefined });
+  } catch (error) {
+    if (error instanceof SettingsCopyError) { sendSettingsCopyError(error, res); return; }
+    throw error;
+  }
+  const { participantCount: _participantCount, ...credentials } = input;
+  await createTournamentFromBody(
+    { ...copy.body, ...credentials },
+    res,
+    { columns: copy.columns, auditLine: `Utworzył turniej z ustawień turnieju „${access.tournament.name.slice(0, 120)}” (#${access.tournament.id})` },
+  );
 });
 
 router.get("/tournaments/:id/stages", async (req, res): Promise<void> => {
