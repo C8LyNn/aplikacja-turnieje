@@ -29,7 +29,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Trophy, Users, Swords, ExternalLink, Trash2, Upload, Monitor, ChevronRight, Info, Pencil, Check, X, Download, HardDriveDownload, AlertTriangle, FileUp, CheckSquare, ZoomIn, ZoomOut, Shield, Lock, Key, Eye, Share2, RefreshCw } from "lucide-react";
+import { Trophy, Users, Swords, ExternalLink, Trash2, Upload, Monitor, ChevronRight, Info, Pencil, Check, X, Download, HardDriveDownload, AlertTriangle, FileUp, CheckSquare, ZoomIn, ZoomOut, Shield, Lock, Key, Eye, Share2, RefreshCw, ClipboardPaste } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 import { useState, useEffect, useMemo, useRef } from "react";
@@ -289,6 +289,8 @@ export default function TournamentDetail() {
   const [editingFieldsPlayerId, setEditingFieldsPlayerId] = useState<number | null>(null);
   // CSV import state
   const [showCsvImport, setShowCsvImport] = useState(false);
+  // QW-02: Classic gets the same paste-a-list panel as Modern, next to the unchanged CSV import.
+  const [showBulkPaste, setShowBulkPaste] = useState(false);
   const [showChecklist, setShowChecklist] = useState(false);
   const [csvText, setCsvText] = useState("");
   const [csvMode, setCsvMode] = useState<"append" | "replace">("append");
@@ -1060,9 +1062,19 @@ export default function TournamentDetail() {
             <div className={`grid md:grid-cols-3 gap-6 ${isExperimental ? "mt-4" : ""}`}>
               <div className="md:col-span-2 space-y-4">
                 <Card>
-                  <CardHeader className="flex flex-row items-center justify-between">
+                  <CardHeader className={isExperimental ? "flex flex-row items-center justify-between" : "flex flex-row flex-wrap items-center justify-between gap-2"}>
                     <CardTitle>{teamEntries ? "Drużyny" : "Zawodnicy"} ({players?.length ?? "—"})</CardTitle>
-                    {tournament.status === "draft" && capabilities.canManageParticipants && (
+                    {!isExperimental && tournament.status === "draft" && capabilities.canManageParticipants && (
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Button variant="outline" size="sm" aria-expanded={showBulkPaste} onClick={() => { resetCsvImport(); setShowBulkPaste(!showBulkPaste); }}>
+                          <ClipboardPaste className="w-4 h-4 mr-2" /> {showBulkPaste ? "Zamknij" : "Wklej listę"}
+                        </Button>
+                        <Button variant="outline" size="sm" aria-expanded={showCsvImport} onClick={() => { setShowBulkPaste(false); if (showCsvImport) resetCsvImport(); else setShowCsvImport(true); }}>
+                          <Upload className="w-4 h-4 mr-2" /> {showCsvImport ? "Zamknij" : "Import CSV"}
+                        </Button>
+                      </div>
+                    )}
+                    {isExperimental && tournament.status === "draft" && capabilities.canManageParticipants && (
                       <Button variant="outline" size="sm" onClick={() => showCsvImport ? resetCsvImport() : setShowCsvImport(true)}>
                         <Upload className="w-4 h-4 mr-2" /> {showCsvImport ? "Zamknij" : isExperimental ? "Wklej listę" : "Import CSV"}{!showCsvImport && teamEntries ? " drużyn" : ""}
                       </Button>
@@ -1079,6 +1091,18 @@ export default function TournamentDetail() {
                         pending={importPlayers.isPending}
                         onImport={handleExperimentalBulkImport}
                         onClose={resetCsvImport}
+                      />
+                    </div>
+                  )}
+                  {!isExperimental && showBulkPaste && tournament.status === "draft" && capabilities.canManageParticipants && (
+                    <div className="stable-bulk-paste border-b px-6 pb-5">
+                      <ExperimentalBulkPaste
+                        existingNames={(players ?? []).map((player) => player.name)}
+                        existingSeeds={(players ?? []).flatMap((player) => (typeof player.seed === "number" ? [player.seed] : []))}
+                        maxPlayers={tournament.maxPlayers}
+                        pending={importPlayers.isPending}
+                        onImport={handleExperimentalBulkImport}
+                        onClose={() => setShowBulkPaste(false)}
                       />
                     </div>
                   )}

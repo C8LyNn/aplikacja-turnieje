@@ -138,3 +138,76 @@
   .organizer-flow-stage { width: 19rem; }
   .organizer-route button { height: auto; white-space: normal; text-align: start; }
 }
+
+/* QW-02 — Classic view of the shared "paste a participant list" panel (ExperimentalBulkPaste).
+   Modern styles the same markup under .experimental-tournament-shell; Classic uses its own tokens. */
+.stable-bulk-paste { --sbp-ok: 142 70% 45%; --sbp-warn: 45 93% 55%; --sbp-bad: 0 84% 65%; --sbp-info: 213 94% 68%; }
+.stable-bulk-paste .experimental-v4-bulk { display: grid; gap: .75rem; padding-top: .75rem; min-width: 0; }
+.stable-bulk-paste .experimental-v4-bulk-head { display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap; }
+.stable-bulk-paste .experimental-v4-bulk-title { display: inline-flex; align-items: center; gap: .5rem; margin: 0; font-size: 1rem; font-weight: 600; color: hsl(var(--foreground)); }
+.stable-bulk-paste .experimental-v4-muted { margin: 0; font-size: .8125rem; color: hsl(var(--muted-foreground)); }
+.stable-bulk-paste .experimental-v4-kicker { margin: 0; font-size: .75rem; font-weight: 600; color: hsl(var(--muted-foreground)); }
+.stable-bulk-paste .experimental-v4-bulk-text {
+  width: 100%; min-height: 9rem; padding: .625rem .75rem; resize: vertical;
+  border: 1px solid hsl(var(--input)); border-radius: calc(var(--radius) - 2px); background: hsl(var(--background)); color: hsl(var(--foreground));
+  font: 500 .8125rem/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.stable-bulk-paste .experimental-v4-bulk-text:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
+.stable-bulk-paste .experimental-v4-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: .4rem; min-height: 2.25rem; padding: .25rem .875rem;
+  border: 1px solid hsl(var(--border)); border-radius: calc(var(--radius) - 2px); background: transparent; color: hsl(var(--foreground));
+  font-size: .875rem; font-weight: 500; cursor: pointer;
+}
+.stable-bulk-paste .experimental-v4-btn:hover:not(:disabled) { background: hsl(var(--muted) / .6); }
+.stable-bulk-paste .experimental-v4-btn:focus-visible { outline: 2px solid hsl(var(--ring)); outline-offset: 2px; }
+.stable-bulk-paste .experimental-v4-btn[data-variant="ghost"] { border-color: transparent; color: hsl(var(--muted-foreground)); }
+.stable-bulk-paste .experimental-v4-btn[data-variant="ghost"]:hover:not(:disabled) { color: hsl(var(--foreground)); }
+.stable-bulk-paste .experimental-v4-btn[data-variant="primary"] { border-color: transparent; background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); font-weight: 600; }
+.stable-bulk-paste .experimental-v4-btn[data-variant="primary"]:hover:not(:disabled) { background: hsl(var(--primary) / .9); }
+.stable-bulk-paste .experimental-v4-btn:disabled { opacity: .5; cursor: not-allowed; }
+.stable-bulk-paste .experimental-v4-bulk-mode { display: flex; flex-wrap: wrap; gap: .5rem 1.25rem; margin: 0; padding: 0; border: 0; font-size: .875rem; color: hsl(var(--foreground)); }
+.stable-bulk-paste .experimental-v4-bulk-mode legend { width: 100%; margin-bottom: .25rem; }
+.stable-bulk-paste .experimental-v4-bulk-mode label,
+.stable-bulk-paste .experimental-v4-bulk-toggle { display: inline-flex; align-items: center; gap: .4rem; min-height: 2.25rem; }
+.stable-bulk-paste .experimental-v4-bulk-toggle { font-size: .8125rem; color: hsl(var(--muted-foreground)); }
+.stable-bulk-paste .experimental-v4-bulk-summary { display: flex; flex-wrap: wrap; gap: .375rem; }
+.stable-bulk-paste .experimental-v4-bulk-actions { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem; }
+.stable-bulk-paste .experimental-v4-chip {
+  --tone: var(--sbp-info);
+  display: inline-flex; align-items: center; gap: .3rem; padding: .2rem .6rem; border-radius: 999px; font-size: .75rem; font-weight: 600;
+  border: 1px solid hsl(var(--tone) / .45); background: hsl(var(--tone) / .12); color: hsl(var(--tone));
+}
+.stable-bulk-paste .experimental-v4-chip[data-tone="success"] { --tone: var(--sbp-ok); }
+.stable-bulk-paste .experimental-v4-chip[data-tone="warning"] { --tone: var(--sbp-warn); }
+.stable-bulk-paste .experimental-v4-chip[data-tone="danger"] { --tone: var(--sbp-bad); }
+.stable-bulk-paste .experimental-v4-bulk-table { max-height: 18rem; overflow: auto; border: 1px solid hsl(var(--border)); border-radius: calc(var(--radius) - 2px); }
+.stable-bulk-paste .experimental-v4-bulk-table table { width: 100%; border-collapse: collapse; font-size: .8125rem; }
+.stable-bulk-paste .experimental-v4-bulk-table th { position: sticky; top: 0; padding: .45rem .65rem; text-align: left; font-size: .6875rem; text-transform: uppercase; letter-spacing: .04em; color: hsl(var(--muted-foreground)); background: hsl(var(--card)); }
+.stable-bulk-paste .experimental-v4-bulk-table td { padding: .4rem .65rem; border-top: 1px solid hsl(var(--border)); color: hsl(var(--foreground)); }
+.stable-bulk-paste .experimental-v4-bulk-table td:is(:nth-child(2), :nth-child(3)) { overflow-wrap: anywhere; }
+.stable-bulk-paste .experimental-v4-bulk-table tr[data-invalid] td { background: hsl(var(--sbp-bad) / .08); }
+.stable-bulk-paste .experimental-v4-bulk-error { color: hsl(var(--sbp-bad)); font-weight: 600; }
+.stable-bulk-paste .experimental-v4-bulk-ok { color: hsl(var(--sbp-ok)); font-weight: 700; }
+.stable-bulk-paste .experimental-v4-bulk-warn {
+  display: flex; align-items: center; gap: .5rem; margin: 0; padding: .6rem .8rem; border-radius: calc(var(--radius) - 2px); font-size: .875rem;
+  border: 1px solid hsl(var(--sbp-warn) / .45); background: hsl(var(--sbp-warn) / .1); color: hsl(var(--foreground));
+}
+.stable-bulk-paste .experimental-v4-bulk-warn svg { flex: none; color: hsl(var(--sbp-warn)); }
+.stable-bulk-paste .experimental-v4-bulk-done { display: flex; align-items: center; gap: .5rem; margin: 0; font-weight: 600; color: hsl(var(--foreground)); }
+.stable-bulk-paste .experimental-v4-bulk-done svg { flex: none; color: hsl(var(--sbp-ok)); }
+.stable-bulk-paste .experimental-v4-bulk-errors { margin: 0; padding-left: 1.1rem; font-size: .8125rem; color: hsl(var(--muted-foreground)); }
+@media (max-width: 639px) {
+  /* Phones: each pasted row is a small card — line and nick on top, the reason for rejection in full below. */
+  .stable-bulk-paste .experimental-v4-bulk-table thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+  .stable-bulk-paste .experimental-v4-bulk-table :is(table, tbody) { display: block; }
+  .stable-bulk-paste .experimental-v4-bulk-table tr { display: grid; grid-template-columns: 2rem minmax(0, 1fr) auto auto; gap: .15rem .5rem; padding: .45rem .6rem; }
+  .stable-bulk-paste .experimental-v4-bulk-table tr + tr { border-top: 1px solid hsl(var(--border)); }
+  .stable-bulk-paste .experimental-v4-bulk-table tr[data-invalid] { background: hsl(var(--sbp-bad) / .08); }
+  .stable-bulk-paste .experimental-v4-bulk-table tr[data-invalid] td { background: none; }
+  .stable-bulk-paste .experimental-v4-bulk-table td { padding: 0; border: 0; }
+  .stable-bulk-paste .experimental-v4-bulk-table td:first-child,
+  .stable-bulk-paste .experimental-v4-bulk-table td:nth-child(3) { color: hsl(var(--muted-foreground)); }
+  .stable-bulk-paste .experimental-v4-bulk-table td:nth-child(4):not(:empty)::before { content: "#"; color: hsl(var(--muted-foreground)); }
+  .stable-bulk-paste .experimental-v4-bulk-table td:last-child { grid-column: 2 / -1; font-size: .75rem; }
+  .stable-bulk-paste .experimental-v4-bulk-actions > .experimental-v4-btn[data-variant="primary"] { flex: 1 1 100%; }
+}
