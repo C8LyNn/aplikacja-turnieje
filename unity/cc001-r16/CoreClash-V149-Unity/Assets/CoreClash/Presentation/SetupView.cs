@@ -162,7 +162,7 @@ namespace CoreClash.Presentation
                 string shown=BallIcons.Name(d);
                 Draw.Text(new Rect(nameZone.x+1,nameZone.y-4,nameZone.width-2,22),shown,shown.Length>13?11:12,Theme.Text,TextAnchor.MiddleCenter,true);
                 GuideTag(new Rect(nameZone.x+2,nameZone.y+17,nameZone.width-4,18),d.id,10);
-                if(full)Draw.Round(new Rect(r.x+3,r.y+3,r.width-6,r.height-9),new Color(1,1,1,.4f));
+                if(full)Draw.Round(new Rect(r.x+3,r.y+3,r.width-6,r.height-9),new Color(1,1,1,.26f));
                 if(picked)
                 {
                     var tick=new Rect(r.xMax-29,r.y+5,24,24);

@@ -58,15 +58,19 @@ namespace CoreClash.Presentation
         public const int WakeSteps=5;
         // W21: HP ring around the body, one segment per 5 HP (lost segments stay as a dim track).
         public const float HpRing=4.6f,HpTrack=.55f,IconSize=1.58f;
-        // W24 (owner direction): a ball looks like a real ball and is read at a glance. One colour
-        // per ball - the owner's: a sphere lit from the upper left, with a soft shadow on the floor.
-        // One large white symbol in its middle says what the ball is. The HP runs along its edge:
-        // a white arc on a dark track. Nothing else is drawn on a ball.
-        // Outlines are a darker tone of the owner's colour, never black. The Standard ball is
+        // W24 (owner direction): a ball is read at a glance and looks like a piece from a game. One
+        // colour per ball - the owner's: a glossy sphere with a bold outline, lit from the upper left,
+        // with a shadow on the floor. One large white symbol in its middle says what the ball is.
+        // The HP runs along its edge as a gauge in a dark bezel; its colour follows the HP that is
+        // left (white, then yellow when hurt, then red when critical). Nothing else is drawn on a ball.
+        // Outlines are a dark tone of the owner's colour, never black. The Standard ball is
         // plain: no symbol. The ball is drawn larger than its rules radius by BallGrow
         // (presentation only). Shares are parts of the drawn radius; LabelShare is the clear face
         // inside the gauge, which the symbol is sized from.
-        public const float BallGrow=5.6f,BallInk=1.9f,LabelShare=.76f,HpOuterShare=.96f,HpWidthShare=.16f;
+        public const float BallGrow=5.6f,BallInk=2.3f,LabelShare=.76f,HpOuterShare=.96f,HpWidthShare=.17f;
+        // Gauge colour by the share of HP that is left; the steps are HpHurtBelow and HpCriticalBelow.
+        public static readonly Color GaugeGood=C("#ffffff"),GaugeHurt=C("#ffd21e"),GaugeCritical=C("#ff5533");
+        public static Color Gauge(float share)=>share<HpCriticalBelow?GaugeCritical:share<HpHurtBelow?GaugeHurt:GaugeGood;
         // Same hue, different saturation and brightness: used for the coloured outlines.
         public static Color Shade(Color color,float saturation,float value)
         {
