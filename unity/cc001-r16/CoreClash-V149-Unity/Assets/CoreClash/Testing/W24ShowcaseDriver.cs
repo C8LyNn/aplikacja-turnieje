@@ -290,6 +290,9 @@ namespace CoreClash.Testing
         IEnumerator Launch(GameSimulation sim, Vector2 from, Vector2 to, string captureAim)
         {
             int serial = sim.State.actionSerial;
+            // The app ignores a press in the frame after it cancelled a pointer (a selection, a
+            // change of layout): wait it out, as a finger would.
+            yield return null; yield return null;
             Pointer(from, true, true, false);
             for (int i = 1; i <= 20; i++) { Pointer(Vector2.Lerp(from, to, i / 20f), false, true, false); yield return null; }
             if (captureAim != null) yield return Capture(captureAim);

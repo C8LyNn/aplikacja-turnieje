@@ -46,24 +46,62 @@ public static partial class Program
             True(s.TryCommand(Shot(s,1),out _));Settle(s);
             Eq(0,s.State.turn);True(s.State.comebackActive);False(s.State.players[0].comebackArmed);
         });
-        Test("W24 maps: terrain stays out of the centre and the bases, and every map is fair after a half turn",()=>{
+        Test("W24 maps: terrain stays out of the bases, and out of the centre unless the map makes the centre larger; every map is fair after a half turn",()=>{
             True(MatchMaps.All.Length>=5&&MatchMaps.All[0].Id=="open"&&MatchMaps.All[0].Obstacles.Length==0,"the first map is the open board");
             Eq(MatchMaps.All.Length,MatchMaps.All.Select(m=>m.Id).Distinct().Count());
+            Eq(CoreClash.Physics.ZoneResolver.CentreRadius,MatchMaps.CentreRadius);
+            True(MatchMaps.All.Any(m=>m.CentreRadius>0),"no map shows the owner's exception (a changed centre)");
             foreach(var map in MatchMaps.All)
             {
                 var o=map.Obstacles;Eq(0,o.Length%3);
+                bool changesCentre=map.CentreRadius>0;double blocked=0;
+                if(changesCentre)True(map.CentreRadius>MatchMaps.CentreRadius,map.Id+": a map that changes the centre has to make it larger");
                 for(int i=0;i<o.Length;i+=3)
                 {
                     float x=o[i],y=o[i+1],r=o[i+2];
                     True(r>=16&&r<=60,map.Id+": obstacle size");
                     True(y-r>=MatchMaps.BaseZoneBottomOfTop&&y+r<=MatchMaps.BaseZoneTopOfBottom,map.Id+": terrain reaches into a base");
-                    True(Math.Sqrt((x-MatchMaps.CentreX)*(x-MatchMaps.CentreX)+(y-MatchMaps.CentreY)*(y-MatchMaps.CentreY))-r>=MatchMaps.CentreRadius,map.Id+": terrain reaches into the centre");
+                    double away=Math.Sqrt((x-MatchMaps.CentreX)*(x-MatchMaps.CentreX)+(y-MatchMaps.CentreY)*(y-MatchMaps.CentreY));
+                    float centre=changesCentre?map.CentreRadius:MatchMaps.CentreRadius;
+                    if(away-r<centre)
+                    {
+                        // Only a map that changes the centre may put a block in it: one that lies
+                        // wholly inside the centre and is smaller than the reference centre.
+                        True(changesCentre,map.Id+": terrain reaches into the centre");
+                        True(away+r<=centre&&r<MatchMaps.CentreRadius,map.Id+": the block in the centre is too large");
+                        blocked+=Math.PI*r*r;
+                    }
                     bool twin=false;
                     for(int j=0;j<o.Length;j+=3)if(Math.Abs(o[j]-(540-x))<.01f&&Math.Abs(o[j+1]-(900-y))<.01f&&Math.Abs(o[j+2]-r)<.01f)twin=true;
                     True(twin,map.Id+": not the same after a half turn");
                 }
+                if(changesCentre)True(Math.PI*map.CentreRadius*map.CentreRadius-blocked>Math.PI*MatchMaps.CentreRadius*MatchMaps.CentreRadius,map.Id+": less room for holding the centre than the reference rules give");
                 var s=Sim();MatchMaps.Apply(s,map);Eq(map.Id,s.State.mapId);Eq(o.Length/3,s.State.structures.Count);
+                Eq(changesCentre?map.CentreRadius:MatchMaps.CentreRadius,s.State.centreRadius);
             }
+        });
+        Test("W24 maps: a larger centre is the centre the rules count",()=>{
+            var s=Sim();Eq(112f,s.State.centreRadius);
+            // Two balls of Player 1, 140 units from the middle: outside the reference centre, inside a centre of 150.
+            var a=s.Spawn(0,"normal",270-140,450);var b=s.Spawn(0,"normal",270+140,450);
+            False(CoreClash.Physics.ZoneResolver.TouchesCenter(a));True(CoreClash.Physics.ZoneResolver.TouchesCenter(a,150));
+            s.Rules.ApplyTurnPressure(0);Eq(20,s.State.players[1].hp);
+            s.State.centreRadius=150;
+            s.Rules.ApplyTurnPressure(0);Eq(19,s.State.players[1].hp);
+        });
+        Test("W24 maps: the stop estimate bounces off a map obstacle as the rules do",()=>{
+            // The same shot, straight up the middle, on the open board and with a post in its way.
+            var open=Sim();var blocked=Sim();blocked.Structures.AddObstacle(270,450,40);
+            var (dx,dy)=W18Drag(0,0,175);CoreClash.Presentation.StopPredictor.GesturePower(dx,dy,out float power);
+            var body=CoreClash.Presentation.StopPredictor.Spawn(catalog.Ball("normal"),0,dx,dy,power);
+            var free=CoreClash.Presentation.StopPredictor.Predict(body,CoreClash.Presentation.StopPredictor.Obstacles(open.State,-1));
+            var hit=CoreClash.Presentation.StopPredictor.Predict(body,CoreClash.Presentation.StopPredictor.Obstacles(blocked.State,-1));
+            True(free.Valid&&hit.Valid);True(free.StopY<450-40,"this shot has to pass the middle on the open board");
+            False(hit.Obstructed);True(hit.StopY>450+40-1,"the estimate went through the post");
+            // And the rules agree: the real ball ends where the estimate says.
+            True(blocked.TryCommand(new PlayerCommand{owner=0,turnNumber=1,kind=CommandKind.Spawn,ballType="normal",dx=dx,dy=dy,power=power},out _));Settle(blocked);
+            var ball=blocked.State.balls[0];
+            True(Math.Abs(ball.x-hit.StopX)<2&&Math.Abs(ball.y-hit.StopY)<2,"estimate "+hit.StopX+","+hit.StopY+" but the ball stopped at "+ball.x+","+ball.y);
         });
         Test("W24 rules: a map obstacle cannot be damaged, does not use up the structure limit, and stops a ball",()=>{
             var s=Sim();var rock=s.Structures.AddObstacle(270,450,30);

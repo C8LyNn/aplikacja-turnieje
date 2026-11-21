@@ -10,7 +10,10 @@ namespace CoreClash.Presentation
     public struct StopObstacle
     {
         public float X,Y,Radius;
-        public StopObstacle(float x,float y,float radius){X=x;Y=y;Radius=radius;}
+        // W24: a map's obstacle. It never moves and nothing changes it, so the estimate bounces off
+        // it exactly as the rules do, instead of only reporting that something is in the way.
+        public bool Solid;
+        public StopObstacle(float x,float y,float radius,bool solid=false){X=x;Y=y;Radius=radius;Solid=solid;}
     }
 
     // Moving body for the free-roll estimate: the launched ball exactly as
@@ -94,8 +97,18 @@ namespace CoreClash.Presentation
                 b.Vx*=f;b.Vy*=f;Clamp(ref b);b.X+=b.Vx*dt;b.Y+=b.Vy*dt;
                 bool wall=Bounds(ref b,frame,ref lastWallFrame,e);
                 LauncherRings(ref b);
-                if(obstacles!=null&&!e.Obstructed)
-                    foreach(var o in obstacles){float ox=b.X-o.X,oy=b.Y-o.Y,r=o.Radius+b.Radius;if(ox*ox+oy*oy<r*r){e.Obstructed=true;break;}}
+                bool bounced=false;
+                if(obstacles!=null)
+                    foreach(var o in obstacles)
+                    {
+                        float ox=b.X-o.X,oy=b.Y-o.Y,r=o.Radius+b.Radius,gap=ox*ox+oy*oy;
+                        if(gap>=r*r)continue;
+                        if(!o.Solid){e.Obstructed=true;continue;}
+                        // BallPhysics.ResolveStructures with restitution 1.
+                        float d=(float)Math.Sqrt(gap),nx=d>.0001f?ox/d:1,ny=d>.0001f?oy/d:0,vel=b.Vx*nx+b.Vy*ny;
+                        b.X=o.X+nx*r;b.Y=o.Y+ny*r;
+                        if(vel<0){b.Vx-=2*vel*nx;b.Vy-=2*vel*ny;bounced=true;}
+                    }
                 // BallPhysics.UpdateMotion
                 float speed=(float)Math.Sqrt(b.Vx*b.Vx+b.Vy*b.Vy);
                 if(!b.Moving){if(speed>=StartSpeed){b.Moving=true;stopHold=0;}}
@@ -104,7 +117,7 @@ namespace CoreClash.Presentation
                 // GameSimulation.Step motion guard.
                 actionTime+=dt;
                 if(!stopped&&actionTime>=GuardSeconds){b.Vx=b.Vy=0;b.Moving=false;stopped=true;e.MotionGuard=true;}
-                if(wall||stopped||frame%PathEvery==0)e.Path.Add(new AimPoint(b.X,b.Y));
+                if(wall||bounced||stopped||frame%PathEvery==0)e.Path.Add(new AimPoint(b.X,b.Y));
                 if(!b.Moving&&!stopped&&speed<StartSpeed&&frame>1){stopped=true;} // never started moving
             }
             e.Valid=true;e.StopX=b.X;e.StopY=b.Y;e.Frames=frame;e.Seconds=frame*dt;
@@ -114,11 +127,11 @@ namespace CoreClash.Presentation
         }
 
         // Which part of the arena the stopped ball touches (ZoneResolver rules).
-        public static StopReach Reach(int owner,float x,float y,float radius)
+        public static StopReach Reach(int owner,float x,float y,float radius,float centreRadius=ZoneResolver.CentreRadius)
         {
             var probe=new BallRuntime{owner=owner,x=x,y=y,radius=radius};
             if(ZoneResolver.TouchesEnemyZone(probe))return StopReach.EnemyZone;
-            if(ZoneResolver.TouchesCenter(probe))return StopReach.Center;
+            if(ZoneResolver.TouchesCenter(probe,centreRadius))return StopReach.Center;
             if(ZoneResolver.TouchesOwnZone(probe))return StopReach.OwnZone;
             bool enemyHalf=owner==0?y<450:y>450;
             return enemyHalf?StopReach.EnemyHalf:StopReach.OwnHalf;
@@ -134,7 +147,7 @@ namespace CoreClash.Presentation
         {
             var list=new List<StopObstacle>();
             foreach(var x in s.balls)if(!x.dead&&!x.banished&&x.id!=moverId)list.Add(new StopObstacle(x.x,x.y,x.radius));
-            foreach(var g in s.structures)if(!g.dead)list.Add(new StopObstacle(g.x,g.y,g.radius));
+            foreach(var g in s.structures)if(!g.dead)list.Add(new StopObstacle(g.x,g.y,g.radius,g.kind==StructureSystem.Obstacle));
             foreach(var z in s.zones)if(!z.dead)list.Add(new StopObstacle(z.x,z.y,z.radius));
             return list;
         }

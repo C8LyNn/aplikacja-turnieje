@@ -44,7 +44,7 @@ namespace CoreClash.Presentation
             // lit from below - red where it threatens the enemy's base, gold where it holds the centre
             // (the rules' own tests; a soft light on the floor, under every ball).
             {
-                bool threat = CoreClash.Physics.ZoneResolver.TouchesEnemyZone(ball), centre = !threat && CoreClash.Physics.ZoneResolver.TouchesCenter(ball);
+                bool threat = CoreClash.Physics.ZoneResolver.TouchesEnemyZone(ball), centre = !threat && CoreClash.Physics.ZoneResolver.TouchesCenter(ball, BoardView.CentreRadius);
                 if (threat || centre) Draw.Glow(point, edge * 1.42f, Alpha(threat ? Theme.Damage : Theme.Select, threat ? .7f : .6f));
             }
             if (replay)

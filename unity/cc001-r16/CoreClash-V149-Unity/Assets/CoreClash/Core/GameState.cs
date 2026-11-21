@@ -42,7 +42,9 @@ namespace CoreClash.Core
         //   ballScale     every ball's radius is multiplied by it
         //   comebackRule  a player whose base falls below 10 HP plays two balls on their next turn
         //   mapId         the map: its obstacles are structures of kind StructureSystem.Obstacle
-        public float ballScale=1;
+        //   centreRadius  the radius of the centre a player holds; a map that blocks part of the
+        //                 centre makes it larger (owner's terrain rule)
+        public float ballScale=1,centreRadius=112;
         public bool comebackRule,comebackActive;
         public string mapId="";
         public string actionKind,resultReason;

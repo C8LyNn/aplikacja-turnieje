@@ -14,7 +14,10 @@ namespace CoreClash.Presentation
     public static class BoardView
     {
         const float Left = 24.3f, Right = 515.7f, Top = 16, Bottom = 884;
-        const float ZoneP2Bottom = 198, ZoneP1Top = 702, CentreX = 270, CentreY = 450, CentreRadius = 112;
+        const float ZoneP2Bottom = 198, ZoneP1Top = 702, CentreX = 270, CentreY = 450;
+        // The centre of the match being drawn (match rule centreRadius; 112 in the reference rules).
+        // Set by Render from the state, so the painted circle is the circle the rules use.
+        public static float CentreRadius = CoreClash.Physics.ZoneResolver.CentreRadius;
         static int viewOwner;
         // W24: what the arena itself shows about the turn (set once per Render).
         static int actingOwner = -1, turnShown;
@@ -84,9 +87,10 @@ namespace CoreClash.Presentation
             // inner: where the world of the rules is drawn (see FieldBoard). The frame uses `board`.
             var inner = FieldBoard(board);
             // Who holds the centre by two balls or more (that costs the other base HP when a turn ends).
+            CentreRadius = state.centreRadius > 0 ? state.centreRadius : CoreClash.Physics.ZoneResolver.CentreRadius;
             {
                 int lead = 0;
-                foreach (var ball in state.balls) if (!ball.dead && !ball.banished && CoreClash.Physics.ZoneResolver.TouchesCenter(ball)) lead += ball.owner == 0 ? 1 : -1;
+                foreach (var ball in state.balls) if (!ball.dead && !ball.banished && CoreClash.Physics.ZoneResolver.TouchesCenter(ball, CentreRadius)) lead += ball.owner == 0 ? 1 : -1;
                 centreHolder = lead >= 2 ? 0 : lead <= -2 ? 1 : -1;
             }
             RenderArena(inner);
@@ -151,7 +155,7 @@ namespace CoreClash.Presentation
             if(simulation==null||effects==null||rect.width<=0||rect.height<=0)return;
             int previousViewOwner=viewOwner,previousActing=actingOwner,previousTurn=turnShown;float previousSince=turnSince;
             var state=simulation.State;float now=Time.unscaledTime,scale=rect.width/(Right-Left);
-            viewOwner=0;actingOwner=-1;turnShown=state.turnNumber;centreHolder=-1;
+            viewOwner=0;actingOwner=-1;turnShown=state.turnNumber;centreHolder=-1;CentreRadius=state.centreRadius>0?state.centreRadius:CoreClash.Physics.ZoneResolver.CentreRadius;
             effects.Swap();
             try
             {
@@ -431,6 +435,10 @@ namespace CoreClash.Presentation
                     float top = Mathf.Max(1, full - edge - rim);
                     Draw.Circle(new Rect(post.x - top, post.y - top, top * 2, top * 2), Theme.Ink);
                     Draw.Circle(new Rect(post.x - top + edge, post.y - top + edge, Mathf.Max(0, top - edge) * 2, Mathf.Max(0, top - edge) * 2), Theme.Shade(Theme.BoardOuter, 1.05f, .5f));
+                    // A block that stands on the middle of the board covers the turn number painted
+                    // there, so it carries the number itself.
+                    if (turnShown > 0 && (structure.x - CentreX) * (structure.x - CentreX) + (structure.y - CentreY) * (structure.y - CentreY) < structure.radius * structure.radius)
+                        Draw.Text(new Rect(post.x - full, post.y - full, full * 2, full * 2), turnShown.ToString(), Mathf.Max(12, Mathf.RoundToInt(structure.radius * 1.05f * scale)), new Color(1, 1, 1, .82f), TextAnchor.MiddleCenter, true);
                     continue;
                 }
                 Color team = Draw.Owner(structure.owner);
@@ -748,7 +756,9 @@ namespace CoreClash.Presentation
                 var body=replay!=null?StopPredictor.Replay(replay,catalog?.Ball(replay.type)?.archetype,dx,dy,power):StopPredictor.Spawn(selected,state.turn,dx,dy,power);
                 // A ball of this match's size (match rule ballScale).
                 if(replay==null)body.Radius*=Mathf.Max(.5f,state.ballScale);
-                stopCache=StopPredictor.Predict(body,StopPredictor.Obstacles(state,replay?.id??-1));stopCacheKey=key;
+                stopCache=StopPredictor.Predict(body,StopPredictor.Obstacles(state,replay?.id??-1));
+                // The zone it will stop in, by this match's centre.
+                if(stopCache!=null&&stopCache.Valid)stopCache.Reach=StopPredictor.Reach(body.Owner,stopCache.StopX,stopCache.StopY,stopCache.Start.Radius,CentreRadius);stopCacheKey=key;
             }
             var e=stopCache;if(e==null||!e.Valid)return;
             Color mark=Alpha(vector,e.Obstructed?.45f:.8f);

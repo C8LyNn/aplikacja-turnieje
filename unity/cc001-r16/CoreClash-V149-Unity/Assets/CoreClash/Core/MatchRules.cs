@@ -34,7 +34,7 @@ namespace CoreClash.Core
         public void ApplyTurnPressure(int owner)
         {
             DamageBase(1-owner,S.balls.Count(x=>!x.dead&&!x.banished&&x.owner==owner&&ZoneResolver.TouchesEnemyZone(x)));
-            int diff=S.balls.Count(x=>!x.dead&&!x.banished&&x.owner==0&&ZoneResolver.TouchesCenter(x))-S.balls.Count(x=>!x.dead&&!x.banished&&x.owner==1&&ZoneResolver.TouchesCenter(x));
+            int diff=S.balls.Count(x=>!x.dead&&!x.banished&&x.owner==0&&ZoneResolver.TouchesCenter(x,S.centreRadius))-S.balls.Count(x=>!x.dead&&!x.banished&&x.owner==1&&ZoneResolver.TouchesCenter(x,S.centreRadius));
             if(System.Math.Abs(diff)>=2)DamageBase(diff>0?1:0,System.Math.Abs(diff)-1);
         }
     }
