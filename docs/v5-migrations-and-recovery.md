@@ -1,4 +1,13 @@
-# V5 schema migrations (0041–0049): procedure and recovery
+# V5 schema migrations (0041–0050): procedure and recovery
+
+> **#324-L05 (next combined release)** adds `0050_discord_webhooks.sql`: the tables `tournament_discord_integrations`
+> (one row per connected tournament; the webhook address only as AES-256-GCM ciphertext `v1:…`, a masked hint, the chosen
+> event kinds, status, the last compared public snapshot) and `tournament_discord_outbox` (one row per notification,
+> unique per tournament and event key, attempts, lease, Discord message id). The token becomes `apply-0041-0050`; the
+> marker is `v512_discord_webhooks_0050`. A #329 database (0001–0049) has exactly one pending migration: 0050. No existing
+> row changes; no tournament is connected. The encryption key comes from `DISCORD_WEBHOOK_KEY` (32 bytes, base64) or,
+> without it, is derived from `SESSION_SECRET` — rotating either makes stored webhooks unreadable (status
+> `key_unavailable`: the organizer pastes the address again). Integrations are not in backups or settings copies.
 
 > **#329 (next combined release)** adds `0049_tournament_registrations.sql`: the nullable `tournaments.registration_settings`
 > (jsonb object ≤ 4 KB; NULL = sign-ups off) and the table `tournament_registrations` (nick, answers to the organizer's
@@ -67,7 +76,7 @@ violate a new CHECK constraint, missing `players(tournament_id, id)` key.
 
 ## 3. Apply (one transaction, all or nothing)
 ```
-DATABASE_URL=... DATABASE_SCHEMA=public V5_MIGRATION_CONFIRM=apply-0041-0049 \
+DATABASE_URL=... DATABASE_SCHEMA=public V5_MIGRATION_CONFIRM=apply-0041-0050 \
   APP_COMMIT=<sha> DEPLOYMENT_ENVIRONMENT=<env> pnpm --filter @workspace/db migrate:v5
 ```
 Advisory lock, `lock_timeout 10s`, preflight inside the transaction, migration SQL, catalog
@@ -82,6 +91,9 @@ Run the preflight again: `"status": "applied"`. Start the API: the log line
 * **Apply failed** – nothing was changed (single transaction). Fix the reported blocker and rerun.
 * **API refuses to start** (`SchemaIncompatibleError`) – the schema lacks a migration; run steps 2–3,
   or roll the API back to the previous build (old builds ignore the new columns/tables).
+* **Need to undo #324-L05 only (0050)** – roll the code back first (the #329 API ignores the new tables). Discord settings
+  and the notification history are lost: `DROP TABLE IF EXISTS tournament_discord_outbox; DROP TABLE IF EXISTS tournament_discord_integrations;`
+  `DELETE FROM app_schema_migrations WHERE migration_key = 'v512_discord_webhooks_0050';` (Undo 0050 before 0049.)
 * **Need to undo #329 only (0049)** – roll the code back first (the #331 API ignores the new column and table).
   Accepted participants stay in `players`; pending sign-ups and the sign-up settings are lost:
   `DROP TABLE IF EXISTS tournament_registrations; ALTER TABLE tournaments DROP CONSTRAINT IF EXISTS tournaments_registration_settings_shape;`

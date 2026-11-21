@@ -24,6 +24,7 @@ export const SETTINGS_COPY_NOT_COPIED = Object.freeze([
   "hasła",
   "osoby wspierające",
   "terminy meczów",
+  "integracja Discord",
 ]);
 
 export class SettingsCopyError extends Error {

@@ -33,6 +33,10 @@ async function startApi(): Promise<void> {
     }
 
     logger.info({ port }, "Server listening");
+    // #324-L05: the Discord notifier does nothing until an organizer connects a webhook; DISCORD_NOTIFIER_ENABLED=false stops it.
+    void import("./application/integrations/discord-notifier")
+      .then(({ startDiscordWorker }) => startDiscordWorker())
+      .catch((error) => logger.error({ error: error instanceof Error ? error.name : "Error" }, "Discord notifier failed to start"));
     if (process.env.STEAM_CATALOG_IMPORT_WORKER_ENABLED === "true") {
       void import("./application/catalog/steam-catalog-import-jobs")
         .then(({ startCatalogImportWorker }) => startCatalogImportWorker())

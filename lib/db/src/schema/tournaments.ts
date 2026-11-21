@@ -1115,6 +1115,45 @@ export const tournamentRegistrationsTable = pgTable(
 );
 export type TournamentRegistration = typeof tournamentRegistrationsTable.$inferSelect;
 
+/** #324-L05 · optional Discord webhook of a tournament. The address is stored only encrypted (see 0050). */
+export const tournamentDiscordIntegrationsTable = pgTable("tournament_discord_integrations", {
+  tournamentId: integer("tournament_id").primaryKey().references(() => tournamentsTable.id, { onDelete: "cascade" }),
+  enabled: boolean("enabled").notNull().default(false),
+  webhookCiphertext: text("webhook_ciphertext").notNull(),
+  webhookHint: text("webhook_hint").notNull(),
+  events: text("events").array().notNull().default(sql`ARRAY['invite', 'start', 'pairings', 'results', 'advance', 'finish']::text[]`),
+  linkBase: text("link_base"),
+  status: text("status").notNull().default("ok"),
+  lastError: text("last_error"),
+  lastDeliveryAt: timestamp("last_delivery_at"),
+  snapshot: jsonb("snapshot"),
+  snapshotAt: timestamp("snapshot_at"),
+  createdAt: timestamp("created_at").notNull().defaultNow(),
+  updatedAt: timestamp("updated_at").notNull().defaultNow(),
+});
+export type TournamentDiscordIntegration = typeof tournamentDiscordIntegrationsTable.$inferSelect;
+
+/** #324-L05 · queued Discord notifications; (tournament_id, event_key) is unique. */
+export const tournamentDiscordOutboxTable = pgTable(
+  "tournament_discord_outbox",
+  {
+    id: serial("id").primaryKey(),
+    tournamentId: integer("tournament_id").notNull().references(() => tournamentsTable.id, { onDelete: "cascade" }),
+    eventKey: text("event_key").notNull(),
+    kind: text("kind").notNull(),
+    payload: jsonb("payload").notNull(),
+    status: text("status").notNull().default("pending"),
+    attempts: integer("attempts").notNull().default(0),
+    nextAttemptAt: timestamp("next_attempt_at").notNull().defaultNow(),
+    leaseUntil: timestamp("lease_until"),
+    lastError: text("last_error"),
+    discordMessageId: text("discord_message_id"),
+    createdAt: timestamp("created_at").notNull().defaultNow(),
+    sentAt: timestamp("sent_at"),
+  },
+  (table) => [index("tournament_discord_outbox_due_idx").on(table.status, table.nextAttemptAt)],
+);
+
 export const supportSessionsTable = pgTable("support_sessions", {
   id: serial("id").primaryKey(),
   tournamentId: integer("tournament_id")

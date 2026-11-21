@@ -11,6 +11,7 @@ import { standingsHavePoints, standingsHaveSets } from "@/lib/league-results";
 import { ReadQueryState } from "@/components/read-query-state";
 import { useSearch, Link } from "wouter";
 import { SettingsCopyCard } from "@/components/settings-copy-dialog";
+import { DiscordPanel } from "@/components/discord-panel";
 import { Layout } from "@/components/layout";
 import { Tabs, TabsContent } from "@/components/ui/tabs";
 import {
@@ -1992,6 +1993,8 @@ export default function TournamentDetail() {
           {capabilities.canManageSharing && !!orgToken && (
             <TabsContent value="sharing" className="pt-6">
               <SharingPanel tournament={tournament as any} orgToken={orgToken} />
+              {/* #324-L05: optional Discord notifications (organizer only, off by default) */}
+              <div className="mt-6"><DiscordPanel tournamentId={tournament.id} /></div>
             </TabsContent>
           )}
 

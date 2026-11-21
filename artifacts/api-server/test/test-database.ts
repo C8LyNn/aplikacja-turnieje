@@ -134,6 +134,9 @@ const SUPPORT_MEMBERS_MIGRATION_URL = new URL(
 const REGISTRATIONS_MIGRATION_URL = new URL(
   "../../../lib/db/migrations/0049_tournament_registrations.sql", import.meta.url,
 );
+const DISCORD_MIGRATION_URL = new URL(
+  "../../../lib/db/migrations/0050_discord_webhooks.sql", import.meta.url,
+);
 const ROUND_ROBIN_LEGS_MIGRATION_URL = new URL(
   "../../../lib/db/migrations/0041_round_robin_legs.sql", import.meta.url,
 );
@@ -486,6 +489,12 @@ export async function resetTestSchema(pool: TestPool, schema: string): Promise<v
       );
       await pool.query(registrationsSql);
       await pool.query(registrationsSql);
+      // #324-L05: optional Discord webhooks (idempotent like the others).
+      const discordSql = renderSeriesV1MigrationForTestSchema(
+        await readFile(DISCORD_MIGRATION_URL, "utf8"), schema,
+      );
+      await pool.query(discordSql);
+      await pool.query(discordSql);
       await pool.query("COMMIT");
     } catch (error) {
       await pool.query("ROLLBACK");
