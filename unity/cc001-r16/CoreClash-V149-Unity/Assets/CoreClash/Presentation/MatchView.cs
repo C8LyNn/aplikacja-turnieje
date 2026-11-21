@@ -108,10 +108,11 @@ namespace CoreClash.Presentation
             BallView.Preview(new Rect(strip.x+15+(strip.height-(rows.Tight?22:26)-orb)/2,strip.y+(strip.height-orb)/2,orb,orb),d,visualOwner,true);
             float textX=strip.x+(strip.height-(rows.Tight?22:26))+32,textWidth=strip.xMax-textX-10;
             Draw.Text(new Rect(textX,strip.y+(rows.Tight?5:7),textWidth,22),BallIcons.Name(d),rows.Tight?16:19,Theme.Text,TextAnchor.MiddleLeft,true);
-            string stockText=selected=="normal"?"unlimited":LocalDeckContent.StockLabel(Simulation,displayOwner,selected);
-            string facts=(string.IsNullOrEmpty(d.archetype)||d.archetype=="base"?"":d.archetype.ToUpperInvariant()+"  ·  ")+d.hp+" HP  ·  "+stockText;
+            string stockText=selected=="normal"?Lang.T("unlimited","bez limitu"):LocalDeckContent.StockLabel(Simulation,displayOwner,selected);
+            var chosenGuide=BallGuide.For(selected);
+            string facts=(rows.Tight&&chosenGuide!=null?chosenGuide.Tag+"  ·  ":"")+d.hp+" HP  ·  "+stockText;
             Draw.Text(new Rect(textX,strip.y+(rows.Tight?27:30),textWidth,16),facts,Theme.FontSmall,Theme.SelectInk,TextAnchor.MiddleLeft,true);
-            if(!rows.Tight)Draw.Text(new Rect(textX,strip.y+47,textWidth,16),Cue(selected),Theme.FontSmall,Theme.Muted,TextAnchor.MiddleLeft);
+            if(!rows.Tight)GuideLine(new Rect(textX,strip.y+46,textWidth,18),selected,Theme.FontSmall);
             string deckHeading=NetworkLink==null?Lang.T("Deck","Talia"):displayOwner<0?Lang.T("Deck unavailable","Talia niedostępna"):Lang.T("Your deck","Twoja talia");
             var heading=RectOf(rows.Heading);
             Draw.Text(heading,deckHeading,10,Theme.Muted,TextAnchor.MiddleLeft,true);

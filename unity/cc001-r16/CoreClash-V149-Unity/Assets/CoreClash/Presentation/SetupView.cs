@@ -183,7 +183,10 @@ namespace CoreClash.Presentation
             if(activeOnly)custom.RemoveAll(id=>!Catalog.IsActive(id));
             string helper=Lang.T("Choose nine different special balls. Standard is always available separately.","Wybierz dziewięć różnych kulek specjalnych. Zwykła jest zawsze dostępna osobno.");
             float helperY=Math.Max(124,77+titleH+7),helperH=Math.Max(24,Draw.TextHeight(helper,width,13)),searchY=Math.Max(153,helperY+helperH+13),selectedY=searchY+UiViewport.TargetSize+9,filterY=selectedY+31,rosterY=filterY+UiViewport.TargetSize+8;
-            if(shortView){searchY=124;selectedY=134;filterY=174;rosterY=filterY+UiViewport.TargetSize+6;}else Draw.Text(new Rect(left,helperY,width,helperH),helper,13,OnBackdropSoft,TextAnchor.UpperLeft,true);
+            if(shortView){searchY=124;selectedY=134;filterY=174;rosterY=filterY+UiViewport.TargetSize+6;}
+            // Normal play offers only working balls, so the readiness filter has nothing to sort out.
+            if(activeOnly){rosterFilter=RosterReadinessFilter.All;rosterY=filterY;}
+            if(!shortView)Draw.Text(new Rect(left,helperY,width,helperH),helper,13,OnBackdropSoft,TextAnchor.UpperLeft,true);
             float searchW=shortView?width*.62f:width;
             search=GUI.TextField(new Rect(left,searchY,searchW,UiViewport.TargetSize),search);
             // W19-01 (#289): optional readiness filter (ALL by default); it only changes visible tiles.
@@ -193,7 +196,7 @@ namespace CoreClash.Presentation
             float selectedStep=Math.Min(29,(width-144)/9);
             if(!shortView)for(int i=0;i<custom.Count;i++)BallView.Preview(new Rect(left+144+i*selectedStep,selectedY-1,Math.Min(22,selectedStep-1),Math.Min(22,selectedStep-1)),Catalog.Ball(custom[i]),builderOwner);
             var counts=RosterReadiness.Counts(Catalog,search,activeOnly);var filterBoxes=RosterReadinessLayout.FilterButtons(left,filterY,width,UiViewport.TargetSize);
-            for(int f=0;f<RosterFilters.Length;f++)if(Draw.Button(RectOf(filterBoxes[f]),RosterReadiness.FilterLabel(RosterFilters[f],counts[RosterFilters[f]]),team,rosterFilter==RosterFilters[f],true,width<420?10:12)){rosterFilter=RosterFilters[f];rosterScroll=Vector2.zero;}
+            if(!activeOnly)for(int f=0;f<RosterFilters.Length;f++)if(Draw.Button(RectOf(filterBoxes[f]),RosterReadiness.FilterLabel(RosterFilters[f],counts[RosterFilters[f]]),team,rosterFilter==RosterFilters[f],true,width<420?10:12)){rosterFilter=RosterFilters[f];rosterScroll=Vector2.zero;}
             int columns=UiWidth>950?3:UiWidth>600?2:1;float cardW=(width-24-(columns-1)*10)/columns,cardH=shortView?78:86,content=(float)Math.Ceiling(roster.Length/(float)columns)*(cardH+10);
             rosterScroll=Draw.ScrollView(new Rect(left,rosterY,width,Math.Max(32,UiHeight-rosterY-(shortView?68:80))),rosterScroll,new Rect(0,0,width-22,Math.Max(content,40)));
             if(roster.Length==0)Draw.Text(new Rect(4,8,width-30,24),Lang.T("No balls match this search and filter.","Żadna kulka nie pasuje do wyszukiwania i filtra."),13,OnBackdropSoft,TextAnchor.UpperLeft,true);
@@ -201,8 +204,9 @@ namespace CoreClash.Presentation
                 var d=roster[i];bool picked=custom.Contains(d.id);var r=new Rect((i%columns)*(cardW+10),(i/columns)*(cardH+10),cardW,cardH);Draw.Round(r,picked?team:Theme.Panel);Draw.Round(Draw.Inset(r,picked?3:0),picked?Color.Lerp(Theme.Panel,team,.1f):Theme.Panel);
                 if(GUI.Button(new Rect(r.x,r.y,r.width-62,r.height),GUIContent.none,GUIStyle.none)){if(picked)custom.Remove(d.id);else if(custom.Count<9)custom.Add(d.id);}
                 var cl=RosterReadinessLayout.Card(new UiBox(r.x,r.y,r.width,r.height),shortView);
-                BallView.Preview(RectOf(cl.Preview),d,builderOwner,picked);Draw.Text(RectOf(cl.Name),BallIcons.Name(d),14,Theme.Text,TextAnchor.MiddleLeft,true);Draw.Text(RectOf(cl.Stats),d.hp+" HP  /  "+d.size+(Catalog.IsActive(d.id)?"":"  /  FROZEN"),11,Catalog.IsActive(d.id)?Draw.Muted:Draw.Gold);
-                ReadinessChip(RectOf(cl.Badge),RosterReadiness.Badge(Catalog,d.id));
+                BallView.Preview(RectOf(cl.Preview),d,builderOwner,picked);Draw.Text(RectOf(cl.Name),BallIcons.Name(d),14,Theme.Text,TextAnchor.MiddleLeft,true);Draw.Text(RectOf(cl.Stats),d.hp+" HP  ·  "+d.stockCopies+Lang.T(" in a deck"," w talii")+(Catalog.IsActive(d.id)?"":"  /  FROZEN"),11,Catalog.IsActive(d.id)?Draw.Muted:Draw.Gold);
+                if(activeOnly&&BallGuide.For(d.id)!=null)GuideLine(new Rect(cl.Badge.x,cl.Badge.y-2,cl.Name.width,cl.Badge.height+4),d.id,11);
+                else ReadinessChip(RectOf(cl.Badge),RosterReadiness.Badge(Catalog,d.id));
                 if(Draw.Button(RectOf(cl.Info),"i",size:15))ShowBallDetails(d.id);
             }GUI.EndScrollView();
             if(Draw.Button(new Rect(left,UiHeight-66,width,50),Lang.T("Use this deck","Użyj tej talii"),Go,true,custom.Count==9,15)){chosen[builderOwner]=new DeckDefinition{id="custom_"+builderOwner,name=Lang.T("Custom Deck / Player ","Własna talia / Gracz ")+(builderOwner+1),balls=custom.ToArray(),description=Lang.T("A deck you created.","Talia, którą stworzyłeś.")};builder=false;}

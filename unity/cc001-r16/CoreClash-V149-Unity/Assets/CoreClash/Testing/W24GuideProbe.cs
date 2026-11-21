@@ -38,6 +38,7 @@ namespace CoreClash.Testing
             float begun = Time.realtimeSinceStartup;
             while (!UnityEngine.Rendering.SplashScreen.isFinished || Time.realtimeSinceStartup - begun < 3) yield return null;
             if (Mathf.Min(Screen.width, Screen.height) <= 480) { app.SetDeviceProfile("Phone"); yield return null; yield return null; }
+            Debug.Log("CC_W24_GUIDE_DISPLAY " + Screen.mainWindowDisplayInfo.name + " " + Screen.width + "x" + Screen.height);
             bool polishBefore = Lang.Polish;
             Lang.Polish = (Arg("--cc-lang") ?? "en") == "pl";
             string[] ids = (Arg("--cc-balls") ?? string.Join(",", app.Catalog.Roster.ActiveIds)).Split(',');
