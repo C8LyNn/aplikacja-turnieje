@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { useExperimentalPortalContainer } from "@/lib/experimental-portal"
 import * as React from "react"
 import * as DialogPrimitive from "@radix-ui/react-dialog"
@@ -16,7 +17,7 @@ const DialogClose = DialogPrimitive.Close
 /** Polish label on Experimental routes; Stable keeps its existing label. */
 function dialogCloseLabel() {
   if (typeof window === "undefined") return "Close";
-  return window.location.pathname.startsWith("/experimental/") ? "Zamknij" : "Close";
+  return window.location.pathname.startsWith("/experimental/") ? t("dialog.zamknij") : "Close";
 }
 
 const DialogOverlay = React.forwardRef<

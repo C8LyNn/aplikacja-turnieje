@@ -1,7 +1,8 @@
+import { t } from "@/i18n";
 export const ORGANIZER_PASSWORD_MIN_LENGTH = 8;
 
 export function tournamentNameError(value: string): string | null {
-  return value.trim() ? null : "Podaj nazwę turnieju.";
+  return value.trim() ? null : t("createTournamentValidation.podaj_nazwe_turnieju");
 }
 
 export function organizerPasswordRemaining(value: string): number {
@@ -12,7 +13,7 @@ export function organizerPasswordRemaining(value: string): number {
 export function organizerPasswordError(value: string): string | null {
   const remaining = organizerPasswordRemaining(value);
   return remaining > 0
-    ? `Hasło organizatora musi mieć co najmniej ${ORGANIZER_PASSWORD_MIN_LENGTH} znaków.`
+    ? t("createTournamentValidation.haslo_organizatora_musi_miec_co", { ORGANIZER_PASSWORD_MIN_LENGTH: ORGANIZER_PASSWORD_MIN_LENGTH })
     : null;
 }
 

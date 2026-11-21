@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import {
   ArrowLeft,
@@ -154,28 +155,28 @@ const PAGE_SIZE = 25;
 const ADMIN_KEY_STORAGE = "tm_steam_catalog_admin_token";
 
 const FACET_LABELS: Record<Facet, string> = {
-  genre: "Gatunek",
-  subgenre: "Podgatunki",
-  mechanic: "Elementy rozgrywki",
+  get genre() { return t("gameCatalogAdmin.gatunek"); },
+  get subgenre() { return t("gameCatalogAdmin.podgatunki"); },
+  get mechanic() { return t("gameCatalogAdmin.elementy_rozgrywki"); },
   mode: "Tryb",
-  structure: "Struktura",
-  world: "Świat",
-  visual: "Oprawa",
-  detail: "Pozostałe tagi",
+  get structure() { return t("gameCatalogAdmin.struktura"); },
+  get world() { return t("gameCatalogAdmin.swiat"); },
+  get visual() { return t("gameCatalogAdmin.oprawa"); },
+  get detail() { return t("gameCatalogAdmin.pozostale_tagi"); },
 };
 
 const STATUS_LABELS: Record<Game["status"], string> = {
   unclassified: "Nieopisane",
-  review: "Do sprawdzenia",
-  ready: "Gotowe",
+  get review() { return t("gameCatalogAdmin.do_sprawdzenia"); },
+  get ready() { return t("gameCatalogAdmin.gotowe"); },
 };
 
 const PERSPECTIVES = [
-  { value: "gameplay", label: "Rozgrywka" },
-  { value: "mode", label: "Tryb" },
-  { value: "structure", label: "Struktura" },
-  { value: "world", label: "Świat" },
-  { value: "visual", label: "Oprawa" },
+  { value: "gameplay", get label() { return t("gameCatalogAdmin.rozgrywka"); } },
+  { value: "mode", get label() { return t("gameCatalogAdmin.tryb"); } },
+  { value: "structure", get label() { return t("gameCatalogAdmin.struktura"); } },
+  { value: "world", get label() { return t("gameCatalogAdmin.swiat"); } },
+  { value: "visual", get label() { return t("gameCatalogAdmin.oprawa"); } },
 ] as const;
 
 const PERSPECTIVE_COPY: Record<
@@ -184,48 +185,40 @@ const PERSPECTIVE_COPY: Record<
 > = {
   gameplay: {
     code: "01",
-    title: "Rozgrywka",
-    question: "Co robię?",
-    description:
-      "Perspektywa opisująca podstawowy charakter rozgrywki: gatunek, podgatunki oraz główne i poboczne elementy doświadczenia.",
-    details: [
-      "Gatunek główny — najważniejsza rama opisująca grę.",
-      "Podgatunki — dodatkowe ramy realnie współtworzące doświadczenie.",
-      "Główne elementy — czynności i systemy regularnie definiujące grę.",
-      "Poboczne elementy — obecne i istotne, ale niecentralne.",
-    ],
+    get title() { return t("gameCatalogAdmin.rozgrywka"); },
+    get question() { return t("gameCatalogAdmin.co_robie"); },
+    get description() { return t("gameCatalogAdmin.perspektywa_opisujaca_podstawowy_charakt"); },
+    get details() {
+      return [t("gameCatalogAdmin.gatunek_glowny_najwazniejsza_rama"), t("gameCatalogAdmin.podgatunki_dodatkowe_ramy_realnie"), t("gameCatalogAdmin.glowne_elementy_czynnosci_i_systemy"), t("gameCatalogAdmin.poboczne_elementy_obecne_i_istotne")];
+    },
   },
   mode: {
     code: "02",
-    title: "Tryb",
-    question: "Z kim i przeciw komu gram?",
-    description:
-      "Oddziela relacje między graczami i przeciwnikami od gatunku. Jedna gra może jednocześnie obsługiwać kilka trybów.",
-    details: ["Singleplayer", "Co-op", "PvE", "PvP", "PvPvE", "MMO i warianty lokalne/online"],
+    get title() { return t("gameCatalogAdmin.tryb"); },
+    get question() { return t("gameCatalogAdmin.z_kim_i_przeciw_komu"); },
+    get description() { return t("gameCatalogAdmin.oddziela_relacje_miedzy_graczami_i"); },
+    get details() { return ["Singleplayer", "Co-op", "PvE", "PvP", "PvPvE", t("gameCatalogAdmin.mmo_i_warianty_lokalne_online")]; },
   },
   structure: {
     code: "03",
-    title: "Struktura",
-    question: "Jak zorganizowana jest gra?",
-    description:
-      "Opisuje sposób organizacji przestrzeni i przebiegu gry, niezależnie od jej gatunku czy świata.",
+    get title() { return t("gameCatalogAdmin.struktura"); },
+    get question() { return t("gameCatalogAdmin.jak_zorganizowana_jest_gra"); },
+    get description() { return t("gameCatalogAdmin.opisuje_sposob_organizacji_przestrzeni_i"); },
     details: ["Open world", "Linear", "Mission-based", "Hub-based", "Run-based", "Match-based", "Persistent world"],
   },
   world: {
     code: "04",
-    title: "Świat",
-    question: "Gdzie i w jakiej konwencji?",
-    description:
-      "Opisuje setting oraz konwencję świata bez mieszania ich z mechaniką i sposobem prezentacji.",
-    details: ["Fantasy", "Dark fantasy", "Science fiction", "Cyberpunk", "Steampunk", "Historyczne", "Współczesne"],
+    get title() { return t("gameCatalogAdmin.swiat"); },
+    get question() { return t("gameCatalogAdmin.gdzie_i_w_jakiej_konwencji_2"); },
+    get description() { return t("gameCatalogAdmin.opisuje_setting_oraz_konwencje_swiata"); },
+    get details() { return ["Fantasy", "Dark fantasy", "Science fiction", "Cyberpunk", "Steampunk", t("gameCatalogAdmin.historyczne"), t("gameCatalogAdmin.wspolczesne")]; },
   },
   visual: {
     code: "05",
-    title: "Oprawa",
-    question: "Jak gra wygląda?",
-    description:
-      "Opisuje sposób wizualnego przedstawienia gry. Nie jest tym samym co świat ani perspektywa kamery.",
-    details: ["Realistic", "Stylized", "Anime / manga", "Cartoon", "Pixel art", "Cel-shaded", "Low-poly"],
+    get title() { return t("gameCatalogAdmin.oprawa"); },
+    get question() { return t("gameCatalogAdmin.jak_gra_wyglada"); },
+    get description() { return t("gameCatalogAdmin.opisuje_sposob_wizualnego_przedstawienia"); },
+    details: ["Realistic", "Stylized", "Anime / manga", "Cartoon", "Pixel art", "Cel-shaded" /* i18n-ignore: English art-style term */, "Low-poly"],
   },
 };
 
@@ -296,15 +289,15 @@ function Chip({ active, children, onClick }: { active: boolean; children: ReactN
 function ProjectHome() {
   return (
     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-      <ProjectCard code="SZUKAJ" title="Szukaj gry" description="Znajdź konkretną grę w katalogu lub dodaj ją ze Steam." href={`${BASE}/search`} icon={Search} accent="amber" />
-      <ProjectCard code="KATALOG" title="Wszystkie gry" description="Pełna lista wszystkich skatalogowanych rekordów." href={`${BASE}/games`} icon={List} accent="amber" />
-      <ProjectCard code="01" title="Rozgrywka" description="Co robię? Gatunek, podgatunki i elementy rozgrywki." href={`${BASE}/gameplay`} icon={Gamepad2} accent="amber" />
-      <ProjectCard code="02" title="Tryb" description="Z kim i przeciw komu gram?" href={`${BASE}/mode`} icon={Users} accent="amber" />
-      <ProjectCard code="03" title="Struktura" description="Jak zorganizowana jest gra?" href={`${BASE}/structure`} icon={Network} accent="amber" />
-      <ProjectCard code="04" title="Świat" description="Gdzie i w jakiej konwencji osadzona jest gra?" href={`${BASE}/world`} icon={Globe2} accent="amber" />
-      <ProjectCard code="05" title="Oprawa" description="Jak gra wygląda i w jaki sposób jest przedstawiona?" href={`${BASE}/visual`} icon={Palette} accent="amber" />
-      <ProjectCard code="METODA" title="Metodologia" description="Jak zbierane, porządkowane i sprawdzane są dane." href={`${BASE}/methodology`} icon={FlaskConical} accent="amber" />
-      <ProjectCard code="DLACZEGO" title="Dlaczego powstał projekt" description="Problemy obecnych klasyfikacji i cel nowego spojrzenia." href={`${BASE}/why`} icon={Lightbulb} accent="amber" />
+      <ProjectCard code={t("gameCatalogAdmin.szukaj")} title={t("gameCatalogAdmin.szukaj_gry")} description={t("gameCatalogAdmin.znajdz_konkretna_gre_w_katalogu")} href={`${BASE}/search`} icon={Search} accent="amber" />
+      <ProjectCard code={t("gameCatalogAdmin.katalog")} title={t("gameCatalogAdmin.wszystkie_gry")} description={t("gameCatalogAdmin.pelna_lista_wszystkich_skatalogowanych_r")} href={`${BASE}/games`} icon={List} accent="amber" />
+      <ProjectCard code="01" title={t("gameCatalogAdmin.rozgrywka")} description={t("gameCatalogAdmin.co_robie_gatunek_podgatunki_i")} href={`${BASE}/gameplay`} icon={Gamepad2} accent="amber" />
+      <ProjectCard code="02" title={t("gameCatalogAdmin.tryb")} description={t("gameCatalogAdmin.z_kim_i_przeciw_komu")} href={`${BASE}/mode`} icon={Users} accent="amber" />
+      <ProjectCard code="03" title={t("gameCatalogAdmin.struktura")} description={t("gameCatalogAdmin.jak_zorganizowana_jest_gra")} href={`${BASE}/structure`} icon={Network} accent="amber" />
+      <ProjectCard code="04" title={t("gameCatalogAdmin.swiat")} description={t("gameCatalogAdmin.gdzie_i_w_jakiej_konwencji")} href={`${BASE}/world`} icon={Globe2} accent="amber" />
+      <ProjectCard code="05" title={t("gameCatalogAdmin.oprawa")} description={t("gameCatalogAdmin.jak_gra_wyglada_i_w")} href={`${BASE}/visual`} icon={Palette} accent="amber" />
+      <ProjectCard code={t("gameCatalogAdmin.metoda")} title={t("gameCatalogAdmin.metodologia")} description={t("gameCatalogAdmin.jak_zbierane_porzadkowane_i_sprawdzane")} href={`${BASE}/methodology`} icon={FlaskConical} accent="amber" />
+      <ProjectCard code={t("gameCatalogAdmin.dlaczego")} title={t("gameCatalogAdmin.dlaczego_powstal_projekt")} description={t("gameCatalogAdmin.problemy_obecnych_klasyfikacji_i_cel")} href={`${BASE}/why`} icon={Lightbulb} accent="amber" />
     </div>
   );
 }
@@ -504,7 +497,7 @@ export default function GameCatalogAdminPage() {
       if (!link || link.getAttribute("target") === "_blank") return;
       const destination = new URL((link as HTMLAnchorElement).href, window.location.href);
       if (destination.origin !== window.location.origin || destination.pathname === location) return;
-      if (!window.confirm("Masz niezapisane zmiany. Opuścić edytor bez zapisywania?")) {
+      if (!window.confirm(t("gameCatalogAdmin.masz_niezapisane_zmiany_opuscic_edytor"))) {
         event.preventDefault();
         event.stopImmediatePropagation();
       }
@@ -551,7 +544,7 @@ export default function GameCatalogAdminPage() {
   function queuePastedSteamGames() {
     const tokens = bulkPaste.trim().split(/[\s,;]+/).filter(Boolean);
     if (!tokens.length || tokens.length > 200) {
-      setError("Wklej od 1 do 200 Steam AppID lub adresów gier.");
+      setError(t("gameCatalogAdmin.wklej_od_1_do_200"));
       return;
     }
     const ids = tokens.map((token) => {
@@ -560,13 +553,13 @@ export default function GameCatalogAdminPage() {
       return Number.isSafeInteger(value) && value <= 2_147_483_647 ? value : null;
     });
     if (ids.some((item) => item === null)) {
-      setError("Lista zawiera niepoprawny AppID lub adres Steam.");
+      setError(t("gameCatalogAdmin.lista_zawiera_niepoprawny_appid_lub"));
       return;
     }
     const pending = new Set(discovery.candidates.map((item) => item.appId));
     for (const id of ids as number[]) pending.add(id);
     if (pending.size > 200) {
-      setError("Kolejka mieści maksymalnie 200 gier. Zaimportuj część oczekujących AppID.");
+      setError(t("gameCatalogAdmin.kolejka_miesci_maksymalnie_200_gier"));
       return;
     }
     setDiscovery((current) => {
@@ -576,7 +569,7 @@ export default function GameCatalogAdminPage() {
       }
       return { ...current, candidates: [...combined.values()] };
     });
-    setGrowthMessage(`Dodano do kolejki ${new Set(ids).size} AppID. Importuj po 10 zweryfikowanych gier.`);
+    setGrowthMessage(t("gameCatalogAdmin.dodano_do_kolejki_size_appid", { size: new Set(ids).size }));
     setError(null);
     setBulkPaste("");
   }
@@ -603,7 +596,7 @@ export default function GameCatalogAdminPage() {
           stats: { ...current.stats, scanned: current.stats.scanned + page.scanned },
         };
       });
-      setGrowthMessage(`Sprawdzono ${page.scanned} gier Steam, pominięto ${page.alreadyInCatalog} już zapisanych.`);
+      setGrowthMessage(t("gameCatalogAdmin.sprawdzono_scanned_gier_steam_pominieto", { scanned: page.scanned, alreadyInCatalog: page.alreadyInCatalog }));
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
     } finally {
@@ -631,7 +624,7 @@ export default function GameCatalogAdminPage() {
           stats: { ...current.stats, scanned: current.stats.scanned + page.scanned },
         };
       });
-      setGrowthMessage(`Pobrano ${page.scanned} propozycji ze Steam (już w katalogu: ${page.alreadyInCatalog}). Pozostałe możesz zaimportować z kolejki.`);
+      setGrowthMessage(t("gameCatalogAdmin.pobrano_scanned_propozycji_ze_steam", { scanned: page.scanned, alreadyInCatalog: page.alreadyInCatalog }));
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
     } finally {
@@ -660,7 +653,7 @@ export default function GameCatalogAdminPage() {
       setDiscovery(next.queue);
       window.localStorage.setItem(STEAMSPY_STORAGE, JSON.stringify(next.source));
       setSteamSpy(next.source);
-      setGrowthMessage(`SteamSpy: sprawdzono ${response.scanned} AppID; już zapisane: ${response.alreadyInCatalog}. Nowe propozycje: ${next.queue.candidates.length - discovery.candidates.length}.`);
+      setGrowthMessage(t("gameCatalogAdmin.steamspy_sprawdzono_scanned_appid_juz", { scanned: response.scanned, alreadyInCatalog: response.alreadyInCatalog, v2: next.queue.candidates.length - discovery.candidates.length }));
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
     } finally {
@@ -689,8 +682,8 @@ export default function GameCatalogAdminPage() {
           batches: current.stats.batches + 1,
         },
       }));
-      setGrowthMessage(`Dodano: ${batch.inserted}. Już istniały: ${batch.existing}. Odrzucono: ${batch.ignored}.` +
-        (batch.aborted ? " Steam przerwał import — pozostałe gry zachowano do ponowienia." : ""));
+      setGrowthMessage(t("gameCatalogAdmin.dodano_inserted_juz_istnialy_existing", { inserted: batch.inserted, existing: batch.existing, ignored: batch.ignored }) +
+        (batch.aborted ? t("gameCatalogAdmin.steam_przerwal_import_pozostale_gry") : ""));
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
     } finally {
@@ -704,7 +697,7 @@ export default function GameCatalogAdminPage() {
     setAutoRunning(true);
     setBusy(true);
     setError(null);
-    setGrowthMessage("Trwa weryfikacja i dodawanie kolejnych gier. Możesz zatrzymać proces po bieżącej partii.");
+    setGrowthMessage(t("gameCatalogAdmin.trwa_weryfikacja_i_dodawanie_kolejnych"));
     try {
       const result = await runSteamGrowthSession({
         initial: discovery,
@@ -727,18 +720,18 @@ export default function GameCatalogAdminPage() {
         },
       });
       const messages = {
-        limit: "Zakończono limit tej serii. Można uruchomić następną.",
-        end_of_list: "Dotarto do końca dostępnych propozycji Steam.",
-        paused: "Proces zatrzymany. Postęp zapisany.",
-        upstream_stopped: "Steam przerwał import lub ograniczył żądania. Postęp zapisany; ponów później.",
+        limit: t("gameCatalogAdmin.zakonczono_limit_tej_serii_mozna"),
+        end_of_list: t("gameCatalogAdmin.dotarto_do_konca_dostepnych_propozycji"),
+        paused: t("gameCatalogAdmin.proces_zatrzymany_postep_zapisany"),
+        upstream_stopped: t("gameCatalogAdmin.steam_przerwal_import_lub_ograniczyl"),
       };
       const summary = queueOnly && result.reason === "limit"
-        ? "Przetworzono bieżącą część kolejki. Można uruchomić następną serię."
+        ? t("gameCatalogAdmin.przetworzono_biezaca_czesc_kolejki_mozna")
         : messages[result.reason];
-      setGrowthMessage(`${summary} Zweryfikowano ${result.verified} AppID w tej serii. W katalogu przybyło ${result.progress.stats.inserted - discovery.stats.inserted} gier.`);
+      setGrowthMessage(t("gameCatalogAdmin.summary_zweryfikowano_verified_appid_w", { summary: summary, verified: result.verified, v2: result.progress.stats.inserted - discovery.stats.inserted }));
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
-      setGrowthMessage("Postęp wcześniejszych, zakończonych partii zachowano. Możesz wznowić import.");
+      setGrowthMessage(t("gameCatalogAdmin.postep_wczesniejszych_zakonczonych_parti"));
     } finally {
       autoStopRef.current = true;
       setAutoRunning(false);
@@ -754,7 +747,7 @@ export default function GameCatalogAdminPage() {
         headers: { "x-steam-catalog-admin-token": adminKey },
       });
       setServerImportJob(payload.job);
-      setServerImportMessage(payload.job ? "Odczytano aktualny stan zadania z serwera." : "Brak zadania serwerowego.");
+      setServerImportMessage(payload.job ? t("gameCatalogAdmin.odczytano_aktualny_stan_zadania_z") : t("gameCatalogAdmin.brak_zadania_serwerowego"));
       setError(null);
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
@@ -766,7 +759,7 @@ export default function GameCatalogAdminPage() {
   async function startServerImportJob() {
     const limit = Number(serverImportLimit);
     if (!Number.isInteger(limit) || limit < 1 || limit > 20000) {
-      setError("Podaj limit od 1 do 20000 AppID.");
+      setError(t("gameCatalogAdmin.podaj_limit_od_1_do"));
       return;
     }
     setServerJobBusy(true);
@@ -776,7 +769,7 @@ export default function GameCatalogAdminPage() {
         method: "POST", body: JSON.stringify({ maxGames: limit, source: serverImportSource }),
       });
       setServerImportJob(payload.job);
-      setServerImportMessage(`Zadanie (${serverImportSource === "steamspy" ? "SteamSpy bez klucza" : "Steam Web API"}) uruchomione. Możesz zamknąć tę kartę.`);
+      setServerImportMessage(t("gameCatalogAdmin.zadanie_v0_uruchomione_mozesz_zamknac", { v0: serverImportSource === "steamspy" ? t("gameCatalogAdmin.steamspy_bez_klucza") : "Steam Web API" }));
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
     } finally {
@@ -793,8 +786,8 @@ export default function GameCatalogAdminPage() {
         `/api/steam-catalog/import-job/${serverImportJob.id}/${operation}`, { method: "POST" });
       setServerImportJob(payload.job);
       setServerImportMessage(operation === "pause"
-        ? "Wstrzymanie zlecone; bieżący krok zostanie zapisany."
-        : "Zadanie wznowione na serwerze.");
+        ? t("gameCatalogAdmin.wstrzymanie_zlecone_biezacy_krok_zostani")
+        : t("gameCatalogAdmin.zadanie_wznowione_na_serwerze"));
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
     } finally {
@@ -808,7 +801,7 @@ export default function GameCatalogAdminPage() {
     setAutoRunning(true);
     setBusy(true);
     setError(null);
-    setGrowthMessage("SteamSpy: trwa odkrywanie i weryfikowanie do 100 AppID. Możesz zatrzymać po bieżącej partii.");
+    setGrowthMessage(t("gameCatalogAdmin.steamspy_trwa_odkrywanie_i_weryfikowanie"));
     try {
       const result = await runSteamSpyGrowthSession({
         initial: discovery,
@@ -830,15 +823,15 @@ export default function GameCatalogAdminPage() {
         },
       });
       const endings = {
-        limit: "Zakończono serię. Możesz uruchomić kolejną.",
-        end_of_list: "Wyczerpano dostępne strony SteamSpy.",
-        paused: "Zatrzymano po ostatniej zakończonej partii.",
-        upstream_stopped: "Steam przerwał weryfikację. Pozostałe AppID zachowano.",
+        limit: t("gameCatalogAdmin.zakonczono_serie_mozesz_uruchomic_kolejn"),
+        end_of_list: t("gameCatalogAdmin.wyczerpano_dostepne_strony_steamspy"),
+        paused: t("gameCatalogAdmin.zatrzymano_po_ostatniej_zakonczonej_part"),
+        upstream_stopped: t("gameCatalogAdmin.steam_przerwal_weryfikacje_pozostale_app"),
       };
-      setGrowthMessage(`${endings[result.reason]} Zweryfikowano ${result.verified} AppID. Nowe gry w tej serii: ${result.queue.stats.inserted - discovery.stats.inserted}. Strony SteamSpy: ${result.pages}.`);
+      setGrowthMessage(t("gameCatalogAdmin.v0_zweryfikowano_verified_appid_nowe", { v0: endings[result.reason], verified: result.verified, v2: result.queue.stats.inserted - discovery.stats.inserted, pages: result.pages }));
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : String(cause));
-      setGrowthMessage("Zachowano ukończone partie i kursor SteamSpy. Jeśli źródło ograniczyło żądania, ponów później.");
+      setGrowthMessage(t("gameCatalogAdmin.zachowano_ukonczone_partie_i_kursor"));
     } finally {
       autoStopRef.current = true;
       setAutoRunning(false);
@@ -880,14 +873,14 @@ export default function GameCatalogAdminPage() {
 
   function goToNextPending() {
     if (nextPendingId === null) return;
-    if (hasUnsavedChanges && !window.confirm("Pominąć tę grę i utracić niezapisane zmiany?")) return;
+    if (hasUnsavedChanges && !window.confirm(t("gameCatalogAdmin.pominac_te_gre_i_utracic"))) return;
     navigate(`${BASE}/games/${nextPendingId}`);
   }
 
   async function save(openNext = false) {
     if (!selected) return;
     if (status === "ready" && !readiness.complete) {
-      setError(`Brakuje wymaganych elementów: ${readiness.missing.join(", ")}. Zapisz jako „Do sprawdzenia” lub uzupełnij klasyfikację.`);
+      setError(t("gameCatalogAdmin.brakuje_wymaganych_elementow_v0_zapisz", { v0: readiness.missing.join(", ") }));
       return;
     }
     setBusy(true);
@@ -917,7 +910,7 @@ export default function GameCatalogAdminPage() {
   }
 
   async function refreshConflictedGame() {
-    if (!selected || busy || !window.confirm("Wczytać nowszą klasyfikację? Twoje niezapisane zmiany zostaną utracone.")) return;
+    if (!selected || busy || !window.confirm(t("gameCatalogAdmin.wczytac_nowsza_klasyfikacje_twoje_niezap"))) return;
     setBusy(true);
     try {
       await loadDetail(selected.id);
@@ -954,9 +947,9 @@ export default function GameCatalogAdminPage() {
         <div className="flex flex-wrap gap-2">
           {facetTerms.length ? facetTerms.slice(0, 80).map((term) => (
             <Chip key={term.id} active={Boolean(assignmentFor(term.id))} onClick={() => toggleSimple(term)}>{term.label}</Chip>
-          )) : <span className="text-sm text-muted-foreground">Brak pasujących wartości. Spróbuj innej frazy lub dodaj nowe pojęcie w słowniku.</span>}
+          )) : <span className="text-sm text-muted-foreground">{t("gameCatalogAdmin.brak_pasujacych_wartosci_sprobuj_innej")}</span>}
         </div>
-        {facetTerms.length > 80 && <p className="text-xs text-muted-foreground">Wyświetlono 80 z {facetTerms.length} pojęć. Wpisz fragment nazwy, aby znaleźć pozostałe.</p>}
+        {facetTerms.length > 80 && <p className="text-xs text-muted-foreground">{t("gameCatalogAdmin.wyswietlono_80_z")}{" "}{facetTerms.length}{" "}{t("gameCatalogAdmin.pojec_wpisz_fragment_nazwy_aby")}</p>}
       </div>
     );
   }
@@ -965,68 +958,68 @@ export default function GameCatalogAdminPage() {
     if (perspective === "gameplay") {
       return (
         <div className="space-y-6">
-          <ToolSection title="Gatunek" description="Jedna główna rama opisująca grę.">{renderFacet("genre")}</ToolSection>
-          <ToolSection title="Podgatunki" description="Dodatkowe ramy, które realnie współtworzą doświadczenie.">{renderFacet("subgenre")}</ToolSection>
-          <ToolSection title="Główne elementy rozgrywki" description="To, co gracz robi regularnie i co definiuje doświadczenie.">
+          <ToolSection title={t("gameCatalogAdmin.gatunek")} description={t("gameCatalogAdmin.jedna_glowna_rama_opisujaca_gre")}>{renderFacet("genre")}</ToolSection>
+          <ToolSection title={t("gameCatalogAdmin.podgatunki")} description={t("gameCatalogAdmin.dodatkowe_ramy_ktore_realnie_wspoltworza")}>{renderFacet("subgenre")}</ToolSection>
+          <ToolSection title={t("gameCatalogAdmin.glowne_elementy_rozgrywki")} description={t("gameCatalogAdmin.to_co_gracz_robi_regularnie")}>
             <div className="flex flex-wrap gap-2">{(termsByFacet.get("mechanic") ?? []).slice(0, 80).map((term) => <Chip key={`main-${term.id}`} active={assignmentFor(term.id)?.role === "main"} onClick={() => setMechanic(term, "main")}>{term.label}</Chip>)}</div>
           </ToolSection>
-          <ToolSection title="Poboczne elementy rozgrywki" description="Istotne, ale nie centralne dla większości doświadczenia.">
+          <ToolSection title={t("gameCatalogAdmin.poboczne_elementy_rozgrywki")} description={t("gameCatalogAdmin.istotne_ale_nie_centralne_dla")}>
             <div className="flex flex-wrap gap-2">{(termsByFacet.get("mechanic") ?? []).slice(0, 80).map((term) => <Chip key={`secondary-${term.id}`} active={assignmentFor(term.id)?.role === "secondary"} onClick={() => setMechanic(term, "secondary")}>{term.label}</Chip>)}</div>
           </ToolSection>
         </div>
       );
     }
     const facet: Exclude<Facet, "genre" | "subgenre" | "mechanic" | "detail"> = perspective;
-    return <ToolSection title={FACET_LABELS[facet]} description="Wybierz wszystkie wartości, które faktycznie opisują grę.">{renderFacet(facet)}</ToolSection>;
+    return <ToolSection title={FACET_LABELS[facet]} description={t("gameCatalogAdmin.wybierz_wszystkie_wartosci_ktore_faktycz")}>{renderFacet(facet)}</ToolSection>;
   }
 
   const mainMechanics = draft.filter((item) => item.facet === "mechanic" && item.role === "main");
   const secondaryMechanics = draft.filter((item) => item.facet === "mechanic" && item.role === "secondary");
   const previewRows = [
-    ["Rozgrywka", [...draft.filter((x) => x.facet === "genre"), ...draft.filter((x) => x.facet === "subgenre")]],
-    ["Tryb", draft.filter((x) => x.facet === "mode")],
-    ["Struktura", draft.filter((x) => x.facet === "structure")],
-    ["Świat", draft.filter((x) => x.facet === "world")],
-    ["Oprawa", draft.filter((x) => x.facet === "visual")],
+    [t("gameCatalogAdmin.rozgrywka"), [...draft.filter((x) => x.facet === "genre"), ...draft.filter((x) => x.facet === "subgenre")]],
+    [t("gameCatalogAdmin.tryb"), draft.filter((x) => x.facet === "mode")],
+    [t("gameCatalogAdmin.struktura"), draft.filter((x) => x.facet === "structure")],
+    [t("gameCatalogAdmin.swiat"), draft.filter((x) => x.facet === "world")],
+    [t("gameCatalogAdmin.oprawa"), draft.filter((x) => x.facet === "visual")],
   ] as const;
 
   const backToProject = screen === "home" ? "/ludology" : BASE;
-  const backLabel = screen === "home" ? "Ludologia" : "Kategoryzacja gier";
+  const backLabel = screen === "home" ? t("gameCatalogAdmin.ludologia") : t("gameCatalogAdmin.kategoryzacja_gier");
 
   return (
     <ModuleShell wide={screen === "game" || screen === "games"}>
       <ModuleHeader
         code="LUDO 01"
-        title={screen === "home" ? "Kategoryzacja gier" : screen === "game" && selected ? selected.name : "Kategoryzacja gier"}
-        description={screen === "home" ? "Nowe spojrzenie na opis gier przez pięć niezależnych perspektyw." : "Projekt klasyfikacji gier i jego narzędzia."}
+        title={screen === "home" ? t("gameCatalogAdmin.kategoryzacja_gier") : screen === "game" && selected ? selected.name : t("gameCatalogAdmin.kategoryzacja_gier")}
+        description={screen === "home" ? t("gameCatalogAdmin.nowe_spojrzenie_na_opis_gier") : t("gameCatalogAdmin.projekt_klasyfikacji_gier_i_jego")}
         accent="amber"
         backHref={backToProject}
         backLabel={backLabel}
-        status={screen === "home" ? "projekt" : undefined}
+        status={screen === "home" ? t("gameCatalogAdmin.projekt") : undefined}
       />
 
       <div className="mb-4">
-        <ToolDisclosure title="Uprawnienia do edycji" description={adminKey ? "Klucz tej sesji został wprowadzony" : "Import i edycja wymagają klucza administratora katalogu"}>
+        <ToolDisclosure title={t("gameCatalogAdmin.uprawnienia_do_edycji")} description={adminKey ? t("gameCatalogAdmin.klucz_tej_sesji_zostal_wprowadzony") : t("gameCatalogAdmin.import_i_edycja_wymagaja_klucza")}>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <ToolInput
               type="password"
               value={adminKey}
               onChange={(event) => updateAdminKey(event.target.value)}
               autoComplete="off"
-              aria-label="Klucz administratora katalogu"
-              placeholder="Klucz administratora katalogu"
+              aria-label={t("gameCatalogAdmin.klucz_administratora_katalogu")}
+              placeholder={t("gameCatalogAdmin.klucz_administratora_katalogu")}
             />
-            <ToolButton type="button" onClick={() => updateAdminKey("")} disabled={!adminKey}>Wyczyść klucz</ToolButton>
+            <ToolButton type="button" onClick={() => updateAdminKey("")} disabled={!adminKey}>{t("gameCatalogAdmin.wyczysc_klucz")}</ToolButton>
           </div>
-          <p className="mt-2 text-xs text-muted-foreground">Klucz jest przechowywany wyłącznie w pamięci tej karty przeglądarki. Odczyt katalogu nie wymaga klucza. Administrator musi skonfigurować STEAM_CATALOG_ADMIN_TOKEN po stronie serwera.</p>
+          <p className="mt-2 text-xs text-muted-foreground">{t("gameCatalogAdmin.klucz_jest_przechowywany_wylacznie_w")}</p>
         </ToolDisclosure>
       </div>
       {error && <div className="mb-4"><ToolNotice tone="danger">{error}</ToolNotice></div>}
       {classificationConflict && selected && screen === "game" && (
         <div role="alert" className="mb-4 space-y-3 rounded-xl border border-amber-400/60 bg-background/60 p-4">
-          <p className="text-sm font-semibold text-amber-200">Konflikt edycji: zapisano nowszą wersję klasyfikacji.</p>
-          <p className="text-sm text-muted-foreground">Twoje niezapisane zmiany pozostały w formularzu. Aby uniknąć nadpisania zmian drugiego redaktora, odśwież rekord i ponownie wprowadź poprawki.</p>
-          <ToolButton type="button" disabled={busy} onClick={refreshConflictedGame}><RefreshCw className="h-4 w-4" /> Wczytaj aktualną wersję</ToolButton>
+          <p className="text-sm font-semibold text-amber-200">{t("gameCatalogAdmin.konflikt_edycji_zapisano_nowsza_wersje")}</p>
+          <p className="text-sm text-muted-foreground">{t("gameCatalogAdmin.twoje_niezapisane_zmiany_pozostaly_w")}</p>
+          <ToolButton type="button" disabled={busy} onClick={refreshConflictedGame}><RefreshCw className="h-4 w-4" />{" "}{t("gameCatalogAdmin.wczytaj_aktualna_wersje")}</ToolButton>
         </div>
       )}
 
@@ -1034,148 +1027,126 @@ export default function GameCatalogAdminPage() {
 
       {screen === "search" && (
         <div className="space-y-5">
-          <SectionHeader eyebrow="Wyszukiwanie" title="Szukaj gry" description="Przeszukaj katalog. Jeśli gry jeszcze nie ma, możesz ją zaimportować ze Steam." accent="amber" />
-          <ToolPanel title="Wyszukiwanie katalogu">
+          <SectionHeader eyebrow={t("gameCatalogAdmin.wyszukiwanie_2")} title={t("gameCatalogAdmin.szukaj_gry")} description={t("gameCatalogAdmin.przeszukaj_katalog_jesli_gry_jeszcze")} accent="amber" />
+          <ToolPanel title={t("gameCatalogAdmin.wyszukiwanie_katalogu")}>
             <div className="flex flex-col gap-3 sm:flex-row">
               <div className="flex flex-1 items-center gap-2 rounded-lg border border-border bg-background/60 px-3">
                 <Search className="h-4 w-4 text-muted-foreground" />
-                <input value={query} onChange={(event) => { setQuery(event.target.value); resetListPosition(); }} placeholder="Nazwa, studio, AppID..." className="min-w-0 flex-1 bg-transparent py-3 text-sm outline-none" autoFocus />
+                <input value={query} onChange={(event) => { setQuery(event.target.value); resetListPosition(); }} placeholder={t("gameCatalogAdmin.nazwa_studio_appid")} className="min-w-0 flex-1 bg-transparent py-3 text-sm outline-none" autoFocus />
               </div>
             </div>
             <div className="mt-4 divide-y divide-border overflow-hidden rounded-xl border border-border">
               {query.trim() && visibleListGames.length ? visibleListGames.map((game) => (
                 <Link key={game.id} href={`${BASE}/games/${game.id}`} className="flex items-center gap-4 bg-card/40 px-4 py-3 transition hover:bg-muted/60">
                   {game.headerImageUrl ? <img src={game.headerImageUrl} alt="" className="h-12 w-24 rounded-md object-cover" /> : <div className="h-12 w-24 rounded-md bg-muted" />}
-                  <div className="min-w-0 flex-1"><div className="truncate font-semibold">{game.name}</div><div className="mt-0.5 truncate text-xs text-muted-foreground">{game.developer || `Steam AppID ${game.steamAppId}`}</div></div>
+                  <div className="min-w-0 flex-1"><div className="truncate font-semibold">{game.name}</div><div className="mt-0.5 truncate text-xs text-muted-foreground">{game.developer || t("gameCatalogAdmin.steam_appid_steamappid", { steamAppId: game.steamAppId })}</div></div>
                   <span className="text-xs text-muted-foreground">{STATUS_LABELS[game.status]}</span>
                 </Link>
-              )) : <div className="p-6 text-sm text-muted-foreground">{listLoading ? "Wyszukiwanie..." : query.trim() ? "Brak wyników w katalogu." : "Wpisz nazwę gry lub AppID."}</div>}
+              )) : <div className="p-6 text-sm text-muted-foreground">{listLoading ? t("gameCatalogAdmin.wyszukiwanie") : query.trim() ? t("gameCatalogAdmin.brak_wynikow_w_katalogu") : t("gameCatalogAdmin.wpisz_nazwe_gry_lub_appid")}</div>}
             </div>
           </ToolPanel>
           {query.trim() && <div className="flex flex-wrap items-center gap-3 text-sm">
-            <span>{pagination.total} wyników · Strona {pagination.page} z {pagination.totalPages}</span>
-            <ToolButton type="button" disabled={listLoading || page <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))}>Poprzednia</ToolButton>
-            <ToolButton type="button" disabled={listLoading || page >= pagination.totalPages} onClick={advanceListPage}>Następna</ToolButton>
+            <span>{pagination.total}{" "}{t("gameCatalogAdmin.wynikow_strona")}{" "}{pagination.page} z {pagination.totalPages}</span>
+            <ToolButton type="button" disabled={listLoading || page <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))}>{t("gameCatalogAdmin.poprzednia")}</ToolButton>
+            <ToolButton type="button" disabled={listLoading || page >= pagination.totalPages} onClick={advanceListPage}>{t("gameCatalogAdmin.nastepna")}</ToolButton>
           </div>}
-          <ToolPanel title="Trwały import serwerowy — tysiące gier"
-            description="Trwały import do 20 000 AppID z możliwością zamknięcia przeglądarki. SteamSpy nie wymaga klucza Web API; tryb Steam go wymaga. Serwer musi mieć migracje 0037–0038.">
+          <ToolPanel title={t("gameCatalogAdmin.trwaly_import_serwerowy_tysiace_gier")}
+            description={t("gameCatalogAdmin.trwaly_import_do_20_000")}>
             <div className="flex flex-wrap items-center gap-2">
-              <label htmlFor="steam-server-import-source" className="text-sm">Źródło kandydatów</label>
+              <label htmlFor="steam-server-import-source" className="text-sm">{t("gameCatalogAdmin.zrodlo_kandydatow")}</label>
               <ToolSelect id="steam-server-import-source" value={serverImportSource}
                 onChange={(event) => setServerImportSource(event.target.value as "steam" | "steamspy")}
                 disabled={serverJobBusy || serverImportJob?.status === "running" || serverImportJob?.status === "paused"}>
-                <option value="steamspy">SteamSpy — bez klucza API</option>
-                <option value="steam">Steam Web API — wymaga klucza</option>
+                <option value="steamspy">{t("gameCatalogAdmin.steamspy_bez_klucza_api")}</option>
+                <option value="steam">{t("gameCatalogAdmin.steam_web_api_wymaga_klucza")}</option>
               </ToolSelect>
-              <label htmlFor="steam-server-import-limit" className="text-sm">Maks. sprawdzonych AppID</label>
+              <label htmlFor="steam-server-import-limit" className="text-sm">{t("gameCatalogAdmin.maks_sprawdzonych_appid")}</label>
               <ToolInput id="steam-server-import-limit" type="number" min={1} max={20000}
                 value={serverImportLimit} onChange={(event) => setServerImportLimit(event.target.value)} />
               <ToolButton type="button" onClick={startServerImportJob}
-                disabled={!adminKey || serverJobBusy || serverImportJob?.status === "running" || serverImportJob?.status === "paused"}>
-                Uruchom zadanie serwerowe
-              </ToolButton>
+                disabled={!adminKey || serverJobBusy || serverImportJob?.status === "running" || serverImportJob?.status === "paused"}>{t("gameCatalogAdmin.uruchom_zadanie_serwerowe")}</ToolButton>
               <ToolButton type="button" variant="ghost" onClick={refreshServerImportJob}
                 disabled={!adminKey || serverJobBusy}>
-                <RefreshCw className="h-4 w-4" /> Odśwież stan zadania
-              </ToolButton>
+                <RefreshCw className="h-4 w-4" />{" "}{t("gameCatalogAdmin.odswiez_stan_zadania")}</ToolButton>
               {serverImportJob?.status === "running" && (
                 <ToolButton type="button" onClick={() => changeServerImportJob("pause")}
-                  disabled={serverJobBusy || serverImportJob.pauseRequested}>Wstrzymaj zadanie serwerowe</ToolButton>
+                  disabled={serverJobBusy || serverImportJob.pauseRequested}>{t("gameCatalogAdmin.wstrzymaj_zadanie_serwerowe")}</ToolButton>
               )}
               {serverImportJob?.status === "paused" && (
                 <ToolButton type="button" onClick={() => changeServerImportJob("resume")}
-                  disabled={serverJobBusy}>Wznów zadanie serwerowe</ToolButton>
+                  disabled={serverJobBusy}>{t("gameCatalogAdmin.wznow_zadanie_serwerowe")}</ToolButton>
               )}
             </div>
             {serverImportJob && (
-              <div className="mt-3 space-y-2 text-sm" aria-label="Statystyki zadania serwerowego">
-                <p>Stan: <strong data-testid="steam-server-job-status">{serverImportJob.status}</strong>
-                  {" · "}Zweryfikowano: {serverImportJob.processed}/{serverImportJob.maxGames}
-                  {" · "}Źródło: {serverImportJob.source === "steamspy" ? "SteamSpy" : "Steam"}
-                  {" · "}{serverImportJob.source === "steamspy" ? `Strona: ${serverImportJob.sourcePage}` : `Kursor AppID: ${serverImportJob.cursor}`}</p>
+              <div className="mt-3 space-y-2 text-sm" aria-label={t("gameCatalogAdmin.statystyki_zadania_serwerowego")}>
+                <p>{t("gameCatalogAdmin.stan")}{" "}<strong data-testid="steam-server-job-status">{serverImportJob.status}</strong>
+                  {" · "}{t("gameCatalogAdmin.zweryfikowano")}{" "}{serverImportJob.processed}/{serverImportJob.maxGames}
+                  {" · "}{t("gameCatalogAdmin.zrodlo")}{" "}{serverImportJob.source === "steamspy" ? t("gameCatalogAdmin.steamspy") : t("gameCatalogAdmin.steam")}
+                  {" · "}{serverImportJob.source === "steamspy" ? t("gameCatalogAdmin.strona_sourcepage", { sourcePage: serverImportJob.sourcePage }) : t("gameCatalogAdmin.kursor_appid_cursor", { cursor: serverImportJob.cursor })}</p>
                 <div className="flex flex-wrap gap-x-4 gap-y-1 text-muted-foreground">
-                  <span>Dodano gier: <strong data-testid="steam-server-inserted">{serverImportJob.inserted}</strong></span>
-                  <span>Istniały: {serverImportJob.existing}</span>
-                  <span>Odrzucono: {serverImportJob.ignored}</span>
-                  <span>Błędy: {serverImportJob.failed}</span>
-                  <span>Oczekujące: {serverImportJob.pending}</span>
-                  <span>Odkryte: {serverImportJob.scanned}</span>
+                  <span>{t("gameCatalogAdmin.dodano_gier")}{" "}<strong data-testid="steam-server-inserted">{serverImportJob.inserted}</strong></span>
+                  <span>{t("gameCatalogAdmin.istnialy")}{" "}{serverImportJob.existing}</span>
+                  <span>{t("gameCatalogAdmin.odrzucono")}{" "}{serverImportJob.ignored}</span>
+                  <span>{t("gameCatalogAdmin.bledy")}{" "}{serverImportJob.failed}</span>
+                  <span>{t("gameCatalogAdmin.oczekujace")}{" "}{serverImportJob.pending}</span>
+                  <span>{t("gameCatalogAdmin.odkryte")}{" "}{serverImportJob.scanned}</span>
                   {serverImportJob.retryCount > 0 && (
-                    <span data-testid="steam-server-retry-count">Próby ponowienia: {serverImportJob.retryCount}/5</span>
+                    <span data-testid="steam-server-retry-count">{t("gameCatalogAdmin.proby_ponowienia")}{" "}{serverImportJob.retryCount}/5</span>
                   )}
                 </div>
                 {serverImportJob.lastError && (
                   <p role="alert" className="text-amber-300">{serverImportJob.status === "running"
-                    ? "Ponowienie zaplanowane: " : "Powód zatrzymania: "}{serverImportJob.lastError}
+                    ? t("gameCatalogAdmin.ponowienie_zaplanowane") : t("gameCatalogAdmin.powod_zatrzymania")}{serverImportJob.lastError}
                     {serverImportJob.status === "running" && serverImportJob.retryCount > 0 && serverImportJob.nextRunAt &&
-                      ` (najwcześniej ${new Date(serverImportJob.nextRunAt).toLocaleString("pl-PL")})`}
+                      t("gameCatalogAdmin.najwczesniej_v0", { v0: new Date(serverImportJob.nextRunAt).toLocaleString("pl-PL") })}
                   </p>
                 )}
               </div>
             )}
             {serverImportMessage && <p role="status" className="mt-2 text-sm">{serverImportMessage}</p>}
           </ToolPanel>
-          <ToolPanel title="Rozbuduj katalog ze Steam" description="Dostępne źródła: nowości Steam i paginowana lista SteamSpy bez klucza Web API, a także pełna lista AppID Steam z STEAM_WEB_API_KEY. SteamSpy jest zewnętrzną, nieoficjalną usługą i może ograniczać pobieranie stron. Import zawsze weryfikuje grę w Steam.">
+          <ToolPanel title={t("gameCatalogAdmin.rozbuduj_katalog_ze_steam")} description={t("gameCatalogAdmin.dostepne_zrodla_nowosci_steam_i")}>
             <div className="flex flex-wrap items-center gap-2">
               <ToolButton type="button" variant="primary" disabled={busy || discovery.candidates.length >= 200} onClick={discoverFeaturedGames}>
-                <Search className="h-4 w-4" /> Pobierz nowości i popularne (bez klucza)
-              </ToolButton>
+                <Search className="h-4 w-4" />{" "}{t("gameCatalogAdmin.pobierz_nowosci_i_popularne_bez")}</ToolButton>
               <ToolButton type="button" disabled={busy || !steamSpy.hasMore || discovery.candidates.length >= 200} onClick={discoverSteamSpyGames}>
-                <Search className="h-4 w-4" /> Pobierz następną stronę SteamSpy (bez klucza)
-              </ToolButton>
-              <ToolButton type="button" variant="primary" disabled={busy || (!steamSpy.hasMore && !discovery.candidates.length)} onClick={runAutomaticSteamSpyGrowth}>
-                SteamSpy: automatyczna seria do 100 AppID
-              </ToolButton>
+                <Search className="h-4 w-4" />{" "}{t("gameCatalogAdmin.pobierz_nastepna_strone_steamspy_bez")}</ToolButton>
+              <ToolButton type="button" variant="primary" disabled={busy || (!steamSpy.hasMore && !discovery.candidates.length)} onClick={runAutomaticSteamSpyGrowth}>{t("gameCatalogAdmin.steamspy_automatyczna_seria_do_100")}</ToolButton>
               <ToolButton type="button" disabled={busy || !discovery.hasMore || discovery.candidates.length >= 200} onClick={discoverSteamGames}>
-                <Search className="h-4 w-4" /> Pobierz propozycje ze Steam
-              </ToolButton>
+                <Search className="h-4 w-4" />{" "}{t("gameCatalogAdmin.pobierz_propozycje_ze_steam")}</ToolButton>
               <ToolButton type="button" disabled={busy || !discovery.candidates.length} onClick={importDiscoveredGames}>
-                <Plus className="h-4 w-4" /> Dodaj 10 gier z kolejki
-              </ToolButton>
-              <ToolButton type="button" disabled={busy || !discovery.candidates.length} onClick={() => void runAutomaticGrowth(true)}>
-                Przetwórz kolejkę (do 100 AppID)
-              </ToolButton>
-              <ToolButton type="button" disabled={busy} onClick={() => void runAutomaticGrowth(false)}>
-                Uruchom serię (do 100 AppID)
-              </ToolButton>
+                <Plus className="h-4 w-4" />{" "}{t("gameCatalogAdmin.dodaj_10_gier_z_kolejki")}</ToolButton>
+              <ToolButton type="button" disabled={busy || !discovery.candidates.length} onClick={() => void runAutomaticGrowth(true)}>{t("gameCatalogAdmin.przetworz_kolejke_do_100_appid")}</ToolButton>
+              <ToolButton type="button" disabled={busy} onClick={() => void runAutomaticGrowth(false)}>{t("gameCatalogAdmin.uruchom_serie_do_100_appid")}</ToolButton>
               {autoRunning && (
-                <ToolButton type="button" variant="ghost" onClick={() => { autoStopRef.current = true; }}>
-                  Zatrzymaj po bieżącej partii
-                </ToolButton>
+                <ToolButton type="button" variant="ghost" onClick={() => { autoStopRef.current = true; }}>{t("gameCatalogAdmin.zatrzymaj_po_biezacej_partii")}</ToolButton>
               )}
               <ToolButton type="button" variant="ghost" disabled={busy} onClick={() => {
                 setDiscovery(readSteamGrowthProgress(null));
                 setSteamSpy({ ...EMPTY_STEAMSPY_PROGRESS });
                 setGrowthMessage(null);
-              }}>
-                Od początku
-              </ToolButton>
+              }}>{t("gameCatalogAdmin.od_poczatku")}</ToolButton>
             </div>
             <div className="mt-4">
-              <label htmlFor="steam-bulk-appids" className="mb-2 block text-sm font-medium">
-                Masz listę AppID? Wklej do 200 numerów lub adresów Steam, oddzielonych spacjami, przecinkami lub nowymi liniami.
-              </label>
+              <label htmlFor="steam-bulk-appids" className="mb-2 block text-sm font-medium">{t("gameCatalogAdmin.masz_liste_appid_wklej_do")}</label>
               <textarea id="steam-bulk-appids" value={bulkPaste} onChange={(event) => setBulkPaste(event.target.value)}
-                placeholder="570, 730, https://store.steampowered.com/app/620/"
+                placeholder={t("gameCatalogAdmin.570_730_https_store_steampowered")}
                 className="min-h-20 w-full rounded-lg border border-border bg-background/60 p-3 text-sm outline-none focus:border-primary" />
-              <ToolButton type="button" disabled={busy || !bulkPaste.trim()} onClick={queuePastedSteamGames}>
-                Dodaj AppID do kolejki
-              </ToolButton>
+              <ToolButton type="button" disabled={busy || !bulkPaste.trim()} onClick={queuePastedSteamGames}>{t("gameCatalogAdmin.dodaj_appid_do_kolejki")}</ToolButton>
             </div>
-            <div className="mt-3 text-sm text-muted-foreground">
-              Oczekujące gry: <strong data-testid="steam-candidate-count">{discovery.candidates.length}</strong> · Ostatni Steam AppID: {discovery.cursor}
-              {!discovery.hasMore ? " · Koniec listy Steam." : ""}
-              {" · SteamSpy strona: "}{steamSpy.page}{" · pozycja: "}{steamSpy.offset}
-              {!steamSpy.hasMore ? " · Koniec listy SteamSpy." : ""}
-              {discovery.candidates.length >= 200 ? " · Zaimportuj oczekujące gry przed pobraniem następnej strony." : ""}
+            <div className="mt-3 text-sm text-muted-foreground">{t("gameCatalogAdmin.oczekujace_gry")}{" "}<strong data-testid="steam-candidate-count">{discovery.candidates.length}</strong>{" "}{t("gameCatalogAdmin.ostatni_steam_appid")}{" "}{discovery.cursor}
+              {!discovery.hasMore ? t("gameCatalogAdmin.koniec_listy_steam") : ""}
+              {t("gameCatalogAdmin.steamspy_strona")}{steamSpy.page}{t("gameCatalogAdmin.pozycja")}{steamSpy.offset}
+              {!steamSpy.hasMore ? t("gameCatalogAdmin.koniec_listy_steamspy") : ""}
+              {discovery.candidates.length >= 200 ? t("gameCatalogAdmin.zaimportuj_oczekujace_gry_przed_pobranie") : ""}
             </div>
-            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground" aria-label="Statystyki importu Steam">
-              <span>Dodane: <strong data-testid="steam-imported-total">{discovery.stats.inserted}</strong></span>
-              <span>Istniejące: {discovery.stats.existing}</span>
-              <span>Odrzucone: {discovery.stats.ignored}</span>
-              <span>Błędy: {discovery.stats.failed}</span>
-              <span>Przeskanowane: {discovery.stats.scanned}</span>
-              <span>Partie: {discovery.stats.batches}</span>
+            <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground" aria-label={t("gameCatalogAdmin.statystyki_importu_steam")}>
+              <span>{t("gameCatalogAdmin.dodane")}{" "}<strong data-testid="steam-imported-total">{discovery.stats.inserted}</strong></span>
+              <span>{t("gameCatalogAdmin.istniejace")}{" "}{discovery.stats.existing}</span>
+              <span>{t("gameCatalogAdmin.odrzucone")}{" "}{discovery.stats.ignored}</span>
+              <span>{t("gameCatalogAdmin.bledy")}{" "}{discovery.stats.failed}</span>
+              <span>{t("gameCatalogAdmin.przeskanowane")}{" "}{discovery.stats.scanned}</span>
+              <span>{t("gameCatalogAdmin.partie")}{" "}{discovery.stats.batches}</span>
             </div>
             {growthMessage && <p role="status" className="mt-2 text-sm text-foreground">{growthMessage}</p>}
             {discovery.candidates.length > 0 && (
@@ -1189,10 +1160,10 @@ export default function GameCatalogAdminPage() {
               </div>
             )}
           </ToolPanel>
-          <ToolPanel title="Dodaj ze Steam" description="Importuj grę, której nie ma jeszcze w katalogu.">
+          <ToolPanel title={t("gameCatalogAdmin.dodaj_ze_steam")} description={t("gameCatalogAdmin.importuj_gre_ktorej_nie_ma")}>
             <div className="flex flex-col gap-2 sm:flex-row">
-              <ToolInput value={importValue} onChange={(event) => setImportValue(event.target.value)} onKeyDown={(event) => event.key === "Enter" && importGame()} placeholder="Steam URL lub AppID" />
-              <ToolButton type="button" variant="primary" onClick={importGame} disabled={busy}><Plus className="h-4 w-4" /> Importuj</ToolButton>
+              <ToolInput value={importValue} onChange={(event) => setImportValue(event.target.value)} onKeyDown={(event) => event.key === "Enter" && importGame()} placeholder={t("gameCatalogAdmin.steam_url_lub_appid")} />
+              <ToolButton type="button" variant="primary" onClick={importGame} disabled={busy}><Plus className="h-4 w-4" />{" "}{t("gameCatalogAdmin.importuj")}</ToolButton>
             </div>
           </ToolPanel>
         </div>
@@ -1200,11 +1171,11 @@ export default function GameCatalogAdminPage() {
 
       {screen === "games" && (
         <div className="space-y-5">
-          <SectionHeader eyebrow="Katalog" title="Wszystkie gry" description={`${pagination.total} pasujących z ${counts.all} skatalogowanych rekordów.`} accent="amber" />
-          <ToolPanel title="Filtry katalogu" description="Szukaj po nazwie, studiu lub AppID i filtruj według stanu klasyfikacji.">
-            <ToolInput value={query} onChange={(event) => { setQuery(event.target.value); resetListPosition(); }} placeholder="Szukaj w katalogu..." />
+          <SectionHeader eyebrow={t("gameCatalogAdmin.katalog_2")} title={t("gameCatalogAdmin.wszystkie_gry")} description={t("gameCatalogAdmin.total_pasujacych_z_all_skatalogowanych", { total: pagination.total, all: counts.all })} accent="amber" />
+          <ToolPanel title={t("gameCatalogAdmin.filtry_katalogu")} description={t("gameCatalogAdmin.szukaj_po_nazwie_studiu_lub")}>
+            <ToolInput value={query} onChange={(event) => { setQuery(event.target.value); resetListPosition(); }} placeholder={t("gameCatalogAdmin.szukaj_w_katalogu")} />
             <div className="mt-3 flex flex-wrap gap-2">
-              <Chip active={statusFilter === "all"} onClick={() => { setStatusFilter("all"); resetListPosition(); }}>Wszystkie ({counts.all})</Chip>
+              <Chip active={statusFilter === "all"} onClick={() => { setStatusFilter("all"); resetListPosition(); }}>{t("gameCatalogAdmin.wszystkie")}{counts.all})</Chip>
               {(Object.keys(STATUS_LABELS) as Game["status"][]).map((value) => (
                 <Chip key={value} active={statusFilter === value} onClick={() => { setStatusFilter(value); resetListPosition(); }}>
                   {STATUS_LABELS[value]} ({counts[value]})
@@ -1215,7 +1186,7 @@ export default function GameCatalogAdminPage() {
           {visibleListGames.length ? (
             <div className="overflow-x-auto rounded-2xl border border-border bg-card/50">
               <div className="grid min-w-[620px] grid-cols-[minmax(0,1fr)_150px_140px] gap-3 border-b border-border bg-background/40 px-4 py-3 text-xs font-black uppercase tracking-[0.12em] text-muted-foreground">
-                <span>Gra</span><span>Status</span><span>Steam AppID</span>
+                <span>{t("gameCatalogAdmin.gra")}</span><span>{t("gameCatalogAdmin.status")}</span><span>{t("gameCatalogAdmin.steam_appid")}</span>
               </div>
               <div className="divide-y divide-border">
                 {visibleListGames.map((game) => (
@@ -1226,14 +1197,14 @@ export default function GameCatalogAdminPage() {
               </div>
             </div>
           ) : listLoading
-            ? <ToolEmptyState title="Wczytywanie katalogu" description="Trwa pobieranie danych." />
+            ? <ToolEmptyState title={t("gameCatalogAdmin.wczytywanie_katalogu")} description={t("gameCatalogAdmin.trwa_pobieranie_danych")} />
             : counts.all
-              ? <ToolEmptyState title="Brak wyników" description="Zmień frazę wyszukiwania lub status klasyfikacji." />
-              : <ToolEmptyState title="Brak gier" description="Zaimportuj pierwszą grę w sekcji Szukaj gry." />}
+              ? <ToolEmptyState title={t("gameCatalogAdmin.brak_wynikow")} description={t("gameCatalogAdmin.zmien_fraze_wyszukiwania_lub_status")} />
+              : <ToolEmptyState title={t("gameCatalogAdmin.brak_gier")} description={t("gameCatalogAdmin.zaimportuj_pierwsza_gre_w_sekcji")} />}
           <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-            <span>Strona {pagination.page} z {pagination.totalPages} · {pagination.total} wyników</span>
-            <ToolButton type="button" disabled={listLoading || page <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))}>Poprzednia</ToolButton>
-            <ToolButton type="button" disabled={listLoading || page >= pagination.totalPages} onClick={advanceListPage}>Następna</ToolButton>
+            <span>{t("gameCatalogAdmin.strona")}{" "}{pagination.page} z {pagination.totalPages} · {pagination.total}{" "}{t("gameCatalogAdmin.wynikow")}</span>
+            <ToolButton type="button" disabled={listLoading || page <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))}>{t("gameCatalogAdmin.poprzednia")}</ToolButton>
+            <ToolButton type="button" disabled={listLoading || page >= pagination.totalPages} onClick={advanceListPage}>{t("gameCatalogAdmin.nastepna")}</ToolButton>
           </div>
         </div>
       )}
@@ -1242,7 +1213,7 @@ export default function GameCatalogAdminPage() {
         const item = PERSPECTIVE_COPY[screen as Perspective];
         return (
           <div className="space-y-5">
-            <SectionHeader eyebrow={`Perspektywa ${item.code}`} title={item.title} description={item.question} accent="amber" />
+            <SectionHeader eyebrow={t("gameCatalogAdmin.perspektywa_code", { code: item.code })} title={item.title} description={item.question} accent="amber" />
             <ToolPanel title={item.description}>
               <div className="grid gap-3 md:grid-cols-2">{item.details.map((detail) => <div key={detail} className="rounded-xl border border-border bg-background/40 p-4 text-sm leading-6 text-muted-foreground">{detail}</div>)}</div>
             </ToolPanel>
@@ -1252,24 +1223,24 @@ export default function GameCatalogAdminPage() {
 
       {screen === "methodology" && (
         <div className="space-y-5">
-          <SectionHeader eyebrow="Metodologia" title="Jak powstaje klasyfikacja" description="Rozdzielenie faktów źródłowych od interpretacji i kontrola jakości." accent="amber" />
+          <SectionHeader eyebrow={t("gameCatalogAdmin.metodologia")} title={t("gameCatalogAdmin.jak_powstaje_klasyfikacja")} description={t("gameCatalogAdmin.rozdzielenie_faktow_zrodlowych_od_interp")} accent="amber" />
           <div className="grid gap-4 md:grid-cols-2">
-            <ToolPanel title="1. Dane źródłowe"><p className="text-sm leading-6 text-muted-foreground">Automatycznie pobierane są dane faktograficzne ze Steam: AppID, opis, informacje wydawcy, kategorie i dostępne tagi. Dane źródłowe są przechowywane osobno od własnej klasyfikacji.</p></ToolPanel>
-            <ToolPanel title="2. Pięć perspektyw"><p className="text-sm leading-6 text-muted-foreground">Gra jest opisywana na niezależnych osiach: Rozgrywka, Tryb, Struktura, Świat i Oprawa. Dzięki temu jedna etykieta nie musi łączyć kilku różnych cech.</p></ToolPanel>
-            <ToolPanel title="3. Centralność"><p className="text-sm leading-6 text-muted-foreground">Sama obecność elementu nie oznacza, że definiuje grę. Szczególnie w Rozgrywce rozróżniane są elementy główne i poboczne.</p></ToolPanel>
-            <ToolPanel title="4. Kontrola jakości"><p className="text-sm leading-6 text-muted-foreground">Niepewne rekordy mogą trafiać do weryfikacji. Docelowo klasyfikator automatyczny powinien być sprawdzany na ręcznie przygotowanym zbiorze wzorcowym.</p></ToolPanel>
+            <ToolPanel title={t("gameCatalogAdmin.1_dane_zrodlowe")}><p className="text-sm leading-6 text-muted-foreground">{t("gameCatalogAdmin.automatycznie_pobierane_sa_dane_faktogra")}</p></ToolPanel>
+            <ToolPanel title={t("gameCatalogAdmin.2_piec_perspektyw")}><p className="text-sm leading-6 text-muted-foreground">{t("gameCatalogAdmin.gra_jest_opisywana_na_niezaleznych")}</p></ToolPanel>
+            <ToolPanel title={t("gameCatalogAdmin.3_centralnosc")}><p className="text-sm leading-6 text-muted-foreground">{t("gameCatalogAdmin.sama_obecnosc_elementu_nie_oznacza")}</p></ToolPanel>
+            <ToolPanel title={t("gameCatalogAdmin.4_kontrola_jakosci")}><p className="text-sm leading-6 text-muted-foreground">{t("gameCatalogAdmin.niepewne_rekordy_moga_trafiac_do")}</p></ToolPanel>
           </div>
         </div>
       )}
 
       {screen === "why" && (
         <div className="space-y-5">
-          <SectionHeader eyebrow="Założenia" title="Dlaczego powstał ten projekt" description="Próba uporządkowania problemów obecnych sposobów opisywania gier." accent="amber" />
-          <ToolPanel title="Problem">
+          <SectionHeader eyebrow={t("gameCatalogAdmin.zalozenia")} title={t("gameCatalogAdmin.dlaczego_powstal_ten_projekt")} description={t("gameCatalogAdmin.proba_uporzadkowania_problemow_obecnych_")} accent="amber" />
+          <ToolPanel title={t("gameCatalogAdmin.problem")}>
             <div className="space-y-4 text-sm leading-7 text-muted-foreground">
-              <p>Popularne systemy kategorii i tagów często mieszają różne poziomy opisu: gatunek, sposób rozgrywki, tryb wieloosobowy, strukturę świata, setting i styl wizualny.</p>
-              <p>Tag mówi zwykle, że jakiś element istnieje, ale nie mówi, jak ważny jest dla doświadczenia. Gra może zawierać łowienie ryb, crafting albo PvP, choć nie są one tym, co najlepiej ją definiuje.</p>
-              <p>Projekt jest próbą spojrzenia na grę z kilku niezależnych stron zamiast wciskania jej w jedną hierarchię gatunkową. Pięć perspektyw ma być czytelne dla użytkownika, a szczegółowa baza może pozostać znacznie bogatsza pod spodem.</p>
+              <p>{t("gameCatalogAdmin.popularne_systemy_kategorii_i_tagow")}</p>
+              <p>{t("gameCatalogAdmin.tag_mowi_zwykle_ze_jakis")}</p>
+              <p>{t("gameCatalogAdmin.projekt_jest_proba_spojrzenia_na")}</p>
             </div>
           </ToolPanel>
         </div>
@@ -1277,29 +1248,27 @@ export default function GameCatalogAdminPage() {
 
       {screen === "game" && !selected && (
         gameLoading
-          ? <ToolEmptyState title="Wczytywanie gry" description="Trwa pobieranie rekordu." />
-          : <ToolEmptyState title="Nie znaleziono gry" description="Rekord nie istnieje w katalogu." />
+          ? <ToolEmptyState title={t("gameCatalogAdmin.wczytywanie_gry")} description={t("gameCatalogAdmin.trwa_pobieranie_rekordu")} />
+          : <ToolEmptyState title={t("gameCatalogAdmin.nie_znaleziono_gry")} description={t("gameCatalogAdmin.rekord_nie_istnieje_w_katalogu")} />
       )}
 
       {screen === "game" && selected && (
         <div className="space-y-4">
-          <div className="rounded-xl border border-border bg-card/50 px-4 py-3 text-sm text-muted-foreground">
-            Do opracowania: <strong className="text-foreground">{queue?.pendingCount ?? "…"}</strong> gier.
-            {nextPendingId === null && <span className="ml-2">Brak kolejnej gry w kolejce.</span>}
+          <div className="rounded-xl border border-border bg-card/50 px-4 py-3 text-sm text-muted-foreground">{t("gameCatalogAdmin.do_opracowania")}{" "}<strong className="text-foreground">{queue?.pendingCount ?? "…"}</strong>{" "}{t("gameCatalogAdmin.gier")}{nextPendingId === null && <span className="ml-2">{t("gameCatalogAdmin.brak_kolejnej_gry_w_kolejce")}</span>}
           </div>
           <ToolToolbar>
-            <Link href={`${BASE}/games`} className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background/60 px-3 py-2 text-sm font-semibold hover:bg-muted"><ArrowLeft className="h-4 w-4" /> Wszystkie gry</Link>
-            <div className="min-w-0 flex-1"><div className="truncate text-sm font-bold">{selected.name}</div><div className="mt-0.5 truncate text-xs text-muted-foreground">{[selected.developer, selected.releaseDate].filter(Boolean).join(" · ") || `Steam AppID ${selected.steamAppId}`}</div></div>
-            <a href={selected.steamUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background/70 px-3 py-2 text-sm font-semibold hover:bg-muted">Steam <ExternalLink className="h-3.5 w-3.5" /></a>
-            <ToolSelect aria-label="Status klasyfikacji" value={status} onChange={(event) => setStatus(event.target.value as Game["status"])} className="w-auto min-w-36">{Object.entries(STATUS_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</ToolSelect>
-            {hasUnsavedChanges && <span role="status" className="text-xs font-semibold text-amber-300">Niezapisane zmiany</span>}
-            <ToolButton type="button" variant="ghost" onClick={() => { setDraft(selected.assignments); setStatus(selected.status); }} disabled={busy || !hasUnsavedChanges}>Przywróć</ToolButton>
-            <ToolButton type="button" variant="ghost" onClick={goToNextPending} disabled={busy || nextPendingId === null}>Następna do opracowania</ToolButton>
-            <ToolButton type="button" variant="primary" onClick={() => save()} disabled={busy || classificationConflict || !hasUnsavedChanges}><Save className="h-4 w-4" /> Zapisz</ToolButton>
-            <ToolButton type="button" variant="primary" onClick={() => save(true)} disabled={busy || classificationConflict || !hasUnsavedChanges || nextPendingId === null}><Save className="h-4 w-4" /> Zapisz i dalej</ToolButton>
+            <Link href={`${BASE}/games`} className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background/60 px-3 py-2 text-sm font-semibold hover:bg-muted"><ArrowLeft className="h-4 w-4" />{" "}{t("gameCatalogAdmin.wszystkie_gry")}</Link>
+            <div className="min-w-0 flex-1"><div className="truncate text-sm font-bold">{selected.name}</div><div className="mt-0.5 truncate text-xs text-muted-foreground">{[selected.developer, selected.releaseDate].filter(Boolean).join(" · ") || t("gameCatalogAdmin.steam_appid_steamappid", { steamAppId: selected.steamAppId })}</div></div>
+            <a href={selected.steamUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background/70 px-3 py-2 text-sm font-semibold hover:bg-muted">{t("gameCatalogAdmin.steam")}{" "}<ExternalLink className="h-3.5 w-3.5" /></a>
+            <ToolSelect aria-label={t("gameCatalogAdmin.status_klasyfikacji")} value={status} onChange={(event) => setStatus(event.target.value as Game["status"])} className="w-auto min-w-36">{Object.entries(STATUS_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</ToolSelect>
+            {hasUnsavedChanges && <span role="status" className="text-xs font-semibold text-amber-300">{t("gameCatalogAdmin.niezapisane_zmiany")}</span>}
+            <ToolButton type="button" variant="ghost" onClick={() => { setDraft(selected.assignments); setStatus(selected.status); }} disabled={busy || !hasUnsavedChanges}>{t("gameCatalogAdmin.przywroc")}</ToolButton>
+            <ToolButton type="button" variant="ghost" onClick={goToNextPending} disabled={busy || nextPendingId === null}>{t("gameCatalogAdmin.nastepna_do_opracowania")}</ToolButton>
+            <ToolButton type="button" variant="primary" onClick={() => save()} disabled={busy || classificationConflict || !hasUnsavedChanges}><Save className="h-4 w-4" />{" "}{t("gameCatalogAdmin.zapisz")}</ToolButton>
+            <ToolButton type="button" variant="primary" onClick={() => save(true)} disabled={busy || classificationConflict || !hasUnsavedChanges || nextPendingId === null}><Save className="h-4 w-4" />{" "}{t("gameCatalogAdmin.zapisz_i_dalej")}</ToolButton>
           </ToolToolbar>
 
-          <ToolPanel title="Kontrola kompletności" description="Wymagania do uzyskania statusu Gotowe. Niepełny rekord można zapisać jako roboczy lub Do sprawdzenia.">
+          <ToolPanel title={t("gameCatalogAdmin.kontrola_kompletnosci")} description={t("gameCatalogAdmin.wymagania_do_uzyskania_statusu_gotowe")}>
             <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
               {readiness.checks.map((check) => (
                 <div key={check.key} className={`rounded-lg border px-3 py-2 text-sm ${check.complete ? "border-emerald-500/25 bg-emerald-500/5 text-emerald-200" : "border-border bg-background/50 text-muted-foreground"}`}>
@@ -1308,24 +1277,24 @@ export default function GameCatalogAdminPage() {
               ))}
             </div>
             {status === "ready" && !readiness.complete && (
-              <p role="alert" className="mt-3 text-sm text-amber-300">Status Gotowe wymaga uzupełnienia brakujących elementów. Możesz zapisać rekord jako Do sprawdzenia.</p>
+              <p role="alert" className="mt-3 text-sm text-amber-300">{t("gameCatalogAdmin.status_gotowe_wymaga_uzupelnienia_brakuj")}</p>
             )}
           </ToolPanel>
-          <ToolPanel title="Pięć perspektyw" description="Pracuj nad jedną perspektywą naraz.">
-            <ToolInput value={termQuery} onChange={(event) => setTermQuery(event.target.value)} placeholder="Szukaj pojęć w słowniku..." aria-label="Szukaj pojęć w słowniku" />
-            <p className="mt-2 mb-4 text-xs text-muted-foreground">Wyszukiwanie obejmuje nazwy i identyfikatory pojęć. Zaznaczone wartości są wyświetlane jako pierwsze; listy ograniczono do 80 pozycji dla płynności.</p>
+          <ToolPanel title={t("gameCatalogAdmin.piec_perspektyw")} description={t("gameCatalogAdmin.pracuj_nad_jedna_perspektywa_naraz")}>
+            <ToolInput value={termQuery} onChange={(event) => setTermQuery(event.target.value)} placeholder={t("gameCatalogAdmin.szukaj_pojec_w_slowniku")} aria-label={t("gameCatalogAdmin.szukaj_pojec_w_slowniku_2")} />
+            <p className="mt-2 mb-4 text-xs text-muted-foreground">{t("gameCatalogAdmin.wyszukiwanie_obejmuje_nazwy_i_identyfika")}</p>
             <ToolSegmented value={perspective} options={PERSPECTIVES} onChange={(value) => setPerspective(value)} />
             <div className="mt-6">{renderPerspectiveEditor()}</div>
           </ToolPanel>
-          <ToolDisclosure title="Pozostałe tagi" description="Szczegóły używane głównie do filtrowania.">{renderFacet("detail")}</ToolDisclosure>
-          <ToolDisclosure title="Podgląd rekordu" description="To, co później zobaczy użytkownik katalogu.">
+          <ToolDisclosure title={t("gameCatalogAdmin.pozostale_tagi")} description={t("gameCatalogAdmin.szczegoly_uzywane_glownie_do_filtrowania")}>{renderFacet("detail")}</ToolDisclosure>
+          <ToolDisclosure title={t("gameCatalogAdmin.podglad_rekordu")} description={t("gameCatalogAdmin.to_co_pozniej_zobaczy_uzytkownik")}>
             <div className="grid gap-5 lg:grid-cols-[220px_minmax(0,1fr)]">
-              <div>{selected.headerImageUrl && <img src={selected.headerImageUrl} alt="" className="w-full rounded-xl object-cover" />}<h3 className="mt-3 text-lg font-bold">{selected.name}</h3><p className="mt-1 text-xs text-muted-foreground">Steam AppID {selected.steamAppId}</p></div>
-              <div className="grid gap-4 sm:grid-cols-2">{previewRows.map(([label, items]) => <div key={label}><div className="text-xs font-black uppercase tracking-[0.12em] text-muted-foreground">{label}</div><div className="mt-1.5 text-sm">{items.length ? items.map((item) => item.label).join(" · ") : "—"}</div></div>)}<div><div className="text-xs font-black uppercase tracking-[0.12em] text-muted-foreground">Główne elementy</div><div className="mt-1.5 text-sm">{mainMechanics.length ? mainMechanics.map((item) => item.label).join(" · ") : "—"}</div></div><div><div className="text-xs font-black uppercase tracking-[0.12em] text-muted-foreground">Poboczne elementy</div><div className="mt-1.5 text-sm">{secondaryMechanics.length ? secondaryMechanics.map((item) => item.label).join(" · ") : "—"}</div></div></div>
+              <div>{selected.headerImageUrl && <img src={selected.headerImageUrl} alt="" className="w-full rounded-xl object-cover" />}<h3 className="mt-3 text-lg font-bold">{selected.name}</h3><p className="mt-1 text-xs text-muted-foreground">{t("gameCatalogAdmin.steam_appid")}{" "}{selected.steamAppId}</p></div>
+              <div className="grid gap-4 sm:grid-cols-2">{previewRows.map(([label, items]) => <div key={label}><div className="text-xs font-black uppercase tracking-[0.12em] text-muted-foreground">{label}</div><div className="mt-1.5 text-sm">{items.length ? items.map((item) => item.label).join(" · ") : "—"}</div></div>)}<div><div className="text-xs font-black uppercase tracking-[0.12em] text-muted-foreground">{t("gameCatalogAdmin.glowne_elementy")}</div><div className="mt-1.5 text-sm">{mainMechanics.length ? mainMechanics.map((item) => item.label).join(" · ") : "—"}</div></div><div><div className="text-xs font-black uppercase tracking-[0.12em] text-muted-foreground">{t("gameCatalogAdmin.poboczne_elementy")}</div><div className="mt-1.5 text-sm">{secondaryMechanics.length ? secondaryMechanics.map((item) => item.label).join(" · ") : "—"}</div></div></div>
             </div>
           </ToolDisclosure>
-          <ToolDisclosure title="Słownik" description="Dodawaj nowe wartości dopiero, gdy brakuje ich w systemie.">
-            <div className="grid gap-3 sm:grid-cols-[220px_minmax(0,1fr)_auto_auto]"><ToolSelect value={newFacet} onChange={(event) => setNewFacet(event.target.value as Facet)}>{Object.entries(FACET_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</ToolSelect><ToolInput value={newLabel} onChange={(event) => setNewLabel(event.target.value)} onKeyDown={(event) => event.key === "Enter" && addTerm()} placeholder="Nowa wartość" /><ToolButton type="button" onClick={addTerm} disabled={busy}><Plus className="h-4 w-4" /> Dodaj</ToolButton><ToolButton type="button" variant="ghost" disabled={busy || hasUnsavedChanges} onClick={() => loadTaxonomy().catch((cause) => setError(String(cause)))}><RefreshCw className="h-4 w-4" /> Odśwież</ToolButton></div>
+          <ToolDisclosure title={t("gameCatalogAdmin.slownik")} description={t("gameCatalogAdmin.dodawaj_nowe_wartosci_dopiero_gdy")}>
+            <div className="grid gap-3 sm:grid-cols-[220px_minmax(0,1fr)_auto_auto]"><ToolSelect value={newFacet} onChange={(event) => setNewFacet(event.target.value as Facet)}>{Object.entries(FACET_LABELS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</ToolSelect><ToolInput value={newLabel} onChange={(event) => setNewLabel(event.target.value)} onKeyDown={(event) => event.key === "Enter" && addTerm()} placeholder={t("gameCatalogAdmin.nowa_wartosc")} /><ToolButton type="button" onClick={addTerm} disabled={busy}><Plus className="h-4 w-4" />{" "}{t("gameCatalogAdmin.dodaj")}</ToolButton><ToolButton type="button" variant="ghost" disabled={busy || hasUnsavedChanges} onClick={() => loadTaxonomy().catch((cause) => setError(String(cause)))}><RefreshCw className="h-4 w-4" />{" "}{t("gameCatalogAdmin.odswiez")}</ToolButton></div>
           </ToolDisclosure>
         </div>
       )}

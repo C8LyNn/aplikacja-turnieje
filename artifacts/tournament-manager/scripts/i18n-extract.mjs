@@ -170,6 +170,14 @@ const words = args.includes("--words");
 const inArray = (node) => { let p = node.parent; while (p && (ts.isParenthesizedExpression(p) || ts.isAsExpression(p))) p = p.parent; return !!p && ts.isArrayLiteralExpression(p); };
 const isPolishWord = (node, text) => words && isPolishVocab(text) && !/[\/?=_.#&]/.test(text) && !inArray(node);
 
+/** <style>{`css`}</style> and <script> hold code, not text. */
+function insideStyleOrScript(node) {
+  for (let p = node.parent; p; p = p.parent) {
+    if (ts.isJsxElement(p)) { const tag = p.openingElement.tagName.getText(); return tag === "style" || tag === "script"; }
+  }
+  return false;
+}
+
 function templateCall(sf, node, prefix, fn = "t") {
   // `a ${x} b ${y.z}` → t("key", { x, z: y.z }) with "a {x} b {z}"
   let text = node.head.text;
@@ -237,6 +245,7 @@ function transform(file) {
     ts.forEachChild(node, visitDeep);
   };
   const visit = (node) => {
+    if (insideStyleOrScript(node)) return;
     if (deep) return visitDeep(node);
     if (ts.isJsxText(node)) {
       const rendered = jsxRendered(node.text);
@@ -280,8 +289,10 @@ function transform(file) {
     const lines = out.split(eol);
     let at = 0;
     while (at < lines.length && (lines[at].startsWith("//") || lines[at].startsWith("\"use ") || lines[at].trim() === "")) at++;
+    const bom = lines[0]?.startsWith("﻿");
+    if (bom) lines[0] = lines[0].slice(1);
     lines.splice(at, 0, shadow ? 'import { t as tr } from "@/i18n";' : 'import { t } from "@/i18n";');
-    out = lines.join(eol);
+    out = (bom ? "﻿" : "") + lines.join(eol);
   }
   if (!dry) writeFileSync(file, out);
 }

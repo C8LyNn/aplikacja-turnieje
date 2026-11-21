@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 /**
  * One explicitly user-started, bounded Steam catalog import session.
  *
@@ -122,7 +123,7 @@ export async function runSteamGrowthSession(options: {
           (page.nextCursor <= progress.cursor && (page.hasMore || page.candidates.length > 0)) ||
           page.nextCursor < progress.cursor ||
           page.nextCursor > 2_147_483_647 || !Array.isArray(page.candidates)) {
-        throw new Error("Steam zwrócił nieprawidłowy kursor odkrywania gier.");
+        throw new Error(t("gameCatalogGrowthRunner.steam_zwrocil_nieprawidlowy_kursor_odkry"));
       }
       const known = new Map(progress.candidates.map((game) => [game.appId, game]));
       for (const game of page.candidates) {
@@ -148,7 +149,7 @@ export async function runSteamGrowthSession(options: {
     for (const item of response.results ?? []) {
       if (!allowed.has(item.appId) || responses.has(item.appId) ||
           !["inserted", "existing", "not_game", "missing", "upstream_error"].includes(item.status)) {
-        throw new Error("Nieprawidłowy raport importu Steam. Nie zmieniono kolejki.");
+        throw new Error(t("gameCatalogGrowthRunner.nieprawidlowy_raport_importu_steam_nie"));
       }
       responses.set(item.appId, item);
     }
@@ -157,7 +158,7 @@ export async function runSteamGrowthSession(options: {
         response.existing !== [...responses.values()].filter((x) => x.status === "existing").length ||
         response.ignored !== [...responses.values()].filter((x) => x.status === "missing" || x.status === "not_game").length ||
         response.failed !== [...responses.values()].filter((x) => x.status === "upstream_error").length) {
-      throw new Error("Niespójne wyniki importu Steam. Zachowano kolejkę.");
+      throw new Error(t("gameCatalogGrowthRunner.niespojne_wyniki_importu_steam_zachowano"));
     }
     const completed = new Set([...responses.values()].filter((x) => x.status !== "upstream_error").map((x) => x.appId));
     save({

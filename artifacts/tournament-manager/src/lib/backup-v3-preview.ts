@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 /**
  * V5.2: read-only preview and consistency check of a Backup V3 file in the browser.
  * Nothing is sent to the server and nothing is restored — the V3 import stays disabled
@@ -43,44 +44,44 @@ export function inspectBackupV3(contents: string): BackupV3Preview | null {
 
   const problems: string[] = [];
   const tournament = isRecord(value.tournament) ? value.tournament : null;
-  if (!tournament) problems.push("Brak sekcji „tournament”.");
+  if (!tournament) problems.push(t("backupV3Preview.brak_sekcji_tournament"));
   for (const section of ["players", "stages", "matches", "resultHistory"] as const) {
-    if (!Array.isArray(value[section])) problems.push(`Brak sekcji „${section}”.`);
+    if (!Array.isArray(value[section])) problems.push(t("backupV3Preview.brak_sekcji_section", { section: section }));
   }
   const players = list(value.players);
   const stages = list(value.stages);
   const matches = list(value.matches);
   const playerIds = new Set(players.map((player) => player.backupId));
   const stageIds = new Set(stages.map((stage) => stage.backupId));
-  if (playerIds.size !== players.length) problems.push("Lista uczestników ma powtórzone identyfikatory.");
+  if (playerIds.size !== players.length) problems.push(t("backupV3Preview.lista_uczestnikow_ma_powtorzone_identyfi"));
 
   let brokenMatches = 0;
   for (const match of matches) {
     const refs = [match.player1BackupId, match.player2BackupId, match.winnerBackupId].filter((id) => id !== null && id !== undefined);
     if (refs.some((id) => !playerIds.has(id)) || (match.stageBackupId != null && !stageIds.has(match.stageBackupId))) brokenMatches += 1;
   }
-  if (brokenMatches) problems.push(`Mecze wskazujące na nieistniejących uczestników lub etapy: ${brokenMatches}.`);
+  if (brokenMatches) problems.push(t("backupV3Preview.mecze_wskazujace_na_nieistniejacych_ucze", { brokenMatches: brokenMatches }));
 
   const participantType = tournament?.participantType === "teams" ? "teams" : "players";
   let teams: BackupV3Preview["teams"] = null;
   if (value.teamRosters !== undefined) {
     const rosters = isRecord(value.teamRosters) ? value.teamRosters : null;
     const teamList = list(rosters?.teams);
-    if (!rosters || rosters.formatVersion !== 1) problems.push("Sekcja składów drużyn ma nieznany format.");
-    if (participantType !== "teams") problems.push("Składy drużyn w turnieju, który nie jest drużynowy.");
+    if (!rosters || rosters.formatVersion !== 1) problems.push(t("backupV3Preview.sekcja_skladow_druzyn_ma_nieznany"));
+    if (participantType !== "teams") problems.push(t("backupV3Preview.sklady_druzyn_w_turnieju_ktory"));
     const linked = teamList.filter((team) => playerIds.has(team.playerBackupId)).length;
-    if (linked !== teamList.length) problems.push("Część drużyn nie ma swojego wpisu na liście uczestników.");
+    if (linked !== teamList.length) problems.push(t("backupV3Preview.czesc_druzyn_nie_ma_swojego"));
     const members = teamList.flatMap((team) => list(team.members));
     teams = { count: teamList.length, activeMembers: members.filter((member) => member.leftAt == null).length, historyEntries: members.length };
   } else if (participantType === "teams") {
-    problems.push("Turniej drużynowy bez sekcji składów — składy nie zostałyby odtworzone.");
+    problems.push(t("backupV3Preview.turniej_druzynowy_bez_sekcji_skladow"));
   }
 
   const secret = findSecretKey(value);
-  if (secret) problems.push(`Plik zawiera pole „${secret}”, którego kopia nie powinna mieć. Nie udostępniaj go dalej.`);
+  if (secret) problems.push(t("backupV3Preview.plik_zawiera_pole_secret_ktorego", { secret: secret }));
 
   return {
-    name: typeof tournament?.name === "string" && tournament.name.trim() ? tournament.name : "Turniej bez nazwy",
+    name: typeof tournament?.name === "string" && tournament.name.trim() ? tournament.name : t("backupV3Preview.turniej_bez_nazwy"),
     exportedAt: typeof value.exportedAt === "string" ? value.exportedAt : null,
     participantType,
     participants: players.length,

@@ -703,7 +703,7 @@ export function TournamentResultCorrectionPanel({ tournamentId, enabled }: { tou
                     ? t("tournamentResultCorrectionPanel.zmiana_zwyciezcy_moze_wplynac_na")
                     : t("tournamentResultCorrectionPanel.zwyciezca_sie_nie_zmienia_obsada")}</p>
                   {impact.directSlot && <div className="rounded-md border border-border/60 p-2">
-                    <p className="font-medium">{t("tournamentResultCorrectionPanel.mecz_2")}{impact.directSlot.matchId}{t("tournamentResultCorrectionPanel.runda")}{" "}{impact.directSlot.round}, {impact.directSlot.slot === "player1" ? "pierwsze" : "drugie"} {t("tournamentResultCorrectionPanel.miejsce_3")}</p>
+                    <p className="font-medium">{t("tournamentResultCorrectionPanel.mecz_2")}{impact.directSlot.matchId}{t("tournamentResultCorrectionPanel.runda")}{" "}{impact.directSlot.round}, {impact.directSlot.slot === "player1" ? t("tournamentResultCorrectionPanel.pierwsze") : "drugie"} {t("tournamentResultCorrectionPanel.miejsce_3")}</p>
                     <p className="mt-1">{t("tournamentResultCorrectionPanel.obecnie_uczestnik")}{impact.directSlot.currentPlayerId ?? "?"} {t("tournamentResultCorrectionPanel.hipotetycznie")}{impact.directSlot.hypotheticalPlayerId}</p>
                     <p className="mt-1 text-muted-foreground">{impact.directSlot.pristine
                       ? t("tournamentResultCorrectionPanel.aktualny_stan_meczu_nie_wskazuje")

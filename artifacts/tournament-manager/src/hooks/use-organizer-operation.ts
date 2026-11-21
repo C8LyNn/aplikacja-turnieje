@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { useQueries } from "@tanstack/react-query";
 import {
   useGetTournamentStageBaskets, getGetTournamentStageBasketsQueryKey,
@@ -42,14 +43,14 @@ export function useOrganizerOperation({ tournament, stages, matches, capabilitie
   });
   let transitionStep: OrganizerNextStepModel | undefined;
   if (!active && enabled && (configuration.isPending || configuration.isError)) {
-    transitionStep = stepFor("Sprawdź stan etapów", "Nie potwierdzono jeszcze konfiguracji kwalifikacji i routingu.");
+    transitionStep = stepFor(t("useOrganizerOperation.sprawdz_stan_etapow"), t("useOrganizerOperation.nie_potwierdzono_jeszcze_konfiguracji_kw"));
   }
   if (!transitionStep && planned && readiness.isError) {
     transitionStep = stepFor(
-      "Nie udało się sprawdzić gotowości etapu",
-      "Serwer nie potwierdził aktualnego składu ani konfiguracji. Otwórz Etapy i spróbuj ponownie przed startem.",
+      t("useOrganizerOperation.nie_udalo_sie_sprawdzic_gotowosci"),
+      t("useOrganizerOperation.serwer_nie_potwierdzil_aktualnego_skladu"),
       planned.id,
-      "Sprawdź gotowość etapu",
+      t("useOrganizerOperation.sprawdz_gotowosc_etapu"),
     );
   }
   for (let i = 0; i < sources.length && !transitionStep; i++) {
@@ -57,18 +58,18 @@ export function useOrganizerOperation({ tournament, stages, matches, capabilitie
     const proposal = proposals[i];
     const error = proposal.error as { status?: number; data?: { code?: string } } | null;
     if (error?.status === 404 && error.data?.code === "STAGE_BASKET_QUALIFICATION_PROPOSAL_NOT_FOUND") {
-      transitionStep = stepFor("Przygotuj propozycję kwalifikacji", `Etap „${source.name}” zakończony. Przygotuj propozycję z wyników.`, source.id);
+      transitionStep = stepFor(t("useOrganizerOperation.przygotuj_propozycje_kwalifikacji"), t("useOrganizerOperation.etap_name_zakonczony_przygotuj_propozycj", { name: source.name }), source.id);
     } else if (proposal.isPending || proposal.isError) {
-      transitionStep = stepFor("Sprawdź kwalifikację", `Nie potwierdzono stanu kwalifikacji etapu „${source.name}”.`, source.id);
+      transitionStep = stepFor(t("useOrganizerOperation.sprawdz_kwalifikacje"), t("useOrganizerOperation.nie_potwierdzono_stanu_kwalifikacji_etap", { name: source.name }), source.id);
     } else if (proposal.data?.status !== "approved") {
-      transitionStep = stepFor("Zatwierdź kwalifikację", `Etap „${source.name}”: sprawdź propozycję kwalifikacji przed zatwierdzeniem.`, source.id);
+      transitionStep = stepFor(t("useOrganizerOperation.zatwierdz_kwalifikacje"), t("useOrganizerOperation.etap_name_sprawdz_propozycje_kwalifikacj", { name: source.name }), source.id);
     } else {
       const pendingRoute = routes.findIndex((r, index) => config!.baskets.find(b => b.id === r.sourceBasketId)?.stageId === source.id
         && (routeQueries[index].isError || !routeQueries[index].data?.materialized));
       if (pendingRoute >= 0) {
         const query = routeQueries[pendingRoute];
-        transitionStep = stepFor(query.isPending || query.isError ? "Sprawdź routing" : "Wykonaj routing",
-          `Etap „${source.name}”: kwalifikacja zatwierdzona. Przekazanie uczestników wymaga potwierdzenia routingu.`, source.id);
+        transitionStep = stepFor(query.isPending || query.isError ? t("useOrganizerOperation.sprawdz_routing") : t("useOrganizerOperation.wykonaj_routing"),
+          t("useOrganizerOperation.etap_name_kwalifikacja_zatwierdzona_prze", { name: source.name }), source.id);
       }
     }
   }

@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import {
   getStageSeedingCeremony,
   prepareStageSeedingCeremony,
@@ -27,7 +28,7 @@ async function mutateCeremony(
   request: (tournamentId: number, stageId: number) => Promise<{ ceremony: GeneratedSeedingCeremony | null }>,
 ): Promise<SeedingCeremonyState> {
   const response = await request(tournamentId, stageId);
-  if (!response.ceremony) throw new Error("Serwer nie zwrócił stanu losowania.");
+  if (!response.ceremony) throw new Error(t("seedingCeremonyApi.serwer_nie_zwrocil_stanu_losowania"));
   return response.ceremony;
 }
 

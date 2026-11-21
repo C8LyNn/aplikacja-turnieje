@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import {
   readSteamGrowthProgress, runSteamGrowthSession,
   type SteamBatchResponse, type SteamGrowthGame, type SteamGrowthProgress,
@@ -57,19 +58,19 @@ export function mergeSteamSpyDiscoveryPage(
       typeof reply.hasMore !== "boolean" ||
       (reply.nextPage === source.page && reply.nextOffset <= source.offset) ||
       (reply.nextPage > source.page && reply.nextOffset !== 0)) {
-    throw new Error("SteamSpy zwrócił nieprawidłową stronę. Zachowano postęp.");
+    throw new Error(t("gameCatalogSteamspyGrowthRunner.steamspy_zwrocil_nieprawidlowa_strone_za"));
   }
   const combined = new Map(queue.candidates.map((item) => [item.appId, item]));
   for (const item of reply.candidates) {
     if (!item || !Number.isSafeInteger(item.appId) || item.appId <= 0 ||
         item.appId > 2_147_483_647 || typeof item.name !== "string" || !item.name.trim()) {
-      throw new Error("SteamSpy zwrócił nieprawidłowe AppID. Zachowano postęp.");
+      throw new Error(t("gameCatalogSteamspyGrowthRunner.steamspy_zwrocil_nieprawidlowe_appid_zac"));
     }
     if (!combined.has(item.appId)) combined.set(item.appId, {
       appId: item.appId, name: item.name.slice(0, 300),
     });
     if (combined.size > 200) {
-      throw new Error("Kolejka Steam przekroczyłaby limit 200 gier. Zachowano postęp.");
+      throw new Error(t("gameCatalogSteamspyGrowthRunner.kolejka_steam_przekroczylaby_limit_200"));
     }
   }
   return {
@@ -117,7 +118,7 @@ export async function runSteamSpyGrowthSession(options: {
         initial: { ...queue, hasMore: false },
         maxVerified: maxVerified - verified,
         shouldStop: options.shouldStop,
-        discover: async () => { throw new Error("Nie wolno uruchamiać wyszukiwania Steam API."); },
+        discover: async () => { throw new Error(t("gameCatalogSteamspyGrowthRunner.nie_wolno_uruchamiac_wyszukiwania_steam")); },
         importBatch: options.importBatch,
         checkpoint: (item) => checkpoint({
           queue: { ...item, hasMore: originalHasMore }, source,

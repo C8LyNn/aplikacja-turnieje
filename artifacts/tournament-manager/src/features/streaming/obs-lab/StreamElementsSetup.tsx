@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { useMemo, useState } from "react";
 import { Copy } from "lucide-react";
 import { ToolButton, ToolDisclosure, ToolPanel } from "@/components/tool-ui";
@@ -25,22 +26,19 @@ export function StreamElementsSetup({ config, width, height }: Props) {
 
   return (
     <ToolPanel
-      title="StreamElements"
-      description="Eksport tej samej konfiguracji jako Custom Widget."
+      title={t("streamElementsSetup.streamelements")}
+      description={t("streamElementsSetup.eksport_tej_samej_konfiguracji_jako")}
       actions={
         <span className="rounded-lg border border-border bg-background/60 px-3 py-1.5 text-xs font-semibold text-muted-foreground">
-          {width} × {height}px
-        </span>
+          {width} × {height}{t("streamElementsSetup.px")}</span>
       }
     >
       <div className="space-y-3">
-        <CodePanel title="HTML" code={htmlCode} copied={copied === "html"} onCopy={() => copy(htmlCode, "html")} />
-        <CodePanel title="CSS" code={cssCode} copied={copied === "css"} onCopy={() => copy(cssCode, "css")} />
-        <CodePanel title="JS" code={jsCode} copied={copied === "js"} onCopy={() => copy(jsCode, "js")} />
+        <CodePanel title={t("streamElementsSetup.html")} code={htmlCode} copied={copied === "html"} onCopy={() => copy(htmlCode, "html")} />
+        <CodePanel title={t("streamElementsSetup.css")} code={cssCode} copied={copied === "css"} onCopy={() => copy(cssCode, "css")} />
+        <CodePanel title={t("streamElementsSetup.js")} code={jsCode} copied={copied === "js"} onCopy={() => copy(jsCode, "js")} />
       </div>
-      <p className="mt-4 text-xs leading-5 text-muted-foreground">
-        W StreamElements utwórz Custom Widget i wklej trzy fragmenty do odpowiednich zakładek.
-      </p>
+      <p className="mt-4 text-xs leading-5 text-muted-foreground">{t("streamElementsSetup.w_streamelements_utworz_custom_widget")}</p>
     </ToolPanel>
   );
 }
@@ -57,11 +55,11 @@ function CodePanel({
   onCopy: () => void;
 }) {
   return (
-    <ToolDisclosure title={title} description="Kod widgetu">
+    <ToolDisclosure title={title} description={t("streamElementsSetup.kod_widgetu")}>
       <div className="overflow-hidden rounded-xl border border-border bg-background/50">
         <div className="flex justify-end border-b border-border px-3 py-2">
           <ToolButton type="button" variant="ghost" onClick={onCopy} className="py-1.5 text-xs">
-            <Copy className="h-3.5 w-3.5" /> {copied ? "Skopiowano" : "Kopiuj"}
+            <Copy className="h-3.5 w-3.5" /> {copied ? t("streamElementsSetup.skopiowano") : t("streamElementsSetup.kopiuj")}
           </ToolButton>
         </div>
         <pre className="max-h-56 overflow-auto bg-black/30 p-3 text-[11px] leading-5 text-slate-300">

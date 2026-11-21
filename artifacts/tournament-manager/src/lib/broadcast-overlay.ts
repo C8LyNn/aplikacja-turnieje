@@ -1,3 +1,4 @@
+import { getLang, t as tr } from "@/i18n";
 /**
  * V5.9 · broadcast overlays (OBS Browser Source). Pure model shared by the overlay page and the "Transmisja" panel.
  *
@@ -47,23 +48,23 @@ export interface OverlayConfig {
 }
 
 export const OVERLAY_DEFAULTS: Omit<OverlayConfig, "tournamentId"> = {
-  kind: "wynik", match: "ekran", stage: null, round: null, group: null, preset: "arena", layout: "pelny", scoreSize: "m",
-  showTitle: true, background: "przezroczyste", motion: 1, textScale: 1, position: "dol", showQueue: false, alerts: false,
+  kind: "wynik", match: "ekran" /* i18n-ignore */, stage: null, round: null, group: null, preset: "arena", layout: "pelny", scoreSize: "m",
+  showTitle: true, background: "przezroczyste" /* i18n-ignore */, motion: 1, textScale: 1, position: "dol", showQueue: false, alerts: false,
 };
 
 export const OVERLAY_KINDS: { id: OverlayKind; label: string; description: string }[] = [
-  { id: "wynik", label: "Wynik", description: "Pasek z nazwami i wynikiem na obrazie gry." },
-  { id: "struktura", label: "Tabela i drabinka", description: "Tabela, grupy albo drabinka etapu — na przerwę." },
-  { id: "zapowiedz", label: "Zapowiedź", description: "Plansza przed meczem: kto gra, kiedy i o co." },
-  { id: "zwyciezca", label: "Zwycięzca", description: "Zwycięzca turnieju po jego końcu, wcześniej zwycięzca ostatniego meczu." },
+  { id: "wynik", get label() { return tr("broadcastOverlay.wynik"); }, get description() { return tr("broadcastOverlay.pasek_z_nazwami_i_wynikiem"); } },
+  { id: "struktura", get label() { return tr("broadcastOverlay.tabela_i_drabinka"); }, get description() { return tr("broadcastOverlay.tabela_grupy_albo_drabinka_etapu"); } },
+  { id: "zapowiedz", get label() { return tr("broadcastOverlay.zapowiedz"); }, get description() { return tr("broadcastOverlay.plansza_przed_meczem_kto_gra"); } },
+  { id: "zwyciezca", get label() { return tr("broadcastOverlay.zwyciezca"); }, get description() { return tr("broadcastOverlay.zwyciezca_turnieju_po_jego_koncu"); } },
 ];
 
 export const OVERLAY_PRESETS: { id: OverlayPresetId; label: string; description: string }[] = [
-  { id: "arena", label: "Arena", description: "Kolorowa, świecąca, ścięte rogi — jak hala e-sportowa." },
-  { id: "broadcast", label: "Broadcast", description: "Pasek telewizyjny: jasne nazwy, ciemny wynik, akcent stacji." },
-  { id: "minimal", label: "Minimal", description: "Spokojne szkło, cienka typografia, bez ozdobników." },
-  { id: "sport", label: "Sport", description: "Tablica wyników: mocne kolory drużyn, pochylona, gruba czcionka." },
-  { id: "futuristic", label: "Futuristic", description: "Neonowe linie, technologiczna czcionka, siatka w tle." },
+  { id: "arena", label: "Arena", get description() { return tr("broadcastOverlay.kolorowa_swiecaca_sciete_rogi_jak"); } },
+  { id: "broadcast", label: "Broadcast", get description() { return tr("broadcastOverlay.pasek_telewizyjny_jasne_nazwy_ciemny"); } },
+  { id: "minimal", label: "Minimal", get description() { return tr("broadcastOverlay.spokojne_szklo_cienka_typografia_bez"); } },
+  { id: "sport", label: "Sport", get description() { return tr("broadcastOverlay.tablica_wynikow_mocne_kolory_druzyn"); } },
+  { id: "futuristic", label: "Futuristic", get description() { return tr("broadcastOverlay.neonowe_linie_technologiczna_czcionka_si"); } },
 ];
 
 export const OVERLAY_RESOLUTIONS = [
@@ -91,16 +92,16 @@ export function parseOverlayParams(search: string | URLSearchParams): OverlayCon
   const group = p.get("grupa");
   return {
     tournamentId: positiveInt(p.get("t")),
-    kind: kind === "struktura" || kind === "zapowiedz" || kind === "zwyciezca" ? kind : "wynik",
-    match: MATCH_WORDS.has(p.get("mecz") ?? "") ? (p.get("mecz") as "auto" | "nastepny" | "ostatni") : positiveInt(p.get("mecz")) ?? "ekran",
+    kind: kind === "struktura" || kind === "zapowiedz" || kind === "zwyciezca" ? kind : "wynik" /* i18n-ignore */,
+    match: MATCH_WORDS.has(p.get("mecz") ?? "") ? (p.get("mecz") as "auto" | "nastepny" | "ostatni") : positiveInt(p.get("mecz")) ?? "ekran" /* i18n-ignore */,
     stage: positiveInt(p.get("etap")),
     round: positiveInt(p.get("runda")),
     group: group && group.length <= 40 ? group : null,
     preset: preset && PRESET_IDS.has(preset) ? preset : OVERLAY_DEFAULTS.preset,
-    layout: p.get("uklad") === "kompakt" ? "kompakt" : "pelny",
+    layout: p.get("uklad") === "kompakt" /* i18n-ignore */ ? "kompakt" : "pelny",
     scoreSize: p.get("rozmiar") === "s" || p.get("rozmiar") === "l" ? (p.get("rozmiar") as "s" | "l") : "m",
     showTitle: p.get("tytul") !== "0",
-    background: p.get("tlo") === "pelne" ? "pelne" : "przezroczyste",
+    background: p.get("tlo") === "pelne" ? "pelne" : "przezroczyste" /* i18n-ignore */,
     motion,
     textScale: scale === 1.25 || scale === 1.5 ? scale : 1,
     position: p.get("pozycja") === "gora" ? "gora" : "dol",
@@ -109,29 +110,31 @@ export function parseOverlayParams(search: string | URLSearchParams): OverlayCon
   };
 }
 
-const MATCH_WORDS = new Set(["auto", "nastepny", "ostatni"]);
+const MATCH_WORDS = new Set(["auto", "nastepny", "ostatni" /* i18n-ignore */]);
 
 /** The overlay address for a configuration — only non-default values are written, so links stay short. */
 export function overlayUrl(origin: string, basePath: string, config: OverlayConfig): string {
   const p = new URLSearchParams();
   if (config.tournamentId != null) p.set("t", String(config.tournamentId));
-  if (config.kind !== OVERLAY_DEFAULTS.kind) p.set("widok", config.kind);
-  if (config.kind !== "struktura" && config.kind !== "zwyciezca" && config.match !== "ekran") p.set("mecz", String(config.match));
+  if (config.kind !== OVERLAY_DEFAULTS.kind) p.set("widok" /* i18n-ignore */, config.kind);
+  if (config.kind !== "struktura" && config.kind !== "zwyciezca" && config.match !== "ekran") p.set("mecz" /* i18n-ignore */, String(config.match));
   if (config.kind === "struktura") {
-    if (config.stage != null) p.set("etap", String(config.stage));
-    if (config.round != null) p.set("runda", String(config.round));
-    if (config.group) p.set("grupa", config.group);
+    if (config.stage != null) p.set("etap" /* i18n-ignore */, String(config.stage));
+    if (config.round != null) p.set("runda" /* i18n-ignore */, String(config.round));
+    if (config.group) p.set("grupa" /* i18n-ignore */, config.group);
   }
-  if (config.preset !== OVERLAY_DEFAULTS.preset) p.set("styl", config.preset);
+  if (config.preset !== OVERLAY_DEFAULTS.preset) p.set("styl" /* i18n-ignore */, config.preset);
   if (config.layout !== OVERLAY_DEFAULTS.layout) p.set("uklad", config.layout);
-  if (config.scoreSize !== OVERLAY_DEFAULTS.scoreSize) p.set("rozmiar", config.scoreSize);
+  if (config.scoreSize !== OVERLAY_DEFAULTS.scoreSize) p.set("rozmiar" /* i18n-ignore */, config.scoreSize);
   if (!config.showTitle) p.set("tytul", "0");
   if (config.background !== OVERLAY_DEFAULTS.background) p.set("tlo", config.background);
-  if (config.motion !== OVERLAY_DEFAULTS.motion) p.set("ruch", String(config.motion));
-  if (config.textScale !== OVERLAY_DEFAULTS.textScale) p.set("tekst", String(config.textScale));
-  if (config.position !== OVERLAY_DEFAULTS.position) p.set("pozycja", config.position);
-  if (config.kind === "zapowiedz" && config.showQueue) p.set("kolejka", "1");
-  if (config.alerts && config.kind !== "struktura") p.set("alerty", "1");
+  if (config.motion !== OVERLAY_DEFAULTS.motion) p.set("ruch" /* i18n-ignore */, String(config.motion));
+  if (config.textScale !== OVERLAY_DEFAULTS.textScale) p.set("tekst" /* i18n-ignore */, String(config.textScale));
+  if (config.position !== OVERLAY_DEFAULTS.position) p.set("pozycja" /* i18n-ignore */, config.position);
+  if (config.kind === "zapowiedz" && config.showQueue) p.set("kolejka" /* i18n-ignore */, "1");
+  if (config.alerts && config.kind !== "struktura") p.set("alerty" /* i18n-ignore */, "1");
+  // #323-E: OBS has its own storage, so the overlay follows the language the organizer works in (Polish needs nothing)
+  if (getLang() !== "pl") p.set("lang", getLang());
   const base = basePath.endsWith("/") ? basePath : `${basePath}/`;
   return `${origin}${base}overlay.html?${p.toString()}`;
 }
@@ -250,44 +253,44 @@ export function toPublicMatch(raw: Raw): PublicMatch {
 // ─── wording ────────────────────────────────────────────────────────────────
 
 const STATUS_LABELS: Record<string, string> = {
-  in_progress: "Na żywo",
-  completed: "Zakończony",
-  pending: "Przed meczem",
-  postponed: "Przełożony",
-  cancelled: "Odwołany",
+  get in_progress() { return tr("broadcastOverlay.na_zywo"); },
+  get completed() { return tr("broadcastOverlay.zakonczony"); },
+  get pending() { return tr("broadcastOverlay.przed_meczem"); },
+  get postponed() { return tr("broadcastOverlay.przelozony"); },
+  get cancelled() { return tr("broadcastOverlay.odwolany"); },
 };
 
 export const FORMAT_LABELS: Record<string, string> = {
-  single_elimination: "Drabinka pucharowa",
-  double_elimination: "Podwójna eliminacja",
-  swiss: "System szwajcarski",
-  round_robin: "Liga",
-  group_stage: "Faza grupowa",
+  get single_elimination() { return tr("broadcastOverlay.drabinka_pucharowa"); },
+  get double_elimination() { return tr("broadcastOverlay.podwojna_eliminacja"); },
+  get swiss() { return tr("broadcastOverlay.system_szwajcarski"); },
+  get round_robin() { return tr("broadcastOverlay.liga"); },
+  get group_stage() { return tr("broadcastOverlay.faza_grupowa"); },
 };
 
 /** How long the match is, in the same words as the rest of the app (the engine's own summary for sets). */
 export function matchFormatText(match: Pick<PublicMatch, "bestOf">, stage: Pick<PublicStage, "matchRules" | "allowDraws"> | null): string {
   const rules = stage?.matchRules;
-  if (rules?.kind === "sets") return `${rules.setsToWin === 1 ? "Jeden set" : `Do ${rules.setsToWin} wygranych setów`} · set do ${rules.pointsPerSet}`;
-  if (stage?.allowDraws) return "Mecz ligowy · remis możliwy";
-  return match.bestOf <= 1 ? "Jedna gra" : `Do ${Math.ceil(match.bestOf / 2)} wygranych`;
+  if (rules?.kind === "sets") return `${rules.setsToWin === 1 ? tr("broadcastOverlay.jeden_set") : tr("broadcastOverlay.do_setstowin_wygranych_setow", { setsToWin: rules.setsToWin })} · set do ${rules.pointsPerSet}`;
+  if (stage?.allowDraws) return tr("broadcastOverlay.mecz_ligowy_remis_mozliwy");
+  return match.bestOf <= 1 ? tr("broadcastOverlay.jedna_gra") : tr("broadcastOverlay.do_v0_wygranych", { v0: Math.ceil(match.bestOf / 2) });
 }
 
 /** Name of a bracket round counted from the final: Finał, Półfinał, Ćwierćfinał, 1/8 finału… */
 export function eliminationRoundName(round: number, totalRounds: number): string {
   const fromEnd = totalRounds - round;
-  if (fromEnd === 0) return "Finał";
-  if (fromEnd === 1) return "Półfinał";
-  if (fromEnd === 2) return "Ćwierćfinał";
-  if (fromEnd > 2) return `1/${2 ** fromEnd} finału`;
-  return `Runda ${round}`;
+  if (fromEnd === 0) return tr("broadcastOverlay.final");
+  if (fromEnd === 1) return tr("broadcastOverlay.polfinal");
+  if (fromEnd === 2) return tr("broadcastOverlay.cwiercfinal");
+  if (fromEnd > 2) return tr("broadcastOverlay.1_v0_finalu", { v0: 2 ** fromEnd });
+  return tr("broadcastOverlay.runda_round", { round: round });
 }
 
 /** "Faza grupowa · Runda 2", "Play-off · Półfinał" — the stage name is not repeated when it is the format name. */
 export function stageRoundText(match: PublicMatch, stage: PublicStage | null, stageMatches: readonly PublicMatch[]): string {
-  if (!stage) return `Runda ${match.round}`;
+  if (!stage) return tr("broadcastOverlay.runda_round", { round: match.round });
   const rounds = Math.max(1, ...stageMatches.map((m) => m.round));
-  const roundText = stage.format === "single_elimination" ? eliminationRoundName(match.round, rounds) : `Runda ${match.round}`;
+  const roundText = stage.format === "single_elimination" ? eliminationRoundName(match.round, rounds) : tr("broadcastOverlay.runda_round", { round: match.round });
   return `${stage.name} · ${roundText}`;
 }
 
@@ -328,17 +331,17 @@ export function nameFit(name: string): NameFit {
 
 /** Heading of the upcoming card for the match's real state (a postponed match is never "the next match"). */
 export function upcomingHeading(card: Pick<MatchCard, "state">): string {
-  return card.state === "live" ? "Teraz gramy" : card.state === "completed" ? "Wynik meczu" : card.state === "postponed" ? "Mecz przełożony"
-    : card.state === "cancelled" ? "Mecz odwołany" : "Następny mecz";
+  return card.state === "live" ? tr("broadcastOverlay.teraz_gramy") : card.state === "completed" ? tr("broadcastOverlay.wynik_meczu") : card.state === "postponed" ? tr("broadcastOverlay.mecz_przelozony")
+    : card.state === "cancelled" ? tr("broadcastOverlay.mecz_odwolany") : tr("broadcastOverlay.nastepny_mecz");
 }
 
 export function matchCard(match: PublicMatch, stage: PublicStage | null, stageMatches: readonly PublicMatch[], teams: boolean): MatchCard {
-  const tbd = teams ? "Drużyna do ustalenia" : "Do ustalenia";
+  const tbd = teams ? tr("broadcastOverlay.druzyna_do_ustalenia") : tr("broadcastOverlay.do_ustalenia");
   const played = match.status === "completed" || match.status === "in_progress";
   const hasScore = match.score1 != null && match.score2 != null && (match.status === "completed" || (match.score1 ?? 0) + (match.score2 ?? 0) > 0);
   const winner: 1 | 2 | 0 = match.winnerId != null && match.winnerId === match.player1Id ? 1 : match.winnerId != null && match.winnerId === match.player2Id ? 2 : 0;
-  const resultNote = match.resultType === "walkover" ? "Walkower" : match.resultType === "bye" ? "Wolny los" : match.resultType === "no_contest" ? "Bez wyniku"
-    : match.status === "completed" && match.resultType === "played" && winner === 0 && match.score1 != null && match.score1 === match.score2 ? "Remis" : null;
+  const resultNote = match.resultType === "walkover" ? tr("broadcastOverlay.walkower") : match.resultType === "bye" ? tr("broadcastOverlay.wolny_los") : match.resultType === "no_contest" ? tr("broadcastOverlay.bez_wyniku")
+    : match.status === "completed" && match.resultType === "played" && winner === 0 && match.score1 != null && match.score1 === match.score2 ? tr("broadcastOverlay.remis") : null;
   const side1 = match.player1Name ?? tbd;
   const side2 = match.player2Name ?? tbd;
   const state = match.status === "in_progress" ? "live" : match.status === "completed" ? "completed" : match.status === "postponed" ? "postponed"
@@ -353,7 +356,7 @@ export function matchCard(match: PublicMatch, stage: PublicStage | null, stageMa
     fit2: nameFit(side2),
     score1: played && hasScore ? String(match.score1) : "–",
     score2: played && hasScore ? String(match.score2) : "–",
-    scoreUnit: stage?.matchRules ? "sety" : null,
+    scoreUnit: stage?.matchRules ? "sety" /* i18n-ignore */ : null,
     sets: (match.sets ?? []).map((set) => ({ ...set, winner: set.score1 > set.score2 ? 1 : set.score2 > set.score1 ? 2 : 0 })),
     status: STATUS_LABELS[match.status] ?? match.status,
     live: match.status === "in_progress",
@@ -386,7 +389,7 @@ export function pickCurrentMatch(tournament: PublicTournament, matches: readonly
   if (next) return { match: next };
   const last = lastCompletedMatch(matches);
   if (last) return { match: last };
-  return { match: null, reason: tournament.status === "draft" ? "Turniej jeszcze się nie rozpoczął." : "Na razie żaden mecz nie jest gotowy do rozegrania." };
+  return { match: null, reason: tournament.status === "draft" ? tr("broadcastOverlay.turniej_jeszcze_sie_nie_rozpoczal") : tr("broadcastOverlay.na_razie_zaden_mecz_nie") };
 }
 
 /** The next ready match of the current stage (scheduled ones first, by their real time); never one being played. */
@@ -421,16 +424,16 @@ export function pickOverlayMatch(config: Pick<OverlayConfig, "match">, tournamen
   if (config.match === "auto") return pickCurrentMatch(tournament, matches);
   if (config.match === "nastepny") {
     const next = nextReadyMatch(tournament, matches);
-    return next ? { match: next } : { match: null, reason: tournament.status === "completed" ? "Turniej jest zakończony." : "Na razie żaden kolejny mecz nie jest gotowy." };
+    return next ? { match: next } : { match: null, reason: tournament.status === "completed" ? tr("broadcastOverlay.turniej_jest_zakonczony") : tr("broadcastOverlay.na_razie_zaden_kolejny_mecz") };
   }
   if (config.match === "ostatni") {
     const last = lastCompletedMatch(matches);
-    return last ? { match: last } : { match: null, reason: "Nie ma jeszcze zapisanych wyników." };
+    return last ? { match: last } : { match: null, reason: tr("broadcastOverlay.nie_ma_jeszcze_zapisanych_wynikow") };
   }
   const id = config.match === "ekran" ? tournament.featuredMatchId : config.match;
-  if (id == null) return { match: null, reason: "Żaden mecz nie jest teraz „Na ekranie”." };
+  if (id == null) return { match: null, reason: tr("broadcastOverlay.zaden_mecz_nie_jest_teraz") };
   const match = matches.find((candidate) => candidate.id === id);
-  return match ? { match } : { match: null, reason: "Wybranego meczu nie ma w tym turnieju." };
+  return match ? { match } : { match: null, reason: tr("broadcastOverlay.wybranego_meczu_nie_ma_w") };
 }
 
 /**
@@ -488,7 +491,7 @@ export const BRACKET_FULL_LIMIT = 15;
  * stays readable in a 1080p source instead of being squeezed. A round with more than 8 matches takes two columns.
  */
 export function bracketView(stage: PublicStage, stageMatches: readonly PublicMatch[], round: number | null, teams: boolean): StructureView {
-  if (!stageMatches.length) return { kind: "empty", title: stage.name, message: "Drabinka pojawi się po rozpoczęciu etapu." };
+  if (!stageMatches.length) return { kind: "empty", title: stage.name, message: tr("broadcastOverlay.drabinka_pojawi_sie_po_rozpoczeciu") };
   const total = Math.max(...stageMatches.map((m) => m.round));
   const all = [...new Set(stageMatches.map((m) => m.round))].sort((a, b) => a - b);
   let visible = round != null ? all.filter((r) => r === round) : all;
@@ -503,7 +506,7 @@ export function bracketView(stage: PublicStage, stageMatches: readonly PublicMat
     const matches = stageMatches.filter((m) => m.round === r).sort((a, b) => a.matchNumber - b.matchNumber).map((m) => matchCard(m, stage, stageMatches, teams));
     return { round: r, name: eliminationRoundName(r, total), matches, columns: matches.length > 8 ? 2 : 1 };
   });
-  if (!rounds.length) return { kind: "empty", title: stage.name, message: `Etap nie ma rundy ${round}.` };
+  if (!rounds.length) return { kind: "empty", title: stage.name, message: tr("broadcastOverlay.etap_nie_ma_rundy_round", { round: round }) };
   return { kind: "bracket", title: stage.name, rounds, fragment };
 }
 
@@ -520,7 +523,7 @@ export function tablesView(stage: PublicStage, standings: { tables?: unknown[] }
     };
   });
   const chosen = group ? tables.filter((t) => t.label === group) : tables;
-  if (!chosen.length) return { kind: "empty", title: stage.name, message: group ? `Nie ma grupy „${group}”.` : "Tabela pojawi się po rozpoczęciu etapu." };
+  if (!chosen.length) return { kind: "empty", title: stage.name, message: group ? tr("broadcastOverlay.nie_ma_grupy_group", { group: group }) : tr("broadcastOverlay.tabela_pojawi_sie_po_rozpoczeciu") };
   return {
     kind: "tables", title: stage.name, tables: chosen,
     showDraws: stage.allowDraws || chosen.some((t) => t.rows.some((r) => r.draws > 0)),
@@ -529,17 +532,17 @@ export function tablesView(stage: PublicStage, standings: { tables?: unknown[] }
   };
 }
 
-const DE_LABELS: Record<string, string> = { upper: "Drabinka wygranych", lower: "Drabinka przegranych", grand_final: "Wielki finał", grand_final_reset: "Wielki finał" };
+const DE_LABELS: Record<string, string> = { get upper() { return tr("broadcastOverlay.drabinka_wygranych"); }, get lower() { return tr("broadcastOverlay.drabinka_przegranych"); }, get grand_final() { return tr("broadcastOverlay.wielki_final"); }, get grand_final_reset() { return tr("broadcastOverlay.wielki_final"); } };
 /** Same display names as the Experimental double-elimination view (the engine's names stay as stored). */
 export function deMatchName(name: string): string {
-  if (name === "Grand Final Reset") return "Rewanż w wielkim finale";
-  if (name === "Grand Final") return "Wielki finał";
+  if (name === "Grand Final Reset") return tr("broadcastOverlay.rewanz_w_wielkim_finale");
+  if (name === "Grand Final") return tr("broadcastOverlay.wielki_final");
   return name.replace(/^Upper R(\d+)/, "Wygrani R$1").replace(/^Lower R(\d+)/, "Przegrani R$1");
 }
 
 /** Double elimination: upper, lower and final sections from the stage's double-elimination state. */
 export function doubleView(stage: PublicStage, state: { participants?: unknown[]; matches?: unknown[] } | null, round: number | null): StructureView {
-  if (!state?.matches?.length) return { kind: "empty", title: stage.name, message: "Drabinka pojawi się po rozpoczęciu etapu." };
+  if (!state?.matches?.length) return { kind: "empty", title: stage.name, message: tr("broadcastOverlay.drabinka_pojawi_sie_po_rozpoczeciu") };
   const names = new Map(((state.participants ?? []) as Raw[]).map((p) => [str(p.participantKey) ?? "", str(p.name) ?? ""]));
   const sections: DoubleSection[] = (["upper", "lower", "final"] as const).map((id) => {
     const list = ((state.matches ?? []) as Raw[])
@@ -554,15 +557,15 @@ export function doubleView(stage: PublicStage, state: { participants?: unknown[]
       if (!byRound.has(key)) byRound.set(key, []);
       byRound.get(key)!.push({
         name: deMatchName(str(m.name) ?? ""),
-        side1: slots[0] ? names.get(slots[0]) ?? "?" : "Do ustalenia",
-        side2: slots[1] ? names.get(slots[1]) ?? "?" : "Do ustalenia",
+        side1: slots[0] ? names.get(slots[0]) ?? "?" : tr("broadcastOverlay.do_ustalenia"),
+        side2: slots[1] ? names.get(slots[1]) ?? "?" : tr("broadcastOverlay.do_ustalenia"),
         score1: done || m.status === "in_progress" ? String(num(m.score1) ?? "–") : "–",
         score2: done || m.status === "in_progress" ? String(num(m.score2) ?? "–") : "–",
         winner: (m.winnerParticipantKey && m.winnerParticipantKey === slots[0] ? 1 : m.winnerParticipantKey && m.winnerParticipantKey === slots[1] ? 2 : 0) as 1 | 2 | 0,
         live: m.status === "in_progress",
       });
     }
-    return { id, label: id === "final" ? "Wielki finał" : DE_LABELS[id], rounds: [...byRound.entries()].sort((a, b) => a[0] - b[0]).map(([r, matches]) => ({ round: r, matches })) };
+    return { id, label: id === "final" ? tr("broadcastOverlay.wielki_final") : DE_LABELS[id], rounds: [...byRound.entries()].sort((a, b) => a[0] - b[0]).map(([r, matches]) => ({ round: r, matches })) };
   }).filter((section) => section.rounds.length);
   return { kind: "double", title: stage.name, sections };
 }
@@ -618,14 +621,14 @@ export function winnerModel(tournament: PublicTournament, matches: readonly Publ
     : matches.map((m) => (m.player1Id === id ? m.player1Name : m.player2Id === id ? m.player2Name : null)).find(Boolean) ?? null);
   if (tournament.status === "completed" && tournament.winnerId != null) {
     const name = nameById(tournament.winnerId);
-    if (name) return { title: tournament.name, heading: "Zwycięzca turnieju", name, detail: tournament.name, champion: true, reason: null };
+    if (name) return { title: tournament.name, heading: tr("broadcastOverlay.zwyciezca_turnieju"), name, detail: tournament.name, champion: true, reason: null };
   }
   const last = lastCompletedMatch(matches.filter((m) => m.winnerId != null));
-  if (!last) return { title: tournament.name, heading: "Zwycięzca meczu", name: null, detail: null, champion: false, reason: "Zwycięzca pojawi się po pierwszym rozstrzygniętym meczu." };
+  if (!last) return { title: tournament.name, heading: tr("broadcastOverlay.zwyciezca_meczu"), name: null, detail: null, champion: false, reason: tr("broadcastOverlay.zwyciezca_pojawi_sie_po_pierwszym") };
   const winner = last.winnerId === last.player1Id ? last.player1Name : last.player2Name;
   const loser = last.winnerId === last.player1Id ? last.player2Name : last.player1Name;
   const stage = stages.find((s) => s.id === last.stageId) ?? null;
-  const score = last.resultType === "walkover" ? "walkower" : `${last.winnerId === last.player1Id ? last.score1 : last.score2}:${last.winnerId === last.player1Id ? last.score2 : last.score1}`;
+  const score = last.resultType === "walkover" ? tr("broadcastOverlay.walkower_2") : `${last.winnerId === last.player1Id ? last.score1 : last.score2}:${last.winnerId === last.player1Id ? last.score2 : last.score1}`;
   const context = stageRoundText(last, stage, matches.filter((m) => m.stageId === last.stageId));
-  return { title: tournament.name, heading: "Zwycięzca meczu", name: winner, detail: `${score}${loser ? ` z ${loser}` : ""} · ${context}`, champion: false, reason: null };
+  return { title: tournament.name, heading: tr("broadcastOverlay.zwyciezca_meczu"), name: winner, detail: `${score}${loser ? ` z ${loser}` : ""} · ${context}`, champion: false, reason: null };
 }

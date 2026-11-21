@@ -44,7 +44,7 @@ function isLogic(node) {
   if (ts.isJsxExpression(parent) && parent.parent && ts.isJsxAttribute(parent.parent) && (TECH_ATTRS.has(parent.parent.name.getText()) || parent.parent.name.getText().startsWith("data-"))) return true;
   if (ts.isLiteralTypeNode(parent)) return true;
   if (ts.isCaseClause(parent)) return true;
-  if (ts.isBinaryExpression(parent) && [ts.SyntaxKind.EqualsEqualsEqualsToken, ts.SyntaxKind.ExclamationEqualsEqualsToken, ts.SyntaxKind.EqualsEqualsToken, ts.SyntaxKind.ExclamationEqualsToken].includes(parent.operatorToken.kind)) return true;
+  if (ts.isBinaryExpression(parent) && [ts.SyntaxKind.EqualsEqualsEqualsToken, ts.SyntaxKind.ExclamationEqualsEqualsToken, ts.SyntaxKind.EqualsEqualsToken, ts.SyntaxKind.ExclamationEqualsToken, ts.SyntaxKind.InKeyword].includes(parent.operatorToken.kind)) return true;
   if (ts.isCallExpression(parent)) {
     const callee = parent.expression.getText();
     if (/^(console\.\w+|logger\.\w+|log|debug|require|t|tr|tp|hasKey)$/.test(callee) || /\.(includes|startsWith|endsWith|split|replace|match|test|indexOf|get|has|getItem|setItem)$/.test(callee)) return true;

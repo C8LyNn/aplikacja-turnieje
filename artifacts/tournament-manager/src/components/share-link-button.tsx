@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { useEffect, useRef, useState } from "react";
 import { Share2 } from "lucide-react";
 import { canShareLink, shareLink, type LinkShareResult, type ShareTarget } from "@/lib/link-share";
@@ -6,7 +7,7 @@ import { canShareLink, shareLink, type LinkShareResult, type ShareTarget } from 
  * QW-06b · "Udostępnij" through the system share sheet. Renders nothing when the browser cannot share, so the
  * existing "Kopiuj link" next to it stays the only (and complete) way there. Use inside a wrapping flex row.
  */
-export function ShareLinkButton({ target, label = "Udostępnij", showLabel = false }: {
+export function ShareLinkButton({ target, label = t("shareLinkButton.udostepnij"), showLabel = false }: {
   target: ShareTarget;
   label?: string;
   showLabel?: boolean;
@@ -29,8 +30,8 @@ export function ShareLinkButton({ target, label = "Udostępnij", showLabel = fal
     if (mounted.current) setState(outcome);
   }
 
-  const message = state === "shared" ? "Link udostępniony."
-    : state === "failed" || state === "unavailable" ? "Nie udało się otworzyć udostępniania. Użyj przycisku „Kopiuj link”."
+  const message = state === "shared" ? t("shareLinkButton.link_udostepniony")
+    : state === "failed" || state === "unavailable" ? t("shareLinkButton.nie_udalo_sie_otworzyc_udostepniania")
     : "";
   return <>
     <button

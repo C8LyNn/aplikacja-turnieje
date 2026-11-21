@@ -1,4 +1,4 @@
-import { t } from "@/i18n";
+import { getLang, t } from "@/i18n";
 import { useState } from "react";
 import { CopyLinkButton } from "./copy-link-button";
 import { ShareLinkButton } from "./share-link-button";
@@ -112,6 +112,7 @@ export function SharingPanel({ tournament, orgToken }: Props) {
     if (obsZoom !== "1" && obsZoom !== "") params.set("zoom", obsZoom);
     if (obsHideHeader) params.set("hide-header", "1");
     if (!obsShowDrops) params.set("show-drops", "0");
+    if (getLang() !== "pl") params.set("lang", getLang()); // #323-E: OBS keeps its own storage
     const qs = params.toString();
     return `${base}${tournamentRoot}/${tid}/projector${qs ? `?${qs}` : ""}`;
   };

@@ -126,7 +126,7 @@ export const EXPERIMENTAL_MATCH_CARDS = [
 export const EXPERIMENTAL_DECOR = [
   { value: "none", get label() { return t("experimentalAppearance.brak"); }, get hint() { return t("experimentalAppearance.bez_dodatkow"); } },
   { value: "corners", get label() { return t("experimentalAppearance.narozniki"); }, get hint() { return t("experimentalAppearance.znaczniki_w_rogach_paneli"); } },
-  { value: "scanlines", get label() { return t("experimentalAppearance.linie_ekranu"); }, hint: "Delikatny efekt monitora" },
+  { value: "scanlines", get label() { return t("experimentalAppearance.linie_ekranu"); }, get hint() { return t("experimentalAppearance.delikatny_efekt_monitora"); } },
   { value: "noise", label: "Ziarno", get hint() { return t("experimentalAppearance.subtelna_faktura_tla"); } },
 ] as const;
 
@@ -143,7 +143,7 @@ export const EXPERIMENTAL_EFFECTS = [
 ] as const;
 
 export const EXPERIMENTAL_MOTION = [
-  { value: "system", get label() { return t("experimentalAppearance.jak_w_systemie"); }, hint: "Szanuje ustawienie ograniczonego ruchu" },
+  { value: "system", get label() { return t("experimentalAppearance.jak_w_systemie"); }, get hint() { return t("experimentalAppearance.szanuje_ustawienie_ograniczonego_ruchu"); } },
   { value: "reduced", label: "Ograniczony", get hint() { return t("experimentalAppearance.bez_animacji_i_przejsc"); } },
 ] as const;
 
@@ -539,7 +539,7 @@ export function ExperimentalAppearanceControl() {
             </details>
             <details className="experimental-appearance-section">
               <summary>{t("experimentalAppearance.tekst_uklad_i_ksztalty")}</summary>
-              <OptionGroup category="typography" legend="Typografia" value={draft.typography} onChange={(typography) => update({ typography })} />
+              <OptionGroup category="typography" legend={t("experimentalAppearance.typografia")} value={draft.typography} onChange={(typography) => update({ typography })} />
               <OptionGroup category="density" legend={t("experimentalAppearance.gestosc")} value={draft.density} onChange={(density) => update({ density })} />
               <OptionGroup category="shape" legend={t("experimentalAppearance.ksztalty")} value={draft.shape} onChange={(shape) => update({ shape })} />
               <OptionGroup category="cards" legend={t("experimentalAppearance.karty_i_panele")} value={draft.cards} onChange={(cards) => update({ cards })} />

@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { Sparkles } from "lucide-react";
 import { EmptyProjectCard, ModuleHeader, ModuleShell } from "@/components/portfolio-ui";
 import { ToolEmptyState, ToolPanel } from "@/components/tool-ui";
@@ -7,28 +8,28 @@ export default function MetaLabPage() {
     <ModuleShell>
       <ModuleHeader
         code="META"
-        title="Meta Lab / Teamcomp Builder"
-        description="Analiza mety i eksperymentalne narzędzia kompozycji drużyn."
+        title={t("metaLab.meta_lab_teamcomp_builder")}
+        description={t("metaLab.analiza_mety_i_eksperymentalne_narzedzia")}
         accent="rose"
         status="plan"
       />
 
       <div className="space-y-4">
         <ToolPanel
-          title="Teamcomp Builder"
-          description="Pierwsze właściwe narzędzie Meta Lab będzie korzystać ze wspólnego interfejsu roboczego."
+          title={t("metaLab.teamcomp_builder")}
+          description={t("metaLab.pierwsze_wlasciwe_narzedzie_meta_lab")}
           actions={<Sparkles className="h-5 w-5 text-rose-400" />}
         >
           <ToolEmptyState
-            title="Moduł jest przygotowany, ale jeszcze pusty"
-            description="Docelowo tutaj pojawi się wybór bohaterów, profil drużyny, synergie i kompromisy."
+            title={t("metaLab.modul_jest_przygotowany_ale_jeszcze")}
+            description={t("metaLab.docelowo_tutaj_pojawi_sie_wybor")}
           />
         </ToolPanel>
 
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <EmptyProjectCard label="Kolejne narzędzie" />
-          <EmptyProjectCard label="Kolejne narzędzie" />
-          <EmptyProjectCard label="Kolejne narzędzie" />
+          <EmptyProjectCard label={t("metaLab.kolejne_narzedzie")} />
+          <EmptyProjectCard label={t("metaLab.kolejne_narzedzie")} />
+          <EmptyProjectCard label={t("metaLab.kolejne_narzedzie")} />
         </div>
       </div>
     </ModuleShell>

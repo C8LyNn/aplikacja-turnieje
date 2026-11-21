@@ -1,6 +1,7 @@
 // #326-C · Laboratorium: a separate place for experiments on demo data. It is not the Modern ("Experimental")
 // tournament view and it never touches a real tournament: nothing here sends a request or writes anything.
 // Promising variants can later move into tournament features as interchangeable presenters (by status).
+import { t } from "@/i18n";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useSearch } from "wouter";
 import { FlaskConical, LogOut, RotateCcw, SkipForward, StepForward } from "lucide-react";
@@ -8,10 +9,10 @@ import { ModuleHeader, ModuleShell } from "@/components/portfolio-ui";
 import { DRAW_PRESENTERS, DrawPresenter, type PresenterId, type PresenterStatus } from "@/components/draw-presenters";
 
 export const STATUS_INFO: Record<PresenterStatus, { label: string; description: string; className: string }> = {
-  PROTOTYPE: { label: "PROTOTYPE", description: "Pomysł do obejrzenia; bez gwarancji i bez połączenia z turniejem.", className: "border-amber-500/50 text-amber-400" },
-  TESTED: { label: "TESTED", description: "Przetestowany automatycznie; tylko w Laboratorium.", className: "border-sky-500/50 text-sky-400" },
-  STABLE_CANDIDATE: { label: "STABLE_CANDIDATE", description: "Przetestowany i dostępny w turniejach jako „nowy” — do oceny przed uznaniem za stabilny.", className: "border-violet-500/50 text-violet-300" },
-  STABLE: { label: "STABLE", description: "Stabilna część aplikacji.", className: "border-emerald-500/50 text-emerald-400" },
+  PROTOTYPE: { label: "PROTOTYPE", get description() { return t("laboratory.pomysl_do_obejrzenia_bez_gwarancji"); }, className: "border-amber-500/50 text-amber-400" },
+  TESTED: { label: "TESTED", get description() { return t("laboratory.przetestowany_automatycznie_tylko_w_labo"); }, className: "border-sky-500/50 text-sky-400" },
+  STABLE_CANDIDATE: { label: "STABLE_CANDIDATE", get description() { return t("laboratory.przetestowany_i_dostepny_w_turniejach"); }, className: "border-violet-500/50 text-violet-300" },
+  STABLE: { label: "STABLE", get description() { return t("laboratory.stabilna_czesc_aplikacji"); }, className: "border-emerald-500/50 text-emerald-400" },
 };
 
 export interface LabExperiment {
@@ -25,13 +26,13 @@ export interface LabExperiment {
 }
 
 export const LAB_EXPERIMENTS: LabExperiment[] = [
-  { id: "losowania", title: "Prezentacje losowań", status: "STABLE_CANDIDATE", description: "Porównanie prezenterów na tym samym zapisanym wyniku demonstracyjnym." },
-  { id: "kolo-v19", title: "Koło v19 (HTML)", status: "PROTOTYPE", href: "/randomizers/prototypes/wheel", description: "Samodzielny prototyp; losuje lokalnie w przeglądarce.", note: "Nie zapisuje wyniku i nie łączy się z turniejem." },
-  { id: "marble-v24", title: "Marble / Pinball v24 (HTML)", status: "PROTOTYPE", href: "/randomizers/prototypes/pinball", description: "Fizyka kulek; wynik wynika z symulacji.", note: "Nie da się go jeszcze wiernie podpiąć pod zapisany wynik — zostaje prototypem." },
-  { id: "talia-v8", title: "Talia kart v8 (HTML)", status: "PROTOTYPE", href: "/randomizers/prototypes/cards", description: "Fizyczna manipulacja talią.", note: "Losuje lokalnie; bez zapisu." },
-  { id: "draw-lab", title: "Draw Lab — losowanie kart", status: "PROTOTYPE", href: "/randomizers/cards", description: "Rozbudowany silnik kart.", note: "Niezależny od turniejów." },
-  { id: "alerty", title: "Alerty na wizji (nakładka OBS)", status: "TESTED", description: "Koniec meczu, awans, nowy etap, zwycięzca — z prawdziwych zmian wyników.", note: "Działa na danych publicznych turnieju: Więcej → Transmisja (domyślnie wyłączone)." },
-  { id: "kamerka", title: "Kamerka z czatem", status: "PROTOTYPE", href: "/stream", description: "Układ kamerki i czatu do OBS.", note: "Przykładowe wiadomości; prawdziwy czat tylko przez nieprzetestowany eksport StreamElements." },
+  { id: "losowania", get title() { return t("laboratory.prezentacje_losowan"); }, status: "STABLE_CANDIDATE", get description() { return t("laboratory.porownanie_prezenterow_na_tym_samym"); } },
+  { id: "kolo-v19", get title() { return t("laboratory.kolo_v19_html"); }, status: "PROTOTYPE", href: "/randomizers/prototypes/wheel", get description() { return t("laboratory.samodzielny_prototyp_losuje_lokalnie_w"); }, get note() { return t("laboratory.nie_zapisuje_wyniku_i_nie"); } },
+  { id: "marble-v24", title: "Marble / Pinball v24 (HTML)", status: "PROTOTYPE", href: "/randomizers/prototypes/pinball", get description() { return t("laboratory.fizyka_kulek_wynik_wynika_z"); }, get note() { return t("laboratory.nie_da_sie_go_jeszcze"); } },
+  { id: "talia-v8", get title() { return t("laboratory.talia_kart_v8_html"); }, status: "PROTOTYPE", href: "/randomizers/prototypes/cards", get description() { return t("laboratory.fizyczna_manipulacja_talia"); }, get note() { return t("laboratory.losuje_lokalnie_bez_zapisu"); } },
+  { id: "draw-lab", get title() { return t("laboratory.draw_lab_losowanie_kart"); }, status: "PROTOTYPE", href: "/randomizers/cards", get description() { return t("laboratory.rozbudowany_silnik_kart"); }, get note() { return t("laboratory.niezalezny_od_turniejow"); } },
+  { id: "alerty", get title() { return t("laboratory.alerty_na_wizji_nakladka_obs"); }, status: "TESTED", get description() { return t("laboratory.koniec_meczu_awans_nowy_etap"); }, get note() { return t("laboratory.dziala_na_danych_publicznych_turnieju"); } },
+  { id: "kamerka", get title() { return t("laboratory.kamerka_z_czatem"); }, status: "PROTOTYPE", href: "/stream", get description() { return t("laboratory.uklad_kamerki_i_czatu_do"); }, get note() { return t("laboratory.przykladowe_wiadomosci_prawdziwy_czat_ty"); } },
 ];
 
 /** Demo participants and their stored results: fixed, so every presenter and every replay shows the same. */
@@ -71,21 +72,17 @@ function DrawComparison({ a, b, onChange }: { a: PresenterId; b: PresenterId; on
   return (
     <section aria-labelledby="lab-draws" className="space-y-4" data-testid="lab-draw-comparison">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h2 id="lab-draws" className="text-lg font-semibold">Prezentacje losowań — porównanie</h2>
-        <p className="text-sm text-muted-foreground" data-testid="lab-stored-result">
-          Zapisany wynik demonstracyjny: {current ? <strong>{current.subject} → {current.result}</strong> : "—"} ({revealed} z {DEMO_DRAWS.length})
+        <h2 id="lab-draws" className="text-lg font-semibold">{t("laboratory.prezentacje_losowan_porownanie")}</h2>
+        <p className="text-sm text-muted-foreground" data-testid="lab-stored-result">{t("laboratory.zapisany_wynik_demonstracyjny")}{" "}{current ? <strong>{current.subject} → {current.result}</strong> : "—"} ({revealed} z {DEMO_DRAWS.length})
         </p>
       </div>
       <div className="flex flex-wrap gap-2">
         <button type="button" className="inline-flex min-h-11 items-center gap-2 rounded-md bg-primary px-4 font-medium text-primary-foreground disabled:opacity-50" onClick={next} disabled={running || revealed >= DEMO_DRAWS.length}>
-          <StepForward className="h-4 w-4" aria-hidden />Ujawnij kolejny
-        </button>
+          <StepForward className="h-4 w-4" aria-hidden />{t("laboratory.ujawnij_kolejny")}</button>
         <button type="button" className="inline-flex min-h-11 items-center gap-2 rounded-md border px-4 disabled:opacity-50" onClick={finish} disabled={!running}>
-          <SkipForward className="h-4 w-4" aria-hidden />Pokaż wynik od razu
-        </button>
+          <SkipForward className="h-4 w-4" aria-hidden />{t("laboratory.pokaz_wynik_od_razu")}</button>
         <button type="button" className="inline-flex min-h-11 items-center gap-2 rounded-md border px-4" onClick={restart}>
-          <RotateCcw className="h-4 w-4" aria-hidden />Od początku (ten sam wynik)
-        </button>
+          <RotateCcw className="h-4 w-4" aria-hidden />{t("laboratory.od_poczatku_ten_sam_wynik")}</button>
       </div>
       <div className="grid gap-4 md:grid-cols-2">
         {(["a", "b"] as const).map((side) => {
@@ -95,9 +92,9 @@ function DrawComparison({ a, b, onChange }: { a: PresenterId; b: PresenterId; on
             <div key={side} className="space-y-3 rounded-xl border p-4" data-testid={`lab-pane-${side}`}>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <label className="flex items-center gap-2 text-sm">
-                  <span className="font-medium">Wariant {side === "a" ? "A" : "B"}</span>
+                  <span className="font-medium">{t("laboratory.wariant")}{" "}{side === "a" ? "A" : "B"}</span>
                   <select className="min-h-11 rounded-md border bg-background px-2" value={id} disabled={running}
-                    onChange={(event) => onChange(side, event.target.value as PresenterId)} aria-label={`Wariant ${side === "a" ? "A" : "B"}`}>
+                    onChange={(event) => onChange(side, event.target.value as PresenterId)} aria-label={t("laboratory.wariant_v0", { v0: side === "a" ? "A" : "B" })}>
                     {DRAW_PRESENTERS.map((p) => <option key={p.id} value={p.id}>{p.label}</option>)}
                   </select>
                 </label>
@@ -119,7 +116,7 @@ export default function LaboratoryPage() {
   const params = new URLSearchParams(search);
   const selected = LAB_EXPERIMENTS.find((e) => e.id === params.get("eksperyment")) ?? LAB_EXPERIMENTS[0];
   const a = pickPresenter(params.get("a"), "kolo");
-  const b = pickPresenter(params.get("b"), "karty");
+  const b = pickPresenter(params.get("b"), "karty" /* i18n-ignore */);
   const go = (patch: Record<string, string>) => {
     const next = new URLSearchParams(search);
     for (const [key, value] of Object.entries(patch)) next.set(key, value);
@@ -127,16 +124,14 @@ export default function LaboratoryPage() {
   };
   return (
     <ModuleShell wide>
-      <ModuleHeader code="LAB" title="Laboratorium" accent="blue" status="Dane demonstracyjne"
-        description="Eksperymenty, prototypy i warianty prezentacji — osobno od turniejów. Nic tutaj nie zmienia prawdziwych danych ani wyników." />
+      <ModuleHeader code="LAB" title={t("laboratory.laboratorium")} accent="blue" status={t("laboratory.dane_demonstracyjne")}
+        description={t("laboratory.eksperymenty_prototypy_i_warianty_prezen")} />
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-dashed p-3 text-sm" role="note" data-testid="lab-safety">
-        <span className="flex items-center gap-2"><FlaskConical className="h-4 w-4 text-primary" aria-hidden />
-          Laboratorium działa na danych demonstracyjnych i nie wysyła zapisów. Widok Nowoczesny turnieju to nie Laboratorium — to pełny interfejs turnieju.
-        </span>
-        <Link href="/" className="inline-flex min-h-11 items-center gap-2 rounded-md border px-3 font-medium"><LogOut className="h-4 w-4" aria-hidden />Wyjdź z Laboratorium</Link>
+        <span className="flex items-center gap-2"><FlaskConical className="h-4 w-4 text-primary" aria-hidden />{t("laboratory.laboratorium_dziala_na_danych_demonstrac")}</span>
+        <Link href="/" className="inline-flex min-h-11 items-center gap-2 rounded-md border px-3 font-medium"><LogOut className="h-4 w-4" aria-hidden />{t("laboratory.wyjdz_z_laboratorium")}</Link>
       </div>
       <div className="grid gap-6 lg:grid-cols-[18rem_1fr]">
-        <nav aria-label="Katalog eksperymentów">
+        <nav aria-label={t("laboratory.katalog_eksperymentow")}>
           <ul className="space-y-2" data-testid="lab-catalog">
             {LAB_EXPERIMENTS.map((experiment) => (
               <li key={experiment.id}>
@@ -149,13 +144,13 @@ export default function LaboratoryPage() {
               </li>
             ))}
           </ul>
-          <dl className="mt-4 space-y-1 text-xs text-muted-foreground" aria-label="Znaczenie oznaczeń">
+          <dl className="mt-4 space-y-1 text-xs text-muted-foreground" aria-label={t("laboratory.znaczenie_oznaczen")}>
             {(Object.keys(STATUS_INFO) as PresenterStatus[]).map((status) => (
               <div key={status}><dt className="inline"><StatusBadge status={status} /></dt> <dd className="inline">{STATUS_INFO[status].description}</dd></div>
             ))}
           </dl>
         </nav>
-        <section className="min-w-0 space-y-4" data-testid="lab-detail" aria-label="Wybrany eksperyment">
+        <section className="min-w-0 space-y-4" data-testid="lab-detail" aria-label={t("laboratory.wybrany_eksperyment")}>
           {selected.id === "losowania" ? (
             <DrawComparison a={a} b={b} onChange={(side, id) => go({ [side]: id })} />
           ) : (
@@ -163,7 +158,7 @@ export default function LaboratoryPage() {
               <div className="flex flex-wrap items-center gap-2"><h2 id="lab-experiment-title" className="text-lg font-semibold">{selected.title}</h2><StatusBadge status={selected.status} /></div>
               <p>{selected.description}</p>
               {selected.note && <p className="text-sm text-muted-foreground">{selected.note}</p>}
-              {selected.href && <Link href={selected.href} className="inline-flex min-h-11 items-center rounded-md bg-primary px-4 font-medium text-primary-foreground">Otwórz eksperyment</Link>}
+              {selected.href && <Link href={selected.href} className="inline-flex min-h-11 items-center rounded-md bg-primary px-4 font-medium text-primary-foreground">{t("laboratory.otworz_eksperyment")}</Link>}
             </section>
           )}
         </section>

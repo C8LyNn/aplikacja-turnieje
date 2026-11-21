@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import type { TournamentBackup } from "@workspace/api-client-react";
 
 export type TournamentBackupFile = TournamentBackup;
@@ -17,32 +18,32 @@ export function parseTournamentBackupFile(contents: string): ParsedBackupFile {
   } catch {
     return {
       ok: false,
-      error: "Nie można odczytać pliku. Plik jest uszkodzony lub nie jest prawidłowym JSON-em.",
+      error: t("backupFile.nie_mozna_odczytac_pliku_plik"),
     };
   }
 
   if (!isRecord(value)) {
-    return { ok: false, error: "Plik nie wygląda jak backup Tournament Manager." };
+    return { ok: false, error: t("backupFile.plik_nie_wyglada_jak_backup") };
   }
 
   if (value["version"] === "1" || value["version"] === 1 || value["schemaVersion"] === 1) {
     return {
       ok: false,
-      error: "Nieobsługiwany format legacy backupu v1. Wymagany jest backup series_v1 v2 albo v3.",
+      error: t("backupFile.nieobslugiwany_format_legacy_backupu_v1"),
     };
   }
 
   if (value["schemaVersion"] !== 2 && value["schemaVersion"] !== 3) {
     return {
       ok: false,
-      error: `Nieobsługiwana wersja backupu (${String(value["schemaVersion"] ?? "brak")}). Wymagany jest format v2 albo v3.`,
+      error: t("backupFile.nieobslugiwana_wersja_backupu_v0_wymagan", { v0: String(value["schemaVersion"] ?? t("backupFile.brak")) }),
     };
   }
 
   if (Number(value["schemaVersion"]) === 3) {
     return {
       ok: false,
-      error: "Import Backup V3 jest wyłączony do czasu zatwierdzenia zabezpieczeń i testów odtwarzania na odrębnej bazie. Eksport pozostaje dostępny.",
+      error: t("backupFile.import_backup_v3_jest_wylaczony"),
     };
   }
 
@@ -52,7 +53,7 @@ export function parseTournamentBackupFile(contents: string): ParsedBackupFile {
   ) {
     return {
       ok: false,
-      error: "Backup nie używa wymaganego modelu series_v1/match_record_v1.",
+      error: t("backupFile.backup_nie_uzywa_wymaganego_modelu"),
     };
   }
 
@@ -67,7 +68,7 @@ export function parseTournamentBackupFile(contents: string): ParsedBackupFile {
         !Array.isArray(value["groups"]) ||
         !Array.isArray(value["stageParticipants"])))
   ) {
-    return { ok: false, error: `Plik nie wygląda jak kompletny backup Tournament Manager v${value["schemaVersion"]}.` };
+    return { ok: false, error: t("backupFile.plik_nie_wyglada_jak_kompletny", { v0: value["schemaVersion"] }) };
   }
 
   return { ok: true, backup: value as unknown as TournamentBackupFile };

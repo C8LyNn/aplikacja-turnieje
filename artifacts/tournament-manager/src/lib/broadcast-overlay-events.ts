@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 /**
  * #324-L03b · on-air alerts from real data only. The overlay compares two consecutive public answers of the API and
  * announces what changed between them: a match ended, a player moved into the next round, a new stage started, the
@@ -62,7 +63,7 @@ function roundLabel(snapshot: OverlaySnapshot, match: SnapshotMatch): string {
     const total = Math.max(...snapshot.matches.filter((m) => m.stageId === match.stageId).map((m) => m.round));
     return eliminationRoundName(match.round, total);
   }
-  return `${stage?.name ? `${stage.name} · ` : ""}runda ${match.round}`;
+  return t("broadcastOverlayEvents.v0_runda_round", { v0: stage?.name ? `${stage.name} · ` : "", round: match.round });
 }
 
 /** What happened between two answers. `prev` null (first answer) gives nothing. */
@@ -123,16 +124,16 @@ export function eventText(event: Exclude<OverlayEvent, { kind: "reverted" }>): {
   switch (event.kind) {
     case "match_end":
       return event.draw
-        ? { label: "Koniec meczu", text: `Remis ${event.score}` }
-        : { label: "Koniec meczu", text: `Wygrywa ${event.winner}${event.loser ? ` · ${event.score} z ${event.loser}` : ` · ${event.score}`}` };
+        ? { label: t("broadcastOverlayEvents.koniec_meczu"), text: t("broadcastOverlayEvents.remis_score", { score: event.score }) }
+        : { label: t("broadcastOverlayEvents.koniec_meczu"), text: t("broadcastOverlayEvents.wygrywa_winner_v1", { winner: event.winner, v1: event.loser ? ` · ${event.score} z ${event.loser}` : ` · ${event.score}` }) };
     case "advance":
-      return { label: "Awans", text: `${event.name} → ${event.where}` };
+      return { label: t("broadcastOverlayEvents.awans"), text: `${event.name} → ${event.where}` };
     case "stage":
-      return { label: "Nowy etap", text: event.name };
+      return { label: t("broadcastOverlayEvents.nowy_etap"), text: event.name };
     case "champion":
-      return { label: "Zwycięzca turnieju", text: event.name };
+      return { label: t("broadcastOverlayEvents.zwyciezca_turnieju"), text: event.name };
     case "corrected":
-      return { label: "Wynik poprawiony", text: `${event.side1} ${event.score} ${event.side2}` };
+      return { label: t("broadcastOverlayEvents.wynik_poprawiony"), text: `${event.side1} ${event.score} ${event.side2}` };
   }
 }
 

@@ -1,4 +1,5 @@
-﻿import type { CSSProperties } from "react";
+﻿import { t } from "@/i18n";
+import type { CSSProperties } from "react";
 
 import {
   type CameraChatConfig,
@@ -259,9 +260,7 @@ export function CameraChatWidget({
           <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_35%,rgba(255,255,255,.08),transparent_45%)]" />
 
           <div className="relative text-center">
-            <div className="mx-auto grid h-20 w-20 place-items-center rounded-full border border-white/10 bg-black/20 text-xs font-black tracking-[0.15em] text-white/40">
-              CAM
-            </div>
+            <div className="mx-auto grid h-20 w-20 place-items-center rounded-full border border-white/10 bg-black/20 text-xs font-black tracking-[0.15em] text-white/40">{t("cameraChatWidget.cam")}</div>
 
             <div className="mt-3 text-sm font-bold text-white/55">
               {config.cameraWidth}

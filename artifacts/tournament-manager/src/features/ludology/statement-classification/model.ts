@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 export type EvidenceLevel = "direct" | "indirect" | "inferred";
 export type CodingConfidence = "low" | "medium" | "high";
 
@@ -44,7 +45,7 @@ export type CodingRecord = {
 };
 
 export const EVIDENCE_LEVEL_LABELS: Record<EvidenceLevel, string> = {
-  direct: "Bezpośrednie",
-  indirect: "Pośrednie",
-  inferred: "Wnioskowane",
+  get direct() { return t("model.bezposrednie"); },
+  get indirect() { return t("model.posrednie"); },
+  get inferred() { return t("model.wnioskowane"); },
 };

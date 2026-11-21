@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 /**
  * QW-05 · what a viewer must understand at a glance — NOW → NEXT → RECENT — derived only from what the public API
  * already returns. Nothing here invents a status, an order, a time or a result:
@@ -86,15 +87,15 @@ export function buildAudienceNow<M extends MatchLike>(input: {
   const nextStage = stage ? ordered.find((s) => s.position > stage.position && s.status === "planned") ?? null : null;
 
   let waiting: string | null = null;
-  if (phase === "draft") waiting = "Mecze pojawią się tutaj po starcie turnieju.";
+  if (phase === "draft") waiting = t("audienceNow.mecze_pojawia_sie_tutaj_po");
   else if (phase === "active" && live.length === 0 && next.length === 0) {
     const allPlayed = !!progress && progress.done === progress.total;
     // All matches played but the stage still active: the engine waits for the organizer to close it (e.g. DE).
     waiting = allPlayed && nextStage
-      ? `Wszystkie mecze etapu są rozegrane. Następny etap: ${nextStage.name}.`
+      ? t("audienceNow.wszystkie_mecze_etapu_sa_rozegrane", { name: nextStage.name })
       : allPlayed
-        ? "Wszystkie mecze są rozegrane. Wynik końcowy pojawi się po zamknięciu etapu przez organizatora."
-        : "Na razie żaden mecz nie jest gotowy do rozegrania.";
+        ? t("audienceNow.wszystkie_mecze_sa_rozegrane_wynik")
+        : t("audienceNow.na_razie_zaden_mecz_nie");
   }
 
   return { phase, live, next, recent, progress, nextStage, waiting };
@@ -107,7 +108,7 @@ export function buildAudienceNow<M extends MatchLike>(input: {
  */
 export function roundText(counters: Pick<TournamentLike, "currentRound" | "totalRounds">, format: string | undefined): string | null {
   if (format !== "single_elimination" && format !== "swiss") return null;
-  return counters.currentRound && counters.totalRounds ? `Runda ${counters.currentRound} z ${counters.totalRounds}` : null;
+  return counters.currentRound && counters.totalRounds ? t("audienceNow.runda_currentround_z_totalrounds", { currentRound: counters.currentRound, totalRounds: counters.totalRounds }) : null;
 }
 
 /** Local time of the last successful read, for "Zaktualizowano 12:04:31" (never a claim that data is live). */
@@ -131,16 +132,16 @@ const DE_KEY = /\/(upper|lower)-r(\d+)-m(\d+)$|\/(grand-final-reset|grand-final)
 export function matchCode(m: LabelMatch): string {
   const key = m.routingMatchKey?.match(DE_KEY);
   if (!key) return `R${m.round}M${m.matchNumber}`;
-  if (key[4] === "grand-final") return "Finał";
-  if (key[4] === "grand-final-reset") return "Rewanż";
+  if (key[4] === "grand-final") return t("audienceNow.final");
+  if (key[4] === "grand-final-reset") return t("audienceNow.rewanz");
   return `${key[1] === "upper" ? "W" : "P"} R${key[2]}·${key[3]}`;
 }
 
 /** The same in words, for the hero card and tooltips. */
 export function matchTitle(m: LabelMatch): string {
   const key = m.routingMatchKey?.match(DE_KEY);
-  if (!key) return `Runda ${m.round} · Mecz ${m.matchNumber}`;
-  if (key[4] === "grand-final") return "Wielki finał";
-  if (key[4] === "grand-final-reset") return "Wielki finał — rewanż";
-  return `${key[1] === "upper" ? "Drabinka wygranych" : "Drabinka przegranych"} · runda ${key[2]} · mecz ${key[3]}`;
+  if (!key) return t("audienceNow.runda_round_mecz_matchnumber", { round: m.round, matchNumber: m.matchNumber });
+  if (key[4] === "grand-final") return t("audienceNow.wielki_final");
+  if (key[4] === "grand-final-reset") return t("audienceNow.wielki_final_rewanz");
+  return t("audienceNow.v0_runda_v1_mecz_v2", { v0: key[1] === "upper" ? t("audienceNow.drabinka_wygranych") : t("audienceNow.drabinka_przegranych"), v1: key[2], v2: key[3] });
 }

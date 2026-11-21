@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import type { Match, TournamentStage } from "@workspace/api-client-react";
 
 export function operationalStage(stages: readonly TournamentStage[]) {
@@ -22,8 +23,8 @@ export function organizerStageSummary(stage: TournamentStage | undefined, matche
   const round = classic && stage.status !== "planned" && rounds.length
     ? (stage.status === "completed" || !candidates.length ? maxRound : firstCandidate) : undefined;
   const total = stage?.totalRounds ?? stage?.plannedRounds ?? (rounds.length ? maxRound : undefined);
-  const roundLabel = !stage ? "Sprawdzanie etapu" : stage.status === "planned" ? "Etap planowany"
-    : !classic ? (stage.status === "completed" ? "Etap zakończony" : stage.format === "double_elimination" ? "Rundy osobno w drabinkach" : "Rundy osobno w grupach")
-    : round === undefined ? "Sprawdzanie rundy" : `${stage.status === "completed" ? "Ostatnia runda" : "Runda"} ${round}${total ? `/${total}` : ""}`;
+  const roundLabel = !stage ? t("organizerStageSummary.sprawdzanie_etapu") : stage.status === "planned" ? t("organizerStageSummary.etap_planowany")
+    : !classic ? (stage.status === "completed" ? t("organizerStageSummary.etap_zakonczony") : stage.format === "double_elimination" ? t("organizerStageSummary.rundy_osobno_w_drabinkach") : t("organizerStageSummary.rundy_osobno_w_grupach"))
+    : round === undefined ? t("organizerStageSummary.sprawdzanie_rundy") : `${stage.status === "completed" ? t("organizerStageSummary.ostatnia_runda") : t("organizerStageSummary.runda")} ${round}${total ? `/${total}` : ""}`;
   return { round, roundLabel, completed, totalMatches: own?.length, remaining: unfinished.length };
 }

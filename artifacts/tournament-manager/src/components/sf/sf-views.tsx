@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { ArrowLeft } from "lucide-react";
 import { Link } from "wouter";
 import { useSfSignal, type SfSignal } from "./use-sf-signal";
@@ -74,8 +75,7 @@ export function SfPanel() {
           data-testid="link-back-projects"
           className="mb-4 inline-flex items-center gap-2 rounded-lg text-sm font-semibold text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400"
         >
-          <ArrowLeft className="h-4 w-4" /> Wszystkie projekty
-        </Link>
+          <ArrowLeft className="h-4 w-4" />{" "}{t("sfViews.wszystkie_projekty")}</Link>
         <section
           data-testid="panel-sf"
           data-state={stateOf(s)}

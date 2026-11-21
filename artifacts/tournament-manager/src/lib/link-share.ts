@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 /**
  * QW-06b · the system share sheet (phones, some desktops) next to the existing "Kopiuj link". It is offered only when
  * the browser has `navigator.share`; everywhere else the copy button (with its manual fallback) stays the way to share.
@@ -58,8 +59,8 @@ export async function shareLink(target: ShareTarget): Promise<LinkShareResult> {
 
 /** What the message says, by link kind. A private tournament's message mentions the password, never its value. */
 export function shareText(kind: "public" | "password" | "signup", tournamentName: string): string {
-  const name = `„${tournamentName.trim().slice(0, 80) || "Turniej"}”`;
-  if (kind === "signup") return `Zapisy do turnieju ${name}`;
-  if (kind === "password") return `Turniej ${name} — do obejrzenia potrzebne jest hasło widza od organizatora.`;
-  return `Śledź turniej ${name} na żywo.`;
+  const name = `„${tournamentName.trim().slice(0, 80) || t("linkShare.turniej")}”`;
+  if (kind === "signup") return t("linkShare.zapisy_do_turnieju_name", { name: name });
+  if (kind === "password") return t("linkShare.turniej_name_do_obejrzenia_potrzebne", { name: name });
+  return t("linkShare.sledz_turniej_name_na_zywo", { name: name });
 }

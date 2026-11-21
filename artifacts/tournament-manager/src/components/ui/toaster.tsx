@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { useEffect, useState } from "react"
 import { createPortal } from "react-dom"
 import { AlertTriangle, CheckCircle2, Info, XCircle } from "lucide-react"
@@ -16,10 +17,10 @@ const EXPERIMENTAL_ROOTS = ".experimental-tournament-shell, .experimental-tourna
 
 /** Meaning is carried by an icon and a spoken label too, never by colour alone. */
 const KIND = {
-  success: { icon: CheckCircle2, label: "Gotowe" },
-  warning: { icon: AlertTriangle, label: "Uwaga" },
-  destructive: { icon: XCircle, label: "Błąd" },
-  default: { icon: Info, label: "Informacja" },
+  success: { icon: CheckCircle2, get label() { return t("toaster.gotowe"); } },
+  warning: { icon: AlertTriangle, get label() { return t("toaster.uwaga"); } },
+  destructive: { icon: XCircle, get label() { return t("toaster.blad"); } },
+  default: { icon: Info, get label() { return t("toaster.informacja"); } },
 } as const
 
 export function Toaster() {
@@ -46,7 +47,7 @@ export function Toaster() {
               )}
             </div>
             {action}
-            <ToastClose aria-label="Zamknij powiadomienie" />
+            <ToastClose aria-label={t("toaster.zamknij_powiadomienie")} />
           </Toast>
         )
       })}

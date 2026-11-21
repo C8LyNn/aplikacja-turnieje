@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
@@ -21,17 +22,17 @@ import { streamElementsOverlayWidget } from "@/lib/stream-elements-overlay";
  */
 type GalleryId = "wynik" | "teraz" | "nastepny" | "ostatni" | "zwyciezca" | "struktura";
 const GALLERY: { id: GalleryId; label: string; description: string; apply: Pick<OverlayConfig, "kind"> & Partial<Pick<OverlayConfig, "match">> }[] = [
-  { id: "wynik", label: "Wynik meczu", description: "Pasek z wynikiem meczu „Na ekranie”.", apply: { kind: "wynik", match: "ekran" } },
-  { id: "teraz", label: "Teraz grają", description: "Sam wybiera mecz: na ekranie, na żywo, najbliższy, ostatni.", apply: { kind: "wynik", match: "auto" } },
-  { id: "nastepny", label: "Następny mecz", description: "Plansza z najbliższym gotowym meczem.", apply: { kind: "zapowiedz", match: "nastepny" } },
-  { id: "ostatni", label: "Ostatni wynik", description: "Ostatni zapisany wynik.", apply: { kind: "wynik", match: "ostatni" } },
-  { id: "zwyciezca", label: "Zwycięzca", description: "Zwycięzca turnieju, a wcześniej ostatniego meczu.", apply: { kind: "zwyciezca" } },
-  { id: "struktura", label: "Tabela / drabinka", description: "Tabela, grupy albo mini-drabinka etapu.", apply: { kind: "struktura" } },
+  { id: "wynik", get label() { return t("experimentalBroadcastPanel.wynik_meczu"); }, get description() { return t("experimentalBroadcastPanel.pasek_z_wynikiem_meczu_na"); }, apply: { kind: "wynik", match: "ekran" /* i18n-ignore */ } },
+  { id: "teraz", get label() { return t("experimentalBroadcastPanel.teraz_graja"); }, get description() { return t("experimentalBroadcastPanel.sam_wybiera_mecz_na_ekranie"); }, apply: { kind: "wynik", match: "auto" } },
+  { id: "nastepny", get label() { return t("experimentalBroadcastPanel.nastepny_mecz"); }, get description() { return t("experimentalBroadcastPanel.plansza_z_najblizszym_gotowym_meczem"); }, apply: { kind: "zapowiedz", match: "nastepny" } },
+  { id: "ostatni" /* i18n-ignore */, get label() { return t("experimentalBroadcastPanel.ostatni_wynik"); }, get description() { return t("experimentalBroadcastPanel.ostatni_zapisany_wynik"); }, apply: { kind: "wynik", match: "ostatni" } },
+  { id: "zwyciezca", get label() { return t("experimentalBroadcastPanel.zwyciezca"); }, get description() { return t("experimentalBroadcastPanel.zwyciezca_turnieju_a_wczesniej_ostatnieg"); }, apply: { kind: "zwyciezca" } },
+  { id: "struktura", get label() { return t("experimentalBroadcastPanel.tabela_drabinka"); }, get description() { return t("experimentalBroadcastPanel.tabela_grupy_albo_mini_drabinka"); }, apply: { kind: "struktura" } },
 ];
 function galleryOf(config: OverlayConfig): GalleryId {
   if (config.kind === "zwyciezca" || config.kind === "struktura") return config.kind;
   if (config.kind === "zapowiedz") return "nastepny";
-  return config.match === "auto" ? "teraz" : config.match === "ostatni" ? "ostatni" : "wynik";
+  return config.match === "auto" ? "teraz" /* i18n-ignore */ : config.match === "ostatni" ? "ostatni" : "wynik";
 }
 /** A small drawing of each presentation (no data, no requests) next to the live preview. */
 function GalleryThumb({ id }: { id: GalleryId }) {
@@ -58,7 +59,7 @@ interface BroadcastTournament {
 
 type Resolution = (typeof OVERLAY_RESOLUTIONS)[number]["id"];
 type PreviewScene = "szachownica" | "jasna" | "ciemna";
-const STATUS: Record<string, string> = { in_progress: "na żywo", completed: "zakończony", pending: "przed meczem", postponed: "przełożony", cancelled: "odwołany" };
+const STATUS: Record<string, string> = { get in_progress() { return t("experimentalBroadcastPanel.na_zywo_2"); }, get completed() { return t("experimentalBroadcastPanel.zakonczony"); }, get pending() { return t("experimentalBroadcastPanel.przed_meczem_2"); }, get postponed() { return t("experimentalBroadcastPanel.przelozony"); }, get cancelled() { return t("experimentalBroadcastPanel.odwolany"); } };
 const LOCAL_HOSTS = new Set(["127.0.0.1", "localhost", "[::1]", "::1"]);
 
 /** V5.9.1 · the panel remembers its choices per tournament (this browser only); read back through the overlay's own parser. */
@@ -190,75 +191,69 @@ export function ExperimentalBroadcastPanel({
     <section aria-labelledby="broadcast-heading" className="experimental-broadcast space-y-6" data-testid="broadcast-panel">
       <header className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h2 id="broadcast-heading" className="flex items-center gap-2 text-xl font-semibold"><MonitorPlay className="h-5 w-5" aria-hidden /> Transmisja</h2>
-          <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
-            Nakładka na obraz w OBS. Dodatek — turniej działa bez niej. Pokazuje tylko zapisane wyniki i dane publiczne.
-          </p>
+          <h2 id="broadcast-heading" className="flex items-center gap-2 text-xl font-semibold"><MonitorPlay className="h-5 w-5" aria-hidden />{" "}{t("experimentalBroadcastPanel.transmisja")}</h2>
+          <p className="mt-1 max-w-3xl text-sm text-muted-foreground">{t("experimentalBroadcastPanel.nakladka_na_obraz_w_obs")}</p>
         </div>
         <Button variant="outline" asChild className="min-h-11">
-          <Link href={tournamentHref(tournament.id, experimental, "/host")}><ArrowLeft className="mr-1 h-4 w-4" aria-hidden /> Wróć do prowadzenia</Link>
+          <Link href={tournamentHref(tournament.id, experimental, "/host")}><ArrowLeft className="mr-1 h-4 w-4" aria-hidden />{" "}{t("experimentalBroadcastPanel.wroc_do_prowadzenia")}</Link>
         </Button>
       </header>
 
       {!isPublic && (
         <div role="status" className="experimental-broadcast-notice flex gap-2 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3 text-sm">
           <Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
-          <span>
-            Ten turniej nie jest publiczny, więc nakładka pokaże tylko komunikat „Nakładki działają tylko dla turniejów
-            publicznych”. Nakładka nigdy nie używa hasła ani tokenu organizatora. Widoczność zmienisz w{" "}
-            <Link className="underline" href={tournamentHref(tournament.id, experimental, "?tab=sharing")}>Udostępnianiu</Link>.
+          <span>{t("experimentalBroadcastPanel.ten_turniej_nie_jest_publiczny")}{" "}
+            <Link className="underline" href={tournamentHref(tournament.id, experimental, "?tab=sharing")}>{t("experimentalBroadcastPanel.udostepnianiu")}</Link>.
           </span>
         </div>
       )}
 
-      <section aria-label="Mecz na ekranie" className="experimental-broadcast-onscreen rounded-lg border p-3" data-testid="broadcast-on-screen">
+      <section aria-label={t("experimentalBroadcastPanel.mecz_na_ekranie")} className="experimental-broadcast-onscreen rounded-lg border p-3" data-testid="broadcast-on-screen">
         <p className="flex flex-wrap items-center gap-2 text-sm">
           <Star className="h-4 w-4 text-amber-400" aria-hidden />
-          <span className="font-semibold">Na ekranie:</span>
-          {featured ? <strong data-testid="broadcast-featured">{matchLabel(featured)}</strong> : <span className="text-muted-foreground">żaden mecz</span>}
+          <span className="font-semibold">{t("experimentalBroadcastPanel.na_ekranie")}</span>
+          {featured ? <strong data-testid="broadcast-featured">{matchLabel(featured)}</strong> : <span className="text-muted-foreground">{t("experimentalBroadcastPanel.zaden_mecz")}</span>}
         </p>
         {canFeature && (
           <div className="mt-2 flex flex-wrap items-end gap-2">
             <label className="flex min-w-[16rem] flex-1 flex-col gap-1 text-sm">
-              <span>Zmień mecz na ekranie</span>
+              <span>{t("experimentalBroadcastPanel.zmien_mecz_na_ekranie")}</span>
               <select className="min-h-11 rounded-md border bg-background px-3" disabled={!selectable.length}
                 value={candidate ?? featured?.id ?? ""} onChange={(event) => setCandidate(Number(event.target.value) || null)}>
-                {!featured && <option value="">Wybierz mecz…</option>}
-                {live.length > 0 && <optgroup label="Na żywo">{live.map((m) => <option key={m.id} value={m.id}>{matchLabel(m)}</option>)}</optgroup>}
-                {upcoming.length > 0 && <optgroup label="Przed meczem">{upcoming.map((m) => <option key={m.id} value={m.id}>{matchLabel(m)}</option>)}</optgroup>}
-                {finished.length > 0 && <optgroup label="Zakończone">{finished.map((m) => <option key={m.id} value={m.id}>{matchLabel(m)}</option>)}</optgroup>}
+                {!featured && <option value="">{t("experimentalBroadcastPanel.wybierz_mecz")}</option>}
+                {live.length > 0 && <optgroup label={t("experimentalBroadcastPanel.na_zywo")}>{live.map((m) => <option key={m.id} value={m.id}>{matchLabel(m)}</option>)}</optgroup>}
+                {upcoming.length > 0 && <optgroup label={t("experimentalBroadcastPanel.przed_meczem")}>{upcoming.map((m) => <option key={m.id} value={m.id}>{matchLabel(m)}</option>)}</optgroup>}
+                {finished.length > 0 && <optgroup label={t("experimentalBroadcastPanel.zakonczone")}>{finished.map((m) => <option key={m.id} value={m.id}>{matchLabel(m)}</option>)}</optgroup>}
               </select>
             </label>
             {candidate != null && candidate !== featured?.id && (
               <Button type="button" className="min-h-11" disabled={feature.isPending} onClick={() => { putOnScreen(candidate); setCandidate(null); }}>
-                <Star className="mr-1 h-4 w-4" aria-hidden />Pokaż na ekranie
-              </Button>
+                <Star className="mr-1 h-4 w-4" aria-hidden />{t("experimentalBroadcastPanel.pokaz_na_ekranie")}</Button>
             )}
             {nextMatch && (candidate == null || candidate === featured?.id) && (
               <Button type="button" variant="outline" className="min-h-11" disabled={feature.isPending} onClick={() => putOnScreen(nextMatch.id)} title={matchLabel(nextMatch)}>
-                <SkipForward className="mr-1 h-4 w-4" aria-hidden />Następny mecz
-              </Button>
+                <SkipForward className="mr-1 h-4 w-4" aria-hidden />{t("experimentalBroadcastPanel.nastepny_mecz")}</Button>
             )}
             {featured && (candidate == null || candidate === featured.id) && (
-              <Button type="button" variant="ghost" className="min-h-11" disabled={feature.isPending} onClick={() => putOnScreen(null)}>Usuń z ekranu</Button>
+              <Button type="button" variant="ghost" className="min-h-11" disabled={feature.isPending} onClick={() => putOnScreen(null)}>{t("experimentalBroadcastPanel.usun_z_ekranu")}</Button>
             )}
           </div>
         )}
-        {feature.isError && <p role="alert" className="mt-2 text-sm text-destructive">Nie udało się zmienić meczu „Na ekranie”. Spróbuj ponownie.</p>}
-        <p className="mt-2 text-xs text-muted-foreground">To samo co gwiazdka w panelu prowadzącego. Nakładka przełączy się sama — adresu w OBS nie zmieniasz.</p>
+        {feature.isError && <p role="alert" className="mt-2 text-sm text-destructive">{t("experimentalBroadcastPanel.nie_udalo_sie_zmienic_meczu")}</p>}
+        <p className="mt-2 text-xs text-muted-foreground">{t("experimentalBroadcastPanel.to_samo_co_gwiazdka_w")}</p>
       </section>
 
       <fieldset className="space-y-2">
-        {step(1, "Nakładka")}
+        {step(1, t("experimentalBroadcastPanel.nakladka"))}
         {/* #324-L04: a gallery of ready presentations; the live preview (step 4) shows the chosen one on real data */}
-        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3" role="radiogroup" aria-label="Rodzaj nakładki" data-testid="broadcast-gallery">
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3" role="radiogroup" aria-label={t("experimentalBroadcastPanel.rodzaj_nakladki")} data-testid="broadcast-gallery">
           {GALLERY.map((option) => (
             <label key={option.id} className="experimental-broadcast-choice flex min-h-11 cursor-pointer items-start gap-3 rounded-lg border p-3" data-selected={gallery === option.id || undefined} data-gallery={option.id}>
               <input type="radio" name="overlay-kind" className="mt-1" checked={gallery === option.id}
                 onChange={() => { setCopied(null); setConfig((current) => ({ ...current, ...option.apply })); }} />
               <GalleryThumb id={option.id} />
               <span className="min-w-0">
-                <span className="flex items-center gap-1 font-medium">{option.label}{gallery === option.id && <Check className="h-4 w-4 text-primary" aria-label="wybrana" />}</span>
+                <span className="flex items-center gap-1 font-medium">{option.label}{gallery === option.id && <Check className="h-4 w-4 text-primary" aria-label={t("experimentalBroadcastPanel.wybrana")} />}</span>
                 <span className="block text-xs text-muted-foreground">{option.description}</span>
               </span>
             </label>
@@ -267,8 +262,8 @@ export function ExperimentalBroadcastPanel({
       </fieldset>
 
       <fieldset className="space-y-2">
-        {step(2, "Wygląd")}
-        <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Zestaw wyglądu nakładki">
+        {step(2, t("experimentalBroadcastPanel.wyglad"))}
+        <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={t("experimentalBroadcastPanel.zestaw_wygladu_nakladki")}>
           {OVERLAY_PRESETS.map((option) => (
             <label key={option.id} className="experimental-broadcast-preset flex min-h-11 cursor-pointer items-center gap-2 rounded-full border px-4" data-preset={option.id} data-selected={config.preset === option.id || undefined}>
               <input type="radio" name="overlay-preset" checked={config.preset === option.id} onChange={() => set("preset", option.id)} />
@@ -278,162 +273,152 @@ export function ExperimentalBroadcastPanel({
         </div>
         <p className="text-xs text-muted-foreground">{preset.label}: {preset.description}</p>
         <div className="flex flex-wrap items-end gap-3 pt-1" data-testid="broadcast-motion">
-          <Choice label="Animacje" value={String(config.motion)} options={[["0", "Bez ruchu"], ["1", "Łagodne"], ["2", "Wyraźniejsze"]]} onChange={(v) => set("motion", Number(v) as OverlayConfig["motion"])} />
+          <Choice label={t("experimentalBroadcastPanel.animacje")} value={String(config.motion)} options={[["0", t("experimentalBroadcastPanel.bez_ruchu")], ["1", t("experimentalBroadcastPanel.lagodne")], ["2", t("experimentalBroadcastPanel.wyrazniejsze")]]} onChange={(v) => set("motion", Number(v) as OverlayConfig["motion"])} />
           <label className="flex min-h-11 items-center gap-2 text-sm">
             <input type="checkbox" checked={config.alerts && config.kind !== "struktura"} disabled={config.kind === "struktura"} onChange={(event) => set("alerts", event.target.checked)} />
-            <span>Alerty na wizji <span className="text-muted-foreground">(koniec meczu, awans, nowy etap, zwycięzca)</span></span>
+            <span>{t("experimentalBroadcastPanel.alerty_na_wizji")}{" "}<span className="text-muted-foreground">{t("experimentalBroadcastPanel.koniec_meczu_awans_nowy_etap")}</span></span>
           </label>
         </div>
-        <p className="text-xs text-muted-foreground">
-          Alerty są domyślnie wyłączone i dotyczą tylko tej nakładki. Pokazują wyłącznie zapisane zmiany; po odświeżeniu nie powtarzają starych.
-          Przy „Bez ruchu” i u widzów z ograniczonym ruchem pojawiają się bez animacji.
-        </p>
+        <p className="text-xs text-muted-foreground">{t("experimentalBroadcastPanel.alerty_sa_domyslnie_wylaczone_i")}</p>
       </fieldset>
 
       <fieldset className="space-y-3">
-        {step(3, showsMatch ? "Mecz" : config.kind === "zwyciezca" ? "Zwycięzca" : "Etap")}
+        {step(3, showsMatch ? t("experimentalBroadcastPanel.mecz") : config.kind === "zwyciezca" ? t("experimentalBroadcastPanel.zwyciezca") : t("experimentalBroadcastPanel.etap"))}
         {config.kind === "zwyciezca" ? (
-          <p className="text-sm text-muted-foreground">Po zakończeniu turnieju nakładka pokaże jego zwycięzcę (wg silnika turnieju). Wcześniej — zwycięzcę ostatniego rozstrzygniętego meczu. Nic nie jest zgadywane.</p>
+          <p className="text-sm text-muted-foreground">{t("experimentalBroadcastPanel.po_zakonczeniu_turnieju_nakladka_pokaze")}</p>
         ) : showsMatch ? (
           <div className="space-y-2">
             <label className="flex min-h-11 items-start gap-3">
-              <input type="radio" name="overlay-match" className="mt-1" checked={config.match === "ekran"} onChange={() => set("match", "ekran")} />
-              <span><span className="block font-medium">Mecz „Na ekranie” (zalecane)</span>
-                <span className="block text-sm text-muted-foreground">Zmieniasz go wyżej albo gwiazdką w panelu prowadzącego.</span></span>
+              <input type="radio" name="overlay-match" className="mt-1" checked={config.match === "ekran" /* i18n-ignore */} onChange={() => set("match", "ekran")} />
+              <span><span className="block font-medium">{t("experimentalBroadcastPanel.mecz_na_ekranie_zalecane")}</span>
+                <span className="block text-sm text-muted-foreground">{t("experimentalBroadcastPanel.zmieniasz_go_wyzej_albo_gwiazdka")}</span></span>
             </label>
             <label className="flex min-h-11 items-start gap-3">
               <input type="radio" name="overlay-match" className="mt-1" checked={config.match === "auto"} onChange={() => set("match", "auto")} />
-              <span><span className="block font-medium">Aktualny mecz (automatycznie)</span>
-                <span className="block text-sm text-muted-foreground">Mecz „Na ekranie”, a gdy go nie ma: mecz na żywo, potem najbliższy gotowy, potem ostatni wynik.</span></span>
+              <span><span className="block font-medium">{t("experimentalBroadcastPanel.aktualny_mecz_automatycznie")}</span>
+                <span className="block text-sm text-muted-foreground">{t("experimentalBroadcastPanel.mecz_na_ekranie_a_gdy")}</span></span>
             </label>
             <label className="flex min-h-11 items-start gap-3">
               <input type="radio" name="overlay-match" className="mt-1" checked={config.match === "nastepny"} onChange={() => set("match", "nastepny")} />
-              <span><span className="block font-medium">Następny mecz</span>
-                <span className="block text-sm text-muted-foreground">Najbliższy gotowy mecz bieżącego etapu (nigdy ten, który trwa).</span></span>
+              <span><span className="block font-medium">{t("experimentalBroadcastPanel.nastepny_mecz")}</span>
+                <span className="block text-sm text-muted-foreground">{t("experimentalBroadcastPanel.najblizszy_gotowy_mecz_biezacego_etapu")}</span></span>
             </label>
             <label className="flex min-h-11 items-start gap-3">
-              <input type="radio" name="overlay-match" className="mt-1" checked={config.match === "ostatni"} onChange={() => set("match", "ostatni")} />
-              <span><span className="block font-medium">Ostatni wynik</span>
-                <span className="block text-sm text-muted-foreground">Ostatni zapisany mecz.</span></span>
+              <input type="radio" name="overlay-match" className="mt-1" checked={config.match === "ostatni" /* i18n-ignore */} onChange={() => set("match", "ostatni")} />
+              <span><span className="block font-medium">{t("experimentalBroadcastPanel.ostatni_wynik")}</span>
+                <span className="block text-sm text-muted-foreground">{t("experimentalBroadcastPanel.ostatni_zapisany_mecz")}</span></span>
             </label>
             <label className="flex min-h-11 items-start gap-3">
-              <input type="radio" name="overlay-match" className="mt-1" checked={typeof config.match === "number"} onChange={() => set("match", featured?.id ?? selectable[0]?.id ?? "ekran")} disabled={!selectable.length} />
-              <span className="block font-medium">Zawsze ten sam mecz</span>
+              <input type="radio" name="overlay-match" className="mt-1" checked={typeof config.match === "number"} onChange={() => set("match", featured?.id ?? selectable[0]?.id ?? "ekran" /* i18n-ignore */)} disabled={!selectable.length} />
+              <span className="block font-medium">{t("experimentalBroadcastPanel.zawsze_ten_sam_mecz")}</span>
             </label>
             {typeof config.match === "number" && (
               <label className="ml-7 flex max-w-xl flex-col gap-1 text-sm">
-                <span>Mecz</span>
+                <span>{t("experimentalBroadcastPanel.mecz")}</span>
                 <select className="min-h-11 rounded-md border bg-background px-3" value={config.match} onChange={(event) => set("match", Number(event.target.value))}>
                   {selectable.map((m) => <option key={m.id} value={m.id}>{matchLabel(m)}</option>)}
                 </select>
               </label>
             )}
-            {noMatchOnScreen && <p role="status" className="text-sm text-amber-500">Żaden mecz nie jest „Na ekranie” — nakładka pokaże komunikat zamiast wyniku.</p>}
+            {noMatchOnScreen && <p role="status" className="text-sm text-amber-500">{t("experimentalBroadcastPanel.zaden_mecz_nie_jest_na")}</p>}
           </div>
         ) : (
           <div className="flex flex-wrap items-end gap-2">
             <label className="flex flex-col gap-1 text-sm">
-              <span>Etap</span>
+              <span>{t("experimentalBroadcastPanel.etap")}</span>
               <select className="min-h-11 rounded-md border bg-background px-3" value={config.stage ?? ""} onChange={(event) => setConfig((current) => ({ ...current, stage: event.target.value ? Number(event.target.value) : null, round: null, group: null }))}>
-                <option value="">Bieżący etap{structureStage ? ` (${structureStage.name})` : ""}</option>
+                <option value="">{t("experimentalBroadcastPanel.biezacy_etap")}{structureStage ? ` (${structureStage.name})` : ""}</option>
                 {ordered.map((stage) => <option key={stage.id} value={stage.id}>{stage.position}. {stage.name}</option>)}
               </select>
             </label>
             {stageRounds.length > 1 && (
               <label className="flex flex-col gap-1 text-sm">
-                <span>Zakres</span>
+                <span>{t("experimentalBroadcastPanel.zakres")}</span>
                 <select className="min-h-11 rounded-md border bg-background px-3" value={config.round ?? ""} onChange={(event) => set("round", event.target.value ? Number(event.target.value) : null)}>
-                  <option value="">{stageRounds.length > 4 ? "Bieżąca część drabinki" : "Cała drabinka"}</option>
+                  <option value="">{stageRounds.length > 4 ? t("experimentalBroadcastPanel.biezaca_czesc_drabinki") : t("experimentalBroadcastPanel.cala_drabinka")}</option>
                   {stageRounds.map((round) => <option key={round} value={round}>{eliminationRoundName(round, stageRounds.at(-1)!)}</option>)}
                 </select>
               </label>
             )}
             {groupLabels.length > 1 && (
               <label className="flex flex-col gap-1 text-sm">
-                <span>Zakres</span>
+                <span>{t("experimentalBroadcastPanel.zakres")}</span>
                 <select className="min-h-11 rounded-md border bg-background px-3" value={config.group ?? ""} onChange={(event) => set("group", event.target.value || null)}>
-                  <option value="">Wszystkie grupy</option>
+                  <option value="">{t("experimentalBroadcastPanel.wszystkie_grupy")}</option>
                   {groupLabels.map((label) => <option key={label} value={label}>{label}</option>)}
                 </select>
               </label>
             )}
-            {structureStage?.status === "planned" && <p role="status" className="w-full text-sm text-amber-500">Ten etap jeszcze się nie zaczął — nakładka pokaże to wprost.</p>}
-            {stageRounds.length > 4 && config.round == null && <p className="w-full text-xs text-muted-foreground">Duża drabinka: nakładka pokazuje bieżącą rundę i dwie następne; jedną rundę wybierzesz w „Zakres”.</p>}
+            {structureStage?.status === "planned" && <p role="status" className="w-full text-sm text-amber-500">{t("experimentalBroadcastPanel.ten_etap_jeszcze_sie_nie")}</p>}
+            {stageRounds.length > 4 && config.round == null && <p className="w-full text-xs text-muted-foreground">{t("experimentalBroadcastPanel.duza_drabinka_nakladka_pokazuje_biezaca")}</p>}
           </div>
         )}
       </fieldset>
 
       <fieldset className="space-y-2">
-        {step(4, "Podgląd")}
+        {step(4, t("experimentalBroadcastPanel.podglad"))}
         <div className="flex flex-wrap items-end gap-2">
-          <Choice label="Tło podglądu" value={scene} options={[["szachownica", "Przezroczystość"], ["jasna", "Jasna gra"], ["ciemna", "Ciemna gra"]]} onChange={(v) => setScene(v as PreviewScene)} />
-          <Choice label="Rozdzielczość w OBS" value={resolution} options={OVERLAY_RESOLUTIONS.map((r) => [r.id, r.label])} onChange={(v) => setResolution(v as Resolution)} />
+          <Choice label={t("experimentalBroadcastPanel.tlo_podgladu")} value={scene} options={[["szachownica", t("experimentalBroadcastPanel.przezroczystosc")], ["jasna" /* i18n-ignore */, t("experimentalBroadcastPanel.jasna_gra")], ["ciemna", t("experimentalBroadcastPanel.ciemna_gra")]]} onChange={(v) => setScene(v as PreviewScene)} />
+          <Choice label={t("experimentalBroadcastPanel.rozdzielczosc_w_obs")} value={resolution} options={OVERLAY_RESOLUTIONS.map((r) => [r.id, r.label])} onChange={(v) => setResolution(v as Resolution)} />
         </div>
         <OverlayPreview src={url} width={res.width} height={res.height} scene={scene} />
-        <p className="text-xs text-muted-foreground">To ta sama strona co w OBS, na danych turnieju. Sprawdź czytelność na jasnej i ciemnej grze.</p>
+        <p className="text-xs text-muted-foreground">{t("experimentalBroadcastPanel.to_ta_sama_strona_co")}</p>
       </fieldset>
 
       <fieldset className="space-y-2">
-        {step(5, "Adres do OBS")}
+        {step(5, t("experimentalBroadcastPanel.adres_do_obs"))}
         <div className="flex flex-wrap gap-2">
-          <label htmlFor="overlay-url" className="sr-only">Adres nakładki</label>
+          <label htmlFor="overlay-url" className="sr-only">{t("experimentalBroadcastPanel.adres_nakladki")}</label>
           <input id="overlay-url" ref={urlRef} readOnly value={url} className="min-h-11 min-w-0 flex-1 rounded-md border bg-background px-3 font-mono text-xs" onFocus={(event) => event.currentTarget.select()} />
-          <Button type="button" className="min-h-11" onClick={() => void copy()}>{copied === "ok" ? <Check className="mr-1 h-4 w-4" aria-hidden /> : <Copy className="mr-1 h-4 w-4" aria-hidden />}{copied === "ok" ? "Skopiowano" : "Kopiuj adres"}</Button>
-          <Button type="button" variant="outline" className="min-h-11" asChild><a href={url} target="_blank" rel="noreferrer"><ExternalLink className="mr-1 h-4 w-4" aria-hidden />Otwórz</a></Button>
+          <Button type="button" className="min-h-11" onClick={() => void copy()}>{copied === "ok" ? <Check className="mr-1 h-4 w-4" aria-hidden /> : <Copy className="mr-1 h-4 w-4" aria-hidden />}{copied === "ok" ? t("experimentalBroadcastPanel.skopiowano") : t("experimentalBroadcastPanel.kopiuj_adres")}</Button>
+          <Button type="button" variant="outline" className="min-h-11" asChild><a href={url} target="_blank" rel="noreferrer"><ExternalLink className="mr-1 h-4 w-4" aria-hidden />{t("experimentalBroadcastPanel.otworz")}</a></Button>
         </div>
         <div role="status" aria-live="polite">
           {copied === "ok" && (
             <p className="experimental-broadcast-copied flex items-start gap-2 rounded-md border border-emerald-500/50 bg-emerald-500/10 p-2 text-sm" data-testid="broadcast-copied">
-              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" aria-hidden />Adres jest w schowku. Teraz wklej go w OBS (krok 6).
-            </p>
+              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-500" aria-hidden />{t("experimentalBroadcastPanel.adres_jest_w_schowku_teraz")}</p>
           )}
-          {copied === "manual" && <p className="text-sm text-amber-500">Schowek jest niedostępny — adres jest zaznaczony, skopiuj go skrótem Ctrl+C.</p>}
+          {copied === "manual" && <p className="text-sm text-amber-500">{t("experimentalBroadcastPanel.schowek_jest_niedostepny_adres_jest")}</p>}
         </div>
         {local && (
-          <p className="text-xs text-muted-foreground" data-testid="broadcast-local-note">
-            Adres z „127.0.0.1” / „localhost” działa tylko na tym komputerze — OBS musi działać tutaj. Dla OBS na innym komputerze
-            aplikacja musi być dostępna pod adresem w sieci.
-          </p>
+          <p className="text-xs text-muted-foreground" data-testid="broadcast-local-note">{t("experimentalBroadcastPanel.adres_z_127_0_0")}</p>
         )}
       </fieldset>
 
       <fieldset className="space-y-2">
-        {step(6, "Dodaj do OBS")}
+        {step(6, t("experimentalBroadcastPanel.dodaj_do_obs"))}
         <ol className="list-decimal space-y-1 pl-5 text-sm">
-          <li>OBS → okno <strong>Źródła</strong> → <strong>+</strong> → <strong>Przeglądarka</strong>.</li>
-          <li>W polu <strong>URL</strong> wklej adres; <strong>szerokość {res.width}</strong>, <strong>wysokość {res.height}</strong>.</li>
-          <li>Zatwierdź <strong>OK</strong>. Wynik zapisany w panelu prowadzącego pojawi się po kilku sekundach.</li>
+          <li>{t("experimentalBroadcastPanel.obs_okno")}{" "}<strong>{t("experimentalBroadcastPanel.zrodla")}</strong> → <strong>+</strong> → <strong>{t("experimentalBroadcastPanel.przegladarka")}</strong>.</li>
+          <li>{t("experimentalBroadcastPanel.w_polu")}{" "}<strong>{t("experimentalBroadcastPanel.url")}</strong>{" "}{t("experimentalBroadcastPanel.wklej_adres")}{" "}<strong>{t("experimentalBroadcastPanel.szerokosc")}{" "}{res.width}</strong>, <strong>{t("experimentalBroadcastPanel.wysokosc")}{" "}{res.height}</strong>.</li>
+          <li>{t("experimentalBroadcastPanel.zatwierdz")}{" "}<strong>{t("experimentalBroadcastPanel.ok")}</strong>{t("experimentalBroadcastPanel.wynik_zapisany_w_panelu_prowadzacego")}</li>
         </ol>
         <details className="rounded-lg border p-3">
-          <summary className="min-h-11 cursor-pointer content-center text-sm font-medium">Więcej o OBS</summary>
+          <summary className="min-h-11 cursor-pointer content-center text-sm font-medium">{t("experimentalBroadcastPanel.wiecej_o_obs")}</summary>
           <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
-            <li>Pole „Własny CSS” zostaw takie, jakie wstawia OBS — ono już ustawia przezroczyste tło.</li>
-            <li>„Wyłącz źródło, gdy nie jest widoczne” możesz zostawić wyłączone; po powrocie do sceny nakładka i tak odświeży się od razu.</li>
-            <li>Jeśli coś wygląda nieaktualnie: prawym na źródle → „Odśwież” (Refresh). Przy braku połączenia nakładka zostawia ostatni zapisany stan i po ok. 15 s pokazuje mały znacznik.</li>
-            <li>Nakładka nie ma przycisków, nie loguje się i nie zmienia wyników. Działa dla turniejów publicznych.</li>
+            <li>{t("experimentalBroadcastPanel.pole_wlasny_css_zostaw_takie")}</li>
+            <li>{t("experimentalBroadcastPanel.wylacz_zrodlo_gdy_nie_jest")}</li>
+            <li>{t("experimentalBroadcastPanel.jesli_cos_wyglada_nieaktualnie_prawym")}</li>
+            <li>{t("experimentalBroadcastPanel.nakladka_nie_ma_przyciskow_nie")}</li>
           </ul>
         </details>
       </fieldset>
 
       {/* #324-L04 · StreamElements: the same page as a Custom Widget (a real SE test needs an SE account) */}
       <details className="rounded-lg border p-3" data-testid="broadcast-streamelements">
-        <summary className="min-h-11 cursor-pointer content-center font-medium">StreamElements (Custom Widget)</summary>
+        <summary className="min-h-11 cursor-pointer content-center font-medium">{t("experimentalBroadcastPanel.streamelements_custom_widget")}</summary>
         <div className="mt-2 space-y-3 text-sm">
-          <p className="text-muted-foreground">
-            Widget pokazuje tę samą nakładkę co OBS (ten sam adres i te same dane publiczne). StreamElements nie ma zdarzeń turnieju — widget
-            nie łączy się z czatem ani alertami follow/sub/raid.
-          </p>
+          <p className="text-muted-foreground">{t("experimentalBroadcastPanel.widget_pokazuje_te_sama_nakladke")}</p>
           {widget.problems.length > 0 && (
             <ul className="list-disc space-y-1 pl-5 text-amber-500" data-testid="broadcast-se-problems">{widget.problems.map((problem) => <li key={problem}>{problem}</li>)}</ul>
           )}
           <ol className="list-decimal space-y-1 pl-5">
-            <li>StreamElements → <strong>Overlays</strong> → nowa nakładka {res.width}×{res.height} → <strong>Add widget</strong> → <strong>Static / Custom</strong> → <strong>Custom widget</strong>.</li>
-            <li><strong>Open editor</strong>: wklej kolejno HTML, CSS i JS poniżej (Fields zostaw <code>{"{}"}</code>), zapisz.</li>
-            <li>Rozciągnij widget na całą nakładkę. Adres nakładki StreamElements dodaj do OBS jako źródło „Przeglądarka”.</li>
+            <li>{t("experimentalBroadcastPanel.streamelements")}{" "}<strong>{t("experimentalBroadcastPanel.overlays")}</strong>{" "}{t("experimentalBroadcastPanel.nowa_nakladka")}{" "}{res.width}×{res.height} → <strong>{t("experimentalBroadcastPanel.add_widget")}</strong> → <strong>{t("experimentalBroadcastPanel.static_custom")}</strong> → <strong>{t("experimentalBroadcastPanel.custom_widget")}</strong>.</li>
+            <li><strong>{t("experimentalBroadcastPanel.open_editor")}</strong>{t("experimentalBroadcastPanel.wklej_kolejno_html_css_i")}{" "}<code>{"{}"}</code>{t("experimentalBroadcastPanel.zapisz")}</li>
+            <li>{t("experimentalBroadcastPanel.rozciagnij_widget_na_cala_nakladke")}</li>
           </ol>
           {([["HTML", widget.html], ["CSS", widget.css], ["JS", widget.js]] as const).map(([label, code]) => (
             <div key={label} className="space-y-1">
-              <div className="flex flex-wrap items-center gap-2"><span className="font-medium">{label}</span><CopyLinkButton text={code} label={`Kopiuj ${label}`} showLabel /></div>
+              <div className="flex flex-wrap items-center gap-2"><span className="font-medium">{label}</span><CopyLinkButton text={code} label={t("experimentalBroadcastPanel.kopiuj_label", { label: label })} showLabel /></div>
               <pre className="max-h-40 overflow-auto rounded-md border bg-muted/40 p-2 text-xs"><code>{code}</code></pre>
             </div>
           ))}
@@ -441,25 +426,23 @@ export function ExperimentalBroadcastPanel({
       </details>
 
       <details className="rounded-lg border p-3" data-testid="broadcast-advanced">
-        <summary className="min-h-11 cursor-pointer content-center font-medium">Ustawienia zaawansowane{!looksDefault && <span className="ml-2 text-xs font-normal text-muted-foreground">(zmienione)</span>}</summary>
+        <summary className="min-h-11 cursor-pointer content-center font-medium">{t("experimentalBroadcastPanel.ustawienia_zaawansowane")}{!looksDefault && <span className="ml-2 text-xs font-normal text-muted-foreground">{t("experimentalBroadcastPanel.zmienione")}</span>}</summary>
         <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Choice label="Wariant" value={config.layout} options={[["pelny", "Rozbudowany"], ["kompakt", "Kompaktowy"]]} onChange={(v) => set("layout", v as OverlayConfig["layout"])} />
-          <Choice label="Rozmiar wyniku" value={config.scoreSize} options={[["s", "Mały"], ["m", "Średni"], ["l", "Duży"]]} onChange={(v) => set("scoreSize", v as OverlayConfig["scoreSize"])} />
-          <Choice label="Tekst" value={String(config.textScale)} options={[["1", "100%"], ["1.25", "125%"], ["1.5", "150%"]]} onChange={(v) => set("textScale", Number(v) as OverlayConfig["textScale"])} />
-          <Choice label="Tło" value={config.background} options={[["przezroczyste", "Przezroczyste (na obraz gry)"], ["pelne", "Pełne (osobna scena)"]]} onChange={(v) => set("background", v as OverlayConfig["background"])} />
-          <Choice label="Położenie paska" value={config.position} options={[["dol", "Na dole"], ["gora", "Na górze"]]} onChange={(v) => set("position", v as OverlayConfig["position"])} />
-          <Choice label="Tytuł turnieju" value={config.showTitle ? "1" : "0"} options={[["1", "Pokaż"], ["0", "Ukryj"]]} onChange={(v) => set("showTitle", v === "1")} />
-          {config.kind === "zapowiedz" && <Choice label="Kolejne mecze" value={config.showQueue ? "1" : "0"} options={[["0", "Ukryj"], ["1", "Pokaż 3 następne"]]} onChange={(v) => set("showQueue", v === "1")} />}
+          <Choice label={t("experimentalBroadcastPanel.wariant")} value={config.layout} options={[["pelny", t("experimentalBroadcastPanel.rozbudowany")], ["kompakt" /* i18n-ignore */, t("experimentalBroadcastPanel.kompaktowy")]]} onChange={(v) => set("layout", v as OverlayConfig["layout"])} />
+          <Choice label={t("experimentalBroadcastPanel.rozmiar_wyniku")} value={config.scoreSize} options={[["s", t("experimentalBroadcastPanel.maly")], ["m", t("experimentalBroadcastPanel.sredni")], ["l", t("experimentalBroadcastPanel.duzy")]]} onChange={(v) => set("scoreSize", v as OverlayConfig["scoreSize"])} />
+          <Choice label={t("experimentalBroadcastPanel.tekst")} value={String(config.textScale)} options={[["1", "100%"], ["1.25", "125%"], ["1.5", "150%"]]} onChange={(v) => set("textScale", Number(v) as OverlayConfig["textScale"])} />
+          <Choice label={t("experimentalBroadcastPanel.tlo")} value={config.background} options={[["przezroczyste" /* i18n-ignore */, t("experimentalBroadcastPanel.przezroczyste_na_obraz_gry")], ["pelne", t("experimentalBroadcastPanel.pelne_osobna_scena")]]} onChange={(v) => set("background", v as OverlayConfig["background"])} />
+          <Choice label={t("experimentalBroadcastPanel.polozenie_paska")} value={config.position} options={[["dol", "Na dole"], ["gora", t("experimentalBroadcastPanel.na_gorze")]]} onChange={(v) => set("position", v as OverlayConfig["position"])} />
+          <Choice label={t("experimentalBroadcastPanel.tytul_turnieju")} value={config.showTitle ? "1" : "0"} options={[["1", t("experimentalBroadcastPanel.pokaz")], ["0", t("experimentalBroadcastPanel.ukryj")]]} onChange={(v) => set("showTitle", v === "1")} />
+          {config.kind === "zapowiedz" && <Choice label={t("experimentalBroadcastPanel.kolejne_mecze")} value={config.showQueue ? "1" : "0"} options={[["0", t("experimentalBroadcastPanel.ukryj")], ["1", t("experimentalBroadcastPanel.pokaz_3_nastepne")]]} onChange={(v) => set("showQueue", v === "1")} />}
         </div>
-        <Button type="button" variant="outline" className="mt-3 min-h-11" disabled={looksDefault} onClick={resetLook}><RotateCcw className="mr-1 h-4 w-4" aria-hidden />Przywróć domyślne</Button>
-        <p className="mt-1 text-xs text-muted-foreground">Rodzaj nakładki, zestaw wyglądu, animacje i mecz zostają; wracają tylko powyższe ustawienia. Wybrana nakładka: {kind.label}.</p>
+        <Button type="button" variant="outline" className="mt-3 min-h-11" disabled={looksDefault} onClick={resetLook}><RotateCcw className="mr-1 h-4 w-4" aria-hidden />{t("experimentalBroadcastPanel.przywroc_domyslne")}</Button>
+        <p className="mt-1 text-xs text-muted-foreground">{t("experimentalBroadcastPanel.rodzaj_nakladki_zestaw_wygladu_animacje")}{" "}{kind.label}.</p>
       </details>
 
       <p className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground" data-testid="broadcast-experiments">
-        <strong className="text-foreground">Eksperymenty</strong> (poza turniejem, bez gwarancji): kamerka z czatem i edytor efektów animowanych są w{" "}
-        <Link className="underline" href="/stream">OBS / Stream</Link>. Nie korzystają z wyników turnieju; podgląd kamerki z czatem pokazuje
-        przykładowe wiadomości (prawdziwy czat tylko przez eksport do StreamElements, nieprzetestowany), alertów follow/sub/raid nie ma.
-      </p>
+        <strong className="text-foreground">{t("experimentalBroadcastPanel.eksperymenty")}</strong>{" "}{t("experimentalBroadcastPanel.poza_turniejem_bez_gwarancji_kamerka")}{" "}
+        <Link className="underline" href="/stream">{t("experimentalBroadcastPanel.obs_stream")}</Link>{t("experimentalBroadcastPanel.nie_korzystaja_z_wynikow_turnieju")}</p>
     </section>
   );
 }
@@ -489,7 +472,7 @@ function OverlayPreview({ src, width, height, scene }: { src: string; width: num
   return (
     <div ref={box} className="experimental-broadcast-preview relative w-full max-w-4xl overflow-hidden rounded-lg border" data-scene={scene} style={{ aspectRatio: `${width} / ${height}` }}>
       {/* Nothing to operate inside the overlay, so the preview is not a keyboard stop (V5.9 a11y check). */}
-      <iframe title="Podgląd nakładki" tabIndex={-1} src={src} width={width} height={height} className="absolute left-0 top-0 origin-top-left border-0" style={{ transform: `scale(${scale})` }} />
+      <iframe title={t("experimentalBroadcastPanel.podglad_nakladki")} tabIndex={-1} src={src} width={width} height={height} className="absolute left-0 top-0 origin-top-left border-0" style={{ transform: `scale(${scale})` }} />
     </div>
   );
 }

@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import type { MatchRules } from "@workspace/match-rules";
 /**
  * V5 · Stage A — beginner creation wizard model (pure, testable).
@@ -160,30 +161,30 @@ export interface RecommendationResult {
 
 /** Match length without jargon: "Jedna gra" / "Do 2 wygranych" (BO3). */
 export function bestOfLabel(bestOf: number): string {
-  return bestOf <= 1 ? "Jedna gra" : `Do ${Math.ceil(bestOf / 2)} wygranych`;
+  return bestOf <= 1 ? t("experimentalCreateWizardModel.jedna_gra") : t("experimentalCreateWizardModel.do_v0_wygranych", { v0: Math.ceil(bestOf / 2) });
 }
 
 /** V5.7: match length of a stage — sets when it plays sets; otherwise games (Experimental) or BO (Stable). */
 export function matchLengthText(stage: { bestOf?: number | null; matchRules?: MatchRules | null } | null | undefined, experimental: boolean): string {
   const rules = stage?.matchRules;
-  if (rules?.kind === "sets") return experimental ? `do ${rules.setsToWin} wygranych setów` : `sety do ${rules.setsToWin}`;
-  if (rules?.kind === "two_legs") return experimental ? "dwumecz (dwa spotkania)" : "dwumecz";
+  if (rules?.kind === "sets") return experimental ? t("experimentalCreateWizardModel.do_setstowin_wygranych_setow", { setsToWin: rules.setsToWin }) : t("experimentalCreateWizardModel.sety_do_setstowin", { setsToWin: rules.setsToWin });
+  if (rules?.kind === "two_legs") return experimental ? t("experimentalCreateWizardModel.dwumecz_dwa_spotkania") : t("experimentalCreateWizardModel.dwumecz");
   const bestOf = stage?.bestOf ?? 1;
   return experimental ? bestOfLabel(bestOf).toLowerCase() : `BO${bestOf}`;
 }
 
 /** V5.10: how a match of a stage is decided, in the stage flow of the wizard (format and decision stay apart). */
 export function stageDecisionText(rules: MatchRules | null | undefined, bestOf: number): string {
-  if (rules?.kind === "two_legs") return "dwumecz: dwa spotkania każdej pary, awansuje zwycięzca sumy";
-  if (rules?.kind === "sets") return `do ${rules.setsToWin} ${rules.setsToWin === 1 ? "wygranego seta" : "wygranych setów"} (set do ${rules.pointsPerSet})`;
-  return `${bestOfLabel(bestOf).toLowerCase()}${bestOf > 1 ? ` (BO${bestOf})` : " na mecz"}`;
+  if (rules?.kind === "two_legs") return t("experimentalCreateWizardModel.dwumecz_dwa_spotkania_kazdej_pary");
+  if (rules?.kind === "sets") return `do ${rules.setsToWin} ${rules.setsToWin === 1 ? t("experimentalCreateWizardModel.wygranego_seta") : t("experimentalCreateWizardModel.wygranych_setow")} (set do ${rules.pointsPerSet})`;
+  return `${bestOfLabel(bestOf).toLowerCase()}${bestOf > 1 ? ` (BO${bestOf})` : t("experimentalCreateWizardModel.na_mecz")}`;
 }
 
 export const WIZARD_STEPS = [
-  { id: "needs", label: "Rozgrywki" },
+  { id: "needs", get label() { return t("experimentalCreateWizardModel.rozgrywki"); } },
   { id: "format", label: "Format" },
-  { id: "tune", label: "Dopasuj" },
-  { id: "details", label: "Nazwa i dostęp" },
+  { id: "tune", get label() { return t("experimentalCreateWizardModel.dopasuj"); } },
+  { id: "details", get label() { return t("experimentalCreateWizardModel.nazwa_i_dostep"); } },
 ] as const;
 export type WizardStepIndex = 0 | 1 | 2 | 3;
 
@@ -359,15 +360,15 @@ export function scheduleOutline(preview: PresetPreview, schedule: WizardSchedule
 /** "5 grudnia 2026" — local calendar date (genitive month) without time-zone shifts. */
 export function formatLocalDate(date: string): string {
   const [year, month, day] = date.split("-").map(Number);
-  const months = ["stycznia", "lutego", "marca", "kwietnia", "maja", "czerwca", "lipca", "sierpnia", "września", "października", "listopada", "grudnia"];
+  const months = ["stycznia", "lutego", "marca", "kwietnia", "maja", "czerwca", "lipca", "sierpnia", t("experimentalCreateWizardModel.wrzesnia"), t("experimentalCreateWizardModel.pazdziernika"), "listopada", "grudnia"];
   return `${day} ${months[(month ?? 1) - 1]} ${year}`;
 }
 
 /** One sentence describing the points system. */
 export function leagueRulesSentence(rules: PresetLeagueRules | null | undefined): string | null {
   if (!rules) return null;
-  const draw = rules.allowDraws ? `, remis ${rules.points.draw} pkt` : "";
-  return `Zwycięstwo ${rules.points.win} pkt${draw}, porażka ${rules.points.loss} pkt. ${rules.allowDraws ? "Mecz może skończyć się remisem." : "Każdy mecz ma zwycięzcę."}`;
+  const draw = rules.allowDraws ? t("experimentalCreateWizardModel.remis_draw_pkt", { draw: rules.points.draw }) : "";
+  return t("experimentalCreateWizardModel.zwyciestwo_win_pkt_draw_porazka", { win: rules.points.win, draw: draw, loss: rules.points.loss, v3: rules.allowDraws ? t("experimentalCreateWizardModel.mecz_moze_skonczyc_sie_remisem") : t("experimentalCreateWizardModel.kazdy_mecz_ma_zwyciezce") });
 }
 
 function rosterLimit(value: unknown): number | null {
@@ -400,8 +401,8 @@ export function plural(n: number, one: string, few: string, many: string): strin
 
 export function participantNoun(type: ParticipantType, n: number): string {
   return type === "teams"
-    ? plural(n, "drużyna", "drużyny", "drużyn")
-    : plural(n, "uczestnik", "uczestników", "uczestników");
+    ? plural(n, t("experimentalCreateWizardModel.druzyna"), t("experimentalCreateWizardModel.druzyny"), t("experimentalCreateWizardModel.druzyn"))
+    : plural(n, t("experimentalCreateWizardModel.uczestnik"), t("experimentalCreateWizardModel.uczestnikow"), t("experimentalCreateWizardModel.uczestnikow"));
 }
 
 export function rangeText(range: { min: number; max: number }): string {
@@ -439,13 +440,13 @@ export const PRESET_PARAM_KEYS_BY_PRESET: Record<PresetId, PresetParamKey[]> = {
 };
 
 export const PRESET_LABELS: Record<PresetId, string> = {
-  single_elimination: "Drabinka pucharowa",
-  double_elimination: "Podwójna eliminacja",
-  swiss: "System szwajcarski",
-  round_robin: "Każdy z każdym",
-  groups_playoff: "Grupy i play-off",
-  swiss_playoff: "Szwajcarski i play-off",
-  league_playoff: "Tabela i play-off",
+  get single_elimination() { return t("experimentalCreateWizardModel.drabinka_pucharowa"); },
+  get double_elimination() { return t("experimentalCreateWizardModel.podwojna_eliminacja"); },
+  get swiss() { return t("experimentalCreateWizardModel.system_szwajcarski"); },
+  get round_robin() { return t("experimentalCreateWizardModel.kazdy_z_kazdym"); },
+  get groups_playoff() { return t("experimentalCreateWizardModel.grupy_i_play_off"); },
+  get swiss_playoff() { return t("experimentalCreateWizardModel.szwajcarski_i_play_off"); },
+  get league_playoff() { return t("experimentalCreateWizardModel.tabela_i_play_off"); },
 };
 export const ALL_PRESET_IDS: readonly PresetId[] = PRESET_IDS;
 
@@ -533,7 +534,7 @@ export interface CustomPlan {
   preview: Pick<PresetPreview, "label" | "creation" | "stages" | "totals" | "participants" | "warnings" | "requirements" | "winnerRule">;
 }
 
-export function customPlanFromPreview(preview: PresetPreview, label = "Własna konfiguracja z pliku AI"): CustomPlan {
+export function customPlanFromPreview(preview: PresetPreview, label = t("experimentalCreateWizardModel.wlasna_konfiguracja_z_pliku_ai")): CustomPlan {
   return {
     label,
     preview: {
@@ -562,7 +563,7 @@ function sanitizeCustomPlan(value: unknown): CustomPlan | null {
 /** Which advanced-only settings the simple wizard cannot show (shown before leaving the advanced editor). */
 export function simpleWizardLimitations(draft: WizardDraft): string[] {
   const notes: string[] = [];
-  if (draft.custom) notes.push(`Własny plan „${draft.custom.label}” nie da się edytować w prostym kreatorze — zostanie zachowany i wrócisz do niego w trybie zaawansowanym.`);
+  if (draft.custom) notes.push(t("experimentalCreateWizardModel.wlasny_plan_label_nie_da", { label: draft.custom.label }));
   return notes;
 }
 
@@ -578,12 +579,12 @@ export function stageChain(preview: Pick<PresetPreview, "stages">): string[] {
     const parts = [stage.name];
     if (stage.groupSizes && stage.groupSizes.length > 0) {
       const sizes = [...new Set(stage.groupSizes)];
-      parts.push(`${stage.groupSizes.length} ${plural(stage.groupSizes.length, "grupa", "grupy", "grup")} po ${sizes.join("–")}`);
+      parts.push(`${stage.groupSizes.length} ${plural(stage.groupSizes.length, t("experimentalCreateWizardModel.grupa"), t("experimentalCreateWizardModel.grupy"), t("experimentalCreateWizardModel.grup"))} po ${sizes.join("–")}`);
     } else {
-      parts.push(`${stage.participantCount} ${plural(stage.participantCount, "uczestnik", "uczestników", "uczestników")}`);
+      parts.push(`${stage.participantCount} ${plural(stage.participantCount, t("experimentalCreateWizardModel.uczestnik"), t("experimentalCreateWizardModel.uczestnikow"), t("experimentalCreateWizardModel.uczestnikow"))}`);
     }
     parts.push(bestOfLabel(stage.bestOf));
-    if (stage.advancingCount != null) parts.push(`awans ${stage.advancingCount}`);
+    if (stage.advancingCount != null) parts.push(t("experimentalCreateWizardModel.awans_advancingcount", { advancingCount: stage.advancingCount }));
     return parts.join(" · ");
   });
 }

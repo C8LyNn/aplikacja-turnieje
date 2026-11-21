@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 import { Link } from "wouter";
@@ -159,7 +160,7 @@ export function ExperimentalQuickLink({
 
 export function ExperimentalActionBar({
   children,
-  label = "Działania",
+  label = t("experimentalUi.dzialania"),
 }: {
   children: ReactNode;
   label?: string;

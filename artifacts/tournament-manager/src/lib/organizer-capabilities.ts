@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import type { Tournament } from "@workspace/api-client-react";
 import type { Role } from "@/lib/auth";
 
@@ -45,14 +46,14 @@ export const LEGACY_SUPPORT_PERMISSION_KEYS: readonly SupportPermissionKey[] = [
 ];
 
 export const SUPPORT_PERMISSION_SHORT_LABELS: Record<SupportPermissionKey, string> = {
-  "matches.run": "prowadzenie meczów",
-  "results.write": "wpisywanie wyników",
-  "results.correct": "poprawa wyników",
-  "participants.manage": "uczestnicy",
-  "stages.rounds": "start i kolejne rundy",
-  "presentation.featured": "mecz na ekranie",
-  "presentation.settings": "wygląd transmisji",
-  "visibility.publish": "publikowanie turnieju",
+  get "matches.run"() { return t("organizerCapabilities.prowadzenie_meczow"); },
+  get "results.write"() { return t("organizerCapabilities.wpisywanie_wynikow"); },
+  get "results.correct"() { return t("organizerCapabilities.poprawa_wynikow"); },
+  get "participants.manage"() { return t("organizerCapabilities.uczestnicy"); },
+  get "stages.rounds"() { return t("organizerCapabilities.start_i_kolejne_rundy"); },
+  get "presentation.featured"() { return t("organizerCapabilities.mecz_na_ekranie"); },
+  get "presentation.settings"() { return t("organizerCapabilities.wyglad_transmisji"); },
+  get "visibility.publish"() { return t("organizerCapabilities.publikowanie_turnieju"); },
 };
 
 export interface OrganizerCapabilityContext {

@@ -1,18 +1,19 @@
 // #324-L01-B · interchangeable presentations of an already stored draw. A presenter receives the stored result
 // (`target`) and the results still in the pool; it only animates towards that result and never chooses anything.
 // Timing comes from the caller; with reduced motion (or the fast presenter) the result appears at once.
+import { t } from "@/i18n";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 
 export type PresenterId = "kolo" | "szybko" | "karty" | "automat" | "skan" | "kule";
 export type PresenterStatus = "PROTOTYPE" | "TESTED" | "STABLE_CANDIDATE" | "STABLE";
 
 export const DRAW_PRESENTERS: { id: PresenterId; label: string; status: PresenterStatus; description: string }[] = [
-  { id: "kolo", label: "Koło", status: "STABLE", description: "Koło z pozostałymi wynikami zatrzymuje się na zapisanym wyniku." },
-  { id: "szybko", label: "Szybkie odsłonięcie", status: "STABLE", description: "Bez animacji — wynik od razu." },
-  { id: "karty", label: "Karty", status: "STABLE_CANDIDATE", description: "Zakryte karty; odwraca się ta z zapisanym wynikiem." },
-  { id: "automat", label: "Automat", status: "STABLE_CANDIDATE", description: "Bęben przewija wyniki i staje na zapisanym." },
-  { id: "skan", label: "Skan", status: "STABLE_CANDIDATE", description: "Podświetlenie przebiega listę i zwalnia na zapisanym wyniku." },
-  { id: "kule", label: "Kule", status: "TESTED", description: "Kule w bębnie; wypada ta z zapisanym wynikiem (tylko Laboratorium)." },
+  { id: "kolo", get label() { return t("drawPresenters.kolo"); }, status: "STABLE", get description() { return t("drawPresenters.kolo_z_pozostalymi_wynikami_zatrzymuje"); } },
+  { id: "szybko", get label() { return t("drawPresenters.szybkie_odsloniecie"); }, status: "STABLE", get description() { return t("drawPresenters.bez_animacji_wynik_od_razu"); } },
+  { id: "karty", get label() { return t("drawPresenters.karty"); }, status: "STABLE_CANDIDATE", get description() { return t("drawPresenters.zakryte_karty_odwraca_sie_ta"); } },
+  { id: "automat", label: "Automat", status: "STABLE_CANDIDATE", get description() { return t("drawPresenters.beben_przewija_wyniki_i_staje"); } },
+  { id: "skan", label: "Skan", status: "STABLE_CANDIDATE", get description() { return t("drawPresenters.podswietlenie_przebiega_liste_i_zwalnia"); } },
+  { id: "kule", get label() { return t("drawPresenters.kule"); }, status: "TESTED", get description() { return t("drawPresenters.kule_w_bebnie_wypada_ta"); } },
 ];
 
 /** Presenters offered in real tournaments: stable ones and candidates; the rest stays in the Laboratory. */
@@ -91,9 +92,9 @@ export function Wheel({ options, rotation, spinning, animDuration }: { options: 
   const fontSize = count <= 12 ? 11 : count <= 20 ? 10 : count <= 26 ? 9 : 8;
   const maxChars = count <= 16 ? 12 : count <= 24 ? 9 : 7;
   return (
-    <div className="relative mx-auto aspect-square w-full max-w-[360px]" aria-label={`Koło losowania, pozostało ${options.length} wyników`}>
+    <div className="relative mx-auto aspect-square w-full max-w-[360px]" aria-label={t("drawPresenters.kolo_losowania_pozostalo_length_wynikow", { length: options.length })}>
       <div className="absolute left-1/2 top-0 z-10 -translate-x-1/2 -translate-y-1 border-x-[12px] border-t-[22px] border-x-transparent border-t-primary" />
-      <svg viewBox="0 0 320 320" className="h-full w-full drop-shadow-sm" role="img" aria-label="Animowane koło dostępnych wyników">
+      <svg viewBox="0 0 320 320" className="h-full w-full drop-shadow-sm" role="img" aria-label={t("drawPresenters.animowane_kolo_dostepnych_wynikow")}>
         <g style={{ transform: `rotate(${rotation}deg)`, transformOrigin: "160px 160px", transition: spinning ? `transform ${animDuration.toFixed(2)}s cubic-bezier(.12,.7,.08,1)` : "none" }}>
           <circle cx="160" cy="160" r="148" className="fill-muted stroke-border" strokeWidth="2" />
           {visible.map((option, index) => {
@@ -112,7 +113,7 @@ export function Wheel({ options, rotation, spinning, animDuration }: { options: 
           })}
           <circle cx="160" cy="160" r="42" className="fill-background stroke-primary" strokeWidth="3" />
           <text x="160" y="155" textAnchor="middle" className="fill-foreground text-[14px] font-bold">{options.length}</text>
-          <text x="160" y="174" textAnchor="middle" className="fill-muted-foreground text-[10px]">pozostało</text>
+          <text x="160" y="174" textAnchor="middle" className="fill-muted-foreground text-[10px]">{t("drawPresenters.pozostalo")}</text>
         </g>
       </svg>
     </div>
@@ -132,7 +133,7 @@ function WheelPresenter({ frame }: { frame: PresenterFrame }) {
 function ResultCard({ frame }: { frame: PresenterFrame }) {
   return (
     <div className="mx-auto max-w-sm rounded-xl border bg-card p-6 text-center shadow-sm" data-testid="draw-presenter-card">
-      <p className="text-sm text-muted-foreground">{frame.subject ?? "Wynik losowania"}</p>
+      <p className="text-sm text-muted-foreground">{frame.subject ?? t("drawPresenters.wynik_losowania")}</p>
       <p className="mt-1 text-3xl font-black">{frame.target ?? "—"}</p>
     </div>
   );
@@ -148,7 +149,7 @@ function CardsPresenter({ frame }: { frame: PresenterFrame }) {
   const flipAt = Math.round(frame.durationMs * 0.75);
   const style = { "--flip-delay": `${flipAt}ms` } as CSSProperties;
   return (
-    <div className="draw-cards mx-auto grid max-w-md grid-cols-4 gap-2" style={style} key={frame.drawKey} aria-label={`Talia: ${cards.length} zakrytych kart`}>
+    <div className="draw-cards mx-auto grid max-w-md grid-cols-4 gap-2" style={style} key={frame.drawKey} aria-label={t("drawPresenters.talia_length_zakrytych_kart", { length: cards.length })}>
       {cards.map((label, index) => {
         const chosen = label === frame.target;
         return (
@@ -183,7 +184,7 @@ function SlotPresenter({ frame }: { frame: PresenterFrame }) {
   const rowRem = 3;
   const offset = settled ? (reel.length - 1) * rowRem : 0;
   return (
-    <div className="mx-auto w-full max-w-sm overflow-hidden rounded-xl border bg-card shadow-inner" style={{ height: `${rowRem}rem` }} aria-label="Bęben automatu">
+    <div className="mx-auto w-full max-w-sm overflow-hidden rounded-xl border bg-card shadow-inner" style={{ height: `${rowRem}rem` }} aria-label={t("drawPresenters.beben_automatu")}>
       <ol key={frame.drawKey} style={{ transform: `translateY(-${offset}rem)`, transition: frame.running && settled ? `transform ${frame.durationMs}ms cubic-bezier(.1,.75,.12,1)` : "none" }}>
         {reel.map((label, index) => (
           <li key={index} className="flex items-center justify-center text-2xl font-black" style={{ height: `${rowRem}rem` }}
@@ -217,7 +218,7 @@ function ScanPresenter({ frame }: { frame: PresenterFrame }) {
     return () => timers.forEach(clearTimeout);
   }, [frame.drawKey, frame.running, targetIndex, items.length, frame.durationMs]);
   return (
-    <ol className="mx-auto grid max-w-md grid-cols-2 gap-1.5 sm:grid-cols-3" aria-label="Lista wyników">
+    <ol className="mx-auto grid max-w-md grid-cols-2 gap-1.5 sm:grid-cols-3" aria-label={t("drawPresenters.lista_wynikow")}>
       {items.map((label, index) => (
         <li key={`${label}-${index}`} className="rounded-md border px-2 py-2 text-center text-sm font-semibold transition-colors"
           data-active={index === active || undefined} data-chosen={!frame.running && index === targetIndex ? true : undefined}>{label}</li>

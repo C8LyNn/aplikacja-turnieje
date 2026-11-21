@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 /**
  * QW-03b · Classic "Szybki wybór": the Classic creator offers the same presets as the Modern wizard.
  * One source of truth — the server's preset catalog (`/api/tournaments/presets/recommend` for the
@@ -26,11 +27,11 @@ export interface QuickPreset {
 }
 
 export const QUICK_PRESETS: readonly QuickPreset[] = [
-  { presetId: "single_elimination", label: "Szybki puchar", hint: "Przegrany odpada. Najmniej meczów." },
-  { presetId: "double_elimination", label: "Dwie szanse", hint: "Odpada się dopiero po drugiej porażce." },
-  { presetId: "round_robin", label: "Każdy z każdym", hint: "Wszyscy grają ze wszystkimi, wygrywa tabela." },
-  { presetId: "swiss", label: "Szwajcarski", hint: "Stała liczba rund, nikt nie odpada." },
-  { presetId: "groups_playoff", label: "Grupy i play-off", hint: "Najpierw grupy, potem drabinka najlepszych." },
+  { presetId: "single_elimination", get label() { return t("classicQuickPresets.szybki_puchar"); }, get hint() { return t("classicQuickPresets.przegrany_odpada_najmniej_meczow"); } },
+  { presetId: "double_elimination", get label() { return t("classicQuickPresets.dwie_szanse"); }, get hint() { return t("classicQuickPresets.odpada_sie_dopiero_po_drugiej"); } },
+  { presetId: "round_robin", get label() { return t("classicQuickPresets.kazdy_z_kazdym"); }, get hint() { return t("classicQuickPresets.wszyscy_graja_ze_wszystkimi_wygrywa"); } },
+  { presetId: "swiss", get label() { return t("classicQuickPresets.szwajcarski"); }, get hint() { return t("classicQuickPresets.stala_liczba_rund_nikt_nie"); } },
+  { presetId: "groups_playoff", get label() { return t("classicQuickPresets.grupy_i_play_off"); }, get hint() { return t("classicQuickPresets.najpierw_grupy_potem_drabinka_najlepszyc"); } },
 ];
 
 export const QUICK_PRESET_DEFAULT_COUNT = 8;
@@ -61,7 +62,7 @@ export function quickPreviewBody(presetId: PresetId, participantCount: number, b
 /** "≈ 7 meczów · 3 rundy" (ranges where the result decides, e.g. "≈ 14–15 meczów"). */
 export function estimateText(preview: Pick<PresetPreview, "totals">): string {
   const { matches, rounds } = preview.totals;
-  return `≈ ${rangeText(matches)} ${plural(matches.max, "mecz", "mecze", "meczów")} · ${rangeText(rounds)} ${plural(rounds.max, "runda", "rundy", "rund")}`;
+  return `≈ ${rangeText(matches)} ${plural(matches.max, t("classicQuickPresets.mecz"), t("classicQuickPresets.mecze"), t("classicQuickPresets.meczow"))} · ${rangeText(rounds)} ${plural(rounds.max, t("classicQuickPresets.runda"), t("classicQuickPresets.rundy"), t("classicQuickPresets.rund"))}`;
 }
 
 function isRange(value: unknown): value is { min: number; max: number } {
@@ -95,7 +96,7 @@ export async function postPresetJson(url: string, body: unknown, signal: AbortSi
   });
   const data = (await response.json().catch(() => null)) as { error?: unknown } | null;
   if (!response.ok) {
-    throw new Error(typeof data?.error === "string" && data.error ? data.error : `Serwer odpowiedział błędem (HTTP ${response.status}).`);
+    throw new Error(typeof data?.error === "string" && data.error ? data.error : t("classicQuickPresets.serwer_odpowiedzial_bledem_http_status", { status: response.status }));
   }
   return data;
 }

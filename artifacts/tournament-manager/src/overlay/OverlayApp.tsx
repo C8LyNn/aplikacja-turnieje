@@ -1,3 +1,4 @@
+import { t as tr } from "@/i18n";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import {
   bracketView, doubleView, matchOverlayModel, pickStage, scheduleText, tablesView, toPublicMatch, toPublicStage,
@@ -9,14 +10,14 @@ import { fetchPublic, useDelayed, usePolled, type OverlayProblem } from "./overl
 
 type Raw = Record<string, unknown>;
 
-const LOADING_TEXT = "Wczytywanie danych turnieju…";
+const loadingText = () => tr("overlayApp.wczytywanie_danych_turnieju");
 /** Nothing is shown before this, so a quick first answer never flashes a loading text on air. */
 const LOADING_GRACE_MS = 2500;
 const PROBLEM_TEXT: Record<OverlayProblem, string> = {
-  private: "Nakładki działają tylko dla turniejów publicznych.",
-  missing: "Nie znaleziono turnieju.",
-  offline: "Brak połączenia z SWARM-006 — ponawiam…",
-  invalid: "Nie udało się odczytać danych turnieju.",
+  get private() { return tr("overlayApp.nakladki_dzialaja_tylko_dla_turniejow"); },
+  get missing() { return tr("overlayApp.nie_znaleziono_turnieju"); },
+  get offline() { return tr("overlayApp.brak_polaczenia_z_swarm_006"); },
+  get invalid() { return tr("overlayApp.nie_udalo_sie_odczytac_danych"); },
 };
 
 /** V5.9 · the whole overlay page: one view, chosen by the address; nothing to click. */
@@ -26,7 +27,7 @@ export function OverlayApp({ config }: { config: OverlayConfig }) {
     <main className="ov" data-preset={config.preset} data-bg={config.background} data-motion={config.motion} data-pos={config.position} data-alerts={config.alerts || undefined}
       data-layout={config.layout} data-size={config.scoreSize} data-kind={config.kind} style={rootStyle}>
       {config.tournamentId == null
-        ? <OverlayMessage text="W adresie nakładki brakuje turnieju (t=…). Skopiuj adres z sekcji „Transmisja”." />
+        ? <OverlayMessage text={tr("overlayApp.w_adresie_nakladki_brakuje_turnieju")} />
         : config.kind === "struktura" ? <StructureOverlay config={config} tournamentId={config.tournamentId} />
         : <MatchOverlay config={config} tournamentId={config.tournamentId} />}
     </main>
@@ -40,12 +41,12 @@ function OverlayMessage({ text, subtle = false }: { text: string; subtle?: boole
 /** Loading: nothing for the first moments, then a quiet text. */
 function Loading() {
   const show = useDelayed(LOADING_GRACE_MS);
-  return show ? <OverlayMessage text={LOADING_TEXT} subtle /> : null;
+  return show ? <OverlayMessage text={loadingText()} subtle /> : null;
 }
 
 const clock = (at: number | null) => (at ? new Date(at).toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" }) : "");
 function StaleMark({ lastOkAt }: { lastOkAt: number | null }) {
-  return <div className="ov-stale" role="status">Brak połączenia — stan z {clock(lastOkAt)}</div>;
+  return <div className="ov-stale" role="status">{tr("overlayApp.brak_polaczenia_stan_z")}{" "}{clock(lastOkAt)}</div>;
 }
 
 async function loadStages(tournamentId: number, signal: AbortSignal) {
@@ -159,7 +160,7 @@ function WinnerCard({ model, config }: { model: WinnerModel; config: OverlayConf
 function ScoreBar({ card, title, config }: { card: MatchCard; title: string; config: OverlayConfig }) {
   const full = config.layout === "pelny";
   return (
-    <section className="ov-scorebar" aria-label={`Wynik meczu: ${card.side1} ${card.hasScore ? `${card.score1}:${card.score2}` : "przed wynikiem"} ${card.side2}`} data-state={card.state}>
+    <section className="ov-scorebar" aria-label={tr("overlayApp.wynik_meczu_side1_v1_side2", { side1: card.side1, v1: card.hasScore ? `${card.score1}:${card.score2}` : tr("overlayApp.przed_wynikiem"), side2: card.side2 })} data-state={card.state}>
       {config.showTitle && <div className="ov-title">{title}</div>}
       <div className="ov-row">
         <div className="ov-side ov-side--1" data-winner={card.winner === 1 || undefined} data-fit={card.fit1}><span className="ov-name">{card.side1}</span></div>
@@ -171,14 +172,14 @@ function ScoreBar({ card, title, config }: { card: MatchCard; title: string; con
               <span className="ov-num" key={`b${card.score2}`}>{card.score2}</span>
               {card.scoreUnit && <span className="ov-unit">{card.scoreUnit}</span>}
             </>
-          ) : <span className="ov-vs-box">VS</span>}
+          ) : <span className="ov-vs-box">{tr("overlayApp.vs")}</span>}
         </div>
         <div className="ov-side ov-side--2" data-winner={card.winner === 2 || undefined} data-fit={card.fit2}><span className="ov-name">{card.side2}</span></div>
       </div>
       {card.sets.length > 0 && (
-        <ol className="ov-sets" aria-label="Wyniki setów (punkty w secie)">
+        <ol className="ov-sets" aria-label={tr("overlayApp.wyniki_setow_punkty_w_secie")}>
           {card.sets.map((set, index) => (
-            <li key={index} data-winner={set.winner || undefined}><span className="ov-set-no">Set {index + 1}</span> {set.score1}:{set.score2}</li>
+            <li key={index} data-winner={set.winner || undefined}><span className="ov-set-no">{tr("overlayApp.set")}{" "}{index + 1}</span> {set.score1}:{set.score2}</li>
           ))}
         </ol>
       )}
@@ -198,7 +199,7 @@ function UpcomingCard({ card, model, config }: { card: MatchCard; model: MatchOv
   const heading = upcomingHeading(card);
   const showScore = card.state === "completed" && card.hasScore;
   return (
-    <section className="ov-upcoming" aria-label={`${heading}: ${card.side1} kontra ${card.side2}`} data-state={card.state}>
+    <section className="ov-upcoming" aria-label={tr("overlayApp.heading_side1_kontra_side2", { heading: heading, side1: card.side1, side2: card.side2 })} data-state={card.state}>
       {config.showTitle && <div className="ov-title">{model.title}</div>}
       <div className="ov-upcoming-heading">{heading}</div>
       <div className="ov-versus">
@@ -213,9 +214,9 @@ function UpcomingCard({ card, model, config }: { card: MatchCard; model: MatchOv
         <span className="ov-format">{card.format}</span>
       </div>
       {model.queue.length > 0 && (
-        <ol className="ov-queue" aria-label="Kolejne mecze">
-          <li className="ov-queue-title">Kolejne mecze</li>
-          {model.queue.map((m) => <li key={m.id}><span>{m.side1}</span> <span className="ov-vs-small">vs</span> <span>{m.side2}</span></li>)}
+        <ol className="ov-queue" aria-label={tr("overlayApp.kolejne_mecze")}>
+          <li className="ov-queue-title">{tr("overlayApp.kolejne_mecze")}</li>
+          {model.queue.map((m) => <li key={m.id}><span>{m.side1}</span> <span className="ov-vs-small">{tr("overlayApp.vs_2")}</span> <span>{m.side2}</span></li>)}
         </ol>
       )}
     </section>
@@ -257,7 +258,7 @@ function StructureOverlay({ config, tournamentId }: { config: OverlayConfig; tou
     `structure:${tournamentId}:${stage?.id ?? 0}:${stage?.format ?? ""}:${stage?.status ?? ""}:${config.round ?? 0}:${config.group ?? ""}`,
     async (signal) => {
       if (!stage) return null;
-      if (stage.status === "planned") return { kind: "empty", title: stage.name, message: "Etap jeszcze się nie rozpoczął." };
+      if (stage.status === "planned") return { kind: "empty", title: stage.name, message: tr("overlayApp.etap_jeszcze_sie_nie_rozpoczal") };
       if (stage.format === "single_elimination") {
         const matches = ((await fetchPublic<Raw[]>(`/api/tournaments/${tournamentId}/matches`, signal)) ?? []).map(toPublicMatch).filter((m) => m.stageId === stage.id);
         return bracketView(stage, matches, config.round, teams);
@@ -272,7 +273,7 @@ function StructureOverlay({ config, tournamentId }: { config: OverlayConfig; tou
   const problem = tournamentState.problem ?? stages.problem;
   if (problem && problem !== "offline") return <OverlayMessage text={PROBLEM_TEXT[problem]} />;
   if (!stages.data || !view.data) {
-    if (stages.data && !stage) return <OverlayMessage text="Turniej nie ma jeszcze etapów." />;
+    if (stages.data && !stage) return <OverlayMessage text={tr("overlayApp.turniej_nie_ma_jeszcze_etapow")} />;
     const failed = view.problem ?? stages.problem;
     return failed ? <OverlayMessage text={PROBLEM_TEXT[failed]} /> : <Loading />;
   }
@@ -310,7 +311,7 @@ function StructureOverlay({ config, tournamentId }: { config: OverlayConfig; tou
                   <h3>{section.label}</h3>
                   <div className="ov-double-rounds" style={{ "--ov-rounds": section.rounds.length } as CSSProperties}>
                     {section.rounds.map((round) => (
-                      <ol key={round.round} aria-label={`${section.label} — runda ${round.round}`}>
+                      <ol key={round.round} aria-label={tr("overlayApp.label_runda_round", { label: section.label, round: round.round })}>
                         {round.matches.map((m, index) => (
                           <li key={`${m.name}-${index}`} className="ov-mini" data-live={m.live || undefined}>
                             <span className="ov-mini-label">{m.name}</span>
@@ -331,7 +332,7 @@ function StructureOverlay({ config, tournamentId }: { config: OverlayConfig; tou
                 <table className="ov-table" key={table.label}>
                   {v.tables.length > 1 || (table.label && table.label !== v.title && table.label !== v.fragment) ? <caption>{table.label}</caption> : null}
                   <thead>
-                    <tr><th scope="col">#</th><th scope="col">Uczestnik</th><th scope="col">M</th><th scope="col">W</th>{v.showDraws && <th scope="col">R</th>}<th scope="col">P</th><th scope="col">+/−</th>{v.showPoints && <th scope="col">Pkt</th>}</tr>
+                    <tr><th scope="col">#</th><th scope="col">{tr("overlayApp.uczestnik")}</th><th scope="col">M</th><th scope="col">W</th>{v.showDraws && <th scope="col">R</th>}<th scope="col">P</th><th scope="col">+/−</th>{v.showPoints && <th scope="col">{tr("overlayApp.pkt")}</th>}</tr>
                   </thead>
                   <tbody>
                     {table.rows.map((row) => (

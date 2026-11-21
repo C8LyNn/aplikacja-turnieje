@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import {
   getOrganizerCredentialState,
   upgradeLegacyOrganizer,
@@ -136,7 +137,7 @@ export async function apiOrganizerLogin(tournamentId: number, password: string):
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error((err as any).error || "Błąd logowania");
+    throw new Error((err as any).error || t("auth.blad_logowania"));
   }
   const data = await res.json();
   return data.token as string;
@@ -169,7 +170,7 @@ export async function apiSetInitialOrganizerPassword(
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({})) as { error?: string; code?: string };
-    const error = new Error(body.error || "Błąd ustawiania hasła organizatora") as Error & {
+    const error = new Error(body.error || t("auth.blad_ustawiania_hasla_organizatora")) as Error & {
       code?: string;
       status?: number;
     };
@@ -189,7 +190,7 @@ export async function apiSupportLogin(tournamentId: number, password: string, ni
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error((err as any).error || "Błąd logowania");
+    throw new Error((err as any).error || t("auth.blad_logowania"));
   }
   return res.json();
 }
@@ -207,7 +208,7 @@ export async function apiVerifySupportSession(tournamentId: number, token: strin
     headers: { "X-Support-Token": token },
   });
   if (!res.ok) {
-    const error = new Error("Sesja wsparcia jest nieważna") as Error & { status?: number };
+    const error = new Error(t("auth.sesja_wsparcia_jest_niewazna")) as Error & { status?: number };
     error.status = res.status;
     throw error;
   }
@@ -220,7 +221,7 @@ export async function apiVerifyOrganizerToken(tournamentId: number, token: strin
     headers: { "X-Organizer-Token": token },
   });
   if (!res.ok) {
-    const error = new Error("Sesja organizatora jest nieważna") as Error & { status?: number };
+    const error = new Error(t("auth.sesja_organizatora_jest_niewazna")) as Error & { status?: number };
     error.status = res.status;
     throw error;
   }
@@ -230,7 +231,7 @@ export async function apiGetSupportSessions(tournamentId: number, token: string)
   const res = await fetch(`${BASE}/api/tournaments/${tournamentId}/auth/support-sessions`, {
     headers: { "X-Organizer-Token": token },
   });
-  if (!res.ok) throw new Error("Błąd pobierania sesji");
+  if (!res.ok) throw new Error(t("auth.blad_pobierania_sesji"));
   return res.json();
 }
 
@@ -242,7 +243,7 @@ export async function apiChangeSupportPassword(tournamentId: number, token: stri
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error((err as any).error || "Błąd zmiany hasła");
+    throw new Error((err as any).error || t("auth.blad_zmiany_hasla"));
   }
   return res.json();
 }
@@ -255,7 +256,7 @@ export async function apiViewerLogin(tournamentId: number, password: string): Pr
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error((err as any).error || "Błąd logowania widza");
+    throw new Error((err as any).error || t("auth.blad_logowania_widza"));
   }
   const data = await res.json();
   return data.token as string;
@@ -269,7 +270,7 @@ export async function apiChangeViewerPassword(tournamentId: number, orgToken: st
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error((err as any).error || "Błąd zmiany hasła widza");
+    throw new Error((err as any).error || t("auth.blad_zmiany_hasla_widza"));
   }
   return res.json();
 }
@@ -287,7 +288,7 @@ export async function apiChangeVisibility(
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error((err as any).error || "Błąd zmiany widoczności");
+    throw new Error((err as any).error || t("auth.blad_zmiany_widocznosci"));
   }
   return res.json();
 }
@@ -308,7 +309,7 @@ export async function apiChangeVisibilityAs(
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error((err as any).error || "Błąd zmiany widoczności");
+    throw new Error((err as any).error || t("auth.blad_zmiany_widocznosci"));
   }
   return res.json();
 }
@@ -337,7 +338,7 @@ async function supportMembersRequest<T>(url: string, orgToken: string, init: Req
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error((err as any).error || "Nie udało się zapisać zmian osoby wspierającej.");
+    throw new Error((err as any).error || t("auth.nie_udalo_sie_zapisac_zmian"));
   }
   return res.json() as Promise<T>;
 }
@@ -362,6 +363,6 @@ export async function apiGetAuditLog(tournamentId: number, token: string) {
   const res = await fetch(`${BASE}/api/tournaments/${tournamentId}/audit-log`, {
     headers: { "X-Organizer-Token": token },
   });
-  if (!res.ok) throw new Error("Błąd pobierania logów");
+  if (!res.ok) throw new Error(t("auth.blad_pobierania_logow"));
   return res.json();
 }

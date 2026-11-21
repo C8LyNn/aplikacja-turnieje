@@ -1,9 +1,10 @@
+import { t } from "@/i18n";
 import { ArrowLeft } from "lucide-react";
 import { Link } from "wouter";
 
 export function ModuleBackLink({
   href = "/",
-  label = "Wszystkie projekty",
+  label = t("moduleBackLink.wszystkie_projekty"),
 }: {
   href?: string;
   label?: string;

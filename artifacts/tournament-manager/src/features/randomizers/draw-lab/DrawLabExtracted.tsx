@@ -1,4 +1,5 @@
-﻿import { useEffect, useMemo, useRef } from "react";
+﻿import { t } from "@/i18n";
+import { useEffect, useMemo, useRef } from "react";
 
 import hostHtml from "./engines/cards/cards-host.html?raw";
 import cardsCss from "./engines/cards/cards.css?raw";
@@ -83,7 +84,7 @@ export function DrawLabExtracted() {
     <div className="w-full">
       <iframe
         ref={iframeRef}
-        title="Cards extracted engine test"
+        title={t("drawLabExtracted.cards_extracted_engine_test")}
         srcDoc={srcDoc}
         scrolling="no"
         className="w-full rounded-xl border border-border bg-background"

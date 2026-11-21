@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 /**
  * #329 · optional public sign-ups — client side. Requests go through the API client's `customFetch`, so the active
  * organizer / support / viewer token is attached exactly like for generated operations.
@@ -53,7 +54,7 @@ export interface SubmitResult {
 const json = (body: unknown): RequestInit => ({ method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
 
 export const registrationPath = (tournamentId: number, experimental: boolean) =>
-  `${experimental ? "/experimental/tournaments" : "/tournaments"}/${tournamentId}/zapisy`;
+  `${experimental ? "/experimental/tournaments" : "/tournaments"}/${tournamentId}/zapisy` /* i18n-ignore */;
 
 export function fetchPublicRegistration(tournamentId: number) {
   return customFetch<PublicRegistration>(`/api/tournaments/${tournamentId}/registration`, { cache: "no-store" });
@@ -83,7 +84,7 @@ export function rejectRegistration(tournamentId: number, registrationId: number)
 }
 
 /** A readable message from an API refusal (field problems listed when present). */
-export function registrationErrorMessage(error: unknown, fallback = "Nie udało się wysłać. Sprawdź połączenie i spróbuj ponownie."): string {
+export function registrationErrorMessage(error: unknown, fallback = t("registrations.nie_udalo_sie_wyslac_sprawdz")): string {
   const data = (error as { data?: { error?: string; problems?: Array<{ message: string }> } } | null)?.data;
   if (data?.problems?.length) return data.problems.map((problem) => problem.message).join(" ");
   return data?.error ?? fallback;
@@ -101,10 +102,10 @@ export function newClientToken(): string {
 }
 
 export const REGISTRATION_STATE_TEXT: Record<RegistrationState, string> = {
-  disabled: "Zapisy do tego turnieju są wyłączone.",
-  hidden: "Turniej jest ukryty — zapisy nie są dostępne.",
-  started: "Turniej już wystartował — zapisy są zamknięte.",
-  closed: "Zapisy są zamknięte.",
-  open: "Zapisy są otwarte.",
-  full: "Lista jest pełna — brak wolnych miejsc.",
+  get disabled() { return t("registrations.zapisy_do_tego_turnieju_sa"); },
+  get hidden() { return t("registrations.turniej_jest_ukryty_zapisy_nie"); },
+  get started() { return t("registrations.turniej_juz_wystartowal_zapisy_sa"); },
+  get closed() { return t("registrations.zapisy_sa_zamkniete"); },
+  get open() { return t("registrations.zapisy_sa_otwarte"); },
+  get full() { return t("registrations.lista_jest_pelna_brak_wolnych"); },
 };

@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import {
   BookOpen,
   Dices,
@@ -23,14 +24,14 @@ const MODULES: {
   stripe: string;
   borderHover: string;
 }[] = [
-  { title: "Portfolio", description: "Portfolio i wybrane realizacje.", href: "/portfolio/", icon: BriefcaseBusiness, text: "text-cyan-400", gradient: "from-cyan-500/15 via-cyan-500/5", stripe: "bg-cyan-500/55", borderHover: "hover:border-cyan-500/45" },
-  { title: "Turnieje", description: "Organizacja i obsługa turniejów.", href: "/tournaments", icon: Trophy, text: "text-primary", gradient: "from-primary/15 via-primary/5", stripe: "bg-primary/55", borderHover: "hover:border-primary/45" },
-  { title: "Minigry", description: "Grywalne prototypy i eksperymenty.", href: "/minigames", icon: Gamepad2, text: "text-emerald-400", gradient: "from-emerald-500/15 via-emerald-500/5", stripe: "bg-emerald-500/55", borderHover: "hover:border-emerald-500/45" },
-  { title: "Losowania", description: "Narzędzia i prototypy losowań.", href: "/randomizers", icon: Dices, text: "text-blue-400", gradient: "from-blue-500/15 via-blue-500/5", stripe: "bg-blue-500/55", borderHover: "hover:border-blue-500/45" },
-  { title: "OBS / Stream", description: "Overlaye i narzędzia transmisyjne.", href: "/stream", icon: Radio, text: "text-fuchsia-400", gradient: "from-fuchsia-500/15 via-fuchsia-500/5", stripe: "bg-fuchsia-500/55", borderHover: "hover:border-fuchsia-500/45" },
-  { title: "Ludologia", description: "Klasyfikacja gier i wypowiedzi.", href: "/ludology", icon: Shapes, text: "text-amber-400", gradient: "from-amber-500/15 via-amber-500/5", stripe: "bg-amber-500/55", borderHover: "hover:border-amber-500/45" },
-  { title: "Projekty badawcze", description: "Bazy i narzędzia badawcze.", href: "/research", icon: BookOpen, text: "text-cyan-400", gradient: "from-cyan-500/15 via-cyan-500/5", stripe: "bg-cyan-500/55", borderHover: "hover:border-cyan-500/45" },
-  { title: "Meta Lab", description: "Analiza mety i kompozycji drużyn.", href: "/meta-lab", icon: Sparkles, text: "text-rose-400", gradient: "from-rose-500/15 via-rose-500/5", stripe: "bg-rose-500/55", borderHover: "hover:border-rose-500/45" },
+  { title: "Portfolio", get description() { return t("landing.portfolio_i_wybrane_realizacje"); }, href: "/portfolio/", icon: BriefcaseBusiness, text: "text-cyan-400", gradient: "from-cyan-500/15 via-cyan-500/5", stripe: "bg-cyan-500/55", borderHover: "hover:border-cyan-500/45" },
+  { get title() { return t("landing.turnieje"); }, get description() { return t("landing.organizacja_i_obsluga_turniejow"); }, href: "/tournaments", icon: Trophy, text: "text-primary", gradient: "from-primary/15 via-primary/5", stripe: "bg-primary/55", borderHover: "hover:border-primary/45" },
+  { get title() { return t("landing.minigry"); }, get description() { return t("landing.grywalne_prototypy_i_eksperymenty"); }, href: "/minigames", icon: Gamepad2, text: "text-emerald-400", gradient: "from-emerald-500/15 via-emerald-500/5", stripe: "bg-emerald-500/55", borderHover: "hover:border-emerald-500/45" },
+  { get title() { return t("landing.losowania"); }, get description() { return t("landing.narzedzia_i_prototypy_losowan"); }, href: "/randomizers", icon: Dices, text: "text-blue-400", gradient: "from-blue-500/15 via-blue-500/5", stripe: "bg-blue-500/55", borderHover: "hover:border-blue-500/45" },
+  { title: "OBS / Stream", get description() { return t("landing.overlaye_i_narzedzia_transmisyjne"); }, href: "/stream", icon: Radio, text: "text-fuchsia-400", gradient: "from-fuchsia-500/15 via-fuchsia-500/5", stripe: "bg-fuchsia-500/55", borderHover: "hover:border-fuchsia-500/45" },
+  { get title() { return t("landing.ludologia"); }, get description() { return t("landing.klasyfikacja_gier_i_wypowiedzi"); }, href: "/ludology", icon: Shapes, text: "text-amber-400", gradient: "from-amber-500/15 via-amber-500/5", stripe: "bg-amber-500/55", borderHover: "hover:border-amber-500/45" },
+  { get title() { return t("landing.projekty_badawcze"); }, get description() { return t("landing.bazy_i_narzedzia_badawcze"); }, href: "/research", icon: BookOpen, text: "text-cyan-400", gradient: "from-cyan-500/15 via-cyan-500/5", stripe: "bg-cyan-500/55", borderHover: "hover:border-cyan-500/45" },
+  { title: "Meta Lab", get description() { return t("landing.analiza_mety_i_kompozycji_druzyn"); }, href: "/meta-lab", icon: Sparkles, text: "text-rose-400", gradient: "from-rose-500/15 via-rose-500/5", stripe: "bg-rose-500/55", borderHover: "hover:border-rose-500/45" },
 ];
 
 export default function Landing() {
@@ -57,7 +58,7 @@ export default function Landing() {
                 </div>
                 <h2 className="mt-1 text-lg font-bold leading-tight">{title}</h2>
                 <p className="mt-2 line-clamp-2 text-sm leading-5 text-muted-foreground">{description}</p>
-                <div className={`mt-auto pt-5 text-xs font-bold opacity-75 transition motion-reduce:transition-none group-hover:opacity-100 group-focus-visible:opacity-100 ${text}`}>Otwórz →</div>
+                <div className={`mt-auto pt-5 text-xs font-bold opacity-75 transition motion-reduce:transition-none group-hover:opacity-100 group-focus-visible:opacity-100 ${text}`}>{t("landing.otworz")}</div>
               </div>
             </TileLink>
             );

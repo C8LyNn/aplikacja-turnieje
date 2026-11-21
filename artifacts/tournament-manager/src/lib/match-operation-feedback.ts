@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { getApiErrorMessage } from "./tournament-stages-ui";
 
 export function matchOperationError(error: unknown) {
@@ -7,15 +8,15 @@ export function matchOperationError(error: unknown) {
   // too — the page refreshes so the operator sees the current state.
   const conflict = response?.status === 409 || code === "FINALIZED_MATCH_PATCH_FORBIDDEN" || code === "CANCELLED_MATCH_PATCH_FORBIDDEN";
   const messages: Record<string, string> = {
-    MATCH_ALREADY_FINALIZED: "Ten mecz ma już zapisany wynik, być może w innym oknie. Sprawdź aktualny wynik przed korektą.",
-    MATCH_NOT_COMPLETED: "Wynik tego meczu został już cofnięty lub nie był jeszcze zapisany.",
-    CONCURRENT_MODIFICATION: "Mecz zmienił się od czasu rozpoczęcia edycji. Sprawdź aktualnych zawodników i wynik przed ponownym zapisem.",
-    DOWNSTREAM_BLOCKED: "Nie można cofnąć wyniku, ponieważ zależne mecze lub kolejna runda już się rozpoczęły.",
-    STAGE_ALREADY_ADVANCED: "Nie można cofnąć wyniku po uruchomieniu kolejnego etapu.",
-    STAGE_QUALIFICATION_ALREADY_COMMITTED: "Nie można cofnąć wyniku po zatwierdzeniu kwalifikacji lub wykonaniu routingu etapu.",
-    FINALIZED_MATCH_PATCH_FORBIDDEN: "Ten mecz ma już zapisany wynik, być może z innego okna. Stan meczu został odświeżony — sprawdź wynik.",
-    CANCELLED_MATCH_PATCH_FORBIDDEN: "Ten mecz został w międzyczasie anulowany. Stan meczu został odświeżony; przywróć go, jeśli ma się odbyć.",
-    BEST_OF_CHANGE_NOT_ALLOWED: "Długość meczu można zmienić tylko przed jego rozpoczęciem.",
+    MATCH_ALREADY_FINALIZED: t("matchOperationFeedback.ten_mecz_ma_juz_zapisany"),
+    MATCH_NOT_COMPLETED: t("matchOperationFeedback.wynik_tego_meczu_zostal_juz"),
+    CONCURRENT_MODIFICATION: t("matchOperationFeedback.mecz_zmienil_sie_od_czasu"),
+    DOWNSTREAM_BLOCKED: t("matchOperationFeedback.nie_mozna_cofnac_wyniku_poniewaz"),
+    STAGE_ALREADY_ADVANCED: t("matchOperationFeedback.nie_mozna_cofnac_wyniku_po"),
+    STAGE_QUALIFICATION_ALREADY_COMMITTED: t("matchOperationFeedback.nie_mozna_cofnac_wyniku_po_2"),
+    FINALIZED_MATCH_PATCH_FORBIDDEN: t("matchOperationFeedback.ten_mecz_ma_juz_zapisany_2"),
+    CANCELLED_MATCH_PATCH_FORBIDDEN: t("matchOperationFeedback.ten_mecz_zostal_w_miedzyczasie"),
+    BEST_OF_CHANGE_NOT_ALLOWED: t("matchOperationFeedback.dlugosc_meczu_mozna_zmienic_tylko"),
   };
   const rawDetail = getApiErrorMessage(error);
   const detail = typeof rawDetail === "string" ? rawDetail : "";
@@ -29,15 +30,15 @@ export function matchOperationError(error: unknown) {
     : undefined;
   // V5.6: an expired or missing session is said in plain words, never as the server's English status text.
   const sessionMessage = response?.status === 401 || response?.status === 403
-    ? "Sesja wygasła albo nie masz uprawnień do tej operacji. Zaloguj się ponownie — nic nie zostało zapisane."
+    ? t("matchOperationFeedback.sesja_wygasla_albo_nie_masz")
     : undefined;
   const message = knownMessage || sessionMessage || (serverError && detail.trim() && !/^[A-Z_\d]+$/.test(detail) ? detail
-    : conflict ? "Stan meczu nie pozwala na tę operację. Sprawdź aktualne dane przed ponowieniem."
-    : "Nie udało się potwierdzić zapisu. Sprawdź połączenie i aktualny stan przed ponowieniem. Wpisany wynik pozostaje w formularzu.");
+    : conflict ? t("matchOperationFeedback.stan_meczu_nie_pozwala_na")
+    : t("matchOperationFeedback.nie_udalo_sie_potwierdzic_zapisu"));
   return { message, code, conflict };
 }
 
 export const MATCH_STATUS_LABELS: Record<string, string> = {
-  pending: "Oczekuje", in_progress: "LIVE", completed: "Zakończony",
-  postponed: "Przełożony", cancelled: "Anulowany",
+  get pending() { return t("matchOperationFeedback.oczekuje"); }, in_progress: "LIVE", get completed() { return t("matchOperationFeedback.zakonczony"); },
+  get postponed() { return t("matchOperationFeedback.przelozony"); }, get cancelled() { return t("matchOperationFeedback.anulowany"); },
 };

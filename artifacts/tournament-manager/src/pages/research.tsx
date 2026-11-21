@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { Database } from "lucide-react";
 import {
   EmptyProjectCard,
@@ -11,24 +12,24 @@ export default function ResearchPage() {
     <ModuleShell>
       <ModuleHeader
         code="RES"
-        title="Projekty badawcze"
-        description="Bazy źródłowe i narzędzia wspierające badania."
+        title={t("research.projekty_badawcze")}
+        description={t("research.bazy_zrodlowe_i_narzedzia_wspierajace")}
         accent="cyan"
       />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         <ProjectCard
           code="RES 01"
-          title="Wenedowie"
-          description="Projekt badawczy: baza danych i wizualizacje."
+          title={t("research.wenedowie")}
+          description={t("research.projekt_badawczy_baza_danych_i")}
           href="/research/venedi"
           icon={Database}
           accent="cyan"
-          status="aktywne"
-          actionLabel="Otwórz →"
+          status={t("research.aktywne")}
+          actionLabel={t("research.otworz")}
         />
         {[1, 2, 3, 4].map((slot) => (
-          <EmptyProjectCard key={slot} label="Kolejny projekt" />
+          <EmptyProjectCard key={slot} label={t("research.kolejny_projekt")} />
         ))}
       </div>
     </ModuleShell>

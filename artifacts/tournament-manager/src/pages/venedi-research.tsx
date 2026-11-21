@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { Database, Map } from "lucide-react";
 import { ModuleHeader, ModuleShell, ProjectCard } from "@/components/portfolio-ui";
 
@@ -6,33 +7,33 @@ export default function VenediResearchPage() {
     <ModuleShell>
       <ModuleHeader
         code="RES 01"
-        title="Wenedowie"
-        description="Materiały i narzędzia projektu badawczego."
+        title={t("venediResearch.wenedowie")}
+        description={t("venediResearch.materialy_i_narzedzia_projektu_badawczeg")}
         accent="cyan"
         backHref="/research"
-        backLabel="Projekty badawcze"
+        backLabel={t("venediResearch.projekty_badawcze")}
       />
 
       <div className="grid gap-4 md:grid-cols-2">
         <ProjectCard
           code="DATA"
-          title="Baza danych"
-          description="Istniejąca baza badawcza w Google Sheets — tylko do przeglądania."
+          title={t("venediResearch.baza_danych")}
+          description={t("venediResearch.istniejaca_baza_badawcza_w_google")}
           href="/research/venedi/database"
           icon={Database}
           accent="cyan"
-          status="tylko odczyt"
-          actionLabel="Przeglądaj →"
+          status={t("venediResearch.tylko_odczyt")}
+          actionLabel={t("venediResearch.przegladaj")}
         />
         <ProjectCard
           code="MAP"
-          title="Wizualizacja mapy"
-          description="Miejsce przygotowane pod późniejszą wizualizację danych geograficznych."
+          title={t("venediResearch.wizualizacja_mapy")}
+          description={t("venediResearch.miejsce_przygotowane_pod_pozniejsza_wizu")}
           href="/research/venedi/map"
           icon={Map}
           accent="cyan"
-          status="puste"
-          actionLabel="Otwórz →"
+          status={t("venediResearch.puste")}
+          actionLabel={t("venediResearch.otworz")}
         />
       </div>
     </ModuleShell>

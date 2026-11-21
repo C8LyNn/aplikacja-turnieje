@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import {
   BookOpen,
   FileText,
@@ -34,43 +35,43 @@ function getSection(pathname: string): Section {
 const cards = [
   {
     code: "START",
-    title: "Założenia",
-    description: "Co projekt bada i jak zbudowany jest łańcuch dowodowy.",
+    get title() { return t("statementClassification.zalozenia"); },
+    get description() { return t("statementClassification.co_projekt_bada_i_jak"); },
     href: `${BASE}/overview`,
     icon: Network,
   },
   {
     code: "PEOPLE",
-    title: "Osoby",
-    description: "Profile publicznych twórców i influencerów objętych analizą.",
+    get title() { return t("statementClassification.osoby"); },
+    get description() { return t("statementClassification.profile_publicznych_tworcow_i_influencer"); },
     href: `${BASE}/people`,
     icon: Users,
   },
   {
     code: "SRC",
-    title: "Źródła",
-    description: "Materiały źródłowe, fragmenty i kontekst wypowiedzi.",
+    get title() { return t("statementClassification.zrodla"); },
+    get description() { return t("statementClassification.materialy_zrodlowe_fragmenty_i_kontekst"); },
     href: `${BASE}/sources`,
     icon: FileText,
   },
   {
     code: "CODE",
-    title: "Kodowanie",
-    description: "Przypisywanie fragmentów do tez, kodów i poziomu pewności.",
+    get title() { return t("statementClassification.kodowanie"); },
+    get description() { return t("statementClassification.przypisywanie_fragmentow_do_tez_kodow"); },
     href: `${BASE}/coding`,
     icon: FlaskConical,
   },
   {
     code: "MAP",
-    title: "Mapa stanowisk",
-    description: "Wizualizacja wyników powstająca dopiero na podstawie zakodowanych danych.",
+    get title() { return t("statementClassification.mapa_stanowisk"); },
+    get description() { return t("statementClassification.wizualizacja_wynikow_powstajaca_dopiero_"); },
     href: `${BASE}/map`,
     icon: Map,
   },
   {
     code: "METHOD",
-    title: "Metodologia",
-    description: "Codebook, reguły interpretacji, audytowalność i walidacja.",
+    get title() { return t("statementClassification.metodologia"); },
+    get description() { return t("statementClassification.codebook_reguly_interpretacji_audytowaln"); },
     href: `${BASE}/methodology`,
     icon: BookOpen,
   },
@@ -84,7 +85,7 @@ function PageHeader({ section, title, description }: { section: string; title: s
       description={description}
       accent="amber"
       backHref={BASE}
-      backLabel="Kategoryzacja wypowiedzi i poglądów"
+      backLabel={t("statementClassification.kategoryzacja_wypowiedzi_i_pogladow")}
     />
   );
 }
@@ -94,23 +95,23 @@ function Overview() {
     <>
       <PageHeader
         section="START"
-        title="Założenia projektu"
-        description="Analiza publicznych wypowiedzi ma prowadzić od źródła do sprawdzalnego kodowania, a nie od gotowej etykiety do szukania potwierdzeń."
+        title={t("statementClassification.zalozenia_projektu")}
+        description={t("statementClassification.analiza_publicznych_wypowiedzi_ma_prowad")}
       />
       <div className="grid gap-4 lg:grid-cols-2">
-        <ToolPanel title="Łańcuch badawczy">
+        <ToolPanel title={t("statementClassification.lancuch_badawczy")}>
           <div className="flex flex-wrap items-center gap-2 text-sm font-semibold">
-            {['Osoba', 'Źródło', 'Fragment', 'Kodowanie'].map((item, index) => (
+            {[t("statementClassification.osoba"), t("statementClassification.zrodlo"), t("statementClassification.fragment"), t("statementClassification.kodowanie")].map((item, index) => (
               <div key={item} className="flex items-center gap-2">
                 {index > 0 && <span className="text-muted-foreground">→</span>}
                 <span className="rounded-lg border border-border bg-background/60 px-3 py-2">{item}</span>
               </div>
             ))}
           </div>
-          <div className="mt-3 text-sm text-muted-foreground">Tezy/propozycje są osobnymi obiektami i mogą być łączone z wieloma fragmentami źródłowymi.</div>
+          <div className="mt-3 text-sm text-muted-foreground">{t("statementClassification.tezy_propozycje_sa_osobnymi_obiektami")}</div>
         </ToolPanel>
-        <ToolPanel title="Najważniejsza zasada">
-          <ToolNotice>Brak danych nie oznacza neutralnego stanowiska. System powinien umieć zapisać niepewność, sprzeczności i zmianę poglądu w czasie.</ToolNotice>
+        <ToolPanel title={t("statementClassification.najwazniejsza_zasada")}>
+          <ToolNotice>{t("statementClassification.brak_danych_nie_oznacza_neutralnego")}</ToolNotice>
         </ToolPanel>
       </div>
     </>
@@ -120,11 +121,11 @@ function Overview() {
 function People() {
   return (
     <>
-      <PageHeader section="PEOPLE" title="Osoby" description="Lista analizowanych osób będzie tylko indeksem prowadzącym do ich źródeł i zakodowanych fragmentów." />
+      <PageHeader section="PEOPLE" title={t("statementClassification.osoby")} description={t("statementClassification.lista_analizowanych_osob_bedzie_tylko")} />
       <ToolPanel>
         <ToolEmptyState
-          title="Brak osób w zbiorze"
-          description="Na tym etapie przygotowana jest struktura. Profile zostaną dodane dopiero razem ze źródłami."
+          title={t("statementClassification.brak_osob_w_zbiorze")}
+          description={t("statementClassification.na_tym_etapie_przygotowana_jest")}
         />
       </ToolPanel>
     </>
@@ -134,11 +135,11 @@ function People() {
 function Sources() {
   return (
     <>
-      <PageHeader section="SRC" title="Źródła" description="Każdy wniosek ma dać się prześledzić do konkretnego materiału i fragmentu wypowiedzi." />
+      <PageHeader section="SRC" title={t("statementClassification.zrodla")} description={t("statementClassification.kazdy_wniosek_ma_dac_sie")} />
       <ToolPanel>
         <ToolEmptyState
-          title="Brak źródeł"
-          description="Docelowo rekord źródła będzie przechowywał autora, adres, typ materiału, datę oraz fragmenty z kontekstem i timestampami."
+          title={t("statementClassification.brak_zrodel")}
+          description={t("statementClassification.docelowo_rekord_zrodla_bedzie_przechowyw")}
         />
       </ToolPanel>
     </>
@@ -148,16 +149,16 @@ function Sources() {
 function Coding() {
   return (
     <>
-      <PageHeader section="CODE" title="Kodowanie" description="Tutaj fragmenty źródłowe będą zamieniane na audytowalne mikrostanowiska i przypisywane do tez." />
-      <ToolPanel title="Minimalny rekord kodowania">
+      <PageHeader section="CODE" title={t("statementClassification.kodowanie")} description={t("statementClassification.tutaj_fragmenty_zrodlowe_beda_zamieniane")} />
+      <ToolPanel title={t("statementClassification.minimalny_rekord_kodowania")}>
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {[
-            ["Fragment", "Dokładny materiał dowodowy"],
-            ["Teza", "Do czego odnosi się wypowiedź"],
-            ["Kod", "Znormalizowane znaczenie fragmentu"],
-            ["Siła dowodu", "Bezpośrednie / pośrednie / wnioskowane"],
-            ["Pewność", "Jak pewna jest interpretacja"],
-            ["Notatka", "Kontekst, wyjątki i sprzeczności"],
+            [t("statementClassification.fragment"), t("statementClassification.dokladny_material_dowodowy")],
+            ["Teza", t("statementClassification.do_czego_odnosi_sie_wypowiedz")],
+            [t("statementClassification.kod"), t("statementClassification.znormalizowane_znaczenie_fragmentu")],
+            [t("statementClassification.sila_dowodu"), t("statementClassification.bezposrednie_posrednie_wnioskowane")],
+            [t("statementClassification.pewnosc"), t("statementClassification.jak_pewna_jest_interpretacja")],
+            ["Notatka", t("statementClassification.kontekst_wyjatki_i_sprzecznosci")],
           ].map(([title, text]) => (
             <div key={title} className="rounded-xl border border-border bg-background/40 p-4">
               <div className="text-sm font-bold">{title}</div>
@@ -173,11 +174,11 @@ function Coding() {
 function MapPage() {
   return (
     <>
-      <PageHeader section="MAP" title="Mapa stanowisk" description="Mapa będzie wizualizacją wyników kodowania, a nie założoną z góry podstawą systemu." />
+      <PageHeader section="MAP" title={t("statementClassification.mapa_stanowisk")} description={t("statementClassification.mapa_bedzie_wizualizacja_wynikow_kodowan")} />
       <ToolPanel>
         <ToolEmptyState
-          title="Mapa jest jeszcze pusta"
-          description="Nie ustalamy jeszcze osi X/Y ani algorytmu pozycjonowania. Najpierw potrzebne są dane i stabilny codebook."
+          title={t("statementClassification.mapa_jest_jeszcze_pusta")}
+          description={t("statementClassification.nie_ustalamy_jeszcze_osi_x")}
         />
       </ToolPanel>
     </>
@@ -187,17 +188,17 @@ function MapPage() {
 function Methodology() {
   return (
     <>
-      <PageHeader section="METHOD" title="Metodologia" description="Podstawą ma być analiza treści i jakościowe kodowanie z pełną możliwością audytu." />
+      <PageHeader section="METHOD" title={t("statementClassification.metodologia")} description={t("statementClassification.podstawa_ma_byc_analiza_tresci")} />
       <ToolPanel>
         <div className="space-y-5">
-          <ToolSection title="Codebook" description="Wersjonowane definicje kodów, reguły przypisywania i przykłady graniczne." >
-            <ToolNotice>Zmiana definicji kodu powinna być widoczna jako nowa wersja metodologii, a nie cicha zmiana znaczenia wcześniejszych danych.</ToolNotice>
+          <ToolSection title={t("statementClassification.codebook")} description={t("statementClassification.wersjonowane_definicje_kodow_reguly_przy")} >
+            <ToolNotice>{t("statementClassification.zmiana_definicji_kodu_powinna_byc")}</ToolNotice>
           </ToolSection>
-          <ToolSection title="Niezależne kodowanie" description="Docelowo ten sam materiał może być oceniany przez więcej niż jednego kodera.">
-            <div className="text-sm text-muted-foreground">Pozwoli to mierzyć zgodność między koderami, np. współczynnikiem α Krippendorffa.</div>
+          <ToolSection title={t("statementClassification.niezalezne_kodowanie")} description={t("statementClassification.docelowo_ten_sam_material_moze")}>
+            <div className="text-sm text-muted-foreground">{t("statementClassification.pozwoli_to_mierzyc_zgodnosc_miedzy")}</div>
           </ToolSection>
-          <ToolSection title="AI" description="Automatyzacja może pomagać w wyszukiwaniu i proponowaniu kodów.">
-            <ToolNotice>AI pozostaje narzędziem pomocniczym. Nie jest arbitrem ostatecznej interpretacji.</ToolNotice>
+          <ToolSection title={t("statementClassification.ai")} description={t("statementClassification.automatyzacja_moze_pomagac_w_wyszukiwani")}>
+            <ToolNotice>{t("statementClassification.ai_pozostaje_narzedziem_pomocniczym_nie")}</ToolNotice>
           </ToolSection>
         </div>
       </ToolPanel>
@@ -226,17 +227,17 @@ export default function StatementClassificationPage() {
     <ModuleShell>
       <ModuleHeader
         code="LUDO 02"
-        title="Kategoryzacja wypowiedzi i poglądów"
-        description="Źródłowa analiza publicznych stanowisk twórców i influencerów."
+        title={t("statementClassification.kategoryzacja_wypowiedzi_i_pogladow")}
+        description={t("statementClassification.zrodlowa_analiza_publicznych_stanowisk_t")}
         accent="amber"
         backHref="/ludology"
-        backLabel="Ludologia"
+        backLabel={t("statementClassification.ludologia")}
         status="fundament"
       />
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {cards.map((card) => (
-          <ProjectCard key={card.href} {...card} accent="amber" actionLabel="Otwórz →" />
+          <ProjectCard key={card.href} {...card} accent="amber" actionLabel={t("statementClassification.otworz")} />
         ))}
       </div>
     </ModuleShell>

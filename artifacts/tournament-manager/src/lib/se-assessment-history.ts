@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 /** Pack 23: bounded, volatile diagnostic history. NEVER grants SE correction permission. */
 import {
   captureSeAssessment,
@@ -136,8 +137,8 @@ export function summarizeSeAssessmentHistory(history: SeAssessmentHistory): SeAs
     currentStatus: current?.diagnostic.status ?? null,
     events, reappeared: events.filter((e) => e.type === "reappeared"),
     persistentCodes, revisionChanges, stageVectorChanges, completionActionChanges,
-    advisoryNote: "Historia dotyczy tylko tej sesji widoku i ostatnich 12 unikalnych analiz. " +
-      "Wykryta ponownie blokada oznacza różnicę między odczytami, nie potwierdzoną regresję backendu. " +
-      "Żaden wpis historii nie uprawnia do wykonania korekty.",
+    advisoryNote: t("seAssessmentHistory.historia_dotyczy_tylko_tej_sesji") +
+      t("seAssessmentHistory.wykryta_ponownie_blokada_oznacza_roznice") +
+      t("seAssessmentHistory.zaden_wpis_historii_nie_uprawnia"),
   };
 }

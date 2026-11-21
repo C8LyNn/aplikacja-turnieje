@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 /**
  * V5.4-005 · participant fields on the client: types mirrored from the API, key generation,
  * value formatting and locally saved field sets. The server validates everything again.
@@ -10,20 +11,20 @@ export type FieldValue = string | number | boolean | string[];
 export type FieldValues = Record<string, FieldValue>;
 
 export const VISIBILITY_LABELS: Record<FieldDef["visibility"], string> = {
-  organizer: "Tylko organizator",
-  staff: "Organizator i pomocnicy",
-  public: "Wszyscy (także widzowie)",
+  get organizer() { return t("participantFieldsModel.tylko_organizator"); },
+  get staff() { return t("participantFieldsModel.organizator_i_pomocnicy"); },
+  get public() { return t("participantFieldsModel.wszyscy_takze_widzowie"); },
 };
 
 export const VISIBILITY_SHORT: Record<FieldDef["visibility"], string> = {
-  organizer: "prywatne",
-  staff: "obsługa",
-  public: "publiczne",
+  get organizer() { return t("participantFieldsModel.prywatne"); },
+  get staff() { return t("participantFieldsModel.obsluga"); },
+  get public() { return t("participantFieldsModel.publiczne"); },
 };
 
 export const KIND_LABELS: Record<FieldDef["kind"], string> = {
   profile: "o uczestniku",
-  entry: "o zgłoszeniu",
+  get entry() { return t("participantFieldsModel.o_zgloszeniu"); },
 };
 
 const RESERVED = new Set([
@@ -38,8 +39,8 @@ export function keyForLabel(label: string, taken: Iterable<string>): string {
   let base = label
     .normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/ł/g, "l").replace(/Ł/g, "L")
     .toLowerCase().replace(/[^a-z0-9]+/g, "_").replace(/^_+|_+$/g, "").slice(0, 32);
-  if (!/^[a-z]/.test(base)) base = `pole_${base}`.replace(/_+$/, "");
-  if (base === "pole" || !base) base = "pole";
+  if (!/^[a-z]/.test(base)) base = `pole_${base}` /* i18n-ignore */.replace(/_+$/, "");
+  if (base === "pole" || !base) base = "pole"; // i18n-ignore: a field key, not text
   let key = base;
   let index = 2;
   while (used.has(key) || RESERVED.has(key)) key = `${base}_${index++}`.slice(0, 40);
@@ -48,7 +49,7 @@ export function keyForLabel(label: string, taken: Iterable<string>): string {
 
 export function formatFieldValue(field: FieldDef, value: FieldValue | null | undefined): string {
   if (value === null || value === undefined || value === "") return "—";
-  if (field.type === "boolean") return value === true ? "Tak" : "Nie";
+  if (field.type === "boolean") return value === true ? t("participantFieldsModel.tak") : t("participantFieldsModel.nie");
   if (Array.isArray(value)) return value.join(", ");
   if (field.type === "date" && typeof value === "string") {
     const [y, m, d] = value.split("-").map(Number);

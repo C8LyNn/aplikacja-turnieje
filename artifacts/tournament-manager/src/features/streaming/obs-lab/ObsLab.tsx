@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { useMemo, useRef, useState } from "react";
 import { ArrowLeft, Copy, ExternalLink, MonitorPlay, RefreshCw, Sparkles } from "lucide-react";
 import {
@@ -30,8 +31,8 @@ import {
 
 const LAYOUT_OPTIONS = [
   { value: "right", label: "Prawo" },
-  { value: "below", label: "Dół" },
-  { value: "overlay", label: "Na kamerce" },
+  { value: "below", get label() { return t("obsLab.dol"); } },
+  { value: "overlay", get label() { return t("obsLab.na_kamerce"); } },
 ] as const;
 
 export function ObsLab() {
@@ -72,8 +73,8 @@ export function ObsLab() {
     const incoming = Array.from({ length: count }, (_, index) => {
       const id = ++previewMessageId.current;
       return {
-        name: "Widz testowy " + (index + 1),
-        text: "Nowa wiadomość — podgląd animacji " + id + "!",
+        name: t("obsLab.widz_testowy") + (index + 1),
+        text: t("obsLab.nowa_wiadomosc_podglad_animacji") + id + "!",
         msgId: `chat-animation-preview-${id}`,
       };
     });
@@ -131,12 +132,12 @@ export function ObsLab() {
               <div className="grid h-11 w-11 place-items-center rounded-xl border border-border bg-background/65 text-fuchsia-400">
                 <MonitorPlay className="h-5 w-5" />
               </div>
-              <span className="rounded-full border border-border bg-background/55 px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">aktywne</span>
+              <span className="rounded-full border border-border bg-background/55 px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">{t("obsLab.aktywne")}</span>
             </div>
-            <div className="text-[11px] font-black uppercase tracking-[0.16em] text-fuchsia-400">OBS 01</div>
-            <h2 className="mt-1 text-lg font-bold">Camera + Chat Overlay</h2>
-            <p className="mt-2 text-sm leading-5 text-muted-foreground">Konfigurator kamerki i czatu z gotowym URL dla OBS.</p>
-            <div className="mt-auto pt-5 text-xs font-bold text-fuchsia-400">Otwórz konfigurator →</div>
+            <div className="text-[11px] font-black uppercase tracking-[0.16em] text-fuchsia-400">{t("obsLab.obs_01")}</div>
+            <h2 className="mt-1 text-lg font-bold">{t("obsLab.camera_chat_overlay")}</h2>
+            <p className="mt-2 text-sm leading-5 text-muted-foreground">{t("obsLab.konfigurator_kamerki_i_czatu_z")}</p>
+            <div className="mt-auto pt-5 text-xs font-bold text-fuchsia-400">{t("obsLab.otworz_konfigurator")}</div>
           </div>
         </button>
 
@@ -151,20 +152,20 @@ export function ObsLab() {
               <div className="grid h-11 w-11 place-items-center rounded-xl border border-border bg-background/65 text-fuchsia-400">
                 <Sparkles className="h-5 w-5" />
               </div>
-              <span className="rounded-full border border-border bg-background/55 px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">aktywne</span>
+              <span className="rounded-full border border-border bg-background/55 px-2.5 py-1 text-[11px] font-semibold text-muted-foreground">{t("obsLab.aktywne")}</span>
             </div>
-            <div className="text-[11px] font-black uppercase tracking-[0.16em] text-fuchsia-400">OBS 02</div>
-            <h2 className="mt-1 text-lg font-bold">Animated Effects</h2>
-            <p className="mt-2 text-sm leading-5 text-muted-foreground">Edytor animowanych efektów i eksportu do StreamElements.</p>
-            <div className="mt-auto pt-5 text-xs font-bold text-fuchsia-400">Otwórz edytor →</div>
+            <div className="text-[11px] font-black uppercase tracking-[0.16em] text-fuchsia-400">{t("obsLab.obs_02")}</div>
+            <h2 className="mt-1 text-lg font-bold">{t("obsLab.animated_effects")}</h2>
+            <p className="mt-2 text-sm leading-5 text-muted-foreground">{t("obsLab.edytor_animowanych_efektow_i_eksportu")}</p>
+            <div className="mt-auto pt-5 text-xs font-bold text-fuchsia-400">{t("obsLab.otworz_edytor")}</div>
           </div>
         </a>
 
         <div className="flex min-h-[205px] flex-col rounded-2xl border border-dashed border-border bg-card/20 p-5 text-muted-foreground">
-          <div className="grid h-11 w-11 place-items-center rounded-xl border border-dashed border-border bg-background/30 text-xs font-black">OBS</div>
+          <div className="grid h-11 w-11 place-items-center rounded-xl border border-dashed border-border bg-background/30 text-xs font-black">{t("obsLab.obs")}</div>
           <div className="mt-auto">
-            <div className="text-sm font-semibold text-foreground">Kolejne narzędzie</div>
-            <div className="mt-1 text-xs">Miejsce na następny moduł streamowy.</div>
+            <div className="text-sm font-semibold text-foreground">{t("obsLab.kolejne_narzedzie")}</div>
+            <div className="mt-1 text-xs">{t("obsLab.miejsce_na_nastepny_modul_streamowy")}</div>
           </div>
         </div>
       </div>
@@ -174,27 +175,24 @@ export function ObsLab() {
   const controls = (
     <div className="space-y-3">
       <ToolPanel
-        title="Presety"
+        title={t("obsLab.presety")}
         actions={
           <ToolButton type="button" variant="ghost" onClick={() => setConfig({ ...DEFAULT_CAMERA_CHAT_CONFIG })}>
-            <RefreshCw className="h-4 w-4" /> Reset
-          </ToolButton>
+            <RefreshCw className="h-4 w-4" />{" "}{t("obsLab.reset")}</ToolButton>
         }
       >
         <div className="grid grid-cols-3 gap-2">
           {(["glass", "minimal", "compact"] as const).map((preset) => (
             <ToolButton key={preset} type="button" onClick={() => applyPreset(preset)} className="px-2 text-xs">
-              {preset === "glass" ? "Glass" : preset === "minimal" ? "Minimal" : "Compact"}
+              {preset === "glass" ? t("obsLab.glass") : preset === "minimal" ? t("obsLab.minimal") : t("obsLab.compact")}
             </ToolButton>
           ))}
         </div>
       </ToolPanel>
 
-      <ToolDisclosure title="Kamerka" open>
+      <ToolDisclosure title={t("obsLab.kamerka")} open>
         <div className="space-y-4 text-fuchsia-300">
-          <label className="block text-xs text-muted-foreground">
-            Proporcje
-            <ToolSelect
+          <label className="block text-xs text-muted-foreground">{t("obsLab.proporcje")}<ToolSelect
               value={config.aspectRatio}
               onChange={(event) => patchConfig({ aspectRatio: event.target.value as CameraChatAspectRatio })}
               className="mt-1.5"
@@ -204,113 +202,103 @@ export function ObsLab() {
               <option value="1:1">1:1</option>
             </ToolSelect>
           </label>
-          <ToolRange label="Szerokość" value={config.cameraWidth} suffix="px" min={320} max={960} step={20} onChange={(cameraWidth) => patchConfig({ cameraWidth })} />
+          <ToolRange label={t("obsLab.szerokosc")} value={config.cameraWidth} suffix="px" min={320} max={960} step={20} onChange={(cameraWidth) => patchConfig({ cameraWidth })} />
         </div>
       </ToolDisclosure>
 
-      <ToolDisclosure title="Układ" open>
+      <ToolDisclosure title={t("obsLab.uklad")} open>
         <div className="space-y-4 text-fuchsia-300">
           <ToolSelect value={config.layout} onChange={(event) => patchConfig({ layout: event.target.value as CameraChatLayout })}>
-            <option value="right">Czat po prawej</option>
-            <option value="below">Czat pod kamerką</option>
-            <option value="overlay">Czat na kamerce</option>
+            <option value="right">{t("obsLab.czat_po_prawej")}</option>
+            <option value="below">{t("obsLab.czat_pod_kamerka")}</option>
+            <option value="overlay">{t("obsLab.czat_na_kamerce")}</option>
           </ToolSelect>
 
           {(config.layout === "right" || config.layout === "overlay") && (
-            <ToolRange label="Szerokość czatu" value={config.chatWidth} suffix="%" min={20} max={55} onChange={(chatWidth) => patchConfig({ chatWidth })} />
+            <ToolRange label={t("obsLab.szerokosc_czatu")} value={config.chatWidth} suffix="%" min={20} max={55} onChange={(chatWidth) => patchConfig({ chatWidth })} />
           )}
           {config.layout === "below" && (
-            <ToolRange label="Wysokość czatu" value={config.belowHeight} suffix="px" min={80} max={300} onChange={(belowHeight) => patchConfig({ belowHeight })} />
+            <ToolRange label={t("obsLab.wysokosc_czatu")} value={config.belowHeight} suffix="px" min={80} max={300} onChange={(belowHeight) => patchConfig({ belowHeight })} />
           )}
           {config.layout !== "overlay" && (
-            <ToolRange label="Odstęp" value={config.gap} suffix="px" min={0} max={40} onChange={(gap) => patchConfig({ gap })} />
+            <ToolRange label={t("obsLab.odstep")} value={config.gap} suffix="px" min={0} max={40} onChange={(gap) => patchConfig({ gap })} />
           )}
           {config.layout === "right" && (
-            <ToolToggle label="Pełna wysokość czatu" checked={config.fitChatHeight} onChange={(fitChatHeight) => patchConfig({ fitChatHeight })} />
+            <ToolToggle label={t("obsLab.pelna_wysokosc_czatu")} checked={config.fitChatHeight} onChange={(fitChatHeight) => patchConfig({ fitChatHeight })} />
           )}
           {config.layout === "overlay" && (
             <>
               <ToolSelect value={config.overlayPosition} onChange={(event) => patchConfig({ overlayPosition: event.target.value as CameraChatOverlayPosition })}>
-                <option value="top-left">Lewy górny</option>
-                <option value="top-right">Prawy górny</option>
-                <option value="bottom-left">Lewy dolny</option>
-                <option value="bottom-right">Prawy dolny</option>
+                <option value="top-left">{t("obsLab.lewy_gorny")}</option>
+                <option value="top-right">{t("obsLab.prawy_gorny")}</option>
+                <option value="bottom-left">{t("obsLab.lewy_dolny")}</option>
+                <option value="bottom-right">{t("obsLab.prawy_dolny")}</option>
               </ToolSelect>
-              <ToolRange label="Odsunięcie" value={config.overlayInset} suffix="px" min={0} max={50} onChange={(overlayInset) => patchConfig({ overlayInset })} />
+              <ToolRange label={t("obsLab.odsuniecie")} value={config.overlayInset} suffix="px" min={0} max={50} onChange={(overlayInset) => patchConfig({ overlayInset })} />
             </>
           )}
         </div>
       </ToolDisclosure>
 
-      <ToolDisclosure title="Wiadomości">
+      <ToolDisclosure title={t("obsLab.wiadomosci")}>
         <div className="space-y-4 text-fuchsia-300">
           <ToolSection
-            title="Przykład"
+            title={t("obsLab.przyklad")}
             action={
-              <ToolButton type="button" variant="ghost" onClick={() => setMockMessages(generateMockMessages())}>
-                Losuj
-              </ToolButton>
+              <ToolButton type="button" variant="ghost" onClick={() => setMockMessages(generateMockMessages())}>{t("obsLab.losuj")}</ToolButton>
             }
           >
-            <ToolRange label="Liczba wiadomości" value={config.maxMessages} min={1} max={12} onChange={(maxMessages) => patchConfig({ maxMessages })} />
+            <ToolRange label={t("obsLab.liczba_wiadomosci")} value={config.maxMessages} min={1} max={12} onChange={(maxMessages) => patchConfig({ maxMessages })} />
           </ToolSection>
-          <label className="block text-xs text-muted-foreground">
-            Rozmiar tekstu
-            <ToolSelect value={config.fontSize} onChange={(event) => patchConfig({ fontSize: event.target.value as CameraChatFontSize })} className="mt-1.5">
-              <option value="small">Mały</option>
-              <option value="medium">Średni</option>
-              <option value="large">Duży</option>
+          <label className="block text-xs text-muted-foreground">{t("obsLab.rozmiar_tekstu")}<ToolSelect value={config.fontSize} onChange={(event) => patchConfig({ fontSize: event.target.value as CameraChatFontSize })} className="mt-1.5">
+              <option value="small">{t("obsLab.maly")}</option>
+              <option value="medium">{t("obsLab.sredni")}</option>
+              <option value="large">{t("obsLab.duzy")}</option>
             </ToolSelect>
           </label>
-          <label className="block text-xs text-muted-foreground">
-            Gęstość
-            <ToolSelect value={config.density} onChange={(event) => patchConfig({ density: event.target.value as CameraChatDensity })} className="mt-1.5">
-              <option value="compact">Kompaktowa</option>
-              <option value="normal">Normalna</option>
-              <option value="relaxed">Luźna</option>
+          <label className="block text-xs text-muted-foreground">{t("obsLab.gestosc")}<ToolSelect value={config.density} onChange={(event) => patchConfig({ density: event.target.value as CameraChatDensity })} className="mt-1.5">
+              <option value="compact">{t("obsLab.kompaktowa")}</option>
+              <option value="normal">{t("obsLab.normalna")}</option>
+              <option value="relaxed">{t("obsLab.luzna")}</option>
             </ToolSelect>
           </label>
-          <label className="block text-xs text-muted-foreground">
-            Kotwiczenie
-            <ToolSelect value={config.chatAnchor} onChange={(event) => patchConfig({ chatAnchor: event.target.value as CameraChatAnchor })} className="mt-1.5">
-              <option value="top">Od góry</option>
-              <option value="bottom">Od dołu</option>
+          <label className="block text-xs text-muted-foreground">{t("obsLab.kotwiczenie")}<ToolSelect value={config.chatAnchor} onChange={(event) => patchConfig({ chatAnchor: event.target.value as CameraChatAnchor })} className="mt-1.5">
+              <option value="top">{t("obsLab.od_gory")}</option>
+              <option value="bottom">{t("obsLab.od_dolu")}</option>
             </ToolSelect>
           </label>
         </div>
       </ToolDisclosure>
 
-      <ToolDisclosure title="Wygląd">
+      <ToolDisclosure title={t("obsLab.wyglad")}>
         <div className="space-y-4 text-fuchsia-300">
-          <ToolRange label="Krycie panelu" value={config.panelOpacity} suffix="%" min={0} max={100} onChange={(panelOpacity) => patchConfig({ panelOpacity })} />
-          <ToolRange label="Zaokrąglenie" value={config.radius} suffix="px" min={0} max={48} onChange={(radius) => patchConfig({ radius })} />
-          <ToolRange label="Padding" value={config.innerPadding} suffix="px" min={0} max={30} onChange={(innerPadding) => patchConfig({ innerPadding })} />
-          <ToolToggle label="Avatary" checked={config.showAvatars} onChange={(showAvatars) => patchConfig({ showAvatars })} />
-          <ToolToggle label="Obramowania" checked={config.showBorders} onChange={(showBorders) => patchConfig({ showBorders })} />
-          <ToolToggle label="Tła wiadomości" checked={config.messageBackground} onChange={(messageBackground) => patchConfig({ messageBackground })} />
-          <ToolToggle label="Wygaszanie starszych" checked={config.fadeOldMessages} onChange={(fadeOldMessages) => patchConfig({ fadeOldMessages })} />
-          <ToolToggle label="Animacja wejścia" checked={config.animateMessages} onChange={(animateMessages) => patchConfig({ animateMessages })} />
+          <ToolRange label={t("obsLab.krycie_panelu")} value={config.panelOpacity} suffix="%" min={0} max={100} onChange={(panelOpacity) => patchConfig({ panelOpacity })} />
+          <ToolRange label={t("obsLab.zaokraglenie")} value={config.radius} suffix="px" min={0} max={48} onChange={(radius) => patchConfig({ radius })} />
+          <ToolRange label={t("obsLab.padding")} value={config.innerPadding} suffix="px" min={0} max={30} onChange={(innerPadding) => patchConfig({ innerPadding })} />
+          <ToolToggle label={t("obsLab.avatary")} checked={config.showAvatars} onChange={(showAvatars) => patchConfig({ showAvatars })} />
+          <ToolToggle label={t("obsLab.obramowania")} checked={config.showBorders} onChange={(showBorders) => patchConfig({ showBorders })} />
+          <ToolToggle label={t("obsLab.tla_wiadomosci")} checked={config.messageBackground} onChange={(messageBackground) => patchConfig({ messageBackground })} />
+          <ToolToggle label={t("obsLab.wygaszanie_starszych")} checked={config.fadeOldMessages} onChange={(fadeOldMessages) => patchConfig({ fadeOldMessages })} />
+          <ToolToggle label={t("obsLab.animacja_wejscia")} checked={config.animateMessages} onChange={(animateMessages) => patchConfig({ animateMessages })} />
           {config.animateMessages && (
             <div className="space-y-3 rounded-xl border border-border bg-background/35 p-3">
-              <label className="block text-xs text-muted-foreground">
-                Styl animacji
-                <ToolSelect value={config.animationStyle} onChange={(event) => patchConfig({ animationStyle: event.target.value as CameraChatAnimationStyle })} className="mt-1.5">
-                  <option value="rise">Pojawienie od dołu</option>
-                  <option value="slide">Wjazd z lewej</option>
-                  <option value="pop">Powiększenie</option>
-                  <option value="fade">Przenikanie</option>
-                  <option value="bounce">Odbicie</option>
-                  <option value="flip">Obrót 3D</option>
-                  <option value="wipe">Odsłonięcie</option>
-                  <option value="random">Losowo dla każdej wiadomości</option>
+              <label className="block text-xs text-muted-foreground">{t("obsLab.styl_animacji")}<ToolSelect value={config.animationStyle} onChange={(event) => patchConfig({ animationStyle: event.target.value as CameraChatAnimationStyle })} className="mt-1.5">
+                  <option value="rise">{t("obsLab.pojawienie_od_dolu")}</option>
+                  <option value="slide">{t("obsLab.wjazd_z_lewej")}</option>
+                  <option value="pop">{t("obsLab.powiekszenie")}</option>
+                  <option value="fade">{t("obsLab.przenikanie")}</option>
+                  <option value="bounce">{t("obsLab.odbicie")}</option>
+                  <option value="flip">{t("obsLab.obrot_3d")}</option>
+                  <option value="wipe">{t("obsLab.odsloniecie")}</option>
+                  <option value="random">{t("obsLab.losowo_dla_kazdej_wiadomosci")}</option>
                 </ToolSelect>
               </label>
-              <ToolRange label="Czas animacji" value={config.animationDurationMs} suffix="ms" min={100} max={1200} step={20} onChange={(animationDurationMs) => patchConfig({ animationDurationMs })} />
+              <ToolRange label={t("obsLab.czas_animacji")} value={config.animationDurationMs} suffix="ms" min={100} max={1200} step={20} onChange={(animationDurationMs) => patchConfig({ animationDurationMs })} />
               <div className="flex flex-wrap gap-2">
-                <ToolButton type="button" onClick={() => testChatAnimation()}>Testuj nową wiadomość</ToolButton>
-                <ToolButton type="button" onClick={() => testChatAnimation(4)}>Testuj serię 4 wiadomości</ToolButton>
+                <ToolButton type="button" onClick={() => testChatAnimation()}>{t("obsLab.testuj_nowa_wiadomosc")}</ToolButton>
+                <ToolButton type="button" onClick={() => testChatAnimation(4)}>{t("obsLab.testuj_serie_4_wiadomosci")}</ToolButton>
               </div>
-              <p className="text-xs leading-5 text-muted-foreground">Animujemy <strong>samą wiadomość czatu</strong>, a nie całe tło sceny. Tryb losowy wybiera stabilny efekt osobno dla każdej wiadomości. Te same style trafią do URL OBS i eksportu StreamElements; ograniczenie ruchu systemu wyłącza animacje.</p>
+              <p className="text-xs leading-5 text-muted-foreground">{t("obsLab.animujemy")}{" "}<strong>{t("obsLab.sama_wiadomosc_czatu")}</strong>{t("obsLab.a_nie_cale_tlo_sceny")}</p>
             </div>
           )}
         </div>
@@ -322,41 +310,39 @@ export function ObsLab() {
     <div className="space-y-4">
       <ToolToolbar>
         <ToolButton type="button" onClick={() => setOpenChatLab(false)}>
-          <ArrowLeft className="h-4 w-4" /> Narzędzia OBS
-        </ToolButton>
+          <ArrowLeft className="h-4 w-4" />{" "}{t("obsLab.narzedzia_obs")}</ToolButton>
         <ToolSegmented value={config.layout} options={LAYOUT_OPTIONS} onChange={(layout) => patchConfig({ layout })} />
       </ToolToolbar>
 
       <ToolWorkspace sidebar={controls} sidebarWidth="350px">
         <div className="space-y-4">
           <ToolPanel
-            title="Podgląd"
-            description="Zmiany są od razu widoczne w docelowym rozmiarze."
-            actions={<span className="text-xs font-semibold text-muted-foreground">{size.width} × {size.height}px</span>}
+            title={t("obsLab.podglad")}
+            description={t("obsLab.zmiany_sa_od_razu_widoczne")}
+            actions={<span className="text-xs font-semibold text-muted-foreground">{size.width} × {size.height}{t("obsLab.px")}</span>}
           >
             <div className="flex min-h-[560px] items-center justify-center overflow-auto rounded-xl border border-border bg-slate-950 p-6">
               <CameraChatWidget config={config} messages={mockMessages} previewCamera />
             </div>
           </ToolPanel>
 
-          <ToolPanel title="Browser Source" description="Gotowy adres zawierający aktualną konfigurację.">
+          <ToolPanel title={t("obsLab.browser_source")} description={t("obsLab.gotowy_adres_zawierajacy_aktualna_konfig")}>
             <div className="break-all rounded-xl border border-border bg-background/70 p-3 font-mono text-xs leading-5">{overlayUrl}</div>
             <div className="mt-3 flex flex-wrap gap-2">
               <ToolButton type="button" variant="primary" onClick={copyUrl}>
-                <Copy className="h-4 w-4" /> {copied ? "Skopiowano" : "Kopiuj URL"}
+                <Copy className="h-4 w-4" /> {copied ? t("obsLab.skopiowano") : t("obsLab.kopiuj_url")}
               </ToolButton>
               <ToolButton type="button" onClick={() => window.open(overlayUrl, "_blank", "noopener,noreferrer")}>
-                <ExternalLink className="h-4 w-4" /> Otwórz overlay
-              </ToolButton>
+                <ExternalLink className="h-4 w-4" />{" "}{t("obsLab.otworz_overlay")}</ToolButton>
             </div>
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
               <div className="rounded-xl border border-border bg-background/45 p-3">
-                <div className="text-xs text-muted-foreground">Szerokość w OBS</div>
-                <div className="mt-1 text-xl font-black">{size.width}px</div>
+                <div className="text-xs text-muted-foreground">{t("obsLab.szerokosc_w_obs")}</div>
+                <div className="mt-1 text-xl font-black">{size.width}{t("obsLab.px")}</div>
               </div>
               <div className="rounded-xl border border-border bg-background/45 p-3">
-                <div className="text-xs text-muted-foreground">Wysokość w OBS</div>
-                <div className="mt-1 text-xl font-black">{size.height}px</div>
+                <div className="text-xs text-muted-foreground">{t("obsLab.wysokosc_w_obs")}</div>
+                <div className="mt-1 text-xl font-black">{size.height}{t("obsLab.px")}</div>
               </div>
             </div>
           </ToolPanel>

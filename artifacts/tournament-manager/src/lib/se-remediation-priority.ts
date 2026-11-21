@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 /** Pack 24: advisory SE triage with explicit dependencies; never grants mutation rights. */
 import { captureSeAssessment, type SeAssessmentSnapshot } from "./se-diagnostic-comparison";
 import { summarizeSeAssessmentHistory, type SeAssessmentHistory } from "./se-assessment-history";
@@ -31,18 +32,18 @@ export interface SeRemediationPriorityPlan {
 }
 
 const ACTIONS: Record<SeResolution, { priority: SePriority; title: string; instruction: string }> = {
-  inspect_audit: { priority: "critical", title: "Sprawdź historię i integralność",
-    instruction: "Porównaj historię wyników, aktywne wpisy audytu i uczestników; nie omijaj błędów integralności." },
-  refresh_snapshot: { priority: "high", title: "Odśwież dane turnieju",
-    instruction: "Pobierz nowy snapshot i ponów ocenę po zmianie rewizji meczu lub etapu." },
-  adjust_score: { priority: "medium", title: "Popraw proponowany wynik",
-    instruction: "Zweryfikuj rezultat BO i ponownie uruchom cały podgląd po zmianie wyniku." },
-  review_bracket: { priority: "high", title: "Zweryfikuj drabinkę i mecz zależny",
-    instruction: "Sprawdź obsadę właściwego slotu, numerację oraz stan meczu zależnego przed oceną awansów." },
-  review_progression: { priority: "high", title: "Sprawdź skutki awansów i następnych faz",
-    instruction: "Przejrzyj rozpoczęte mecze, zatwierdzone kwalifikacje i routing przed jakąkolwiek korektą." },
-  manual_review: { priority: "review", title: "Przekaż przypadek do decyzji organizatora",
-    instruction: "Ręczna ocena jest wymagana; wykonanie korekty SE pozostaje wyłączone." },
+  inspect_audit: { priority: "critical", get title() { return t("seRemediationPriority.sprawdz_historie_i_integralnosc"); },
+    get instruction() { return t("seRemediationPriority.porownaj_historie_wynikow_aktywne_wpisy"); } },
+  refresh_snapshot: { priority: "high", get title() { return t("seRemediationPriority.odswiez_dane_turnieju"); },
+    get instruction() { return t("seRemediationPriority.pobierz_nowy_snapshot_i_ponow"); } },
+  adjust_score: { priority: "medium", get title() { return t("seRemediationPriority.popraw_proponowany_wynik"); },
+    get instruction() { return t("seRemediationPriority.zweryfikuj_rezultat_bo_i_ponownie"); } },
+  review_bracket: { priority: "high", get title() { return t("seRemediationPriority.zweryfikuj_drabinke_i_mecz_zalezny"); },
+    get instruction() { return t("seRemediationPriority.sprawdz_obsade_wlasciwego_slotu_numeracj"); } },
+  review_progression: { priority: "high", get title() { return t("seRemediationPriority.sprawdz_skutki_awansow_i_nastepnych"); },
+    get instruction() { return t("seRemediationPriority.przejrzyj_rozpoczete_mecze_zatwierdzone_"); } },
+  manual_review: { priority: "review", get title() { return t("seRemediationPriority.przekaz_przypadek_do_decyzji_organizator"); },
+    get instruction() { return t("seRemediationPriority.reczna_ocena_jest_wymagana_wykonanie"); } },
 };
 const PRIORITY_RANK: Record<SePriority, number> = { critical: 0, high: 1, medium: 2, review: 3 };
 const ORDER: readonly SeResolution[] = [
@@ -56,11 +57,10 @@ const PREREQUISITES: Record<SeResolution, readonly SeResolution[]> = {
 };
 const FLAGS = { version: 1, kind: "se_remediation_priority", advisoryOnly: true,
   executionEnabled: false, writePerformed: false } as const;
-const NOTE = "Kolejność ma charakter doradczy; nie dowodzi usunięcia blokad ani nie uprawnia do korekty SE. " +
-  "Powracająca blokada oznacza zmianę pomiędzy odczytami, nie potwierdzoną regresję backendu.";
+const note = () => t("seRemediationPriority.kolejnosc_ma_charakter_doradczy");
 const inconsistent = (): SeRemediationPriorityPlan => ({ ...FLAGS, status: "inconsistent",
   assessmentId: null, primaryStep: null, steps: [], problemCount: 0, recurringCodes: [],
-  note: "Historia lub podgląd są niespójne. Wyczyść historię i wykonaj nową analizę. " + NOTE });
+  note: t("seRemediationPriority.historia_lub_podglad_sa_niespojne") + note() });
 
 /** Only triage the most recent validated snapshot of the same intent; history never authorizes a mutation. */
 export function deriveSeRemediationPriorityPlan(
@@ -114,5 +114,5 @@ export function deriveSeRemediationPriorityPlan(
   }
   return { ...FLAGS, status: sorted.length ? "triage" : "no_blockers",
     assessmentId: valid.diagnostic.assessmentId, primaryStep: sorted[0]?.id ?? null,
-    steps: sorted, problemCount: activeCodes.size, recurringCodes, note: NOTE };
+    steps: sorted, problemCount: activeCodes.size, recurringCodes, note: note() };
 }

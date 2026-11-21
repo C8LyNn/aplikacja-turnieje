@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { ExternalLink } from "lucide-react";
 import { ModuleHeader, ModuleShell } from "@/components/portfolio-ui";
 
@@ -26,10 +27,10 @@ export function PrototypeHtml({
       <ModuleHeader
         code="HTML PROTOTYPE"
         title={title}
-        description={description ?? "Samodzielny prototyp HTML."}
+        description={description ?? t("prototypeHtml.samodzielny_prototyp_html")}
         accent="blue"
         backHref={backHref}
-        backLabel="Wróć"
+        backLabel={t("prototypeHtml.wroc")}
         status="HTML"
       />
 
@@ -39,8 +40,7 @@ export function PrototypeHtml({
           target="_blank"
           rel="noreferrer"
           className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-border bg-card px-3 py-2 text-sm font-semibold text-muted-foreground transition hover:border-blue-500/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/70 focus-visible:ring-offset-2"
-        >
-          Otwórz sam HTML <ExternalLink className="h-4 w-4" />
+        >{t("prototypeHtml.otworz_sam_html")}{" "}<ExternalLink className="h-4 w-4" />
         </a>
       </div>
 

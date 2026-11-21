@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import type { LucideIcon } from "lucide-react";
 import { LanguageSwitcher } from "@/i18n/react";
 import { Plus } from "lucide-react";
@@ -96,7 +97,7 @@ export function ModuleHeader({
   description,
   accent,
   backHref = "/",
-  backLabel = "Wszystkie projekty",
+  backLabel = t("portfolioUi.wszystkie_projekty"),
   status,
 }: {
   code: string;
@@ -147,7 +148,7 @@ export function ProjectCard({
   icon: Icon,
   accent,
   status,
-  actionLabel = "Otwórz →",
+  actionLabel = t("portfolioUi.otworz"),
 }: {
   code: string;
   title: string;
@@ -204,7 +205,7 @@ export function CollectionCard({
   accent,
   status,
   onClick,
-  actionLabel = "Otwórz →",
+  actionLabel = t("portfolioUi.otworz"),
 }: {
   code: string;
   title: string;
@@ -258,7 +259,7 @@ export function CollectionCard({
   );
 }
 
-export function EmptyProjectCard({ label = "Wolne miejsce" }: { label?: string }) {
+export function EmptyProjectCard({ label = t("portfolioUi.wolne_miejsce") }: { label?: string }) {
   return (
     <div className="flex min-h-[205px] flex-col justify-between rounded-2xl border border-dashed border-border bg-card/20 p-5 text-muted-foreground">
       <div className="grid h-11 w-11 place-items-center rounded-xl border border-dashed border-border bg-background/30">
@@ -266,7 +267,7 @@ export function EmptyProjectCard({ label = "Wolne miejsce" }: { label?: string }
       </div>
       <div>
         <div className="text-sm font-semibold">{label}</div>
-        <div className="mt-1 text-xs opacity-60">Do wykorzystania później</div>
+        <div className="mt-1 text-xs opacity-60">{t("portfolioUi.do_wykorzystania_pozniej")}</div>
       </div>
     </div>
   );
