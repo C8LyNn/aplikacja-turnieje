@@ -65,10 +65,15 @@ namespace CoreClash.Presentation
 
             // Clip gameplay glows and effects to the actual field, as in the V148 canvas.
             Rect field = Box(board, Left, Top, Right - Left, Bottom - Top);
-            GUI.BeginGroup(field);
             var clippedBoard = new Rect(-field.x, -field.y, board.width, board.height);
-            var visible = BoardOverlayPlanner.Field(viewOwner, clippedBoard.x, clippedBoard.y, clippedBoard.width);
+            GUI.BeginGroup(field);
             RenderMarkings(clippedBoard);
+            GUI.EndGroup();
+            // W24: the base walls go down before anything that lies on the field: the launch dish is
+            // built into the base's plate and sits on top of it (see RenderBaseBar, RenderLauncher).
+            for (int owner = 0; owner < 2; owner++) RenderBaseBar(board, state, feedback, owner, board.width / 540);
+            GUI.BeginGroup(field);
+            var visible = BoardOverlayPlanner.Field(viewOwner, clippedBoard.x, clippedBoard.y, clippedBoard.width);
             for (int owner = 0; owner < 2; owner++) RenderLauncher(clippedBoard, state, owner, aim, selected);
             RenderZones(clippedBoard, state);
             RenderTurnSweep(clippedBoard, state, feedback, dragging);
@@ -104,7 +109,7 @@ namespace CoreClash.Presentation
             if (state.phase == MatchPhase.Aiming && dragging) RenderAim(clippedBoard, state, aim,selected,simulation.Catalog);
             GUI.EndGroup();
 
-            RenderFrame(board,state,feedback);
+            RenderWalls(board);
             RenderMarginNotes(board);
             GUI.EndGroup();
             viewOwner=previousViewOwner;
@@ -291,12 +296,21 @@ namespace CoreClash.Presentation
             Color team = Draw.Owner(owner);
             bool active = state.turn == owner && state.phase == MatchPhase.Aiming;
             var center = Point(board, 270, y);
-            // A pad in the team colour: white dish, team ring (P2 segmented), chevrons into the field.
+            // W24 (owner direction): the place the balls are shot from is part of the base. A dome in
+            // the colour of the base's plate stands out of the wall; the dish in it runs down into
+            // the plate, between the heart and the HP number (RenderBaseBar). Only the part of the
+            // dome that is clear of the wall is drawn, so dome and plate are one shape.
             Draw.Glow(new Vector2(center.x, center.y + 4 * scale), 52 * scale, new Color(.07f, .1f, .3f, .28f));
-            Draw.Circle(Box(board, 270 - 41, y - 41, 82, 82), Theme.Ink);
-            Draw.Circle(Box(board, 270 - 38, y - 38, 76, 76), active ? team : Color.Lerp(team, Color.white, .45f));
-            Draw.Circle(Box(board, 270 - 31, y - 31, 62, 62), Color.Lerp(Color.white, team, .12f));
-            Draw.Ring(center, 34.5f * scale, Theme.A(Theme.TeamDeep(owner), active ? .95f : .4f), Mathf.Max(1.5f, 2.4f * scale), owner == 1 ? Theme.P2RingSegments : 0, Theme.P2RingFill);
+            const float reach = DomeRadius + 5;
+            var dome = owner == 0 ? Box(board, 270 - reach, y - reach, reach * 2, 900 - BaseThick - (y - reach)) : Box(board, 270 - reach, BaseThick, reach * 2, y + reach - BaseThick);
+            GUI.BeginGroup(dome);
+            var local = new Vector2(center.x - dome.x, center.y - dome.y);
+            float outline = (DomeRadius + 2.5f) * scale, body = DomeRadius * scale;
+            Draw.Circle(new Rect(local.x - outline, local.y - outline, outline * 2, outline * 2), Theme.Ink);
+            Draw.Circle(new Rect(local.x - body, local.y - body, body * 2, body * 2), BaseColor(state, owner));
+            GUI.EndGroup();
+            Draw.Circle(Box(board, 270 - 31, y - 31, 62, 62), Color.Lerp(Color.white, team, active ? .1f : .38f));
+            Draw.Ring(center, 34.5f * scale, Theme.A(Theme.TeamDeep(owner), active ? .95f : .6f), Mathf.Max(1.5f, 2.4f * scale), owner == 1 ? Theme.P2RingSegments : 0, Theme.P2RingFill);
             bool up = !BoardOverlayPlanner.AtViewTop(owner, viewOwner);
             if (active)
             {
@@ -700,48 +714,60 @@ namespace CoreClash.Presentation
         // base's HP bar in the outer band (flashes on a real BASE_DAMAGE event).
         static void RenderFrame(Rect board, GameState state, FeedbackTimeline feedback)
         {
+            float unit = board.width / 540;
+            for (int owner = 0; owner < 2; owner++) RenderBaseBar(board, state, feedback, owner, unit);
+            RenderWalls(board);
+        }
+        static void RenderWalls(Rect board)
+        {
             Line(board, Left, Top, Left, Bottom, Theme.Ink, 7f);
             Line(board, Right, Top, Right, Bottom, Theme.Ink, 7f);
             Line(board, Left, Top, Left, Bottom, Theme.Rim, 3f);
             Line(board, Right, Top, Right, Bottom, Theme.Rim, 3f);
-            float unit = board.width / 540;
-            for (int owner = 0; owner < 2; owner++) RenderBaseBar(board, state, feedback, owner, unit);
         }
 
-        // W24: the base is its wall, and the wall is a health gauge. A badge with a heart and the
-        // number, then twenty chunky pips, one for each HP. A lost pip goes dark; the pips just lost
-        // flash on the real BASE_DAMAGE event. At 5 HP or less the badge and the pips turn to the
-        // warning colour (steady, no blinking).
+        // W24 (owner direction): the base is one thing, not a gauge and a launcher put side by side.
+        // Its wall is the health gauge, and the place the balls are shot from is built into the
+        // middle of it: a plate in the team's colour with the heart on one side of the launch dish
+        // and the HP number on the other, and ten chunky pips of wall to each side - one for each HP.
+        // The wall is lost from its far ends towards the dish. A lost pip goes dark; the pips just
+        // lost flash on the real BASE_DAMAGE event. At 5 HP or less the plate, the dome over the
+        // dish and the pips turn to the warning colour (steady, no blinking).
         public const string HeartGlyph = "+C -.36 -.28 .42;+C .36 -.28 .42;+P -.74 -.08 .74 -.08 0 .88";
         public const int BasePips = 20;
+        const float BaseThick = 30, PlateWidth = 190, DomeRadius = 41;
+        static Color BaseColor(GameState state, int owner) => state.players[owner].hp <= 5 ? Theme.Damage : Draw.Owner(owner);
         static void RenderBaseBar(Rect board, GameState state, FeedbackTimeline feedback, int owner, float unit)
         {
-            const float thick = 30, badgeWidth = 84, pad = 4.5f, gapWidth = 2.6f;
+            const float pad = 4.5f, gapWidth = 2.6f, ink = 2.5f;
             Color team = Draw.Owner(owner), deep = Theme.TeamDeep(owner);
             int hp = Mathf.Clamp(state.players[owner].hp, 0, BasePips);
             bool low = hp <= 5;
-            float top = owner == 0 ? 900 - thick : 0, flash = BaseLoss(feedback, owner, out int lost);
-            var bar = Box(board, Left, top, Right - Left, thick);
-            Draw.Rect(new Rect(bar.x, bar.y - 2.5f * unit, bar.width, bar.height + 5 * unit), Theme.Ink);
+            float top = owner == 0 ? 900 - BaseThick : 0, flash = BaseLoss(feedback, owner, out int lost);
+            var bar = Box(board, Left, top, Right - Left, BaseThick);
+            Draw.Rect(new Rect(bar.x, bar.y - ink * unit, bar.width, bar.height + 2 * ink * unit), Theme.Ink);
             Draw.Rect(bar, Color.Lerp(Theme.Ink, deep, .38f));
-            // Badge: heart and number.
-            var badge = new Rect(bar.x, bar.y, badgeWidth * unit, bar.height);
-            Draw.Rect(badge, low ? Theme.Damage : team);
-            Draw.Rect(new Rect(badge.x, badge.y, badge.width, badge.height * .42f), new Color(1, 1, 1, .2f));
+            // Plate: heart, launch dish, number. The dish itself is drawn by RenderLauncher, on top.
+            var plate = new Rect(bar.center.x - PlateWidth * .5f * unit, bar.y, PlateWidth * unit, bar.height);
+            Draw.Rect(new Rect(plate.x - ink * unit, bar.y, plate.width + 2 * ink * unit, bar.height), Theme.Ink);
+            Draw.Rect(plate, BaseColor(state, owner));
+            float wing = (PlateWidth * .5f - DomeRadius) * unit;
             // The heart beats once when the base is hit.
             float icon = bar.height * .62f * (1 + .28f * flash * flash);
-            var heart = new Rect(badge.x + 8 * unit + (bar.height * .62f - icon) * .5f, badge.center.y - icon * .5f + unit, icon, icon);
+            var heart = new Rect(plate.x + wing * .5f - icon * .5f, plate.center.y - icon * .5f + unit, icon, icon);
             Glyphs.Paint(new Rect(heart.x - 1.5f, heart.y - 1.5f, heart.width + 3, heart.height + 3), HeartGlyph, Theme.Ink);
             Glyphs.Paint(heart, HeartGlyph, Color.white);
-            Draw.Inked(new Rect(heart.xMax + 2 * unit, badge.y - 1, badge.xMax - heart.xMax - 6 * unit, badge.height), hp.ToString(), Mathf.Max(11, Mathf.RoundToInt(21 * unit)), Color.white, TextAnchor.MiddleCenter, Mathf.Max(1.2f, 1.8f * unit));
-            Draw.Rect(new Rect(badge.xMax, bar.y, 2.5f * unit, bar.height), Theme.Ink);
-            // Pips.
-            float x0 = badge.xMax + (2.5f + pad) * unit, room = bar.xMax - pad * unit - x0, step = room / BasePips;
-            float width = step - gapWidth * unit, height = bar.height - 2 * pad * unit;
+            Draw.Inked(new Rect(plate.xMax - wing, plate.y - 1, wing, plate.height), hp.ToString(), Mathf.Max(11, Mathf.RoundToInt(21 * unit)), Color.white, TextAnchor.MiddleCenter, Mathf.Max(1.2f, 1.8f * unit));
+            // Pips: ten to each side, counted from the plate outwards, so the wall goes from its ends.
+            const int side = BasePips / 2;
+            float leftEnd = plate.x - (ink + pad) * unit, rightStart = plate.xMax + (ink + pad) * unit;
+            float step = (leftEnd - (bar.x + pad * unit)) / side, width = step - gapWidth * unit, height = bar.height - 2 * pad * unit;
             Color lit = low ? Color.Lerp(team, Theme.Damage, .6f) : team;
             for (int i = 0; i < BasePips; i++)
             {
-                var pip = new Rect(x0 + i * step, bar.y + pad * unit, width, height);
+                int rank = i / 2;
+                float x = i % 2 == 0 ? leftEnd - (rank + 1) * step + gapWidth * unit * .5f : rightStart + rank * step + gapWidth * unit * .5f;
+                var pip = new Rect(x, bar.y + pad * unit, width, height);
                 if (i < hp)
                 {
                     Draw.Chip(pip, lit);
