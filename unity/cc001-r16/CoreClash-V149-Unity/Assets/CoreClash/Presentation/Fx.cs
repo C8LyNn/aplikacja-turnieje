@@ -48,7 +48,7 @@ namespace CoreClash.Presentation
             public bool screen; // true = HUD space (confetti), false = arena units
         }
         const int MaxParticles = 320;
-        static readonly Particle[] particles = new Particle[MaxParticles];
+        static Particle[] particles = new Particle[MaxParticles];
         static int particleCount;
 
         enum Shape { Shock, Flash, Streak, Converge, Swirl, Column, Ripple }
@@ -57,7 +57,7 @@ namespace CoreClash.Presentation
             public Shape shape; public float x, y, x2, y2, born, life, radius; public Color color; public int seed;
         }
         const int MaxEffects = 48;
-        static readonly Effect[] effects = new Effect[MaxEffects];
+        static Effect[] effects = new Effect[MaxEffects];
         static int effectCount;
 
         sealed class Track
@@ -65,12 +65,33 @@ namespace CoreClash.Presentation
             public float x, y, vx, vy, hitAt = -9, healAt = -9, lostAt = -9, bornAt = -9, absorbAt = -9, hitStrength;
             public int hp, lostFrom, stamp; public bool moving;
         }
-        static readonly Dictionary<int, Track> tracks = new Dictionary<int, Track>();
+        static Dictionary<int, Track> tracks = new Dictionary<int, Track>();
         static readonly List<int> stale = new List<int>();
         static GameState seen;
         static int cursor = -1, stamp;
         static float lastTick = -1, stepTime, shakeUntil, shakeStrength, emberClock;
         static uint random = 0x9e3779b9;
+
+        // W24: effect state for a board that is not the match (the show on a ball card). Swap() puts
+        // this state in place of the match's; a second Swap() puts the match's state back. Between
+        // the two calls every Fx function works on the show only.
+        public sealed class Stage
+        {
+            Particle[] heldParticles = new Particle[MaxParticles]; Effect[] heldEffects = new Effect[MaxEffects];
+            Dictionary<int, Track> heldTracks = new Dictionary<int, Track>();
+            GameState heldSeen; int heldParticleCount, heldEffectCount, heldCursor = -1, heldStamp;
+            float heldLastTick = -1, heldStepTime, heldShakeUntil, heldShakeStrength, heldEmberClock;
+            public void Swap()
+            {
+                (particles, heldParticles) = (heldParticles, particles); (effects, heldEffects) = (heldEffects, effects);
+                (tracks, heldTracks) = (heldTracks, tracks); (seen, heldSeen) = (heldSeen, seen);
+                (particleCount, heldParticleCount) = (heldParticleCount, particleCount); (effectCount, heldEffectCount) = (heldEffectCount, effectCount);
+                (cursor, heldCursor) = (heldCursor, cursor); (stamp, heldStamp) = (heldStamp, stamp);
+                (lastTick, heldLastTick) = (heldLastTick, lastTick); (stepTime, heldStepTime) = (heldStepTime, stepTime);
+                (shakeUntil, heldShakeUntil) = (heldShakeUntil, shakeUntil); (shakeStrength, heldShakeStrength) = (heldShakeStrength, shakeStrength);
+                (emberClock, heldEmberClock) = (heldEmberClock, emberClock);
+            }
+        }
 
         static float Rand() { random ^= random << 13; random ^= random >> 17; random ^= random << 5; return (random & 0xffffff) / 16777216f; }
         static float Rand(float from, float to) => from + (to - from) * Rand();

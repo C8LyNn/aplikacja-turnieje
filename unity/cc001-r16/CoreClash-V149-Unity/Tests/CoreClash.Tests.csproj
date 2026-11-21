@@ -4,7 +4,7 @@
   <ItemGroup><Compile Include="../Assets/CoreClash/Presentation/MatchLayout.cs" /><Compile Include="../Assets/CoreClash/Presentation/BallSelection.cs" /><Compile Include="../Assets/CoreClash/Presentation/LocalDeckContent.cs" /><Compile Include="../Assets/CoreClash/Presentation/RemoteBallSmoother.cs" /></ItemGroup>
   <ItemGroup><Compile Include="../Assets/CoreClash/Presentation/StopPrediction.cs" /><Compile Include="../Assets/CoreClash/Presentation/ReplayAffordance.cs" /><Compile Include="../Assets/CoreClash/Presentation/BaseDamageReport.cs" /><Compile Include="../Assets/CoreClash/Presentation/BoardLabelLayout.cs" /></ItemGroup>
   <ItemGroup><Compile Include="../Assets/CoreClash/Presentation/AimGuide.cs" /><Compile Include="../Assets/CoreClash/Presentation/FeedbackTimeline.cs" /></ItemGroup>
-  <ItemGroup><Compile Include="../Assets/CoreClash/Presentation/BallIdentity.cs" /><Compile Include="../Assets/CoreClash/Presentation/BallIcons.cs" /><Compile Include="../Assets/CoreClash/Presentation/BallGuide.cs" /><Compile Include="../Assets/CoreClash/Presentation/BallInspection.cs" /></ItemGroup>
+  <ItemGroup><Compile Include="../Assets/CoreClash/Presentation/BallIdentity.cs" /><Compile Include="../Assets/CoreClash/Presentation/BallIcons.cs" /><Compile Include="../Assets/CoreClash/Presentation/BallGuide.cs" /><Compile Include="../Assets/CoreClash/Presentation/BallDemo.cs" /><Compile Include="../Assets/CoreClash/Presentation/BallInspection.cs" /></ItemGroup>
   <ItemGroup><Compile Include="../Assets/CoreClash/Presentation/SetupLayout.cs" /></ItemGroup>
   <ItemGroup><Compile Include="../Assets/CoreClash/Presentation/MatchExitGuard.cs" /></ItemGroup>
   <ItemGroup><Compile Include="../Assets/CoreClash/Presentation/RosterReadiness.cs" /></ItemGroup>

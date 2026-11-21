@@ -176,7 +176,7 @@ namespace CoreClash.Presentation
         public void SelectBall(string id){if(CanChoose&&Catalog.Ball(id)!=null&&BallSelection.CanSelect(Simulation,Simulation.State.turn,id)){if(selected!=id)selectedAt=Time.unscaledTime;selected=id;gesture.Active=false;Debug.Log("CORE_CLASH_SELECT "+id);}}
         public void ShowBallDetails(string id){if(Catalog.Ball(id)!=null){inspect=id;inspectBallId=0;boardInspection=false;infoScroll=Vector2.zero;gesture.Active=false;Debug.Log("CORE_CLASH_DETAILS "+id+" developer="+DeveloperOverlay);}}
         public void ShowRuntimeBallDetails(int id){var current=BallInspection.Read(Simulation?.State,id);if(current!=null&&Catalog.Ball(current.Type)!=null){ShowBallDetails(current.Type);inspectBallId=id;boardInspection=false;}}
-        public void CloseBallDetails(){inspect="";inspectBallId=0;}
+        public void CloseBallDetails(){inspect="";inspectBallId=0;demo=null;}
         public void SetBoardInspection(bool value){boardInspection=value;gesture.Active=false;}
         bool InspectAt(Vector2 position)
         {

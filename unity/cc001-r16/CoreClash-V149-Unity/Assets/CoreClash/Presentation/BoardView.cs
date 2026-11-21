@@ -109,6 +109,59 @@ namespace CoreClash.Presentation
             viewOwner=previousViewOwner;
         }
 
+        // W24: the show on a ball card. A cropped, quiet view of another simulation: floor, zones,
+        // structures, balls with their plates, and effects. No launch prompts, notes, turn cue or
+        // aim guide. Its effects live in their own Fx.Stage, so the match on the board is untouched.
+        // worldTop..worldBottom is the filmed part of the board; lead is the time since the last step.
+        public static float StageHeight(float width,float worldTop,float worldBottom)=>Mathf.Round(width*(worldBottom-worldTop)/(Right-Left));
+        public static void RenderStage(Rect rect,GameSimulation simulation,FeedbackTimeline feedback,Fx.Stage effects,float worldTop,float worldBottom,float lead)
+        {
+            if(simulation==null||effects==null||rect.width<=0||rect.height<=0)return;
+            int previousViewOwner=viewOwner,previousActing=actingOwner,previousTurn=turnShown;float previousSince=turnSince;
+            var state=simulation.State;float now=Time.unscaledTime,scale=rect.width/(Right-Left);
+            viewOwner=0;actingOwner=-1;turnShown=state.turnNumber;
+            effects.Swap();
+            try
+            {
+                if(Event.current.type==EventType.Repaint)Fx.Observe(simulation,now);
+                GUI.BeginGroup(rect);
+                var board=new Rect(-Left*scale,-worldTop*scale,540*scale,900*scale);
+                RenderArena(board);
+                Rect field=Box(board,Left,Top,Right-Left,Bottom-Top);
+                GUI.BeginGroup(field);
+                var clippedBoard=new Rect(board.x-field.x,board.y-field.y,board.width,board.height);
+                var visible=BoardOverlayPlanner.Field(viewOwner,clippedBoard.x,clippedBoard.y,clippedBoard.width);
+                RenderZones(clippedBoard,state);
+                RenderStructures(clippedBoard,state);
+                Fx.RenderUnder(clippedBoard,viewOwner,now);
+                drawn.Clear();
+                foreach(var ball in state.balls)
+                    if(!ball.dead&&!ball.banished)
+                    {
+                        float x=ball.x,y=ball.y;
+                        if(state.phase==MatchPhase.Moving&&ball.moving&&lead>0)
+                        {
+                            x=Mathf.Clamp(ball.x+ball.vx*lead,Left+ball.radius,Right-ball.radius);
+                            y=Mathf.Clamp(ball.y+ball.vy*lead,Top+ball.radius,Bottom-ball.radius);
+                        }
+                        RenderThreat(clippedBoard,ball,x,y);
+                        BallView.Render(clippedBoard,ball,simulation.Catalog.Ball(ball.type),false,x,y,viewOwner,false);
+                        drawn.Add((ball,x,y,false));
+                    }
+                foreach(var item in drawn)BallView.RenderBadges(clippedBoard,item.ball,false,item.x,item.y,viewOwner,visible);
+                Fx.RenderOver(clippedBoard,viewOwner,now);
+                RenderEvents(clippedBoard,feedback,false);
+                GUI.EndGroup();
+                RenderFrame(board,state,feedback);
+                GUI.EndGroup();
+            }
+            finally
+            {
+                effects.Swap();
+                viewOwner=previousViewOwner;actingOwner=previousActing;turnShown=previousTurn;turnSince=previousSince;
+            }
+        }
+
         static void RenderArena(Rect board)
         {
             Rect field = Box(board, Left, Top, Right - Left, Bottom - Top);

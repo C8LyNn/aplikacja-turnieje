@@ -150,20 +150,30 @@ namespace CoreClash.Presentation
             }
             y+=bannerH+12;
 
-            // 2. WHAT.
-            int size=phone?17:19;float textH=Draw.TextHeight(guide.Does,width,size);
-            if(draw)Draw.Text(new Rect(0,y,width,textH),guide.Does,size,Theme.Text);
-            y+=textH+12;
+            // The show: on a wide card it stands to the right of the text, on a phone under the sentence.
+            var script=BallDemos.For(guide.Id);
+            bool side=script!=null&&width>=470;
+            float stageW=script==null?0:side?Mathf.Min(300,width*.46f):width,stageH=script==null?0:BoardView.StageHeight(stageW-6,script.Top,script.Bottom)+6;
+            float column=side?width-stageW-18:width,top=y;
 
-            // 3. WHO and the numbers; the reach picture sits to the right when the power has a reach.
-            bool picture=guide.Range>0;float pictureW=phone?78:90,pictureH=pictureW/.6f,listW=picture?width-pictureW-14:width,top=y;
-            y+=FactRow(0,y,listW,null,BallGuide.WhoText(guide.Who),tone,draw,guide.Who,owner);
-            foreach(var fact in guide.Facts)y+=FactRow(0,y,listW,FactGlyph(fact.Kind),fact.Text,FactColor(fact.Kind),draw);
-            if(picture)y+=FactRow(0,y,listW,GlyphRange,BallGuide.RangeText(guide.Range),tone,draw);
-            if(picture)
+            // 2. WHAT.
+            int size=phone?17:19;float textH=Draw.TextHeight(guide.Does,column,size);
+            if(draw)Draw.Text(new Rect(0,y,column,textH),guide.Does,size,Theme.Text);
+            y+=textH+12;
+            if(script!=null&&!side)
             {
-                if(draw)RangePicture(new Rect(width-pictureW,top,pictureW,pictureH),guide,owner);
-                y=Mathf.Max(y,top+pictureH);
+                if(draw)DemoStage(new Rect(3,y+3,stageW-6,stageH-6),script);
+                y+=stageH+12;
+            }
+
+            // 3. WHO and the numbers.
+            y+=FactRow(0,y,column,null,BallGuide.WhoText(guide.Who),tone,draw,guide.Who,owner);
+            foreach(var fact in guide.Facts)y+=FactRow(0,y,column,FactGlyph(fact.Kind),fact.Text,FactColor(fact.Kind),draw);
+            if(guide.Range>0)y+=FactRow(0,y,column,GlyphRange,BallGuide.RangeText(guide.Range),tone,draw);
+            if(side)
+            {
+                if(draw)DemoStage(new Rect(width-stageW+3,top+3,stageW-6,stageH-6),script);
+                y=Mathf.Max(y,top+stageH);
             }
             y+=10;
 
@@ -207,18 +217,31 @@ namespace CoreClash.Presentation
             return height;
         }
 
-        // The board in miniature (540 x 900), your zone at the bottom, with the reach of the power to scale.
-        void RangePicture(Rect r,BallGuideEntry guide,int owner)
+        // The show: a short scene played by a private copy of the rules (BallDemo) and drawn like the
+        // real board. It advances once per drawn frame and starts over a moment after it ends.
+        const float DemoSpeed=1.5f,DemoRest=1.5f;
+        BallDemoPlayer demo;Fx.Stage demoFx;FeedbackTimeline demoFeedback;float demoClock,demoDoneAt;
+        public bool DemoRunning=>demo!=null;
+        public float DemoElapsed=>demo==null?0:demo.Elapsed;
+        void DemoStage(Rect rect,BallDemoScript script)
         {
-            Draw.Round(r,Theme.Ink);var floor=Draw.Inset(r,2.5f);Draw.Round(floor,Theme.FloorCentre);
-            float scale=floor.width/540f,zone=198*scale;
-            Draw.Chip(new Rect(floor.x+2,floor.y+2,floor.width-4,zone-2),Theme.A(Theme.Team(1-owner),.3f));
-            Draw.Chip(new Rect(floor.x+2,floor.yMax-zone,floor.width-4,zone-2),Theme.A(Theme.Team(owner),.3f));
-            var centre=floor.center;float reach=guide.Range*scale,ball=Mathf.Max(3.2f,21.25f*scale);Color tone=WhenColor(guide.When);
-            Draw.Circle(new Rect(centre.x-reach,centre.y-reach,reach*2,reach*2),Theme.A(tone,.3f));
-            Draw.Ring(centre,reach,tone,2f);
-            Draw.Circle(new Rect(centre.x-ball-1.5f,centre.y-ball-1.5f,ball*2+3,ball*2+3),Theme.Ink);
-            Draw.Circle(new Rect(centre.x-ball,centre.y-ball,ball*2,ball*2),Theme.Team(owner));
+            float now=Time.unscaledTime;
+            if(demo==null||demo.Script!=script||(demo.Finished&&demoDoneAt>=0&&now-demoDoneAt>DemoRest))
+            {
+                demo=new BallDemoPlayer(Catalog,script);demoFx=new Fx.Stage();demoFeedback=new FeedbackTimeline();demoClock=now;demoDoneAt=-1;
+            }
+            if(Event.current.type==EventType.Repaint)
+            {
+                demo.Advance(Mathf.Clamp(now-demoClock,0,.1f)*DemoSpeed);demoClock=now;
+                demoFeedback.Observe(demo.Simulation.State,now);
+                if(demo.Finished&&demoDoneAt<0)demoDoneAt=now;
+            }
+            Draw.Round(new Rect(rect.x-3,rect.y-3,rect.width+6,rect.height+6),Theme.Ink);
+            BoardView.RenderStage(rect,demo.Simulation,demoFeedback,demoFx,script.Top,script.Bottom,demo.Lead);
+            // A thin line along the bottom shows how far the show has run before it starts over.
+            float length=BallDemos.Length(Catalog,script),done=length>0?Mathf.Clamp01(demo.Elapsed/length):0;
+            Draw.Rect(new Rect(rect.x,rect.yMax-4,rect.width,4),Theme.A(Theme.Ink,.25f));
+            Draw.Rect(new Rect(rect.x,rect.yMax-4,rect.width*done,4),Theme.Select);
         }
 
         // Deck guide: the nine balls of a deck as a list - symbol of WHEN, name, short label.

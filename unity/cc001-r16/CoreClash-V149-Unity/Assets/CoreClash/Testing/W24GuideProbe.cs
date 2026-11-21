@@ -35,6 +35,8 @@ namespace CoreClash.Testing
         IEnumerator Start()
         {
             Directory.CreateDirectory(output);
+            // The window opens on another monitor and usually has no focus: keep running anyway.
+            Application.runInBackground = true;
             float begun = Time.realtimeSinceStartup;
             while (!UnityEngine.Rendering.SplashScreen.isFinished || Time.realtimeSinceStartup - begun < 3) yield return null;
             if (Mathf.Min(Screen.width, Screen.height) <= 480) { app.SetDeviceProfile("Phone"); yield return null; yield return null; }
@@ -52,11 +54,26 @@ namespace CoreClash.Testing
             yield return Wait(.5f);
             yield return Shot("01-builder");
             int number = 0;
+            // --cc-demo-frames N: N frames of every card, taken at equal steps of the show's own clock.
+            int frames = int.TryParse(Arg("--cc-demo-frames") ?? "", out int wanted) ? Mathf.Clamp(wanted, 0, 40) : 0;
+            float every = float.TryParse(Arg("--cc-demo-step") ?? "", System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out float stepSeconds) ? stepSeconds : 1.5f;
             foreach (string id in ids)
             {
                 if (app.Catalog.Ball(id) == null) continue;
                 app.ShowBallDetails(id);
                 yield return Shot("card-" + (++number).ToString("00") + "-" + id);
+                for (int frame = 1; frame <= frames && app.DemoRunning; frame++)
+                {
+                    // Stop taking frames once the show has ended and started over.
+                    float limit = Time.realtimeSinceStartup + 20, last = app.DemoElapsed; bool restarted = false;
+                    while (app.DemoElapsed < frame * every && Time.realtimeSinceStartup < limit)
+                    {
+                        if (app.DemoElapsed + .2f < last) { restarted = true; break; }
+                        last = app.DemoElapsed; yield return null;
+                    }
+                    if (restarted) break;
+                    yield return Shot("demo-" + number.ToString("00") + "-" + id + "-" + frame.ToString("00"));
+                }
                 app.CloseBallDetails();
             }
             app.ReturnToSetup();
