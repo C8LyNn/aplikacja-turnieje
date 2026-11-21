@@ -328,7 +328,7 @@ namespace CoreClash.Presentation
             }
             GUI.enabled=prior;
             bool named=face.height>=72;
-            float room=face.height-3-(named?22:8),orb=Mathf.Clamp(Mathf.Min(face.width-18,room-11),16,48);
+            float room=face.height-3-(named?22:8),orb=Mathf.Clamp(Mathf.Min(face.width-12,room-7),16,54);
             if(picked)orb*=SelectPulse();
             var body=new Rect(face.center.x-orb/2,face.y+4+(room-orb)/2,orb,orb);
             BallView.Preview(body,d,owner>=0?owner:0,picked);

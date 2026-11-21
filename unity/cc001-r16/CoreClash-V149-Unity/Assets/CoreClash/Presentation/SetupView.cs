@@ -81,7 +81,7 @@ namespace CoreClash.Presentation
             bool compact=r.height<190;
             Draw.Text(new Rect(r.x+16,r.y+band+(compact?4:8),r.width-32,compact?28:34),Identity(deck),compact?11:12,Theme.Muted);
             float actionH=UiViewport.TargetSize>=44?46:36;
-            float orb=Math.Min(compact?28:34,(r.width-48)/10.5f),step=(r.width-32-orb)/8,orbY=r.yMax-actionH-18-orb-(compact?4:8);
+            float orb=Math.Min(compact?30:38,(r.width-40)/9.6f),step=(r.width-32-orb)/8,orbY=r.yMax-actionH-18-orb-(compact?4:8);
             for(int i=0;i<9;i++)BallView.Preview(new Rect(r.x+16+i*step,orbY,orb,orb),Catalog.Ball(deck.balls[i]),0);
             if(GUI.Button(new Rect(r.x+8,orbY-6,r.width-16,orb+12),GUIContent.none,GUIStyle.none))OpenDeckGuide(deck);
             float buttonW=(r.width-44)/2;
@@ -155,7 +155,7 @@ namespace CoreClash.Presentation
                 Draw.Round(new Rect(r.x+3,r.y+3,r.width-6,r.height-9),picked?Color.Lerp(Theme.Panel,team,.22f):Theme.Panel);
                 var ballZone=new Rect(r.x,r.y,r.width,r.height-3-nameH);
                 if(GUI.Button(ballZone,GUIContent.none,GUIStyle.none)){if(picked)custom.Remove(d.id);else if(custom.Count<9)custom.Add(d.id);}
-                float orb=Mathf.Min(ballZone.width-44,ballZone.height-26);
+                float orb=Mathf.Min(ballZone.width-34,ballZone.height-18);
                 BallView.Preview(new Rect(ballZone.center.x-orb/2,ballZone.y+10+(ballZone.height-12-orb)/2,orb,orb),d,builderOwner,picked);
                 var nameZone=new Rect(r.x+3,ballZone.yMax,r.width-6,nameH-3);
                 if(GUI.Button(nameZone,GUIContent.none,GUIStyle.none))ShowBallDetails(d.id);
