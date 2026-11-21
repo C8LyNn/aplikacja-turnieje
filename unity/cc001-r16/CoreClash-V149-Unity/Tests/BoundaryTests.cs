@@ -17,6 +17,7 @@ public static partial class Program
         W20VisualTests();
         W21BallIdentityTests();
         W22RosterTests();
+        W24BallGuideTests();
         SetupLayoutTests();
         W19ReadinessTests();
         IdentityPresentationTests();

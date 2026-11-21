@@ -229,7 +229,33 @@ namespace CoreClash.Presentation
             for(int i=0;i<ids.Length&&i<9;i++)IconCard(Cell(i+1),ids[i],owner);
             if(Draw.IconButton(Cell(10),IconInfo))ShowBallDetails(selected);
             if(Draw.IconButton(Cell(11),IconMenu,Theme.Info,phoneMenu))phoneMenu=!phoneMenu;
+            RenderSelectionHint(owner>=0?owner:state.turn);
             if(phoneMenu)RenderPhoneMenu();
+        }
+        // W24: for a few seconds after a ball is tapped, a strip above the launch point says what it
+        // is: its name and its short label. A tap on the strip, or a second tap on the same card,
+        // opens the full card. The strip hides as soon as the player starts to aim.
+        Rect hintRect;bool hintShown;string tappedId="";int tappedTurn=-1;
+        public void TapTrayBall(string id){SelectBall(id);if(selected==id){tappedId=id;tappedTurn=Simulation.State.turnNumber;selectedAt=Time.unscaledTime;}}
+        const float HintSeconds=4.5f;
+        void RenderSelectionHint(int owner)
+        {
+            if(Event.current.type==EventType.Layout)hintShown=false;
+            var d=Catalog.Ball(selected);var guide=BallGuide.For(selected);
+            if(d==null||guide==null||!CanChoose||gesture.Active||phoneMenu||boardInspection||tappedId!=selected||tappedTurn!=Simulation.State.turnNumber||Time.unscaledTime-selectedAt>HintSeconds)return;
+            string name=BallIcons.Name(d),tag=guide.Tag;
+            float nameW=Draw.TextWidth(name,15,true),tagW=Draw.TextWidth(tag,13,true),icon=16,w=Mathf.Min(UiWidth-20,50+nameW+16+icon+5+tagW+40),h=46;
+            float scale=board.width/540f,bottom=Mathf.Min(side.y-8,board.y+(853-21.25f-16)*scale);
+            hintRect=new Rect((UiWidth-w)/2,bottom-h,w,h);hintShown=true;
+            Draw.Card(hintRect,null,null,.3f);
+            BallView.Preview(new Rect(hintRect.x+9,hintRect.y+8,30,30),d,owner);
+            float x=hintRect.x+50;
+            Draw.Text(new Rect(x,hintRect.y,nameW+4,h-2),name,15,Theme.Text,TextAnchor.MiddleLeft,true);x+=nameW+16;
+            Color tone=WhenColor(guide.When);
+            Glyphs.Paint(new Rect(x,hintRect.y+(h-2-icon)/2,icon,icon),WhenGlyph(guide.When),tone);x+=icon+5;
+            Draw.Text(new Rect(x,hintRect.y,hintRect.xMax-36-x,h-2),tag,13,Color.Lerp(tone,Theme.Ink,.35f),TextAnchor.MiddleLeft,true);
+            var more=new Rect(hintRect.xMax-33,hintRect.y+(h-2-24)/2,24,24);
+            Draw.Circle(more,Theme.Info);Glyphs.Paint(new Rect(more.x+6,more.y+6,12,12),IconInfo,Theme.OnColor);
         }
         // Four large buttons above the tray. A tap anywhere else closes it.
         void RenderPhoneMenu()
@@ -287,7 +313,14 @@ namespace CoreClash.Presentation
             Draw.Round(new Rect(face.x,face.y+3,face.width,face.height-3),picked?Theme.SelectInk:Theme.EdgeStrong);
             Draw.Round(new Rect(face.x,face.y,face.width,face.height-3),picked?Theme.Select:Theme.Edge);
             Draw.Round(new Rect(face.x+2,face.y+2,face.width-4,face.height-7),picked?Color.Lerp(Theme.Panel,Theme.Select,.16f):hover?Theme.PanelLight:Theme.Panel);
-            bool prior=GUI.enabled;GUI.enabled=prior&&canClick;if(GUI.Button(r,GUIContent.none,GUIStyle.none))SelectBall(id);GUI.enabled=prior;
+            bool prior=GUI.enabled;GUI.enabled=prior&&canClick;
+            if(GUI.Button(r,GUIContent.none,GUIStyle.none))
+            {
+                int turnNumber=Simulation.State.turnNumber;
+                if(picked&&layout.PhonePortrait&&tappedId==id&&tappedTurn==turnNumber)ShowBallDetails(id);
+                else{SelectBall(id);if(selected==id){tappedId=id;tappedTurn=turnNumber;selectedAt=Time.unscaledTime;}}
+            }
+            GUI.enabled=prior;
             bool named=face.height>=72;
             float room=face.height-3-(named?22:8),orb=Mathf.Clamp(Mathf.Min(face.width-18,room-11),16,48);
             if(picked)orb*=SelectPulse();
@@ -345,7 +378,8 @@ namespace CoreClash.Presentation
                 int nameFont=nameWidth>=longest*7.6f?13:nameWidth>=longest*7f?12:nameWidth>=longest*6.4f?11:10;
                 Draw.Text(new Rect(r.x+5,r.y+baseOrb+17,nameWidth,cue||handReady?20:r.height-baseOrb-24),BallIcons.Name(d),nameFont,nameColor,TextAnchor.MiddleCenter,true);
                 if(handReady)Draw.Text(new Rect(r.x+5,r.yMax-22,r.width-10,14),LocalDeckContent.StockLabel(Simulation,owner,id),Theme.FontTiny,Theme.SelectInk,TextAnchor.MiddleCenter,true);
-                else if(cue)Draw.Text(new Rect(r.x+5,r.yMax-22,r.width-10,14),available?Cue(id):"OUT OF STOCK",Theme.FontTiny,Theme.Muted,TextAnchor.MiddleCenter);
+                else if(cue&&available&&BallGuide.For(id)!=null)GuideTag(new Rect(r.x+5,r.yMax-24,r.width-10,16),id,Theme.FontTiny+1);
+                else if(cue)Draw.Text(new Rect(r.x+5,r.yMax-22,r.width-10,14),available?Cue(id):Lang.T("OUT OF STOCK","BRAK"),Theme.FontTiny,Theme.Muted,TextAnchor.MiddleCenter);
             }
             if(!available)Draw.Round(new Rect(r.x+2,r.y+2,r.width-4,r.height-7),new Color(1,1,1,.62f));
         }

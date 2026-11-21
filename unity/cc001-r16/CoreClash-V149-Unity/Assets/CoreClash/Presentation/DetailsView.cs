@@ -6,48 +6,15 @@ namespace CoreClash.Presentation
 {
     public sealed partial class CoreClashApp
     {
-        void RenderInfo()
+        // Balls without a guide entry (frozen balls in the developer roster) keep the older text card body.
+        float LegacyContent(BallDefinition definition,float width,bool draw,float y)
         {
-            var current=inspectBallId>0?BallInspection.Read(Simulation.State,inspectBallId):null;
-            var d=Catalog.Ball(current?.Type??inspect);if(d==null){CloseBallDetails();return;}
-            Draw.Rect(new Rect(0,0,UiWidth,UiHeight),Theme.A(Theme.Scrim,.74f));float w=Math.Min(640,UiWidth-32),h=Math.Min(700,UiHeight-80),x=(UiWidth-w)/2,y=(UiHeight-h)/2;
-            bool narrow=w<440;Draw.Card(new Rect(x,y,w,h),null,null,.4f);BallView.Preview(new Rect(x+28,y+27,narrow?52:76,narrow?52:76),d,current?.Owner??Simulation.State.turn,true);
-            Draw.Text(new Rect(x+(narrow?96:125),y+(narrow?70:27),narrow?w-116:w-240,narrow?47:42),BallIcons.Name(d),narrow?22:30,Theme.Text,TextAnchor.MiddleLeft,true);
-            string health=current!=null?BallInspection.OwnerMark(current.Owner)+"  /  "+current.Hp+" / "+current.MaxHp+" HP":inspectBallId>0?"NO LONGER ON THE BOARD":d.hp+" HP  /  "+d.size.ToUpperInvariant();
-            Draw.Text(new Rect(x+(narrow?96:126),y+(narrow?121:73),narrow?w-116:w-200,25),health,narrow?12:14,Draw.Gold,TextAnchor.MiddleLeft,true);
-            if(Draw.Button(new Rect(x+w-92,y+16,76,44),"CLOSE",size:12))CloseBallDetails();
-            float inner=w-88,content=InfoContent(d,current,inner,false);
-            infoScroll=Draw.ScrollView(new Rect(x+28,y+(narrow?166:128),w-56,h-(narrow?192:154)),infoScroll,new Rect(0,0,w-78,content));
-            InfoContent(d,current,inner,true);
-            GUI.EndScrollView();
-        }
-        float InfoContent(BallDefinition definition,BallInspection current,float width,bool draw)
-        {
-            float y=0;
             Action<string,int,Color,bool> line=(text,size,color,bold)=>{
                 if(string.IsNullOrEmpty(text))return;
-                var style=new GUIStyle(GUI.skin.label){fontSize=size,wordWrap=true,fontStyle=bold?FontStyle.Bold:FontStyle.Normal,padding=new RectOffset(0,0,0,0)};
-                float height=Mathf.Ceil(style.CalcHeight(new GUIContent(text),width))+3;
+                float height=Draw.TextHeight(text,width,size,bold);
                 if(draw)Draw.Text(new Rect(0,y,width,height),text,size,color,TextAnchor.UpperLeft,bold);
                 y+=height+12;
             };
-            if(inspectBallId>0){
-                line("CURRENT STATE",11,Draw.Cyan,true);
-                if(current==null||!current.OnBoard)line("This ball is no longer on the board.",15,Draw.Muted,false);
-                if(current!=null){
-                    if(current.Shield==0)line("Shield: 0",15,Theme.Text,false);
-                    if(current.States.Length==0)line("No active status.",15,Theme.Text,false);
-                    // W20: every state with the same symbol and colour it has on the board.
-                    foreach(var state in current.States)
-                    {
-                        var stateStyle=new GUIStyle(GUI.skin.label){fontSize=15,wordWrap=true,padding=new RectOffset(0,0,0,0)};
-                        float stateHeight=Mathf.Ceil(stateStyle.CalcHeight(new GUIContent(state.Text),width-28))+3;
-                        if(draw){Glyphs.Paint(new Rect(0,y+1,18,18),state.Kind,Theme.Status(state.Kind));Draw.Text(new Rect(28,y,width-28,stateHeight),state.Text,15,Theme.Text,TextAnchor.UpperLeft,false);}
-                        y+=stateHeight+7;
-                    }
-                    if(current.States.Length>0)y+=5;
-                }
-            }
             if(!string.IsNullOrEmpty(definition.archetype))line("ARCHETYPE  /  "+definition.archetype.ToUpperInvariant(),11,Draw.Muted,true);
             line(Quick(definition.id),19,Theme.Text,false);
             line("ABILITY",11,Draw.Cyan,true);

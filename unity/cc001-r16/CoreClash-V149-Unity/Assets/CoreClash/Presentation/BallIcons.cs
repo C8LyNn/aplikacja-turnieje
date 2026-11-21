@@ -97,9 +97,10 @@ namespace CoreClash.Presentation
         public static bool Has(string id)=>id!=null&&Entries.ContainsKey(id);
         // Shape list for the ball's icon, or null when the ball has no icon yet.
         public static string Spec(string id)=>id!=null&&Entries.TryGetValue(id,out var entry)?entry.Spec:null;
-        // Name shown to the player. Falls back to the catalog name.
+        // Name shown to the player. Falls back to the catalog name. In Polish (W24) a ball with a
+        // guide entry shows its Polish name; every other ball keeps the English one.
         public static string Name(BallDefinition definition)
-            =>definition==null?"":Entries.TryGetValue(definition.id??"",out var entry)&&entry.Name!=null?entry.Name:definition.name;
+            =>definition==null?"":Lang.Polish&&BallGuide.NamePl(definition.id)!=null?BallGuide.NamePl(definition.id):Entries.TryGetValue(definition.id??"",out var entry)&&entry.Name!=null?entry.Name:definition.name;
 
         // True when every part is a known shape with the right number of finite values
         // inside the drawing box. Shared by the managed tests, so a typo fails before the Player.

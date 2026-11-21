@@ -15,6 +15,8 @@ namespace CoreClash.Presentation
         static readonly Dictionary<StatusKind,Texture2D> Cache=new Dictionary<StatusKind,Texture2D>();
         const string ShieldShape="+P -.72 -.8 .72 -.8 .72 .1 0 .92 -.72 .1";
 
+        // W24: the same shape for cards and lists that explain a state.
+        public static string Shape(StatusKind kind)=>Spec(kind);
         static string Spec(StatusKind kind)
         {
             switch(kind)

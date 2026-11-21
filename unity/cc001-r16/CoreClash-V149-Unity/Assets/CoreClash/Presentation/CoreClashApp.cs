@@ -15,7 +15,7 @@ namespace CoreClash.Presentation
         public GameSimulation Simulation {get;private set;}
         public IUnityNetworkLink NetworkLink {get;private set;}
         public bool IsSetup=>setup;
-        public bool IsModalOpen=>inspect.Length>0||builder||exitGuard.Open;
+        public bool IsModalOpen=>inspect.Length>0||builder||exitGuard.Open||deckGuide!=null;
         public bool IsExitConfirmOpen=>exitGuard.Open;
         public bool DeveloperOverlay {get;private set;}
         // W22: normal play offers only the active roster. The developer roster (F2, or the button
@@ -68,7 +68,7 @@ namespace CoreClash.Presentation
         void Awake(){Initialize();}
         public void Initialize()
         {
-            if(initialized)return;initialized=true;VersusAi=PlayerPrefs.GetInt("cc.versusAi",0)==1;Application.targetFrameRate=60;QualitySettings.vSyncCount=1;
+            if(initialized)return;initialized=true;VersusAi=PlayerPrefs.GetInt("cc.versusAi",0)==1;LoadLanguage();Application.targetFrameRate=60;QualitySettings.vSyncCount=1;
             try{
                 var source=Resources.Load<TextAsset>("Data/catalog");var featured=Resources.Load<TextAsset>("Data/featured-decks");
                 if(source==null||featured==null)throw new Exception("Game data could not be loaded.");
@@ -122,7 +122,7 @@ namespace CoreClash.Presentation
             if(UnityEngine.Input.GetKeyDown(KeyCode.F2)&&setup)SetDeveloperRoster(!DeveloperRoster);
             if(exitGuard.Open&&!externalModal&&(UnityEngine.Input.GetKeyDown(KeyCode.Return)||UnityEngine.Input.GetKeyDown(KeyCode.KeypadEnter)||UnityEngine.Input.GetKeyDown(KeyCode.JoystickButton0)))ConfirmLeaveMatch();
             else if(exitGuard.Open&&!externalModal&&(UnityEngine.Input.GetKeyDown(KeyCode.Escape)||UnityEngine.Input.GetKeyDown(KeyCode.JoystickButton1)))CancelLeaveMatch();
-            else if(UnityEngine.Input.GetKeyDown(KeyCode.Escape)&&!externalModal){if(inspect.Length>0)CloseBallDetails();else if(DeveloperOverlay)SetDeveloperOverlay(false);else if(phoneMenu)phoneMenu=false;else if(boardInspection)SetBoardInspection(false);else if(builder)builder=false;else if(library)library=false;else if(!setup)RequestLeaveMatch();}
+            else if(UnityEngine.Input.GetKeyDown(KeyCode.Escape)&&!externalModal){if(inspect.Length>0)CloseBallDetails();else if(deckGuide!=null)deckGuide=null;else if(DeveloperOverlay)SetDeveloperOverlay(false);else if(phoneMenu)phoneMenu=false;else if(boardInspection)SetBoardInspection(false);else if(builder)builder=false;else if(library)library=false;else if(!setup)RequestLeaveMatch();}
             if(setup)return;
             BoardView.VisualLead=0;
             if(MatchExitGuard.PausesSimulation(exitGuard.Open,NetworkLink!=null))accumulator=0;
@@ -151,6 +151,7 @@ namespace CoreClash.Presentation
             if(boardInspection){gesture.Active=false;if(p.down)InspectAt(p.position);return;}
             if(!CanChoose||Time.frameCount<=pointerReadyFrame){gesture.Active=false;return;}
             Vector2 screen=UiViewport.PointerToLogical(p.position);
+            if(p.down&&hintShown&&layout.PhonePortrait&&hintRect.Contains(screen)){gesture.Active=false;ShowBallDetails(selected);return;}
             float viewX=(screen.x-board.x)*540/board.width,viewY=(screen.y-board.y)*540/board.width;
             Vector2 world=new Vector2(MatchPerspective.SimulationX(viewX,ViewOwner),MatchPerspective.SimulationY(viewY,ViewOwner));
             if(p.down&&board.Contains(screen)){
@@ -167,7 +168,7 @@ namespace CoreClash.Presentation
         }
         public void SelectDeck(int owner,string id){if(owner<0||owner>1)return;var deck=Catalog.Deck(id);if(deck!=null)chosen[owner]=deck;}
         public void StartLocalMatch(){NetworkLink?.Disconnect();GetComponent<NgoGameSession>()?.Disconnect();StartMatchState();aiMatch=VersusAi;}
-        void StartMatchState(){aiMatch=false;ai.Reset();remoteBallSmoother.Reset();remoteLastEventId=remoteLastRevision=0;NetworkLink=null;Simulation=new GameSimulation(Catalog,chosen[0],chosen[1]);
+        void StartMatchState(){deckGuide=null;hintShown=false;aiMatch=false;ai.Reset();remoteBallSmoother.Reset();remoteLastEventId=remoteLastRevision=0;NetworkLink=null;Simulation=new GameSimulation(Catalog,chosen[0],chosen[1]);
             // W22: a match between two active decks keeps random type picks inside the active roster.
             // A match with a frozen deck (developer roster, tests, drivers) runs exactly as before.
             Simulation.ActiveRosterOnly=Catalog.Roster!=null&&Catalog.Roster.IsActiveDeck(chosen[0])&&Catalog.Roster.IsActiveDeck(chosen[1]);
@@ -195,7 +196,7 @@ namespace CoreClash.Presentation
         }
         public void ConfirmLeaveMatch(){if(exitGuard.Confirm()){Debug.Log("CORE_CLASH_LEAVE_CONFIRMED");ReturnToSetup();}}
         public void CancelLeaveMatch(){if(exitGuard.Open){exitGuard.Cancel();CancelPointer();Debug.Log("CORE_CLASH_LEAVE_CANCELED");}}
-        public void ReturnToSetup(){exitGuard.Reset();remoteBallSmoother.Reset();NetworkLink?.Disconnect();GetComponent<NgoGameSession>()?.Disconnect();NetworkLink=null;setup=true;builder=library=boardInspection=false;CancelPointer();CloseBallDetails();DeveloperOverlay=false;}
+        public void ReturnToSetup(){deckGuide=null;hintShown=false;exitGuard.Reset();remoteBallSmoother.Reset();NetworkLink?.Disconnect();GetComponent<NgoGameSession>()?.Disconnect();NetworkLink=null;setup=true;builder=library=boardInspection=false;CancelPointer();CloseBallDetails();DeveloperOverlay=false;}
         public void BeginNetworkGame(IUnityNetworkLink link){StartMatchState();NetworkLink=link;networkNotice=link.Status;}
         public void ReceiveNetworkState(GameState state,int snapshotRevision)
         {
@@ -235,13 +236,14 @@ namespace CoreClash.Presentation
             if(fatal.Length>0){Draw.Text(new Rect(30,100,UiWidth-60,200),fatal,18,Theme.OnColor);return;}if(Catalog==null)return;
             int screen=setup?(builder?1:library?2:0):3;
             if(screen!=screenShown){screenShown=screen;screenAt=Time.unscaledTime;}
-            bool prior=GUI.enabled;GUI.enabled=!externalModal&&inspect.Length==0&&!DeveloperOverlay;
+            bool prior=GUI.enabled;GUI.enabled=!externalModal&&inspect.Length==0&&!DeveloperOverlay&&deckGuide==null;
             GUI.enabled=GUI.enabled&&!exitGuard.Open;
             if(setup){if(builder)RenderBuilder();else if(library)RenderLibrary();else RenderSetup();}else RenderMatch();GUI.enabled=prior;
             // Screen change: the new screen fades in from the backdrop. Input is never held back.
             float fade=Fx.ReducedMotion?0:1-Mathf.Clamp01((Time.unscaledTime-screenAt)/Theme.ScreenFade);
             if(fade>0&&Event.current.type==EventType.Repaint)Draw.Rect(new Rect(0,60,UiWidth,UiHeight-60),Theme.A(Color.Lerp(Theme.BackdropTop,Theme.BackdropBottom,.5f),fade*fade));
             if(exitGuard.Open&&!setup)RenderExitConfirm();
+            if(deckGuide!=null){bool enabled=GUI.enabled;GUI.enabled=enabled&&inspect.Length==0;RenderDeckGuide();GUI.enabled=enabled;}
             if(inspect.Length>0)RenderInfo();if(DeveloperOverlay)RenderDeveloper();
             GetComponent<NgoLanLobby>()?.Render();
         }
