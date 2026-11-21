@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { DrawPresenter, TOURNAMENT_PRESENTERS, Wheel, loadPresenter, savePresenter, usePrefersReducedMotion, type PresenterId } from "@/components/draw-presenters";
 import type { TournamentStage } from "@workspace/api-client-react";
 import {
   Dices,
@@ -322,104 +323,6 @@ function statusLabel(state: SeedingCeremonyState): string {
   }
 }
 
-function Wheel({
-  options,
-  rotation,
-  spinning,
-  animDuration,
-}: {
-  options: string[];
-  rotation: number;
-  spinning: boolean;
-  animDuration: number;
-}) {
-  const visible = options.slice(0, 32);
-  const count = visible.length;
-
-  // Adaptive font size: smaller for dense wheels
-  const fontSize = count <= 12 ? 11 : count <= 20 ? 10 : count <= 26 ? 9 : 8;
-  // Adaptive max label length to prevent overflow
-  const maxChars = count <= 16 ? 12 : count <= 24 ? 9 : 7;
-
-  return (
-    <div
-      className="relative mx-auto aspect-square w-full max-w-[360px]"
-      aria-label={`Koło losowania, pozostało ${options.length} wyników`}
-    >
-      <div className="absolute left-1/2 top-0 z-10 -translate-x-1/2 -translate-y-1 border-x-[12px] border-t-[22px] border-x-transparent border-t-primary" />
-      <svg
-        viewBox="0 0 320 320"
-        className="h-full w-full drop-shadow-sm"
-        role="img"
-        aria-label="Animowane koło dostępnych wyników"
-      >
-        <g
-          style={{
-            transform: `rotate(${rotation}deg)`,
-            transformOrigin: "160px 160px",
-            transition: spinning
-              ? `transform ${animDuration.toFixed(2)}s cubic-bezier(.12,.7,.08,1)`
-              : "none",
-          }}
-        >
-          <circle cx="160" cy="160" r="148" className="fill-muted stroke-border" strokeWidth="2" />
-          {visible.map((option, index) => {
-            const angle = (360 / Math.max(count, 1)) * index;
-            const radians = ((angle - 90) * Math.PI) / 180;
-            const x = 160 + Math.cos(radians) * 112;
-            const y = 160 + Math.sin(radians) * 112;
-
-            // Radial orientation: labels point outward (top half) or inward (bottom half),
-            // always readable — avoids tangential overlap at high seed counts.
-            const labelRotation = angle <= 180 ? angle - 90 : angle + 90;
-
-            const label =
-              option.length > maxChars
-                ? `${option.slice(0, maxChars - 1)}…`
-                : option;
-
-            return (
-              <g key={`${option}-${index}`}>
-                <line
-                  x1="160"
-                  y1="160"
-                  x2={160 + Math.cos(radians) * 148}
-                  y2={160 + Math.sin(radians) * 148}
-                  className="stroke-border"
-                  strokeWidth="1"
-                />
-                <text
-                  x={x}
-                  y={y}
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  className="fill-foreground font-semibold"
-                  style={{ fontSize: `${fontSize}px` }}
-                  transform={`rotate(${labelRotation}, ${x}, ${y})`}
-                >
-                  {label}
-                </text>
-              </g>
-            );
-          })}
-          <circle cx="160" cy="160" r="42" className="fill-background stroke-primary" strokeWidth="3" />
-          <text x="160" y="155" textAnchor="middle" className="fill-foreground text-[14px] font-bold">
-            {options.length}
-          </text>
-          <text x="160" y="174" textAnchor="middle" className="fill-muted-foreground text-[10px]">
-            pozostało
-          </text>
-        </g>
-      </svg>
-      {options.length > 32 && (
-        <Badge variant="secondary" className="absolute bottom-2 left-1/2 -translate-x-1/2">
-          Pokazano 32 z {options.length}
-        </Badge>
-      )}
-    </div>
-  );
-}
-
 function PlacementPreview({ state }: { state: SeedingCeremonyState }) {
   const revealed = revealedCeremonyDraws(state);
   const grouped = useMemo(() => {
@@ -478,6 +381,7 @@ function CeremonyBody({
   spinning,
   pendingDraw,
   animDuration,
+  presenter = "kolo",
 }: {
   state: SeedingCeremonyState;
   currentDraw: SeedingCeremonyDraw | null;
@@ -485,6 +389,7 @@ function CeremonyBody({
   spinning: boolean;
   pendingDraw: SeedingCeremonyDraw | null;
   animDuration: number;
+  presenter?: PresenterId;
 }) {
   const revealed = revealedCeremonyDraws(state);
   const options = visibleWheelDraws(state, pendingDraw?.drawNumber).map((draw) =>
@@ -496,12 +401,23 @@ function CeremonyBody({
   return (
     <div className="space-y-5">
       <div className="grid gap-5 lg:grid-cols-[minmax(260px,360px)_1fr] lg:items-center">
-        <Wheel
-          options={options}
-          rotation={rotation}
-          spinning={spinning}
-          animDuration={animDuration}
-        />
+        {presenter === "kolo" ? (
+          <Wheel
+            options={options}
+            rotation={rotation}
+            spinning={spinning}
+            animDuration={animDuration}
+          />
+        ) : (() => {
+          // #324-L01-B: every presenter shows the result the server already stored (the pending or the last revealed draw)
+          const shown = spinning ? pendingDraw : currentDraw;
+          const target = shown ? drawResultLabel(shown, state.drawMode) : null;
+          const pool = target && !options.includes(target) ? [...options, target] : options;
+          return (
+            <DrawPresenter id={presenter} frame={{ pool, target, subject: shown?.playerName ?? null, running: spinning,
+              durationMs: Math.round(animDuration * 1000), drawKey: shown?.drawNumber ?? 0 }} />
+          );
+        })()}
         <div className="space-y-4">
           <div>
             <div className="mb-2 flex items-center justify-between gap-3 text-sm">
@@ -519,7 +435,7 @@ function CeremonyBody({
             {spinning ? (
               <>
                 <Loader2 className="mx-auto mb-3 h-8 w-8 animate-spin text-primary" />
-                <p className="font-semibold">Koło się obraca…</p>
+                <p className="font-semibold">{presenter === "kolo" ? "Koło się obraca…" : "Losowanie…"}</p>
               </>
             ) : currentDraw ? (
               <>
@@ -593,6 +509,12 @@ export function SeedingCeremony({
     setAnimSettingsRaw(normalized);
     saveAnimSettings(normalized);
   }, []);
+
+  // #324-L01-B: how the stored result is shown — a browser preference that never touches the draw
+  const [presenter, setPresenterRaw] = useState<PresenterId>(() => loadPresenter());
+  const setPresenter = useCallback((id: PresenterId) => { setPresenterRaw(id); savePresenter(id); }, []);
+  const reducedMotion = usePrefersReducedMotion();
+  const finishSpin = useRef<(() => void) | null>(null);
 
   const animationTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const autoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -673,7 +595,7 @@ export function SeedingCeremony({
       const draw = next.draws[next.revealedCount - 1] ?? null;
 
       // Sample animation params — purely visual, result is already determined by server
-      const dur = sampleDuration(animSettings);
+      const dur = presenter === "szybko" || reducedMotion ? 0.3 : sampleDuration(animSettings);
       const speed = sampleSpeed(animSettings);
       const turns = Math.max(3, Math.round(4 * speed));
 
@@ -691,17 +613,18 @@ export function SeedingCeremony({
       setPendingDraw(draw);
       setRotation((value) => value + turns * 360 + (360 - landingOffset));
 
-      animationTimer.current = setTimeout(
-        () => {
-          applyState(next);
-          setCurrentDraw(draw);
-          setPendingDraw(null);
-          spinningRef.current = false;
-          setSpinning(false);
-          setActing(false);
-        },
-        Math.round(dur * 1000) + 100,
-      );
+      const complete = () => {
+        finishSpin.current = null;
+        if (animationTimer.current) clearTimeout(animationTimer.current);
+        applyState(next);
+        setCurrentDraw(draw);
+        setPendingDraw(null);
+        spinningRef.current = false;
+        setSpinning(false);
+        setActing(false);
+      };
+      finishSpin.current = complete;
+      animationTimer.current = setTimeout(complete, Math.round(dur * 1000) + 100);
     } catch (requestError) {
       setError(getApiErrorMessage(requestError));
       spinningRef.current = false;
@@ -710,7 +633,7 @@ export function SeedingCeremony({
       setActing(false);
       setAutoPlay(false);
     }
-  }, [animSettings, applyState, spinning, stage.id, state, tournamentId]);
+  }, [animSettings, applyState, presenter, reducedMotion, spinning, stage.id, state, tournamentId]);
 
   useEffect(() => {
     if (!autoPlay || spinning || acting || !state || state.revealedCount >= state.draws.length)
@@ -847,6 +770,7 @@ export function SeedingCeremony({
                 spinning={spinning}
                 pendingDraw={pendingDraw}
                 animDuration={animDuration}
+                presenter={presenter}
               />
               {controls && state.status !== "applied" && (
                 <div className="flex flex-wrap items-center gap-2 border-t pt-4">
@@ -879,6 +803,21 @@ export function SeedingCeremony({
                       {autoPlay ? "Pauza" : "Losuj automatycznie"}
                     </Button>
                   )}
+                  {spinning && (
+                    // #324-L01-B: the result is already stored — stop the animation and show it now
+                    <Button type="button" variant="secondary" onClick={() => finishSpin.current?.()} data-testid="ceremony-show-now">
+                      <FastForward className="mr-2 h-4 w-4" /> Pokaż wynik od razu
+                    </Button>
+                  )}
+                  <label className="flex items-center gap-2 text-sm">
+                    <span className="text-muted-foreground">Prezentacja</span>
+                    <select className="min-h-9 rounded-md border bg-background px-2" value={presenter} disabled={spinning}
+                      onChange={(event) => setPresenter(event.target.value as PresenterId)} aria-label="Prezentacja losowania">
+                      {TOURNAMENT_PRESENTERS.map((option) => (
+                        <option key={option.id} value={option.id}>{option.label}{option.status === "STABLE_CANDIDATE" ? " (nowa)" : ""}</option>
+                      ))}
+                    </select>
+                  </label>
                   {state.revealedCount < state.draws.length && (
                     <Button
                       type="button"
@@ -921,6 +860,7 @@ export function SeedingCeremony({
               spinning={spinning}
               pendingDraw={pendingDraw}
               animDuration={animDuration}
+              presenter={presenter}
             />
           )}
         </DialogContent>

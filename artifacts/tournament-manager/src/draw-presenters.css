@@ -1,0 +1,29 @@
+/* #324-L01-B · draw presenters. Visual only: every presenter ends on the stored result. Reduced motion: no movement. */
+.draw-card { perspective: 600px; aspect-ratio: 3 / 4; }
+.draw-card-inner { position: relative; display: block; width: 100%; height: 100%; transform-style: preserve-3d; transition: transform .6s ease; }
+.draw-card-back, .draw-card-front {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; border-radius: .5rem; border: 1px solid hsl(var(--border));
+  backface-visibility: hidden; font-weight: 800; font-size: .8rem; padding: .25rem; text-align: center; line-height: 1.1; overflow-wrap: anywhere;
+}
+.draw-card-back { background: repeating-linear-gradient(45deg, hsl(var(--primary) / .18) 0 6px, hsl(var(--primary) / .08) 6px 12px); color: hsl(var(--primary)); font-size: 1.2rem; }
+.draw-card-front { background: hsl(var(--card)); transform: rotateY(180deg); }
+.draw-presenter[data-running] .draw-card[data-chosen] .draw-card-inner { animation: draw-card-flip .6s ease var(--flip-delay, 0ms) forwards; }
+.draw-card[data-revealed] .draw-card-inner { transform: rotateY(180deg); }
+.draw-card[data-revealed] .draw-card-front { border-color: hsl(var(--primary)); box-shadow: 0 0 0 2px hsl(var(--primary) / .5); }
+.draw-presenter:not([data-running]) .draw-card:not([data-chosen]) { opacity: .45; }
+@keyframes draw-card-flip { to { transform: rotateY(180deg); } }
+
+.draw-presenter [data-active] { background: hsl(var(--primary) / .18); border-color: hsl(var(--primary)); }
+.draw-presenter [data-chosen] { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); border-color: hsl(var(--primary)); }
+.draw-presenter[data-presenter="automat"] li[data-final] { color: hsl(var(--primary)); }
+
+.draw-ball { display: inline-flex; align-items: center; justify-content: center; width: 2.1rem; height: 2.1rem; border-radius: 999px; font-size: .7rem; font-weight: 800;
+  background: radial-gradient(circle at 30% 30%, #fff, hsl(var(--primary) / .55)); color: #111; box-shadow: inset 0 -2px 4px rgba(0, 0, 0, .25); }
+.draw-drum[data-running] .draw-ball { animation: draw-ball-tumble .5s ease-in-out infinite alternate; animation-delay: calc(var(--i) * -70ms); }
+.draw-ball--out { display: flex; width: 5rem; height: 5rem; font-size: 1.1rem; animation: draw-ball-out .5s ease-out; }
+@keyframes draw-ball-tumble { from { transform: translate(-3px, -4px) rotate(-12deg); } to { transform: translate(3px, 4px) rotate(12deg); } }
+@keyframes draw-ball-out { from { transform: translateY(-3rem) scale(.4); opacity: 0; } to { transform: none; opacity: 1; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .draw-presenter *, .draw-presenter *::before { animation: none !important; transition: none !important; }
+}
