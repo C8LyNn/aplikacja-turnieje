@@ -3,6 +3,7 @@ using System.Collections;
 using System.IO;
 using System.Linq;
 using CoreClash.Core;
+using CoreClash.Input;
 using CoreClash.Presentation;
 using UnityEngine;
 
@@ -58,12 +59,21 @@ namespace CoreClash.Testing
                 app.CloseBallDetails();
             }
             app.ReturnToSetup();
-            app.SelectDeck(0, decks[0].id); app.SelectDeck(1, decks[1].id);
+            app.SelectDeck(0, decks[1].id); app.SelectDeck(1, decks[0].id);
             app.StartLocalMatch();
             var sim = app.Simulation;
             yield return Wait(.6f);
             app.TapTrayBall(sim.State.players[0].stock[1].id);
             yield return Shot("90-match-tray");
+            // Aiming a Bomb: the estimated stop and the reach of the blast from there.
+            app.SelectBall("bomb");
+            yield return null;
+            Vector2 from = ScreenPoint(270, 853), to = ScreenPoint(215, 600);
+            Pointer(from, true, true, false, false);
+            for (int i = 1; i <= 10; i++) { Pointer(Vector2.Lerp(from, to, i / 10f), false, true, false, false); yield return null; }
+            yield return Shot("93-aim-reach");
+            Pointer(to, false, false, false, true);
+            yield return null;
             // A ball that is on fire, poisoned and shielded, and an armed Mine: both opened from the board.
             var burning = sim.Spawn(0, "normal", 200, 520);
             sim.Abilities.ApplyFire(burning, 1); sim.Abilities.ApplyToxin(burning, 1); sim.Shield(burning, 5);
@@ -73,12 +83,27 @@ namespace CoreClash.Testing
             app.ShowRuntimeBallDetails(mine.id);
             yield return Shot("92-card-armed-mine");
             app.CloseBallDetails();
+            app.RequestLeaveMatch();
+            yield return Shot("94-leave");
+            app.CancelLeaveMatch();
+            sim.Rules.Finish(0, "Base destroyed");
+            yield return Wait(1.6f);
+            yield return Shot("95-result");
             Lang.Polish = polishBefore;
             Debug.Log("CC_W24_GUIDE_PASS cards=" + number);
             Application.Quit(0);
         }
 
         static IEnumerator Wait(float seconds) { float until = Time.realtimeSinceStartup + seconds; while (Time.realtimeSinceStartup < until) yield return null; }
+
+        void Pointer(Vector2 position, bool down, bool held, bool up, bool canceled)
+            => app.PresentationPointer(new PointerSample { id = 700, position = position, down = down, held = held, up = up, canceled = canceled });
+
+        Vector2 ScreenPoint(float worldX, float worldY)
+        {
+            Rect arena = app.ArenaRect; float scale = arena.width / 540;
+            return new Vector2(arena.x + worldX * scale, Screen.height - (arena.y + worldY * scale));
+        }
 
         IEnumerator Shot(string name)
         {

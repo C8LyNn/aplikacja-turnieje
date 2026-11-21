@@ -46,8 +46,8 @@ namespace CoreClash.Presentation
             ScorePill(new Rect(r.xMax-w,r.y,w,r.height),1);
             var badge=new Rect(r.x+w+gap,r.y,mid,r.height);
             Draw.Shadow(badge,.16f,6,3);Draw.Round(badge,Theme.Ink);
-            Draw.Text(new Rect(badge.x,badge.y+3,badge.width,13),over?"Result":"Turn",9,new Color(1,1,1,.75f),TextAnchor.MiddleCenter,true);
-            string big=over?(state.winner<0?"DRAW":"P"+(state.winner+1)):state.turnNumber+"/50";
+            Draw.Text(new Rect(badge.x,badge.y+3,badge.width,13),over?Lang.T("Result","Wynik"):Lang.T("Turn","Tura"),9,new Color(1,1,1,.75f),TextAnchor.MiddleCenter,true);
+            string big=over?(state.winner<0?Lang.T("DRAW","REMIS"):Lang.T("P","G")+(state.winner+1)):state.turnNumber+"/50";
             Draw.Text(new Rect(badge.x,badge.y+14,badge.width,badge.height-16),big,badge.height>=44?16:14,over?Theme.Select:Theme.OnColor,TextAnchor.MiddleCenter,true);
         }
         void ScorePill(Rect cell,int owner)
@@ -64,7 +64,7 @@ namespace CoreClash.Presentation
             float top=cell.y+2,rowH=cell.height-(acting?7:4)-10;
             Draw.Ring(new Vector2(cell.x+16,top+rowH*.5f),6.5f,ink,2.4f,owner==1?Theme.P2RingSegments:0,Theme.P2RingFill);
             bool you=NetworkLink!=null&&NetworkLink.LocalOwner==owner;
-            string name=cell.width<150?"P"+(owner+1)+(you?" YOU":""):"PLAYER "+(owner+1)+(you?" · YOU":"");
+            string name=cell.width<150?Lang.T("P","G")+(owner+1)+(you?Lang.T(" YOU"," TY"):""):Lang.T("PLAYER ","GRACZ ")+(owner+1)+(you?Lang.T(" · YOU"," · TY"):"");
             Draw.Text(new Rect(cell.x+28,top,cell.width-28-50,rowH),name,cell.width<150?11:12,ink,TextAnchor.MiddleLeft,true);
             Draw.Text(new Rect(cell.xMax-58,top-1,48,rowH+2),hp.ToString(),cell.height>=44?21:17,ink,TextAnchor.MiddleRight,true);
             var bar=new Rect(cell.x+10,top+rowH+1,cell.width-20,6);
@@ -112,32 +112,32 @@ namespace CoreClash.Presentation
             string facts=(string.IsNullOrEmpty(d.archetype)||d.archetype=="base"?"":d.archetype.ToUpperInvariant()+"  ·  ")+d.hp+" HP  ·  "+stockText;
             Draw.Text(new Rect(textX,strip.y+(rows.Tight?27:30),textWidth,16),facts,Theme.FontSmall,Theme.SelectInk,TextAnchor.MiddleLeft,true);
             if(!rows.Tight)Draw.Text(new Rect(textX,strip.y+47,textWidth,16),Cue(selected),Theme.FontSmall,Theme.Muted,TextAnchor.MiddleLeft);
-            string deckHeading=NetworkLink==null?"Deck":displayOwner<0?"Deck unavailable":"Your deck";
+            string deckHeading=NetworkLink==null?Lang.T("Deck","Talia"):displayOwner<0?Lang.T("Deck unavailable","Talia niedostępna"):Lang.T("Your deck","Twoja talia");
             var heading=RectOf(rows.Heading);
             Draw.Text(heading,deckHeading,10,Theme.Muted,TextAnchor.MiddleLeft,true);
-            if(!UiViewport.IsTouch&&heading.width>=330)Draw.Text(heading,"Keys 1-9  ·  0 Standard",Theme.FontTiny,Theme.Disabled,TextAnchor.MiddleRight,true);
+            if(!UiViewport.IsTouch&&heading.width>=330)Draw.Text(heading,Lang.T("Keys 1-9  ·  0 Standard","Klawisze 1-9  ·  0 Zwykła"),Theme.FontTiny,Theme.Disabled,TextAnchor.MiddleRight,true);
             var ids=LocalDeckContent.StockIds(state,displayOwner);
             for(int i=0;i<ids.Length&&i<rows.Cards.Length;i++)BallCard(RectOf(rows.Cards[i]),ids[i]);
             bool normalSelected=selected=="normal";var standard=RectOf(rows.Standard);
-            if(Draw.Button(standard,"Standard  ·  unlimited",Draw.Owner(visualOwner),normalSelected,CanChoose,12))SelectBall("normal");
+            if(Draw.Button(standard,Lang.T("Standard  ·  unlimited","Zwykła  ·  bez limitu"),Draw.Owner(visualOwner),normalSelected,CanChoose,12))SelectBall("normal");
             BallView.Preview(new Rect(standard.x+13,standard.y+(standard.height-4-20)/2,20,20),Catalog.Ball("normal"),visualOwner,false);
             bool touch=UiViewport.TargetSize>=44;int actionFont=rows.Width<380?10:touch?12:11;
-            if(Draw.Button(RectOf(rows.Actions[0]),"Details",size:actionFont))ShowBallDetails(selected);
-            if(Draw.Button(RectOf(rows.Actions[1]),boardInspection?"Cancel":"Inspect",Theme.Info,boardInspection,true,actionFont))SetBoardInspection(!boardInspection);
-            if(Draw.Button(RectOf(rows.Actions[2]),BoardView.ShowStopEstimate?"Stop mark: on":"Stop mark: off",Theme.Select,BoardView.ShowStopEstimate,true,actionFont))ToggleStopEstimate();
-            if(Draw.Button(RectOf(rows.Actions[3]),"Leave",size:actionFont))RequestLeaveMatch();
-            string hint=boardInspection?"TAP A BALL TO INSPECT":over?(state.winner<0?"DRAW":("PLAYER "+(state.winner+1)+" WINS")):
+            if(Draw.Button(RectOf(rows.Actions[0]),Lang.T("Details","Opis"),size:actionFont))ShowBallDetails(selected);
+            if(Draw.Button(RectOf(rows.Actions[1]),boardInspection?Lang.T("Cancel","Anuluj"):Lang.T("Inspect","Podgląd"),Theme.Info,boardInspection,true,actionFont))SetBoardInspection(!boardInspection);
+            if(Draw.Button(RectOf(rows.Actions[2]),BoardView.ShowStopEstimate?Lang.T("Stop mark: on","Znacznik stopu: wł."):Lang.T("Stop mark: off","Znacznik stopu: wył."),Theme.Select,BoardView.ShowStopEstimate,true,actionFont))ToggleStopEstimate();
+            if(Draw.Button(RectOf(rows.Actions[3]),Lang.T("Leave","Wyjdź"),size:actionFont))RequestLeaveMatch();
+            string hint=boardInspection?Lang.T("TAP A BALL TO INSPECT","DOTKNIJ KULKI, ŻEBY JĄ OBEJRZEĆ"):over?(state.winner<0?Lang.T("DRAW","REMIS"):(Lang.T("PLAYER ","GRACZ ")+(state.winner+1)+Lang.T(" WINS"," WYGRYWA"))):
                 LocalTurnPresentation.ActionHint(state,NetworkLink==null?-1:NetworkLink.LocalOwner,
                     NetworkLink!=null,NetworkLink==null||NetworkLink.IsConnected,gesture.Active,
-                    gesture.AimX-gesture.OriginX,gesture.AimY-gesture.OriginY,"DRAG FROM YOUR LAUNCHER TO AIM");
+                    gesture.AimX-gesture.OriginX,gesture.AimY-gesture.OriginY,Lang.T("DRAG FROM YOUR LAUNCHER TO AIM","PRZECIĄGNIJ OD WYRZUTNI, ŻEBY WYCELOWAĆ"));
             // Second line, most relevant first: result, inspection help, a rejected shot,
             // the last action's result from real events, then the standing tip.
             string summary=ActionSummary.For(state);bool result=false;string detail;
             if(over)detail=state.resultReason;
-            else if(boardInspection)detail="Inspect either player's ball. Cancel to resume aiming.";
+            else if(boardInspection)detail=Lang.T("Inspect either player's ball. Cancel to resume aiming.","Obejrzyj kulkę dowolnego gracza. Anuluj, żeby wrócić do celowania.");
             else if(notice.Length>0&&CanChoose)detail=notice;
             else if(summary.Length>0){detail=summary;result=true;}
-            else detail=state.bonusPending?"Player 2 gets one extra spawn on the opening turn.":"A glowing home ball can Replay before you spawn.";
+            else detail=state.bonusPending?Lang.T("Player 2 gets one extra spawn on the opening turn.","Gracz 2 dostaje jeden dodatkowy strzał w pierwszej turze."):Lang.T("A glowing home ball can Replay before you spawn.","Świecącą kulkę w twojej strefie możesz wystrzelić ponownie przed nowym strzałem.");
             var hintBox=RectOf(rows.Hint);
             Draw.Round(hintBox,Theme.PanelLight);
             Draw.Text(new Rect(hintBox.x+10,hintBox.y+3,hintBox.width-20,17),Soft(hint),13,active,TextAnchor.MiddleLeft,true);
@@ -174,12 +174,12 @@ namespace CoreClash.Presentation
             string name=over?TurnText():BallIcons.Name(d);
             Draw.Text(new Rect(textX,choice.y+2,choice.xMax-textX-136,22),name,14,Theme.Text,TextAnchor.MiddleLeft,true);
             string hint=over?state.resultReason:
-                boardInspection?"TAP BALL TO INSPECT":
+                boardInspection?Lang.T("TAP BALL TO INSPECT","DOTKNIJ KULKI"):
                 LocalTurnPresentation.ActionMessage(state,NetworkLink==null?-1:NetworkLink.LocalOwner,
                     NetworkLink!=null,NetworkLink==null||NetworkLink.IsConnected,gesture.Active,
-                    gesture.AimX-gesture.OriginX,gesture.AimY-gesture.OriginY,"DRAG FROM LAUNCHER",notice);
+                    gesture.AimX-gesture.OriginX,gesture.AimY-gesture.OriginY,Lang.T("DRAG FROM LAUNCHER","PRZECIĄGNIJ OD WYRZUTNI"),notice);
             Draw.Text(new Rect(textX,choice.y+23,choice.xMax-textX-136,19),Soft(hint),11,Theme.Muted,TextAnchor.MiddleLeft,true);
-            if(Draw.Button(new Rect(choice.xMax-128,choice.y,128,44),"Standard",Draw.Owner(tintOwner),selected=="normal",CanChoose,12))SelectBall("normal");
+            if(Draw.Button(new Rect(choice.xMax-128,choice.y,128,44),Lang.T("Standard","Zwykła"),Draw.Owner(tintOwner),selected=="normal",CanChoose,12))SelectBall("normal");
 
             if(over){
                 Draw.Round(cards,Color.Lerp(Theme.Panel,Theme.Select,.25f));
@@ -192,16 +192,16 @@ namespace CoreClash.Presentation
             }
 
             float actionW=(actions.width-12)/4;
-            if(Draw.Button(new Rect(actions.x,actions.y,actionW,44),"Details",size:12))ShowBallDetails(selected);
-            if(Draw.Button(new Rect(actions.x+actionW+4,actions.y,actionW,44),boardInspection?"Cancel":"Inspect",Theme.Info,boardInspection,true,12))SetBoardInspection(!boardInspection);
-            if(Draw.Button(new Rect(actions.x+2*(actionW+4),actions.y,actionW,44),BoardView.ShowStopEstimate?"Stop: on":"Stop: off",Theme.Select,BoardView.ShowStopEstimate,true,12))ToggleStopEstimate();
-            if(Draw.Button(new Rect(actions.x+3*(actionW+4),actions.y,actionW,44),"Leave",size:12))RequestLeaveMatch();
+            if(Draw.Button(new Rect(actions.x,actions.y,actionW,44),Lang.T("Details","Opis"),size:12))ShowBallDetails(selected);
+            if(Draw.Button(new Rect(actions.x+actionW+4,actions.y,actionW,44),boardInspection?Lang.T("Cancel","Anuluj"):Lang.T("Inspect","Podgląd"),Theme.Info,boardInspection,true,12))SetBoardInspection(!boardInspection);
+            if(Draw.Button(new Rect(actions.x+2*(actionW+4),actions.y,actionW,44),BoardView.ShowStopEstimate?Lang.T("Stop: on","Stop: wł."):Lang.T("Stop: off","Stop: wył."),Theme.Select,BoardView.ShowStopEstimate,true,12))ToggleStopEstimate();
+            if(Draw.Button(new Rect(actions.x+3*(actionW+4),actions.y,actionW,44),Lang.T("Leave","Wyjdź"),size:12))RequestLeaveMatch();
             if(feedbackRow.height>=20){
                 string message=over?TurnText():
-                    boardInspection?"CANCEL INSPECT TO AIM":
+                    boardInspection?Lang.T("CANCEL INSPECT TO AIM","ANULUJ PODGLĄD, ŻEBY CELOWAĆ"):
                     LocalTurnPresentation.ActionMessage(state,NetworkLink==null?-1:NetworkLink.LocalOwner,
                         NetworkLink!=null,NetworkLink==null||NetworkLink.IsConnected,gesture.Active,
-                        gesture.AimX-gesture.OriginX,gesture.AimY-gesture.OriginY,"SELECT A BALL AND DRAG TO AIM",notice);
+                        gesture.AimX-gesture.OriginX,gesture.AimY-gesture.OriginY,Lang.T("SELECT A BALL AND DRAG TO AIM","WYBIERZ KULKĘ I PRZECIĄGNIJ"),notice);
                 Draw.Text(feedbackRow,Soft(message),12,over?Theme.SelectInk:Theme.TeamDeep(owner),TextAnchor.MiddleLeft,true);
             }
         }
@@ -267,10 +267,10 @@ namespace CoreClash.Presentation
             Draw.Card(sheet,null,null,.4f);
             float cell=(w-pad*2-gap)/2;
             Rect Slot(int i)=>new Rect(sheet.x+pad+(i%2)*(cell+gap),sheet.y+pad+(i/2)*(buttonH+gap),cell,buttonH);
-            if(MenuButton(Slot(0),IconInspect,boardInspection?"Stop inspecting":"Inspect a ball",Theme.Info,boardInspection)){SetBoardInspection(!boardInspection);phoneMenu=false;}
-            if(MenuButton(Slot(1),IconStop,BoardView.ShowStopEstimate?"Stop mark: on":"Stop mark: off",Theme.Select,BoardView.ShowStopEstimate))ToggleStopEstimate();
-            if(MenuButton(Slot(2),Fx.Star,Fx.ReducedMotion?"Effects: calm":"Effects: full",Theme.Heal,!Fx.ReducedMotion))Fx.SetReducedMotion(!Fx.ReducedMotion);
-            if(MenuButton(Slot(3),IconLeave,"Leave match",Theme.Damage,false)){phoneMenu=false;RequestLeaveMatch();}
+            if(MenuButton(Slot(0),IconInspect,boardInspection?Lang.T("Stop inspecting","Koniec podglądu"):Lang.T("Inspect a ball","Obejrzyj kulkę"),Theme.Info,boardInspection)){SetBoardInspection(!boardInspection);phoneMenu=false;}
+            if(MenuButton(Slot(1),IconStop,BoardView.ShowStopEstimate?Lang.T("Stop mark: on","Znacznik stopu: wł."):Lang.T("Stop mark: off","Znacznik stopu: wył."),Theme.Select,BoardView.ShowStopEstimate))ToggleStopEstimate();
+            if(MenuButton(Slot(2),Fx.Star,Fx.ReducedMotion?Lang.T("Effects: calm","Efekty: spokojne"):Lang.T("Effects: full","Efekty: pełne"),Theme.Heal,!Fx.ReducedMotion))Fx.SetReducedMotion(!Fx.ReducedMotion);
+            if(MenuButton(Slot(3),IconLeave,Lang.T("Leave match","Wyjdź z meczu"),Theme.Damage,false)){phoneMenu=false;RequestLeaveMatch();}
         }
         static bool MenuButton(Rect r,string icon,string label,Color accent,bool on)
         {
@@ -292,7 +292,7 @@ namespace CoreClash.Presentation
                 else if(!char.IsWhiteSpace(chars[i]))start=false;
                 if(chars[i]=='p'&&i+1<chars.Length&&(chars[i+1]=='1'||chars[i+1]=='2')&&(i==0||!char.IsLetter(chars[i-1])))chars[i]='P';
             }
-            return new string(chars).Replace(" hp"," HP").Replace("player","Player");
+            return new string(chars).Replace(" hp"," HP").Replace("player","Player").Replace("gracz","Gracz");
         }
         string TurnText()=>LocalTurnPresentation.Status(Simulation.State,NetworkLink==null?-1:NetworkLink.LocalOwner,
             NetworkLink!=null,NetworkLink==null||NetworkLink.IsConnected);
@@ -365,7 +365,7 @@ namespace CoreClash.Presentation
                 float textX=r.x+Mathf.Min(r.height-25,34)+22,textWidth=r.xMax-textX-6;
                 int nameFont=textWidth>=longest*7.2f?12:textWidth>=longest*6.6f?11:textWidth>=longest*6f?10:9;
                 Draw.Text(new Rect(textX,r.y+4,textWidth,r.height-27),BallIcons.Name(d),nameFont,nameColor,TextAnchor.MiddleLeft,true);
-                Draw.Text(new Rect(textX,r.yMax-22,textWidth-30,15),handReady?LocalDeckContent.StockLabel(Simulation,owner,id):available?d.hp+" HP":"OUT",Theme.FontTiny,handReady?Theme.SelectInk:Theme.Muted,TextAnchor.MiddleLeft,true);
+                Draw.Text(new Rect(textX,r.yMax-22,textWidth-30,15),handReady?LocalDeckContent.StockLabel(Simulation,owner,id):available?d.hp+" HP":Lang.T("OUT","BRAK"),Theme.FontTiny,handReady?Theme.SelectInk:Theme.Muted,TextAnchor.MiddleLeft,true);
                 Draw.Text(new Rect(r.xMax-36,r.yMax-24,30,17),count,12,countColor,TextAnchor.MiddleRight,true);
             }
             else

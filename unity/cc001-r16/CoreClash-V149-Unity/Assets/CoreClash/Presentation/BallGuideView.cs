@@ -217,7 +217,7 @@ namespace CoreClash.Presentation
             var card=new Rect(x,y,w,h);Draw.Card(card,null,null,.4f);
             Color accent=DeckAccent(deckGuide);
             Draw.Round(new Rect(x+3,y+3,w-6,head-8),accent);
-            Draw.Text(new Rect(x+pad+2,y+3,inner,head-8),deckGuide.name,phone?18:21,Theme.OnColor,TextAnchor.MiddleLeft,true);
+            Draw.Text(new Rect(x+pad+2,y+3,inner,head-8),DeckName(deckGuide),phone?18:21,Theme.OnColor,TextAnchor.MiddleLeft,true);
             deckGuideScroll=Draw.ScrollView(new Rect(x+pad,y+head,inner+8,h-head-foot),deckGuideScroll,new Rect(0,0,inner,content));
             for(int i=0;i<balls.Length;i++)
             {

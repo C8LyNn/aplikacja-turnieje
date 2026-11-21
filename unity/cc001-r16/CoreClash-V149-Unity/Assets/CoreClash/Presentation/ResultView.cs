@@ -11,6 +11,20 @@ namespace CoreClash.Presentation
         bool resultHidden;
         GameSimulation celebrated;
         float resultAt;
+        // The reason comes from the rules in English; show it in the chosen language.
+        static string ResultReason(string reason)
+        {
+            switch(reason??"")
+            {
+                case "":return Lang.T("Match over","Koniec meczu");
+                case "Base destroyed":return Lang.T("Base destroyed","Baza zniszczona");
+                case "Both bases destroyed":return Lang.T("Both bases destroyed","Obie bazy zniszczone");
+                case "50 turns: base HP":return Lang.T("50 turns: more base HP","50 tur: więcej HP bazy");
+                case "50 turns: identical score":return Lang.T("50 turns: identical score","50 tur: identyczny wynik");
+                case "50 turns: living ball count":return Lang.T("50 turns: more balls alive","50 tur: więcej żywych kulek");
+                default:return reason;
+            }
+        }
         void RenderResult()
         {
             var state=Simulation.State;
@@ -26,7 +40,7 @@ namespace CoreClash.Presentation
             Rect area=board.width>=280?board:new Rect(0,60,UiWidth,UiHeight-60);
             if(resultHidden)
             {
-                if(Draw.Button(new Rect(area.center.x-70,area.y+10,140,40),"Show result",Theme.Select,true,true,12))resultHidden=false;
+                if(Draw.Button(new Rect(area.center.x-70,area.y+10,140,40),Lang.T("Show result","Pokaż wynik"),Theme.Select,true,true,12))resultHidden=false;
                 return;
             }
             float t=Fx.ReducedMotion?1:Mathf.Clamp01((now-resultAt)/Theme.ResultRise),ease=1-(1-t)*(1-t)*(1-t);
@@ -50,10 +64,10 @@ namespace CoreClash.Presentation
             Draw.Shadow(ribbon,.22f,6,4);
             Draw.Round(ribbon,deep);Draw.Round(new Rect(ribbon.x,ribbon.y,ribbon.width,ribbon.height-5),tint);
             bool you=!local&&!draw&&NetworkLink.LocalOwner==state.winner;
-            string title=draw?"DRAW":aiMatch?(state.winner==0?"YOU WIN!":"AI WINS"):local?"PLAYER "+(state.winner+1)+" WINS!":you?"YOU WIN!":"PLAYER "+(state.winner+1)+" WINS";
+            string title=draw?Lang.T("DRAW","REMIS"):aiMatch?(state.winner==0?Lang.T("YOU WIN!","WYGRYWASZ!"):Lang.T("AI WINS","WYGRYWA AI")):local?Lang.T("PLAYER ","GRACZ ")+(state.winner+1)+Lang.T(" WINS!"," WYGRYWA!"):you?Lang.T("YOU WIN!","WYGRYWASZ!"):Lang.T("PLAYER ","GRACZ ")+(state.winner+1)+Lang.T(" WINS"," WYGRYWA");
             Draw.Text(new Rect(ribbon.x,ribbon.y+1,ribbon.width,ribbon.height-5),title,w<280?20:24,new Color(0,0,0,.22f),TextAnchor.MiddleCenter,true);
             Draw.Text(new Rect(ribbon.x,ribbon.y-1,ribbon.width,ribbon.height-5),title,w<280?20:24,draw?Theme.Ink:Theme.OnColor,TextAnchor.MiddleCenter,true);
-            Draw.Text(new Rect(card.x+12,ribbon.yMax+6,card.width-24,20),string.IsNullOrEmpty(state.resultReason)?"Match over":state.resultReason,13,Theme.Text,TextAnchor.MiddleCenter,true);
+            Draw.Text(new Rect(card.x+12,ribbon.yMax+6,card.width-24,20),ResultReason(state.resultReason),13,Theme.Text,TextAnchor.MiddleCenter,true);
             // Both bases, in their colours, with what is left of the 20 HP.
             float cellW=(card.width-36)/2,cellY=ribbon.yMax+30;
             for(int owner=0;owner<2;owner++)
@@ -61,12 +75,12 @@ namespace CoreClash.Presentation
                 var cell=new Rect(card.x+12+owner*(cellW+12),cellY,cellW,30);
                 Draw.Round(cell,Color.Lerp(Theme.Panel,Draw.Owner(owner),.16f));
                 Draw.Ring(new Vector2(cell.x+15,cell.center.y),6,Theme.TeamDeep(owner),2.2f,owner==1?Theme.P2RingSegments:0,Theme.P2RingFill);
-                Draw.Text(new Rect(cell.x+28,cell.y,cell.width-36,cell.height),"P"+(owner+1)+" BASE",10,Theme.TeamDeep(owner),TextAnchor.MiddleLeft,true);
+                Draw.Text(new Rect(cell.x+28,cell.y,cell.width-36,cell.height),Lang.T("P","G")+(owner+1)+Lang.T(" BASE"," BAZA"),10,Theme.TeamDeep(owner),TextAnchor.MiddleLeft,true);
                 Draw.Text(new Rect(cell.x+28,cell.y,cell.width-36,cell.height),state.players[owner].hp+" / 20",14,Theme.Text,TextAnchor.MiddleRight,true);
             }
             float buttonY=card.yMax-5-44-10,buttonW=local?(card.width-36)/2:card.width-24;
-            if(local&&Draw.Button(new Rect(card.x+12,buttonY,buttonW,44),"Play again",tint,true,true,14))StartLocalMatch();
-            if(Draw.Button(new Rect(local?card.x+24+buttonW:card.x+12,buttonY,buttonW,44),local?"Decks":"Leave",size:14))RequestLeaveMatch();
+            if(local&&Draw.Button(new Rect(card.x+12,buttonY,buttonW,44),Lang.T("Play again","Zagraj ponownie"),tint,true,true,14))StartLocalMatch();
+            if(Draw.Button(new Rect(local?card.x+24+buttonW:card.x+12,buttonY,buttonW,44),local?Lang.T("Decks","Talie"):Lang.T("Leave","Wyjdź"),size:14))RequestLeaveMatch();
             if(Draw.Button(new Rect(card.xMax-40,card.y+6,32,24),"×",size:14))resultHidden=true;
         }
     }

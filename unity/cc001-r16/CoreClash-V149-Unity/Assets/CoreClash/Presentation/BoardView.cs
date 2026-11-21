@@ -132,7 +132,7 @@ namespace CoreClash.Presentation
             // The turn number, painted on the floor like a court marking.
             if (turnShown > 0) Draw.Text(new Rect(centre.x - 100 * scale, centre.y - 60 * scale, 200 * scale, 120 * scale), turnShown.ToString(), Mathf.Max(20, Mathf.RoundToInt(78 * scale)), Theme.A(neutral, .42f), TextAnchor.MiddleCenter, true);
             int font = Mathf.Max(8, Mathf.RoundToInt(10 * scale));
-            if (Theme.CentreLabel > 0) Draw.Text(new Rect(centre.x - 100 * scale, centre.y + (CentreRadius + 5) * scale, 200 * scale, font + 8), "CENTRE", font,
+            if (Theme.CentreLabel > 0) Draw.Text(new Rect(centre.x - 100 * scale, centre.y + (CentreRadius + 5) * scale, 200 * scale, font + 8), Lang.T("CENTRE","CENTRUM"), font,
                 Theme.A(neutral, Theme.CentreLabel), TextAnchor.MiddleCenter, true);
         }
 
@@ -167,7 +167,7 @@ namespace CoreClash.Presentation
             int font = Mathf.Max(8, Mathf.RoundToInt(9 * scale));
             float height = font + 6;
             var label = new Rect(corner.x + 7 * scale, baseAtViewTop ? corner.y - 3 * scale - height : corner.y + 3 * scale, Mathf.Max(96, 150 * scale), height);
-            if (Theme.ZonePattern > 0) Draw.Text(label, "P" + (owner + 1) + " HOME ZONE", font, Theme.A(Theme.TeamDeep(owner), Theme.ZoneLabel), TextAnchor.MiddleLeft, true);
+            if (Theme.ZonePattern > 0) Draw.Text(label, Lang.T("P","G") + (owner + 1) + Lang.T(" HOME ZONE"," STREFA DOMOWA"), font, Theme.A(Theme.TeamDeep(owner), Theme.ZoneLabel), TextAnchor.MiddleLeft, true);
         }
 
         static Texture2D Pattern(bool diagonal)
@@ -336,7 +336,7 @@ namespace CoreClash.Presentation
             float scale = board.width / 540;
             var field = BoardOverlayPlanner.Field(viewOwner, board.x, board.y, board.width);
             Color team = Draw.Owner(owner);
-            string text = "PLAYER " + (owner + 1) + " · TURN " + feedback.TurnNumber;
+            string text = Lang.T("PLAYER ","GRACZ ") + (owner + 1) + Lang.T(" · TURN "," · TURA ") + feedback.TurnNumber;
             int font = Mathf.Max(10, Mathf.RoundToInt(14 * scale));
             float width = Mathf.Min(field.width - 16, text.Length * font * .66f + 22), height = font + 12;
             // Rows from that player's zone edge toward the centre; centre first, then the sides.
@@ -587,6 +587,16 @@ namespace CoreClash.Presentation
             Draw.Ring(stop,r,mark,Mathf.Max(1,1.6f*scale),12,.6f);
             AimStroke(stop-new Vector2(r*.45f,0),stop+new Vector2(r*.45f,0),mark,Mathf.Max(1,1.2f*scale));
             AimStroke(stop-new Vector2(0,r*.45f),stop+new Vector2(0,r*.45f),mark,Mathf.Max(1,1.2f*scale));
+            // W24: a ball whose power works where it stands (on STOP, or every turn) also shows how far
+            // that power reaches from the estimated stop. Same estimate, same on/off switch as the mark.
+            var reachGuide=BallGuide.For(replay!=null?replay.type:selected.id);
+            if(reachGuide!=null&&reachGuide.Range>0&&(reachGuide.When==GuideWhen.Stop||reachGuide.When==GuideWhen.Turn))
+            {
+                float reach=reachGuide.Range*scale;
+                Draw.Circle(new Rect(stop.x-reach,stop.y-reach,reach*2,reach*2),Alpha(vector,e.Obstructed?.05f:.1f));
+                Draw.Ring(stop,reach+scale,Alpha(Theme.Ink,.4f),Mathf.Max(2.4f,3.4f*scale),30,.5f);
+                Draw.Ring(stop,reach,Alpha(vector,e.Obstructed?.5f:.9f),Mathf.Max(1.2f,1.9f*scale),30,.5f);
+            }
             if(!Theme.BoardCaptions)return;
             string label=StopPredictor.Label(e);int font=Mathf.Max(9,Mathf.RoundToInt(11*scale));
             float w=label.Length*font*.6f+12,h=font+8,room=VisibleField(board).width-8;

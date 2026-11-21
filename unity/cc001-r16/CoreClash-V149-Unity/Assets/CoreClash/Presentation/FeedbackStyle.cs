@@ -37,14 +37,14 @@ namespace CoreClash.Presentation
         {
             switch(kind)
             {
-                case "DAMAGE":return text=="Shield"?"ABSORBED":text??"";
+                case "DAMAGE":return text=="Shield"?Lang.T("ABSORBED","TARCZA"):text??"";
                 case "HEAL":return text??"";
-                case "DEATH":return "DEFEATED";
-                case "RETURN":return "RETURN";
-                case "ROOTED":return "ROOTED";
-                case "CLEANSE":return "CLEANSED";
-                case "CONSUME":return "CONSUMED";
-                case "TRANSFORM":return "TRANSFORM";
+                case "DEATH":return Lang.T("DEFEATED","ZNISZCZONA");
+                case "RETURN":return Lang.T("RETURN","POWRÓT");
+                case "ROOTED":return Lang.T("ROOTED","UWIĘZIONA");
+                case "CLEANSE":return Lang.T("CLEANSED","OCZYSZCZONA");
+                case "CONSUME":return Lang.T("CONSUMED","POŻARTA");
+                case "TRANSFORM":return Lang.T("TRANSFORM","PRZEMIANA");
                 default:return (text??"").ToUpperInvariant();
             }
         }
@@ -134,11 +134,11 @@ namespace CoreClash.Presentation
             var parts=new List<string>();
             for(int owner=0;owner<2;owner++)
                 if(damage[owner]>0||defeated[owner]>0)
-                    parts.Add("P"+(owner+1)+" BALLS -"+damage[owner]+(defeated[owner]>0?" ("+defeated[owner]+" DEFEATED)":""));
-            for(int owner=0;owner<2;owner++)if(baseLoss[owner]>0)parts.Add("P"+(owner+1)+" BASE -"+baseLoss[owner]);
+                    parts.Add(Lang.T("P","G")+(owner+1)+Lang.T(" BALLS -"," KULKI -")+damage[owner]+(defeated[owner]>0?" ("+defeated[owner]+Lang.T(" DEFEATED)"," ZNISZCZONE)"):""));
+            for(int owner=0;owner<2;owner++)if(baseLoss[owner]>0)parts.Add(Lang.T("P","G")+(owner+1)+Lang.T(" BASE -"," BAZA -")+baseLoss[owner]);
             // The event buffer is bounded: say so instead of presenting a partial total as complete.
             bool partial=state.events.Count>=100&&state.events[0].turn>=turn;
-            return "TURN "+turn+(partial?" (PARTIAL)":"")+" · "+string.Join(" · ",parts);
+            return Lang.T("TURN ","TURA ")+turn+(partial?Lang.T(" (PARTIAL)"," (CZĘŚCIOWO)"):"")+" · "+string.Join(" · ",parts);
         }
     }
 

@@ -162,7 +162,7 @@ namespace CoreClash.Presentation
             if(p.held||p.up)gesture.Move(p.id,world.x,world.y);
             if(p.up&&gesture.Release(p.id,Simulation.State.turn,Simulation.State.turnNumber,selected,replayId,out var command)){
                 command.sequence=++sequence;bool accepted=NetworkLink!=null?NetworkLink.Submit(command,out notice):session.Submit(command.owner,command,out notice);
-                if(!accepted){Debug.LogWarning("Intent rejected: "+notice);notice="This shot could not be played. Try again.";}
+                if(!accepted){Debug.LogWarning("Intent rejected: "+notice);notice=Lang.T("This shot could not be played. Try again.","Tego strzału nie dało się wykonać. Spróbuj ponownie.");}
                 else{notice="";Debug.Log("CORE_CLASH_LAUNCH owner="+command.owner+" type="+command.ballType);}
             }
         }
@@ -248,10 +248,11 @@ namespace CoreClash.Presentation
             GetComponent<NgoLanLobby>()?.Render();
         }
         BallCopy Copy(string id)=>ballCopy.TryGetValue(id,out var text)?text:null;
-        string Cue(string id)=>Copy(id)?.cue??"Special power";
+        string Cue(string id)=>Copy(id)?.cue??Lang.T("Special power","Moc specjalna");
         string Quick(string id)=>Copy(id)?.quick??(AbilitySupport.Status(id)=="DATA_ONLY"?"A physical ball for your custom deck.":Catalog.Ball(id).description);
         string AbilityText(string id)=>AbilitySupport.Status(id)=="DATA_ONLY"?"Launches and collides normally. Its special power is unavailable in this class demo.":Copy(id)?.ability??Catalog.Ball(id).description;
-        string Identity(DeckDefinition deck)=>deckCopy.TryGetValue(deck.id,out var text)?text.identity:"Nine special balls. Find your setup, then create the payoff.";
+        string Identity(DeckDefinition deck)=>Lang.Polish&&DeckText.IdentityPl(deck.id)!=null?DeckText.IdentityPl(deck.id):deckCopy.TryGetValue(deck.id,out var text)?text.identity:Lang.T("Nine special balls. Find your setup, then create the payoff.","Dziewięć kulek specjalnych. Przygotuj zagranie, a potem je wykorzystaj.");
+        string DeckName(DeckDefinition deck)=>deck==null?"":Lang.Polish&&DeckText.NamePl(deck.id)!=null?DeckText.NamePl(deck.id):deck.name;
         Color DeckAccent(DeckDefinition deck)=>deckCopy.TryGetValue(deck.id,out var text)?Draw.Hex(text.accent):Draw.Gold;
     }
     [Serializable] public sealed class PresentationCopy { public BallCopy[] balls;public DeckCopy[] decks; }

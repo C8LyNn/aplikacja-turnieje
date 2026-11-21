@@ -11,6 +11,20 @@ namespace CoreClash.Presentation
         public static string T(string english,string polish)=>Polish?polish:english;
     }
 
+    // Polish names and one-line descriptions of the ready-made decks. Ids come from roster.json.
+    public static class DeckText
+    {
+        static readonly System.Collections.Generic.Dictionary<string,string[]> Entries=new System.Collections.Generic.Dictionary<string,string[]>(System.StringComparer.Ordinal)
+        {
+            {"roster_element_storm",new[]{"BURZA ŻYWIOŁÓW","Podpalaj, mroź i truj. Nałóż stan, a potem go wykorzystaj."}},
+            {"roster_demolition",new[]{"DEMOLKA","Zastawiaj pułapki, wpychaj w nie wroga i zmieniaj planszę."}},
+            {"roster_afterlife",new[]{"ZAŚWIATY","Twoje kulki są warte więcej, gdy giną. Wywołuj to wtedy, kiedy chcesz."}},
+            {"roster_trickster",new[]{"SZTUKMISTRZ","Zamieniaj miejsca, otwieraj portale, cofaj czas i przejmuj najlepszą kulkę wroga."}},
+        };
+        public static string NamePl(string id)=>id!=null&&Entries.TryGetValue(id,out var text)?text[0]:null;
+        public static string IdentityPl(string id)=>id!=null&&Entries.TryGetValue(id,out var text)?text[1]:null;
+    }
+
     public enum GuideWhen { Always, Touch, Stop, Death, Turn }
     public enum GuideWho { Self, Enemies, Allies, Everyone }
     // Fire, Ice, Poison, Stuck and Frozen are drawn with the same symbol the state has on the board.

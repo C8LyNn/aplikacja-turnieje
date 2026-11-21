@@ -11,10 +11,10 @@ namespace CoreClash.Presentation
             // blocked in Update/PresentationPointer while the question is open.
             Draw.Rect(new Rect(0,0,UiWidth,UiHeight),Theme.A(Theme.Scrim,.62f));
             var d=RectOf(l.Dialog);Draw.Card(d,null,null,.4f);
-            Draw.Text(RectOf(l.Title),"Leave match?",20,Theme.Text,TextAnchor.MiddleLeft,true);
-            Draw.Text(RectOf(l.Body),NetworkLink!=null?"You will disconnect and this match will end for both players.":"The current match will be lost.",13,Draw.Muted);
-            if(Draw.Button(RectOf(l.Cancel),"Stay",Draw.Cyan,size:13))CancelLeaveMatch();
-            if(Draw.Button(RectOf(l.Leave),"Leave",Theme.Damage,true,true,13))ConfirmLeaveMatch();
+            Draw.Text(RectOf(l.Title),Lang.T("Leave match?","Wyjść z meczu?"),20,Theme.Text,TextAnchor.MiddleLeft,true);
+            Draw.Text(RectOf(l.Body),NetworkLink!=null?Lang.T("You will disconnect and this match will end for both players.","Rozłączysz się, a mecz skończy się dla obu graczy."):Lang.T("The current match will be lost.","Ten mecz przepadnie."),13,Draw.Muted);
+            if(Draw.Button(RectOf(l.Cancel),Lang.T("Stay","Zostań"),Draw.Cyan,size:13))CancelLeaveMatch();
+            if(Draw.Button(RectOf(l.Leave),Lang.T("Leave","Wyjdź"),Theme.Damage,true,true,13))ConfirmLeaveMatch();
         }
     }
 }

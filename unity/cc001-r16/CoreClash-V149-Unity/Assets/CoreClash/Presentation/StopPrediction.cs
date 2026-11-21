@@ -124,10 +124,10 @@ namespace CoreClash.Presentation
             return enemyHalf?StopReach.EnemyHalf:StopReach.OwnHalf;
         }
 
-        public static string ReachLabel(StopReach r)=>r switch{StopReach.EnemyZone=>"ENEMY ZONE",StopReach.Center=>"CENTER",StopReach.EnemyHalf=>"ENEMY HALF",StopReach.OwnZone=>"YOUR ZONE",_=>"YOUR HALF"};
+        public static string ReachLabel(StopReach r)=>r switch{StopReach.EnemyZone=>Lang.T("ENEMY ZONE","STREFA WROGA"),StopReach.Center=>Lang.T("CENTER","CENTRUM"),StopReach.EnemyHalf=>Lang.T("ENEMY HALF","POŁOWA WROGA"),StopReach.OwnZone=>Lang.T("YOUR ZONE","TWOJA STREFA"),_=>Lang.T("YOUR HALF","TWOJA POŁOWA")};
 
         // Always marked as an estimate; never as a sure hit.
-        public static string Label(StopEstimate e)=>!e.Valid?"":("EST. STOP · "+ReachLabel(e.Reach)+(e.Obstructed?" · IF PATH CLEAR":""));
+        public static string Label(StopEstimate e)=>!e.Valid?"":(Lang.T("EST. STOP · ","PRZEWID. STOP · ")+ReachLabel(e.Reach)+(e.Obstructed?Lang.T(" · IF PATH CLEAR"," · JEŚLI DROGA WOLNA"):""));
 
         // Everything else on the board that the free roll ignores.
         public static List<StopObstacle> Obstacles(GameState s,int moverId)

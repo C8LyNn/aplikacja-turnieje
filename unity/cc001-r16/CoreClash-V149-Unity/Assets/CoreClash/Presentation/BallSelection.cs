@@ -44,26 +44,26 @@ namespace CoreClash.Presentation
     {
         public static string Status(GameState state,int localOwner,bool multiplayer,bool connected)
         {
-            if(state==null)return "WAITING FOR MATCH";
+            if(state==null)return Lang.T("WAITING FOR MATCH","CZEKAM NA MECZ");
             if(state.phase==MatchPhase.Over)
-                return state.winner<0?"MATCH COMPLETE / DRAW":"PLAYER "+(state.winner+1)+" WINS";
-            string turn="TURN "+state.turnNumber+" / 50     PLAYER "+(state.turn+1);
+                return state.winner<0?Lang.T("MATCH COMPLETE / DRAW","KONIEC MECZU / REMIS"):Lang.T("PLAYER ","GRACZ ")+(state.winner+1)+Lang.T(" WINS"," WYGRYWA");
+            string turn=Lang.T("TURN ","TURA ")+state.turnNumber+Lang.T(" / 50     PLAYER "," / 50     GRACZ ")+(state.turn+1);
             // A disconnected client must not look like a healthy resolving match.
-            if(multiplayer&&!connected)return turn+" / WAITING FOR CONNECTION";
-            if(state.phase==MatchPhase.Moving)return turn+" / RESOLVING";
-            if(multiplayer&&state.turn!=localOwner)return turn+" / WAITING FOR PLAYER "+(state.turn+1);
-            if(multiplayer)return turn+(state.bonusPending?" / YOUR BONUS SHOT":" / YOUR SHOT");
-            return turn+(state.bonusPending?" / BONUS SHOT":" / AIMING");
+            if(multiplayer&&!connected)return turn+Lang.T(" / WAITING FOR CONNECTION"," / CZEKAM NA POŁĄCZENIE");
+            if(state.phase==MatchPhase.Moving)return turn+Lang.T(" / RESOLVING"," / RUCH KULEK");
+            if(multiplayer&&state.turn!=localOwner)return turn+Lang.T(" / WAITING FOR PLAYER "," / CZEKAM NA GRACZA ")+(state.turn+1);
+            if(multiplayer)return turn+(state.bonusPending?Lang.T(" / YOUR BONUS SHOT"," / TWÓJ DODATKOWY STRZAŁ"):Lang.T(" / YOUR SHOT"," / TWÓJ STRZAŁ"));
+            return turn+(state.bonusPending?Lang.T(" / BONUS SHOT"," / DODATKOWY STRZAŁ"):Lang.T(" / AIMING"," / CELOWANIE"));
         }
 
         public static string ActionHint(GameState state,int localOwner,bool multiplayer,bool connected,
             bool dragging,float dx,float dy,string idleHint)
         {
-            if(state==null)return "WAITING FOR MATCH";
-            if(state.phase==MatchPhase.Over)return "MATCH COMPLETE";
-            if(multiplayer&&!connected)return "WAITING FOR CONNECTION";
-            if(state.phase==MatchPhase.Moving)return "SHOT RESOLVING";
-            if(multiplayer&&state.turn!=localOwner)return "WAITING FOR PLAYER "+(state.turn+1);
+            if(state==null)return Lang.T("WAITING FOR MATCH","CZEKAM NA MECZ");
+            if(state.phase==MatchPhase.Over)return Lang.T("MATCH COMPLETE","KONIEC MECZU");
+            if(multiplayer&&!connected)return Lang.T("WAITING FOR CONNECTION","CZEKAM NA POŁĄCZENIE");
+            if(state.phase==MatchPhase.Moving)return Lang.T("SHOT RESOLVING","RUCH KULEK");
+            if(multiplayer&&state.turn!=localOwner)return Lang.T("WAITING FOR PLAYER ","CZEKAM NA GRACZA ")+(state.turn+1);
             return dragging?AimUiStatus.Hint(true,dx,dy):idleHint;
         }
 
@@ -82,13 +82,13 @@ namespace CoreClash.Presentation
 
         public static string CompactStatus(GameState state,int localOwner,bool multiplayer,bool connected)
         {
-            if(state==null)return "WAIT";
-            if(state.phase==MatchPhase.Over)return state.winner<0?"DRAW":"P"+(state.winner+1)+" WINS";
+            if(state==null)return Lang.T("WAIT","CZEKAJ");
+            if(state.phase==MatchPhase.Over)return state.winner<0?Lang.T("DRAW","REMIS"):Lang.T("P","G")+(state.winner+1)+Lang.T(" WINS"," WYGRYWA");
             if(multiplayer&&!connected)return "OFFLINE";
-            if(state.phase==MatchPhase.Moving)return "MOVING";
-            if(multiplayer&&state.turn!=localOwner)return "WAIT P"+(state.turn+1);
-            if(multiplayer)return state.bonusPending?"YOUR BONUS":"YOUR SHOT";
-            return "P"+(state.turn+1)+(state.bonusPending?" BONUS":" AIM");
+            if(state.phase==MatchPhase.Moving)return Lang.T("MOVING","RUCH");
+            if(multiplayer&&state.turn!=localOwner)return Lang.T("WAIT P","CZEKAJ G")+(state.turn+1);
+            if(multiplayer)return state.bonusPending?Lang.T("YOUR BONUS","TWÓJ BONUS"):Lang.T("YOUR SHOT","TWÓJ STRZAŁ");
+            return Lang.T("P","G")+(state.turn+1)+(state.bonusPending?" BONUS":Lang.T(" AIM"," CEL"));
         }
     }
 
@@ -101,6 +101,6 @@ namespace CoreClash.Presentation
             (double)dragX*dragX+(double)dragY*dragY>=18d*18d;
 
         public static string Hint(bool active,float dragX,float dragY)=>
-            !active?"DRAG FROM LAUNCHER":Ready(active,dragX,dragY)?"RELEASE TO LAUNCH":"DRAG TO BUILD POWER";
+            !active?Lang.T("DRAG FROM LAUNCHER","PRZECIĄGNIJ OD WYRZUTNI"):Ready(active,dragX,dragY)?Lang.T("RELEASE TO LAUNCH","PUŚĆ, ŻEBY WYSTRZELIĆ"):Lang.T("DRAG TO BUILD POWER","CIĄGNIJ DALEJ, ŻEBY DODAĆ MOCY");
     }
 }
