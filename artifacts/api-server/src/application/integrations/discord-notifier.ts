@@ -32,7 +32,7 @@ import {
   type DiscordSnapshot,
 } from "../../domain/tournament/discord-notifications";
 import { registrationSettingsFromStorage } from "../../domain/tournament/registration";
-import { DiscordKeyUnavailableError, decryptWebhook, encryptWebhook } from "./discord-secret";
+import { DiscordKeyUnavailableError, decryptWebhook, discordKeyProblem, encryptWebhook } from "./discord-secret";
 
 type TournamentRow = typeof tournamentsTable.$inferSelect;
 type IntegrationRow = typeof tournamentDiscordIntegrationsTable.$inferSelect;
@@ -377,6 +377,7 @@ export async function deliverDiscordNotifications(fetchImpl: FetchLike = fetch a
 }
 
 export async function discordTick(fetchImpl?: FetchLike) {
+  if (discordKeyProblem()) return { queued: 0, paused: "DISCORD_KEY_MISCONFIGURED" as const };
   const queued = await detectDiscordEvents();
   const delivered = await deliverDiscordNotifications(fetchImpl);
   return { queued, ...delivered };
@@ -386,6 +387,8 @@ let worker: ReturnType<typeof setInterval> | null = null;
 /** Started with the API; DISCORD_NOTIFIER_ENABLED=false switches it off. Errors are logged without addresses. */
 export function startDiscordWorker(intervalMs = 5_000) {
   if (worker || process.env.NODE_ENV === "test" || process.env.DISCORD_NOTIFIER_ENABLED === "false") return;
+  const keyProblem = discordKeyProblem();
+  if (keyProblem) logger.error({ code: "DISCORD_KEY_MISCONFIGURED" }, `Discord notifications paused: ${keyProblem}`);
   let running = false;
   worker = setInterval(() => {
     if (running) return;

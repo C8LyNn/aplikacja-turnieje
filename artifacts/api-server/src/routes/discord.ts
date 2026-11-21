@@ -12,6 +12,7 @@ import {
   sendDiscordTest,
 } from "../application/integrations/discord-notifier";
 import { DISCORD_EVENT_KINDS, DISCORD_EVENT_LABELS } from "../domain/tournament/discord-notifications";
+import { DiscordKeyMisconfiguredError } from "../application/integrations/discord-secret";
 
 const router: IRouter = Router();
 
@@ -20,6 +21,10 @@ function tournamentId(raw: unknown): number | null {
   return Number.isSafeInteger(value) && value > 0 ? value : null;
 }
 function sendError(res: Response, error: unknown): boolean {
+  if (error instanceof DiscordKeyMisconfiguredError) {
+    res.status(503).json({ error: "Powiadomienia Discord są chwilowo wyłączone: klucz szyfrowania na serwerze jest nieprawidłowy. Poproś administratora o poprawienie DISCORD_WEBHOOK_KEY.", code: "DISCORD_KEY_MISCONFIGURED" });
+    return true;
+  }
   if (!(error instanceof DiscordIntegrationError)) return false;
   const status = error.code === "NOT_CONFIGURED" ? 404 : error.code === "TOO_MANY_TESTS" ? 429 : error.code === "NOT_PUBLIC" || error.code === "DISABLED" ? 409 : 422;
   res.status(status).json({ error: error.message, code: error.code });

@@ -39,6 +39,7 @@ export const errorsEn: Record<keyof typeof errorsPl, string> = {
   "errors.DECK_CHANGE_NOT_AVAILABLE": "Changing the deck is available after the match ends.",
   "errors.DECKS_NOT_READY.1": "The match is not ready.",
   "errors.DECKS_NOT_READY.2": "Both players must confirm their decks.",
+  "errors.DISCORD_KEY_MISCONFIGURED": "Discord notifications are paused: the encryption key on the server is invalid. Ask the administrator to fix DISCORD_WEBHOOK_KEY.",
   "errors.DOWNSTREAM_BLOCKED": "A later match or round blocks undoing the result.",
   "errors.DRAW_NOT_ALLOWED": "This stage does not allow draws — enter a result with a winner.",
   "errors.DUPLICATE_PLAYER_NAME": "A player with this name already exists in the tournament.",

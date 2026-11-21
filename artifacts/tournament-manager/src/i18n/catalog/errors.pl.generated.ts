@@ -38,6 +38,7 @@ export const errorsPl = {
   "errors.DECK_CHANGE_NOT_AVAILABLE": "Zmiana talii jest dostępna po zakończeniu meczu.",
   "errors.DECKS_NOT_READY.1": "Mecz nie jest gotowy.",
   "errors.DECKS_NOT_READY.2": "Obaj gracze muszą zatwierdzić talie.",
+  "errors.DISCORD_KEY_MISCONFIGURED": "Powiadomienia Discord są chwilowo wyłączone: klucz szyfrowania na serwerze jest nieprawidłowy. Poproś administratora o poprawienie DISCORD_WEBHOOK_KEY.",
   "errors.DOWNSTREAM_BLOCKED": "Kolejny mecz lub runda blokuje cofnięcie wyniku.",
   "errors.DRAW_NOT_ALLOWED": "Ten etap nie dopuszcza remisów — wpisz wynik ze zwycięzcą.",
   "errors.DUPLICATE_PLAYER_NAME": "Gracz o tej nazwie już istnieje w turnieju.",
