@@ -36,6 +36,15 @@ import {
   signVersionedOrganizerToken,
 } from "../auth";
 import { logAuditAction } from "./auth";
+import { ceremonyForViewer, stageForViewer } from "../application/stages/seeding-ceremony";
+
+/** #324-L01-A: organizer and support see a prepared draw in full; everyone else only what has been revealed. */
+const isTournamentStaff = (access: { actor: { type: string } }) => access.actor.type === "organizer" || access.actor.type === "support";
+/** Optional "I saw N revealed" from the client: a repeated reveal request does not reveal one more draw. */
+const expectedRevealed = (body: unknown): number | undefined => {
+  const value = (body as { expectedRevealedCount?: unknown } | null | undefined)?.expectedRevealedCount;
+  return Number.isInteger(value) && (value as number) >= 0 ? (value as number) : undefined;
+};
 import { loadSettingsCopy, SettingsCopyError } from "../application/stages/tournament-settings-copy";
 import { NEW_CREDENTIAL_MIN_LENGTH } from "../application/auth/credential-rate-limit";
 import {
@@ -1056,8 +1065,11 @@ router.post("/tournaments/:id/copy", async (req, res): Promise<void> => {
 router.get("/tournaments/:id/stages", async (req, res): Promise<void> => {
   const params = ListTournamentStagesParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
-  if (!await requireTournamentRead(req, res, params.data.id)) return;
-  res.json(await listTournamentStages(params.data.id));
+  const access = await requireTournamentRead(req, res, params.data.id);
+  if (!access) return;
+  const stages = await listTournamentStages(params.data.id);
+  // #324-L01-A: viewers never see a draw before it is revealed (nor the seed that decides it).
+  res.json(isTournamentStaff(access) ? stages : stages.map(stageForViewer));
 });
 
 router.get("/tournaments/:id/stage-baskets", async (req, res): Promise<void> => {
@@ -1103,9 +1115,11 @@ router.put("/tournaments/:id/stage-baskets", async (req, res): Promise<void> => 
 router.get("/tournaments/:id/stages/:stageId", async (req, res): Promise<void> => {
   const params = GetTournamentStageParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
-  if (!await requireTournamentRead(req, res, params.data.id)) return;
+  const access = await requireTournamentRead(req, res, params.data.id);
+  if (!access) return;
   try {
-    res.json(await getTournamentStageDetails({ tournamentId: params.data.id, stageId: params.data.stageId }));
+    const details = await getTournamentStageDetails({ tournamentId: params.data.id, stageId: params.data.stageId });
+    res.json(isTournamentStaff(access) ? details : { ...details, stage: stageForViewer(details.stage) });
   } catch (error) {
     if (error instanceof StageLifecycleError) { sendStageLifecycleError(error, res); return; }
     throw error;
@@ -1204,9 +1218,11 @@ router.get("/tournaments/:id/stages/:stageId/qualification-preview", async (req,
 router.get("/tournaments/:id/stages/:stageId/seeding-ceremony", async (req, res): Promise<void> => {
   const params = GetTournamentStageParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
-  if (!await requireTournamentRead(req, res, params.data.id)) return;
+  const access = await requireTournamentRead(req, res, params.data.id);
+  if (!access) return;
   try {
-    res.json({ ceremony: await getSeedingCeremony({ tournamentId: params.data.id, stageId: params.data.stageId }) });
+    const ceremony = await getSeedingCeremony({ tournamentId: params.data.id, stageId: params.data.stageId });
+    res.json({ ceremony: ceremony && !isTournamentStaff(access) ? ceremonyForViewer(ceremony) : ceremony });
   } catch (error) {
     if (error instanceof SeedingCeremonyError) { sendSeedingCeremonyError(error, res); return; }
     throw error;
@@ -1232,7 +1248,7 @@ router.post("/tournaments/:id/stages/:stageId/seeding-ceremony/reveal-next", asy
   const access = await requireOrganizer(req, res, params.data.id);
   if (!access) return;
   try {
-    res.json({ ceremony: await revealNextSeedingDraw({ tournamentId: params.data.id, stageId: params.data.stageId, actor: getTournamentMutationActor(access) }) });
+    res.json({ ceremony: await revealNextSeedingDraw({ tournamentId: params.data.id, stageId: params.data.stageId, actor: getTournamentMutationActor(access), expectedRevealedCount: expectedRevealed(req.body) }) });
   } catch (error) {
     if (error instanceof SeedingCeremonyError) { sendSeedingCeremonyError(error, res); return; }
     throw error;
@@ -1245,7 +1261,7 @@ router.post("/tournaments/:id/stages/:stageId/seeding-ceremony/reveal-all", asyn
   const access = await requireOrganizer(req, res, params.data.id);
   if (!access) return;
   try {
-    res.json({ ceremony: await revealAllSeedingDraws({ tournamentId: params.data.id, stageId: params.data.stageId, actor: getTournamentMutationActor(access) }) });
+    res.json({ ceremony: await revealAllSeedingDraws({ tournamentId: params.data.id, stageId: params.data.stageId, actor: getTournamentMutationActor(access), expectedRevealedCount: expectedRevealed(req.body) }) });
   } catch (error) {
     if (error instanceof SeedingCeremonyError) { sendSeedingCeremonyError(error, res); return; }
     throw error;

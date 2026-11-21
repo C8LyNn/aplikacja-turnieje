@@ -214,10 +214,24 @@ export function createStageDraft(position: number, format: StageFormat = "swiss"
     entrySeedingMethod: "preserve",
     placementMethod: defaultPlacement(format),
     resultSeedingMethod: "rank_bands",
-    randomSeed: `stage-${position}-seed`,
+    randomSeed: newDrawKey(),
     randomRevealOrder: "instant",
     additionalHeroBans: [],
   };
+}
+
+/**
+ * #324-L01-A · a draw key nobody can guess. The old default ("stage-1-seed") let anyone who knew the participants
+ * compute a random draw before the ceremony; the key is still editable and stays deterministic once chosen.
+ */
+export function newDrawKey(): string {
+  try {
+    const bytes = new Uint8Array(12);
+    globalThis.crypto.getRandomValues(bytes);
+    return `draw-${Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
+  } catch {
+    return `draw-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 12)}`;
+  }
 }
 
 /** Copies authoring configuration only; runtime stage state is never part of StageDraft. */
@@ -226,6 +240,8 @@ export function copyStageDraftForNextStage(previous: StageDraft, position: numbe
     ...previous,
     clientId: globalThis.crypto?.randomUUID?.() ?? `stage-${Date.now()}-${position}`,
     name: `Etap ${position}`,
+    // #324-L01-A: a copied stage draws with its own key, never the previous stage's
+    randomSeed: newDrawKey(),
     advancingCount: undefined,
     additionalHeroBans: [],
   };
@@ -239,7 +255,7 @@ export function normalizeStageDrafts(stages: StageDraft[]): StageDraft[] {
     placementMethod: stage.placementMethod ?? defaultPlacement(stage.format),
     resultSeedingMethod: stage.resultSeedingMethod ?? "rank_bands",
     randomRevealOrder: stage.randomRevealOrder ?? "instant",
-    randomSeed: stage.randomSeed ?? `stage-${index + 1}-seed`,
+    randomSeed: stage.randomSeed ?? newDrawKey(),
     additionalHeroBans: stage.additionalHeroBans ?? [],
   })));
 }

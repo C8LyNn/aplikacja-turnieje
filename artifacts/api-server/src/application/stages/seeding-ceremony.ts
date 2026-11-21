@@ -509,6 +509,35 @@ async function loadPlannedStageForCeremony(
   return { tournament, stage: effectiveStage, memberships, players, basketInput };
 }
 
+// ── #324-L01-A · what viewers may see of a draw that is not fully revealed ───────────────────────────
+//
+// The result is fixed and stored before any reveal; the ceremony only shows it step by step. Until a stage starts,
+// people outside the tournament's staff get the revealed draws in full and, for the rest, only which results are
+// still in the pool (seed numbers / placements) — never who gets them, the entry order or the random seeds that
+// would let anyone compute the outcome ahead of the reveal.
+
+function drawResultKey(draw: SeedingCeremonyDraw, mode: SeedingCeremonyDrawMode): string {
+  return mode === "seed" ? String(draw.seed).padStart(6, "0") : draw.placement.label;
+}
+
+export function ceremonyForViewer(ceremony: SeedingCeremonyState): SeedingCeremonyState {
+  const revealed = ceremony.draws.slice(0, Math.max(0, Math.min(ceremony.draws.length, ceremony.revealedCount)));
+  const hidden = ceremony.draws.slice(revealed.length)
+    .map((draw) => ({ ...draw, participantKey: "", playerId: 0, playerName: "" }))
+    .sort((a, b) => drawResultKey(a, ceremony.drawMode).localeCompare(drawResultKey(b, ceremony.drawMode), "pl", { numeric: true }))
+    .map((draw, index) => ({ ...draw, drawNumber: revealed.length + index + 1 }));
+  return { ...ceremony, randomSeed: "", placementRandomSeed: null, participantOrder: [], draws: [...revealed, ...hidden] };
+}
+
+/** A serialized stage as viewers may see it: a planned stage keeps its draw and seed to itself (see above). */
+export function stageForViewer<T extends { status: string; randomSeed?: string | null; seedingAudit?: unknown }>(stage: T): T {
+  if (stage.status !== "planned") return stage;
+  const ceremony = parseSeedingCeremonyState(stage.seedingAudit);
+  return { ...stage, randomSeed: null, seedingAudit: ceremony ? ceremonyForViewer(ceremony) : null };
+}
+
+const ACTOR_ROLE = (actor?: TournamentMutationActor) => (actor?.type === "support" ? "osoba wspierająca" : "organizator");
+
 export async function getSeedingCeremony(input: { tournamentId: number; stageId: number }): Promise<SeedingCeremonyState | null> {
   const { db } = await import("@workspace/db");
   const [stage] = await db.select().from(tournamentStagesTable)
@@ -551,7 +580,7 @@ export async function prepareSeedingCeremony(input: { tournamentId: number; stag
       tournamentId: loaded.tournament.id,
       stageId: loaded.stage.id,
       actionType: "seeding_ceremony_prepared",
-      description: `Przygotowano deterministyczne losowanie dla etapu ${loaded.stage.name}; uczestnicy=${ceremony.draws.length}`,
+      description: `Przygotowano deterministyczne losowanie dla etapu ${loaded.stage.name}; uczestnicy=${ceremony.draws.length}; tryb=${ceremony.drawMode}; ujawnianie=${ceremony.revealOrder}; uruchomił: ${ACTOR_ROLE(input.actor)}`,
       matchId: null,
       undoPayload: null,
       isUndone: false,
@@ -580,7 +609,7 @@ function nextCeremonyState(
 }
 
 async function revealCeremony(
-  input: { tournamentId: number; stageId: number; actor?: TournamentMutationActor },
+  input: { tournamentId: number; stageId: number; actor?: TournamentMutationActor; expectedRevealedCount?: number },
   revealAll: boolean,
 ): Promise<SeedingCeremonyState> {
   const { db } = await import("@workspace/db");
@@ -591,6 +620,9 @@ async function revealCeremony(
     if (!isCeremonyCurrent({ ceremony: current, ...loaded })) {
       throw new SeedingCeremonyError("SEEDING_CEREMONY_STALE");
     }
+    // #324-L01-A: a repeated request (retry after a timeout, a double click, a second tab) that names the count it
+    // saw does not reveal one more draw — it gets the state that its first attempt already produced.
+    if (input.expectedRevealedCount !== undefined && current.revealedCount !== input.expectedRevealedCount) return current;
     const next = nextCeremonyState(current, revealAll);
     await tx.update(tournamentStagesTable).set({
       seedingAudit: next,
@@ -601,7 +633,7 @@ async function revealCeremony(
         tournamentId: loaded.tournament.id,
         stageId: loaded.stage.id,
         actionType: "seeding_ceremony_completed",
-        description: `Ujawniono komplet wyników losowania etapu ${loaded.stage.name}.`,
+        description: `Ujawniono komplet wyników losowania etapu ${loaded.stage.name}; ujawnił: ${ACTOR_ROLE(input.actor)}.`,
         matchId: null,
         undoPayload: null,
         isUndone: false,
@@ -611,11 +643,11 @@ async function revealCeremony(
   });
 }
 
-export async function revealNextSeedingDraw(input: { tournamentId: number; stageId: number; actor?: TournamentMutationActor }): Promise<SeedingCeremonyState> {
+export async function revealNextSeedingDraw(input: { tournamentId: number; stageId: number; actor?: TournamentMutationActor; expectedRevealedCount?: number }): Promise<SeedingCeremonyState> {
   return revealCeremony(input, false);
 }
 
-export async function revealAllSeedingDraws(input: { tournamentId: number; stageId: number; actor?: TournamentMutationActor }): Promise<SeedingCeremonyState> {
+export async function revealAllSeedingDraws(input: { tournamentId: number; stageId: number; actor?: TournamentMutationActor; expectedRevealedCount?: number }): Promise<SeedingCeremonyState> {
   return revealCeremony(input, true);
 }
 
@@ -633,7 +665,7 @@ export async function resetSeedingCeremony(input: { tournamentId: number; stageI
       tournamentId: loaded.tournament.id,
       stageId: loaded.stage.id,
       actionType: "seeding_ceremony_reset",
-      description: `Zresetowano przygotowane losowanie etapu ${loaded.stage.name}.`,
+      description: `Zresetowano przygotowane losowanie etapu ${loaded.stage.name} (unieważniono po ujawnieniu ${current.revealedCount} z ${current.draws.length}); zresetował: ${ACTOR_ROLE(input.actor)}.`,
       matchId: null,
       undoPayload: null,
       isUndone: false,

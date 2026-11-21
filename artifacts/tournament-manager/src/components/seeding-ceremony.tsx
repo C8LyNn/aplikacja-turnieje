@@ -669,7 +669,7 @@ export function SeedingCeremony({
     setActing(true);
     setError(undefined);
     try {
-      const next = await revealNextSeedingDraw(tournamentId, stage.id);
+      const next = await revealNextSeedingDraw(tournamentId, stage.id, state.revealedCount);
       const draw = next.draws[next.revealedCount - 1] ?? null;
 
       // Sample animation params — purely visual, result is already determined by server
@@ -731,7 +731,7 @@ export function SeedingCeremony({
     setAutoPlay(false);
     setError(undefined);
     try {
-      const next = await revealAllSeedingDraws(tournamentId, stage.id);
+      const next = await revealAllSeedingDraws(tournamentId, stage.id, state?.revealedCount);
       applyState(next);
       setCurrentDraw(next.draws[next.draws.length - 1] ?? null);
     } catch (requestError) {

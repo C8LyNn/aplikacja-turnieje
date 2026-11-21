@@ -35,12 +35,17 @@ export function prepareSeedingCeremony(tournamentId: number, stageId: number) {
   return mutateCeremony(tournamentId, stageId, prepareStageSeedingCeremony);
 }
 
-export function revealNextSeedingDraw(tournamentId: number, stageId: number) {
-  return mutateCeremony(tournamentId, stageId, revealNextStageSeedingDraw);
+/** #324-L01-A: the count the organizer saw goes along, so a retried request never reveals an extra draw. */
+const expected = (count: number | undefined): RequestInit | undefined => count === undefined
+  ? undefined
+  : { headers: { "Content-Type": "application/json" }, body: JSON.stringify({ expectedRevealedCount: count }) };
+
+export function revealNextSeedingDraw(tournamentId: number, stageId: number, expectedRevealedCount?: number) {
+  return mutateCeremony(tournamentId, stageId, (id, stage) => revealNextStageSeedingDraw(id, stage, expected(expectedRevealedCount)));
 }
 
-export function revealAllSeedingDraws(tournamentId: number, stageId: number) {
-  return mutateCeremony(tournamentId, stageId, revealAllStageSeedingDraws);
+export function revealAllSeedingDraws(tournamentId: number, stageId: number, expectedRevealedCount?: number) {
+  return mutateCeremony(tournamentId, stageId, (id, stage) => revealAllStageSeedingDraws(id, stage, expected(expectedRevealedCount)));
 }
 
 export async function resetSeedingCeremony(tournamentId: number, stageId: number): Promise<void> {
