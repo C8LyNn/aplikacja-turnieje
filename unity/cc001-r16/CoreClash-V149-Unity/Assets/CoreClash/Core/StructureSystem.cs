@@ -12,7 +12,16 @@ namespace CoreClash.Core
         readonly GameSimulation sim;
         GameState S => sim.State;
         public StructureSystem(GameSimulation simulation) { sim = simulation; }
-        public int ActiveCount => S.structures.Count(g => !g.dead);
+        // W24 (owner decision): a map's obstacle. A neutral structure nothing can damage or remove;
+        // balls bounce off it as off a wall. It does not count towards the limit of built structures.
+        public const string Obstacle = "obstacle";
+        public int ActiveCount => S.structures.Count(g => !g.dead && g.kind != Obstacle);
+        public StructureRuntime AddObstacle(float x, float y, float radius)
+        {
+            var g = new StructureRuntime { id = S.nextId++, owner = -1, kind = Obstacle, x = x, y = y, radius = radius, hp = 1, maxHp = 1, restitution = 1 };
+            S.structures.Add(g);
+            return g;
+        }
 
         public bool IsFree(float x, float y, float radius, int ignoreBallId = 0)
         {
@@ -114,7 +123,7 @@ namespace CoreClash.Core
         }
         public bool Damage(StructureRuntime target, int hits, BallRuntime source)
         {
-            if (target == null || target.dead || hits <= 0) return false;
+            if (target == null || target.dead || hits <= 0 || target.kind == Obstacle) return false;
             target.hp = Math.Max(0, target.hp - hits);
             sim.Emit("STRUCTURE_HIT", new BallRuntime { id = source?.id ?? 0, owner = source?.owner ?? -1, x = target.x, y = target.y },
                 "Structure -" + hits, target.id);

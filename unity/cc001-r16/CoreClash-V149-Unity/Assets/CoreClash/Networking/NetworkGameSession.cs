@@ -116,7 +116,7 @@ namespace CoreClash.Networking
                 foreach(var stamp in b.statusOrder)if(!ValidStamp(stamp))return false;
             }
             foreach(var g in s.structures)
-                if(g==null||g.owner<0||g.owner>1||g.maxHp<=0||g.hp<0||g.hp>g.maxHp||
+                if(g==null||(g.owner<0&&g.kind!=StructureSystem.Obstacle)||g.owner>1||g.maxHp<=0||g.hp<0||g.hp>g.maxHp||
                     !ValidId(g.id,s.nextId,ids)||string.IsNullOrEmpty(g.kind)||!GameSimulation.Finite(g.restitution)||
                     !GameSimulation.Finite(g.x)||!GameSimulation.Finite(g.y)||
                     !GameSimulation.Finite(g.radius)||g.radius<=0)return false;

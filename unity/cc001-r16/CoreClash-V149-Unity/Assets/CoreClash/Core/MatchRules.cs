@@ -22,6 +22,15 @@ namespace CoreClash.Core
             Finish(diff==0?-1:diff>0?0:1,diff==0?"50 turns: identical score":"50 turns: living ball count");
         }
         public void DamageBase(int owner,int amount){if(amount<=0)return;S.players[owner].hp=System.Math.Max(0,S.players[owner].hp-amount);sim.Emit("BASE_DAMAGE",null,"P"+(owner+1)+" base -"+amount);}
+        // Match rule "double turn": a base that has fallen below 10 HP for the first time gives its
+        // owner two balls on their next turn. Checked when a turn ends, so it never changes the turn
+        // that is being played.
+        public const int ComebackBelow=10;
+        public void ArmComeback()
+        {
+            if(!S.comebackRule)return;
+            foreach(var p in S.players)if(!p.comebackUsed&&p.hp>0&&p.hp<ComebackBelow){p.comebackUsed=true;p.comebackArmed=true;}
+        }
         public void ApplyTurnPressure(int owner)
         {
             DamageBase(1-owner,S.balls.Count(x=>!x.dead&&!x.banished&&x.owner==owner&&ZoneResolver.TouchesEnemyZone(x)));

@@ -80,10 +80,12 @@ namespace CoreClash.Core
             State.phase=MatchPhase.Moving;State.actionTime=0;State.actionDeadline=14;State.settledTime=0;State.actionSerial++;State.revision++;
             Emit("LAUNCH",ball,State.actionKind);Abilities.OnLaunch(ball);return true;
         }
+        // The radius of a ball of this type in this match (match rule ballScale).
+        public float Radius(BallDefinition d)=>d.radius*(State.ballScale>0?State.ballScale:1);
         public BallRuntime Spawn(int owner,string type,float x,float y,float vx=0,float vy=0)
         {
             var d=Catalog.Ball(type)??throw new ArgumentException("Unknown ball: "+type);
-            var b=new BallRuntime{id=State.nextId++,owner=owner,type=type,x=x,y=y,vx=vx,vy=vy,hp=d.hp,maxHp=d.hp,radius=d.radius,mass=d.mass,restitution=d.restitution,wallRestitution=d.wallRestitution,maxSpeed=d.maxSpeed};
+            var b=new BallRuntime{id=State.nextId++,owner=owner,type=type,x=x,y=y,vx=vx,vy=vy,hp=d.hp,maxHp=d.hp,radius=Radius(d),mass=d.mass,restitution=d.restitution,wallRestitution=d.wallRestitution,maxSpeed=d.maxSpeed};
             b.lineageId=b.id;b.moving=Math.Sqrt(vx*vx+vy*vy)>=18;State.balls.Add(b);Emit("SPAWN",b,d.name);Abilities.OnSpawn(b);return b;
         }
         public void Step(float dt)

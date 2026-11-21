@@ -83,10 +83,14 @@ namespace CoreClash.Presentation
         // The HP runs along its edge as a gauge in a dark bezel; its colour follows the HP that is
         // left (white, then yellow when hurt, then red when critical). Nothing else is drawn on a ball.
         // Outlines are a dark tone of the owner's colour, never black. The Standard ball is
-        // plain: no symbol. The ball is drawn larger than its rules radius by BallGrow
-        // (presentation only). Shares are parts of the drawn radius; LabelShare is the clear face
-        // inside the gauge, which the symbol is sized from.
-        public const float BallGrow=5.6f,BallInk=2.3f,LabelShare=.76f,HpOuterShare=.96f,HpWidthShare=.17f;
+        // plain: no symbol.
+        // W24 (owner direction: "the ring is not a collider, balls run into each other - it confuses
+        // me"): a ball is drawn at exactly the size it collides at. Its body is the rules radius less
+        // the outline (BallGrow = -BallInk), so the outer edge of the outline is the collider. It was
+        // drawn 5.6 units larger, and two balls that only touched looked as if one ran into the other.
+        // Shares are parts of the drawn radius; LabelShare is the clear face inside the gauge, which
+        // the symbol is sized from.
+        public const float BallGrow=-2.3f,BallInk=2.3f,LabelShare=.76f,HpOuterShare=.96f,HpWidthShare=.17f;
         // Gauge colour by the share of HP that is left; the steps are HpHurtBelow and HpCriticalBelow.
         public static readonly Color GaugeGood=C("#ffffff"),GaugeHurt=C("#ffd21e"),GaugeCritical=C("#ff5533");
         public static Color Gauge(float share)=>share<HpCriticalBelow?GaugeCritical:share<HpHurtBelow?GaugeHurt:GaugeGood;

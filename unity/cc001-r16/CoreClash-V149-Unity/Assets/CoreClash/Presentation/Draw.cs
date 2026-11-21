@@ -569,6 +569,42 @@ namespace CoreClash.Presentation
             }
             GL.End();
         }
+        // A dashed line along a path of many points. The dashes are measured along the whole path,
+        // so they keep one rhythm round its corners and through its short pieces, and each dash is
+        // one stroke from its start to its end. (Dashing every piece of the path on its own started
+        // a new dash at each point: where the points lie close together - a ball slowing down -
+        // the dashes piled up into one thick, lumpy line.) `from` skips that much of the start of
+        // the path and `trim` that much of its end.
+        static readonly List<float> pathLengths=new List<float>(128);
+        public static void Dashes(IList<Vector2> points,Color color,float width,float dash,float gap,float from=0,float trim=0)
+        {
+            if(Event.current.type!=EventType.Repaint||color.a<=0||width<=0||dash<=0||points==null||points.Count<2)return;
+            pathLengths.Clear();pathLengths.Add(0);float total=0;
+            for(int i=1;i<points.Count;i++)
+            {
+                float piece=Vector2.Distance(points[i-1],points[i]);if(float.IsNaN(piece)||float.IsInfinity(piece))return;
+                total+=piece;pathLengths.Add(total);
+            }
+            float end=total-Mathf.Max(0,trim);from=Mathf.Max(0,from);if(end<=from)return;
+            bool exact=StrokeReady();float s=UiViewport.Scale,period=dash+Mathf.Max(0,gap);int at=1;
+            if(exact){strokeMaterial.SetPass(0);GL.Begin(GL.TRIANGLES);}
+            for(float start=from;start<end;start+=period)
+            {
+                Vector2 a=PathPoint(points,start,ref at),b=PathPoint(points,Mathf.Min(end,start+dash),ref at);
+                if((b-a).sqrMagnitude<.01f)continue;
+                if(exact){pair[0]=a*s;pair[1]=b*s;EmitHull(pair,2,width*.5f*s,color);}
+                else foreach(var p in AimGuide.StrokeStamps(new AimPoint(a.x,a.y),new AimPoint(b.x,b.y),width,0,0,Mathf.Max(.5f,width*.3f),64))
+                    Circle(new Rect(p.x-width*.5f,p.y-width*.5f,width,width),color);
+            }
+            if(exact)GL.End();
+        }
+        // The point that far along the path; `at` only moves forward, so ask for growing distances.
+        static Vector2 PathPoint(IList<Vector2> points,float distance,ref int at)
+        {
+            while(at<points.Count-1&&pathLengths[at]<distance)at++;
+            float before=pathLengths[at-1],span=pathLengths[at]-before;
+            return span<=1e-5f?points[at]:Vector2.Lerp(points[at-1],points[at],Mathf.Clamp01((distance-before)/span));
+        }
         // A solid triangle whose corners are rounded by `radius` (it reaches that far past its points).
         public static void Triangle(Vector2 a,Vector2 b,Vector2 c,float radius,Color color)
         {

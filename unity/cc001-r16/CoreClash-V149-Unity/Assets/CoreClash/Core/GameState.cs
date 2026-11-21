@@ -16,6 +16,9 @@ namespace CoreClash.Core
     [Serializable] public sealed class PlayerState
     {
         public int owner,hp,ownerTurns;
+        // Match rule "double turn" (see GameState.comebackRule): armed when this base first falls
+        // below 10 HP, spent on this player's next turn. Once a match.
+        public bool comebackArmed,comebackUsed;
         public string deckId;
         public List<StockEntry> stock=new List<StockEntry>();
     }
@@ -34,6 +37,14 @@ namespace CoreClash.Core
         public float time,actionTime,settledTime;
         public float actionDeadline=14;
         public bool bonusPending,bonusUsed;
+        // W24 (owner decisions): rules chosen for one match. The defaults are the reference rules,
+        // so a match that sets none of them - every test, every demo - plays exactly as before.
+        //   ballScale     every ball's radius is multiplied by it
+        //   comebackRule  a player whose base falls below 10 HP plays two balls on their next turn
+        //   mapId         the map: its obstacles are structures of kind StructureSystem.Obstacle
+        public float ballScale=1;
+        public bool comebackRule,comebackActive;
+        public string mapId="";
         public string actionKind,resultReason;
         public MatchPhase phase=MatchPhase.Aiming;
         public PlayerState[] players=new[]{new PlayerState(),new PlayerState()};

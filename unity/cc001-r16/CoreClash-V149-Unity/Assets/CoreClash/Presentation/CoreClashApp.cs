@@ -34,7 +34,8 @@ namespace CoreClash.Presentation
             Debug.Log("CORE_CLASH_DEVELOPER_ROSTER "+value);
         }
         public bool IsBoardInspection=>boardInspection;
-        public Rect ArenaRect=>UiViewport.ToScreen(board);
+        // The rectangle the 540 x 900 world of the rules is drawn in (BoardView.FieldBoard), on screen.
+        public Rect ArenaRect=>UiViewport.ToScreen(BoardView.FieldBoard(board));
         public Rect UiArenaRect=>board;
         public float UiWidth=>UiViewport.Width;
         public float UiHeight=>UiViewport.Height;
@@ -69,7 +70,7 @@ namespace CoreClash.Presentation
         void Awake(){Initialize();}
         public void Initialize()
         {
-            if(initialized)return;initialized=true;VersusAi=PlayerPrefs.GetInt("cc.versusAi",0)==1;LoadLanguage();LoadArena();BallView.Warm();Application.targetFrameRate=60;QualitySettings.vSyncCount=1;
+            if(initialized)return;initialized=true;VersusAi=PlayerPrefs.GetInt("cc.versusAi",0)==1;LoadLanguage();LoadArena();MatchSetup.Load();BallView.Warm();Application.targetFrameRate=60;QualitySettings.vSyncCount=1;
             try{
                 var source=Resources.Load<TextAsset>("Data/catalog");var featured=Resources.Load<TextAsset>("Data/featured-decks");
                 if(source==null||featured==null)throw new Exception("Game data could not be loaded.");
@@ -167,7 +168,8 @@ namespace CoreClash.Presentation
             if(!CanChoose||Time.frameCount<=pointerReadyFrame){gesture.Active=false;return;}
             Vector2 screen=UiViewport.PointerToLogical(p.position);
             if(p.down&&hintShown&&layout.PhonePortrait&&hintRect.Contains(screen)){gesture.Active=false;ShowBallDetails(selected);return;}
-            float viewX=(screen.x-board.x)*540/board.width,viewY=(screen.y-board.y)*540/board.width;
+            var world540=BoardView.FieldBoard(board);
+            float viewX=(screen.x-world540.x)*540/world540.width,viewY=(screen.y-world540.y)*540/world540.width;
             Vector2 world=new Vector2(MatchPerspective.SimulationX(viewX,ViewOwner),MatchPerspective.SimulationY(viewY,ViewOwner));
             if(p.down&&board.Contains(screen)){
                 var near=Simulation.State.balls.Where(b=>!b.dead&&!b.banished).OrderBy(b=>(b.x-world.x)*(b.x-world.x)+(b.y-world.y)*(b.y-world.y)).FirstOrDefault();replayId=0;
@@ -184,6 +186,8 @@ namespace CoreClash.Presentation
         public void SelectDeck(int owner,string id){if(owner<0||owner>1)return;var deck=Catalog.Deck(id);if(deck!=null)chosen[owner]=deck;}
         public void StartLocalMatch(){NetworkLink?.Disconnect();GetComponent<NgoGameSession>()?.Disconnect();StartMatchState();aiMatch=VersusAi;}
         void StartMatchState(){deckGuide=null;hintShown=false;aiMatch=false;ai.Reset();remoteBallSmoother.Reset();remoteLastEventId=remoteLastRevision=0;NetworkLink=null;Simulation=new GameSimulation(Catalog,chosen[0],chosen[1]);
+            // W24: the rules the player set for the match (ball size, double turn, map).
+            MatchSetup.Apply(Simulation);
             // W22: a match between two active decks keeps random type picks inside the active roster.
             // A match with a frozen deck (developer roster, tests, drivers) runs exactly as before.
             Simulation.ActiveRosterOnly=Catalog.Roster!=null&&Catalog.Roster.IsActiveDeck(chosen[0])&&Catalog.Roster.IsActiveDeck(chosen[1]);
@@ -196,7 +200,8 @@ namespace CoreClash.Presentation
         bool InspectAt(Vector2 position)
         {
             var screen=UiViewport.PointerToLogical(position);if(!board.Contains(screen))return false;
-            float viewX=(screen.x-board.x)*540/board.width,viewY=(screen.y-board.y)*540/board.width;
+            var world540=BoardView.FieldBoard(board);
+            float viewX=(screen.x-world540.x)*540/world540.width,viewY=(screen.y-world540.y)*540/world540.width;
             var ball=BallInspection.At(Simulation.State,MatchPerspective.SimulationX(viewX,ViewOwner),MatchPerspective.SimulationY(viewY,ViewOwner));
             if(ball==null)return false;ShowRuntimeBallDetails(ball.id);return true;
         }

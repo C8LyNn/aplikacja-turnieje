@@ -109,9 +109,9 @@ namespace CoreClash.Core
             if(Living().Length>=256)return null;
             var d=sim.Catalog.Ball(type);
             if(d==null||d.hidden||maxHp<=0)return null;
-            if(!FindPlacement(desiredX,desiredY,d.radius,0,180,source.angle,out float x,out float y))return null;
+            if(!FindPlacement(desiredX,desiredY,sim.Radius(d),0,180,source.angle,out float x,out float y))return null;
             var child=new BallRuntime{id=S.nextId++,owner=source.owner,type=type,x=x,y=y,
-                hp=Math.Min(hp,maxHp),maxHp=maxHp,radius=d.radius,mass=d.mass,
+                hp=Math.Min(hp,maxHp),maxHp=maxHp,radius=sim.Radius(d),mass=d.mass,
                 restitution=d.restitution,wallRestitution=d.wallRestitution,maxSpeed=d.maxSpeed,
                 lineageId=lineageId,life=life,reviveGeneration=reviveGeneration,
                 generated=false,spawnGrace=.38f,angle=source.angle};
@@ -187,7 +187,7 @@ namespace CoreClash.Core
         BallRuntime Generate(BallRuntime parent,string type,int hp,int maxHp,float offset=0)
         {
             if(Living().Length>=256)return null;var definition=sim.Catalog.Ball(type);if(definition==null)return null;
-            if(!FindPlacement(parent.x,parent.y,definition.radius,0,180,parent.angle+offset,out float x,out float y))return null;
+            if(!FindPlacement(parent.x,parent.y,sim.Radius(definition),0,180,parent.angle+offset,out float x,out float y))return null;
             var b=sim.Spawn(parent.owner,type,x,y);b.maxHp=maxHp;b.hp=Math.Min(hp,maxHp);b.generated=definition.hidden;b.spawnGrace=.32f;b.angle=parent.angle;S.replayedIds.Add(b.id);return b;
         }
         BallRuntime Revive(BallRuntime source,GraveRecord record,int hp)

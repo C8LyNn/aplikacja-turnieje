@@ -20,7 +20,7 @@ namespace CoreClash.Core
                 var definition = sim.Catalog.Ball("broodling");
                 if (definition == null) return;
                 float angle = b.angle + (b.hatcherySpawnCount % 2 == 0 ? -1 : 1) * (float)Math.PI * .58f;
-                float distance = b.radius + definition.radius + 10;
+                float distance = b.radius + sim.Radius(definition) + 10;
                 var child = GenerateAt(b, "broodling", 5, 5,
                     b.x + (float)Math.Cos(angle) * distance,
                     b.y + (float)Math.Sin(angle) * distance, angle, 180);
@@ -69,7 +69,7 @@ namespace CoreClash.Core
             var definition = sim.Catalog.Ball("mitosis");
             if (definition == null) return false;
             float direction = ball.angle + (float)Math.PI;
-            float distance = ball.radius + definition.radius + 10;
+            float distance = ball.radius + sim.Radius(definition) + 10;
             var child = GenerateAt(ball, "mitosis", 15, 15,
                 ball.x + (float)Math.Cos(direction) * distance,
                 ball.y + (float)Math.Sin(direction) * distance, direction, 180);
@@ -93,7 +93,7 @@ namespace CoreClash.Core
             var definition = sim.Catalog.Ball("shard");
             if (definition == null) return;
             int count = 0;
-            float distance = source.radius + definition.radius + 10;
+            float distance = source.radius + sim.Radius(definition) + 10;
             for (int i = 0; i < 3; i++)
             {
                 float angle = source.angle + i * (float)(2 * Math.PI / 3);

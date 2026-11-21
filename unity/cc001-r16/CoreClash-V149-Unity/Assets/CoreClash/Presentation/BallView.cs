@@ -32,7 +32,7 @@ namespace CoreClash.Presentation
         public static void Render(Rect board, BallRuntime ball, BallDefinition definition, bool replay,float x,float y,int localOwner=0,bool selected=false)
         {
             float scale = board.width / 540f, now = Time.unscaledTime;
-            // Drawn radius: the rules radius plus BallGrow (the HP gauge now lies inside the ball).
+            // Drawn radius: the outline ends exactly where the rules radius does (see Theme.BallGrow).
             float radius = (ball.radius + Theme.BallGrow) * scale, edge = radius + Theme.BallInk * scale;
             var point = ViewPoint(board,x,y,localOwner);
             var body = new Rect(point.x - radius, point.y - radius, radius * 2, radius * 2);
@@ -43,10 +43,9 @@ namespace CoreClash.Presentation
             if (replay)
             {
                 // W18-02 (#287): Replay uses its own gold pulse, not the team colour.
-                float pulse = (3 + Mathf.Sin(now * 4 + ball.id) * 1.2f) * scale;
-                Draw.Glow(point, edge + pulse + 12 * scale, Alpha(ReplayColor, .5f));
-                Draw.Ring(point, edge + pulse, Alpha(ReplayColor, .85f), Mathf.Max(1.5f, 2.6f * scale));
-                Draw.Ring(point, edge + pulse + 4 * scale, Alpha(ReplayColor, .3f), Mathf.Max(1, scale));
+                // W24: one steady gold ring that hugs the ball, so it does not reach over the balls
+                // next to it.
+                Draw.Ring(point, edge + Mathf.Max(1.5f, 2.2f * scale), Alpha(ReplayColor, .85f), Mathf.Max(1.5f, 2.4f * scale));
             }
             if (selected)
             {
@@ -72,7 +71,8 @@ namespace CoreClash.Presentation
         static void DrawState(Rect body, Vector2 point, BallRuntime ball, float radius, float scale, float now)
         {
             if (ball.shield > 0 || ball.divineShield)
-                Draw.Ring(point, radius + (Theme.BallInk + 3.2f) * scale, ball.divineShield ? Theme.Status(StatusKind.Divine) : Theme.Shield, Mathf.Max(1.5f, 2.2f * scale));
+                // The shield is the ball's own outline turned bright: on the ball, not round it.
+                Draw.Ring(point, radius + Theme.BallInk * scale, ball.divineShield ? Theme.Status(StatusKind.Divine) : Theme.Shield, Mathf.Max(1.6f, Theme.BallInk * 1.25f * scale));
             float flash = Fx.HitFlash(ball.id, now);
             if (flash > 0) Draw.Circle(body, Alpha(Color.white, .6f * flash));
             float heal = Fx.HealGlow(ball.id, now);
