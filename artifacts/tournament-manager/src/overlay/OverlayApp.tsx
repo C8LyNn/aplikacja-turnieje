@@ -1,9 +1,10 @@
-import { useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import {
   bracketView, doubleView, matchOverlayModel, pickStage, scheduleText, tablesView, toPublicMatch, toPublicStage,
-  toPublicTournament, upcomingHeading, type MatchCard, type MatchOverlayModel, type OverlayConfig, type PublicStage,
-  type StructureView,
+  toPublicTournament, upcomingHeading, winnerModel, type MatchCard, type MatchOverlayModel, type OverlayConfig, type PublicStage,
+  type StructureView, type WinnerModel,
 } from "@/lib/broadcast-overlay";
+import { eventText, nextAlertQueue, overlayEvents, overlaySnapshot, type AlertItem, type OverlaySnapshot } from "@/lib/broadcast-overlay-events";
 import { fetchPublic, useDelayed, usePolled, type OverlayProblem } from "./overlay-data";
 
 type Raw = Record<string, unknown>;
@@ -22,7 +23,7 @@ const PROBLEM_TEXT: Record<OverlayProblem, string> = {
 export function OverlayApp({ config }: { config: OverlayConfig }) {
   const rootStyle = { "--ov-text-scale": String(config.textScale) } as CSSProperties;
   return (
-    <main className="ov" data-preset={config.preset} data-bg={config.background} data-motion={config.motion} data-pos={config.position}
+    <main className="ov" data-preset={config.preset} data-bg={config.background} data-motion={config.motion} data-pos={config.position} data-alerts={config.alerts || undefined}
       data-layout={config.layout} data-size={config.scoreSize} data-kind={config.kind} style={rootStyle}>
       {config.tournamentId == null
         ? <OverlayMessage text="W adresie nakładki brakuje turnieju (t=…). Skopiuj adres z sekcji „Transmisja”." />
@@ -55,10 +56,12 @@ async function loadStages(tournamentId: number, signal: AbortSignal) {
 
 const STAGES_REFRESH_MS = 60_000;
 
+type LiveModel = MatchOverlayModel & { winner?: WinnerModel; snapshot?: OverlaySnapshot };
+
 function MatchOverlay({ config, tournamentId }: { config: OverlayConfig; tournamentId: number }) {
   // Stages change rarely: they are re-read once a minute inside the same poll; the model below is what gets compared.
   const stagesCache = useRef<{ at: number; stages: PublicStage[] } | null>(null);
-  const live = usePolled<MatchOverlayModel>(`match:${tournamentId}:${config.match}:${config.kind}:${config.showQueue}`, async (signal) => {
+  const live = usePolled<LiveModel>(`match:${tournamentId}:${config.match}:${config.kind}:${config.showQueue}:${config.alerts}`, async (signal) => {
     const cached = stagesCache.current;
     const stagesPromise = cached && Date.now() - cached.at < STAGES_REFRESH_MS ? Promise.resolve(cached.stages) : loadStages(tournamentId, signal);
     const [tournament, matches, stages] = await Promise.all([
@@ -67,18 +70,89 @@ function MatchOverlay({ config, tournamentId }: { config: OverlayConfig; tournam
       stagesPromise,
     ]);
     if (stages !== cached?.stages) stagesCache.current = { at: Date.now(), stages };
-    return matchOverlayModel(config, toPublicTournament(tournament), (matches ?? []).map(toPublicMatch), stages);
+    const t = toPublicTournament(tournament);
+    const list = (matches ?? []).map(toPublicMatch);
+    return {
+      ...matchOverlayModel(config, t, list, stages),
+      ...(config.kind === "zwyciezca" ? { winner: winnerModel(t, list, stages) } : {}),
+      // #324-L03b: the data the alerts compare — only when alerts are on, so a plain overlay re-renders exactly as before
+      ...(config.alerts ? { snapshot: overlaySnapshot(t, list, stages) } : {}),
+    };
   }, 5_000);
+  const alert = useOverlayAlerts(live.data?.snapshot, live.problem, config.alerts);
   if (!live.data) return live.problem ? <OverlayMessage text={PROBLEM_TEXT[live.problem]} /> : <Loading />;
   const model = live.data;
-  if (!model.card) return <OverlayMessage text={model.reason ?? ""} />;
+  const banner = alert && <AlertBanner item={alert} />;
+  if (config.kind === "zwyciezca" && model.winner) {
+    return <>{banner}<WinnerCard model={model.winner} config={config} />{live.stale && <StaleMark lastOkAt={live.lastOkAt} />}</>;
+  }
+  if (!model.card) return <>{banner}<OverlayMessage text={model.reason ?? ""} /></>;
   return (
     <>
+      {banner}
       {config.kind === "zapowiedz"
         ? <UpcomingCard card={model.card} model={model} config={config} />
         : <ScoreBar card={model.card} title={model.title} config={config} />}
       {live.stale && <StaleMark lastOkAt={live.lastOkAt} />}
     </>
+  );
+}
+
+// ─── #324-L03b · alerts and winner ─────────────────────────────────────────
+
+/** How long one alert stays on screen. */
+export const ALERT_MS = 6_000;
+
+/**
+ * Alerts from the difference between two answers. The first answer, and the first answer after any connection
+ * problem, only become the baseline — a reload or a reconnect never replays an old alert. A correction or an undo
+ * removes alerts that are no longer true. Timers are cleared on unmount (hours in OBS without growing memory).
+ */
+function useOverlayAlerts(snapshot: OverlaySnapshot | undefined, problem: OverlayProblem | null, enabled: boolean): AlertItem | null {
+  const previous = useRef<OverlaySnapshot | null>(null);
+  const disrupted = useRef(false);
+  const ids = useRef(0);
+  const [queue, setQueue] = useState<AlertItem[]>([]);
+  useEffect(() => { if (problem) disrupted.current = true; }, [problem]);
+  useEffect(() => {
+    if (!enabled || !snapshot) return;
+    if (!previous.current || disrupted.current) {
+      previous.current = snapshot;
+      disrupted.current = false;
+      return;
+    }
+    const events = overlayEvents(previous.current, snapshot);
+    previous.current = snapshot;
+    if (events.length) setQueue((current) => nextAlertQueue(current, events, () => ++ids.current));
+  }, [snapshot, enabled]);
+  const current = queue[0] ?? null;
+  useEffect(() => {
+    if (!current) return;
+    const timer = setTimeout(() => setQueue((items) => (items[0]?.id === current.id ? items.slice(1) : items)), ALERT_MS);
+    return () => clearTimeout(timer);
+  }, [current?.id]);
+  return enabled ? current : null;
+}
+
+function AlertBanner({ item }: { item: AlertItem }) {
+  const { label, text } = eventText(item.event);
+  return (
+    <div className="ov-alert" role="status" aria-live="polite" data-kind={item.event.kind} key={item.id}>
+      <span className="ov-alert-label">{label}</span>
+      <span className="ov-alert-text">{text}</span>
+    </div>
+  );
+}
+
+function WinnerCard({ model, config }: { model: WinnerModel; config: OverlayConfig }) {
+  if (!model.name) return <OverlayMessage text={model.reason ?? ""} />;
+  return (
+    <section className="ov-winner" aria-label={`${model.heading}: ${model.name}`} data-champion={model.champion || undefined}>
+      {config.showTitle && !model.champion && <div className="ov-title">{model.title}</div>}
+      <div className="ov-winner-heading">{model.heading}</div>
+      <div className="ov-winner-name" data-fit={model.name.length > 30 ? "xlong" : model.name.length > 18 ? "long" : "normal"}>{model.name}</div>
+      {model.detail && <div className="ov-winner-detail">{model.detail}</div>}
+    </section>
   );
 }
 

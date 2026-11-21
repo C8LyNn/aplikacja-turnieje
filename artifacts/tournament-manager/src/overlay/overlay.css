@@ -147,6 +147,31 @@ html[data-ov-bg="pelne"] body { background: var(--ov-page, #0b1020); }
 .ov[data-motion="2"] .ov-num { animation: ov-pop-strong .6s cubic-bezier(.2, 1.4, .4, 1); }
 .ov[data-motion="2"] :is(.ov-scorebar, .ov-upcoming, .ov-board) { animation: ov-in .6s cubic-bezier(.2, 1.2, .4, 1); }
 .ov[data-motion="2"] .ov-status[data-state="live"]::before { animation: ov-pulse 2s ease-in-out infinite; }
+/* #324-L03b · alerts (only with alerty=1) and the winner card. Motion 0 and "reduce motion" show them without movement. */
+@keyframes ov-alert-in { from { opacity: 0; transform: translateY(-1rem) scale(.96); } to { opacity: 1; transform: none; } }
+@keyframes ov-glow { 0% { filter: brightness(1.6); } 100% { filter: none; } }
+.ov-alert { position: fixed; left: 0; right: 0; margin-inline: auto; width: fit-content; top: 2.2rem; display: flex; align-items: baseline; gap: 1rem;
+  max-width: min(80rem, 92vw); padding: .7rem 1.6rem; background: var(--ov-panel-2); box-shadow: inset 0 0 0 1px var(--ov-edge), inset .3rem 0 0 var(--ov-accent);
+  border-radius: var(--ov-radius); font-size: calc(1.5rem * var(--s)); font-weight: 800; z-index: 5; }
+.ov[data-pos="gora"] .ov-alert { top: auto; bottom: 2.2rem; }
+.ov-alert-label { font-size: calc(1rem * var(--s)); letter-spacing: .16em; text-transform: uppercase; color: var(--ov-accent); white-space: nowrap; }
+.ov-alert-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ov-alert[data-kind="champion"] { box-shadow: inset 0 0 0 1px var(--ov-edge), inset .3rem 0 0 var(--ov-win); }
+.ov-alert[data-kind="champion"] .ov-alert-label { color: var(--ov-win); }
+.ov-alert[data-kind="corrected"] { box-shadow: inset 0 0 0 1px var(--ov-edge), inset .3rem 0 0 #ffb347; }
+.ov-alert[data-kind="corrected"] .ov-alert-label { color: #ffb347; }
+.ov[data-motion="1"] .ov-alert { animation: ov-alert-in .4s ease-out; }
+.ov[data-motion="2"] .ov-alert { animation: ov-alert-in .6s cubic-bezier(.2, 1.3, .4, 1); }
+.ov-winner { width: min(70rem, 100%); display: grid; justify-items: center; gap: .8rem; padding: 2.6rem 3rem; background: var(--ov-panel); text-align: center; box-shadow: inset 0 0 0 1px var(--ov-edge); }
+.ov-winner-heading { font-size: calc(1.3rem * var(--s)); letter-spacing: .3em; text-transform: uppercase; color: var(--ov-win); font-weight: 800; }
+.ov-winner-name { font-size: calc(3.6rem * var(--s)); font-weight: 900; line-height: 1.2; overflow-wrap: anywhere; }
+.ov-winner-name[data-fit="long"] { font-size: calc(2.8rem * var(--s)); }
+.ov-winner-name[data-fit="xlong"] { font-size: calc(2.2rem * var(--s)); }
+.ov-winner-detail { font-size: calc(1.25rem * var(--s)); color: var(--ov-muted); }
+.ov[data-kind="zwyciezca"] { justify-content: center; }
+.ov[data-motion="1"] .ov-winner { animation: ov-in .4s ease-out; }
+.ov[data-motion="2"] .ov-winner { animation: ov-in .6s cubic-bezier(.2, 1.2, .4, 1); }
+.ov[data-motion="2"] .ov-winner[data-champion] .ov-winner-name { animation: ov-glow 1.2s ease-out; }
 @media (prefers-reduced-motion: reduce) { .ov *, .ov *::before { animation: none !important; } }
 
 /* ── ARENA: neon glass, clipped corners, Rajdhani ─────────────────────────── */

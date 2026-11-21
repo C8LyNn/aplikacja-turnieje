@@ -10,7 +10,7 @@ import type { MatchRules } from "@workspace/match-rules";
 
 // ─── address (URL) ─────────────────────────────────────────────────────────
 
-export type OverlayKind = "wynik" | "struktura" | "zapowiedz";
+export type OverlayKind = "wynik" | "struktura" | "zapowiedz" | "zwyciezca";
 export type OverlayPresetId = "arena" | "broadcast" | "minimal" | "sport" | "futuristic";
 
 export interface OverlayConfig {
@@ -21,7 +21,8 @@ export interface OverlayConfig {
    * QW-07 · "auto" needs no choice at all: the match "Na ekranie" if there is one, otherwise the match being
    * played, otherwise the next ready one, otherwise the last result.
    */
-  match: "ekran" | "auto" | number;
+  /** #324-L03b · "nastepny" = the next ready match (not the one being played); "ostatni" = the latest result. */
+  match: "ekran" | "auto" | "nastepny" | "ostatni" | number;
   /** Structure view: stage id (null = the current stage). */
   stage: number | null;
   /** Structure view: one bracket round (null = the whole bracket / all groups). */
@@ -38,17 +39,23 @@ export interface OverlayConfig {
   position: "dol" | "gora";
   /** Upcoming card: also list the next matches of the stage. */
   showQueue: boolean;
+  /**
+   * #324-L03b · on-air alerts (match end, advance, new stage, winner, corrected result). Off unless the address says
+   * alerty=1 — the overlay's own setting, independent of the app and of the animation level.
+   */
+  alerts: boolean;
 }
 
 export const OVERLAY_DEFAULTS: Omit<OverlayConfig, "tournamentId"> = {
   kind: "wynik", match: "ekran", stage: null, round: null, group: null, preset: "arena", layout: "pelny", scoreSize: "m",
-  showTitle: true, background: "przezroczyste", motion: 1, textScale: 1, position: "dol", showQueue: false,
+  showTitle: true, background: "przezroczyste", motion: 1, textScale: 1, position: "dol", showQueue: false, alerts: false,
 };
 
 export const OVERLAY_KINDS: { id: OverlayKind; label: string; description: string }[] = [
   { id: "wynik", label: "Wynik", description: "Pasek z nazwami i wynikiem na obrazie gry." },
   { id: "struktura", label: "Tabela i drabinka", description: "Tabela, grupy albo drabinka etapu — na przerwę." },
   { id: "zapowiedz", label: "Zapowiedź", description: "Plansza przed meczem: kto gra, kiedy i o co." },
+  { id: "zwyciezca", label: "Zwycięzca", description: "Zwycięzca turnieju po jego końcu, wcześniej zwycięzca ostatniego meczu." },
 ];
 
 export const OVERLAY_PRESETS: { id: OverlayPresetId; label: string; description: string }[] = [
@@ -84,8 +91,8 @@ export function parseOverlayParams(search: string | URLSearchParams): OverlayCon
   const group = p.get("grupa");
   return {
     tournamentId: positiveInt(p.get("t")),
-    kind: kind === "struktura" || kind === "zapowiedz" ? kind : "wynik",
-    match: p.get("mecz") === "auto" ? "auto" : positiveInt(p.get("mecz")) ?? "ekran",
+    kind: kind === "struktura" || kind === "zapowiedz" || kind === "zwyciezca" ? kind : "wynik",
+    match: MATCH_WORDS.has(p.get("mecz") ?? "") ? (p.get("mecz") as "auto" | "nastepny" | "ostatni") : positiveInt(p.get("mecz")) ?? "ekran",
     stage: positiveInt(p.get("etap")),
     round: positiveInt(p.get("runda")),
     group: group && group.length <= 40 ? group : null,
@@ -98,15 +105,18 @@ export function parseOverlayParams(search: string | URLSearchParams): OverlayCon
     textScale: scale === 1.25 || scale === 1.5 ? scale : 1,
     position: p.get("pozycja") === "gora" ? "gora" : "dol",
     showQueue: p.get("kolejka") === "1",
+    alerts: p.get("alerty") === "1",
   };
 }
+
+const MATCH_WORDS = new Set(["auto", "nastepny", "ostatni"]);
 
 /** The overlay address for a configuration — only non-default values are written, so links stay short. */
 export function overlayUrl(origin: string, basePath: string, config: OverlayConfig): string {
   const p = new URLSearchParams();
   if (config.tournamentId != null) p.set("t", String(config.tournamentId));
   if (config.kind !== OVERLAY_DEFAULTS.kind) p.set("widok", config.kind);
-  if (config.kind !== "struktura" && config.match !== "ekran") p.set("mecz", String(config.match));
+  if (config.kind !== "struktura" && config.kind !== "zwyciezca" && config.match !== "ekran") p.set("mecz", String(config.match));
   if (config.kind === "struktura") {
     if (config.stage != null) p.set("etap", String(config.stage));
     if (config.round != null) p.set("runda", String(config.round));
@@ -121,6 +131,7 @@ export function overlayUrl(origin: string, basePath: string, config: OverlayConf
   if (config.textScale !== OVERLAY_DEFAULTS.textScale) p.set("tekst", String(config.textScale));
   if (config.position !== OVERLAY_DEFAULTS.position) p.set("pozycja", config.position);
   if (config.kind === "zapowiedz" && config.showQueue) p.set("kolejka", "1");
+  if (config.alerts && config.kind !== "struktura") p.set("alerty", "1");
   const base = basePath.endsWith("/") ? basePath : `${basePath}/`;
   return `${origin}${base}overlay.html?${p.toString()}`;
 }
@@ -371,34 +382,51 @@ export function pickCurrentMatch(tournament: PublicTournament, matches: readonly
   if (featured) return { match: featured };
   const live = real.filter((m) => m.status === "in_progress").sort(overlayEngineOrder)[0];
   if (live) return { match: live };
-  if (tournament.status !== "draft" && tournament.status !== "completed") {
-    const ready = real.filter((m) => m.status === "pending" && m.player1Id != null && m.player2Id != null);
-    const inStage = ready.filter((m) => tournament.activeStageId == null || m.stageId === tournament.activeStageId);
-    const next = (inStage.length ? inStage : ready).sort((a, b) => {
-      const ta = overlayTime(a.scheduledAt), tb = overlayTime(b.scheduledAt);
-      if (!Number.isNaN(ta) || !Number.isNaN(tb)) {
-        if (Number.isNaN(ta)) return 1;
-        if (Number.isNaN(tb)) return -1;
-        if (ta !== tb) return ta - tb;
-      }
-      return overlayEngineOrder(a, b);
-    })[0];
-    if (next) return { match: next };
-  }
-  const last = real.filter((m) => m.status === "completed").sort((a, b) => {
+  const next = nextReadyMatch(tournament, matches);
+  if (next) return { match: next };
+  const last = lastCompletedMatch(matches);
+  if (last) return { match: last };
+  return { match: null, reason: tournament.status === "draft" ? "Turniej jeszcze się nie rozpoczął." : "Na razie żaden mecz nie jest gotowy do rozegrania." };
+}
+
+/** The next ready match of the current stage (scheduled ones first, by their real time); never one being played. */
+export function nextReadyMatch(tournament: PublicTournament, matches: readonly PublicMatch[]): PublicMatch | null {
+  if (tournament.status === "draft" || tournament.status === "completed") return null;
+  const ready = matches.filter((m) => m.resultType !== "bye" && m.status === "pending" && m.player1Id != null && m.player2Id != null);
+  const inStage = ready.filter((m) => tournament.activeStageId == null || m.stageId === tournament.activeStageId);
+  return (inStage.length ? inStage : ready).sort((a, b) => {
+    const ta = overlayTime(a.scheduledAt), tb = overlayTime(b.scheduledAt);
+    if (!Number.isNaN(ta) || !Number.isNaN(tb)) {
+      if (Number.isNaN(ta)) return 1;
+      if (Number.isNaN(tb)) return -1;
+      if (ta !== tb) return ta - tb;
+    }
+    return overlayEngineOrder(a, b);
+  })[0] ?? null;
+}
+
+/** The latest saved result (byes never count). */
+export function lastCompletedMatch(matches: readonly PublicMatch[]): PublicMatch | null {
+  return matches.filter((m) => m.resultType !== "bye" && m.status === "completed").sort((a, b) => {
     const ta = overlayTime(a.completedAt), tb = overlayTime(b.completedAt);
     if (!Number.isNaN(ta) && !Number.isNaN(tb) && ta !== tb) return tb - ta;
     if (Number.isNaN(ta) !== Number.isNaN(tb)) return Number.isNaN(ta) ? 1 : -1;
     return overlayEngineOrder(b, a);
-  })[0];
-  if (last) return { match: last };
-  return { match: null, reason: tournament.status === "draft" ? "Turniej jeszcze się nie rozpoczął." : "Na razie żaden mecz nie jest gotowy do rozegrania." };
+  })[0] ?? null;
 }
 
 /** The match an overlay shows: the pinned one, the one the organizer puts "Na ekranie", or (QW-07) the current one. */
 export function pickOverlayMatch(config: Pick<OverlayConfig, "match">, tournament: PublicTournament, matches: readonly PublicMatch[]):
   { match: PublicMatch } | { match: null; reason: string } {
   if (config.match === "auto") return pickCurrentMatch(tournament, matches);
+  if (config.match === "nastepny") {
+    const next = nextReadyMatch(tournament, matches);
+    return next ? { match: next } : { match: null, reason: tournament.status === "completed" ? "Turniej jest zakończony." : "Na razie żaden kolejny mecz nie jest gotowy." };
+  }
+  if (config.match === "ostatni") {
+    const last = lastCompletedMatch(matches);
+    return last ? { match: last } : { match: null, reason: "Nie ma jeszcze zapisanych wyników." };
+  }
   const id = config.match === "ekran" ? tournament.featuredMatchId : config.match;
   if (id == null) return { match: null, reason: "Żaden mecz nie jest teraz „Na ekranie”." };
   const match = matches.find((candidate) => candidate.id === id);
@@ -570,4 +598,34 @@ export function matchOverlayModel(
       ? upcomingQueue(match, matches).map((m) => ({ id: m.id, side1: m.player1Name ?? "", side2: m.player2Name ?? "" }))
       : [],
   };
+}
+
+// ─── #324-L03b · winner card ────────────────────────────────────────────────
+
+export interface WinnerModel {
+  title: string;
+  /** "Zwycięzca turnieju" once the tournament is completed with a winner, otherwise "Zwycięzca meczu". */
+  heading: string;
+  name: string | null;
+  detail: string | null;
+  champion: boolean;
+  reason: string | null;
+}
+
+/** The tournament winner when the engine has one; before that, the winner of the latest result. Never guessed. */
+export function winnerModel(tournament: PublicTournament, matches: readonly PublicMatch[], stages: readonly PublicStage[]): WinnerModel {
+  const nameById = (id: number | null) => (id == null ? null
+    : matches.map((m) => (m.player1Id === id ? m.player1Name : m.player2Id === id ? m.player2Name : null)).find(Boolean) ?? null);
+  if (tournament.status === "completed" && tournament.winnerId != null) {
+    const name = nameById(tournament.winnerId);
+    if (name) return { title: tournament.name, heading: "Zwycięzca turnieju", name, detail: tournament.name, champion: true, reason: null };
+  }
+  const last = lastCompletedMatch(matches.filter((m) => m.winnerId != null));
+  if (!last) return { title: tournament.name, heading: "Zwycięzca meczu", name: null, detail: null, champion: false, reason: "Zwycięzca pojawi się po pierwszym rozstrzygniętym meczu." };
+  const winner = last.winnerId === last.player1Id ? last.player1Name : last.player2Name;
+  const loser = last.winnerId === last.player1Id ? last.player2Name : last.player1Name;
+  const stage = stages.find((s) => s.id === last.stageId) ?? null;
+  const score = last.resultType === "walkover" ? "walkower" : `${last.winnerId === last.player1Id ? last.score1 : last.score2}:${last.winnerId === last.player1Id ? last.score2 : last.score1}`;
+  const context = stageRoundText(last, stage, matches.filter((m) => m.stageId === last.stageId));
+  return { title: tournament.name, heading: "Zwycięzca meczu", name: winner, detail: `${score}${loser ? ` z ${loser}` : ""} · ${context}`, champion: false, reason: null };
 }
