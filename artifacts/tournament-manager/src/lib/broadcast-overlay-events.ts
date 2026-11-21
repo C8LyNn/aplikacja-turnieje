@@ -1,4 +1,4 @@
-import { t } from "@/i18n";
+import { t, stageLabel } from "@/i18n";
 /**
  * #324-L03b · on-air alerts from real data only. The overlay compares two consecutive public answers of the API and
  * announces what changed between them: a match ended, a player moved into the next round, a new stage started, the
@@ -63,7 +63,7 @@ function roundLabel(snapshot: OverlaySnapshot, match: SnapshotMatch): string {
     const total = Math.max(...snapshot.matches.filter((m) => m.stageId === match.stageId).map((m) => m.round));
     return eliminationRoundName(match.round, total);
   }
-  return t("broadcastOverlayEvents.v0_runda_round", { v0: stage?.name ? `${stage.name} · ` : "", round: match.round });
+  return t("broadcastOverlayEvents.v0_runda_round", { v0: stage?.name ? `${stageLabel(stage.name)} · ` : "", round: match.round });
 }
 
 /** What happened between two answers. `prev` null (first answer) gives nothing. */
@@ -110,7 +110,7 @@ export function overlayEvents(prev: OverlaySnapshot | null, next: OverlaySnapsho
   if (next.activeStageId != null && next.activeStageId !== prev.activeStageId) {
     const stage = next.stages.find((s) => s.id === next.activeStageId);
     const previous = prev.stages.find((s) => s.id === prev.activeStageId);
-    if (stage && (!previous || stage.position > previous.position)) events.push({ kind: "stage", stageId: stage.id, name: stage.name });
+    if (stage && (!previous || stage.position > previous.position)) events.push({ kind: "stage", stageId: stage.id, name: stageLabel(stage.name) });
   }
   if (prev.status !== "completed" && next.status === "completed" && next.winnerId != null) {
     const name = next.matches.map((m) => nameOf(m, next.winnerId)).find(Boolean);

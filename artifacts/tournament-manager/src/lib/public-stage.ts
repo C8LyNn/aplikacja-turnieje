@@ -1,4 +1,4 @@
-import { t } from "@/i18n";
+import { t, stageLabel } from "@/i18n";
 import type { Bracket, TournamentStage } from "@workspace/api-client-react";
 
 /** Public views follow lifecycle status, never the response's incidental order. */
@@ -24,6 +24,6 @@ export function publicStageBracket(bracket: Bracket | undefined, stage: Tourname
 export function publicStageLabel(stage: TournamentStage | undefined, omitRedundantPosition = false) {
   if (!stage) return t("publicStage.brak_rozpoczetego_etapu");
   // Experimental views skip "— Etap N" when the stage name already is "Etap N".
-  if (omitRedundantPosition && stage.name.trim().toLowerCase() === `etap ${stage.position}`) return stage.name;
-  return t("publicStage.name_etap_position", { name: stage.name, position: stage.position });
+  if (omitRedundantPosition && stage.name.trim().toLowerCase() === `etap ${stage.position}`) return stageLabel(stage.name);
+  return t("publicStage.name_etap_position", { name: stageLabel(stage.name), position: stage.position });
 }

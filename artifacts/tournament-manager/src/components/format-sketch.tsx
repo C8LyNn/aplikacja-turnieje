@@ -1,4 +1,4 @@
-import { t } from "@/i18n";
+import { t, stageLabel } from "@/i18n";
 import type { CSSProperties } from "react";
 import { SKETCH_FONT, sketchStages, type SketchBox, type SketchStageInput } from "@/lib/format-sketch";
 
@@ -43,7 +43,7 @@ export function FormatSketch({
         return (
           <div key={sketch.key} data-testid="format-sketch-stage" data-format={sketch.format} style={{ minWidth: 0 }}>
             {sketches.length > 1 && (
-              <p style={{ margin: "0 0 0.25rem", fontSize: "0.75rem", fontWeight: 700 }}>{index + 1}. {stage?.name}</p>
+              <p style={{ margin: "0 0 0.25rem", fontSize: "0.75rem", fontWeight: 700 }}>{index + 1}. {stageLabel(stage?.name)}</p>
             )}
             <svg
               viewBox={`0 0 ${sketch.width} ${sketch.height}`}

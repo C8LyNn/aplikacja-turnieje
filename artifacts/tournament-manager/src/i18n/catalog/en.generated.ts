@@ -3146,6 +3146,7 @@ export const enGenerated: Record<keyof typeof plGenerated, string> = {
   "stageBasketsPanel.nie_udalo_sie_pobrac_etapow": "Could not load the stages.",
   "stageBasketsPanel.nie_udalo_sie_pobrac_konfiguracji": "Could not load the pot setup.",
   "stageBasketsPanel.nie_udalo_sie_pobrac_listy": "Could not load the player list.",
+  "stageBasketsPanel.o_gap_za_duzo": "{gap} too many",
   "stageBasketsPanel.odpada": "· Eliminated:",
   "stageBasketsPanel.plan_przeplywu": "Flow plan",
   "stageBasketsPanel.planowane": "planned:",

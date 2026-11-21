@@ -1,4 +1,4 @@
-import { t } from "@/i18n";
+import { t, stageLabel } from "@/i18n";
 import { ReadQueryState } from "@/components/read-query-state";
 import { configurationErrorFeedback, configurationProblemMessage, type ConfigurationProblem } from "@/lib/stage-configuration-feedback";
 import React, { useState, useMemo } from "react";
@@ -413,7 +413,7 @@ export function StageBlock({
     >
       {/* Stage header */}
       <div className="organizer-flow-stage-header border-b bg-muted/30 rounded-t-lg">
-        <div className="font-semibold text-sm">{stage.name}</div>
+        <div className="font-semibold text-sm">{stageLabel(stage.name)}</div>
         <div className="flex items-center gap-2 mt-0.5">
           <span className="text-xs text-muted-foreground">{formatLabel}</span>
           <span className="text-xs text-muted-foreground">·</span>
@@ -582,19 +582,19 @@ export function RouteConnector({
           srcStage && tgtStage && tgtStage.position > srcStage.position + 1;
         // For skip routes show "Stage name / Basket label" so it's unambiguous
         const displayTgtLabel = isSkipRoute && tgtStage
-          ? `${tgtStage.name} / ${tgtBasketLabel}`
+          ? `${stageLabel(tgtStage.name)} / ${tgtBasketLabel}`
           : tgtBasketLabel;
 
         return (
-          <div key={route.id} role="listitem" aria-label={`${srcStage?.name ?? t("stageBasketsPanel.zrodlo")}: ${srcLabel} → ${tgtStage?.name ?? t("stageBasketsPanel.cel")}: ${tgtBasketLabel}`} className="rounded-lg border border-border bg-card p-2 text-sm" data-testid={`route-${route.id}`}>
+          <div key={route.id} role="listitem" aria-label={`${stageLabel(srcStage?.name) ?? t("stageBasketsPanel.zrodlo")}: ${srcLabel} → ${stageLabel(tgtStage?.name) ?? t("stageBasketsPanel.cel")}: ${tgtBasketLabel}`} className="rounded-lg border border-border bg-card p-2 text-sm" data-testid={`route-${route.id}`}>
             <div className="grid grid-cols-[minmax(0,1fr)_1.5rem_minmax(0,1fr)] items-center gap-1">
               <div className={`min-w-0 rounded border p-1.5 ${srcColor.bg} ${srcColor.border}`}>
-                <span className="block text-xs text-muted-foreground break-words">{srcStage?.name ?? t("stageBasketsPanel.zrodlo")}</span>
+                <span className="block text-xs text-muted-foreground break-words">{stageLabel(srcStage?.name) ?? t("stageBasketsPanel.zrodlo")}</span>
                 <span className="block font-medium break-words">{srcLabel}</span>
               </div>
               <ArrowRight aria-hidden="true" className="h-6 w-6 text-foreground" />
               <div className={`min-w-0 rounded border p-1.5 ${tgtColor.bg} ${tgtColor.border}`} data-testid={`route-target-${route.id}`}>
-                <span className="block text-xs text-muted-foreground break-words">{tgtStage?.name ?? t("stageBasketsPanel.cel")}</span>
+                <span className="block text-xs text-muted-foreground break-words">{stageLabel(tgtStage?.name) ?? t("stageBasketsPanel.cel")}</span>
                 <span className="block font-medium break-words">{tgtBasketLabel}</span>
               </div>
             </div>
@@ -681,7 +681,7 @@ function AddRoutePanel({
               const stage = stages.find((s) => s.id === b.stageId);
               return (
                 <option key={b.id} value={b.id}>
-                  {stage?.name ?? t("stageBasketsPanel.etap_stageid", { stageId: b.stageId })}: {basketLabel(b.type, b.ordinal)}
+                  {stageLabel(stage?.name) ?? t("stageBasketsPanel.etap_stageid", { stageId: b.stageId })}: {basketLabel(b.type, b.ordinal)}
                 </option>
               );
             })}
@@ -700,7 +700,7 @@ function AddRoutePanel({
               const stage = stages.find((s) => s.id === b.stageId);
               return (
                 <option key={b.id} value={b.id}>
-                  {stage?.name ?? t("stageBasketsPanel.etap_stageid", { stageId: b.stageId })}: {basketLabel(b.type, b.ordinal)}
+                  {stageLabel(stage?.name) ?? t("stageBasketsPanel.etap_stageid", { stageId: b.stageId })}: {basketLabel(b.type, b.ordinal)}
                 </option>
               );
             })}
@@ -754,11 +754,11 @@ export function FlowSummary({
         const gap = actual != null && planned > 0 && actual !== planned ? actual - planned : 0;
         return (
           <li key={stage.id} className="flex flex-wrap items-baseline gap-x-2" data-flow-gap={gap !== 0 ? "true" : undefined}>
-            <span className="font-medium">{stage.position}. {stage.name}</span>
+            <span className="font-medium">{stage.position}. {stageLabel(stage.name)}</span>
             <span className="text-muted-foreground">{t("stageBasketsPanel.planowane")}{" "}{planned}</span>
             {actual != null && <span className="text-muted-foreground">{first ? t("stageBasketsPanel.zapisanych") : t("stageBasketsPanel.z_koszykow")}: {actual}</span>}
             {gap < 0 && <span className="font-medium text-amber-500">{t("stageBasketsPanel.brakuje")}{" "}{-gap}</span>}
-            {gap > 0 && <span className="font-medium text-destructive">o {gap} {t("stageBasketsPanel.za_duzo")}</span>}
+            {gap > 0 && <span className="font-medium text-destructive">{t("stageBasketsPanel.o_gap_za_duzo", { gap })}</span>}
             {!first && !counts && <span className="text-muted-foreground">{t("stageBasketsPanel.z_awansu_z_etapu")}{" "}{ordered[index - 1].position})</span>}
           </li>
         );

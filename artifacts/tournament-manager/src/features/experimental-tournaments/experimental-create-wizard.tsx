@@ -1,4 +1,4 @@
-import { t } from "@/i18n";
+import { serverError, t, localizeServerTexts, stageLabel } from "@/i18n";
 import { MATCH_PARAM_KEYS, MatchRulesChoice } from "./experimental-match-rules-choice";
 import { LEAGUE_PARAM_KEYS, LeagueOptions } from "./experimental-league-options";
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState, type ReactNode } from "react";
@@ -96,9 +96,9 @@ async function postJson<T>(url: string, body: unknown, signal: AbortSignal): Pro
     body: JSON.stringify(body),
     signal,
   });
-  const data = (await response.json().catch(() => ({}))) as T & { error?: string; param?: PresetParamKey };
+  const data = localizeServerTexts((await response.json().catch(() => ({}))) as T & { error?: string; param?: PresetParamKey });
   if (!response.ok) {
-    const error = new Error(data.error || t("experimentalCreateWizard.serwer_odpowiedzial_bledem_http_status", { status: response.status })) as Error & { param?: PresetParamKey };
+    const error = new Error(serverError(data) || t("experimentalCreateWizard.serwer_odpowiedzial_bledem_http_status", { status: response.status })) as Error & { param?: PresetParamKey };
     error.param = data.param;
     throw error;
   }
@@ -261,7 +261,7 @@ export function StageFlow({ preview }: { preview: PresetPreview }) {
           <div className="experimental-wizard-flow-head">
             <span className="experimental-wizard-flow-index">{stage.position}</span>
             <div className="min-w-0">
-              <p className="experimental-wizard-flow-name">{stage.name}</p>
+              <p className="experimental-wizard-flow-name">{stageLabel(stage.name)}</p>
               <p className="experimental-wizard-flow-format">{stage.formatLabel} · {stageDecisionText(preview.stagePlan?.stages.find((planned) => planned.position === stage.position)?.matchRules ?? preview.matchRules, stage.bestOf)}</p>
             </div>
           </div>
@@ -761,7 +761,7 @@ export function ExperimentalCreateWizard() {
     <div ref={wizardRef} className="experimental-wizard" data-step={step}>
       <header className="experimental-wizard-top">
         <div>
-          <p className="experimental-wizard-eyebrow">{t("experimentalCreateWizard.nowe_rozgrywki_krok")}{" "}{step + 1} z {WIZARD_STEPS.length}</p>
+          <p className="experimental-wizard-eyebrow">{t("experimentalCreateWizard.nowe_rozgrywki_krok")}{" "}{step + 1}{" "}{t("i18n.word.of")}{" "}{WIZARD_STEPS.length}</p>
           <h2 ref={headingRef} tabIndex={-1} className="experimental-wizard-title">{title}</h2>
           <p className="experimental-wizard-lead">{lead}</p>
         </div>

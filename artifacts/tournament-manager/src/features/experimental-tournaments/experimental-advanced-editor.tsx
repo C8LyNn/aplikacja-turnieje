@@ -1,4 +1,4 @@
-import { t } from "@/i18n";
+import { t, localizeServerTexts, stageLabel } from "@/i18n";
 /**
  * V5.4 · advanced creation editor.
  *
@@ -208,7 +208,7 @@ export function ExperimentalAdvancedEditor() {
         signal: controller.signal,
       })
         .then(async (response) => {
-          const body = (await response.json().catch(() => ({}))) as PresetPreview & { error?: string; param?: PresetParamKey };
+          const body = localizeServerTexts((await response.json().catch(() => ({}))) as PresetPreview & { error?: string; param?: PresetParamKey });
           if (!response.ok) {
             setPreview((current) => ({ status: "error", data: current.data, error: body.error ?? `HTTP ${response.status}`, param: body.param }));
             return;
@@ -601,7 +601,7 @@ export function FlowSteps({ preview, noun }: { preview: Pick<PresetPreview, "sta
         return (
           <li key={stage.key} className="experimental-flow-step">
             <p className="experimental-flow-step-name">
-              <span className="experimental-flow-step-index">{stage.position}</span> {stage.name}
+              <span className="experimental-flow-step-index">{stage.position}</span> {stageLabel(stage.name)}
             </p>
             <p className="experimental-flow-step-facts">
               {stage.participantCount} {noun(stage.participantCount)}

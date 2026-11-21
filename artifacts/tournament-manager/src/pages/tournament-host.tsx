@@ -1,4 +1,4 @@
-import { t } from "@/i18n";
+import { t, stageLabel, serverText } from "@/i18n";
 import { evaluateSetMatch, setMatchProgress, type SetScore } from "@workspace/match-rules";
 import { SetScoreEditor, setsText } from "@/components/set-score-editor";
 import { ExperimentalLeaguePanel } from "@/features/experimental-tournaments/experimental-league-panel";
@@ -843,7 +843,7 @@ export default function TournamentHost() {
       // The API decides; this only stops an obviously incomplete form and says why.
       const evaluated = evaluateSetMatch(scores[matchId]?.sets ?? [], setRules);
       if (!evaluated.ok) {
-        toast({ title: t("tournamentHost.wynik_niekompletny"), description: evaluated.problem.message, variant: "warning" });
+        toast({ title: t("tournamentHost.wynik_niekompletny"), description: serverText(evaluated.problem.message), variant: "warning" });
         return;
       }
       if (resultDrafts.isStale(match)) return;
@@ -1156,7 +1156,7 @@ export default function TournamentHost() {
   const showResultsSidebar = queueMatches.length > 0 && completedMatches.length >= 3;
   const matchStageGroups = Array.from(new Set(matches?.map(match => match.stageId ?? null))).map(stageId => {
     const stage = stages?.find(entry => entry.id === stageId);
-    return { id: stageId, name: stage?.name ?? (stageId === null ? t("tournamentHost.mecze_bez_przypisanego_etapu") : t("tournamentHost.etap_stageid", { stageId: stageId })), position: stage?.position ?? Number.MAX_SAFE_INTEGER };
+    return { id: stageId, name: stageLabel(stage?.name) ?? (stageId === null ? t("tournamentHost.mecze_bez_przypisanego_etapu") : t("tournamentHost.etap_stageid", { stageId: stageId })), position: stage?.position ?? Number.MAX_SAFE_INTEGER };
   }).sort((a, b) => a.position - b.position);
   const canGenerateRound = nextStep?.kind === "swiss_round";
   // QW-04 · "Co teraz?": the authoritative next step (lifecycle actions are capability-gated in the model) plus
@@ -1255,7 +1255,7 @@ export default function TournamentHost() {
         <div className="bg-muted/20 border-b px-4 py-2.5 flex flex-wrap items-center gap-x-3 gap-y-2 justify-between">
           <div className="flex flex-wrap items-center gap-2 min-w-0">
             <span className="text-sm font-semibold">{t("tournamentHost.wybrany_mecz")}</span>
-            <span className="text-xs text-muted-foreground">{stages?.find(stage => stage.id === focusedMatch.stageId)?.name}</span>
+            <span className="text-xs text-muted-foreground">{stageLabel(stages?.find(stage => stage.id === focusedMatch.stageId)?.name)}</span>
             <Badge variant="outline" className="text-xs shrink-0">{t("tournamentHost.runda")}{" "}{focusedMatch.round}</Badge>
             <span className="text-xs text-muted-foreground font-mono shrink-0">M{focusedMatch.matchNumber}</span>
             {isLive && (
@@ -1343,7 +1343,7 @@ export default function TournamentHost() {
                     {history.slice(0, 8).map((entry) => (
                       <li key={entry.id} data-undone={entry.isUndone ? "true" : undefined}>
                         <time dateTime={entry.createdAt}>{new Date(entry.createdAt).toLocaleString("pl-PL", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</time>{" "}
-                        {entry.description}{entry.isUndone ? t("tournamentHost.cofnieta") : ""}
+                        {serverText(entry.description)}{entry.isUndone ? t("tournamentHost.cofnieta") : ""}
                       </li>
                     ))}
                   </ol>
@@ -1859,7 +1859,7 @@ export default function TournamentHost() {
         {isExperimental ? (
           <ExperimentalHostCommandCenter
             tournamentId={id}
-            stageName={activeStage?.name ?? plannedStage?.name ?? tournament.name}
+            stageName={stageLabel(activeStage?.name) ?? stageLabel(plannedStage?.name) ?? tournament.name}
             formatLabel={activeStage ? STAGE_FORMAT_LABELS[activeStage.format] : undefined}
             roundLabel={operation.summary.roundLabel}
             liveCount={workCounts.in_progress}
@@ -1892,7 +1892,7 @@ export default function TournamentHost() {
                 {dataLoading ? t("tournamentHost.sprawdzanie_stanu") : activeStage ? t("tournamentHost.aktywny_etap_position_z_length", { position: activeStage.position, length: stages?.length })
                   : tournament.status === "completed" ? t("tournamentHost.turniej_zakonczony") : t("tournamentHost.przygotowanie_etapu")}
               </p>
-              <h2 className="mt-1 text-xl font-semibold">{activeStage?.name ?? plannedStage?.name ?? tournament.name}</h2>
+              <h2 className="mt-1 text-xl font-semibold">{stageLabel(activeStage?.name) ?? stageLabel(plannedStage?.name) ?? tournament.name}</h2>
               {activeStage && <p className="mt-1 text-sm text-muted-foreground">
                 {STAGE_FORMAT_LABELS[activeStage.format]} · {operation.summary.roundLabel}
               </p>}
@@ -1944,7 +1944,7 @@ export default function TournamentHost() {
         )}
         {capabilities.canUndo && lastUndoableAction && !undoConfirm && (
           <div className="flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 text-sm">
-            <span className="text-muted-foreground">{t("tournamentHost.ostatnia_akcja")}{" "}{lastUndoableAction.description}</span>
+            <span className="text-muted-foreground">{t("tournamentHost.ostatnia_akcja")}{" "}{serverText(lastUndoableAction.description)}</span>
             <Button variant="ghost" size="sm" className="h-7 text-yellow-500" onClick={() => setUndoConfirm(true)}>
               <Undo2 className="mr-1 h-3.5 w-3.5" /> {t("tournamentHost.cofnij")}</Button>
           </div>
@@ -1956,7 +1956,7 @@ export default function TournamentHost() {
             <Undo2 className="w-5 h-5 text-yellow-400 shrink-0" />
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-yellow-400">{t("tournamentHost.cofnac_akcje")}</p>
-              <p className="text-xs text-muted-foreground truncate">{lastUndoableAction.description}</p>
+              <p className="text-xs text-muted-foreground truncate">{serverText(lastUndoableAction.description)}</p>
               {tournamentCompleted && lastUndoableAction.actionType === "match_result_submitted" && (
                 <p className="text-xs text-yellow-300" role="note">{t("tournamentHost.turniej_jest_zakonczony_cofniecie_tego")}</p>
               )}
@@ -2016,7 +2016,7 @@ export default function TournamentHost() {
             {!dataLoading && !dataError && renderActiveMatchPanel()}
 
             {isExperimental && !dataLoading && !dataError && !tournamentCompleted && (
-              <ExperimentalMatchFlow matches={operationalMatches} allMatches={matches} stageNames={new Map((stages ?? []).map((stage) => [stage.id, stage.name]))} focusedMatchId={focusedMatchId} onSelect={setSelectedMatchId} disabled={hostPending} compact />
+              <ExperimentalMatchFlow matches={operationalMatches} allMatches={matches} stageNames={new Map((stages ?? []).map((stage) => [stage.id, stageLabel(stage.name)]))} focusedMatchId={focusedMatchId} onSelect={setSelectedMatchId} disabled={hostPending} compact />
             )}
             {/* Queue + recent results */}
             {(queueMatches.length > 0 || completedMatches.length > 0 || postponedMatches.length > 0) && (
@@ -2293,8 +2293,8 @@ export default function TournamentHost() {
               {matchStageGroups.map((stage) => {
                 const stageMatches = matches?.filter((match) => match.stageId === stage.id || (stage.id === null && !match.stageId)) ?? [];
                 if (!stageMatches.length) return null;
-                return <section key={stage.id ?? "legacy"} aria-label={t("tournamentHost.mecze_name", { name: stage.name })}>
-                  <h3 className="mb-3 font-semibold">{stage.name}</h3>
+                return <section key={stage.id ?? "legacy"} aria-label={t("tournamentHost.mecze_name", { name: stageLabel(stage.name) })}>
+                  <h3 className="mb-3 font-semibold">{stageLabel(stage.name)}</h3>
                   <div className="space-y-2">
                     {[...stageMatches].sort((a, b) => Number(b.status === "in_progress") - Number(a.status === "in_progress") || a.round - b.round || a.matchNumber - b.matchNumber).map((match) => (
                       <div key={match.id} data-exp-match-state={isExperimental ? match.status : undefined} className={`flex flex-wrap items-center gap-3 rounded-lg border bg-card p-3 ${isExperimental ? "experimental-host-match" : ""} ${match.status === "in_progress" ? "border-secondary/60" : ""}`}>
@@ -2504,7 +2504,7 @@ export default function TournamentHost() {
                           className={`flex items-center justify-between p-2.5 border rounded bg-card gap-3 ${entry.isUndone ? "opacity-40" : ""}`}
                         >
                           <div className="flex items-center gap-2 min-w-0 flex-1">
-                            <span className={`text-sm ${colorClass}`} title={entry.actionType}>{entry.description}</span>
+                            <span className={`text-sm ${colorClass}`} title={entry.actionType}>{serverText(entry.description)}</span>
                             {entry.isUndone && <Badge variant="outline" className="text-xs shrink-0">{t("tournamentHost.cofnieta_2")}</Badge>}
                           </div>
                           <div className="flex items-center gap-2 shrink-0">

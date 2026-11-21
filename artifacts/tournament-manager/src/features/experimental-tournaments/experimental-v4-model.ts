@@ -1,4 +1,4 @@
-import { t as tr } from "@/i18n";
+import { t as tr, stageLabel } from "@/i18n";
 /**
  * SWARM-006 UX v4 — pure view models for the Experimental screens.
  * No API calls and no writes: everything is derived from data the pages already load,
@@ -150,7 +150,7 @@ export function stageRail(
       s.status === "active" && typeof s.currentRound === "number" && s.format !== "group_stage"
         ? rounds ? tr("experimentalV4Model.runda_currentround_rounds", { currentRound: s.currentRound, rounds: rounds }) : tr("experimentalV4Model.runda_currentround", { currentRound: s.currentRound })
         : null;
-    return { id: s.id, name: s.name, format: s.format, status: s.status, done: c.done, total: c.total, roundLabel, isCurrent: s.id === currentId };
+    return { id: s.id, name: stageLabel(s.name), format: s.format, status: s.status, done: c.done, total: c.total, roundLabel, isCurrent: s.id === currentId };
   });
 }
 
@@ -234,11 +234,11 @@ export function tournamentAction(t: { id: number; status: string; activity?: Tou
         return { group: "advance", label: tr("experimentalV4Model.generuj_runde_v0", { v0: stage.currentRound + 1 }), hint: tr("experimentalV4Model.runda_currentround_z_plannedrounds_zakon", { currentRound: stage.currentRound, plannedRounds: stage.plannedRounds }), href: `${base}/host` };
       }
       if (stage.format !== "swiss" || stage.plannedRounds) {
-        return { group: "advance", label: tr("experimentalV4Model.zakoncz_etap"), hint: tr("experimentalV4Model.wszystkie_mecze_etapu_name_maja", { name: stage.name }), href: `${base}?tab=stages&stage=${stage.id}&action=complete` };
+        return { group: "advance", label: tr("experimentalV4Model.zakoncz_etap"), hint: tr("experimentalV4Model.wszystkie_mecze_etapu_name_maja", { name: stageLabel(stage.name) }), href: `${base}?tab=stages&stage=${stage.id}&action=complete` };
       }
     }
     if (stage?.status === "planned") {
-      return { group: "advance", label: tr("experimentalV4Model.rozpocznij_etap"), hint: tr("experimentalV4Model.etap_name_czeka_na_start", { name: stage.name }), href: `${base}?tab=stages&stage=${stage.id}&action=start` };
+      return { group: "advance", label: tr("experimentalV4Model.rozpocznij_etap"), hint: tr("experimentalV4Model.etap_name_czeka_na_start", { name: stageLabel(stage.name) }), href: `${base}?tab=stages&stage=${stage.id}&action=start` };
     }
     return { group: "advance", label: tr("experimentalV4Model.nastepny_krok"), hint: tr("experimentalV4Model.brak_meczow_do_rozegrania_rozpocznij"), href: `${base}/host` };
   }
@@ -492,14 +492,14 @@ export function stageMap(
       .flatMap((b) => (routesFrom.get(b.id) ?? []).map((r): StageMapLink | null => {
         const target = byId.get(basketById.get(r.targetBasketId)?.stageId ?? -1);
         const label = b.qualifierCount === null && outputsPerStage.get(s.id) === 1 ? tr("experimentalV4Model.awans") : tr("experimentalV4Model.koszyk_wyjsciowy_ordinal", { ordinal: b.ordinal });
-        return target ? { label, count: quotaOf(b), targetStageId: target.id, targetName: target.name } : null;
+        return target ? { label, count: quotaOf(b), targetStageId: target.id, targetName: stageLabel(target.name) } : null;
       }))
       .filter((l): l is StageMapLink => l !== null);
     const next = rail[index + 1];
     const advancing = advancingOf(s);
     // Without explicit basket routes, a qualifying stage feeds the next stage by position.
     if (outgoing.length === 0 && next && s.qualificationMode !== "none") {
-      outgoing = [{ label: tr("experimentalV4Model.awans"), count: advancing, targetStageId: next.id, targetName: next.name }];
+      outgoing = [{ label: tr("experimentalV4Model.awans"), count: advancing, targetStageId: next.id, targetName: stageLabel(next.name) }];
     }
     const qualification =
       s.qualificationMode === "top_n_per_group" && s.qualifiersPerGroup

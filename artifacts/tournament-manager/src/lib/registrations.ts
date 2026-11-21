@@ -1,4 +1,4 @@
-import { t } from "@/i18n";
+import { serverError, t } from "@/i18n";
 /**
  * #329 · optional public sign-ups — client side. Requests go through the API client's `customFetch`, so the active
  * organizer / support / viewer token is attached exactly like for generated operations.
@@ -87,7 +87,7 @@ export function rejectRegistration(tournamentId: number, registrationId: number)
 export function registrationErrorMessage(error: unknown, fallback = t("registrations.nie_udalo_sie_wyslac_sprawdz")): string {
   const data = (error as { data?: { error?: string; problems?: Array<{ message: string }> } } | null)?.data;
   if (data?.problems?.length) return data.problems.map((problem) => problem.message).join(" ");
-  return data?.error ?? fallback;
+  return serverError(data) ?? fallback;
 }
 
 export function registrationErrorCode(error: unknown): string | undefined {

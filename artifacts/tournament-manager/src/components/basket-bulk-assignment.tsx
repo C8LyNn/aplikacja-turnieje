@@ -1,4 +1,4 @@
-import { t } from "@/i18n";
+import { t, stageLabel } from "@/i18n";
 import { useEffect, useMemo, useState } from "react";
 import type { Player, StageBasket, TournamentStage } from "@workspace/api-client-react";
 import { AlertTriangle, ArrowRight, CheckCircle2, Info, Undo2 } from "lucide-react";
@@ -167,7 +167,7 @@ export function BasketBulkAssignment({
           {t("basketBulkAssignment.wyczysc_zaznaczenie")}</Button>
       </div>
 
-      <ul className="basket-bulk-list grid max-h-80 gap-1 overflow-y-auto sm:grid-cols-2" aria-label={t("basketBulkAssignment.uczestnicy_etapu_name", { name: stage.name })}>
+      <ul className="basket-bulk-list grid max-h-80 gap-1 overflow-y-auto sm:grid-cols-2" aria-label={t("basketBulkAssignment.uczestnicy_etapu_name", { name: stageLabel(stage.name) })}>
         {visible.map(({ player, basketId }) => (
           <li key={player.id}>
             <label className={`flex min-h-11 cursor-pointer items-center gap-3 rounded-md border px-3 py-1.5 text-sm ${selected.has(player.id) ? "border-primary bg-primary/10" : ""}`}>

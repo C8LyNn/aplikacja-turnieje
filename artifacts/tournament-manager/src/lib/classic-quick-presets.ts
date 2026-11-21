@@ -1,4 +1,4 @@
-import { t } from "@/i18n";
+import { serverError, t, localizeServerTexts } from "@/i18n";
 /**
  * QW-03b · Classic "Szybki wybór": the Classic creator offers the same presets as the Modern wizard.
  * One source of truth — the server's preset catalog (`/api/tournaments/presets/recommend` for the
@@ -94,9 +94,9 @@ export async function postPresetJson(url: string, body: unknown, signal: AbortSi
     body: JSON.stringify(body),
     signal,
   });
-  const data = (await response.json().catch(() => null)) as { error?: unknown } | null;
+  const data = localizeServerTexts((await response.json().catch(() => null)) as { error?: unknown } | null);
   if (!response.ok) {
-    throw new Error(typeof data?.error === "string" && data.error ? data.error : t("classicQuickPresets.serwer_odpowiedzial_bledem_http_status", { status: response.status }));
+    throw new Error(serverError(data) ?? t("classicQuickPresets.serwer_odpowiedzial_bledem_http_status", { status: response.status }));
   }
   return data;
 }

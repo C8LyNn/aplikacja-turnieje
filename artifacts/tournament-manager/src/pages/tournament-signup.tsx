@@ -114,7 +114,7 @@ export default function TournamentSignup() {
             <section aria-label={t("tournamentSignup.stan_zapisow")} className="rounded-xl border border-border bg-card p-4 space-y-2" data-state={state}>
               <p className="font-semibold" data-testid="signup-state">{REGISTRATION_STATE_TEXT[state!]}</p>
               {canSignUp && page.registration.remaining != null && (
-                <p className="text-sm text-muted-foreground">{t("tournamentSignup.wolne_miejsca")}{" "}<strong className="text-foreground">{page.registration.remaining}</strong> z {page.registration.limit}</p>
+                <p className="text-sm text-muted-foreground">{t("tournamentSignup.wolne_miejsca")}{" "}<strong className="text-foreground">{page.registration.remaining}</strong>{" "}{t("i18n.word.of")}{" "}{page.registration.limit}</p>
               )}
               {canSignUp && (
                 <p className="text-sm text-muted-foreground">

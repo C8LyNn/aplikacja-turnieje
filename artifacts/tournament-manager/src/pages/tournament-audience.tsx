@@ -1,4 +1,4 @@
-import { t } from "@/i18n";
+import { t, stageLabel } from "@/i18n";
 import { setsText } from "@/components/set-score-editor";
 import { matchResultLabel } from "@/lib/league-results";
 import { ReadQueryState } from "@/components/read-query-state";
@@ -448,7 +448,7 @@ export default function TournamentAudience() {
                   }`}
                 >
                   <span className="font-mono text-white/40">{stage.position}</span>
-                  <span>{stage.name}</span>
+                  <span>{stageLabel(stage.name)}</span>
                   <span className="audience-stage-state rounded-full px-1.5 py-px text-[10px] uppercase tracking-wide" data-state={stage.status}>
                     {STAGE_STATE_LABELS[stage.status] ?? stage.status}
                   </span>
@@ -475,9 +475,9 @@ export default function TournamentAudience() {
           <Badge variant="outline" className={now.phase === "active" ? "border-cyan-500/40 text-cyan-300" : now.phase === "completed" ? "border-yellow-500/40 text-yellow-300" : "border-white/20 text-white/60"}>
             {now.phase === "active" ? t("tournamentAudience.w_trakcie") : now.phase === "completed" ? t("tournamentAudience.zakonczony") : t("tournamentAudience.jeszcze_sie_nie_rozpoczal")}
           </Badge>
-          {publicStage && <span className="text-white/75">{publicStage.name}</span>}
+          {publicStage && <span className="text-white/75">{stageLabel(publicStage.name)}</span>}
           {roundLabel && <span className="text-white/55">{roundLabel}</span>}
-          {now.progress && <span className="text-white/55 tabular-nums">{now.progress.done} z {now.progress.total}{" "}{t("tournamentAudience.meczow_rozegranych")}</span>}
+          {now.progress && <span className="text-white/55 tabular-nums">{now.progress.done}{" "}{t("i18n.word.of")}{" "}{now.progress.total}{" "}{t("tournamentAudience.meczow_rozegranych")}</span>}
           {now.live.length > 0 && <span className="text-red-300 tabular-nums">{now.live.length === 1 ? t("tournamentAudience.1_mecz_w_toku") : t("tournamentAudience.length_mecze_w_toku", { length: now.live.length })}</span>}
           {updatedLabel && <span className="ml-auto text-xs text-white/40 tabular-nums" title={t("tournamentAudience.widok_odswieza_sie_sam_co")}>{t("tournamentAudience.zaktualizowano")}{" "}{updatedLabel}</span>}
         </section>
@@ -799,7 +799,7 @@ export default function TournamentAudience() {
         {(activeSection === "table" || fullBelow === "table") && (
           <AudienceSectionShell
             title={publicStage?.format === "group_stage" ? t("tournamentAudience.grupy") : publicStage?.format === "swiss" ? t("tournamentAudience.ranking") : t("tournamentAudience.tabela")}
-            description={publicStage ? `${hasMultipleStages ? `${publicStage.name} · ` : ""}${STAGE_STATE_LABELS[publicStage.status] ?? publicStage.status}` : t("tournamentAudience.brak_etapu")}
+            description={publicStage ? `${hasMultipleStages ? `${stageLabel(publicStage.name)} · ` : ""}${STAGE_STATE_LABELS[publicStage.status] ?? publicStage.status}` : t("tournamentAudience.brak_etapu")}
           >
             {!publicStage ? (
               <ReadQueryState query={stagesQuery} loadingMessage={t("tournamentAudience.ladowanie_etapow")} errorMessage={t("tournamentAudience.nie_udalo_sie_pobrac_etapow")}>
@@ -828,14 +828,14 @@ export default function TournamentAudience() {
             isDeadlock={isDeadlock}
             bansPerPlayer={(tournament?.gameConfig as any)?.config?.bansPerPlayer ?? 5}
             matches={matches ?? []}
-            stageNames={new Map((stages ?? []).map((stage) => [stage.id, stage.name]))}
+            stageNames={new Map((stages ?? []).map((stage) => [stage.id, stageLabel(stage.name)]))}
             matchHref={matchHref}
           />
           </ReadQueryState>
         )}
         {(activeSection === "bracket" || fullBelow === "bracket") && <ReadQueryState query={stagesQuery} loadingMessage={t("tournamentAudience.ladowanie_etapow")} errorMessage={t("tournamentAudience.nie_udalo_sie_pobrac_etapow")}>
           {!publicStage || stagePlanned ? (
-            <AudienceSectionShell title={t("tournamentAudience.drabinka")} description={publicStage && !noStageStarted ? `${publicStage.name} · ${STAGE_STATE_LABELS.planned}` : stages ? t("tournamentAudience.brak_rozpoczetego_etapu") : t("tournamentAudience.ladowanie_etapow")}>
+            <AudienceSectionShell title={t("tournamentAudience.drabinka")} description={publicStage && !noStageStarted ? `${stageLabel(publicStage.name)} · ${STAGE_STATE_LABELS.planned}` : stages ? t("tournamentAudience.brak_rozpoczetego_etapu") : t("tournamentAudience.ladowanie_etapow")}>
               <EmptyAudienceSection>{publicStage && !noStageStarted ? t("tournamentAudience.drabinka_powstanie_gdy_zakonczy_sie") : t("tournamentAudience.drabinka_nie_jest_jeszcze_dostepna")}</EmptyAudienceSection>
             </AudienceSectionShell>
           ) : marvelStage ? (

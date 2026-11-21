@@ -1,4 +1,4 @@
-import { t } from "@/i18n";
+import { serverError, t } from "@/i18n";
 import {
   getOrganizerCredentialState,
   upgradeLegacyOrganizer,
@@ -137,7 +137,7 @@ export async function apiOrganizerLogin(tournamentId: number, password: string):
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error((err as any).error || t("auth.blad_logowania"));
+    throw new Error(serverError(err) || t("auth.blad_logowania"));
   }
   const data = await res.json();
   return data.token as string;
@@ -170,7 +170,7 @@ export async function apiSetInitialOrganizerPassword(
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({})) as { error?: string; code?: string };
-    const error = new Error(body.error || t("auth.blad_ustawiania_hasla_organizatora")) as Error & {
+    const error = new Error(serverError(body) || t("auth.blad_ustawiania_hasla_organizatora")) as Error & {
       code?: string;
       status?: number;
     };
@@ -190,7 +190,7 @@ export async function apiSupportLogin(tournamentId: number, password: string, ni
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error((err as any).error || t("auth.blad_logowania"));
+    throw new Error(serverError(err) || t("auth.blad_logowania"));
   }
   return res.json();
 }
@@ -243,7 +243,7 @@ export async function apiChangeSupportPassword(tournamentId: number, token: stri
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error((err as any).error || t("auth.blad_zmiany_hasla"));
+    throw new Error(serverError(err) || t("auth.blad_zmiany_hasla"));
   }
   return res.json();
 }
@@ -256,7 +256,7 @@ export async function apiViewerLogin(tournamentId: number, password: string): Pr
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error((err as any).error || t("auth.blad_logowania_widza"));
+    throw new Error(serverError(err) || t("auth.blad_logowania_widza"));
   }
   const data = await res.json();
   return data.token as string;
@@ -270,7 +270,7 @@ export async function apiChangeViewerPassword(tournamentId: number, orgToken: st
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error((err as any).error || t("auth.blad_zmiany_hasla_widza"));
+    throw new Error(serverError(err) || t("auth.blad_zmiany_hasla_widza"));
   }
   return res.json();
 }
@@ -288,7 +288,7 @@ export async function apiChangeVisibility(
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error((err as any).error || t("auth.blad_zmiany_widocznosci"));
+    throw new Error(serverError(err) || t("auth.blad_zmiany_widocznosci"));
   }
   return res.json();
 }
@@ -309,7 +309,7 @@ export async function apiChangeVisibilityAs(
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error((err as any).error || t("auth.blad_zmiany_widocznosci"));
+    throw new Error(serverError(err) || t("auth.blad_zmiany_widocznosci"));
   }
   return res.json();
 }
@@ -338,7 +338,7 @@ async function supportMembersRequest<T>(url: string, orgToken: string, init: Req
   });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
-    throw new Error((err as any).error || t("auth.nie_udalo_sie_zapisac_zmian"));
+    throw new Error(serverError(err) || t("auth.nie_udalo_sie_zapisac_zmian"));
   }
   return res.json() as Promise<T>;
 }

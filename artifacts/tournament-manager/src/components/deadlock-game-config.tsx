@@ -1,4 +1,4 @@
-import { t } from "@/i18n";
+import { t, stageLabel } from "@/i18n";
 import { useEffect, useMemo, useState, useCallback } from "react";
 import {
   DEADLOCK_CONFIG_VERSION,
@@ -445,7 +445,7 @@ export function TournamentGameConfigPanel({
               )?.bannedHeroIds ?? []) as DeadlockHeroId[];
               return (
                 <div key={stage.id} className="space-y-2">
-                  <p className="text-sm font-semibold">{stage.name}</p>
+                  <p className="text-sm font-semibold">{stageLabel(stage.name)}</p>
                   <DeadlockStageBansEditor
                     inherited={inherited}
                     additional={additional}

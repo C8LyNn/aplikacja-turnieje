@@ -31,7 +31,7 @@ export function ExperimentalPlayerToolbar({ query, onQueryChange, status, onStat
           </label>
         </div>
       </div>
-      <p className="mt-2 text-xs text-muted-foreground" role="status">{teams ? t("experimentalPlayerToolbar.widoczne_druzyny") : t("experimentalPlayerToolbar.widoczni_gracze")}: <strong className="text-foreground">{visible}</strong> z <strong className="text-foreground">{total}</strong></p>
+      <p className="mt-2 text-xs text-muted-foreground" role="status">{teams ? t("experimentalPlayerToolbar.widoczne_druzyny") : t("experimentalPlayerToolbar.widoczni_gracze")}: <strong className="text-foreground">{visible}</strong>{" "}{t("i18n.word.of")}{" "}<strong className="text-foreground">{total}</strong></p>
     </section>
   );
 }

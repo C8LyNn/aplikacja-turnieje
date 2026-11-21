@@ -1046,7 +1046,7 @@ export default function GameCatalogAdminPage() {
             </div>
           </ToolPanel>
           {query.trim() && <div className="flex flex-wrap items-center gap-3 text-sm">
-            <span>{pagination.total}{" "}{t("gameCatalogAdmin.wynikow_strona")}{" "}{pagination.page} z {pagination.totalPages}</span>
+            <span>{pagination.total}{" "}{t("gameCatalogAdmin.wynikow_strona")}{" "}{pagination.page}{" "}{t("i18n.word.of")}{" "}{pagination.totalPages}</span>
             <ToolButton type="button" disabled={listLoading || page <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))}>{t("gameCatalogAdmin.poprzednia")}</ToolButton>
             <ToolButton type="button" disabled={listLoading || page >= pagination.totalPages} onClick={advanceListPage}>{t("gameCatalogAdmin.nastepna")}</ToolButton>
           </div>}
@@ -1202,7 +1202,7 @@ export default function GameCatalogAdminPage() {
               ? <ToolEmptyState title={t("gameCatalogAdmin.brak_wynikow")} description={t("gameCatalogAdmin.zmien_fraze_wyszukiwania_lub_status")} />
               : <ToolEmptyState title={t("gameCatalogAdmin.brak_gier")} description={t("gameCatalogAdmin.zaimportuj_pierwsza_gre_w_sekcji")} />}
           <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
-            <span>{t("gameCatalogAdmin.strona")}{" "}{pagination.page} z {pagination.totalPages} · {pagination.total}{" "}{t("gameCatalogAdmin.wynikow")}</span>
+            <span>{t("gameCatalogAdmin.strona")}{" "}{pagination.page}{" "}{t("i18n.word.of")}{" "}{pagination.totalPages} · {pagination.total}{" "}{t("gameCatalogAdmin.wynikow")}</span>
             <ToolButton type="button" disabled={listLoading || page <= 1} onClick={() => setPage((current) => Math.max(1, current - 1))}>{t("gameCatalogAdmin.poprzednia")}</ToolButton>
             <ToolButton type="button" disabled={listLoading || page >= pagination.totalPages} onClick={advanceListPage}>{t("gameCatalogAdmin.nastepna")}</ToolButton>
           </div>

@@ -1,4 +1,4 @@
-import { t as tr } from "@/i18n";
+import { t as tr, stageLabel } from "@/i18n";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import {
   bracketView, doubleView, matchOverlayModel, pickStage, scheduleText, tablesView, toPublicMatch, toPublicStage,
@@ -258,7 +258,7 @@ function StructureOverlay({ config, tournamentId }: { config: OverlayConfig; tou
     `structure:${tournamentId}:${stage?.id ?? 0}:${stage?.format ?? ""}:${stage?.status ?? ""}:${config.round ?? 0}:${config.group ?? ""}`,
     async (signal) => {
       if (!stage) return null;
-      if (stage.status === "planned") return { kind: "empty", title: stage.name, message: tr("overlayApp.etap_jeszcze_sie_nie_rozpoczal") };
+      if (stage.status === "planned") return { kind: "empty", title: stageLabel(stage.name), message: tr("overlayApp.etap_jeszcze_sie_nie_rozpoczal") };
       if (stage.format === "single_elimination") {
         const matches = ((await fetchPublic<Raw[]>(`/api/tournaments/${tournamentId}/matches`, signal)) ?? []).map(toPublicMatch).filter((m) => m.stageId === stage.id);
         return bracketView(stage, matches, config.round, teams);

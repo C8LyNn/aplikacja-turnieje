@@ -242,7 +242,7 @@ export function StagePlanEditor({ stages, errors, onChange, deadlockEnabled = fa
                   </div>
                   <div className="rounded-md border bg-muted/30 p-3 text-sm sm:col-span-2">
                     <div>{t("stagePlanEditor.rozmiary_grup")}{" "}<strong>{groupSizes.join(", ") || "—"}</strong></div>
-                    <div>{t("stagePlanEditor.dalej_przechodzi")}{" "}<strong>{advancing}</strong> z {stage.participantCount}</div>
+                    <div>{t("stagePlanEditor.dalej_przechodzi")}{" "}<strong>{advancing}</strong>{" "}{t("i18n.word.of")}{" "}{stage.participantCount}</div>
                     {everyoneAdvances && <div className="mt-1 font-medium">{t("stagePlanEditor.wszyscy_uczestnicy_awansuja_etap_sluzy")}</div>}
                   </div>
                 </>

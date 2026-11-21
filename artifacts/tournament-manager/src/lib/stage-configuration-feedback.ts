@@ -1,4 +1,4 @@
-import { t } from "@/i18n";
+import { t, stageLabel } from "@/i18n";
 import type { StageBasket, StageBasketRoute, StageBasketProblemContext, TournamentStage } from "@workspace/api-client-react";
 
 export interface ConfigurationProblem {
@@ -70,7 +70,7 @@ export function configurationProblemMessage(problem: ConfigurationProblem, conte
   const basket = context.baskets?.find(entry => entry.id === (detail.basketId ?? route?.targetBasketId));
   const stageIds = [...new Set([detail.stageId, detail.sourceStageId, detail.targetStageId, basket?.stageId].filter((id): id is number => typeof id === "number"))];
   if (!stageIds.length && context.stageId != null) stageIds.push(context.stageId);
-  const names = stageIds.map(id => context.stages?.find(stage => stage.id === id)?.name ?? t("stageConfigurationFeedback.etap_id", { id: id })).join(" → ");
+  const names = stageIds.map(id => stageLabel(context.stages?.find(stage => stage.id === id)?.name) ?? t("stageConfigurationFeedback.etap_id", { id: id })).join(" → ");
   const expected = problem.expected ?? detail.expected;
   const actual = problem.actual ?? detail.actual;
   let message = Object.hasOwn(PROBLEM_CODE_MESSAGES, problem.code)

@@ -167,7 +167,7 @@ export function ExperimentalBulkPaste({
                 ))}
               </tbody>
             </table>
-            {rows.length > PREVIEW_LIMIT ? <p className="experimental-v4-muted">{t("experimentalV4BulkPaste.pokazano")}{" "}{PREVIEW_LIMIT} z {rows.length}{" "}{t("experimentalV4BulkPaste.wierszy")}</p> : null}
+            {rows.length > PREVIEW_LIMIT ? <p className="experimental-v4-muted">{t("experimentalV4BulkPaste.pokazano")}{" "}{PREVIEW_LIMIT}{" "}{t("i18n.word.of")}{" "}{rows.length}{" "}{t("experimentalV4BulkPaste.wierszy")}</p> : null}
           </div>
         </>
       ) : null}

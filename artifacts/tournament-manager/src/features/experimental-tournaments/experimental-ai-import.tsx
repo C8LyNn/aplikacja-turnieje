@@ -1,4 +1,4 @@
-import { t } from "@/i18n";
+import { t, localizeServerTexts } from "@/i18n";
 import { useRef, useState } from "react";
 import { AlertTriangle, CheckCircle2, Download, FileJson, Loader2, Sparkles, Upload, X } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
@@ -52,7 +52,7 @@ export function ExperimentalAiImport({
         headers: { "Content-Type": "application/json", Accept: "application/json" },
         body: JSON.stringify({ text: raw }),
       });
-      const body = (await response.json()) as AiImportResult;
+      const body = localizeServerTexts((await response.json()) as AiImportResult);
       setResult(body);
       setStatus("done");
     } catch {

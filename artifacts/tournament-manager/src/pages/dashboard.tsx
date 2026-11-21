@@ -1,4 +1,4 @@
-import { t as tr } from "@/i18n";
+import { serverError, t as tr } from "@/i18n";
 import {
   useListTournaments, useDeleteTournament, useCreateTournament, useImportPlayers,
   getListTournamentsQueryKey, exportTournament,
@@ -211,7 +211,7 @@ export default function Dashboard() {
         });
         const data = await resp.json().catch(() => ({}));
         if (!resp.ok) {
-          setDeletePasswordError(data.error ?? tr("dashboard.nieprawidlowe_haslo_organizatora"));
+          setDeletePasswordError(serverError(data) ?? tr("dashboard.nieprawidlowe_haslo_organizatora"));
           setDeleteLoading(false);
           return;
         }

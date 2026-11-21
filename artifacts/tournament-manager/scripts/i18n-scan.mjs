@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // #323-E · completeness scanner: lists Polish text still written in the source instead of the catalog.
 //
-//   node scripts/i18n-scan.mjs [--json] [--list] [--max=N] [paths…]     (default path: src)
+//   node scripts/i18n-scan.mjs [--json] [--list] [--max=N] [--ignore=<regex>] [paths…]     (default path: src)
 //
 // A string or template literal counts as untranslated Polish when it has Polish letters or a common Polish word and is
 // not: a test, the catalog itself, an import path, a console/log message, a comparison operand (logic on stored data)
@@ -18,6 +18,8 @@ const args = process.argv.slice(2);
 const asJson = args.includes("--json");
 const list = args.includes("--list");
 const max = Number((args.find((a) => a.startsWith("--max=")) ?? "").slice(6) || NaN);
+const ignore = (args.find((a) => a.startsWith("--ignore=")) ?? "").slice(9);
+const ignoreRe = ignore ? new RegExp(ignore) : null;
 const roots = args.filter((a) => !a.startsWith("--"));
 if (!roots.length) roots.push(path.join(ROOT, "src"));
 
@@ -31,7 +33,7 @@ const SKIP_FILE = /(\.test\.|\.spec\.|[\\/]i18n[\\/]catalog[\\/]|[\\/]test[\\/]|
 function walk(target, out) {
   const stat = statSync(target);
   if (stat.isDirectory()) { for (const entry of readdirSync(target)) walk(path.join(target, entry), out); return out; }
-  if (/\.(tsx?|mts)$/.test(target) && !SKIP_FILE.test(target)) out.push(target);
+  if (/\.(tsx?|mts)$/.test(target) && !SKIP_FILE.test(target) && !(ignoreRe && ignoreRe.test(target.split(path.sep).join("/")))) out.push(target);
   return out;
 }
 

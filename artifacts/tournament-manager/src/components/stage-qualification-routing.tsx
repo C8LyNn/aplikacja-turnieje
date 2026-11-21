@@ -1,4 +1,4 @@
-import { t } from "@/i18n";
+import { t, stageLabel } from "@/i18n";
 import React, { useRef, useState } from "react";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
 import {
@@ -117,7 +117,7 @@ function QualificationRouting({ tournamentId, stage, stages, configuration, part
     const basket = configuration.baskets.find(entry => entry.id === id);
     return basket ? t("stageQualificationRouting.koszyk_v0_ordinal", { v0: basket.type === "output" ? t("stageQualificationRouting.wyjsciowy") : t("stageQualificationRouting.wejsciowy"), ordinal: basket.ordinal }) : id;
   }
-  const stageName = (id: number) => stages.find(entry => entry.id === id)?.name ?? t("stageQualificationRouting.etap_id", { id: id });
+  const stageName = (id: number) => stageLabel(stages.find(entry => entry.id === id)?.name) ?? t("stageQualificationRouting.etap_id", { id: id });
 
   return <section className="organizer-qualification space-y-4" aria-label={t("stageQualificationRouting.kwalifikacja_i_routing")}>
     <h4 className="font-semibold">{t("stageQualificationRouting.kwalifikacja_i_przekazanie_uczestnikow")}</h4>
@@ -148,7 +148,7 @@ function QualificationRouting({ tournamentId, stage, stages, configuration, part
       const query = routeQueries[index];
       const target = configuration.baskets.find(basket => basket.id === route.targetBasketId);
       return <div key={route.id} className="organizer-route rounded-md border p-3 space-y-2" aria-label={t("stageQualificationRouting.routing_id", { id: route.id })}>
-        <p className="text-sm">{stage.name}: {basketName(route.sourceBasketId)} → {target ? stageName(target.stageId) : t("stageQualificationRouting.etap_docelowy")}: {basketName(route.targetBasketId)}</p>
+        <p className="text-sm">{stageLabel(stage.name)}: {basketName(route.sourceBasketId)} → {target ? stageName(target.stageId) : t("stageQualificationRouting.etap_docelowy")}: {basketName(route.targetBasketId)}</p>
         {query.isPending ? <p>{t("stageQualificationRouting.sprawdzanie_routingu")}</p> : query.isError ? <p role="alert">{t("stageQualificationRouting.nie_udalo_sie_sprawdzic_routingu")}{" "}{stageLifecycleError(query.error)}</p> : query.data?.materialized ? <p>{t("stageQualificationRouting.routing_wykonany_przekazano_uczestnikow")}{" "}{query.data.routedPlayerCount}.</p> : query.data?.sourceOutputApproved ? <>
           <p>{t("stageQualificationRouting.kwalifikacja_zatwierdzona_nastepny_krok_")}</p>
           <Button disabled={pending || query.isFetching} onClick={() => void run(() => execute.mutateAsync({ id: tournamentId, stageId: stage.id, basketId: route.sourceBasketId }), t("stageQualificationRouting.routing_wykonany_gotowosc_etapu_docelowe"), () => client.getQueryData<BasketRouteStatus>(routeOptions[index].queryKey)?.materialized === true, t("stageQualificationRouting.przekazywanie_uczestnikow_i_odswiezanie_"))}>{t("stageQualificationRouting.wykonaj_routing")}{" "}{basketName(route.sourceBasketId)}</Button>
@@ -166,7 +166,7 @@ function QualificationRouting({ tournamentId, stage, stages, configuration, part
     <Button variant="outline" disabled={pending} onClick={() => void run(null, t("stageQualificationRouting.stan_kwalifikacji_i_routingu_odswiezony"))}>{t("stageQualificationRouting.ponow_sprawdzenie_stanu")}</Button>
     <Dialog open={confirmation !== undefined} onOpenChange={open => { if (!pending && !open) setConfirmation(undefined); }}>
       <DialogContent className="organizer-dialog">
-        <DialogHeader><DialogTitle>{t("stageQualificationRouting.zatwierdzic_kwalifikacje")}</DialogTitle><DialogDescription>{t("stageQualificationRouting.zatwierdzenie_utrwali_pokazany_sklad_kos")}{stage.name}{t("stageQualificationRouting.zatwierdzonej_propozycji_nie_mozna_ponow")}{" "}{routes.length > 0 && t("stageQualificationRouting.routing_wykonuje_sie_osobno_po")}</DialogDescription></DialogHeader>
+        <DialogHeader><DialogTitle>{t("stageQualificationRouting.zatwierdzic_kwalifikacje")}</DialogTitle><DialogDescription>{t("stageQualificationRouting.zatwierdzenie_utrwali_pokazany_sklad_kos")}{stageLabel(stage.name)}{t("stageQualificationRouting.zatwierdzonej_propozycji_nie_mozna_ponow")}{" "}{routes.length > 0 && t("stageQualificationRouting.routing_wykonuje_sie_osobno_po")}</DialogDescription></DialogHeader>
         {confirmation !== revision && <p role="alert">{t("stageQualificationRouting.propozycja_zmienila_sie_zamknij_potwierd")}</p>}
         <DialogFooter><Button variant="outline" disabled={pending} onClick={() => setConfirmation(undefined)}>{t("stageQualificationRouting.anuluj")}</Button>
           <Button disabled={!canApprove || confirmation !== revision} onClick={() => {

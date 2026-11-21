@@ -1,4 +1,4 @@
-import { t } from "@/i18n";
+import { t, stageLabel } from "@/i18n";
 /**
  * QW-05 · what a viewer must understand at a glance — NOW → NEXT → RECENT — derived only from what the public API
  * already returns. Nothing here invents a status, an order, a time or a result:
@@ -92,7 +92,7 @@ export function buildAudienceNow<M extends MatchLike>(input: {
     const allPlayed = !!progress && progress.done === progress.total;
     // All matches played but the stage still active: the engine waits for the organizer to close it (e.g. DE).
     waiting = allPlayed && nextStage
-      ? t("audienceNow.wszystkie_mecze_etapu_sa_rozegrane", { name: nextStage.name })
+      ? t("audienceNow.wszystkie_mecze_etapu_sa_rozegrane", { name: stageLabel(nextStage.name) })
       : allPlayed
         ? t("audienceNow.wszystkie_mecze_sa_rozegrane_wynik")
         : t("audienceNow.na_razie_zaden_mecz_nie");

@@ -1,4 +1,4 @@
-import { t } from "@/i18n";
+import { t, stageLabel } from "@/i18n";
 import { useQueries } from "@tanstack/react-query";
 import {
   useGetTournamentStageBaskets, getGetTournamentStageBasketsQueryKey,
@@ -58,18 +58,18 @@ export function useOrganizerOperation({ tournament, stages, matches, capabilitie
     const proposal = proposals[i];
     const error = proposal.error as { status?: number; data?: { code?: string } } | null;
     if (error?.status === 404 && error.data?.code === "STAGE_BASKET_QUALIFICATION_PROPOSAL_NOT_FOUND") {
-      transitionStep = stepFor(t("useOrganizerOperation.przygotuj_propozycje_kwalifikacji"), t("useOrganizerOperation.etap_name_zakonczony_przygotuj_propozycj", { name: source.name }), source.id);
+      transitionStep = stepFor(t("useOrganizerOperation.przygotuj_propozycje_kwalifikacji"), t("useOrganizerOperation.etap_name_zakonczony_przygotuj_propozycj", { name: stageLabel(source.name) }), source.id);
     } else if (proposal.isPending || proposal.isError) {
-      transitionStep = stepFor(t("useOrganizerOperation.sprawdz_kwalifikacje"), t("useOrganizerOperation.nie_potwierdzono_stanu_kwalifikacji_etap", { name: source.name }), source.id);
+      transitionStep = stepFor(t("useOrganizerOperation.sprawdz_kwalifikacje"), t("useOrganizerOperation.nie_potwierdzono_stanu_kwalifikacji_etap", { name: stageLabel(source.name) }), source.id);
     } else if (proposal.data?.status !== "approved") {
-      transitionStep = stepFor(t("useOrganizerOperation.zatwierdz_kwalifikacje"), t("useOrganizerOperation.etap_name_sprawdz_propozycje_kwalifikacj", { name: source.name }), source.id);
+      transitionStep = stepFor(t("useOrganizerOperation.zatwierdz_kwalifikacje"), t("useOrganizerOperation.etap_name_sprawdz_propozycje_kwalifikacj", { name: stageLabel(source.name) }), source.id);
     } else {
       const pendingRoute = routes.findIndex((r, index) => config!.baskets.find(b => b.id === r.sourceBasketId)?.stageId === source.id
         && (routeQueries[index].isError || !routeQueries[index].data?.materialized));
       if (pendingRoute >= 0) {
         const query = routeQueries[pendingRoute];
         transitionStep = stepFor(query.isPending || query.isError ? t("useOrganizerOperation.sprawdz_routing") : t("useOrganizerOperation.wykonaj_routing"),
-          t("useOrganizerOperation.etap_name_kwalifikacja_zatwierdzona_prze", { name: source.name }), source.id);
+          t("useOrganizerOperation.etap_name_kwalifikacja_zatwierdzona_prze", { name: stageLabel(source.name) }), source.id);
       }
     }
   }

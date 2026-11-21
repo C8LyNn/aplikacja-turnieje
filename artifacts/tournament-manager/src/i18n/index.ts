@@ -101,14 +101,130 @@ export function formatDateTime(value: Date | string | number): string {
   return formatDate(value, { day: "numeric", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" });
 }
 
+// ── API refusals ──────────────────────────────────────────────────────────────
+// The server answers in Polish ({ error, code }). The catalog holds every static and templated message it can send
+// (errors.<CODE>[.n], scripts/i18n-api-errors.mjs); a message is matched exactly or by its template, so values such as
+// a field name or a stage name are carried over unchanged. Logic never depends on the text.
+type ErrorPattern = { key: CatalogKey; re: RegExp; names: string[] };
+let errorPatterns: ErrorPattern[] | null = null;
+function patterns(): ErrorPattern[] {
+  if (errorPatterns) return errorPatterns;
+  errorPatterns = Object.entries(catalogs.pl)
+    .filter(([key, value]) => (key.startsWith("errors.") || key.startsWith("server.")) && typeof value === "string")
+    // a template made only of placeholders ("{v0} {v1}") would match anything
+    .filter(([, value]) => (value as string).replace(/\{\w+\}/g, "").replace(/[^\p{L}]/gu, "").length >= 3)
+    .map(([key, value]) => {
+      const names: string[] = [];
+      const source = (value as string).split(/(\{\w+\})/).map((part) => {
+        const m = /^\{(\w+)\}$/.exec(part);
+        if (m) { names.push(m[1]!); return "([\\s\\S]+?)"; }
+        return part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+      }).join("");
+      return { key: key as CatalogKey, re: new RegExp(`^${source}$`), names };
+    })
+    // the most specific (longest literal) template first
+    .sort((a, b) => b.re.source.length - a.re.source.length);
+  return errorPatterns;
+}
+const POLISH_TEXT = /[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]|\b(nie|jest|oraz|lub|turniej|etap|mecz|wynik|brak)\b/i;
+const wordsOf = (text: string) => text.toLowerCase().match(/[a-ząćęłńóśźż]{3,}/g) ?? [];
+let polishOnlyWords: Set<string> | null = null;
+/** Polish letters, or a word that the Polish catalog uses and the English one never does ("nieznany", "serwera"). */
+function looksPolish(text: string): boolean {
+  if (POLISH_TEXT.test(text)) return true;
+  if (!polishOnlyWords) {
+    const entryText = (entry: Entry | undefined) => (typeof entry === "string" ? entry : entry ? Object.values(entry).join(" ") : "");
+    const english = new Set(Object.values(catalogs.en).flatMap((entry) => wordsOf(entryText(entry))));
+    polishOnlyWords = new Set(Object.values(catalogs.pl).flatMap((entry) => wordsOf(entryText(entry))).filter((word) => !english.has(word)));
+  }
+  return wordsOf(text).some((word) => polishOnlyWords!.has(word));
+}
+
 /**
- * A readable message for an API refusal: the localized text for its `code` when there is one, otherwise the server's
- * own message (Polish), otherwise the fallback. The app's logic never depends on the text.
+ * A server message in the current language: Polish as sent; English from the catalog (exact text, template, or the
+ * code's only message). An unknown Polish message gives `undefined`, so the caller's own localized fallback is shown.
  */
+export function localizeServerMessage(message: unknown, code?: unknown): string | undefined {
+  if (typeof message !== "string" || !message.trim()) return undefined;
+  if (current === "pl") return message;
+  const text = message.trim();
+  for (const { key, re, names } of patterns()) {
+    const m = re.exec(text);
+    if (m) return t(key, Object.fromEntries(names.map((name, i) => [name, m[i + 1] ?? ""])));
+  }
+  if (typeof code === "string" && hasKey(`errors.${code}`)) return t(`errors.${code}` as CatalogKey);
+  return looksPolish(text) ? undefined : text;
+}
+
+/** The localized message of a refusal body ({ error | message, code }) — for code that reads `fetch` responses itself. */
+export function serverError(body: unknown): string | undefined {
+  const data = body as { error?: unknown; message?: unknown; code?: unknown } | null | undefined;
+  return localizeServerMessage(data?.error ?? data?.message, data?.code);
+}
+
+/** The same for a generated-client body, used once for every ApiError (see main.tsx). */
+export function localizeErrorData(data: unknown): unknown {
+  if (!data || typeof data !== "object" || current === "pl") return data;
+  const body = data as Record<string, unknown>;
+  const localized = serverError(body);
+  // field problems ({ message, code }) the same way; an unknown one keeps its code rather than Polish text
+  const problems = Array.isArray(body.problems)
+    ? body.problems.map((problem) => {
+      if (!problem || typeof problem !== "object") return problem;
+      const item = problem as Record<string, unknown>;
+      const text = localizeServerMessage(item.message, item.code);
+      return { ...item, message: text ?? (typeof item.code === "string" ? item.code : item.message) };
+    })
+    : body.problems;
+  return { ...body, error: localized, message: typeof body.message === "string" ? localized : body.message, problems };
+}
+
+/**
+ * Texts the server builds for the creator (preset names, descriptions, requirements, recommendation reasons, default
+ * stage names, AI-import notes) in the current language: every string in `value` that is a known server text or
+ * template is replaced; anything else (ids, numbers, user content) is kept. Polish returns `value` unchanged. Applied
+ * to preset responses, so a preview's `creation` carries English stage names when the organizer works in English.
+ */
+export function localizeServerTexts<T>(value: T): T {
+  if (current === "pl") return value;
+  const visit = (node: unknown): unknown => {
+    if (typeof node === "string") return localizeKnownText(node);
+    if (Array.isArray(node)) return node.map(visit);
+    if (node && typeof node === "object") return Object.fromEntries(Object.entries(node as Record<string, unknown>).map(([k, v]) => [k, visit(v)]));
+    return node;
+  };
+  return visit(value) as T;
+}
+/** One text from the server or a shared library (match-rule presets, set problems) in the current language. */
+export function serverText(text: string): string {
+  return current === "pl" ? text : localizeKnownText(text);
+}
+function localizeKnownText(text: string, depth = 0): string {
+  const trimmed = text.trim();
+  if (!trimmed || depth > 3 || !/\p{L}/u.test(trimmed)) return text;
+  for (const { key, re, names } of patterns()) {
+    const m = re.exec(trimmed);
+    // captured parts may be server texts too ("{v0} · 4 uczestników" around "Drabinka pucharowa") or a default stage
+    // name ("Etap 1"); anything else captured (a typed name) stays as it is
+    if (m) return t(key, Object.fromEntries(names.map((name, i) => [name, stageLabel(localizeKnownText(m[i + 1] ?? "", depth + 1))])));
+  }
+  return stageLabel(text);
+}
+
+/**
+ * A stage name for display. The server names a tournament's first stage "Etap 1" (and the editor uses "Etap N"
+ * defaults); only that exact generated default is shown in the viewer's language — a name someone typed is shown as is.
+ */
+export function stageLabel(name: string): string;
+export function stageLabel(name: string | null | undefined): string | null | undefined;
+export function stageLabel(name: string | null | undefined): string | null | undefined {
+  if (typeof name !== "string") return name;
+  const m = /^Etap (\d+)$/.exec(name.trim());
+  return m ? t("i18n.stage.default", { n: m[1]! }) : name;
+}
+
+/** A readable message for an API refusal: the localized server message, otherwise the fallback. */
 export function apiErrorText(error: unknown, fallback: string): string {
-  const data = (error as { data?: { code?: unknown; error?: unknown } } | null)?.data;
-  const code = typeof data?.code === "string" ? data.code : null;
-  if (code && hasKey(`errors.${code}`)) return t(`errors.${code}` as CatalogKey);
-  if (current === "pl" && typeof data?.error === "string") return data.error;
-  return typeof data?.error === "string" && current === "en" && !/[ąćęłńóśźż]/i.test(data.error) ? data.error : fallback;
+  const data = (error as { data?: unknown } | null)?.data;
+  return serverError(data) ?? fallback;
 }

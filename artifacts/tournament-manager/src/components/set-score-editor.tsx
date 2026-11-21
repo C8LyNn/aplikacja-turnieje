@@ -1,4 +1,4 @@
-import { t } from "@/i18n";
+import { t, serverText } from "@/i18n";
 /**
  * V5.7 · set results inside the one match editor ("Wybrany mecz"). The preview uses the same rules as the
  * API (@workspace/match-rules); the API still decides and validates on save.
@@ -56,7 +56,7 @@ export function SetScoreEditor({
           const state = setState(set, rules, index);
           const note = state.kind === "finished"
             ? t("setScoreEditor.wygrywa_v0", { v0: state.winner === 1 ? player1Name : player2Name })
-            : state.kind === "in_progress" ? t("setScoreEditor.trwa") : state.problem.message.replace(/^Set \d+: /, "");
+            : state.kind === "in_progress" ? t("setScoreEditor.trwa") : serverText(state.problem.message).replace(/^Set \d+: /, "");
           return (
             <li key={index} className="set-score-editor-row" data-state={state.kind}>
               <span className="set-score-editor-set" id={`${id}-set-${index}`}>{t("setScoreEditor.set")}{" "}{index + 1}</span>
@@ -106,7 +106,7 @@ export function SetScoreEditor({
       )}
       <p className="set-score-editor-status" role="status" data-tone={!progress.ok ? "error" : value?.decided ? "done" : "pending"}>
         {!progress.ok
-          ? progress.problem.message
+          ? serverText(progress.problem.message)
           : value!.decided
             ? t("setScoreEditor.mecz_rozstrzygniety_wygrywa_winnername_s", { winnerName: winnerName, setsWon1: value!.setsWon1, setsWon2: value!.setsWon2 })
             : sets.length === 0

@@ -1,4 +1,4 @@
-import { t } from "@/i18n";
+import { t, stageLabel } from "@/i18n";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "wouter";
 import { useQueryClient } from "@tanstack/react-query";
@@ -135,7 +135,7 @@ export function ExperimentalBroadcastPanel({
   const featured = matches.find((m) => m.id === tournament.featuredMatchId) ?? null;
   const matchLabel = (m: Match) => {
     const stage = stageById.get(m.stageId);
-    return `${stage && ordered.length > 1 ? `${stage.name} · ` : ""}R${m.round} M${m.matchNumber} · ${m.player1Name ?? "?"} – ${m.player2Name ?? "?"} · ${STATUS[m.status] ?? m.status}`;
+    return `${stage && ordered.length > 1 ? `${stageLabel(stage.name)} · ` : ""}R${m.round} M${m.matchNumber} · ${m.player1Name ?? "?"} – ${m.player2Name ?? "?"} · ${STATUS[m.status] ?? m.status}`;
   };
   const selectable = matches.filter((m) => m.player1Name || m.player2Name).slice().sort(queueOrder(stagePosition));
   const live = selectable.filter((m) => m.status === "in_progress");
@@ -327,8 +327,8 @@ export function ExperimentalBroadcastPanel({
             <label className="flex flex-col gap-1 text-sm">
               <span>{t("experimentalBroadcastPanel.etap")}</span>
               <select className="min-h-11 rounded-md border bg-background px-3" value={config.stage ?? ""} onChange={(event) => setConfig((current) => ({ ...current, stage: event.target.value ? Number(event.target.value) : null, round: null, group: null }))}>
-                <option value="">{t("experimentalBroadcastPanel.biezacy_etap")}{structureStage ? ` (${structureStage.name})` : ""}</option>
-                {ordered.map((stage) => <option key={stage.id} value={stage.id}>{stage.position}. {stage.name}</option>)}
+                <option value="">{t("experimentalBroadcastPanel.biezacy_etap")}{structureStage ? ` (${stageLabel(structureStage.name)})` : ""}</option>
+                {ordered.map((stage) => <option key={stage.id} value={stage.id}>{stage.position}. {stageLabel(stage.name)}</option>)}
               </select>
             </label>
             {stageRounds.length > 1 && (

@@ -28,6 +28,23 @@ let _activeViewerToken: string | null = null;
  * Useful for Expo bundles that need to call a remote API server.
  * Pass `null` to clear the base URL.
  */
+/**
+ * #323-E · lets the app rewrite a refusal's body before an ApiError is built — the frontend uses it to show the
+ * server's message in the viewer's language (by its `code`). Logic must never depend on the message text.
+ */
+export type ErrorDataTransformer = (data: unknown) => unknown;
+let errorDataTransformer: ErrorDataTransformer | null = null;
+export function setErrorDataTransformer(transformer: ErrorDataTransformer | null): void {
+  errorDataTransformer = transformer;
+}
+
+/** #323-E · the same for successful bodies; the app decides by URL which texts it may localize (never user data). */
+export type SuccessDataTransformer = (url: string, data: unknown) => unknown;
+let successDataTransformer: SuccessDataTransformer | null = null;
+export function setSuccessDataTransformer(transformer: SuccessDataTransformer | null): void {
+  successDataTransformer = transformer;
+}
+
 export function setBaseUrl(url: string | null): void {
   _baseUrl = url ? url.replace(/\/+$/, "") : null;
 }
@@ -409,8 +426,9 @@ export async function customFetch<T = unknown>(
 
   if (!response.ok) {
     const errorData = await parseErrorBody(response, method);
-    throw new ApiError(response, errorData, requestInfo);
+    throw new ApiError(response, errorDataTransformer ? errorDataTransformer(errorData) : errorData, requestInfo);
   }
 
-  return (await parseSuccessBody(response, responseType, requestInfo)) as T;
+  const body = await parseSuccessBody(response, responseType, requestInfo);
+  return (successDataTransformer ? successDataTransformer(requestInfo.url, body) : body) as T;
 }

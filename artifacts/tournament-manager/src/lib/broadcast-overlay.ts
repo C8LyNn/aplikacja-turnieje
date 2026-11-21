@@ -1,4 +1,4 @@
-import { getLang, t as tr } from "@/i18n";
+import { getLang, t as tr, stageLabel } from "@/i18n";
 /**
  * V5.9 · broadcast overlays (OBS Browser Source). Pure model shared by the overlay page and the "Transmisja" panel.
  *
@@ -291,7 +291,7 @@ export function stageRoundText(match: PublicMatch, stage: PublicStage | null, st
   if (!stage) return tr("broadcastOverlay.runda_round", { round: match.round });
   const rounds = Math.max(1, ...stageMatches.map((m) => m.round));
   const roundText = stage.format === "single_elimination" ? eliminationRoundName(match.round, rounds) : tr("broadcastOverlay.runda_round", { round: match.round });
-  return `${stage.name} · ${roundText}`;
+  return `${stageLabel(stage.name)} · ${roundText}`;
 }
 
 // ─── match card (score overlay) ────────────────────────────────────────────
@@ -491,7 +491,7 @@ export const BRACKET_FULL_LIMIT = 15;
  * stays readable in a 1080p source instead of being squeezed. A round with more than 8 matches takes two columns.
  */
 export function bracketView(stage: PublicStage, stageMatches: readonly PublicMatch[], round: number | null, teams: boolean): StructureView {
-  if (!stageMatches.length) return { kind: "empty", title: stage.name, message: tr("broadcastOverlay.drabinka_pojawi_sie_po_rozpoczeciu") };
+  if (!stageMatches.length) return { kind: "empty", title: stageLabel(stage.name), message: tr("broadcastOverlay.drabinka_pojawi_sie_po_rozpoczeciu") };
   const total = Math.max(...stageMatches.map((m) => m.round));
   const all = [...new Set(stageMatches.map((m) => m.round))].sort((a, b) => a - b);
   let visible = round != null ? all.filter((r) => r === round) : all;
@@ -506,8 +506,8 @@ export function bracketView(stage: PublicStage, stageMatches: readonly PublicMat
     const matches = stageMatches.filter((m) => m.round === r).sort((a, b) => a.matchNumber - b.matchNumber).map((m) => matchCard(m, stage, stageMatches, teams));
     return { round: r, name: eliminationRoundName(r, total), matches, columns: matches.length > 8 ? 2 : 1 };
   });
-  if (!rounds.length) return { kind: "empty", title: stage.name, message: tr("broadcastOverlay.etap_nie_ma_rundy_round", { round: round }) };
-  return { kind: "bracket", title: stage.name, rounds, fragment };
+  if (!rounds.length) return { kind: "empty", title: stageLabel(stage.name), message: tr("broadcastOverlay.etap_nie_ma_rundy_round", { round: round }) };
+  return { kind: "bracket", title: stageLabel(stage.name), rounds, fragment };
 }
 
 /** Group / league / Swiss tables exactly as the engine ranks them (live standings endpoint). */
@@ -523,9 +523,9 @@ export function tablesView(stage: PublicStage, standings: { tables?: unknown[] }
     };
   });
   const chosen = group ? tables.filter((t) => t.label === group) : tables;
-  if (!chosen.length) return { kind: "empty", title: stage.name, message: group ? tr("broadcastOverlay.nie_ma_grupy_group", { group: group }) : tr("broadcastOverlay.tabela_pojawi_sie_po_rozpoczeciu") };
+  if (!chosen.length) return { kind: "empty", title: stageLabel(stage.name), message: group ? tr("broadcastOverlay.nie_ma_grupy_group", { group: group }) : tr("broadcastOverlay.tabela_pojawi_sie_po_rozpoczeciu") };
   return {
-    kind: "tables", title: stage.name, tables: chosen,
+    kind: "tables", title: stageLabel(stage.name), tables: chosen,
     showDraws: stage.allowDraws || chosen.some((t) => t.rows.some((r) => r.draws > 0)),
     showPoints: chosen.some((t) => t.rows.some((r) => r.points != null)),
     fragment: group,
@@ -542,7 +542,7 @@ export function deMatchName(name: string): string {
 
 /** Double elimination: upper, lower and final sections from the stage's double-elimination state. */
 export function doubleView(stage: PublicStage, state: { participants?: unknown[]; matches?: unknown[] } | null, round: number | null): StructureView {
-  if (!state?.matches?.length) return { kind: "empty", title: stage.name, message: tr("broadcastOverlay.drabinka_pojawi_sie_po_rozpoczeciu") };
+  if (!state?.matches?.length) return { kind: "empty", title: stageLabel(stage.name), message: tr("broadcastOverlay.drabinka_pojawi_sie_po_rozpoczeciu") };
   const names = new Map(((state.participants ?? []) as Raw[]).map((p) => [str(p.participantKey) ?? "", str(p.name) ?? ""]));
   const sections: DoubleSection[] = (["upper", "lower", "final"] as const).map((id) => {
     const list = ((state.matches ?? []) as Raw[])
@@ -567,7 +567,7 @@ export function doubleView(stage: PublicStage, state: { participants?: unknown[]
     }
     return { id, label: id === "final" ? tr("broadcastOverlay.wielki_final") : DE_LABELS[id], rounds: [...byRound.entries()].sort((a, b) => a[0] - b[0]).map(([r, matches]) => ({ round: r, matches })) };
   }).filter((section) => section.rounds.length);
-  return { kind: "double", title: stage.name, sections };
+  return { kind: "double", title: stageLabel(stage.name), sections };
 }
 
 // ─── V5.9.1 · what the score / upcoming overlay shows (compared as a whole: unrelated changes do not re-render) ─────

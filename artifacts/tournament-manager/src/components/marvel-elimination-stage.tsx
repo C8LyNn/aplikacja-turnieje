@@ -461,7 +461,7 @@ export function MarvelEliminationStage({
                                 {entry.playerName}
                                 {entry.sourceGroupId != null && (
                                   <span className="ml-1 text-[10px] text-muted-foreground">
-                                    z {groupLabelById.get(entry.sourceGroupId)}
+                                    {t("i18n.word.from")}{" "}{groupLabelById.get(entry.sourceGroupId)}
                                   </span>
                                 )}
                               </span>

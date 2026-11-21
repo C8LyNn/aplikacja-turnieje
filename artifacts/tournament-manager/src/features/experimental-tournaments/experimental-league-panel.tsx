@@ -204,7 +204,7 @@ export function ExperimentalLeaguePanel({
 
       <details>
         <summary className="cursor-pointer text-sm font-semibold">
-          {t("experimentalLeaguePanel.terminarz")}{" "}{schedule.rounds.length} {plural(schedule.rounds.length, t("experimentalLeaguePanel.kolejka_2"), t("experimentalLeaguePanel.kolejki"), t("experimentalLeaguePanel.kolejek"))} {t("experimentalLeaguePanel.rozegrane")}{" "}{schedule.counts.completed} z {schedule.counts.total}
+          {t("experimentalLeaguePanel.terminarz")}{" "}{schedule.rounds.length} {plural(schedule.rounds.length, t("experimentalLeaguePanel.kolejka_2"), t("experimentalLeaguePanel.kolejki"), t("experimentalLeaguePanel.kolejek"))} {t("experimentalLeaguePanel.rozegrane")}{" "}{schedule.counts.completed}{" "}{t("i18n.word.of")}{" "}{schedule.counts.total}
           {schedule.counts.unscheduled > 0 ? t("experimentalLeaguePanel.bez_terminu_unscheduled", { unscheduled: schedule.counts.unscheduled }) : ""}
           {variant === "host" && current && current.resting.length > 0 ? t("experimentalLeaguePanel.w_kolejce_round_pauzuje_v1", { round: current.round, v1: current.resting.map((entry) => entry.name).join(", ") }) : ""}
         </summary>

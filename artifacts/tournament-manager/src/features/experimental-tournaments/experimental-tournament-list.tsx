@@ -1,4 +1,4 @@
-import { t } from "@/i18n";
+import { t, stageLabel } from "@/i18n";
 import type { MouseEvent } from "react";
 import { Link } from "wouter";
 import { format } from "date-fns";
@@ -68,7 +68,7 @@ export function tournamentProgress(tournament: {
   const stage = tournament.activity?.currentStage;
   if (stage && stage.matchesTotal > 0) {
     const parts = [
-      (tournament.activity?.stageFormats?.length ?? 0) > 1 ? stage.name : null,
+      (tournament.activity?.stageFormats?.length ?? 0) > 1 ? stageLabel(stage.name) : null,
       stage.format === "swiss" && stage.currentRound ? t("experimentalTournamentList.runda_currentround_v1", { currentRound: stage.currentRound, v1: stage.plannedRounds ? ` z ${stage.plannedRounds}` : "" }) : null,
       t("experimentalTournamentList.matchescompleted_matchestotal_meczow", { matchesCompleted: stage.matchesCompleted, matchesTotal: stage.matchesTotal }),
     ].filter(Boolean);

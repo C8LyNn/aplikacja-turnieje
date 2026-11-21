@@ -2630,6 +2630,8 @@ html[data-x-type="display"] :is(.experimental-tournament-shell, .experimental-to
 .experimental-tournament-shell .experimental-nav-toggle { display: none; }
 @media (max-width: 767px) { .experimental-tournament-shell .experimental-nav-toggle { display: inline-flex; align-items: center; gap: .4rem; flex: 0 0 auto; margin-left: auto; min-height: 2.5rem; padding: 0 .8rem; border: 1px solid var(--x-line-strong); border-radius: var(--x-radius, .75rem); background: var(--x-glass); color: var(--x-text); font-size: .875rem; font-weight: 600; } }
 @media (max-width: 767px) { .experimental-tournament-shell .experimental-nav-toggle:focus-visible { outline: 2px solid var(--x-a1); outline-offset: 2px; } }
+/* #323-E: the language switch sits right before "Menu" on a phone; only the switch takes the free space */
+@media (max-width: 767px) { .experimental-tournament-shell > header [data-testid="language-switcher"] + .experimental-nav-toggle { margin-left: 0; } }
 @media (max-width: 767px) { .experimental-tournament-shell > header nav#experimental-app-nav { display: none; } }
 @media (max-width: 767px) { .experimental-tournament-shell > header nav#experimental-app-nav[data-open="true"] { display: flex; flex-direction: column; align-items: stretch; gap: .25rem; position: absolute; top: 100%; left: 0; right: 0; z-index: 30; padding: .5rem .75rem .9rem; overflow: visible; background: var(--x-deep, #0b1020); border-bottom: 1px solid var(--x-line); box-shadow: var(--x-shadow); } }
 @media (max-width: 767px) { .experimental-tournament-shell > header nav#experimental-app-nav[data-open="true"] > * { width: 100%; } }

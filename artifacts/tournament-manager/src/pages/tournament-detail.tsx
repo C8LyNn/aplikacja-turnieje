@@ -1,4 +1,4 @@
-import { t } from "@/i18n";
+import { t, stageLabel } from "@/i18n";
 import {
   ParticipantFieldChips,
   ParticipantFieldInputs,
@@ -736,7 +736,7 @@ export default function TournamentDetail() {
             {tournament.description && <p className="text-muted-foreground">{tournament.description}</p>}
             <p className="text-sm text-muted-foreground mt-1">
               {/* V5.8: the format is named once, also when the stage carries the format's name. */}
-              {[operation.stage?.name, (() => { const label = FORMAT_LABELS[operation.stage?.format ?? tournament.format] ?? operation.stage?.format; return label && label !== operation.stage?.name ? label : null; })()].filter(Boolean).join(" · ")}
+              {[stageLabel(operation.stage?.name), (() => { const label = FORMAT_LABELS[operation.stage?.format ?? tournament.format] ?? operation.stage?.format; return label && label !== operation.stage?.name ? label : null; })()].filter(Boolean).join(" · ")}
               {` · ${operation.summary.roundLabel} · ${operation.stage?.matchRules ? matchLengthText(operation.stage, isExperimental) : isExperimental ? bestOfLabel(operation.stage?.bestOf ?? tournament.defaultBestOf ?? 1).toLowerCase() : `BO${operation.stage?.bestOf ?? tournament.defaultBestOf}`}`}
             </p>
             <div className="mt-2">
@@ -945,7 +945,7 @@ export default function TournamentDetail() {
                 status={tournament.status}
                 formatLabel={FORMAT_LABELS[tournament.format] ?? tournament.format}
                 maxPlayers={tournament.maxPlayers}
-                stageName={operation.stage?.name}
+                stageName={stageLabel(operation.stage?.name)}
                 roundLabel={operation.summary.roundLabel}
                 bestOf={operation.stage?.bestOf ?? tournament.defaultBestOf}
                 matchRules={operation.stage?.matchRules ?? null}
@@ -966,7 +966,7 @@ export default function TournamentDetail() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">{stats.totalPlayers}</div>
-                    {tournament.maxPlayers && <p className="text-xs text-muted-foreground">z {tournament.maxPlayers}</p>}
+                    {tournament.maxPlayers && <p className="text-xs text-muted-foreground">{t("i18n.word.of")}{" "}{tournament.maxPlayers}</p>}
                   </CardContent>
                 </Card>
                 <Card>
@@ -1602,7 +1602,7 @@ export default function TournamentDetail() {
           <TabsContent value="standings" className="pt-6">
             {isExperimental && hasMultipleStages && tableStage && liveStageStandings.data?.tables.length ? (
               <Card className="mb-6" data-testid="current-stage-table">
-                <CardHeader><CardTitle>{t("tournamentDetail.tabela_etapu")}{tableStage.name}”</CardTitle></CardHeader>
+                <CardHeader><CardTitle>{t("tournamentDetail.tabela_etapu")}{stageLabel(tableStage.name)}”</CardTitle></CardHeader>
                 <CardContent><StageLiveTables data={liveStageStandings.data} /></CardContent>
               </Card>
             ) : null}

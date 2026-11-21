@@ -1,4 +1,4 @@
-import { t } from "@/i18n";
+import { t, stageLabel } from "@/i18n";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DrawPresenter, TOURNAMENT_PRESENTERS, Wheel, loadPresenter, savePresenter, usePrefersReducedMotion, type PresenterId } from "@/components/draw-presenters";
 import type { TournamentStage } from "@workspace/api-client-react";
@@ -416,7 +416,7 @@ function CeremonyBody({
           <div>
             <div className="mb-2 flex items-center justify-between gap-3 text-sm">
               <span>
-                {state.revealedCount} z {state.draws.length} {t("seedingCeremony.ujawnionych")}</span>
+                {state.revealedCount}{" "}{t("i18n.word.of")}{" "}{state.draws.length} {t("seedingCeremony.ujawnionych")}</span>
               <Badge>{statusLabel(state)}</Badge>
             </div>
             <Progress value={progress} />
@@ -828,7 +828,7 @@ export function SeedingCeremony({
       <Dialog open={presentationOpen} onOpenChange={setPresentationOpen}>
         <DialogContent className="max-h-[92vh] max-w-6xl overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>{t("seedingCeremony.losowanie_2")}{" "}{stage.name}</DialogTitle>
+            <DialogTitle>{t("seedingCeremony.losowanie_2")}{" "}{stageLabel(stage.name)}</DialogTitle>
             <DialogDescription>
               {t("seedingCeremony.widok_prezentacyjny_moze_byc_pokazany")}</DialogDescription>
           </DialogHeader>

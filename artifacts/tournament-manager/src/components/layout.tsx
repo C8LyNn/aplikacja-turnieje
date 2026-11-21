@@ -65,6 +65,9 @@ export function Layout({ children, deadlockTheme, colorPreset }: { children: Rea
               />
             )}
           </div>
+          {/* #323-E: language, per browser (other people keep theirs). Outside the nav so a phone always shows it (Modern
+              folds the nav into "Menu", Classic scrolls it); on wider screens it moves to the end of the header. */}
+          <LanguageSwitcher className="ml-auto md:order-last md:ml-0" />
           {isExperimentalTournamentView && (
             <button
               type="button"
@@ -111,9 +114,7 @@ export function Layout({ children, deadlockTheme, colorPreset }: { children: Rea
               className="px-3 py-1.5 rounded hover:text-foreground hover:bg-muted/40 transition-colors"
             >
               {t("layout.portfolio")}</a>
-            {/* #323-E: language, per browser (other people keep theirs) */}
-            <LanguageSwitcher />
-</nav>
+          </nav>
         </div>
       </header>
       <main id={isExperimentalTournamentView ? "experimental-main" : "main-content"} tabIndex={-1} className="flex-1 container mx-auto px-4 md:px-8 py-8">

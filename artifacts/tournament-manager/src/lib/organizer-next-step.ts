@@ -1,4 +1,4 @@
-import { t } from "@/i18n";
+import { t, stageLabel } from "@/i18n";
 import type {
   Match,
   StageStartReadiness,
@@ -108,7 +108,7 @@ export function deriveOrganizerNextStep(input: {
     if (remaining > 0) {
       return {
         kind: "active_matches",
-        title: active.name,
+        title: stageLabel(active.name),
         description: t("organizerNextStep.completed_z_length_meczow_zakonczonych", { completed: completed, length: stageMatches.length, remaining: remaining }),
         actionLabel: surface === "details" && capabilities.canAccessConducting
           ? t("organizerNextStep.przejdz_do_prowadzenia")
@@ -125,7 +125,7 @@ export function deriveOrganizerNextStep(input: {
       return {
         kind: "swiss_round",
         title: t("organizerNextStep.runda_currentround_zakonczona", { currentRound: currentRound }),
-        description: t("organizerNextStep.etap_name_jest_gotowy_na", { name: active.name }),
+        description: t("organizerNextStep.etap_name_jest_gotowy_na", { name: stageLabel(active.name) }),
         actionLabel: capabilities.canGenerateRound ? t("organizerNextStep.wygeneruj_runde_v0", { v0: currentRound + 1 }) : undefined,
         actionHref: capabilities.canGenerateRound
           ? `/tournaments/${tournament.id}/host?tab=prowadzenie`
@@ -140,7 +140,7 @@ export function deriveOrganizerNextStep(input: {
       kind: "complete_stage",
       title: t("organizerNextStep.sprawdz_zakonczenie_etapu"),
       description: next
-        ? t("organizerNextStep.wszystkie_mecze_etapu_maja_wyniki", { name: next.name })
+        ? t("organizerNextStep.wszystkie_mecze_etapu_maja_wyniki", { name: stageLabel(next.name) })
         : t("organizerNextStep.wszystkie_mecze_etapu_maja_wyniki_2"),
       actionLabel: capabilities.canManageLifecycle ? t("organizerNextStep.zakoncz_etap") : undefined,
       actionHref: capabilities.canManageLifecycle ? `/tournaments/${tournament.id}?tab=stages&stage=${active.id}&action=complete` : undefined,
@@ -157,7 +157,7 @@ export function deriveOrganizerNextStep(input: {
     const readiness = input.plannedStageReadiness;
     if (!readiness?.ready) {
       const firstStage = plannedIndex === 0;
-      const feedback = readiness ? stageReadinessFeedback(readiness, planned.name, { firstStage }) : undefined;
+      const feedback = readiness ? stageReadinessFeedback(readiness, stageLabel(planned.name), { firstStage }) : undefined;
       // V5.11: the most common beginner case gets a concrete instruction from the engine's own counts.
       if (readiness && firstStageNeedsEntrants(readiness, firstStage)) {
         const missing = readiness.requiredParticipantCount - readiness.participantCount;
@@ -165,7 +165,7 @@ export function deriveOrganizerNextStep(input: {
           kind: "stage_preparation",
           reason: "needs_entrants",
           title: t("organizerNextStep.dodaj_jeszcze_missing_v1", { missing: missing, v1: missing === 1 ? t("organizerNextStep.uczestnika") : t("organizerNextStep.uczestnikow") }),
-          description: t("organizerNextStep.name_na_liscie_participantcount_z", { name: planned.name, participantCount: readiness.participantCount, requiredParticipantCount: readiness.requiredParticipantCount }),
+          description: t("organizerNextStep.name_na_liscie_participantcount_z", { name: stageLabel(planned.name), participantCount: readiness.participantCount, requiredParticipantCount: readiness.requiredParticipantCount }),
           actionLabel: capabilities.canManageParticipants ? t("organizerNextStep.dodaj_uczestnikow") : undefined,
           actionHref: capabilities.canManageParticipants ? `/tournaments/${tournament.id}?tab=players` : undefined,
           stageId: planned.id,
@@ -186,7 +186,7 @@ export function deriveOrganizerNextStep(input: {
       : capabilities.canStartTournament;
     return {
       kind: hasCompletedPredecessor ? "next_stage" : "planned_stage",
-      title: planned.name,
+      title: stageLabel(planned.name),
       // V5.8: the format is named only when the stage name does not already say it ("Faza grupowa").
       description: (formatLabels[planned.format] ?? planned.format) === planned.name
         ? t("organizerNextStep.wszystko_gotowe_mozesz_zaczynac")

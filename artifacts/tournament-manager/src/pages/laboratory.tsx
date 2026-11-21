@@ -73,7 +73,7 @@ function DrawComparison({ a, b, onChange }: { a: PresenterId; b: PresenterId; on
     <section aria-labelledby="lab-draws" className="space-y-4" data-testid="lab-draw-comparison">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 id="lab-draws" className="text-lg font-semibold">{t("laboratory.prezentacje_losowan_porownanie")}</h2>
-        <p className="text-sm text-muted-foreground" data-testid="lab-stored-result">{t("laboratory.zapisany_wynik_demonstracyjny")}{" "}{current ? <strong>{current.subject} → {current.result}</strong> : "—"} ({revealed} z {DEMO_DRAWS.length})
+        <p className="text-sm text-muted-foreground" data-testid="lab-stored-result">{t("laboratory.zapisany_wynik_demonstracyjny")}{" "}{current ? <strong>{current.subject} → {current.result}</strong> : "—"} ({revealed}{" "}{t("i18n.word.of")}{" "}{DEMO_DRAWS.length})
         </p>
       </div>
       <div className="flex flex-wrap gap-2">

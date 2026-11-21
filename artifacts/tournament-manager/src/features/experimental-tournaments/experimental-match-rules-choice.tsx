@@ -1,4 +1,4 @@
-import { t } from "@/i18n";
+import { t, serverText } from "@/i18n";
 /**
  * V5.7 · "how a match is decided", in the wizard and the advanced editor. Three things stay apart:
  * the format (step 1), the match rules (this choice) and the classification points (league options).
@@ -112,15 +112,15 @@ export function MatchRulesChoice({
             role="radio"
             aria-checked={selected === option.id}
             className="experimental-wizard-chip"
-            title={option.description}
+            title={serverText(option.description)}
             onClick={() => onParams(paramsForMatchRuleOption(option.id, params, hasLeague))}
           >
-            {option.label}
+            {serverText(option.label)}
           </button>
         ))}
         {selected === "custom" && <span className="experimental-wizard-chip" role="radio" aria-checked="true">{t("experimentalMatchRulesChoice.wlasne_zasady")}</span>}
       </div>
-      {selectedPreset && <p id={`${id}-description`} className="experimental-wizard-help" data-testid="match-rules-description">{selectedPreset.description}</p>}
+      {selectedPreset && <p id={`${id}-description`} className="experimental-wizard-help" data-testid="match-rules-description">{serverText(selectedPreset.description)}</p>}
       <p className="experimental-match-rules-summary" role="status" aria-live="polite">{matchRulesSentence(preview)}</p>
       {ownError && <p role="alert" className="experimental-wizard-error">{ownError}</p>}
       <details className="experimental-match-rules-details" open={!!ownError || selected === "custom" || undefined}>
