@@ -377,7 +377,7 @@ export async function deliverDiscordNotifications(fetchImpl: FetchLike = fetch a
 }
 
 export async function discordTick(fetchImpl?: FetchLike) {
-  if (discordKeyProblem()) return { queued: 0, paused: "DISCORD_KEY_MISCONFIGURED" as const };
+  if (discordKeyProblem()) return { queued: 0, sent: 0, failed: 0, retried: 0, paused: "DISCORD_KEY_MISCONFIGURED" as const };
   const queued = await detectDiscordEvents();
   const delivered = await deliverDiscordNotifications(fetchImpl);
   return { queued, ...delivered };
