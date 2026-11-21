@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 /**
  * QW-10 · empty lists say why they are empty and what comes next, the same way in Classic and Modern.
  * Texts only: no new actions, nothing that changes the tournament.
@@ -17,31 +18,31 @@ export interface EmptyState {
 
 export function matchesEmptyState({ status, playerCount, canManage }: EmptyStateContext): EmptyState {
   if (status === "draft") {
-    if (!canManage) return { text: "Mecze pojawią się po rozpoczęciu turnieju." };
+    if (!canManage) return { text: t("organizerEmptyStates.mecze_pojawia_sie_po_rozpoczeciu") };
     return playerCount < 2
-      ? { text: "Mecze pojawią się po rozpoczęciu turnieju. Najpierw dodaj co najmniej dwóch uczestników.", tab: { value: "players", label: "Przejdź do uczestników" } }
-      : { text: "Mecze pojawią się po rozpoczęciu pierwszego etapu.", tab: { value: "stages", label: "Przejdź do etapów" } };
+      ? { text: t("organizerEmptyStates.mecze_pojawia_sie_po_rozpoczeciu_2"), tab: { value: "players", label: t("organizerEmptyStates.przejdz_do_uczestnikow") } }
+      : { text: t("organizerEmptyStates.mecze_pojawia_sie_po_rozpoczeciu_3"), tab: { value: "stages", label: t("organizerEmptyStates.przejdz_do_etapow") } };
   }
-  if (status === "completed") return { text: "Ten turniej nie ma meczów." };
+  if (status === "completed") return { text: t("organizerEmptyStates.ten_turniej_nie_ma_meczow") };
   return canManage
-    ? { text: "Bieżący etap nie ma jeszcze meczów — następny krok podpowiada „Co teraz?” w panelu prowadzącego.", tab: { value: "stages", label: "Przejdź do etapów" } }
-    : { text: "Mecze tego etapu nie zostały jeszcze rozlosowane." };
+    ? { text: t("organizerEmptyStates.biezacy_etap_nie_ma_jeszcze"), tab: { value: "stages", label: t("organizerEmptyStates.przejdz_do_etapow") } }
+    : { text: t("organizerEmptyStates.mecze_tego_etapu_nie_zostaly") };
 }
 
 export function standingsEmptyText(status: string | null | undefined): string {
   return status === "draft"
-    ? "Tabela pojawi się po rozpoczęciu turnieju i pierwszych wynikach."
-    : "Tabela pojawi się po pierwszym zapisanym wyniku.";
+    ? t("organizerEmptyStates.tabela_pojawi_sie_po_rozpoczeciu")
+    : t("organizerEmptyStates.tabela_pojawi_sie_po_pierwszym");
 }
 
 export function historyEmptyText(canWriteResults: boolean): string {
   return canWriteResults
-    ? "Tu pojawią się zapisane wyniki. Każdy z nich można później cofnąć albo poprawić."
-    : "Nie ma jeszcze zapisanych wyników.";
+    ? t("organizerEmptyStates.tu_pojawia_sie_zapisane_wyniki")
+    : t("organizerEmptyStates.nie_ma_jeszcze_zapisanych_wynikow");
 }
 
 export function queueEmptyText(input: { status: string | null | undefined; filtered: boolean }): string {
-  if (input.filtered) return "Brak meczów w tym stanie.";
-  if (input.status === "completed") return "Wszystkie mecze rozegrane — turniej jest zakończony.";
-  return "Brak meczów do rozegrania. Następny krok pokazuje „Co teraz?”.";
+  if (input.filtered) return t("organizerEmptyStates.brak_meczow_w_tym_stanie");
+  if (input.status === "completed") return t("organizerEmptyStates.wszystkie_mecze_rozegrane_turniej_jest");
+  return t("organizerEmptyStates.brak_meczow_do_rozegrania_nastepny");
 }

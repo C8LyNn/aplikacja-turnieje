@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { useId } from "react";
 import { CalendarDays, Minus, Plus } from "lucide-react";
 import {
@@ -18,8 +19,8 @@ export const LEAGUE_PARAM_KEYS: readonly PresetParamKey[] = ["allowDraws", "poin
 const INTERVAL_OPTIONS = [1, 2, 3, 7, 14] as const;
 
 function intervalLabel(days: number): string {
-  if (days === 7) return "Co tydzień";
-  if (days === 14) return "Co 2 tygodnie";
+  if (days === 7) return t("experimentalLeagueOptions.co_tydzien");
+  if (days === 14) return t("experimentalLeagueOptions.co_2_tygodnie");
   if (days === 1) return "Codziennie";
   return `Co ${days} dni`;
 }
@@ -29,11 +30,11 @@ function PointStepper({ limit, onChange }: { limit: PresetParamLimit; onChange: 
   return (
     <div className="experimental-wizard-count" role="group" aria-label={limit.label}>
       <span className="experimental-wizard-legend min-w-[11rem]">{limit.label}</span>
-      <button type="button" className="experimental-wizard-step-btn" aria-label={`${limit.label}: mniej`} disabled={index <= 0} onClick={() => onChange(limit.options[index - 1]!)}>
+      <button type="button" className="experimental-wizard-step-btn" aria-label={t("experimentalLeagueOptions.label_mniej", { label: limit.label })} disabled={index <= 0} onClick={() => onChange(limit.options[index - 1]!)}>
         <Minus className="h-4 w-4" />
       </button>
       <output className="experimental-wizard-count-value" aria-live="polite">{limit.value}</output>
-      <button type="button" className="experimental-wizard-step-btn" aria-label={`${limit.label}: więcej`} disabled={index >= limit.options.length - 1} onClick={() => onChange(limit.options[index + 1]!)}>
+      <button type="button" className="experimental-wizard-step-btn" aria-label={t("experimentalLeagueOptions.label_wiecej", { label: limit.label })} disabled={index >= limit.options.length - 1} onClick={() => onChange(limit.options[index + 1]!)}>
         <Plus className="h-4 w-4" />
       </button>
     </div>
@@ -76,17 +77,15 @@ export function LeagueOptions({
       {draws && (
         <details className="experimental-wizard-param" open={["pointsWin", "pointsDraw", "pointsLoss"].includes(error?.param ?? "") || undefined}>
           <summary className="cursor-pointer">
-            <span className="experimental-wizard-legend">Punktacja tabeli</span>{" "}
+            <span className="experimental-wizard-legend">{t("experimentalLeagueOptions.punktacja_tabeli")}</span>{" "}
             <span className="experimental-wizard-help">
               {leagueRulesSentence({ allowDraws: draws.value === 1, points: { win: limits.get("pointsWin")?.value ?? 3, draw: limits.get("pointsDraw")?.value ?? 1, loss: limits.get("pointsLoss")?.value ?? 0 } })}
-              {" "}Zmień, jeśli Twoja liga liczy inaczej.
-            </span>
+              {" "}{t("experimentalLeagueOptions.zmien_jesli_twoja_liga_liczy")}</span>
           </summary>
           <div className="mt-3 space-y-2">
             {pointLimits.map((limit) => <PointStepper key={limit.key} limit={limit} onChange={(value) => setParam(limit.key, value)} />)}
             <p className="experimental-wizard-help">
-              Przy równej liczbie punktów decydują kolejno: mecze bezpośrednie, różnica wyników, zdobyte, liczba zwycięstw, a na końcu rozstawienie.
-            </p>
+              {t("experimentalLeagueOptions.przy_rownej_liczbie_punktow_decyduja")}</p>
             {["pointsWin", "pointsDraw", "pointsLoss"].includes(error?.param ?? "") && <p role="alert" className="experimental-wizard-error">{error?.message}</p>}
           </div>
         </details>
@@ -94,39 +93,39 @@ export function LeagueOptions({
       {showSchedule && (
         <div className="experimental-wizard-param" data-testid="league-schedule">
           <div className="experimental-wizard-param-head">
-            <span className="experimental-wizard-legend"><CalendarDays className="mr-1 inline h-4 w-4" aria-hidden="true" />Terminy kolejek</span>
-            <span className="experimental-wizard-help">Opcjonalnie. Możesz prowadzić ligę bez dat albo ustalić je teraz — każdy termin zmienisz później w panelu prowadzącego.</span>
+            <span className="experimental-wizard-legend"><CalendarDays className="mr-1 inline h-4 w-4" aria-hidden="true" />{t("experimentalLeagueOptions.terminy_kolejek")}</span>
+            <span className="experimental-wizard-help">{t("experimentalLeagueOptions.opcjonalnie_mozesz_prowadzic_lige_bez")}</span>
           </div>
-          <div className="experimental-wizard-segments" role="radiogroup" aria-label="Terminy kolejek">
-            <button type="button" role="radio" aria-checked={schedule == null} className="experimental-wizard-chip" onClick={() => onSchedule(null)}>Bez terminarza</button>
-            <button type="button" role="radio" aria-checked={schedule != null} className="experimental-wizard-chip" onClick={() => onSchedule(schedule ?? defaultWizardSchedule())}>Ustal terminy</button>
+          <div className="experimental-wizard-segments" role="radiogroup" aria-label={t("experimentalLeagueOptions.terminy_kolejek")}>
+            <button type="button" role="radio" aria-checked={schedule == null} className="experimental-wizard-chip" onClick={() => onSchedule(null)}>{t("experimentalLeagueOptions.bez_terminarza")}</button>
+            <button type="button" role="radio" aria-checked={schedule != null} className="experimental-wizard-chip" onClick={() => onSchedule(schedule ?? defaultWizardSchedule())}>{t("experimentalLeagueOptions.ustal_terminy")}</button>
           </div>
           {schedule && (
             <div className="mt-3 grid gap-3 sm:grid-cols-3">
               <label className="experimental-wizard-field">
-                <span className="experimental-wizard-legend">Pierwsza kolejka</span>
+                <span className="experimental-wizard-legend">{t("experimentalLeagueOptions.pierwsza_kolejka")}</span>
                 <input type="date" className="experimental-v4-input" value={schedule.startDate} required
                   onChange={(event) => event.target.value && onSchedule({ ...schedule, startDate: event.target.value })} />
               </label>
               <label className="experimental-wizard-field">
-                <span className="experimental-wizard-legend">Kolejne kolejki</span>
+                <span className="experimental-wizard-legend">{t("experimentalLeagueOptions.kolejne_kolejki")}</span>
                 <select className="experimental-v4-input" value={schedule.intervalDays}
                   onChange={(event) => onSchedule({ ...schedule, intervalDays: Number(event.target.value) })}>
                   {INTERVAL_OPTIONS.map((days) => <option key={days} value={days}>{intervalLabel(days)}</option>)}
                 </select>
               </label>
               <label className="experimental-wizard-field">
-                <span className="experimental-wizard-legend">Godzina</span>
+                <span className="experimental-wizard-legend">{t("experimentalLeagueOptions.godzina")}</span>
                 <input type="time" className="experimental-v4-input" value={schedule.defaultTime} required
                   onChange={(event) => event.target.value && onSchedule({ ...schedule, defaultTime: event.target.value })} />
               </label>
-              <p className="experimental-wizard-help sm:col-span-3">Strefa czasowa: {schedule.timeZone}. Godziny zapisujemy w tej strefie — zmiana czasu letniego ich nie przesunie.</p>
+              <p className="experimental-wizard-help sm:col-span-3">{t("experimentalLeagueOptions.strefa_czasowa")}{" "}{schedule.timeZone}{t("experimentalLeagueOptions.godziny_zapisujemy_w_tej_strefie")}</p>
             </div>
           )}
           {outline && (
             <p className="experimental-wizard-note mt-3" data-tone="info" role="status">
-              {outline.rounds} {plural(outline.rounds, "kolejka", "kolejki", "kolejek")}: od {formatLocalDate(outline.firstDate)} do {formatLocalDate(outline.lastDate)}
-              {outline.weeks > 1 ? ` (ok. ${outline.weeks} ${plural(outline.weeks, "tydzień", "tygodnie", "tygodni")})` : ""}.
+              {outline.rounds} {plural(outline.rounds, t("experimentalLeagueOptions.kolejka"), t("experimentalLeagueOptions.kolejki"), t("experimentalLeagueOptions.kolejek"))}{t("experimentalLeagueOptions.od")}{" "}{formatLocalDate(outline.firstDate)} {t("experimentalLeagueOptions.do")}{" "}{formatLocalDate(outline.lastDate)}
+              {outline.weeks > 1 ? t("experimentalLeagueOptions.ok_weeks_v1", { weeks: outline.weeks, v1: plural(outline.weeks, t("experimentalLeagueOptions.tydzien"), t("experimentalLeagueOptions.tygodnie"), t("experimentalLeagueOptions.tygodni")) }) : ""}.
             </p>
           )}
         </div>

@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -6,19 +7,19 @@ import { Link } from "wouter";
 import { normalizeChecklistSelection } from "@/lib/checklist-selection";
 
 const ITEMS = [
-  { id: "create", label: "Turniej utworzony z poprawną nazwą i formatem", detail: "Sprawdź: format, maksymalna liczba graczy, BO1/BO3/BO5/BO7" },
-  { id: "players", label: "Gracze dodani / zaimportowani przez CSV", detail: "Min. 2 graczy. CSV: kolumna 'name' wymagana, 'seed' opcjonalnie" },
-  { id: "seeding", label: "Rozstawienie sprawdzone (lub pominięte świadomie)", detail: "Seed 1 zagra z najsłabszym, seed 2 z przedostatnim — albo dodaj graczy bez seedów (losowe pary)" },
-  { id: "start", label: "Turniej uruchomiony (przycisk Wystartuj)", detail: "Generuje drabinkę, harmonogram Round Robin albo pierwszą rundę Swiss. Po starcie nie można już edytować listy graczy" },
-  { id: "bracket", label: "Pary i rundy wyglądają poprawnie", detail: "Sprawdź drabinkę lub harmonogram, rozstawienie oraz systemowe wolne losy" },
-  { id: "organizer_access", label: "Dostęp organizatora zabezpieczony", detail: "W panelu bezpieczeństwa ustaw hasło organizatora i sprawdź uprawnienia wsparcia. Dla historycznych trybów dostępu zweryfikuj także zachowanie /host." },
-  { id: "audience", label: "Widok widzów sprawdzony na projektorze", detail: "Link /audience. Odświeża co 4s. Brak przycisków edycji — bezpieczny do wyświetlenia" },
-  { id: "livetest", label: "Mecz testowy: pełny wynik serii wpisany i cofnięty", detail: "Dla BO3 wpisz 2:0 albo 2:1 → zakończ mecz → cofnij wynik. Niepełny wynik, np. 1:0, ma być odrzucony" },
-  { id: "postpone", label: "Przełożenie i przywrócenie meczu przetestowane", detail: "Przełóż mecz → pokaż się w sekcji Przełożone → Przywróć" },
-  { id: "walkover", label: "Walkower przetestowany (W.O.)", detail: "Wybierz zwycięzcę i sprawdź awans albo bilans meczu. Walkower nie może tworzyć wyniku 1:0" },
-  { id: "backup_export_v3", label: "Eksport backupu V3 sprawdzony", detail: "Wyeksportuj backup i zweryfikuj w JSON schemaVersion 3. Import V3 jest wyłączony do czasu osobnej akceptacji bezpieczeństwa." },
-  { id: "backup_import", label: "Import V2 przetestowany na danych testowych", detail: "Import V3 jest wyłączony. Jeśli posiadasz poprawny backup V2, sprawdź odtworzenie jako nowy turniej wyłącznie na danych testowych." },
-  { id: "refresh", label: "Strona odświeżona (F5) — dane zachowane", detail: "Odśwież przeglądarkę i sprawdź, czy turniej i mecze są nadal widoczne. W razie utraty sesji skorzystaj z właściwego sposobu logowania." },
+  { id: "create", get label() { return t("tournamentChecklist.turniej_utworzony_z_poprawna_nazwa"); }, get detail() { return t("tournamentChecklist.sprawdz_format_maksymalna_liczba_graczy"); } },
+  { id: "players", get label() { return t("tournamentChecklist.gracze_dodani_zaimportowani_przez_csv"); }, get detail() { return t("tournamentChecklist.min_2_graczy_csv_kolumna"); } },
+  { id: "seeding", get label() { return t("tournamentChecklist.rozstawienie_sprawdzone_lub_pominiete_sw"); }, get detail() { return t("tournamentChecklist.seed_1_zagra_z_najslabszym"); } },
+  { id: "start", get label() { return t("tournamentChecklist.turniej_uruchomiony_przycisk_wystartuj"); }, get detail() { return t("tournamentChecklist.generuje_drabinke_harmonogram_round_robi"); } },
+  { id: "bracket", get label() { return t("tournamentChecklist.pary_i_rundy_wygladaja_poprawnie"); }, get detail() { return t("tournamentChecklist.sprawdz_drabinke_lub_harmonogram_rozstaw"); } },
+  { id: "organizer_access", get label() { return t("tournamentChecklist.dostep_organizatora_zabezpieczony"); }, get detail() { return t("tournamentChecklist.w_panelu_bezpieczenstwa_ustaw_haslo"); } },
+  { id: "audience", get label() { return t("tournamentChecklist.widok_widzow_sprawdzony_na_projektorze"); }, get detail() { return t("tournamentChecklist.link_audience_odswieza_co_4s"); } },
+  { id: "livetest", get label() { return t("tournamentChecklist.mecz_testowy_pelny_wynik_serii"); }, get detail() { return t("tournamentChecklist.dla_bo3_wpisz_2_0"); } },
+  { id: "postpone", get label() { return t("tournamentChecklist.przelozenie_i_przywrocenie_meczu_przetes"); }, get detail() { return t("tournamentChecklist.przeloz_mecz_pokaz_sie_w"); } },
+  { id: "walkover", get label() { return t("tournamentChecklist.walkower_przetestowany_w_o"); }, get detail() { return t("tournamentChecklist.wybierz_zwyciezce_i_sprawdz_awans"); } },
+  { id: "backup_export_v3", get label() { return t("tournamentChecklist.eksport_backupu_v3_sprawdzony"); }, get detail() { return t("tournamentChecklist.wyeksportuj_backup_i_zweryfikuj_w"); } },
+  { id: "backup_import", get label() { return t("tournamentChecklist.import_v2_przetestowany_na_danych"); }, get detail() { return t("tournamentChecklist.import_v3_jest_wylaczony_jesli"); } },
+  { id: "refresh", get label() { return t("tournamentChecklist.strona_odswiezona_f5_dane_zachowane"); }, get detail() { return t("tournamentChecklist.odswiez_przegladarke_i_sprawdz_czy"); } },
 ];
 
 const VALID_ITEM_IDS = ITEMS.map(({ id }) => id);
@@ -82,14 +83,13 @@ export function TournamentChecklist({ open, onClose, tournamentId, tournamentNam
         <DialogHeader className="px-5 pt-5 pb-3 border-b shrink-0">
           <DialogTitle className="flex items-center gap-2">
             <CheckSquare className="w-5 h-5 text-primary" />
-            Checklista przedturniejowa
-          </DialogTitle>
+            {t("tournamentChecklist.checklista_przedturniejowa")}</DialogTitle>
           <DialogDescription>
             {tournamentName ? `„${tournamentName}" · ` : ""}
             <span className={done === total ? "text-green-400 font-medium" : ""}>
               {done}/{total} ({pct}%)
             </span>
-            {done === total && <span className="text-green-400 font-medium"> — Lista sprawdzona. Gotowość etapu sprawdź w Etapach.</span>}
+            {done === total && <span className="text-green-400 font-medium"> {t("tournamentChecklist.lista_sprawdzona_gotowosc_etapu_sprawdz")}</span>}
           </DialogDescription>
         </DialogHeader>
 
@@ -122,15 +122,13 @@ export function TournamentChecklist({ open, onClose, tournamentId, tournamentNam
 
         <div className="px-5 py-3 border-t flex items-center justify-between gap-3 shrink-0">
           <Button variant="ghost" size="sm" className="text-muted-foreground" onClick={reset}>
-            <RotateCcw className="w-3.5 h-3.5 mr-1.5" /> Resetuj
-          </Button>
+            <RotateCcw className="w-3.5 h-3.5 mr-1.5" /> {t("tournamentChecklist.resetuj")}</Button>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" asChild>
               <Link href="/help">
-                <ExternalLink className="w-3.5 h-3.5 mr-1.5" /> Instrukcja
-              </Link>
+                <ExternalLink className="w-3.5 h-3.5 mr-1.5" /> {t("tournamentChecklist.instrukcja")}</Link>
             </Button>
-            <Button size="sm" onClick={onClose}>Zamknij</Button>
+            <Button size="sm" onClick={onClose}>{t("tournamentChecklist.zamknij")}</Button>
           </div>
         </div>
       </DialogContent>

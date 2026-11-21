@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import type { ReactNode } from "react";
 import { Link, useLocation } from "wouter";
 import type { Match } from "@workspace/api-client-react";
@@ -43,7 +44,7 @@ export function OrganizerNowPanel({
         onClick={() => onOpenMatch(m.id)}
         aria-current={m.id === focusedMatchId ? "true" : undefined}
         className={`organizer-now-match inline-flex min-h-11 min-w-0 max-w-full items-center gap-2 rounded-lg border px-3 py-2 text-left text-sm transition-colors hover:bg-muted/40 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary ${live ? "border-secondary/50 bg-secondary/10" : "border-border"} ${m.id === focusedMatchId ? "ring-1 ring-primary" : ""}`}
-        aria-label={`${live ? "W toku" : "Gotowy"}: ${pairText(m)}, runda ${m.round}, mecz ${m.matchNumber} — otwórz w edytorze`}
+        aria-label={t("organizerNowPanel.v0_v1_runda_round_mecz", { v0: live ? t("organizerNowPanel.w_toku_2") : t("organizerNowPanel.gotowy"), v1: pairText(m), round: m.round, matchNumber: m.matchNumber })}
       >
         <span className="shrink-0 font-mono text-[11px] text-muted-foreground">R{m.round}M{m.matchNumber}</span>
         <span className="min-w-0 truncate font-medium">{pairText(m)}</span>
@@ -55,7 +56,7 @@ export function OrganizerNowPanel({
       {/* QW-04: every row may shrink — long names truncate instead of widening a phone screen. */}
       <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-wide text-primary">Co teraz?</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-primary">{t("organizerNowPanel.co_teraz")}</p>
           <h2 id="organizer-next-step-title" className="mt-1 font-semibold">{now.title}</h2>
           <p className="mt-1 text-sm text-muted-foreground">{now.description}</p>
         </div>
@@ -72,35 +73,35 @@ export function OrganizerNowPanel({
         )}
         {primary?.type === "step" && primary.onAction && onStepAction && (
           <Button onClick={onStepAction} disabled={pending} aria-busy={pending} className="organizer-next-action shrink-0">
-            {pending ? "Wykonywanie…" : primary.label}
+            {pending ? t("organizerNowPanel.wykonywanie") : primary.label}
             {pending ? <Loader2 aria-hidden="true" className="ml-2 h-4 w-4 animate-spin" /> : <ArrowRight aria-hidden="true" className="ml-2 h-4 w-4" />}
           </Button>
         )}
       </div>
       {now.live.length > 0 && (
         <div className="mt-3">
-          <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground"><Radio aria-hidden="true" className="h-3.5 w-3.5 text-secondary" /> W toku ({now.live.length})</p>
-          <ul className="mt-1.5 flex flex-wrap gap-2" aria-label="Mecze w toku">{now.live.map((m) => chip(m, true))}</ul>
+          <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground"><Radio aria-hidden="true" className="h-3.5 w-3.5 text-secondary" /> {t("organizerNowPanel.w_toku")}{now.live.length})</p>
+          <ul className="mt-1.5 flex flex-wrap gap-2" aria-label={t("organizerNowPanel.mecze_w_toku")}>{now.live.map((m) => chip(m, true))}</ul>
         </div>
       )}
       {now.ready.length > 0 && (
         <div className="mt-3">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Następne gotowe</p>
-          <ul className="mt-1.5 flex flex-wrap gap-2" aria-label="Następne gotowe mecze">{now.ready.map((m) => chip(m, false))}</ul>
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("organizerNowPanel.nastepne_gotowe")}</p>
+          <ul className="mt-1.5 flex flex-wrap gap-2" aria-label={t("organizerNowPanel.nastepne_gotowe_mecze")}>{now.ready.map((m) => chip(m, false))}</ul>
         </div>
       )}
       {share && (
         <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-primary/15 pt-3 text-sm">
-          <span className="font-medium">Udostępnij kibicom</span>
-          {share.rule.kind !== "closed" && <CopyLinkButton text={share.link} label="Kopiuj link dla kibiców" />}
+          <span className="font-medium">{t("organizerNowPanel.udostepnij_kibicom")}</span>
+          {share.rule.kind !== "closed" && <CopyLinkButton text={share.link} label={t("organizerNowPanel.kopiuj_link_dla_kibicow")} />}
           {share.rule.kind !== "closed" && (
-            <ShareLinkButton target={{ url: share.link, title: share.title ?? "Turniej", text: shareText(share.rule.kind, share.title ?? "") }} label="Udostępnij link dla kibiców" />
+            <ShareLinkButton target={{ url: share.link, title: share.title ?? t("organizerNowPanel.turniej"), text: shareText(share.rule.kind, share.title ?? "") }} label={t("organizerNowPanel.udostepnij_link_dla_kibicow")} />
           )}
           {share.control}
           <span className="basis-full text-xs text-muted-foreground">{share.rule.note}</span>
         </div>
       )}
-      {pending && <span role="status" aria-live="polite" className="sr-only">Trwa wykonywanie następnego kroku.</span>}
+      {pending && <span role="status" aria-live="polite" className="sr-only">{t("organizerNowPanel.trwa_wykonywanie_nastepnego_kroku")}</span>}
     </section>
   );
 }

@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { evaluateSetMatch, setMatchProgress, type SetScore } from "@workspace/match-rules";
 import { SetScoreEditor, setsText } from "@/components/set-score-editor";
 import { ExperimentalLeaguePanel } from "@/features/experimental-tournaments/experimental-league-panel";
@@ -147,7 +148,7 @@ export default function TournamentHost() {
   const groupStageDetail = useGetTournamentStage(id, activeStage?.id ?? 0, {
     query: { enabled: !!id && isAuthReady && activeStage?.format === "group_stage", queryKey: getGetTournamentStageQueryKey(id, activeStage?.id ?? 0), staleTime: 60_000 },
   });
-  const groupNameById = useMemo(() => new Map((groupStageDetail.data?.groups ?? []).map((group) => [group.id, `Grupa ${group.groupKey}`])), [groupStageDetail.data]);
+  const groupNameById = useMemo(() => new Map((groupStageDetail.data?.groups ?? []).map((group) => [group.id, t("tournamentHost.grupa_groupkey", { groupKey: group.groupKey })])), [groupStageDetail.data]);
   const operationalMatches = activeStage
     ? matches?.filter((match) => match.stageId === activeStage.id)
     : stages?.length === 0 ? matches : [];
@@ -192,7 +193,7 @@ export default function TournamentHost() {
     onError: async (error: unknown) => {
       const { message, code, conflict } = matchOperationError(error);
       setActionError({ message, code });
-      toast({ title: "Operacja nie powiodła się", description: message, variant: "destructive" });
+      toast({ title: t("tournamentHost.operacja_nie_powiodla_sie"), description: message, variant: "destructive" });
       if (conflict) await invalidateAll();
     },
   };
@@ -372,7 +373,7 @@ export default function TournamentHost() {
       const link = (event.target as Element)?.closest?.("a[href]") as HTMLAnchorElement | null;
       if (!link || link.target === "_blank" || event.ctrlKey || event.metaKey || event.shiftKey || event.button !== 0) return;
       if (link.pathname === window.location.pathname) return;
-      if (!window.confirm("Masz niezapisany wynik. Opuścić stronę i utracić wpisane wyniki?")) {
+      if (!window.confirm(t("tournamentHost.masz_niezapisany_wynik_opuscic_strone"))) {
         event.preventDefault(); event.stopPropagation();
       }
     };
@@ -419,7 +420,7 @@ export default function TournamentHost() {
     if (missing(selectedMatchId) || missing(revertConfirm)) {
       if (missing(selectedMatchId)) setSelectedMatchId(null);
       if (missing(revertConfirm)) setRevertConfirm(null);
-      setSelectionNotice("Wybrany mecz nie jest już dostępny. Jego edycja została zamknięta; sprawdź aktualną kolejkę.");
+      setSelectionNotice(t("tournamentHost.wybrany_mecz_nie_jest_juz"));
     }
     setScores(previous => {
       const remaining = Object.fromEntries(Object.entries(previous).filter(([matchId]) => !missing(Number(matchId))));
@@ -439,11 +440,11 @@ export default function TournamentHost() {
       if (match.status === "completed" || match.status === "cancelled") {
         drop.push(matchId);
         notices.push(match.status === "completed" && match.resultType === "played" && match.score1 === draft.s1 && match.score2 === draft.s2
-          ? `${names}: wynik ${draft.s1}:${draft.s2} jest już zapisany.`
-          : `${names}: niezapisany wynik roboczy ${draft.s1}:${draft.s2} nie został przywrócony — mecz ${match.status === "cancelled" ? "jest anulowany" : `ma już wynik ${matchResultLabel(match)}`}.`);
+          ? t("tournamentHost.names_wynik_s1_s2_jest", { names: names, s1: draft.s1, s2: draft.s2 })
+          : t("tournamentHost.names_niezapisany_wynik_roboczy_s1", { names: names, s1: draft.s1, s2: draft.s2, v3: match.status === "cancelled" ? t("tournamentHost.jest_anulowany") : t("tournamentHost.ma_juz_wynik_v0", { v0: matchResultLabel(match) }) }));
       } else {
         const changed = !!draft.baseline && draft.baseline !== scoreBaseline(match);
-        notices.push(`${names}: przywrócono niezapisany wynik roboczy ${draft.s1}:${draft.s2}${changed ? " — mecz zmienił się od tego czasu, sprawdź go przed zapisem" : ". Sprawdź go i zapisz"}.`);
+        notices.push(t("tournamentHost.names_przywrocono_niezapisany_wynik_robo", { names: names, s1: draft.s1, s2: draft.s2, v3: changed ? t("tournamentHost.mecz_zmienil_sie_od_tego") : t("tournamentHost.sprawdz_go_i_zapisz") }));
       }
     }
     pendingRestore.current = new Set();
@@ -498,11 +499,11 @@ export default function TournamentHost() {
       setLegacyOrganizerPassword("");
       await queryClient.invalidateQueries({ queryKey: getGetTournamentQueryKey(id) });
       toast({
-        title: "Zabezpieczenia zaktualizowane",
-        description: "Kod legacy został wyłączony. Od teraz loguj się hasłem organizatora.",
+        title: t("tournamentHost.zabezpieczenia_zaktualizowane"),
+        description: t("tournamentHost.kod_legacy_zostal_wylaczony_od"),
       });
     } catch (error) {
-      setCodeError(error instanceof Error ? error.message : "Nie udało się zaktualizować zabezpieczeń.");
+      setCodeError(error instanceof Error ? error.message : t("tournamentHost.nie_udalo_sie_zaktualizowac_zabezpieczen"));
     } finally {
       setLegacyUpgradePending(false);
     }
@@ -561,9 +562,9 @@ export default function TournamentHost() {
   const markSaveFailed = (matchId: number, label: string, error: unknown) => {
     const kind = saveFailureKind(error);
     const message = kind === "session"
-      ? `Sesja wygasła albo nie masz już uprawnień — nic nie zapisano. Zaloguj się ponownie. ${label} czeka w tym formularzu, także po odświeżeniu strony.`
+      ? t("tournamentHost.sesja_wygasla_albo_nie_masz", { label: label })
       : kind === "network"
-        ? `Nie udało się potwierdzić zapisu (brak połączenia albo błąd serwera). ${label} został w formularzu — spróbuj ponownie. Ponowienie nie zapisze wyniku drugi raz.`
+        ? t("tournamentHost.nie_udalo_sie_potwierdzic_zapisu", { label: label })
         : matchOperationError(error).message;
     setSaveStatus((previous) => ({ ...previous, [matchId]: { phase: "error", kind, message, label } }));
   };
@@ -599,7 +600,7 @@ export default function TournamentHost() {
     const match = matches?.find((entry) => entry.id === matchId);
     if (!match) return;
     updateMatch.mutate({ id: matchId, data: { status: "in_progress", expectedRevision: match.revision } }, {
-      onSuccess: () => toast({ title: "Mecz rozpoczęty" }),
+      onSuccess: () => toast({ title: t("tournamentHost.mecz_rozpoczety") }),
     });
   };
 
@@ -612,7 +613,7 @@ export default function TournamentHost() {
       { id: matchId, data: { status: "postponed", expectedRevision: match.revision } },
       {
         onSuccess: () => {
-          toast({ title: "Mecz przełożony", description: "Możesz go przywrócić z sekcji Przełożone." });
+          toast({ title: t("tournamentHost.mecz_przelozony"), description: t("tournamentHost.mozesz_go_przywrocic_z_sekcji") });
           if (mayAdvance()) setSelectedMatchId(null);
         },
       },
@@ -627,7 +628,7 @@ export default function TournamentHost() {
       { id: matchId, data: { status: "pending", expectedRevision: match.revision } },
       {
         onSuccess: () => {
-          toast({ title: "Mecz przywrócony do kolejki" });
+          toast({ title: t("tournamentHost.mecz_przywrocony_do_kolejki") });
           setSelectedMatchId(matchId);
         },
       },
@@ -651,7 +652,7 @@ export default function TournamentHost() {
     if (!match) return;
     updateMatch.mutate({ id: matchId, data: { bestOf: bo, expectedRevision: match.revision } }, {
       onSuccess: () => {
-        toast({ title: "Format meczu zapisany", description: `Mecz będzie rozgrywany jako BO${bo}.` });
+        toast({ title: t("tournamentHost.format_meczu_zapisany"), description: t("tournamentHost.mecz_bedzie_rozgrywany_jako_bo", { bo: bo }) });
       },
     });
   };
@@ -661,7 +662,7 @@ export default function TournamentHost() {
     undoLastAction.mutate({ id, data: { expectedActionId: lastUndoableAction.id } }, {
       onSuccess: (result) => {
         setUndoConfirm(false);
-        toast({ title: "Akcja cofnięta", description: result.message });
+        toast({ title: t("tournamentHost.akcja_cofnieta"), description: result.message });
       },
     });
   };
@@ -678,13 +679,13 @@ export default function TournamentHost() {
     const candidate = matches?.find(match => match.id === matchId);
     if (!candidate || resultDrafts.isStale(candidate)) {
       setCancelConfirm(null);
-      toast({ title: "Stan meczu zmienił się", description: "Sprawdź aktualne dane i ponów operację.", variant: "destructive" });
+      toast({ title: t("tournamentHost.stan_meczu_zmienil_sie"), description: t("tournamentHost.sprawdz_aktualne_dane_i_ponow"), variant: "destructive" });
       return;
     }
     cancelMatch.mutate({ id: matchId, data: { expectedRevision: resultDrafts.drafts[matchId]?.revision ?? candidate.revision } }, {
       onSuccess: () => {
         setCancelConfirm(null);
-        toast({ title: "Mecz anulowany", description: "Możesz go przywrócić z sekcji Anulowane." });
+        toast({ title: t("tournamentHost.mecz_anulowany"), description: t("tournamentHost.mozesz_go_przywrocic_z_sekcji_2") });
         if (selectedMatchId === matchId) setSelectedMatchId(null);
       },
     });
@@ -696,7 +697,7 @@ export default function TournamentHost() {
     if (!match) return;
     restoreCancelledMatch.mutate({ id: matchId, data: { expectedRevision: match.revision } }, {
       onSuccess: () => {
-        toast({ title: "Mecz przywrócony do kolejki" });
+        toast({ title: t("tournamentHost.mecz_przywrocony_do_kolejki") });
         setSelectedMatchId(matchId);
       },
     });
@@ -726,21 +727,21 @@ export default function TournamentHost() {
     completeLock.current = true;
     const mayAdvance = beginMatchOperation(matchId);
     const winnerName = winner === 1 ? match.player1Name : match.player2Name;
-    markSaving(matchId, `Walkower (wygrywa ${winnerName ?? "?"})`);
+    markSaving(matchId, t("tournamentHost.walkower_wygrywa_v0", { v0: winnerName ?? "?" }));
     const succeed = (already: boolean) => {
       resultDrafts.discard(matchId);
       setWalkoverConfirm(null);
       setResultReason("");
       setScores((prev) => { const n = { ...prev }; delete n[matchId]; return n; });
-      markSaved(matchId, `${matchNames(matchId)}: walkower, wygrywa ${winnerName ?? "?"}${already ? " — był już zapisany, nic nie zmieniono" : ""}`);
-      toast({ title: already ? "Walkower był już zapisany" : "Walkower zapisany (W.O.)", description: `${winnerName} wygrywa mecz.`, variant: "success" });
+      markSaved(matchId, t("tournamentHost.v0_walkower_wygrywa_v1_v2", { v0: matchNames(matchId), v1: winnerName ?? "?", v2: already ? t("tournamentHost.byl_juz_zapisany_nic_nie") : "" }));
+      toast({ title: already ? t("tournamentHost.walkower_byl_juz_zapisany") : t("tournamentHost.walkower_zapisany_w_o"), description: t("tournamentHost.winnername_wygrywa_mecz", { winnerName: winnerName }), variant: "success" });
       if (mayAdvance()) setSelectedMatchId(null);
     };
     completeMatch.mutate({ id: matchId, data: { resultType: "walkover", expectedRevision: match.revision, winnerId, reason: resultReason.trim() || null } }, {
       onSuccess: () => succeed(false),
       onError: (error) => {
         if (alreadySaved.current === matchId) { alreadySaved.current = null; succeed(true); return; }
-        markSaveFailed(matchId, "Walkower", error);
+        markSaveFailed(matchId, t("tournamentHost.walkower_2"), error);
       },
     });
   };
@@ -762,21 +763,21 @@ export default function TournamentHost() {
     if (!match || !draft || resultDrafts.isStale(match) || completeLock.current) return;
     completeLock.current = true;
     const mayAdvance = beginMatchOperation(matchId);
-    markSaving(matchId, "Brak rozstrzygnięcia");
+    markSaving(matchId, t("tournamentHost.brak_rozstrzygniecia"));
     const succeed = (already: boolean) => {
       resultDrafts.discard(matchId);
       setScores(prev => { const next = { ...prev }; delete next[matchId]; return next; });
       setNoContestConfirm(null);
       setResultReason("");
-      markSaved(matchId, `${matchNames(matchId)}: brak rozstrzygnięcia${already ? " — był już zapisany, nic nie zmieniono" : ""}`);
-      toast({ title: already ? "Ten wynik był już zapisany" : "Mecz zakończony jako no contest", variant: "success" });
+      markSaved(matchId, t("tournamentHost.v0_brak_rozstrzygniecia_v1", { v0: matchNames(matchId), v1: already ? t("tournamentHost.byl_juz_zapisany_nic_nie") : "" }));
+      toast({ title: already ? t("tournamentHost.ten_wynik_byl_juz_zapisany") : t("tournamentHost.mecz_zakonczony_jako_no_contest"), variant: "success" });
       if (mayAdvance()) setSelectedMatchId(null);
     };
     completeMatch.mutate({ id: matchId, data: { resultType: "no_contest", expectedRevision: draft.revision, reason: resultReason.trim() || null } }, {
       onSuccess: () => succeed(false),
       onError: (error) => {
         if (alreadySaved.current === matchId) { alreadySaved.current = null; succeed(true); return; }
-        markSaveFailed(matchId, "Brak rozstrzygnięcia", error);
+        markSaveFailed(matchId, t("tournamentHost.brak_rozstrzygniecia"), error);
       },
     });
   };
@@ -793,7 +794,7 @@ export default function TournamentHost() {
     swapMatchPlayers.mutate({ id: matchId, data: { expectedRevision: revision } }, {
       onSuccess: () => {
         setSwapConfirm(null);
-        toast({ title: "Zawodnicy zamienieni stronami" });
+        toast({ title: t("tournamentHost.zawodnicy_zamienieni_stronami") });
       },
       // After a refresh the next click decides on what is shown now.
       onError: () => { delete confirmRevision.current[`swap:${matchId}`]; },
@@ -810,7 +811,7 @@ export default function TournamentHost() {
     const newOrder = [...queue];
     [newOrder[idx], newOrder[swapIdx]] = [newOrder[swapIdx], newOrder[idx]];
     reorderMatches.mutate({ id, data: { matchIds: newOrder.map((m) => m.id) } }, {
-      onSuccess: () => toast({ title: "Kolejność meczów zapisana" }),
+      onSuccess: () => toast({ title: t("tournamentHost.kolejnosc_meczow_zapisana") }),
     });
   };
 
@@ -822,7 +823,7 @@ export default function TournamentHost() {
       {
         onSuccess: () => {
           queryClient.invalidateQueries({ queryKey: getGetTournamentQueryKey(id) });
-          toast({ title: isCurrent ? "Usunięto z ekranu widzów" : "Pokazano widzom" });
+          toast({ title: isCurrent ? t("tournamentHost.usunieto_z_ekranu_widzow") : t("tournamentHost.pokazano_widzom") });
         },
       },
     );
@@ -831,7 +832,7 @@ export default function TournamentHost() {
   /** V5.7: list tag for match length — sets for set stages, BO for series. */
   const matchLengthTag = (m: { stageId?: number | null; bestOf?: number | null }) => {
     const rules = stages?.find((stage) => stage.id === m.stageId)?.matchRules;
-    return rules?.kind === "sets" ? `sety do ${rules.setsToWin}` : rules?.kind === "two_legs" ? "dwumecz" : `BO${m.bestOf}`;
+    return rules?.kind === "sets" ? t("tournamentHost.sety_do_setstowin", { setsToWin: rules.setsToWin }) : rules?.kind === "two_legs" ? t("tournamentHost.dwumecz") : `BO${m.bestOf}`;
   };
 
   const handleTryComplete = (matchId: number, match: any) => {
@@ -842,7 +843,7 @@ export default function TournamentHost() {
       // The API decides; this only stops an obviously incomplete form and says why.
       const evaluated = evaluateSetMatch(scores[matchId]?.sets ?? [], setRules);
       if (!evaluated.ok) {
-        toast({ title: "Wynik niekompletny", description: evaluated.problem.message, variant: "warning" });
+        toast({ title: t("tournamentHost.wynik_niekompletny"), description: evaluated.problem.message, variant: "warning" });
         return;
       }
       if (resultDrafts.isStale(match)) return;
@@ -866,13 +867,13 @@ export default function TournamentHost() {
     if (!capabilities.canWriteTournamentResults || completeMatch.isPending || completeLock.current) return;
     completeLock.current = true;
     const mayAdvance = beginMatchOperation(matchId);
-    const label = `Wynik ${score1}:${score2}${sets ? ` (sety ${setsText(sets)})` : ""}`;
+    const label = t("tournamentHost.wynik_score1_score2_v2", { score1: score1, score2: score2, v2: sets ? t("tournamentHost.sety_v0", { v0: setsText(sets) }) : "" });
     markSaving(matchId, label);
     const succeed = (already: boolean) => {
       setScores((prev) => { const n = { ...prev }; delete n[matchId]; return n; });
       resultDrafts.discard(matchId);
-      markSaved(matchId, `${matchNames(matchId)} ${score1}:${score2}${sets ? ` (${setsText(sets)})` : ""}${already ? " — był już zapisany (np. przy wcześniejszej próbie), nic nie zmieniono" : ""}`);
-      toast({ title: already ? "Ten wynik był już zapisany" : "Wynik zapisany!", variant: "success" });
+      markSaved(matchId, `${matchNames(matchId)} ${score1}:${score2}${sets ? ` (${setsText(sets)})` : ""}${already ? t("tournamentHost.byl_juz_zapisany_np_przy") : ""}`);
+      toast({ title: already ? t("tournamentHost.ten_wynik_byl_juz_zapisany") : t("tournamentHost.wynik_zapisany_2"), variant: "success" });
       if (mayAdvance()) setSelectedMatchId(null);
     };
     completeMatch.mutate({ id: matchId, data: { resultType: "played", expectedRevision, score1, score2, ...(sets ? { sets } : {}) } }, {
@@ -882,7 +883,7 @@ export default function TournamentHost() {
         if (carriedOver.current === matchId) {
           carriedOver.current = null;
           setSaveStatus((previous) => ({ ...previous, [matchId]: { phase: "notice", label,
-            message: `Inna osoba zmieniła w międzyczasie stan meczu (np. go rozpoczęła), ale zawodnicy i wynik są bez zmian. ${label} został zachowany — sprawdź i zapisz ponownie.` } }));
+            message: t("tournamentHost.inna_osoba_zmienila_w_miedzyczasie", { label: label }) } }));
           return;
         }
         markSaveFailed(matchId, label, error);
@@ -902,7 +903,7 @@ export default function TournamentHost() {
         setScores((prev) => { const next = { ...prev }; delete next[matchId]; return next; });
         setSelectedMatchId(matchId);
         navigate(tournamentHref(id, isExperimental, "/host"));
-        toast({ title: "Wynik cofnięty", description: "Wpisz poprawny wynik wybranego meczu i zapisz go." });
+        toast({ title: t("tournamentHost.wynik_cofniety"), description: t("tournamentHost.wpisz_poprawny_wynik_wybranego_meczu") });
       },
     });
   };
@@ -910,7 +911,7 @@ export default function TournamentHost() {
   const handleGenerateRound = () => {
     if (!capabilities.canGenerateRound) return;
     generateNextRound.mutate({ id }, {
-      onSuccess: () => toast({ title: "Nowa runda wygenerowana!" }),
+      onSuccess: () => toast({ title: t("tournamentHost.nowa_runda_wygenerowana") }),
     });
   };
 
@@ -922,13 +923,12 @@ export default function TournamentHost() {
     const status = (tournamentError as { status?: number }).status;
     if (status !== 401 && status !== 403) {
       return <Layout><div role="alert" className="mx-auto max-w-lg space-y-3 rounded-lg border bg-card p-6">
-        <h1 className="text-xl font-semibold">Nie udało się pobrać turnieju</h1>
+        <h1 className="text-xl font-semibold">{t("tournamentHost.nie_udalo_sie_pobrac_turnieju")}</h1>
         <p className="text-sm text-muted-foreground">{status === 404
-          ? "Nie znaleziono turnieju pod tym adresem. Sprawdź otrzymany link."
-          : "Sprawdź połączenie i spróbuj ponownie. Nie można jeszcze potwierdzić aktualnego stanu turnieju."}</p>
+          ? t("tournamentHost.nie_znaleziono_turnieju_pod_tym")
+          : t("tournamentHost.sprawdz_polaczenie_i_sprobuj_ponownie")}</p>
         <Button variant="outline" disabled={isFetchingTournament} onClick={() => void refetchTournament()}>
-          <RefreshCw className="mr-2 h-4 w-4" /> Spróbuj ponownie
-        </Button>
+          <RefreshCw className="mr-2 h-4 w-4" /> {t("tournamentHost.sprobuj_ponownie")}</Button>
       </div></Layout>;
     }
     return (
@@ -937,17 +937,14 @@ export default function TournamentHost() {
           <div className="w-full max-w-sm space-y-5 text-center">
             <Shield className="w-10 h-10 text-primary mx-auto" />
             <div>
-              <h1 className="text-xl font-bold">Panel prowadzącego</h1>
+              <h1 className="text-xl font-bold">{t("tournamentHost.panel_prowadzacego")}</h1>
               <p className="text-sm text-muted-foreground mt-1">
-                Zaloguj się jako organizator, aby uzyskać dostęp do prywatnego
-                turnieju.
-              </p>
+                {t("tournamentHost.zaloguj_sie_jako_organizator_aby")}</p>
             </div>
             <Button className="w-full" onClick={() => setShowOrgModal(true)}>
-              <Key className="w-4 h-4 mr-2" /> Zaloguj jako organizator
-            </Button>
+              <Key className="w-4 h-4 mr-2" /> {t("tournamentHost.zaloguj_jako_organizator")}</Button>
             <Button variant="ghost" size="sm" className="w-full text-muted-foreground" asChild>
-              <Link href={tournamentHref(id, isExperimental)}><ArrowLeft className="w-4 h-4 mr-1" /> Wróć do turnieju</Link>
+              <Link href={tournamentHref(id, isExperimental)}><ArrowLeft className="w-4 h-4 mr-1" /> {t("tournamentHost.wroc_do_turnieju")}</Link>
             </Button>
           </div>
         </div>
@@ -955,7 +952,7 @@ export default function TournamentHost() {
           open={showOrgModal}
           onClose={() => setShowOrgModal(false)}
           tournamentId={id}
-          tournamentName={`Turniej #${id}`}
+          tournamentName={t("tournamentHost.turniej_id", { id: id })}
           onSuccess={() => {
             setShowOrgModal(false);
             void queryClient.invalidateQueries({
@@ -980,21 +977,19 @@ export default function TournamentHost() {
               <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
                 <Shield className="w-6 h-6 text-primary" />
               </div>
-              <h1 className="text-xl font-bold">Panel prowadzącego</h1>
+              <h1 className="text-xl font-bold">{t("tournamentHost.panel_prowadzacego")}</h1>
               <p className="text-sm text-muted-foreground">{tournament.name}</p>
-              <p className="text-xs text-muted-foreground">Zaloguj się jako organizator lub wsparcie.</p>
+              <p className="text-xs text-muted-foreground">{t("tournamentHost.zaloguj_sie_jako_organizator_lub")}</p>
             </div>
             <div className="space-y-3">
               <Button className="w-full" onClick={() => setShowOrgModal(true)}>
-                <Key className="w-4 h-4 mr-2" /> Zaloguj jako organizator
-              </Button>
+                <Key className="w-4 h-4 mr-2" /> {t("tournamentHost.zaloguj_jako_organizator")}</Button>
               {tournament.hasSupportPassword && (
                 <Button variant="outline" className="w-full" onClick={() => setShowSupModal(true)}>
-                  <Shield className="w-4 h-4 mr-2" /> Zaloguj jako wsparcie
-                </Button>
+                  <Shield className="w-4 h-4 mr-2" /> {t("tournamentHost.zaloguj_jako_wsparcie")}</Button>
               )}
               <Button variant="ghost" size="sm" className="w-full text-muted-foreground" asChild>
-                <Link href={tournamentHref(id, isExperimental)}><ArrowLeft className="w-4 h-4 mr-1" /> Wróć do turnieju</Link>
+                <Link href={tournamentHref(id, isExperimental)}><ArrowLeft className="w-4 h-4 mr-1" /> {t("tournamentHost.wroc_do_turnieju")}</Link>
               </Button>
             </div>
           </div>
@@ -1031,12 +1026,11 @@ export default function TournamentHost() {
         <div className="min-h-[60vh] flex items-center justify-center px-4">
           <div className="w-full max-w-md rounded-lg border bg-card p-6 text-center space-y-3">
             <Shield className="mx-auto h-8 w-8 text-muted-foreground" />
-            <h1 className="text-xl font-bold">Panel prowadzącego jest zablokowany</h1>
+            <h1 className="text-xl font-bold">{t("tournamentHost.panel_prowadzacego_jest_zablokowany")}</h1>
             <p className="text-sm text-muted-foreground">
-              Ten historyczny turniej nie ma skonfigurowanego hasła organizatora ani kodu prowadzącego. Brak poświadczeń nie daje dostępu do mutacji.
-            </p>
+              {t("tournamentHost.ten_historyczny_turniej_nie_ma")}</p>
             <Button variant="outline" asChild>
-              <Link href={tournamentHref(id, isExperimental)}><ArrowLeft className="w-4 h-4 mr-1" /> Wróć do turnieju</Link>
+              <Link href={tournamentHref(id, isExperimental)}><ArrowLeft className="w-4 h-4 mr-1" /> {t("tournamentHost.wroc_do_turnieju")}</Link>
             </Button>
           </div>
         </div>
@@ -1054,20 +1048,19 @@ export default function TournamentHost() {
               <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
                 <Lock className="w-6 h-6 text-primary" />
               </div>
-              <h1 className="text-xl font-bold">Panel prowadzącego</h1>
+              <h1 className="text-xl font-bold">{t("tournamentHost.panel_prowadzacego")}</h1>
               <p className="text-sm text-muted-foreground">{tournament.name}</p>
               <p className="text-xs text-muted-foreground">
-                Ten historyczny turniej używa starego kodu. Ustaw hasło organizatora, aby bezpiecznie przejść na aktualny model logowania.
-              </p>
+                {t("tournamentHost.ten_historyczny_turniej_uzywa_starego")}</p>
             </div>
             <div className="space-y-3">
               <div className="space-y-1.5">
-                <Label htmlFor="gate-code">Kod prowadzącego</Label>
+                <Label htmlFor="gate-code">{t("tournamentHost.kod_prowadzacego")}</Label>
                 <div className="relative">
                   <Input
                     id="gate-code"
                     type={showCodeInput ? "text" : "password"}
-                    placeholder="Wpisz kod..."
+                    placeholder={t("tournamentHost.wpisz_kod")}
                     value={codeInput}
                     onChange={(e) => { setCodeInput(e.target.value); setCodeError(null); }}
                     className={codeError ? "border-destructive pr-10" : "pr-10"}
@@ -1083,12 +1076,12 @@ export default function TournamentHost() {
                 {codeError && <p className="text-xs text-destructive">{codeError}</p>}
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="legacy-organizer-password">Nowe hasło organizatora</Label>
+                <Label htmlFor="legacy-organizer-password">{t("tournamentHost.nowe_haslo_organizatora")}</Label>
                 <Input
                   id="legacy-organizer-password"
                   type="password"
                   minLength={8}
-                  placeholder="Minimum 8 znaków"
+                  placeholder={t("tournamentHost.minimum_8_znakow")}
                   value={legacyOrganizerPassword}
                   onChange={(event) => setLegacyOrganizerPassword(event.target.value)}
                 />
@@ -1098,10 +1091,10 @@ export default function TournamentHost() {
                 disabled={!codeInput || legacyOrganizerPassword.length < 8 || legacyUpgradePending}
                 onClick={handleLegacyUpgrade}
               >
-                {legacyUpgradePending ? "Aktualizowanie…" : "Ustaw hasło i przejdź do panelu"}
+                {legacyUpgradePending ? t("tournamentHost.aktualizowanie") : t("tournamentHost.ustaw_haslo_i_przejdz_do")}
               </Button>
               <Button variant="ghost" size="sm" className="w-full text-muted-foreground" asChild>
-                <Link href={tournamentHref(id, isExperimental)}><ArrowLeft className="w-4 h-4 mr-1" /> Wróć do turnieju</Link>
+                <Link href={tournamentHref(id, isExperimental)}><ArrowLeft className="w-4 h-4 mr-1" /> {t("tournamentHost.wroc_do_turnieju")}</Link>
               </Button>
             </div>
           </div>
@@ -1116,14 +1109,12 @@ export default function TournamentHost() {
         <div className="min-h-[60vh] flex items-center justify-center">
           <div className="w-full max-w-md rounded-lg border bg-card p-6 text-center space-y-3">
             <Lock className="mx-auto h-8 w-8 text-muted-foreground" />
-            <h1 className="text-xl font-bold">Brak uprawnień do prowadzenia</h1>
+            <h1 className="text-xl font-bold">{t("tournamentHost.brak_uprawnien_do_prowadzenia")}</h1>
             <p className="text-sm text-muted-foreground">
-              Zaloguj się jako organizator albo użyj aktywnej sesji wsparcia.
-            </p>
+              {t("tournamentHost.zaloguj_sie_jako_organizator_albo")}</p>
             <Button variant="outline" asChild>
               <Link href={tournamentHref(id, isExperimental)}>
-                <ArrowLeft className="w-4 h-4 mr-1" /> Wróć do turnieju
-              </Link>
+                <ArrowLeft className="w-4 h-4 mr-1" /> {t("tournamentHost.wroc_do_turnieju")}</Link>
             </Button>
           </div>
         </div>
@@ -1165,7 +1156,7 @@ export default function TournamentHost() {
   const showResultsSidebar = queueMatches.length > 0 && completedMatches.length >= 3;
   const matchStageGroups = Array.from(new Set(matches?.map(match => match.stageId ?? null))).map(stageId => {
     const stage = stages?.find(entry => entry.id === stageId);
-    return { id: stageId, name: stage?.name ?? (stageId === null ? "Mecze bez przypisanego etapu" : `Etap ${stageId}`), position: stage?.position ?? Number.MAX_SAFE_INTEGER };
+    return { id: stageId, name: stage?.name ?? (stageId === null ? t("tournamentHost.mecze_bez_przypisanego_etapu") : t("tournamentHost.etap_stageid", { stageId: stageId })), position: stage?.position ?? Number.MAX_SAFE_INTEGER };
   }).sort((a, b) => a.position - b.position);
   const canGenerateRound = nextStep?.kind === "swiss_round";
   // QW-04 · "Co teraz?": the authoritative next step (lifecycle actions are capability-gated in the model) plus
@@ -1204,11 +1195,11 @@ export default function TournamentHost() {
       return (
         <div className="bg-card border rounded-xl p-6 text-center text-muted-foreground">
           {canGenerateRound
-            ? "Runda zakończona — wygeneruj kolejną rundę Swiss powyżej."
-            : activeStage ? "Brak meczów gotowych do rozegrania. Sprawdź stan etapu i oczekujące pary."
+            ? t("tournamentHost.runda_zakonczona_wygeneruj_kolejna_runde")
+            : activeStage ? t("tournamentHost.brak_meczow_gotowych_do_rozegrania")
                 : tournament.status === "draft"
-                  ? "Kolejka meczów pojawi się tutaj po rozpoczęciu turnieju."
-                  : "Przygotuj najbliższy etap w zakładce Etapy. Po jego rozpoczęciu pojawi się tutaj kolejka meczów."}
+                  ? t("tournamentHost.kolejka_meczow_pojawi_sie_tutaj")
+                  : t("tournamentHost.przygotuj_najblizszy_etap_w_zakladce")}
         </div>
       );
     }
@@ -1248,7 +1239,7 @@ export default function TournamentHost() {
     const completedResultLabel = matchResultLabel(focusedMatch);
 
     return (
-      <div id="host-match-editor" tabIndex={-1} role="region" aria-label="Edytor meczu" data-exp-match-state={isExperimental ? focusedMatch.status : undefined} onFocusCapture={() => { if (!hostPending && !dataError) setSelectedMatchId(focusedMatch.id); }} onPointerEnter={() => { if (selectedMatchId === null && !hostPending && !dataError) setSelectedMatchId(focusedMatch.id); }} onPointerDownCapture={() => { if (!hostPending && !dataError) setSelectedMatchId(focusedMatch.id); }} className={`${isExperimental ? "experimental-host-primary" : ""} rounded-xl border-2 overflow-hidden transition-colors ${
+      <div id="host-match-editor" tabIndex={-1} role="region" aria-label={t("tournamentHost.edytor_meczu")} data-exp-match-state={isExperimental ? focusedMatch.status : undefined} onFocusCapture={() => { if (!hostPending && !dataError) setSelectedMatchId(focusedMatch.id); }} onPointerEnter={() => { if (selectedMatchId === null && !hostPending && !dataError) setSelectedMatchId(focusedMatch.id); }} onPointerDownCapture={() => { if (!hostPending && !dataError) setSelectedMatchId(focusedMatch.id); }} className={`${isExperimental ? "experimental-host-primary" : ""} rounded-xl border-2 overflow-hidden transition-colors ${
         conflictedDraft
           ? "border-orange-500/60"
           : isCancelled
@@ -1263,28 +1254,28 @@ export default function TournamentHost() {
         {/* QW-01: both groups wrap — on a phone the badges used to run under the length selector and the star. */}
         <div className="bg-muted/20 border-b px-4 py-2.5 flex flex-wrap items-center gap-x-3 gap-y-2 justify-between">
           <div className="flex flex-wrap items-center gap-2 min-w-0">
-            <span className="text-sm font-semibold">Wybrany mecz</span>
+            <span className="text-sm font-semibold">{t("tournamentHost.wybrany_mecz")}</span>
             <span className="text-xs text-muted-foreground">{stages?.find(stage => stage.id === focusedMatch.stageId)?.name}</span>
-            <Badge variant="outline" className="text-xs shrink-0">Runda {focusedMatch.round}</Badge>
+            <Badge variant="outline" className="text-xs shrink-0">{t("tournamentHost.runda")}{" "}{focusedMatch.round}</Badge>
             <span className="text-xs text-muted-foreground font-mono shrink-0">M{focusedMatch.matchNumber}</span>
             {isLive && (
-              <Badge className="bg-secondary/20 text-secondary border-secondary/40 animate-pulse text-xs shrink-0">● LIVE</Badge>
+              <Badge className="bg-secondary/20 text-secondary border-secondary/40 animate-pulse text-xs shrink-0">{t("tournamentHost.live")}</Badge>
             )}
             {isDone && (
-              <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs shrink-0">✓ Zakończony</Badge>
+              <Badge className="bg-green-500/20 text-green-400 border-green-500/30 text-xs shrink-0">{t("tournamentHost.zakonczony")}</Badge>
             )}
             {twoLegTie && focusedMatch.status === "in_progress" && (
-              <Badge variant="outline" className="text-xs shrink-0">Dwumecz w toku</Badge>
+              <Badge variant="outline" className="text-xs shrink-0">{t("tournamentHost.dwumecz_w_toku")}</Badge>
             )}
-            {!isExperimental && !isLive && !isDone && !isPostponed && !isCancelled && <Badge variant="outline">Oczekuje</Badge>}
+            {!isExperimental && !isLive && !isDone && !isPostponed && !isCancelled && <Badge variant="outline">{t("tournamentHost.oczekuje")}</Badge>}
             {isPostponed && (
-              <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30 text-xs shrink-0">⏸ Przełożony</Badge>
+              <Badge className="bg-orange-500/20 text-orange-400 border-orange-500/30 text-xs shrink-0">{t("tournamentHost.przelozony")}</Badge>
             )}
             {isCancelled && (
-              <Badge className="bg-destructive/20 text-destructive border-destructive/30 text-xs shrink-0">✕ Anulowany</Badge>
+              <Badge className="bg-destructive/20 text-destructive border-destructive/30 text-xs shrink-0">{t("tournamentHost.anulowany")}</Badge>
             )}
             {isFeatured && (
-              <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 text-xs shrink-0">★ Na ekranie</Badge>
+              <Badge className="bg-yellow-500/20 text-yellow-400 border-yellow-500/30 text-xs shrink-0">{t("tournamentHost.na_ekranie")}</Badge>
             )}
           </div>
 
@@ -1292,13 +1283,13 @@ export default function TournamentHost() {
             {capabilities.canUseLegacyMatchTools && <>
             {/* BO selector — hidden in a draw league: a draw needs a single game (V5.3) */}
             {twoLegTie ? (
-              <span className="text-xs text-muted-foreground" title="Para gra dwa spotkania; awansuje zwycięzca sumy.">dwumecz · 2 spotkania</span>
+              <span className="text-xs text-muted-foreground" title={t("tournamentHost.para_gra_dwa_spotkania_awansuje")}>{t("tournamentHost.dwumecz_2_spotkania")}</span>
             ) : allowDraws ? (
-              <span className="text-xs text-muted-foreground" title="W lidze z remisami mecz to jedna gra (wynik: gole lub punkty).">jedna gra · remis możliwy</span>
+              <span className="text-xs text-muted-foreground" title={t("tournamentHost.w_lidze_z_remisami_mecz")}>{t("tournamentHost.jedna_gra_remis_mozliwy")}</span>
             ) : setRules ? (
-              <span className="text-xs text-muted-foreground" title="Długość meczu wynika z zasad etapu i zmienia się tylko przed jego startem.">do {setRules.setsToWin} wygranych setów</span>
+              <span className="text-xs text-muted-foreground" title={t("tournamentHost.dlugosc_meczu_wynika_z_zasad")}>{t("tournamentHost.do")}{" "}{setRules.setsToWin} {t("tournamentHost.wygranych_setow")}</span>
             ) : (
-            <div className="flex items-center gap-0.5 bg-background border rounded p-0.5" role={isExperimental ? "group" : undefined} aria-label={isExperimental ? "Długość meczu" : undefined}>
+            <div className="flex items-center gap-0.5 bg-background border rounded p-0.5" role={isExperimental ? "group" : undefined} aria-label={isExperimental ? t("tournamentHost.dlugosc_meczu") : undefined}>
               {([1, 3, 5, 7] as const).map((n) => (
                 <button
                   key={n}
@@ -1313,7 +1304,7 @@ export default function TournamentHost() {
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  {isExperimental ? (n === 1 ? "1 gra" : `do ${Math.ceil(n / 2)}`) : `BO${n}`}
+                  {isExperimental ? (n === 1 ? t("tournamentHost.1_gra") : `do ${Math.ceil(n / 2)}`) : t("tournamentHost.bo_n", { n: n })}
                 </button>
               ))}
             </div>
@@ -1327,7 +1318,7 @@ export default function TournamentHost() {
               className={`h-8 w-8 p-0 ${isFeatured ? "text-yellow-400" : "text-muted-foreground hover:text-yellow-400"}`}
               onClick={() => handleSetFeatured(focusedMatch.id)}
               disabled={conflictedDraft}
-              title={isFeatured ? "Usuń z ekranu widzów" : "Pokaż na ekranie widzów"}
+              title={isFeatured ? t("tournamentHost.usun_z_ekranu_widzow") : t("tournamentHost.pokaz_na_ekranie_widzow")}
             >
               <Star className={`w-4 h-4 ${isFeatured ? "fill-yellow-400" : ""}`} />
             </Button>
@@ -1341,18 +1332,18 @@ export default function TournamentHost() {
           return (
             <div className="experimental-match-context" data-work-state={work.state}>
               <dl>
-                <div><dt>Termin</dt><dd>{work.slot ? formatLocalSlot(work.slot.date, work.slot.time) : "bez terminu"}</dd></div>
-                <div><dt>Stan</dt><dd><span className="experimental-work-chip" data-state={work.state}>{work.label}</span> {work.reason}</dd></div>
-                <div><dt>Zasady wyniku</dt><dd>{setRules || twoLegTie ? focusedStage?.matchRulesSummary : scoreEntryHint(bo, allowDraws)}</dd></div>
+                <div><dt>{t("tournamentHost.termin")}</dt><dd>{work.slot ? formatLocalSlot(work.slot.date, work.slot.time) : t("tournamentHost.bez_terminu")}</dd></div>
+                <div><dt>{t("tournamentHost.stan")}</dt><dd><span className="experimental-work-chip" data-state={work.state}>{work.label}</span> {work.reason}</dd></div>
+                <div><dt>{t("tournamentHost.zasady_wyniku")}</dt><dd>{setRules || twoLegTie ? focusedStage?.matchRulesSummary : scoreEntryHint(bo, allowDraws)}</dd></div>
               </dl>
               {history.length > 0 && (
                 <details className="experimental-match-history">
-                  <summary>Historia meczu ({history.length})</summary>
+                  <summary>{t("tournamentHost.historia_meczu")}{history.length})</summary>
                   <ol>
                     {history.slice(0, 8).map((entry) => (
                       <li key={entry.id} data-undone={entry.isUndone ? "true" : undefined}>
                         <time dateTime={entry.createdAt}>{new Date(entry.createdAt).toLocaleString("pl-PL", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" })}</time>{" "}
-                        {entry.description}{entry.isUndone ? " (cofnięta)" : ""}
+                        {entry.description}{entry.isUndone ? t("tournamentHost.cofnieta") : ""}
                       </li>
                     ))}
                   </ol>
@@ -1367,16 +1358,16 @@ export default function TournamentHost() {
           {twoLegTie ? (
             <TwoLegTieEditor match={focusedMatch} canWrite={capabilities.canWriteTournamentResults} onChanged={invalidateAll} />
           ) : (<>
-          {conflictedDraft && <section aria-label="Konflikt zapisu wyniku" className="organizer-notice mb-5 space-y-3 rounded-lg border border-orange-500/50 bg-orange-500/10 p-4">
-            <h3 className="flex items-center gap-2 font-semibold"><AlertTriangle className="h-5 w-5 shrink-0" /> Wynik nie został zapisany</h3>
-            <p className="text-sm">Twój wynik roboczy dotyczy starszej wersji meczu — w międzyczasie mecz zmienił się (np. w innym oknie albo u innej osoby). Sprawdź aktualnych zawodników i wynik, a potem zacznij od nowa.</p>
+          {conflictedDraft && <section aria-label={t("tournamentHost.konflikt_zapisu_wyniku")} className="organizer-notice mb-5 space-y-3 rounded-lg border border-orange-500/50 bg-orange-500/10 p-4">
+            <h3 className="flex items-center gap-2 font-semibold"><AlertTriangle className="h-5 w-5 shrink-0" /> {t("tournamentHost.wynik_nie_zostal_zapisany")}</h3>
+            <p className="text-sm">{t("tournamentHost.twoj_wynik_roboczy_dotyczy_starszej")}</p>
             <div className="rounded-md border bg-background p-3 text-sm">
-              <p className="font-semibold">Aktualny stan meczu</p>
-              <p>{focusedMatch.player1Name ?? "Oczekuje na gracza"} – {focusedMatch.player2Name ?? "Oczekuje na gracza"} · {setRules ? `do ${setRules.setsToWin} wygranych setów` : isExperimental ? bestOfLabel(bo).toLowerCase() : `BO${bo}`} · {MATCH_STATUS_LABELS[focusedMatch.status] ?? "Nieznany"}</p>
-              <p>Aktualny wynik: {isDone ? completedResultLabel : `${focusedMatch.score1 ?? 0}:${focusedMatch.score2 ?? 0}`}{focusedMatch.sets?.length ? ` (sety ${setsText(focusedMatch.sets)})` : ""}</p>
+              <p className="font-semibold">{t("tournamentHost.aktualny_stan_meczu")}</p>
+              <p>{focusedMatch.player1Name ?? t("tournamentHost.oczekuje_na_gracza")} – {focusedMatch.player2Name ?? t("tournamentHost.oczekuje_na_gracza")} · {setRules ? t("tournamentHost.do_setstowin_wygranych_setow", { setsToWin: setRules.setsToWin }) : isExperimental ? bestOfLabel(bo).toLowerCase() : t("tournamentHost.bo_bo", { bo: bo })} · {MATCH_STATUS_LABELS[focusedMatch.status] ?? t("tournamentHost.nieznany")}</p>
+              <p>{t("tournamentHost.aktualny_wynik")}{" "}{isDone ? completedResultLabel : `${focusedMatch.score1 ?? 0}:${focusedMatch.score2 ?? 0}`}{focusedMatch.sets?.length ? t("tournamentHost.sety_v0", { v0: setsText(focusedMatch.sets) }) : ""}</p>
             </div>
-            <p className="text-sm text-muted-foreground">Nieaktualny wynik roboczy (niezapisany): {originalMatch?.player1Name} – {originalMatch?.player2Name}. {walkoverConfirm === focusedMatch.id ? "Walkower." : noContestConfirm === focusedMatch.id ? "No contest." : scores[focusedMatch.id]?.sets ? `Twój wynik roboczy: sety ${setsText(scores[focusedMatch.id]!.sets) || "–"}.` : `Twój wynik roboczy: ${scores[focusedMatch.id]?.s1 ?? 0}:${scores[focusedMatch.id]?.s2 ?? 0}.`}</p>
-            <p role="status" className="text-sm">{hostPending || matchesQuery.isFetching ? "Odświeżanie aktualnego meczu…" : "Aktualny mecz został odświeżony. Stary wynik nie zostanie przeniesiony do nowej edycji."}</p>
+            <p className="text-sm text-muted-foreground">{t("tournamentHost.nieaktualny_wynik_roboczy_niezapisany")}{" "}{originalMatch?.player1Name} – {originalMatch?.player2Name}. {walkoverConfirm === focusedMatch.id ? t("tournamentHost.walkower") : noContestConfirm === focusedMatch.id ? t("tournamentHost.no_contest") : scores[focusedMatch.id]?.sets ? t("tournamentHost.twoj_wynik_roboczy_sety_v0", { v0: setsText(scores[focusedMatch.id]!.sets) || "–" }) : t("tournamentHost.twoj_wynik_roboczy_v0_v1", { v0: scores[focusedMatch.id]?.s1 ?? 0, v1: scores[focusedMatch.id]?.s2 ?? 0 })}</p>
+            <p role="status" className="text-sm">{hostPending || matchesQuery.isFetching ? t("tournamentHost.odswiezanie_aktualnego_meczu") : t("tournamentHost.aktualny_mecz_zostal_odswiezony_stary")}</p>
             <Button className="h-auto whitespace-normal text-left" disabled={hostPending || matchesQuery.isFetching || !matchesQuery.isSuccess} onClick={() => {
               if (hostPending || matchesQuery.isFetching || !matchesQuery.isSuccess) return;
               resultDrafts.discard(focusedMatch.id);
@@ -1384,20 +1375,20 @@ export default function TournamentHost() {
               setWalkoverConfirm(null); setNoContestConfirm(null); setResultReason("");
               setScores(previous => { const next = { ...previous }; delete next[focusedMatch.id]; return next; });
               setActionError(previous => previous?.code === "CONCURRENT_MODIFICATION" ? null : previous);
-            }}>Odrzuć stary wynik roboczy i zacznij od aktualnego</Button>
+            }}>{t("tournamentHost.odrzuc_stary_wynik_roboczy_i")}</Button>
           </section>}
           {setRules ? (
             <SetScoreEditor
               rules={setRules}
               sets={isDone || staleDraft ? focusedMatch.sets ?? [] : draftSets}
-              player1Name={focusedMatch.player1Name ?? "Zawodnik A"}
-              player2Name={focusedMatch.player2Name ?? "Zawodnik B"}
+              player1Name={focusedMatch.player1Name ?? t("tournamentHost.zawodnik_a")}
+              player2Name={focusedMatch.player2Name ?? t("tournamentHost.zawodnik_b")}
               readOnly={isDone || isCancelled || !capabilities.canWriteTournamentResults}
               disabled={staleDraft || conflictedDraft}
               onChange={(next) => updateSets(focusedMatch.id, next)}
             />
           ) : (<>
-          <p className="mb-4 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">{allowDraws ? "Wynik meczu" : bo > 1 ? "Wygrane gry / mapy" : "Wynik"}</p>
+          <p className="mb-4 text-center text-xs font-semibold uppercase tracking-wider text-muted-foreground">{allowDraws ? t("tournamentHost.wynik_meczu") : bo > 1 ? t("tournamentHost.wygrane_gry_mapy") : t("tournamentHost.wynik")}</p>
           <div className="flex items-center justify-center gap-3 md:gap-6">
             {/* Player 1 */}
             <div className="@container flex-1 flex flex-col items-center gap-4 min-w-0">
@@ -1414,7 +1405,7 @@ export default function TournamentHost() {
                 >
                   {focusedMatch.player1Name}
                 </div>
-                <div className="text-xs text-muted-foreground mt-0.5">Zawodnik A</div>
+                <div className="text-xs text-muted-foreground mt-0.5">{t("tournamentHost.zawodnik_a")}</div>
               </div>
               {isDeadlock && focusedMatch.player1Id && ((tournament?.gameConfig as any)?.config?.bansPerPlayer ?? 5) > 0 && (
                 <PlayerBansRow bannedHeroIds={playerBansMap.get(focusedMatch.player1Id) ?? []} size={30} maxBans={(tournament?.gameConfig as any)?.config?.bansPerPlayer ?? 5} />
@@ -1428,7 +1419,7 @@ export default function TournamentHost() {
                   className="h-11 w-11 rounded-full text-xl shrink-0"
                   onClick={() => adjustScore(focusedMatch.id, 1, -1, bo)}
                   onFocus={() => resultDrafts.capture(focusedMatch)}
-                  aria-label={`Zmniejsz wynik: ${focusedMatch.player1Name}`}
+                  aria-label={t("tournamentHost.zmniejsz_wynik_player1name", { player1Name: focusedMatch.player1Name })}
                   disabled={!capabilities.canWriteTournamentResults || s1 <= 0 || isDone || staleDraft}
                 >
                   <Minus className="w-5 h-5" />
@@ -1437,7 +1428,7 @@ export default function TournamentHost() {
                 <ScoreInput
                   value={s1}
                   max={maxScore}
-                  name={focusedMatch.player1Name ?? "Zawodnik A"}
+                  name={focusedMatch.player1Name ?? t("tournamentHost.zawodnik_a")}
                   disabled={!capabilities.canWriteTournamentResults || isDone || staleDraft}
                   onFocus={() => resultDrafts.capture(focusedMatch)}
                   onChange={(next) => setScoreValue(focusedMatch.id, 1, next, bo)}
@@ -1451,7 +1442,7 @@ export default function TournamentHost() {
                   className="h-11 w-11 rounded-full text-xl shrink-0"
                   onClick={() => adjustScore(focusedMatch.id, 1, 1, bo)}
                   onFocus={() => resultDrafts.capture(focusedMatch)}
-                  aria-label={`Zwiększ wynik: ${focusedMatch.player1Name}`}
+                  aria-label={t("tournamentHost.zwieksz_wynik_player1name", { player1Name: focusedMatch.player1Name })}
                   disabled={!capabilities.canWriteTournamentResults || s1 >= maxScore || isDone || staleDraft}
                 >
                   <Plus className="w-5 h-5" />
@@ -1464,11 +1455,10 @@ export default function TournamentHost() {
               <span className="text-2xl font-bold text-muted-foreground/30">:</span>
               {!allowDraws && bo > 1 && (
                 <span className="text-[10px] text-muted-foreground/50 text-center">
-                  do {maxScore} wyg.
-                </span>
+                  {t("tournamentHost.do")}{" "}{maxScore} {t("tournamentHost.wyg")}</span>
               )}
               {allowDraws && (
-                <span className="text-[10px] text-muted-foreground/60 text-center">remis możliwy</span>
+                <span className="text-[10px] text-muted-foreground/60 text-center">{t("tournamentHost.remis_mozliwy")}</span>
               )}
             </div>
 
@@ -1487,7 +1477,7 @@ export default function TournamentHost() {
                 >
                   {focusedMatch.player2Name}
                 </div>
-                <div className="text-xs text-muted-foreground mt-0.5">Zawodnik B</div>
+                <div className="text-xs text-muted-foreground mt-0.5">{t("tournamentHost.zawodnik_b")}</div>
               </div>
               {isDeadlock && focusedMatch.player2Id && ((tournament?.gameConfig as any)?.config?.bansPerPlayer ?? 5) > 0 && (
                 <PlayerBansRow bannedHeroIds={playerBansMap.get(focusedMatch.player2Id) ?? []} size={30} maxBans={(tournament?.gameConfig as any)?.config?.bansPerPlayer ?? 5} />
@@ -1501,7 +1491,7 @@ export default function TournamentHost() {
                   className="h-11 w-11 rounded-full text-xl shrink-0"
                   onClick={() => adjustScore(focusedMatch.id, 2, -1, bo)}
                   onFocus={() => resultDrafts.capture(focusedMatch)}
-                  aria-label={`Zmniejsz wynik: ${focusedMatch.player2Name}`}
+                  aria-label={t("tournamentHost.zmniejsz_wynik_player2name", { player2Name: focusedMatch.player2Name })}
                   disabled={!capabilities.canWriteTournamentResults || s2 <= 0 || isDone || staleDraft}
                 >
                   <Minus className="w-5 h-5" />
@@ -1510,7 +1500,7 @@ export default function TournamentHost() {
                 <ScoreInput
                   value={s2}
                   max={maxScore}
-                  name={focusedMatch.player2Name ?? "Zawodnik B"}
+                  name={focusedMatch.player2Name ?? t("tournamentHost.zawodnik_b")}
                   disabled={!capabilities.canWriteTournamentResults || isDone || staleDraft}
                   onFocus={() => resultDrafts.capture(focusedMatch)}
                   onChange={(next) => setScoreValue(focusedMatch.id, 2, next, bo)}
@@ -1524,7 +1514,7 @@ export default function TournamentHost() {
                   className="h-11 w-11 rounded-full text-xl shrink-0"
                   onClick={() => adjustScore(focusedMatch.id, 2, 1, bo)}
                   onFocus={() => resultDrafts.capture(focusedMatch)}
-                  aria-label={`Zwiększ wynik: ${focusedMatch.player2Name}`}
+                  aria-label={t("tournamentHost.zwieksz_wynik_player2name", { player2Name: focusedMatch.player2Name })}
                   disabled={!capabilities.canWriteTournamentResults || s2 >= maxScore || isDone || staleDraft}
                 >
                   <Plus className="w-5 h-5" />
@@ -1547,8 +1537,7 @@ export default function TournamentHost() {
                 />
               )}
               <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3 flex items-center gap-1.5">
-                <span className="text-cyan-500/80">◈</span> Postacie graczy (gry)
-              </p>
+                <span className="text-cyan-500/80">◈</span> {t("tournamentHost.postacie_graczy_gry")}</p>
               <div className="space-y-2">
                 {Array.from({ length: bo }, (_, i) => {
                   const gn = i + 1;
@@ -1562,7 +1551,7 @@ export default function TournamentHost() {
                         <HeroSelectorButton
                           heroId={pick?.player1HeroId}
                           onSelect={(heroId) => setMatchGamePick.mutate({ gameNumber: gn, player1HeroId: heroId, player2HeroId: pick?.player2HeroId ?? null })}
-                          placeholder={focusedMatch.player1Name ?? "Zaw. A"}
+                          placeholder={focusedMatch.player1Name ?? t("tournamentHost.zaw_a")}
                           size={34}
                           bannedByOpponent={(() => {
                             const p1Bans = focusedMatch.player1Id ? (playerBansMap.get(focusedMatch.player1Id) ?? []) : [];
@@ -1578,7 +1567,7 @@ export default function TournamentHost() {
                       </div>
                       <button
                         type="button"
-                        title="Zamień stronę — ta gra"
+                        title={t("tournamentHost.zamien_strone_ta_gra")}
                         className="text-[10px] text-muted-foreground/40 hover:text-muted-foreground shrink-0 px-1"
                         onClick={() => {
                           const nextSide: DeadlockSide = p1Side === "archmother" ? "hidden_king" : "archmother";
@@ -1593,7 +1582,7 @@ export default function TournamentHost() {
                         <HeroSelectorButton
                           heroId={pick?.player2HeroId}
                           onSelect={(heroId) => setMatchGamePick.mutate({ gameNumber: gn, player1HeroId: pick?.player1HeroId ?? null, player2HeroId: heroId })}
-                          placeholder={focusedMatch.player2Name ?? "Zaw. B"}
+                          placeholder={focusedMatch.player2Name ?? t("tournamentHost.zaw_b")}
                           size={34}
                           bannedByOpponent={(() => {
                             const p1Bans = focusedMatch.player1Id ? (playerBansMap.get(focusedMatch.player1Id) ?? []) : [];
@@ -1617,20 +1606,18 @@ export default function TournamentHost() {
           {!conflictedDraft && capabilities.canUseLegacyMatchTools && isShowingCancel && (
             <div className="mt-5 p-4 bg-destructive/10 border border-destructive/30 rounded-lg">
               <p className="font-semibold text-destructive text-sm mb-1 flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4" /> Anulować mecz?
-              </p>
+                <AlertTriangle className="w-4 h-4" /> {t("tournamentHost.anulowac_mecz")}</p>
               <p className="text-sm text-muted-foreground mb-3">
                 R{focusedMatch.round} M{focusedMatch.matchNumber}:{" "}
-                <strong>{focusedMatch.player1Name ?? "TBD"}</strong> vs{" "}
-                <strong>{focusedMatch.player2Name ?? "TBD"}</strong>
+                <strong>{focusedMatch.player1Name ?? t("tournamentHost.tbd")}</strong> {t("tournamentHost.vs")}{" "}
+                <strong>{focusedMatch.player2Name ?? t("tournamentHost.tbd")}</strong>
                 <br />
-                <span className="text-xs">Mecz zostanie oznaczony jako anulowany. Można go przywrócić później.</span>
+                <span className="text-xs">{t("tournamentHost.mecz_zostanie_oznaczony_jako_anulowany")}</span>
               </p>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => setCancelConfirm(null)}>Nie anuluj</Button>
+                <Button variant="outline" size="sm" onClick={() => setCancelConfirm(null)}>{t("tournamentHost.nie_anuluj")}</Button>
                 <Button variant="destructive" size="sm" onClick={() => doCancel(focusedMatch.id)} disabled={cancelMatch.isPending}>
-                  <Ban className="w-3.5 h-3.5 mr-1" /> Anuluj mecz
-                </Button>
+                  <Ban className="w-3.5 h-3.5 mr-1" /> {t("tournamentHost.anuluj_mecz")}</Button>
               </div>
             </div>
           )}
@@ -1639,20 +1626,18 @@ export default function TournamentHost() {
           {!conflictedDraft && capabilities.canUseLegacyMatchTools && isShowingSwap && (
             <div className="mt-5 p-4 bg-orange-500/10 border border-orange-500/30 rounded-lg">
               <p className="font-semibold text-orange-400 text-sm mb-1 flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4" /> Zamienić zawodników stronami?
-              </p>
+                <AlertTriangle className="w-4 h-4" /> {t("tournamentHost.zamienic_zawodnikow_stronami")}</p>
               <p className="text-sm text-muted-foreground mb-3">
-                <strong>{focusedMatch.player1Name ?? "TBD"}</strong>
+                <strong>{focusedMatch.player1Name ?? t("tournamentHost.tbd")}</strong>
                 {" ↔ "}
-                <strong>{focusedMatch.player2Name ?? "TBD"}</strong>
+                <strong>{focusedMatch.player2Name ?? t("tournamentHost.tbd")}</strong>
                 <br />
-                <span className="text-xs">Zawodnik A stanie się B i odwrotnie. Wyniki zostaną zamienione.</span>
+                <span className="text-xs">{t("tournamentHost.zawodnik_a_stanie_sie_b")}</span>
               </p>
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => setSwapConfirm(null)}>Anuluj</Button>
+                <Button variant="outline" size="sm" onClick={() => setSwapConfirm(null)}>{t("tournamentHost.anuluj")}</Button>
                 <Button size="sm" className="bg-orange-500 hover:bg-orange-600 text-white" onClick={() => doSwapPlayers(focusedMatch.id)} disabled={swapMatchPlayers.isPending}>
-                  <ArrowLeftRight className="w-3.5 h-3.5 mr-1" /> Zamień strony
-                </Button>
+                  <ArrowLeftRight className="w-3.5 h-3.5 mr-1" /> {t("tournamentHost.zamien_strony")}</Button>
               </div>
             </div>
           )}
@@ -1661,57 +1646,50 @@ export default function TournamentHost() {
           {!conflictedDraft && capabilities.canWriteTournamentResults && isShowingWalkover && (
             <div className="mt-5 p-4 bg-blue-500/10 border border-blue-500/30 rounded-lg">
               <p className="font-semibold text-blue-400 text-sm mb-1 flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4" /> Walkower — kto wygrał?
-              </p>
+                <AlertTriangle className="w-4 h-4" /> {t("tournamentHost.walkower_kto_wygral")}</p>
               <p className="text-sm text-muted-foreground mb-3">
-                Wybierz zawodnika, który <strong>wygrał</strong> (drugi nie pojawił się).
-                Walkower zmienia wyłącznie bilans meczów i nie tworzy wyniku serii.
-              </p>
+                {t("tournamentHost.wybierz_zawodnika_ktory")}{" "}<strong>{t("tournamentHost.wygral")}</strong> {t("tournamentHost.drugi_nie_pojawil_sie_walkower")}</p>
               <Input
                 className="mb-3"
                 value={resultReason}
                 onChange={(event) => setResultReason(event.target.value)}
-                placeholder="Powód (opcjonalnie, widoczny dla widzów)"
+                placeholder={t("tournamentHost.powod_opcjonalnie_widoczny_dla_widzow")}
               />
               <div className="flex flex-wrap gap-2">
-                <Button variant="outline" size="sm" onClick={() => setWalkoverConfirm(null)}>Anuluj</Button>
+                <Button variant="outline" size="sm" onClick={() => setWalkoverConfirm(null)}>{t("tournamentHost.anuluj")}</Button>
                 <Button
                   size="sm"
                   className="bg-blue-600 hover:bg-blue-700 text-white"
                   onClick={() => doWalkover(focusedMatch.id, 1)}
                   disabled={completeMatch.isPending || staleDraft}
                 >
-                  ✓ {focusedMatch.player1Name ?? "Zawodnik A"} wygrał
-                </Button>
+                  ✓ {focusedMatch.player1Name ?? t("tournamentHost.zawodnik_a")} {t("tournamentHost.wygral")}</Button>
                 <Button
                   size="sm"
                   className="bg-blue-600 hover:bg-blue-700 text-white"
                   onClick={() => doWalkover(focusedMatch.id, 2)}
                   disabled={completeMatch.isPending || staleDraft}
                 >
-                  ✓ {focusedMatch.player2Name ?? "Zawodnik B"} wygrał
-                </Button>
+                  ✓ {focusedMatch.player2Name ?? t("tournamentHost.zawodnik_b")} {t("tournamentHost.wygral")}</Button>
               </div>
             </div>
           )}
 
           {!conflictedDraft && capabilities.canWriteTournamentResults && isShowingNoContest && (
             <div className="mt-5 p-4 bg-orange-500/10 border border-orange-500/30 rounded-lg">
-              <p className="font-semibold text-orange-400 text-sm mb-1">Brak rozstrzygnięcia — bez zwycięzcy</p>
+              <p className="font-semibold text-orange-400 text-sm mb-1">{t("tournamentHost.brak_rozstrzygniecia_bez_zwyciezcy")}</p>
               <p className="text-sm text-muted-foreground mb-3">
-                Mecz zostanie zakończony bez wpływu na bilans meczów i gier. Ta decyzja nie jest dostępna w eliminacjach.
-              </p>
+                {t("tournamentHost.mecz_zostanie_zakonczony_bez_wplywu")}</p>
               <Input
                 className="mb-3"
                 value={resultReason}
                 onChange={(event) => setResultReason(event.target.value)}
-                placeholder="Powód (opcjonalnie, widoczny dla widzów)"
+                placeholder={t("tournamentHost.powod_opcjonalnie_widoczny_dla_widzow")}
               />
               <div className="flex gap-2">
-                <Button variant="outline" size="sm" onClick={() => setNoContestConfirm(null)}>Anuluj</Button>
+                <Button variant="outline" size="sm" onClick={() => setNoContestConfirm(null)}>{t("tournamentHost.anuluj")}</Button>
                 <Button size="sm" className="bg-orange-600 hover:bg-orange-700 text-white" onClick={() => doNoContest(focusedMatch.id)} disabled={completeMatch.isPending || staleDraft}>
-                  Zapisz brak rozstrzygnięcia
-                </Button>
+                  {t("tournamentHost.zapisz_brak_rozstrzygniecia")}</Button>
               </div>
             </div>
           )}
@@ -1719,15 +1697,14 @@ export default function TournamentHost() {
           {/* Restore cancelled action */}
           {!conflictedDraft && capabilities.canCorrectResults && isCancelled && (
             <div className="mt-5 pt-4 border-t flex items-center justify-between gap-2">
-              <p className="text-sm text-destructive/80">Ten mecz jest anulowany.</p>
+              <p className="text-sm text-destructive/80">{t("tournamentHost.ten_mecz_jest_anulowany")}</p>
               <Button
                 variant="outline"
                 className="border-destructive/50 text-destructive hover:bg-destructive/10"
                 onClick={() => handleRestoreCancelled(focusedMatch.id)}
                 disabled={restoreCancelledMatch.isPending}
               >
-                <SkipForward className="w-4 h-4 mr-2" /> Przywróć do kolejki
-              </Button>
+                <SkipForward className="w-4 h-4 mr-2" /> {t("tournamentHost.przywroc_do_kolejki")}</Button>
             </div>
           )}
 
@@ -1737,26 +1714,25 @@ export default function TournamentHost() {
               <div className="flex gap-2 flex-wrap">
                 {!conflictedDraft && capabilities.canUseLegacyMatchTools && !isLive && !isDone && (
                   <Button variant={editingResult || (isExperimental && matchWorkState(focusedMatch, { timeZone: focusedStage?.scheduleTimeZone }).state === "needs_result") ? "outline" : "default"} onClick={() => handleSetInProgress(focusedMatch.id)} disabled={updateMatch.isPending}>
-                    <Play className="w-4 h-4 mr-2" /> Rozpocznij mecz
-                  </Button>
+                    <Play className="w-4 h-4 mr-2" /> {t("tournamentHost.rozpocznij_mecz")}</Button>
                 )}
                 {!conflictedDraft && !isDone && (capabilities.canUseLegacyMatchTools || capabilities.canWriteTournamentResults || capabilities.canCorrectResults) && (
                   <DropdownMenu>
-                    <DropdownMenuTrigger asChild><Button variant="outline" disabled={hostPending}>Więcej akcji</Button></DropdownMenuTrigger>
+                    <DropdownMenuTrigger asChild><Button variant="outline" disabled={hostPending}>{t("tournamentHost.wiecej_akcji")}</Button></DropdownMenuTrigger>
                     <DropdownMenuContent align="start">
                       {capabilities.canWriteTournamentResults && !isPostponed && focusedMatch.player1Id && focusedMatch.player2Id && <>
-                        <DropdownMenuItem disabled={staleDraft || completeMatch.isPending} onSelect={() => handleWalkover(focusedMatch.id)}>Walkower (W.O.)</DropdownMenuItem>
-                        {allowsNoContest && <DropdownMenuItem disabled={staleDraft || completeMatch.isPending} onSelect={() => handleNoContest(focusedMatch.id)}>Brak rozstrzygnięcia (no contest)</DropdownMenuItem>}
+                        <DropdownMenuItem disabled={staleDraft || completeMatch.isPending} onSelect={() => handleWalkover(focusedMatch.id)}>{t("tournamentHost.walkower_w_o")}</DropdownMenuItem>
+                        {allowsNoContest && <DropdownMenuItem disabled={staleDraft || completeMatch.isPending} onSelect={() => handleNoContest(focusedMatch.id)}>{t("tournamentHost.brak_rozstrzygniecia_no_contest")}</DropdownMenuItem>}
                       </>}
-                      {capabilities.canCorrectResults && focusedMatch.player1Id && focusedMatch.player2Id && <DropdownMenuItem disabled={swapMatchPlayers.isPending} onSelect={() => handleSwapPlayers(focusedMatch.id)}><ArrowLeftRight /> Zamień strony</DropdownMenuItem>}
+                      {capabilities.canCorrectResults && focusedMatch.player1Id && focusedMatch.player2Id && <DropdownMenuItem disabled={swapMatchPlayers.isPending} onSelect={() => handleSwapPlayers(focusedMatch.id)}><ArrowLeftRight /> {t("tournamentHost.zamien_strony")}</DropdownMenuItem>}
                       {capabilities.canUseLegacyMatchTools && <>
                         {!isPostponed
-                          ? <DropdownMenuItem disabled={updateMatch.isPending} onSelect={() => handlePostpone(focusedMatch.id)}><Clock /> Przełóż</DropdownMenuItem>
-                          : <DropdownMenuItem disabled={updateMatch.isPending} onSelect={() => handleRestore(focusedMatch.id)}><SkipForward /> Przywróć</DropdownMenuItem>}
+                          ? <DropdownMenuItem disabled={updateMatch.isPending} onSelect={() => handlePostpone(focusedMatch.id)}><Clock /> {t("tournamentHost.przeloz")}</DropdownMenuItem>
+                          : <DropdownMenuItem disabled={updateMatch.isPending} onSelect={() => handleRestore(focusedMatch.id)}><SkipForward /> {t("tournamentHost.przywroc")}</DropdownMenuItem>}
                       </>}
                       {capabilities.canCorrectResults && <>
                         <DropdownMenuSeparator />
-                        <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" disabled={cancelMatch.isPending} onSelect={() => handleCancel(focusedMatch.id)}><Ban /> Anuluj mecz</DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive focus:text-destructive focus:bg-destructive/10" disabled={cancelMatch.isPending} onSelect={() => handleCancel(focusedMatch.id)}><Ban /> {t("tournamentHost.anuluj_mecz")}</DropdownMenuItem>
                       </>}
                     </DropdownMenuContent>
                   </DropdownMenu>
@@ -1764,12 +1740,11 @@ export default function TournamentHost() {
               </div>
               <div className="flex gap-2">
                 {!conflictedDraft && capabilities.canRevertResults && isDone && (
-                  <Button variant="outline" onClick={() => openCorrection(focusedMatch.id)}><RotateCcw className="w-4 h-4 mr-2" /> Popraw wynik</Button>
+                  <Button variant="outline" onClick={() => openCorrection(focusedMatch.id)}><RotateCcw className="w-4 h-4 mr-2" /> {t("tournamentHost.popraw_wynik")}</Button>
                 )}
                 {capabilities.canWriteTournamentResults && !isDone && !isPostponed && (
                   <Button variant={editingResult && !conflictedDraft ? "default" : "outline"} className="font-semibold px-6" onClick={() => handleTryComplete(focusedMatch.id, focusedMatch)} disabled={completeMatch.isPending || !isCompleteSeries || staleDraft}>
-                    <CheckCircle2 className="w-4 h-4 mr-2" /> Zapisz wynik
-                  </Button>
+                    <CheckCircle2 className="w-4 h-4 mr-2" /> {t("tournamentHost.zapisz_wynik")}</Button>
                 )}
               </div>
             </div>
@@ -1777,26 +1752,26 @@ export default function TournamentHost() {
           {saveStatus[focusedMatch.id] && (() => {
             const status = saveStatus[focusedMatch.id]!;
             if (status.phase === "saving") {
-              return <p role="status" className="host-save-status mt-3 flex items-center gap-2 text-sm text-primary" data-save-state="saving"><Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> Zapisywanie: {status.label}…</p>;
+              return <p role="status" className="host-save-status mt-3 flex items-center gap-2 text-sm text-primary" data-save-state="saving"><Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> {t("tournamentHost.zapisywanie")}{" "}{status.label}…</p>;
             }
             if (status.phase === "notice") {
               return (
                 <div role="status" className="host-save-status mt-3 rounded-lg border border-orange-500/40 bg-orange-500/10 p-3 text-sm" data-save-state="carried-over">
-                  <p className="font-semibold">Nie zapisano — mecz zmienił się w międzyczasie</p>
+                  <p className="font-semibold">{t("tournamentHost.nie_zapisano_mecz_zmienil_sie")}</p>
                   <p className="mt-1">{status.message}</p>
-                  <Button size="sm" className="mt-2" disabled={completeMatch.isPending || staleDraft} onClick={() => handleTryComplete(focusedMatch.id, focusedMatch)}>Zapisz ponownie</Button>
+                  <Button size="sm" className="mt-2" disabled={completeMatch.isPending || staleDraft} onClick={() => handleTryComplete(focusedMatch.id, focusedMatch)}>{t("tournamentHost.zapisz_ponownie")}</Button>
                 </div>
               );
             }
             if (status.kind === "conflict") return null; // the conflict section above explains it
             return (
               <div role="status" className="host-save-status mt-3 rounded-lg border border-destructive/40 bg-destructive/5 p-3 text-sm" data-save-state="error" data-kind={status.kind}>
-                <p className="font-semibold">Nie zapisano</p>
+                <p className="font-semibold">{t("tournamentHost.nie_zapisano")}</p>
                 <p className="mt-1">{status.message}</p>
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {status.kind === "session" && hasNewAuth && <Button variant="outline" size="sm" onClick={() => setShowOrgModal(true)}>Zaloguj ponownie</Button>}
+                  {status.kind === "session" && hasNewAuth && <Button variant="outline" size="sm" onClick={() => setShowOrgModal(true)}>{t("tournamentHost.zaloguj_ponownie")}</Button>}
                   {status.kind !== "rejected" && !isDone && !!scores[focusedMatch.id] && (
-                    <Button size="sm" disabled={completeMatch.isPending || staleDraft} onClick={() => handleTryComplete(focusedMatch.id, focusedMatch)}>Spróbuj ponownie</Button>
+                    <Button size="sm" disabled={completeMatch.isPending || staleDraft} onClick={() => handleTryComplete(focusedMatch.id, focusedMatch)}>{t("tournamentHost.sprobuj_ponownie")}</Button>
                   )}
                 </div>
               </div>
@@ -1806,8 +1781,8 @@ export default function TournamentHost() {
             <p className="mt-3 text-sm text-muted-foreground">
               {scores[focusedMatch.id]
                 ? isExperimental
-                  ? `Edytujesz — wynik roboczy ${scores[focusedMatch.id]!.sets ? `(sety ${setsText(scores[focusedMatch.id]!.sets) || "–"})` : `${scores[focusedMatch.id]!.s1}:${scores[focusedMatch.id]!.s2}`} jest jeszcze niezapisany. Zostaje w tej karcie przeglądarki także po odświeżeniu strony.`
-                  : "Wynik roboczy — nie jest jeszcze zapisany. Zapisz go po zakończeniu meczu."
+                  ? t("tournamentHost.edytujesz_wynik_roboczy_v0_jest", { v0: scores[focusedMatch.id]!.sets ? t("tournamentHost.sety_v0_2", { v0: setsText(scores[focusedMatch.id]!.sets) || "–" }) : `${scores[focusedMatch.id]!.s1}:${scores[focusedMatch.id]!.s2}` })
+                  : t("tournamentHost.wynik_roboczy_nie_jest_jeszcze")
                 : scoreEntryHint(bo, allowDraws)}
             </p>
           )}
@@ -1819,19 +1794,19 @@ export default function TournamentHost() {
               <p role="status" className="experimental-result-preview" data-complete={isCompleteSeries ? "true" : "false"}>
                 {isCompleteSeries
                   ? draw
-                    ? <>Po zapisie: <strong>remis</strong> <span className="tabular-nums">({draft.s1}:{draft.s2})</span></>
-                    : <>Po zapisie wygrywa: <strong>{winnerName ?? "—"}</strong> <span className="tabular-nums">({draft.s1}:{draft.s2})</span></>
-                  : `Aby zapisać, jedna strona musi mieć ${maxScore} ${maxScore === 1 ? "wygraną" : "wygrane"}. Teraz: ${draft.s1}:${draft.s2}.`}
+                    ? <>{t("tournamentHost.po_zapisie")}{" "}<strong>{t("tournamentHost.remis")}</strong> <span className="tabular-nums">({draft.s1}:{draft.s2})</span></>
+                    : <>{t("tournamentHost.po_zapisie_wygrywa")}{" "}<strong>{winnerName ?? "—"}</strong> <span className="tabular-nums">({draft.s1}:{draft.s2})</span></>
+                  : t("tournamentHost.aby_zapisac_jedna_strona_musi", { maxScore: maxScore, v1: maxScore === 1 ? t("tournamentHost.wygrana") : t("tournamentHost.wygrane"), s1: draft.s1, s2: draft.s2 })}
               </p>
             );
           })()}
-          {isDone && <p className="mt-3 text-sm text-muted-foreground">Wynik zapisany: {completedResultLabel}{focusedMatch.sets?.length ? ` (sety ${setsText(focusedMatch.sets)})` : ""}. Aby go zmienić, wybierz „Popraw wynik”.</p>}
-          {staleDraft && !conflictedDraft && <p className="mt-3 text-sm text-orange-400">Stan meczu zmienił się od rozpoczęcia edycji. Twój wynik roboczy: {scores[focusedMatch.id]?.s1 ?? 0}:{scores[focusedMatch.id]?.s2 ?? 0}. Aktualny wynik: {focusedMatch.score1 ?? 0}:{focusedMatch.score2 ?? 0}. Odrzuć wynik roboczy i sprawdź mecz przed kolejnym zapisem. Wynik roboczy dotyczy meczu: {resultDrafts.drafts[focusedMatch.id]?.player1Name} – {resultDrafts.drafts[focusedMatch.id]?.player2Name}.</p>}
+          {isDone && <p className="mt-3 text-sm text-muted-foreground">{t("tournamentHost.wynik_zapisany")}{" "}{completedResultLabel}{focusedMatch.sets?.length ? t("tournamentHost.sety_v0", { v0: setsText(focusedMatch.sets) }) : ""}{t("tournamentHost.aby_go_zmienic_wybierz_popraw")}</p>}
+          {staleDraft && !conflictedDraft && <p className="mt-3 text-sm text-orange-400">{t("tournamentHost.stan_meczu_zmienil_sie_od")}{" "}{scores[focusedMatch.id]?.s1 ?? 0}:{scores[focusedMatch.id]?.s2 ?? 0}{t("tournamentHost.aktualny_wynik_2")}{" "}{focusedMatch.score1 ?? 0}:{focusedMatch.score2 ?? 0}{t("tournamentHost.odrzuc_wynik_roboczy_i_sprawdz")}{" "}{resultDrafts.drafts[focusedMatch.id]?.player1Name} – {resultDrafts.drafts[focusedMatch.id]?.player2Name}.</p>}
           {!conflictedDraft && (scores[focusedMatch.id] || staleDraft) && <Button variant="ghost" size="sm" className="mt-2" onClick={() => {
             resultDrafts.discard(focusedMatch.id);
             setWalkoverConfirm(null); setNoContestConfirm(null); setResultReason("");
             setScores((prev) => { const next = { ...prev }; delete next[focusedMatch.id]; return next; });
-          }}>Odrzuć wynik roboczy</Button>}
+          }}>{t("tournamentHost.odrzuc_wynik_roboczy")}</Button>}
           </>)}
         </div>
       </div>
@@ -1845,18 +1820,17 @@ export default function TournamentHost() {
         <div className="organizer-header flex flex-wrap items-center gap-3 border-b pb-3">
           {/* V5.8: Experimental goes back through "Turnieje" and the tabs; Stable keeps its arrow. */}
           {!isExperimental && <Button variant="ghost" size="icon" asChild>
-            <Link href={tournamentHref(id, isExperimental)} aria-label="Wróć do szczegółów turnieju"><ArrowLeft className="w-5 h-5" /></Link>
+            <Link href={tournamentHref(id, isExperimental)} aria-label={t("tournamentHost.wroc_do_szczegolow_turnieju")}><ArrowLeft className="w-5 h-5" /></Link>
           </Button>}
           <div className="flex-1 min-w-0">
-            {isExperimental && <ExperimentalTournamentContextBar tournamentId={id} tournamentName={tournament.name} currentLabel="Prowadzenie" compact />}
+            {isExperimental && <ExperimentalTournamentContextBar tournamentId={id} tournamentName={tournament.name} currentLabel={t("tournamentHost.prowadzenie")} compact />}
             <h1 className="text-xl font-bold flex items-center gap-2">
               <Swords className="text-primary w-5 h-5 shrink-0" />
               <span className="break-words">{tournament.name}</span>
             </h1>
             {!isExperimental && (
               <p className="text-xs text-muted-foreground">
-                Prowadzenie turnieju
-              </p>
+                {t("tournamentHost.prowadzenie_turnieju")}</p>
             )}
             <div className="mt-1">
               <ForcedHeroBadge gameConfig={tournament.gameConfig} compact />
@@ -1864,11 +1838,11 @@ export default function TournamentHost() {
           </div>
           {isExperimental && <ExperimentalHostFocusToggle />}
           {capabilities.canManageSharing && <Button variant="outline" size="sm" className="shrink-0" onClick={() => setShowShareDialog(true)}>
-            <Share2 className="w-4 h-4 mr-1" /> <span className="experimental-action-label">Udostępnij</span>
+            <Share2 className="w-4 h-4 mr-1" /> <span className="experimental-action-label">{t("tournamentHost.udostepnij")}</span>
           </Button>}
           <Button variant="outline" size="sm" asChild className="shrink-0">
             <Link href={tournamentHref(id, isExperimental, "/audience")}>
-              <Monitor className="w-4 h-4 mr-1" /> <span className="experimental-action-label">Widok widzów</span>
+              <Monitor className="w-4 h-4 mr-1" /> <span className="experimental-action-label">{t("tournamentHost.widok_widzow")}</span>
             </Link>
           </Button>
         </div>
@@ -1902,21 +1876,21 @@ export default function TournamentHost() {
             dataLoading={dataLoading}
             dataError={dataError}
           />
-        ) : tournamentCompleted ? <section aria-label="Podsumowanie turnieju" className="organizer-stage-detail rounded-xl border border-primary/30 bg-card p-4">
-          <h2 className="text-xl font-semibold">Turniej zakończony</h2>
-          {championName && <p className="mt-2 text-lg font-semibold">Mistrz: {championName}</p>}
+        ) : tournamentCompleted ? <section aria-label={t("tournamentHost.podsumowanie_turnieju")} className="organizer-stage-detail rounded-xl border border-primary/30 bg-card p-4">
+          <h2 className="text-xl font-semibold">{t("tournamentHost.turniej_zakonczony")}</h2>
+          {championName && <p className="mt-2 text-lg font-semibold">{t("tournamentHost.mistrz")}{" "}{championName}</p>}
           {!dataLoading && !dataError && !!stages?.length && stages.every(stage => stage.status === "completed") &&
-            <p className="mt-1 text-sm text-muted-foreground">Wszystkie etapy są zakończone.</p>}
+            <p className="mt-1 text-sm text-muted-foreground">{t("tournamentHost.wszystkie_etapy_sa_zakonczone")}</p>}
           <div className="mt-4 flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" asChild><Link href={tournamentHref(id, isExperimental, "/host?tab=wyniki")}>Wszystkie mecze i wyniki</Link></Button>
-            <Button variant="outline" size="sm" asChild><Link href={tournamentHref(id, isExperimental, "/audience")}>Widok widzów</Link></Button>
+            <Button variant="outline" size="sm" asChild><Link href={tournamentHref(id, isExperimental, "/host?tab=wyniki")}>{t("tournamentHost.wszystkie_mecze_i_wyniki")}</Link></Button>
+            <Button variant="outline" size="sm" asChild><Link href={tournamentHref(id, isExperimental, "/audience")}>{t("tournamentHost.widok_widzow")}</Link></Button>
           </div>
-        </section> : <section aria-label="Stan prowadzenia" className="organizer-stage-detail rounded-xl border border-primary/30 bg-card p-4">
+        </section> : <section aria-label={t("tournamentHost.stan_prowadzenia")} className="organizer-stage-detail rounded-xl border border-primary/30 bg-card p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
               <p className="text-xs font-semibold uppercase tracking-wide text-primary">
-                {dataLoading ? "Sprawdzanie stanu" : activeStage ? `Aktywny etap · ${activeStage.position} z ${stages?.length}`
-                  : tournament.status === "completed" ? "Turniej zakończony" : "Przygotowanie etapu"}
+                {dataLoading ? t("tournamentHost.sprawdzanie_stanu") : activeStage ? t("tournamentHost.aktywny_etap_position_z_length", { position: activeStage.position, length: stages?.length })
+                  : tournament.status === "completed" ? t("tournamentHost.turniej_zakonczony") : t("tournamentHost.przygotowanie_etapu")}
               </p>
               <h2 className="mt-1 text-xl font-semibold">{activeStage?.name ?? plannedStage?.name ?? tournament.name}</h2>
               {activeStage && <p className="mt-1 text-sm text-muted-foreground">
@@ -1924,37 +1898,36 @@ export default function TournamentHost() {
               </p>}
             </div>
             <div className="flex flex-wrap gap-2">
-              <Button variant="outline" size="sm" asChild><Link href={tournamentHref(id, isExperimental, "/host?tab=wyniki")}>Wszystkie mecze i wyniki</Link></Button>
-              <Button variant="outline" size="sm" asChild><Link href={tournamentHref(id, isExperimental, "?tab=stages")}>Sprawdź etapy</Link></Button>
+              <Button variant="outline" size="sm" asChild><Link href={tournamentHref(id, isExperimental, "/host?tab=wyniki")}>{t("tournamentHost.wszystkie_mecze_i_wyniki")}</Link></Button>
+              <Button variant="outline" size="sm" asChild><Link href={tournamentHref(id, isExperimental, "?tab=stages")}>{t("tournamentHost.sprawdz_etapy")}</Link></Button>
             </div>
           </div>
           {!dataLoading && !dataError && activeStage && <dl className="mt-4 grid grid-cols-2 gap-3 border-t pt-3 sm:grid-cols-4">
             {[
-              ["W trakcie", operationalMatches?.filter((match) => match.status === "in_progress").length ?? 0],
-              ["Gotowe do gry", queueMatches.filter((match) => match.status === "pending").length],
-              ["Zakończone", completedMatches.length],
-              ["Pozostałe", (operationalMatches?.length ?? 0) - queueMatches.length - completedMatches.length],
+              [t("tournamentHost.w_trakcie"), operationalMatches?.filter((match) => match.status === "in_progress").length ?? 0],
+              [t("tournamentHost.gotowe_do_gry"), queueMatches.filter((match) => match.status === "pending").length],
+              [t("tournamentHost.zakonczone"), completedMatches.length],
+              [t("tournamentHost.pozostale"), (operationalMatches?.length ?? 0) - queueMatches.length - completedMatches.length],
             ].map(([label, count]) => <div key={label}><dt className="text-xs text-muted-foreground">{label}</dt><dd className="mt-1 text-xl font-semibold tabular-nums">{count}</dd></div>)}
           </dl>}
           {!dataLoading && !dataError && activeStage && (operationalMatches?.length ?? 0) > queueMatches.length + completedMatches.length &&
-            <p className="mt-3 text-xs text-muted-foreground">Pozostałe mecze oczekują na pełną parę, zostały przełożone lub anulowane.</p>}
+            <p className="mt-3 text-xs text-muted-foreground">{t("tournamentHost.pozostale_mecze_oczekuja_na_pelna")}</p>}
         </section>}
-        {dataLoading && !dataError && <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> Pobieranie stanu etapu i meczów…</p>}
+        {dataLoading && !dataError && <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 className="h-4 w-4 animate-spin" /> {t("tournamentHost.pobieranie_stanu_etapu_i_meczow")}</p>}
         {dataError && <div role="alert" className="organizer-notice organizer-notice--error rounded-lg border border-destructive/40 bg-destructive/5 p-4">
-          <p className="font-semibold">Nie udało się odświeżyć stanu prowadzenia.</p>
-          <p className="mt-1 text-sm text-muted-foreground">Dane mogą być nieaktualne. Operacje są wstrzymane do ponownego pobrania etapu i meczów.</p>
-          <Button variant="outline" size="sm" className="mt-3" disabled={isFetchingTournament || stagesQuery.isFetching || matchesQuery.isFetching} onClick={() => void Promise.all([refetchTournament(), stagesQuery.refetch(), matchesQuery.refetch()])}><RefreshCw className="mr-2 h-4 w-4" /> Spróbuj ponownie</Button>
+          <p className="font-semibold">{t("tournamentHost.nie_udalo_sie_odswiezyc_stanu")}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{t("tournamentHost.dane_moga_byc_nieaktualne_operacje")}</p>
+          <Button variant="outline" size="sm" className="mt-3" disabled={isFetchingTournament || stagesQuery.isFetching || matchesQuery.isFetching} onClick={() => void Promise.all([refetchTournament(), stagesQuery.refetch(), matchesQuery.refetch()])}><RefreshCw className="mr-2 h-4 w-4" /> {t("tournamentHost.sprobuj_ponownie")}</Button>
         </div>}
         {actionError && <div role="alert" className="organizer-notice organizer-notice--error rounded-lg border border-destructive/40 bg-destructive/5 p-4">
-          <p className="font-semibold">Operacja nie powiodła się</p><p className="mt-1 text-sm">{actionError.message}</p>
-          {actionError.code && <p className="mt-2 text-xs text-muted-foreground">Kod diagnostyczny: {actionError.code}</p>}
+          <p className="font-semibold">{t("tournamentHost.operacja_nie_powiodla_sie")}</p><p className="mt-1 text-sm">{actionError.message}</p>
+          {actionError.code && <p className="mt-2 text-xs text-muted-foreground">{t("tournamentHost.kod_diagnostyczny")}{" "}{actionError.code}</p>}
           {actionError.code && ["CONCURRENT_MODIFICATION", "SCHEDULE_CHANGED", "UNDO_ACTION_CHANGED", "MATCH_ALREADY_FINALIZED"].includes(actionError.code) && (
             <Button variant="outline" size="sm" className="mt-2" disabled={matchesQuery.isFetching} onClick={() => { setActionError(null); void invalidateAll(); }}>
-              <RefreshCw className="mr-2 h-4 w-4" aria-hidden="true" /> Odśwież dane
-            </Button>
+              <RefreshCw className="mr-2 h-4 w-4" aria-hidden="true" /> {t("tournamentHost.odswiez_dane")}</Button>
           )}
         </div>}
-        {hostPending && <p role="status" className="organizer-notice organizer-notice--pending flex items-center gap-2 text-sm text-primary"><Loader2 className="h-4 w-4 animate-spin" /> Zapisywanie i odświeżanie stanu…</p>}
+        {hostPending && <p role="status" className="organizer-notice organizer-notice--pending flex items-center gap-2 text-sm text-primary"><Loader2 className="h-4 w-4 animate-spin" /> {t("tournamentHost.zapisywanie_i_odswiezanie_stanu")}</p>}
         {selectionNotice && <p role="status" className="rounded-lg border p-3 text-sm">{selectionNotice}</p>}
         <fieldset disabled={hostPending || dataLoading || dataError} className="contents">
         {/* #331: a support person sees what they may do; other actions stay hidden. */}
@@ -1971,10 +1944,9 @@ export default function TournamentHost() {
         )}
         {capabilities.canUndo && lastUndoableAction && !undoConfirm && (
           <div className="flex flex-wrap items-center gap-2 rounded-lg border px-3 py-2 text-sm">
-            <span className="text-muted-foreground">Ostatnia akcja: {lastUndoableAction.description}</span>
+            <span className="text-muted-foreground">{t("tournamentHost.ostatnia_akcja")}{" "}{lastUndoableAction.description}</span>
             <Button variant="ghost" size="sm" className="h-7 text-yellow-500" onClick={() => setUndoConfirm(true)}>
-              <Undo2 className="mr-1 h-3.5 w-3.5" /> Cofnij
-            </Button>
+              <Undo2 className="mr-1 h-3.5 w-3.5" /> {t("tournamentHost.cofnij")}</Button>
           </div>
         )}
 
@@ -1983,19 +1955,17 @@ export default function TournamentHost() {
           <div className="bg-yellow-500/10 border border-yellow-500/40 rounded-lg p-3 flex items-center gap-3">
             <Undo2 className="w-5 h-5 text-yellow-400 shrink-0" />
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-yellow-400">Cofnąć akcję?</p>
+              <p className="text-sm font-semibold text-yellow-400">{t("tournamentHost.cofnac_akcje")}</p>
               <p className="text-xs text-muted-foreground truncate">{lastUndoableAction.description}</p>
               {tournamentCompleted && lastUndoableAction.actionType === "match_result_submitted" && (
-                <p className="text-xs text-yellow-300" role="note">Turniej jest zakończony. Cofnięcie tego wyniku ponownie otworzy etap i turniej, a zwycięzca zostanie usunięty do czasu ponownego zapisania wyniku.</p>
+                <p className="text-xs text-yellow-300" role="note">{t("tournamentHost.turniej_jest_zakonczony_cofniecie_tego")}</p>
               )}
             </div>
             <div className="flex gap-2 shrink-0">
               <Button size="sm" variant="destructive" onClick={handleUndo} disabled={undoLastAction.isPending}>
-                Cofnij
-              </Button>
+                {t("tournamentHost.cofnij")}</Button>
               <Button size="sm" variant="outline" onClick={() => setUndoConfirm(false)}>
-                Anuluj
-              </Button>
+                {t("tournamentHost.anuluj")}</Button>
             </div>
           </div>
         )}
@@ -2007,18 +1977,15 @@ export default function TournamentHost() {
             <div className="bg-orange-500/10 border border-orange-500/40 rounded-lg p-3 flex items-center gap-3">
               <AlertTriangle className="w-5 h-5 text-orange-400 shrink-0" />
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-orange-400">Zmiana BO w trakcie meczu</p>
+                <p className="text-sm font-semibold text-orange-400">{t("tournamentHost.zmiana_bo_w_trakcie_meczu")}</p>
                 <p className="text-xs text-muted-foreground">
-                  Mecz R{bm?.round}M{bm?.matchNumber} ma wynik {bm?.score1}:{bm?.score2}. Zmiana na BO{boConfirm.bo} może wyzerować maks. set. Kontynuować?
-                </p>
+                  {t("tournamentHost.mecz_r")}{bm?.round}M{bm?.matchNumber} {t("tournamentHost.ma_wynik")}{" "}{bm?.score1}:{bm?.score2}{t("tournamentHost.zmiana_na_bo")}{boConfirm.bo} {t("tournamentHost.moze_wyzerowac_maks_set_kontynuowac")}</p>
               </div>
               <div className="flex gap-2 shrink-0">
                 <Button size="sm" variant="destructive" onClick={() => { applyChangeBestOf(boConfirm.matchId, boConfirm.bo); setBoConfirm(null); }}>
-                  Zmień BO
-                </Button>
+                  {t("tournamentHost.zmien_bo")}</Button>
                 <Button size="sm" variant="outline" onClick={() => setBoConfirm(null)}>
-                  Anuluj
-                </Button>
+                  {t("tournamentHost.anuluj")}</Button>
               </div>
             </div>
           );
@@ -2031,17 +1998,17 @@ export default function TournamentHost() {
           <TabsContent value="prowadzenie" className="pt-4 space-y-4">
             {draftNotices.length > 0 && (
               <div role="status" className="organizer-notice rounded-lg border p-3 text-sm" data-testid="restored-drafts">
-                <p className="font-semibold">Niezapisane wyniki z tej karty</p>
+                <p className="font-semibold">{t("tournamentHost.niezapisane_wyniki_z_tej_karty")}</p>
                 <ul className="mt-1 list-disc space-y-0.5 pl-5">{draftNotices.map((notice) => <li key={notice}>{notice}</li>)}</ul>
-                <Button variant="ghost" size="sm" className="mt-1" onClick={() => setDraftNotices([])}>Rozumiem</Button>
+                <Button variant="ghost" size="sm" className="mt-1" onClick={() => setDraftNotices([])}>{t("tournamentHost.rozumiem")}</Button>
               </div>
             )}
             {lastSaved && (
               <p role="status" className="host-last-saved flex flex-wrap items-center gap-2 text-sm" data-save-state="saved">
                 <CheckCircle2 className="h-4 w-4 text-green-500" aria-hidden="true" />
-                <span>Zapisano {lastSaved.at.toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" })}: {lastSaved.text}.</span>
+                <span>{t("tournamentHost.zapisano")}{" "}{lastSaved.at.toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" })}: {lastSaved.text}.</span>
                 {lastSaved.matchId !== focusedMatchId && (
-                  <Button variant="ghost" size="sm" className="h-7" onClick={() => openInEditor(lastSaved.matchId)}>Pokaż ten mecz</Button>
+                  <Button variant="ghost" size="sm" className="h-7" onClick={() => openInEditor(lastSaved.matchId)}>{t("tournamentHost.pokaz_ten_mecz")}</Button>
                 )}
               </p>
             )}
@@ -2055,26 +2022,25 @@ export default function TournamentHost() {
             {(queueMatches.length > 0 || completedMatches.length > 0 || postponedMatches.length > 0) && (
               <div className={`${isExperimental ? "experimental-host-secondary" : ""} grid min-w-0 grid-cols-1 items-start gap-4 ${showResultsSidebar ? "xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]" : ""}`}>
                 {/* Kolejne mecze */}
-                <section aria-label="Mecze bieżącego etapu" className="min-w-0">
+                <section aria-label={t("tournamentHost.mecze_biezacego_etapu")} className="min-w-0">
                   <div className="flex items-center justify-between mb-2">
                     <h3 className="text-sm font-semibold">
-                      Mecze bieżącego etapu ({workQueue.length})
+                      {t("tournamentHost.mecze_biezacego_etapu_2")}{workQueue.length})
                     </h3>
                     {actionableMatches.length > 1 && (
                       <Button variant="ghost" size="sm" className="h-7 text-xs gap-1" onClick={handleNextMatch}>
-                        <SkipForward className="w-3.5 h-3.5" /> Następny
-                      </Button>
+                        <SkipForward className="w-3.5 h-3.5" /> {t("tournamentHost.nastepny")}</Button>
                     )}
                   </div>
                   {isExperimental && workQueue.length > 0 && (
-                    <div role="group" aria-label="Pokaż mecze w stanie" className="experimental-work-filters">
+                    <div role="group" aria-label={t("tournamentHost.pokaz_mecze_w_stanie")} className="experimental-work-filters">
                       {(["all", ...QUEUE_FILTERS] as const).map((key) => {
                         const count = key === "all" ? workQueue.length : workCounts[key];
                         return (
                           <button key={key} type="button" className="experimental-work-filter" data-state={key} data-empty={count === 0 ? "true" : undefined}
                             aria-pressed={queueFilter === key}
                             onClick={() => navigate(hostUrl({ kolejka: key === "all" ? null : key }), { replace: true })}>
-                            {key === "all" ? "Wszystkie" : WORK_STATE_LABELS[key]} <span className="tabular-nums">{count}</span>
+                            {key === "all" ? t("tournamentHost.wszystkie") : WORK_STATE_LABELS[key]} <span className="tabular-nums">{count}</span>
                           </button>
                         );
                       })}
@@ -2100,8 +2066,8 @@ export default function TournamentHost() {
                               className="p-0.5 text-muted-foreground/40 hover:text-muted-foreground disabled:opacity-20 disabled:cursor-not-allowed"
                               onClick={() => handleMoveInQueue(m.id, "up")}
                               disabled={m.id === pendingQueue[0]?.id || reorderMatches.isPending}
-                              title="Przesuń wyżej"
-                              aria-label={`Przesuń wyżej w kolejce: ${m.player1Name} – ${m.player2Name}`}
+                              title={t("tournamentHost.przesun_wyzej")}
+                              aria-label={t("tournamentHost.przesun_wyzej_w_kolejce_player1name", { player1Name: m.player1Name, player2Name: m.player2Name })}
                             >
                               <ArrowUp className="w-3 h-3" />
                             </button>
@@ -2109,8 +2075,8 @@ export default function TournamentHost() {
                               className="p-0.5 text-muted-foreground/40 hover:text-muted-foreground disabled:opacity-20 disabled:cursor-not-allowed"
                               onClick={() => handleMoveInQueue(m.id, "down")}
                               disabled={m.id === pendingQueue[pendingQueue.length - 1]?.id || reorderMatches.isPending}
-                              title="Przesuń niżej"
-                              aria-label={`Przesuń niżej w kolejce: ${m.player1Name} – ${m.player2Name}`}
+                              title={t("tournamentHost.przesun_nizej")}
+                              aria-label={t("tournamentHost.przesun_nizej_w_kolejce_player1name", { player1Name: m.player1Name, player2Name: m.player2Name })}
                             >
                               <ArrowDown className="w-3 h-3" />
                             </button>
@@ -2134,24 +2100,24 @@ export default function TournamentHost() {
                               </div>
                               <div className="text-sm font-medium truncate">
                                 {m.player1Name}{" "}
-                                <span className="text-muted-foreground font-normal">vs</span>{" "}
+                                <span className="text-muted-foreground font-normal">{t("tournamentHost.vs")}</span>{" "}
                                 {m.player2Name}
                               </div>
                               {isExperimental && !workInfos.get(m.id)?.routine && <div className="experimental-work-reason">{workInfos.get(m.id)?.reason}</div>}
                             </div>
-                            {m.status === "in_progress" && <span className="text-sm font-mono tabular-nums" title={isTwoLegTie(m) ? "Suma po rozegranych spotkaniach dwumeczu" : undefined}>{isTwoLegTie(m) ? tieScoreText(m) ?? "dwumecz" : `${m.score1 ?? 0}:${m.score2 ?? 0}`}</span>}
+                            {m.status === "in_progress" && <span className="text-sm font-mono tabular-nums" title={isTwoLegTie(m) ? t("tournamentHost.suma_po_rozegranych_spotkaniach_dwumeczu") : undefined}>{isTwoLegTie(m) ? tieScoreText(m) ?? t("tournamentHost.dwumecz") : `${m.score1 ?? 0}:${m.score2 ?? 0}`}</span>}
                             {isExperimental ? (
                               <span className="experimental-work-chip shrink-0" data-state={workInfos.get(m.id)?.state}>{workInfos.get(m.id)?.label}</span>
                             ) : <>
-                              {m.status === "pending" && <span className="shrink-0 text-xs text-muted-foreground">Oczekuje</span>}
+                              {m.status === "pending" && <span className="shrink-0 text-xs text-muted-foreground">{t("tournamentHost.oczekuje")}</span>}
                               {m.status === "in_progress" && (
                                 <Badge className="shrink-0 bg-secondary/20 text-secondary border-secondary/40 text-[10px]">
-                                  {isTwoLegTie(m) ? "DWUMECZ W TOKU" : "LIVE"}
+                                  {isTwoLegTie(m) ? t("tournamentHost.dwumecz_w_toku_2") : t("tournamentHost.live_2")}
                                 </Badge>
                               )}
                             </>}
                             {m.id === focusedMatchId && m.status !== "in_progress" && (
-                              <span className="text-xs text-primary shrink-0">Wybrany</span>
+                              <span className="text-xs text-primary shrink-0">{t("tournamentHost.wybrany")}</span>
                             )}
                           </button>
                           {/* V5.6 (Experimental): the row's one action, with words */}
@@ -2159,16 +2125,14 @@ export default function TournamentHost() {
                             const action = workInfos.get(m.id)?.action;
                             if (action?.kind === "start" && capabilities.canUseLegacyMatchTools) {
                               return <Button variant="outline" size="sm" className="experimental-queue-action h-8 shrink-0 gap-1 px-2 text-primary" onClick={() => { setSelectedMatchId(m.id); handleSetInProgress(m.id); }}>
-                                <Play className="h-3.5 w-3.5" aria-hidden="true" /> Rozpocznij
-                              </Button>;
+                                <Play className="h-3.5 w-3.5" aria-hidden="true" /> {t("tournamentHost.rozpocznij")}</Button>;
                             }
                             if (action?.kind === "restore" && capabilities.canUseLegacyMatchTools) {
                               return <Button variant="outline" size="sm" className="experimental-queue-action h-8 shrink-0 gap-1 px-2" onClick={() => handleRestore(m.id)} disabled={updateMatch.isPending}>
-                                <SkipForward className="h-3.5 w-3.5" aria-hidden="true" /> Przywróć
-                              </Button>;
+                                <SkipForward className="h-3.5 w-3.5" aria-hidden="true" /> {t("tournamentHost.przywroc")}</Button>;
                             }
                             if (action?.kind === "enter_result" && capabilities.canWriteTournamentResults) {
-                              return <Button variant="outline" size="sm" className="experimental-queue-action h-8 shrink-0 px-2" onClick={() => openInEditor(m.id)}>Wpisz wynik</Button>;
+                              return <Button variant="outline" size="sm" className="experimental-queue-action h-8 shrink-0 px-2" onClick={() => openInEditor(m.id)}>{t("tournamentHost.wpisz_wynik")}</Button>;
                             }
                             return null;
                           })()}
@@ -2179,7 +2143,7 @@ export default function TournamentHost() {
                               size="sm"
                               className="h-7 px-2 shrink-0 text-primary"
                               onClick={() => { setSelectedMatchId(m.id); handleSetInProgress(m.id); }}
-                              title="Ustaw jako aktualny i rozpocznij"
+                              title={t("tournamentHost.ustaw_jako_aktualny_i_rozpocznij")}
                             >
                               <Play className="w-3.5 h-3.5" />
                             </Button>
@@ -2191,10 +2155,10 @@ export default function TournamentHost() {
                 </section>
 
                 {/* Ostatnie wyniki */}
-                <section aria-label="Ostatnie wyniki" className="min-w-0">
-                  <h3 className="mb-2 text-sm font-semibold text-muted-foreground">Ostatnie wyniki</h3>
+                <section aria-label={t("tournamentHost.ostatnie_wyniki")} className="min-w-0">
+                  <h3 className="mb-2 text-sm font-semibold text-muted-foreground">{t("tournamentHost.ostatnie_wyniki")}</h3>
                   {completedMatches.length === 0 ? (
-                    <p className="text-xs text-muted-foreground">Brak zakończonych meczów</p>
+                    <p className="text-xs text-muted-foreground">{t("tournamentHost.brak_zakonczonych_meczow")}</p>
                   ) : (
                     <div className={`grid grid-cols-1 gap-2 ${showResultsSidebar ? "" : "md:grid-cols-2"}`}>
                       {completedMatches.slice(-6).reverse().map((m) => (
@@ -2202,7 +2166,7 @@ export default function TournamentHost() {
                           {m.resultType === "bye" ? (
                             <div className="flex min-w-0 items-center gap-2">
                               <Badge variant="outline" className="text-[10px] px-1.5 shrink-0">R{m.round}</Badge>
-                              <span className="truncate text-sm text-muted-foreground">{m.player1Name} — bye</span>
+                              <span className="truncate text-sm text-muted-foreground">{m.player1Name} {t("tournamentHost.bye")}</span>
                             </div>
                           ) : (
                             <div className="flex items-center gap-2 min-w-0">
@@ -2230,8 +2194,8 @@ export default function TournamentHost() {
                               </span>
                             </div>
                           )}
-                          {m.sets?.length ? <p className="mt-1 text-center text-xs text-muted-foreground tabular-nums" title="Wyniki setów">Sety: {setsText(m.sets)}</p> : null}
-                          {capabilities.canRevertResults && m.resultType !== "bye" && <Button variant="ghost" size="sm" className="mt-1" aria-label={`Popraw wynik: ${m.player1Name} – ${m.player2Name}`} onClick={() => openCorrection(m.id)}>Popraw wynik</Button>}
+                          {m.sets?.length ? <p className="mt-1 text-center text-xs text-muted-foreground tabular-nums" title={t("tournamentHost.wyniki_setow")}>{t("tournamentHost.sety")}{" "}{setsText(m.sets)}</p> : null}
+                          {capabilities.canRevertResults && m.resultType !== "bye" && <Button variant="ghost" size="sm" className="mt-1" aria-label={t("tournamentHost.popraw_wynik_player1name_player2name", { player1Name: m.player1Name, player2Name: m.player2Name })} onClick={() => openCorrection(m.id)}>{t("tournamentHost.popraw_wynik")}</Button>}
                         </div>
                       ))}
                     </div>
@@ -2244,7 +2208,7 @@ export default function TournamentHost() {
             {!isExperimental && postponedMatches.length > 0 && (
               <div>
                 <h3 className="text-sm font-semibold text-orange-400/80 mb-2 flex items-center gap-2">
-                  <Clock className="w-3.5 h-3.5" /> Przełożone ({postponedMatches.length})
+                  <Clock className="w-3.5 h-3.5" /> {t("tournamentHost.przelozone")}{postponedMatches.length})
                 </h3>
                 <div className="bg-card border border-orange-500/20 rounded-lg overflow-hidden divide-y divide-border">
                   {postponedMatches.map((m) => (
@@ -2256,16 +2220,14 @@ export default function TournamentHost() {
                           {m.bestOf && m.bestOf > 1 && <span className="text-[10px] text-muted-foreground/60">{matchLengthTag(m)}</span>}
                         </div>
                         <div className="text-sm truncate">
-                          {m.player1Name || "TBD"} <span className="text-muted-foreground">vs</span> {m.player2Name || "TBD"}
+                          {m.player1Name || t("tournamentHost.tbd")} <span className="text-muted-foreground">{t("tournamentHost.vs")}</span> {m.player2Name || t("tournamentHost.tbd")}
                         </div>
                       </div>
                       <div className="flex gap-2 shrink-0">
                         <Button variant="ghost" size="sm" className="h-7 text-xs text-orange-400 hover:text-orange-300" onClick={() => setSelectedMatchId(m.id)}>
-                          Pokaż
-                        </Button>
+                          {t("tournamentHost.pokaz")}</Button>
                         {capabilities.canUseLegacyMatchTools && <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => handleRestore(m.id)} disabled={updateMatch.isPending}>
-                          <SkipForward className="w-3 h-3 mr-1" /> Przywróć
-                        </Button>}
+                          <SkipForward className="w-3 h-3 mr-1" /> {t("tournamentHost.przywroc")}</Button>}
                       </div>
                     </div>
                   ))}
@@ -2277,7 +2239,7 @@ export default function TournamentHost() {
             {cancelledMatches.length > 0 && (
               <div>
                 <h3 className="text-sm font-semibold text-destructive/70 mb-2 flex items-center gap-2">
-                  <Ban className="w-3.5 h-3.5" /> Anulowane ({cancelledMatches.length})
+                  <Ban className="w-3.5 h-3.5" /> {t("tournamentHost.anulowane")}{cancelledMatches.length})
                 </h3>
                 <div className="bg-card border border-destructive/20 rounded-lg overflow-hidden divide-y divide-border">
                   {cancelledMatches.map((m) => (
@@ -2289,13 +2251,12 @@ export default function TournamentHost() {
                           {m.bestOf && m.bestOf > 1 && <span className="text-[10px] text-muted-foreground/60">{matchLengthTag(m)}</span>}
                         </div>
                         <div className="text-sm truncate">
-                          {m.player1Name || "TBD"} <span className="text-muted-foreground">vs</span> {m.player2Name || "TBD"}
+                          {m.player1Name || t("tournamentHost.tbd")} <span className="text-muted-foreground">{t("tournamentHost.vs")}</span> {m.player2Name || t("tournamentHost.tbd")}
                         </div>
                       </div>
                       <div className="flex gap-2 shrink-0">
                         <Button variant="ghost" size="sm" className="h-7 text-xs text-muted-foreground hover:text-foreground" onClick={() => setSelectedMatchId(m.id)}>
-                          Pokaż
-                        </Button>
+                          {t("tournamentHost.pokaz")}</Button>
                         {capabilities.canCorrectResults && <Button
                           variant="outline"
                           size="sm"
@@ -2303,8 +2264,7 @@ export default function TournamentHost() {
                           onClick={() => handleRestoreCancelled(m.id)}
                           disabled={restoreCancelledMatch.isPending}
                         >
-                          <SkipForward className="w-3 h-3 mr-1" /> Przywróć
-                        </Button>}
+                          <SkipForward className="w-3 h-3 mr-1" /> {t("tournamentHost.przywroc")}</Button>}
                       </div>
                     </div>
                   ))}
@@ -2333,22 +2293,22 @@ export default function TournamentHost() {
               {matchStageGroups.map((stage) => {
                 const stageMatches = matches?.filter((match) => match.stageId === stage.id || (stage.id === null && !match.stageId)) ?? [];
                 if (!stageMatches.length) return null;
-                return <section key={stage.id ?? "legacy"} aria-label={`Mecze: ${stage.name}`}>
+                return <section key={stage.id ?? "legacy"} aria-label={t("tournamentHost.mecze_name", { name: stage.name })}>
                   <h3 className="mb-3 font-semibold">{stage.name}</h3>
                   <div className="space-y-2">
                     {[...stageMatches].sort((a, b) => Number(b.status === "in_progress") - Number(a.status === "in_progress") || a.round - b.round || a.matchNumber - b.matchNumber).map((match) => (
                       <div key={match.id} data-exp-match-state={isExperimental ? match.status : undefined} className={`flex flex-wrap items-center gap-3 rounded-lg border bg-card p-3 ${isExperimental ? "experimental-host-match" : ""} ${match.status === "in_progress" ? "border-secondary/60" : ""}`}>
                         <span className="text-xs text-muted-foreground">R{match.round} · M{match.matchNumber}</span>
                         <span className="min-w-0 flex-1 text-sm font-medium">
-                          <span className={match.winnerId && match.winnerId === match.player1Id ? "font-bold text-primary" : ""}>{match.player1Name ?? "Oczekuje na gracza"}</span>
-                          {" – "}<span className={match.winnerId && match.winnerId === match.player2Id ? "font-bold text-primary" : ""}>{match.player2Name ?? "Oczekuje na gracza"}</span>
+                          <span className={match.winnerId && match.winnerId === match.player1Id ? "font-bold text-primary" : ""}>{match.player1Name ?? t("tournamentHost.oczekuje_na_gracza")}</span>
+                          {" – "}<span className={match.winnerId && match.winnerId === match.player2Id ? "font-bold text-primary" : ""}>{match.player2Name ?? t("tournamentHost.oczekuje_na_gracza")}</span>
                         </span>
                         <span className="font-mono tabular-nums">{match.status === "completed" ? matchResultLabel(match) : `${match.score1 ?? 0}:${match.score2 ?? 0}`}</span>
-                        {match.sets?.length ? <span className="text-xs text-muted-foreground tabular-nums" title="Wyniki setów">({setsText(match.sets)})</span> : null}
-                        <Badge variant="outline" className={match.status === "in_progress" ? "text-secondary border-secondary" : ""}>{MATCH_STATUS_LABELS[match.status] ?? "Nieznany"}</Badge>
+                        {match.sets?.length ? <span className="text-xs text-muted-foreground tabular-nums" title={t("tournamentHost.wyniki_setow")}>({setsText(match.sets)})</span> : null}
+                        <Badge variant="outline" className={match.status === "in_progress" ? "text-secondary border-secondary" : ""}>{MATCH_STATUS_LABELS[match.status] ?? t("tournamentHost.nieznany")}</Badge>
                         {capabilities.canRevertResults && match.status === "completed" && match.resultType !== "bye" ?
-                          <Button variant="outline" size="sm" aria-label={`Popraw wynik: ${match.player1Name} – ${match.player2Name}`} onClick={() => openCorrection(match.id)}>Popraw wynik</Button>
-                          : <Button variant="ghost" size="sm" onClick={() => openInEditor(match.id)}>{isExperimental && match.status !== "cancelled" && match.status !== "postponed" ? "Otwórz w edytorze" : "Pokaż mecz"}</Button>}
+                          <Button variant="outline" size="sm" aria-label={t("tournamentHost.popraw_wynik_player1name_player2name", { player1Name: match.player1Name, player2Name: match.player2Name })} onClick={() => openCorrection(match.id)}>{t("tournamentHost.popraw_wynik")}</Button>
+                          : <Button variant="ghost" size="sm" onClick={() => openInEditor(match.id)}>{isExperimental && match.status !== "cancelled" && match.status !== "postponed" ? t("tournamentHost.otworz_w_edytorze") : t("tournamentHost.pokaz_mecz")}</Button>}
                       </div>
                     ))}
                   </div>
@@ -2364,22 +2324,21 @@ export default function TournamentHost() {
             ) : tournament.format === "single_elimination" ? (
               <div>
                 <p className="mb-4 text-sm text-muted-foreground">
-                  Awans i mistrz wynikają wyłącznie z drabinki. Poniższy bilans jest informacyjny.
-                </p>
+                  {t("tournamentHost.awans_i_mistrz_wynikaja_wylacznie")}</p>
                 <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                   {standings.map((s) => (
                     <div key={s.playerId} className="rounded-lg border bg-card p-4">
                       <div className="flex items-start justify-between gap-3">
                         <div>
                           <div className="font-semibold">{s.playerName}</div>
-                          <div className="text-xs text-muted-foreground">{[s.teamName, s.country].filter(Boolean).join(" · ") || "Uczestnik"}</div>
+                          <div className="text-xs text-muted-foreground">{[s.teamName, s.country].filter(Boolean).join(" · ") || t("tournamentHost.uczestnik")}</div>
                         </div>
-                        <Badge variant="outline">{PLAYER_STATUS_LABELS[s.status] ?? "Nieznany"}</Badge>
+                        <Badge variant="outline">{PLAYER_STATUS_LABELS[s.status] ?? t("tournamentHost.nieznany")}</Badge>
                       </div>
                       <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs text-muted-foreground">
-                        <div><strong className="block text-lg text-foreground">{s.matchWins}-{s.matchLosses}</strong>Mecze</div>
-                        <div><strong className="block text-lg text-foreground">{s.gameWins}:{s.gameLosses}</strong>Gry</div>
-                        <div><strong className="block text-lg text-foreground">{s.gameDiff > 0 ? "+" : ""}{s.gameDiff}</strong>Różnica</div>
+                        <div><strong className="block text-lg text-foreground">{s.matchWins}-{s.matchLosses}</strong>{t("tournamentHost.mecze")}</div>
+                        <div><strong className="block text-lg text-foreground">{s.gameWins}:{s.gameLosses}</strong>{t("tournamentHost.gry")}</div>
+                        <div><strong className="block text-lg text-foreground">{s.gameDiff > 0 ? "+" : ""}{s.gameDiff}</strong>{t("tournamentHost.roznica")}</div>
                       </div>
                     </div>
                   ))}
@@ -2391,15 +2350,15 @@ export default function TournamentHost() {
                   <thead>
                     <tr className="border-b text-left text-xs text-muted-foreground">
                       <th className="py-2 px-3">#</th>
-                      <th className="py-2 px-3">Gracz</th>
-                      {standingsHavePoints(standings) && <th className="py-2 px-3 text-center" title="Punkty ligowe">Pkt</th>}
-                      <th className="py-2 px-3 text-center">Mecze</th>
+                      <th className="py-2 px-3">{t("tournamentHost.gracz")}</th>
+                      {standingsHavePoints(standings) && <th className="py-2 px-3 text-center" title={t("tournamentHost.punkty_ligowe")}>{t("tournamentHost.pkt")}</th>}
+                      <th className="py-2 px-3 text-center">{t("tournamentHost.mecze")}</th>
                       <th className="py-2 px-3 text-center">W</th>
-                      {standingsHavePoints(standings) && <th className="py-2 px-3 text-center" title="Remisy">R</th>}
+                      {standingsHavePoints(standings) && <th className="py-2 px-3 text-center" title={t("tournamentHost.remisy")}>R</th>}
                       <th className="py-2 px-3 text-center">P</th>
-                      <th className="py-2 px-3 text-center">{standings.some((row) => row.setPointsFor != null) ? "Sety" : standingsHavePoints(standings) ? "Bilans" : "Gry"}</th>
-                      {standings.some((row) => row.setPointsFor != null) && <th className="py-2 px-3 text-center" title="Punkty zdobyte i stracone w setach (nie wpływają na kolejność)">Małe pkt</th>}
-                      {(!isExperimental || standings.some((row) => row.buchholz != null)) && <th className="py-2 px-3 text-center">Buchh.</th>}
+                      <th className="py-2 px-3 text-center">{standings.some((row) => row.setPointsFor != null) ? t("tournamentHost.sety_2") : standingsHavePoints(standings) ? t("tournamentHost.bilans") : t("tournamentHost.gry")}</th>
+                      {standings.some((row) => row.setPointsFor != null) && <th className="py-2 px-3 text-center" title={t("tournamentHost.punkty_zdobyte_i_stracone_w")}>{t("tournamentHost.male_pkt")}</th>}
+                      {(!isExperimental || standings.some((row) => row.buchholz != null)) && <th className="py-2 px-3 text-center">{t("tournamentHost.buchh")}</th>}
                       <th className="py-2 px-3 text-center">+/−</th>
                     </tr>
                   </thead>
@@ -2478,11 +2437,11 @@ export default function TournamentHost() {
                 matchRules={setRulesOf(doubleEliminationStage.matchRules ?? null)}
               />
             ) : doubleEliminationStage && doubleEliminationQuery.isPending ? (
-              <div className="rounded-lg border p-6 text-sm text-muted-foreground">Ładowanie drabinki Double Elimination…</div>
+              <div className="rounded-lg border p-6 text-sm text-muted-foreground">{t("tournamentHost.ladowanie_drabinki_double_elimination")}</div>
             ) : doubleEliminationStage && doubleEliminationQuery.error ? (
               <div className="space-y-3 rounded-lg border border-destructive/40 bg-destructive/5 p-6 text-sm text-destructive">
-                <p>Nie udało się pobrać drabinki Double Elimination.</p>
-                <Button type="button" variant="outline" size="sm" onClick={() => void doubleEliminationQuery.refetch()}>Spróbuj ponownie</Button>
+                <p>{t("tournamentHost.nie_udalo_sie_pobrac_drabinki")}</p>
+                <Button type="button" variant="outline" size="sm" onClick={() => void doubleEliminationQuery.refetch()}>{t("tournamentHost.sprobuj_ponownie")}</Button>
               </div>
             ) : bracket ? (
               <BracketView
@@ -2497,8 +2456,7 @@ export default function TournamentHost() {
               />
             ) : (
               <div className="text-center py-12 text-muted-foreground border border-dashed rounded bg-card">
-                Brak drabinki.
-              </div>
+                {t("tournamentHost.brak_drabinki")}</div>
             )}
           </TabsContent>
 
@@ -2508,21 +2466,18 @@ export default function TournamentHost() {
               <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 flex items-start gap-3">
                 <Shield className="w-5 h-5 text-yellow-400 shrink-0 mt-0.5" />
                 <div>
-                  <p className="font-semibold text-yellow-400 text-sm">Panel korekty i historia akcji</p>
+                  <p className="font-semibold text-yellow-400 text-sm">{t("tournamentHost.panel_korekty_i_historia_akcji")}</p>
                   <p className="text-xs text-muted-foreground">
-                    Przycisk „Cofnij" przy ostatniej akcji umożliwia jej bezpieczne wycofanie. Cofnięcie wyniku może wpłynąć na kolejne rundy.
-                  </p>
+                    {t("tournamentHost.przycisk_cofnij_przy_ostatniej_akcji")}</p>
                 </div>
               </div>
 
               <div>
                 <h3 className="font-bold mb-3 flex items-center gap-2">
-                  <History className="w-4 h-4 text-muted-foreground" /> Historia akcji
-                </h3>
+                  <History className="w-4 h-4 text-muted-foreground" /> {t("tournamentHost.historia_akcji")}</h3>
                 {!actionLog || actionLog.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground border border-dashed rounded bg-card">
-                    Brak zarejestrowanych akcji.
-                  </div>
+                    {t("tournamentHost.brak_zarejestrowanych_akcji")}</div>
                 ) : (
                   <div className="space-y-1.5">
                     {actionLog.map((entry) => {
@@ -2550,7 +2505,7 @@ export default function TournamentHost() {
                         >
                           <div className="flex items-center gap-2 min-w-0 flex-1">
                             <span className={`text-sm ${colorClass}`} title={entry.actionType}>{entry.description}</span>
-                            {entry.isUndone && <Badge variant="outline" className="text-xs shrink-0">cofnięta</Badge>}
+                            {entry.isUndone && <Badge variant="outline" className="text-xs shrink-0">{t("tournamentHost.cofnieta_2")}</Badge>}
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
                             <span className="text-xs text-muted-foreground">
@@ -2563,8 +2518,7 @@ export default function TournamentHost() {
                                 className="text-xs border-destructive text-destructive hover:bg-destructive/10"
                                 onClick={() => entry.matchId && openCorrection(entry.matchId)}
                               >
-                                <RotateCcw className="w-3 h-3 mr-1" /> Cofnij wynik
-                              </Button>
+                                <RotateCcw className="w-3 h-3 mr-1" /> {t("tournamentHost.cofnij_wynik")}</Button>
                             )}
                           </div>
                         </div>
@@ -2587,23 +2541,22 @@ export default function TournamentHost() {
             const needsDEState = correctionStage?.format === "double_elimination";
             return <>
               <DialogHeader>
-                <DialogTitle>Cofnąć wynik meczu {match?.player1Name} – {match?.player2Name}?</DialogTitle>
+                <DialogTitle>{t("tournamentHost.cofnac_wynik_meczu")}{" "}{match?.player1Name} – {match?.player2Name}?</DialogTitle>
                 <DialogDescription>
-                  Zapisany wynik: {match ? matchResultLabel(match) : "N/C"}{match?.sets?.length ? ` (sety ${setsText(match.sets)})` : ""}.
-                  {" "}Po cofnięciu wpiszesz i zapiszesz poprawny wynik. Ranking i awans zostaną przeliczone.
-                  {downstream !== undefined && downstream > 0
-                    ? ` Cofnięcie unieważni także ${downstream} późniejszych wyników i powiązane wybory postaci.`
-                    : " Kolejne mecze lub rozpoczęty następny etap mogą zablokować cofnięcie. System sprawdzi te zależności."}
+                  {t("tournamentHost.zapisany_wynik")}{" "}{match ? matchResultLabel(match) : t("tournamentHost.n_c")}{match?.sets?.length ? t("tournamentHost.sety_v0", { v0: setsText(match.sets) }) : ""}.
+                  {" "}{t("tournamentHost.po_cofnieciu_wpiszesz_i_zapiszesz")}{downstream !== undefined && downstream > 0
+                    ? t("tournamentHost.cofniecie_uniewazni_takze_downstream_poz", { downstream: downstream })
+                    : t("tournamentHost.kolejne_mecze_lub_rozpoczety_nastepny")}
                 </DialogDescription>
               </DialogHeader>
               {actionError && <p className="text-sm text-destructive">{actionError.message}</p>}
-              {needsDEState && correctionDE.isPending && <p role="status">Sprawdzanie zależnych wyników…</p>}
-              {needsDEState && correctionDE.isError && <p className="text-sm text-destructive">Nie udało się sprawdzić zależnych wyników. <Button variant="link" onClick={() => void correctionDE.refetch()}>Ponów sprawdzenie</Button></p>}
-              {match?.status !== "completed" && <p className="text-sm">Ten mecz nie ma już zapisanego wyniku do cofnięcia.</p>}
+              {needsDEState && correctionDE.isPending && <p role="status">{t("tournamentHost.sprawdzanie_zaleznych_wynikow")}</p>}
+              {needsDEState && correctionDE.isError && <p className="text-sm text-destructive">{t("tournamentHost.nie_udalo_sie_sprawdzic_zaleznych")}{" "}<Button variant="link" onClick={() => void correctionDE.refetch()}>{t("tournamentHost.ponow_sprawdzenie")}</Button></p>}
+              {match?.status !== "completed" && <p className="text-sm">{t("tournamentHost.ten_mecz_nie_ma_juz")}</p>}
               <DialogFooter>
-                <Button variant="outline" disabled={hostPending} onClick={() => setRevertConfirm(null)}>Zachowaj wynik</Button>
+                <Button variant="outline" disabled={hostPending} onClick={() => setRevertConfirm(null)}>{t("tournamentHost.zachowaj_wynik")}</Button>
                 <Button variant="destructive" disabled={hostPending || dataError || !match || match.status !== "completed" || (needsDEState && (correctionDE.isFetching || correctionDE.isError || downstream === undefined))} onClick={() => match && handleRevert(match.id)}>
-                  {revertMatch.isPending ? "Cofanie i odświeżanie…" : "Cofnij wynik i przejdź do wpisywania"}
+                  {revertMatch.isPending ? t("tournamentHost.cofanie_i_odswiezanie") : t("tournamentHost.cofnij_wynik_i_przejdz_do")}
                 </Button>
               </DialogFooter>
             </>;
@@ -2630,16 +2583,14 @@ export default function TournamentHost() {
         <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Share2 className="w-5 h-5 text-primary" /> Udostępnij turniej
-            </DialogTitle>
+              <Share2 className="w-5 h-5 text-primary" /> {t("tournamentHost.udostepnij_turniej")}</DialogTitle>
             <DialogDescription>
-              Linki do widoku dla widzów i panelu prowadzącego.
-            </DialogDescription>
+              {t("tournamentHost.linki_do_widoku_dla_widzow")}</DialogDescription>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
               {/* QW-04: the label and note follow the tournament's visibility (it used to call every link public). */}
-              <Label className="text-xs text-muted-foreground uppercase tracking-wide">{shareRule.kind === "public" ? "Widok widzów (publiczny)" : shareRule.kind === "password" ? "Widok widzów (z hasłem widza)" : "Link turnieju (widzowie nie mają dostępu)"}</Label>
+              <Label className="text-xs text-muted-foreground uppercase tracking-wide">{shareRule.kind === "public" ? t("tournamentHost.widok_widzow_publiczny") : shareRule.kind === "password" ? t("tournamentHost.widok_widzow_z_haslem_widza") : t("tournamentHost.link_turnieju_widzowie_nie_maja")}</Label>
               {/* QW-06b: the shared copy button (feedback + manual fallback instead of a silent failure) and the share sheet */}
               <div className="flex flex-wrap items-center gap-2">
                 <Input
@@ -2647,30 +2598,29 @@ export default function TournamentHost() {
                   value={`${window.location.origin}${tournamentHref(id, isExperimental)}`}
                   className="min-w-0 flex-1 text-xs font-mono bg-muted/40"
                 />
-                <CopyLinkButton text={`${window.location.origin}${tournamentHref(id, isExperimental)}`} label="Kopiuj link widza" />
+                <CopyLinkButton text={`${window.location.origin}${tournamentHref(id, isExperimental)}`} label={t("tournamentHost.kopiuj_link_widza")} />
                 {shareRule.kind !== "closed" && (
-                  <ShareLinkButton target={{ url: `${window.location.origin}${tournamentHref(id, isExperimental)}`, title: tournament.name, text: shareText(shareRule.kind, tournament.name) }} label="Udostępnij link widza" />
+                  <ShareLinkButton target={{ url: `${window.location.origin}${tournamentHref(id, isExperimental)}`, title: tournament.name, text: shareText(shareRule.kind, tournament.name) }} label={t("tournamentHost.udostepnij_link_widza")} />
                 )}
               </div>
               <p className="text-xs text-muted-foreground">{shareRule.note}</p>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-xs text-muted-foreground uppercase tracking-wide">Panel prowadzącego</Label>
+              <Label className="text-xs text-muted-foreground uppercase tracking-wide">{t("tournamentHost.panel_prowadzacego")}</Label>
               <div className="flex flex-wrap items-center gap-2">
                 <Input
                   readOnly
                   value={`${window.location.origin}${tournamentHref(id, isExperimental, "/host")}`}
                   className="min-w-0 flex-1 text-xs font-mono bg-muted/40"
                 />
-                <CopyLinkButton text={`${window.location.origin}${tournamentHref(id, isExperimental, "/host")}`} label="Kopiuj link panelu prowadzącego" />
+                <CopyLinkButton text={`${window.location.origin}${tournamentHref(id, isExperimental, "/host")}`} label={t("tournamentHost.kopiuj_link_panelu_prowadzacego")} />
               </div>
               <p className="text-xs text-muted-foreground">
-                Dostęp do mutacji wymaga tokenu organizatora albo aktywnej sesji wsparcia. Sam link nie nadaje uprawnień.
-              </p>
+                {t("tournamentHost.dostep_do_mutacji_wymaga_tokenu")}</p>
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setShowShareDialog(false)}>Zamknij</Button>
+            <Button variant="outline" onClick={() => setShowShareDialog(false)}>{t("tournamentHost.zamknij")}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

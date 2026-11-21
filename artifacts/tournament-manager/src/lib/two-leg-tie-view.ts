@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 /**
  * V5.10 · two-legged ties (dwumecz) for the screens: the same calculation as the API (`@workspace/match-rules`),
  * read out the way people say it — each leg home side first, then the aggregate and what it means.
@@ -31,13 +32,13 @@ export function isTwoLegTie(match: MatchLike | null | undefined): match is Match
 }
 
 export const TIE_STATE_LABELS: Record<string, string> = {
-  not_started: "Przed pierwszym spotkaniem",
-  first_leg_played: "Po pierwszym spotkaniu",
-  awaiting_decision: "Czeka na rozstrzygnięcie — awans wstrzymany",
-  decided: "Rozstrzygnięty",
+  get not_started() { return t("twoLegTieView.przed_pierwszym_spotkaniem"); },
+  get first_leg_played() { return t("twoLegTieView.po_pierwszym_spotkaniu"); },
+  get awaiting_decision() { return t("twoLegTieView.czeka_na_rozstrzygniecie_awans_wstrzyman"); },
+  get decided() { return t("twoLegTieView.rozstrzygniety"); },
 };
 
-const names = (match: MatchLike) => ({ name1: match.player1Name ?? "Uczestnik 1", name2: match.player2Name ?? "Uczestnik 2" });
+const names = (match: MatchLike) => ({ name1: match.player1Name ?? t("twoLegTieView.uczestnik_1"), name2: match.player2Name ?? t("twoLegTieView.uczestnik_2") });
 
 const legScores = (match: MatchLike): LegScore[] => (match.legs ?? []).map((leg) => ({
   leg: leg.leg as 1 | 2, status: leg.status === "completed" ? "completed" : "pending", score1: leg.score1, score2: leg.score2,
@@ -62,7 +63,7 @@ export function tieLegRows(match: MatchLike): TieLegRow[] {
     const homeFirst = legScoreHomeFirst({ leg: leg.leg as 1 | 2, status: leg.status === "completed" ? "completed" : "pending", score1: leg.score1, score2: leg.score2 });
     return {
       leg: leg.leg as 1 | 2,
-      label: `${leg.leg}. spotkanie`,
+      label: t("twoLegTieView.leg_spotkanie", { leg: leg.leg }),
       homeName: leg.leg === 1 ? people.name1 : people.name2,
       awayName: leg.leg === 1 ? people.name2 : people.name1,
       homeScore: homeFirst.home,
@@ -97,8 +98,8 @@ export function tieScoreText(match: MatchLike): string | null {
 }
 
 export function formatLegDate(iso: string | null): string {
-  if (!iso) return "bez terminu";
+  if (!iso) return t("twoLegTieView.bez_terminu");
   const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return "bez terminu";
+  if (Number.isNaN(date.getTime())) return t("twoLegTieView.bez_terminu");
   return date.toLocaleString("pl-PL", { weekday: "short", day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" });
 }

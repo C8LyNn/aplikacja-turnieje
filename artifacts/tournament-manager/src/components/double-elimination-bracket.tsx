@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { useMemo, useRef, useState } from "react";
 import { Link, useLocation } from "wouter";
 import { isExperimentalTournamentPath } from "@/features/experimental-tournaments/experimental-tournament-routing";
@@ -72,17 +73,16 @@ function ScoreForm({
       <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
         <span className="font-medium">{match.name}</span>
         {match.status === "completed" ? (
-          <Badge variant="secondary">Zakończony</Badge>
+          <Badge variant="secondary">{t("doubleEliminationBracket.zakonczony")}</Badge>
         ) : (
           <Badge variant="outline">
-            BO{match.bestOf ?? 1} — do {winsRequired} wygranych
-          </Badge>
+            {t("doubleEliminationBracket.bo")}{match.bestOf ?? 1} {t("doubleEliminationBracket.do")}{" "}{winsRequired} {t("doubleEliminationBracket.wygranych")}</Badge>
         )}
       </div>
       {match.status === "ready" && match.matchId != null && (
         <div className="grid grid-cols-[1fr_1fr_auto] gap-2">
           <Input
-            aria-label={`Wynik 1 — ${match.name}`}
+            aria-label={t("doubleEliminationBracket.wynik_1_name", { name: match.name })}
             onFocus={onBegin}
             type="number"
             min={0}
@@ -92,7 +92,7 @@ function ScoreForm({
             onChange={e => onScores([Number(e.target.value), scores[1]])}
           />
           <Input
-            aria-label={`Wynik 2 — ${match.name}`}
+            aria-label={t("doubleEliminationBracket.wynik_2_name", { name: match.name })}
             onFocus={onBegin}
             type="number"
             min={0}
@@ -102,12 +102,11 @@ function ScoreForm({
             onChange={e => onScores([scores[0], Number(e.target.value)])}
           />
           <Button type="button" size="sm" disabled={pending} onClick={onComplete}>
-            Zapisz wynik
-          </Button>
+            {t("doubleEliminationBracket.zapisz_wynik")}</Button>
         </div>
       )}
       {match.status === "completed" && match.matchId != null && (
-        <p className="text-sm font-mono">Zapisany wynik: {match.score1}:{match.score2}</p>
+        <p className="text-sm font-mono">{t("doubleEliminationBracket.zapisany_wynik")}{" "}{match.score1}:{match.score2}</p>
       )}
       {match.status === "completed" && match.matchId != null && (
         <Button
@@ -118,8 +117,7 @@ function ScoreForm({
           disabled={pending}
           onClick={onRevert}
         >
-          Cofnij / skoryguj wynik
-        </Button>
+          {t("doubleEliminationBracket.cofnij_skoryguj_wynik")}</Button>
       )}
     </div>
   );
@@ -155,7 +153,7 @@ export function DoubleEliminationBracket({
     onSuccess: () => refresh(),
     onError: async (reason: unknown) => {
       const failure = matchOperationError(reason);
-      setError(`${failure.message}${failure.code ? ` Kod diagnostyczny: ${failure.code}` : ""}`);
+      setError(`${failure.message}${failure.code ? t("doubleEliminationBracket.kod_diagnostyczny_code", { code: failure.code }) : ""}`);
       if (failure.conflict) await refresh();
     },
   };
@@ -199,7 +197,7 @@ export function DoubleEliminationBracket({
         onSuccess: () => {
           resultDrafts.discard(match.matchId!);
           setScores(cur => { const n = { ...cur }; delete n[match.matchId!]; return n; });
-          setSuccess("Wynik zapisany. Stan drabinki został odświeżony.");
+          setSuccess(t("doubleEliminationBracket.wynik_zapisany_stan_drabinki_zostal"));
         },
       },
     );
@@ -209,9 +207,9 @@ export function DoubleEliminationBracket({
     if (match.matchId == null || pending) return;
     if (
       !window.confirm(
-        `Cofnąć wynik meczu ${match.slots.map(key => key ? participants.get(key)?.name ?? key : "Oczekuje na gracza").join(" – ")} (${match.score1}:${match.score2})? ` +
-        (match.downstreamResultCount > 0 ? `Zostanie unieważnionych ${match.downstreamResultCount} późniejszych wyników i powiązane wybory postaci. ` : "Ranking i awans zostaną przeliczone. ") +
-        "Następnie wpiszesz i zapiszesz poprawny wynik.",
+        t("doubleEliminationBracket.cofnac_wynik_meczu_v0_score1", { v0: match.slots.map(key => key ? participants.get(key)?.name ?? key : t("doubleEliminationBracket.oczekuje_na_gracza")).join(" – "), score1: match.score1, score2: match.score2 }) +
+        (match.downstreamResultCount > 0 ? t("doubleEliminationBracket.zostanie_uniewaznionych_downstreamresult", { downstreamResultCount: match.downstreamResultCount }) : t("doubleEliminationBracket.ranking_i_awans_zostana_przeliczone")) +
+        t("doubleEliminationBracket.nastepnie_wpiszesz_i_zapiszesz_poprawny"),
       )
     ) return;
     setError(undefined);
@@ -223,7 +221,7 @@ export function DoubleEliminationBracket({
         onSuccess: () => {
           resultDrafts.discard(match.matchId!);
           setScores(current => { const next = { ...current }; delete next[match.matchId!]; return next; });
-          setSuccess("Wynik cofnięty. Wpisz poprawny wynik w formularzu tego meczu.");
+          setSuccess(t("doubleEliminationBracket.wynik_cofniety_wpisz_poprawny_wynik"));
         },
       },
     );
@@ -232,14 +230,14 @@ export function DoubleEliminationBracket({
   const resetStage = () => {
     const completed = state.matches.filter(m => m.status === "completed").length;
     if (!window.confirm(
-      `Reset usunie ${completed} zapisanych wyników, powiązane game-picki i odtworzy drabinkę od początku. ` +
-      "Konfiguracja etapu pozostanie bez zmian. Kontynuować?",
+      t("doubleEliminationBracket.reset_usunie_completed_zapisanych_wyniko", { completed: completed }) +
+      t("doubleEliminationBracket.konfiguracja_etapu_pozostanie_bez_zmian"),
     )) return;
     setError(undefined);
     reset.mutate(
       { id: tournamentId, stageId, data: { expectedRevision: state.revision } },
       {
-        onSuccess: () => { Object.values(resultDrafts.drafts).forEach(match => resultDrafts.discard(match.id)); setScores({}); setSuccess("Stan drabinki został odświeżony."); },
+        onSuccess: () => { Object.values(resultDrafts.drafts).forEach(match => resultDrafts.discard(match.id)); setScores({}); setSuccess(t("doubleEliminationBracket.stan_drabinki_zostal_odswiezony")); },
       },
     );
   };
@@ -256,15 +254,15 @@ export function DoubleEliminationBracket({
     : [];
 
   return (
-    <div className="space-y-4" aria-label="Drabinka podwójnej eliminacji">
+    <div className="space-y-4" aria-label={t("doubleEliminationBracket.drabinka_podwojnej_eliminacji")}>
       {/* Top bar */}
       {/* QW-01: both groups wrap, so the toolbar never widens the page on a phone (it pushed 360 px screens sideways). */}
       <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
         <div className="flex min-w-0 flex-wrap items-center gap-2 text-sm text-muted-foreground">
           <Shield className="h-4 w-4" />
-          <span>Uczestnik odpada po drugiej porażce.</span>
+          <span>{t("doubleEliminationBracket.uczestnik_odpada_po_drugiej_porazce")}</span>
           {/* V5.8: the state revision is an operator detail — Experimental viewers do not see it. */}
-          {(!experimentalView || canManage) && <Badge variant="outline">Rewizja {state.revision}</Badge>}
+          {(!experimentalView || canManage) && <Badge variant="outline">{t("doubleEliminationBracket.rewizja")}{" "}{state.revision}</Badge>}
         </div>
         <div className="flex min-w-0 flex-wrap items-center gap-2">
           {/* Finals position toggle */}
@@ -275,17 +273,16 @@ export function DoubleEliminationBracket({
               size="sm"
               className="gap-1.5 text-xs"
               onClick={() => setFinalsPos(v => v === "upper" ? "between" : "upper")}
-              title={experimentalView ? "Zmień pozycję wielkiego finału" : "Zmień pozycję Grand Finału"}
+              title={experimentalView ? t("doubleEliminationBracket.zmien_pozycje_wielkiego_finalu") : t("doubleEliminationBracket.zmien_pozycje_grand_finalu")}
             >
               <LayoutTemplate className="h-3.5 w-3.5" />
-              Finały: {finalsPos === "upper" ? (experimentalView ? "przy drabince wygranych" : "przy Upper") : "pomiędzy"}
+              {t("doubleEliminationBracket.finaly")}{" "}{finalsPos === "upper" ? (experimentalView ? t("doubleEliminationBracket.przy_drabince_wygranych") : t("doubleEliminationBracket.przy_upper")) : t("doubleEliminationBracket.pomiedzy")}
             </Button>
           )}
           {canReset && (
             <Button type="button" variant="outline" size="sm" disabled={pending} onClick={resetStage}>
               <RotateCcw className="mr-2 h-4 w-4" />
-              Resetuj etap
-            </Button>
+              {t("doubleEliminationBracket.resetuj_etap")}</Button>
           )}
         </div>
       </div>
@@ -295,8 +292,8 @@ export function DoubleEliminationBracket({
           {error}
         </div>
       )}
-      {canManage && canonical.isError && <div role="alert">Nie udało się pobrać aktualnych meczów. <Button onClick={() => void canonical.refetch()}>Spróbuj ponownie</Button></div>}
-      {pending && <p role="status" className="text-sm">Zapisywanie i odświeżanie drabinki…</p>}
+      {canManage && canonical.isError && <div role="alert">{t("doubleEliminationBracket.nie_udalo_sie_pobrac_aktualnych")}{" "}<Button onClick={() => void canonical.refetch()}>{t("doubleEliminationBracket.sprobuj_ponownie")}</Button></div>}
+      {pending && <p role="status" className="text-sm">{t("doubleEliminationBracket.zapisywanie_i_odswiezanie_drabinki")}</p>}
       {success && <p role="status" className="text-sm text-primary">{success}</p>}
 
       {champion && (
@@ -304,7 +301,7 @@ export function DoubleEliminationBracket({
           <CardContent className="flex items-center gap-3 p-4">
             <Trophy className="h-6 w-6 text-primary" />
             <div>
-              <p className="text-xs uppercase tracking-wide text-muted-foreground">Zwycięzca etapu</p>
+              <p className="text-xs uppercase tracking-wide text-muted-foreground">{t("doubleEliminationBracket.zwyciezca_etapu")}</p>
               <p className="font-bold">#{champion.seed} {champion.name}</p>
             </div>
           </CardContent>
@@ -324,18 +321,18 @@ export function DoubleEliminationBracket({
       {/* V5.6: the bracket opens the one match editor instead of keeping its own result form. */}
       {opensEditor && actionableMatches.length > 0 && (
         <div className="space-y-2">
-          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Mecze do prowadzenia</p>
-          <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3" aria-label="Mecze drabinki do prowadzenia">
+          <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("doubleEliminationBracket.mecze_do_prowadzenia")}</p>
+          <ul className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3" aria-label={t("doubleEliminationBracket.mecze_drabinki_do_prowadzenia")}>
             {actionableMatches.map(match => {
               const current = canonical.data?.find(candidate => candidate.id === match.matchId);
               const names = current ? `${current.player1Name ?? "?"} – ${current.player2Name ?? "?"}`
-                : match.slots.map(key => key ? participants.get(key)?.name ?? key : "Oczekuje na gracza").join(" – ");
+                : match.slots.map(key => key ? participants.get(key)?.name ?? key : t("doubleEliminationBracket.oczekuje_na_gracza")).join(" – ");
               const done = (current?.status ?? match.status) === "completed";
-              const label = done ? "Popraw w edytorze meczu" : "Wpisz wynik w edytorze meczu";
+              const label = done ? t("doubleEliminationBracket.popraw_w_edytorze_meczu") : t("doubleEliminationBracket.wpisz_wynik_w_edytorze_meczu");
               return <li key={match.matchKey} className="flex flex-wrap items-center gap-2 rounded-lg border bg-card p-3">
                 <span className="min-w-0 flex-1">
                   <span className="block text-sm font-semibold">{names}</span>
-                  <span className="block text-xs text-muted-foreground">{deDisplayName(match.name, experimentalView)} · {done ? `wynik ${current?.score1 ?? match.score1}:${current?.score2 ?? match.score2}` : matchRules ? `sety do ${matchRules.setsToWin}` : `BO${match.bestOf ?? 1}`}</span>
+                  <span className="block text-xs text-muted-foreground">{deDisplayName(match.name, experimentalView)} · {done ? t("doubleEliminationBracket.wynik_v0_v1", { v0: current?.score1 ?? match.score1, v1: current?.score2 ?? match.score2 }) : matchRules ? t("doubleEliminationBracket.sety_do_setstowin", { setsToWin: matchRules.setsToWin }) : t("doubleEliminationBracket.bo_v0", { v0: match.bestOf ?? 1 })}</span>
                 </span>
                 {onOpenMatch
                   ? <Button type="button" size="sm" variant={done ? "outline" : "default"} onClick={() => onOpenMatch(match.matchId!)}>{label}</Button>
@@ -350,8 +347,7 @@ export function DoubleEliminationBracket({
       {!opensEditor && actionableMatches.length > 0 && (
         <div className="space-y-2">
           <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Zarządzanie wynikami
-          </p>
+            {t("doubleEliminationBracket.zarzadzanie_wynikami")}</p>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {actionableMatches.map(match => {
               const current = canonical.data?.find(candidate => candidate.id === match.matchId);
@@ -365,7 +361,7 @@ export function DoubleEliminationBracket({
               return <div key={match.matchKey}>
                 <ScoreForm
                   match={editing}
-                  playerNames={current ? `${current.player1Name} – ${current.player2Name}` : match.slots.map(key => key ? participants.get(key)?.name ?? key : "Oczekuje na gracza").join(" – ")}
+                  playerNames={current ? `${current.player1Name} – ${current.player2Name}` : match.slots.map(key => key ? participants.get(key)?.name ?? key : t("doubleEliminationBracket.oczekuje_na_gracza")).join(" – ")}
                   pending={pending || !current || canonical.isError || !!stale}
                   scores={stale ? [current?.score1 ?? 0, current?.score2 ?? 0] : scores[match.matchId!] ?? [current?.score1 ?? 0, current?.score2 ?? 0]}
                   onBegin={() => { if (current) resultDrafts.capture(current); }}
@@ -374,11 +370,11 @@ export function DoubleEliminationBracket({
                   onRevert={() => revertCanonicalMatch(match)}
                 />
                 {stale && <div role="status" className="text-sm">
-                  <p>Nieaktualny wynik roboczy: {draft?.player1Name} – {draft?.player2Name}, {scores[match.matchId!]?.[0] ?? 0}:{scores[match.matchId!]?.[1] ?? 0}. Sprawdź aktualny mecz przed nową edycją.</p>
+                  <p>{t("doubleEliminationBracket.nieaktualny_wynik_roboczy")}{" "}{draft?.player1Name} – {draft?.player2Name}, {scores[match.matchId!]?.[0] ?? 0}:{scores[match.matchId!]?.[1] ?? 0}{t("doubleEliminationBracket.sprawdz_aktualny_mecz_przed_nowa")}</p>
                   <Button disabled={pending || canonical.isError} onClick={() => {
                     resultDrafts.discard(current.id);
                     setScores(previous => { const next = { ...previous }; delete next[match.matchId!]; return next; });
-                  }}>Odrzuć wynik roboczy</Button>
+                  }}>{t("doubleEliminationBracket.odrzuc_wynik_roboczy")}</Button>
                 </div>}
               </div>;
             })}

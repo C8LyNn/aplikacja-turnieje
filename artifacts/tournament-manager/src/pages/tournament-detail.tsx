@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import {
   ParticipantFieldChips,
   ParticipantFieldInputs,
@@ -94,11 +95,11 @@ import { TwoLegTieSummary } from "@/components/two-leg-tie";
 import { TournamentVisibilityControl } from "@/components/tournament-visibility-control";
 
 const FORMAT_LABELS: Record<string, string> = {
-  single_elimination: "Drabinka eliminacyjna",
-  swiss: "System szwajcarski",
-  round_robin: "Każdy z każdym",
-  group_stage: "Faza grupowa",
-  double_elimination: "Podwójna eliminacja",
+  get single_elimination() { return t("tournamentDetail.drabinka_eliminacyjna"); },
+  get swiss() { return t("tournamentDetail.system_szwajcarski"); },
+  get round_robin() { return t("tournamentDetail.kazdy_z_kazdym"); },
+  get group_stage() { return t("tournamentDetail.faza_grupowa"); },
+  get double_elimination() { return t("tournamentDetail.podwojna_eliminacja"); },
 };
 
 export default function TournamentDetail() {
@@ -372,12 +373,12 @@ export default function TournamentDetail() {
   const handleMutationError = (e: any, fallback?: string) => {
     if (e?.status === 403) {
       toast({
-        title: "Brak uprawnień",
-        description: "Zaloguj się jako organizator lub wsparcie, aby wykonać tę akcję.",
+        title: t("tournamentDetail.brak_uprawnien"),
+        description: t("tournamentDetail.zaloguj_sie_jako_organizator_lub"),
         variant: "destructive",
       });
     } else {
-      toast({ title: "Błąd", description: fallback ?? e?.message, variant: "destructive" });
+      toast({ title: t("tournamentDetail.blad"), description: fallback ?? e?.message, variant: "destructive" });
     }
   };
 
@@ -386,7 +387,7 @@ export default function TournamentDetail() {
     initialStartLock.current = true;
     startTournament.mutate({ id }, {
       onSuccess: () => {
-        toast({ title: "Turniej wystartował!" });
+        toast({ title: t("tournamentDetail.turniej_wystartowal") });
       },
     });
   };
@@ -396,15 +397,15 @@ export default function TournamentDetail() {
     setIsExporting(true);
     try {
       const backup = await exportTournament(id);
-      const fileName = `${tournament?.name?.replace(/[^a-z0-9]/gi, "_") ?? "turniej"}_backup_${new Date().toISOString().slice(0, 10)}.json`;
+      const fileName = `${tournament?.name?.replace(/[^a-z0-9]/gi, "_") ?? t("tournamentDetail.turniej_2")}_backup_${new Date().toISOString().slice(0, 10)}.json`;
       const blob = new Blob([JSON.stringify(backup, null, 2)], { type: "application/json" });
       const url = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url; a.download = fileName; a.click();
       URL.revokeObjectURL(url);
-      toast({ title: "Backup zapisany", description: fileName });
+      toast({ title: t("tournamentDetail.backup_zapisany"), description: fileName });
     } catch {
-      toast({ title: "Błąd eksportu", description: "Nie udało się pobrać danych turnieju.", variant: "destructive" });
+      toast({ title: t("tournamentDetail.blad_eksportu"), description: t("tournamentDetail.nie_udalo_sie_pobrac_danych"), variant: "destructive" });
     } finally {
       setIsExporting(false);
     }
@@ -416,7 +417,7 @@ export default function TournamentDetail() {
     const file = e.target.files?.[0];
     if (!file) return;
     if (!file.name.endsWith(".json")) {
-      setImportError("Nieprawidłowy format pliku. Wybierz plik .json z backupem TM_SYS.");
+      setImportError(t("tournamentDetail.nieprawidlowy_format_pliku_wybierz_plik"));
       return;
     }
     const reader = new FileReader();
@@ -435,15 +436,15 @@ export default function TournamentDetail() {
     if (!importPreview) return;
     const privateOnline = importPreview.tournament?.visibility === "private_online";
     if (restoreOrganizerPassword.length < 8) {
-      setImportError("Nowe hasło organizatora musi mieć co najmniej 8 znaków.");
+      setImportError(t("tournamentDetail.nowe_haslo_organizatora_musi_miec"));
       return;
     }
     if (privateOnline && restoreViewerPassword.length < 8) {
-      setImportError("Dla private_online nowe hasło widza musi mieć co najmniej 8 znaków.");
+      setImportError(t("tournamentDetail.dla_private_online_nowe_haslo"));
       return;
     }
     if (restoreSupportPassword.length > 0 && restoreSupportPassword.length < 8) {
-      setImportError("Nowe hasło wsparcia musi mieć co najmniej 8 znaków.");
+      setImportError(t("tournamentDetail.nowe_haslo_wsparcia_musi_miec"));
       return;
     }
     setImportPending(true);
@@ -463,15 +464,15 @@ export default function TournamentDetail() {
         storeOrgToken(result.tournament.id, result.organizerToken);
         setActiveOrganizerToken(result.organizerToken);
         toast({
-          title: "Backup przywrócony",
-          description: `Turniej „${result.tournament.name}" — ${result.playersImported} graczy, ${result.matchesImported} meczów.`,
+          title: t("tournamentDetail.backup_przywrocony"),
+          description: t("tournamentDetail.turniej_name_playersimported_graczy_matc", { name: result.tournament.name, playersImported: result.playersImported, matchesImported: result.matchesImported }),
         });
         // Navigate to the new tournament
         window.location.href = tournamentHref(result.tournament.id, isExperimental);
       },
       onError: (e: any) => {
         setImportPending(false);
-        setImportError(e?.message ?? "Błąd podczas importu. Spróbuj ponownie.");
+        setImportError(e?.message ?? t("tournamentDetail.blad_podczas_importu_sprobuj_ponownie"));
       },
     });
   };
@@ -485,13 +486,13 @@ export default function TournamentDetail() {
     // Frontend duplicate check (fast, avoids round-trip)
     const existingNames = players?.map((p) => p.name.trim().toLowerCase()) ?? [];
     if (existingNames.includes(trimmedName.toLowerCase())) {
-      setAddPlayerError(`Zawodnik o nicku „${trimmedName}" już istnieje w tym turnieju.`);
+      setAddPlayerError(t("tournamentDetail.zawodnik_o_nicku_trimmedname_juz", { trimmedName: trimmedName }));
       return;
     }
 
     const fieldsMissing = isExperimental ? missingRequired(participantFields, newPlayerFields) : [];
     if (fieldsMissing.length) {
-      setAddPlayerError(`Uzupełnij: ${fieldsMissing.map((field) => field.label).join(", ")}.`);
+      setAddPlayerError(t("tournamentDetail.uzupelnij_v0", { v0: fieldsMissing.map((field) => field.label).join(", ") }));
       return;
     }
 
@@ -513,7 +514,7 @@ export default function TournamentDetail() {
         void invalidateRoster();
       },
       onError: (err: any) => {
-        const msg: string = err?.data?.error ?? err?.message ?? "Błąd podczas dodawania gracza";
+        const msg: string = err?.data?.error ?? err?.message ?? t("tournamentDetail.blad_podczas_dodawania_gracza");
         const problems: Array<{ message: string }> | undefined = err?.data?.problems;
         if (problems?.length) {
           setAddPlayerError(problems.map((problem) => problem.message).join(" "));
@@ -567,7 +568,7 @@ export default function TournamentDetail() {
       onSuccess: () => {
         setEditingPlayerId(null);
         void invalidateRoster();
-        toast({ title: "Gracz zaktualizowany" });
+        toast({ title: t("tournamentDetail.gracz_zaktualizowany") });
       },
       onError: (e: any) => handleMutationError(e),
     });
@@ -588,7 +589,7 @@ export default function TournamentDetail() {
         setCsvResult(result);
         void invalidateRoster();
       },
-      onError: (e: any) => handleMutationError(e, "Błąd importu CSV"),
+      onError: (e: any) => handleMutationError(e, t("tournamentDetail.blad_importu_csv")),
     });
   };
 
@@ -619,7 +620,7 @@ export default function TournamentDetail() {
     new Promise<BulkImportOutcome>((resolve, reject) => {
       importPlayers.mutate({ id, data: { csv, mode } }, {
         onSuccess: (result) => { void invalidateRoster(); resolve(result as BulkImportOutcome); },
-        onError: (e: any) => { handleMutationError(e, "Błąd dodawania listy"); reject(e); },
+        onError: (e: any) => { handleMutationError(e, t("tournamentDetail.blad_dodawania_listy")); reject(e); },
       });
     });
 
@@ -636,21 +637,21 @@ export default function TournamentDetail() {
   if (!tournament && accessDeniedCode) {
     const viewerMayLogin = accessDeniedCode === "VIEWER_PASSWORD_REQUIRED" && role === "fan";
     const supportMayLogin = role === "support";
-    const tournamentLabel = `Turniej #${id}`;
+    const tournamentLabel = t("tournamentDetail.turniej_id", { id: id });
     return (
       <Layout>
         <div className="flex min-h-[50vh] flex-col items-center justify-center gap-4 text-center">
           <Lock className="w-10 h-10 text-muted-foreground" />
-          <h1 className="text-xl font-semibold">Turniej prywatny</h1>
+          <h1 className="text-xl font-semibold">{t("tournamentDetail.turniej_prywatny")}</h1>
           <p className="text-sm text-muted-foreground max-w-sm">
             {accessDeniedCode === "PRIVATE_OFFLINE"
-              ? "Dostęp wymaga zalogowania jako organizator lub wsparcie."
-              : "Podaj hasło widza albo zaloguj się jako organizator lub wsparcie."}
+              ? t("tournamentDetail.dostep_wymaga_zalogowania_jako_organizat")
+              : t("tournamentDetail.podaj_haslo_widza_albo_zaloguj")}
           </p>
           <div className="flex flex-wrap justify-center gap-2">
-            {viewerMayLogin && <Button onClick={() => setShowViewerModal(true)}>Podaj hasło widza</Button>}
-            <Button onClick={() => setShowOrgModal(true)}>Wejdź jako organizator</Button>
-            {supportMayLogin && <Button onClick={() => setShowSupModal(true)}>Zaloguj jako wsparcie</Button>}
+            {viewerMayLogin && <Button onClick={() => setShowViewerModal(true)}>{t("tournamentDetail.podaj_haslo_widza")}</Button>}
+            <Button onClick={() => setShowOrgModal(true)}>{t("tournamentDetail.wejdz_jako_organizator")}</Button>
+            {supportMayLogin && <Button onClick={() => setShowSupModal(true)}>{t("tournamentDetail.zaloguj_jako_wsparcie")}</Button>}
           </div>
         </div>
         <OrganizerLoginModal
@@ -700,29 +701,28 @@ export default function TournamentDetail() {
   if (!tournament && tournamentError) {
     const status = (tournamentError as { status?: number }).status;
     return <Layout><div role="alert" className="mx-auto max-w-lg space-y-3 rounded-lg border bg-card p-6">
-      <h1 className="text-xl font-semibold">{status === 404 ? "Nie znaleziono turnieju" : "Nie udało się pobrać turnieju"}</h1>
+      <h1 className="text-xl font-semibold">{status === 404 ? t("tournamentDetail.nie_znaleziono_turnieju") : t("tournamentDetail.nie_udalo_sie_pobrac_turnieju")}</h1>
       <p className="text-sm text-muted-foreground">{status === 404
-        ? "Sprawdź adres turnieju i spróbuj ponownie."
-        : "Nie można potwierdzić aktualnego stanu turnieju. Sprawdź połączenie i spróbuj ponownie."}</p>
+        ? t("tournamentDetail.sprawdz_adres_turnieju_i_sprobuj")
+        : t("tournamentDetail.nie_mozna_potwierdzic_aktualnego_stanu")}</p>
       <Button variant="outline" disabled={isFetchingTournament} onClick={() => void refetchTournament()}>
-        <RefreshCw className="mr-2 h-4 w-4" /> Spróbuj ponownie
-      </Button>
+        <RefreshCw className="mr-2 h-4 w-4" /> {t("tournamentDetail.sprobuj_ponownie")}</Button>
     </div></Layout>;
   }
-  if (!tournament) return <Layout><div role="status">Ładowanie turnieju…</div></Layout>;
+  if (!tournament) return <Layout><div role="status">{t("tournamentDetail.ladowanie_turnieju")}</div></Layout>;
 
   return (
     <Layout colorPreset={presentationSettings.colorPreset || undefined}>
       <div className="organizer-workspace flex flex-col gap-6">
         <div className="organizer-header flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
-            {isExperimental && <ExperimentalTournamentContextBar tournamentId={id} tournamentName={tournament.name} currentLabel="Panel turnieju" compact />}
+            {isExperimental && <ExperimentalTournamentContextBar tournamentId={id} tournamentName={tournament.name} currentLabel={t("tournamentDetail.panel_turnieju")} compact />}
             <div className="flex flex-wrap items-center gap-3 mb-2">
               <h1 className="text-3xl font-bold tracking-tight text-primary">{tournament.name}</h1>
               <Badge variant={tournament.status === "active" ? "default" : tournament.status === "completed" ? "secondary" : "outline"}
                 className={tournament.status === "active" ? "bg-secondary text-secondary-foreground hover:bg-secondary" :
                   tournament.status === "completed" ? "bg-accent text-accent-foreground hover:bg-accent" : ""}>
-                {TOURNAMENT_STATUS_LABELS[tournament.status] ?? "Nieznany"}
+                {TOURNAMENT_STATUS_LABELS[tournament.status] ?? t("tournamentDetail.nieznany")}
               </Badge>
             </div>
             {/* #330: visibility (hidden / public) is not the play status; the organizer publishes or hides here. */}
@@ -747,7 +747,7 @@ export default function TournamentDetail() {
             {isExperimental && tournament.hasOrganizerPassword && isAuthenticated && (
               <span className="experimental-session-chip experimental-session-chip--header inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs">
                 <Shield className="h-3.5 w-3.5" aria-hidden="true" />
-                {orgToken ? "Organizator" : `Wsparcie: ${supSession?.nick}`}
+                {orgToken ? t("tournamentDetail.organizator") : t("tournamentDetail.wsparcie_nick", { nick: supSession?.nick })}
                 <button
                   type="button"
                   className="font-semibold text-muted-foreground hover:text-foreground"
@@ -756,28 +756,27 @@ export default function TournamentDetail() {
                     setActiveOrganizerToken(null); setActiveSupportToken(null);
                   }}
                 >
-                  Wyloguj
-                </button>
+                  {t("tournamentDetail.wyloguj")}</button>
               </span>
             )}
             <Button
               variant="outline"
               onClick={() => setShowChecklist((v) => !v)}
-              title="Checklista przed turniejem"
+              title={t("tournamentDetail.checklista_przed_turniejem")}
             >
-              <CheckSquare className="w-4 h-4 mr-2" /> <span className="experimental-action-label">Checklista</span>
+              <CheckSquare className="w-4 h-4 mr-2" /> <span className="experimental-action-label">{t("tournamentDetail.checklista")}</span>
             </Button>
             {tournament.status !== "draft" && (
               <>
                 {/* V5.8: Experimental reaches the host through the "Prowadzenie" tab right below. */}
                 {!isExperimental && <Button variant="outline" asChild>
-                  <Link href={tournamentHref(id, isExperimental, "/host")}><Swords className="w-4 h-4 mr-2" /> Panel prowadzącego</Link>
+                  <Link href={tournamentHref(id, isExperimental, "/host")}><Swords className="w-4 h-4 mr-2" /> {t("tournamentDetail.panel_prowadzacego")}</Link>
                 </Button>}
                 <Button variant="outline" asChild>
-                  <Link href={tournamentHref(id, isExperimental, "/audience")}><Monitor className="w-4 h-4 mr-2" /> <span className="experimental-action-label">Widok widzów</span></Link>
+                  <Link href={tournamentHref(id, isExperimental, "/audience")}><Monitor className="w-4 h-4 mr-2" /> <span className="experimental-action-label">{t("tournamentDetail.widok_widzow")}</span></Link>
                 </Button>
                 <Button variant="outline" asChild>
-                  <Link href={tournamentHref(id, isExperimental, "/bracket")}><ExternalLink className="w-4 h-4 mr-2" /> <span className="experimental-action-label">Projektor</span></Link>
+                  <Link href={tournamentHref(id, isExperimental, "/bracket")}><ExternalLink className="w-4 h-4 mr-2" /> <span className="experimental-action-label">{t("tournamentDetail.projektor")}</span></Link>
                 </Button>
               </>
             )}
@@ -819,13 +818,13 @@ export default function TournamentDetail() {
           />
         )}
         {startError && <p role="alert" className="rounded-lg border border-destructive/40 p-3 text-sm text-destructive">{startError}</p>}
-        {startTournament.isPending && <p role="status">Uruchamianie etapu i odświeżanie danych…</p>}
+        {startTournament.isPending && <p role="status">{t("tournamentDetail.uruchamianie_etapu_i_odswiezanie_danych")}</p>}
 
         {/* Fan read-only banner */}
         {role === "fan" && !isAuthenticated && (
           <div className="bg-muted/40 border border-muted rounded-lg p-3 flex items-center gap-3">
             <Eye className="w-4 h-4 text-muted-foreground shrink-0" />
-            <p className="text-sm text-muted-foreground">Tryb kibica — tylko do odczytu. Edycja turnieju jest niedostępna.</p>
+            <p className="text-sm text-muted-foreground">{t("tournamentDetail.tryb_kibica_tylko_do_odczytu")}</p>
           </div>
         )}
 
@@ -835,18 +834,16 @@ export default function TournamentDetail() {
             <div className="flex items-center gap-3">
               <Lock className="w-5 h-5 text-yellow-400 shrink-0" />
               <div>
-                <p className="font-semibold text-yellow-400 text-sm">Masz dostęp tylko do podglądu.</p>
-                <p className="text-xs text-muted-foreground">Użyj zachowanego hasła organizatora, aby wrócić do zarządzania turniejem.</p>
+                <p className="font-semibold text-yellow-400 text-sm">{t("tournamentDetail.masz_dostep_tylko_do_podgladu")}</p>
+                <p className="text-xs text-muted-foreground">{t("tournamentDetail.uzyj_zachowanego_hasla_organizatora_aby")}</p>
               </div>
             </div>
             <div className="flex gap-2 shrink-0">
               <Button size="sm" onClick={() => setShowOrgModal(true)}>
-                <Key className="w-3.5 h-3.5 mr-1.5" /> Wejdź jako organizator
-              </Button>
+                <Key className="w-3.5 h-3.5 mr-1.5" /> {t("tournamentDetail.wejdz_jako_organizator")}</Button>
               {tournament.hasSupportPassword && (
                 <Button size="sm" variant="outline" onClick={() => setShowSupModal(true)}>
-                  Wsparcie
-                </Button>
+                  {t("tournamentDetail.wsparcie")}</Button>
               )}
             </div>
           </div>
@@ -858,7 +855,7 @@ export default function TournamentDetail() {
           <div className={`bg-green-500/10 border border-green-500/30 rounded-lg px-4 py-2.5 flex items-center gap-2${isExperimental ? " experimental-session-chip" : ""}`}>
             <Shield className="w-4 h-4 text-green-400 shrink-0" aria-hidden="true" />
             <p className="text-sm text-green-400 font-medium">
-              {orgToken ? "Zalogowano jako organizator" : `Zalogowano jako wsparcie (${supSession?.nick})`}
+              {orgToken ? t("tournamentDetail.zalogowano_jako_organizator") : t("tournamentDetail.zalogowano_jako_wsparcie_nick", { nick: supSession?.nick })}
             </p>
             <button
               className="ml-auto text-xs text-muted-foreground hover:text-foreground"
@@ -867,8 +864,7 @@ export default function TournamentDetail() {
                 setActiveOrganizerToken(null); setActiveSupportToken(null);
               }}
             >
-              Wyloguj
-            </button>
+              {t("tournamentDetail.wyloguj")}</button>
           </div>
         )}
 
@@ -916,14 +912,13 @@ export default function TournamentDetail() {
         {!readOk && visibility === "private_online" && (
           <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
             <Lock className="w-10 h-10 text-muted-foreground" />
-            <h2 className="text-lg font-semibold">Turniej prywatny</h2>
-            <p className="text-sm text-muted-foreground max-w-xs">Aby zobaczyć zawartość turnieju, podaj hasło widza lub zaloguj się jako organizator.</p>
+            <h2 className="text-lg font-semibold">{t("tournamentDetail.turniej_prywatny")}</h2>
+            <p className="text-sm text-muted-foreground max-w-xs">{t("tournamentDetail.aby_zobaczyc_zawartosc_turnieju_podaj")}</p>
             <button
               className="inline-flex items-center gap-2 bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-colors"
               onClick={() => setShowViewerModal(true)}
             >
-              <Key className="w-4 h-4" /> Podaj hasło widza
-            </button>
+              <Key className="w-4 h-4" /> {t("tournamentDetail.podaj_haslo_widza")}</button>
           </div>
         )}
 
@@ -931,14 +926,13 @@ export default function TournamentDetail() {
         {visibility === "private_offline" && !isAuthenticated && (
           <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
             <Lock className="w-10 h-10 text-muted-foreground" />
-            <h2 className="text-lg font-semibold">Turniej offline — tylko dla organizatora</h2>
-            <p className="text-sm text-muted-foreground max-w-xs">Ten turniej jest niedostępny publicznie. Zaloguj się jako organizator lub wsparcie.</p>
+            <h2 className="text-lg font-semibold">{t("tournamentDetail.turniej_offline_tylko_dla_organizatora")}</h2>
+            <p className="text-sm text-muted-foreground max-w-xs">{t("tournamentDetail.ten_turniej_jest_niedostepny_publicznie")}</p>
             <button
               className="inline-flex items-center gap-2 bg-primary text-primary-foreground rounded-md px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-colors"
               onClick={() => setShowOrgModal(true)}
             >
-              <Key className="w-4 h-4" /> Zaloguj jako organizator
-            </button>
+              <Key className="w-4 h-4" /> {t("tournamentDetail.zaloguj_jako_organizator")}</button>
           </div>
         )}
 
@@ -967,7 +961,7 @@ export default function TournamentDetail() {
               <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Gracze</CardTitle>
+                    <CardTitle className="text-sm font-medium">{t("tournamentDetail.gracze")}</CardTitle>
                     <Users className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
@@ -977,17 +971,17 @@ export default function TournamentDetail() {
                 </Card>
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Postęp</CardTitle>
+                    <CardTitle className="text-sm font-medium">{t("tournamentDetail.postep")}</CardTitle>
                     <Trophy className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold">{stats.completedMatches} / {stats.totalMatches}</div>
-                    <p className="text-xs text-muted-foreground">meczów ukończonych</p>
+                    <p className="text-xs text-muted-foreground">{t("tournamentDetail.meczow_ukonczonych")}</p>
                   </CardContent>
                 </Card>
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">Format</CardTitle>
+                    <CardTitle className="text-sm font-medium">{t("tournamentDetail.format")}</CardTitle>
                     <Swords className="h-4 w-4 text-muted-foreground" />
                   </CardHeader>
                   <CardContent>
@@ -997,7 +991,7 @@ export default function TournamentDetail() {
                 {stats.totalRounds && (
                   <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                      <CardTitle className="text-sm font-medium">Runda</CardTitle>
+                      <CardTitle className="text-sm font-medium">{t("tournamentDetail.runda")}</CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="text-2xl font-bold">{operation.summary.roundLabel}</div>
@@ -1008,7 +1002,7 @@ export default function TournamentDetail() {
             )}
             {stats?.topPlayers && stats.topPlayers.length > 0 && (
               <Card className="mt-4">
-                <CardHeader><CardTitle>Liderzy</CardTitle></CardHeader>
+                <CardHeader><CardTitle>{t("tournamentDetail.liderzy")}</CardTitle></CardHeader>
                 <CardContent>
                   <div className="space-y-2">
                     {stats.topPlayers.map((p, i) => (
@@ -1019,7 +1013,7 @@ export default function TournamentDetail() {
                         </div>
                         <div className="flex gap-4 text-sm text-muted-foreground">
                           <span>{p.matchWins}W/{p.matchLosses}L</span>
-                          <span className="font-bold text-primary">Gry {(p.gameDiff ?? 0) > 0 ? "+" : ""}{p.gameDiff ?? 0}</span>
+                          <span className="font-bold text-primary">{t("tournamentDetail.gry")}{" "}{(p.gameDiff ?? 0) > 0 ? "+" : ""}{p.gameDiff ?? 0}</span>
                         </div>
                       </div>
                     ))}
@@ -1059,46 +1053,43 @@ export default function TournamentDetail() {
               <div role="note" data-testid="stable-team-mode-note" className="mb-4 flex gap-2 rounded-lg border border-border bg-muted/40 p-3 text-sm">
                 <Info className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
                 <p>
-                  <strong>Turniej drużynowy.</strong> Każda pozycja na tej liście to drużyna — mecze, wyniki i tabela działają tu normalnie.
-                  {" "}Składy (kapitan, zawodnicy, rezerwowi) i ich historię edytujesz w{" "}
-                  <Link href={`/experimental/tournaments/${id}?tab=players`} className="font-medium underline underline-offset-2">widoku Experimental</Link>.
-                  {tournament.status === "draft" && " Start jest możliwy dopiero, gdy każda drużyna ma pełny skład."}
+                  <strong>{t("tournamentDetail.turniej_druzynowy")}</strong> {t("tournamentDetail.kazda_pozycja_na_tej_liscie")}{" "}{t("tournamentDetail.sklady_kapitan_zawodnicy_rezerwowi_i")}{" "}
+                  <Link href={`/experimental/tournaments/${id}?tab=players`} className="font-medium underline underline-offset-2">{t("tournamentDetail.widoku_experimental")}</Link>.
+                  {tournament.status === "draft" && t("tournamentDetail.start_jest_mozliwy_dopiero_gdy")}
                 </p>
               </div>
             )}
-            {isExperimental && capabilities.canManageOrganizerSettings && <ParticipantFieldsManager tournamentId={tournament.id} participantNoun={teamEntries ? "drużyn" : "graczy"} />}
+            {isExperimental && capabilities.canManageOrganizerSettings && <ParticipantFieldsManager tournamentId={tournament.id} participantNoun={teamEntries ? t("tournamentDetail.druzyn_2") : t("tournamentDetail.graczy_2")} />}
             {/* #329: optional public sign-ups — same panel in Classic and Experimental */}
             {(capabilities.canManageOrganizerSettings || capabilities.canManageParticipants) && (
               <RegistrationPanel tournamentId={tournament.id} experimental={isExperimental}
                 canConfigure={capabilities.canManageOrganizerSettings} canReview={capabilities.canManageParticipants}
-                participantNoun={teamEntries ? "drużyn" : "uczestników"} tournamentName={tournament.name} />
+                participantNoun={teamEntries ? t("tournamentDetail.druzyn_2") : t("tournamentDetail.uczestnikow")} tournamentName={tournament.name} />
             )}
             {isExperimental && <ExperimentalRosterHealth players={players} maxPlayers={tournament.maxPlayers} teamsNotReady={teamsNotReady} nextHref={tournament.status === "draft" && capabilities.canManageLifecycle ? tournamentHref(tournament.id, true, "/host?tab=prowadzenie") : undefined} requiredCount={tournament.status === "draft" && (stages?.length ?? 0) > 1 ? stages?.find((stage) => stage.position === 1)?.participantCount : undefined} />}
             {isExperimental && <ExperimentalPlayerToolbar query={playerSearch} onQueryChange={setPlayerSearch} status={playerStatusFilter} onStatusChange={setPlayerStatusFilter} sort={playerSort} onSortChange={setPlayerSort} total={players?.length ?? 0} visible={displayedPlayers.length} teams={!!teamEntries} />}
             {teamEntries && tournament.status === "draft" && (
               <p className="mt-4 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm" data-testid="team-entries-hint">
-                <strong>Turniej drużynowy.</strong> Najpierw dodaj <strong>drużyny</strong> — to one grają mecze i są w tabeli.
-                Kapitanów, zawodników i rezerwowych przypiszesz w sekcji <strong>Składy drużyn</strong> poniżej.
-              </p>
+                <strong>{t("tournamentDetail.turniej_druzynowy")}</strong> {t("tournamentDetail.najpierw_dodaj")}{" "}<strong>{t("tournamentDetail.druzyny")}</strong> {t("tournamentDetail.to_one_graja_mecze_i")}{" "}<strong>{t("tournamentDetail.sklady_druzyn")}</strong> {t("tournamentDetail.ponizej")}</p>
             )}
             <div className={`grid md:grid-cols-3 gap-6 ${isExperimental ? "mt-4" : ""}`}>
               <div className="md:col-span-2 space-y-4">
                 <Card>
                   <CardHeader className={isExperimental ? "flex flex-row items-center justify-between" : "flex flex-row flex-wrap items-center justify-between gap-2"}>
-                    <CardTitle>{teamEntries ? "Drużyny" : "Zawodnicy"} ({players?.length ?? "—"})</CardTitle>
+                    <CardTitle>{teamEntries ? t("tournamentDetail.druzyny_2") : t("tournamentDetail.zawodnicy")} ({players?.length ?? "—"})</CardTitle>
                     {!isExperimental && tournament.status === "draft" && capabilities.canManageParticipants && (
                       <div className="flex flex-wrap items-center gap-2">
                         <Button variant="outline" size="sm" aria-expanded={showBulkPaste} onClick={() => { resetCsvImport(); setShowBulkPaste(!showBulkPaste); }}>
-                          <ClipboardPaste className="w-4 h-4 mr-2" /> {showBulkPaste ? "Zamknij" : "Wklej listę"}
+                          <ClipboardPaste className="w-4 h-4 mr-2" /> {showBulkPaste ? t("tournamentDetail.zamknij") : t("tournamentDetail.wklej_liste")}
                         </Button>
                         <Button variant="outline" size="sm" aria-expanded={showCsvImport} onClick={() => { setShowBulkPaste(false); if (showCsvImport) resetCsvImport(); else setShowCsvImport(true); }}>
-                          <Upload className="w-4 h-4 mr-2" /> {showCsvImport ? "Zamknij" : "Import CSV"}
+                          <Upload className="w-4 h-4 mr-2" /> {showCsvImport ? t("tournamentDetail.zamknij") : t("tournamentDetail.import_csv")}
                         </Button>
                       </div>
                     )}
                     {isExperimental && tournament.status === "draft" && capabilities.canManageParticipants && (
                       <Button variant="outline" size="sm" onClick={() => showCsvImport ? resetCsvImport() : setShowCsvImport(true)}>
-                        <Upload className="w-4 h-4 mr-2" /> {showCsvImport ? "Zamknij" : isExperimental ? "Wklej listę" : "Import CSV"}{!showCsvImport && teamEntries ? " drużyn" : ""}
+                        <Upload className="w-4 h-4 mr-2" /> {showCsvImport ? t("tournamentDetail.zamknij") : isExperimental ? t("tournamentDetail.wklej_liste") : t("tournamentDetail.import_csv")}{!showCsvImport && teamEntries ? t("tournamentDetail.druzyn") : ""}
                       </Button>
                     )}
                   </CardHeader>
@@ -1136,20 +1127,19 @@ export default function TournamentDetail() {
                           {/* Success summary */}
                           <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4">
                             <p className="font-semibold text-green-400 flex items-center gap-2 mb-2">
-                              <Check className="w-4 h-4" /> Import zakończony
-                            </p>
+                              <Check className="w-4 h-4" /> {t("tournamentDetail.import_zakonczony")}</p>
                             <div className="grid grid-cols-2 gap-x-8 gap-y-1 text-sm">
-                              <span className="text-muted-foreground">Dodano zawodników:</span>
+                              <span className="text-muted-foreground">{t("tournamentDetail.dodano_zawodnikow")}</span>
                               <span className="font-bold text-green-400">{csvResult.imported}</span>
                               {csvResult.replacedCount != null && csvResult.replacedCount > 0 && (
                                 <>
-                                  <span className="text-muted-foreground">Usuniętych (tryb zastąp):</span>
+                                  <span className="text-muted-foreground">{t("tournamentDetail.usunietych_tryb_zastap")}</span>
                                   <span className="font-bold text-yellow-400">{csvResult.replacedCount}</span>
                                 </>
                               )}
                               {csvResult.skipped > 0 && (
                                 <>
-                                  <span className="text-muted-foreground">Pominięto wierszy:</span>
+                                  <span className="text-muted-foreground">{t("tournamentDetail.pominieto_wierszy")}</span>
                                   <span className="font-bold text-red-400">{csvResult.skipped}</span>
                                 </>
                               )}
@@ -1159,12 +1149,11 @@ export default function TournamentDetail() {
                           {csvResult.errors?.length > 0 && (
                             <div className="space-y-1">
                               <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1">
-                                <AlertTriangle className="w-3.5 h-3.5 text-yellow-400" /> Wiersze wymagające poprawy:
-                              </p>
+                                <AlertTriangle className="w-3.5 h-3.5 text-yellow-400" /> {t("tournamentDetail.wiersze_wymagajace_poprawy")}</p>
                               <div className="max-h-48 overflow-y-auto space-y-1">
                                 {csvResult.errors.map((err: any, idx: number) => (
                                   <div key={idx} className="bg-red-500/10 border border-red-500/20 rounded px-3 py-1.5 text-xs">
-                                    <span className="text-muted-foreground">Linia {err.line}:</span>{" "}
+                                    <span className="text-muted-foreground">{t("tournamentDetail.linia")}{" "}{err.line}:</span>{" "}
                                     <code className="text-foreground">{err.content}</code>
                                     <p className="text-red-400 mt-0.5">{err.reason}</p>
                                   </div>
@@ -1175,14 +1164,12 @@ export default function TournamentDetail() {
                           {csvResult.limitExceeded && (
                             <div className="bg-yellow-500/10 border border-yellow-500/30 rounded p-3 flex items-center gap-2 text-xs text-yellow-300">
                               <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                              Osiągnięto limit graczy turnieju — część zawodników nie została dodana.
-                            </div>
+                              {t("tournamentDetail.osiagnieto_limit_graczy_turnieju_czesc")}</div>
                           )}
                           <div className="flex gap-2 pt-1">
-                            <Button size="sm" variant="outline" onClick={resetCsvImport}>Zamknij</Button>
+                            <Button size="sm" variant="outline" onClick={resetCsvImport}>{t("tournamentDetail.zamknij")}</Button>
                             <Button size="sm" variant="ghost" onClick={() => { setCsvResult(null); setCsvText(""); }}>
-                              Importuj kolejnych
-                            </Button>
+                              {t("tournamentDetail.importuj_kolejnych")}</Button>
                           </div>
                         </div>
                       ) : (
@@ -1190,29 +1177,27 @@ export default function TournamentDetail() {
                           {/* Format instruction card */}
                           <div className="bg-card border rounded-lg p-3 space-y-2">
                             <p className="text-xs font-semibold text-muted-foreground flex items-center gap-1.5">
-                              <Info className="w-3.5 h-3.5" /> Format pliku CSV
-                            </p>
+                              <Info className="w-3.5 h-3.5" /> {t("tournamentDetail.format_pliku_csv")}</p>
                             <div className="text-xs text-muted-foreground space-y-1">
-                              <p>Pierwsza linia to <strong className="text-foreground">nagłówek</strong>. Obsługiwane kolumny:</p>
+                              <p>{t("tournamentDetail.pierwsza_linia_to")}{" "}<strong className="text-foreground">{t("tournamentDetail.naglowek")}</strong>{t("tournamentDetail.obslugiwane_kolumny")}</p>
                               <div className="bg-muted/50 rounded p-2 font-mono text-[11px] space-y-0.5">
-                                <p><span className="text-green-400">name</span> — nick zawodnika <span className="text-red-400">(wymagane)</span></p>
-                                <p><span className="text-blue-400">team</span> — drużyna <span className="text-muted-foreground">(opcjonalne)</span></p>
-                                <p><span className="text-blue-400">seed</span> — rozstawienie 1–999 <span className="text-muted-foreground">(opcjonalne)</span></p>
+                                <p><span className="text-green-400">{t("tournamentDetail.name")}</span> {t("tournamentDetail.nick_zawodnika")}{" "}<span className="text-red-400">{t("tournamentDetail.wymagane")}</span></p>
+                                <p><span className="text-blue-400">{t("tournamentDetail.team")}</span> {t("tournamentDetail.druzyna")}{" "}<span className="text-muted-foreground">{t("tournamentDetail.opcjonalne")}</span></p>
+                                <p><span className="text-blue-400">{t("tournamentDetail.seed")}</span> {t("tournamentDetail.rozstawienie_1_999")}{" "}<span className="text-muted-foreground">{t("tournamentDetail.opcjonalne")}</span></p>
                               </div>
                               <div className="bg-muted/30 rounded p-2 font-mono text-[11px]">
-                                <p className="text-muted-foreground">name,team,seed</p>
-                                <p>ProPlayer,TeamAlpha,1</p>
-                                <p>NoobSlayer,TeamBeta,2</p>
-                                <p>SteelNova,,3</p>
+                                <p className="text-muted-foreground">{t("tournamentDetail.name_team_seed")}</p>
+                                <p>{t("tournamentDetail.proplayer_teamalpha_1")}</p>
+                                <p>{t("tournamentDetail.noobslayer_teambeta_2")}</p>
+                                <p>{t("tournamentDetail.steelnova_3")}</p>
                               </div>
-                              <p className="text-[11px]">Separator: przecinek <code className="bg-muted px-1 rounded">,</code> lub średnik <code className="bg-muted px-1 rounded">;</code> — wykrywany automatycznie.</p>
+                              <p className="text-[11px]">{t("tournamentDetail.separator_przecinek")}{" "}<code className="bg-muted px-1 rounded">,</code> {t("tournamentDetail.lub_srednik")}{" "}<code className="bg-muted px-1 rounded">;</code> {t("tournamentDetail.wykrywany_automatycznie")}</p>
                               {isExperimental && participantFields.length > 0 && (
-                                <p className="text-[11px]">Kolumny nazwane jak dodatkowe pola (np. <code className="bg-muted px-1 rounded">{participantFields[0].label}</code>) wypełnią te pola; błędna wartość pomija cały wiersz z opisem przyczyny.</p>
+                                <p className="text-[11px]">{t("tournamentDetail.kolumny_nazwane_jak_dodatkowe_pola")}{" "}<code className="bg-muted px-1 rounded">{participantFields[0].label}</code>{t("tournamentDetail.wypelnia_te_pola_bledna_wartosc")}</p>
                               )}
                             </div>
                             <Button variant="ghost" size="sm" className="text-xs h-7 px-2 text-muted-foreground hover:text-foreground" onClick={handleDownloadSampleCsv}>
-                              <Download className="w-3 h-3 mr-1.5" /> Pobierz przykładowy plik CSV
-                            </Button>
+                              <Download className="w-3 h-3 mr-1.5" /> {t("tournamentDetail.pobierz_przykladowy_plik_csv")}</Button>
                           </div>
 
                           {/* File + paste input */}
@@ -1220,20 +1205,19 @@ export default function TournamentDetail() {
                             <div className="flex items-center gap-2">
                               <input ref={csvFileRef} type="file" accept=".csv,.txt" className="hidden" onChange={handleCsvFileChange} />
                               <Button variant="outline" size="sm" className="border-dashed text-xs" onClick={() => csvFileRef.current?.click()}>
-                                <Upload className="w-3.5 h-3.5 mr-1.5" /> Wybierz plik .csv
-                              </Button>
-                              <span className="text-xs text-muted-foreground">lub wklej ręcznie poniżej</span>
+                                <Upload className="w-3.5 h-3.5 mr-1.5" /> {t("tournamentDetail.wybierz_plik_csv")}</Button>
+                              <span className="text-xs text-muted-foreground">{t("tournamentDetail.lub_wklej_recznie_ponizej")}</span>
                             </div>
                             <Textarea
                               value={csvText}
                               onChange={(e) => { setCsvText(e.target.value); setCsvConfirmReplace(false); }}
                               rows={6}
-                              placeholder={"name,team,seed\nProPlayer,TeamAlpha,1\nNoobSlayer,TeamBeta,2"}
+                              placeholder={t("tournamentDetail.name_team_seed_proplayer_teamalpha")}
                               className="font-mono text-xs"
                             />
                             {csvText.trim() && (
                               <p className="text-xs text-muted-foreground">
-                                Wiersze danych: <strong className="text-foreground">{Math.max(0, csvText.trim().split("\n").filter(l => l.trim()).length - 1)}</strong>
+                                {t("tournamentDetail.wiersze_danych")}{" "}<strong className="text-foreground">{Math.max(0, csvText.trim().split("\n").filter(l => l.trim()).length - 1)}</strong>
                               </p>
                             )}
                           </div>
@@ -1241,21 +1225,21 @@ export default function TournamentDetail() {
                           {/* Mode selector (only if players already exist) */}
                           {(players?.length ?? 0) > 0 && (
                             <div className="space-y-2">
-                              <p className="text-xs font-semibold text-muted-foreground">Tryb importu</p>
+                              <p className="text-xs font-semibold text-muted-foreground">{t("tournamentDetail.tryb_importu")}</p>
                               <div className="grid grid-cols-2 gap-2">
                                 <button
                                   onClick={() => { setCsvMode("append"); setCsvConfirmReplace(false); }}
                                   className={`rounded-lg border p-3 text-left transition-colors ${csvMode === "append" ? "border-primary bg-primary/10" : "border-border bg-card hover:border-muted-foreground"}`}
                                 >
-                                  <p className="text-sm font-semibold">Dopisz</p>
-                                  <p className="text-xs text-muted-foreground mt-0.5">Dodaj nowych graczy do istniejącej listy ({players?.length ?? 0} graczy)</p>
+                                  <p className="text-sm font-semibold">{t("tournamentDetail.dopisz")}</p>
+                                  <p className="text-xs text-muted-foreground mt-0.5">{t("tournamentDetail.dodaj_nowych_graczy_do_istniejacej")}{players?.length ?? 0} {t("tournamentDetail.graczy")}</p>
                                 </button>
                                 <button
                                   onClick={() => { setCsvMode("replace"); setCsvConfirmReplace(false); }}
                                   className={`rounded-lg border p-3 text-left transition-colors ${csvMode === "replace" ? "border-yellow-500 bg-yellow-500/10" : "border-border bg-card hover:border-muted-foreground"}`}
                                 >
-                                  <p className="text-sm font-semibold">Zastąp</p>
-                                  <p className="text-xs text-muted-foreground mt-0.5">Usuń wszystkich graczy i zaimportuj od nowa</p>
+                                  <p className="text-sm font-semibold">{t("tournamentDetail.zastap")}</p>
+                                  <p className="text-xs text-muted-foreground mt-0.5">{t("tournamentDetail.usun_wszystkich_graczy_i_zaimportuj")}</p>
                                 </button>
                               </div>
                             </div>
@@ -1265,16 +1249,14 @@ export default function TournamentDetail() {
                           {csvConfirmReplace && (
                             <div className="bg-yellow-500/10 border border-yellow-500/40 rounded-lg p-3 space-y-2">
                               <p className="text-sm font-semibold text-yellow-300 flex items-center gap-2">
-                                <AlertTriangle className="w-4 h-4" /> Potwierdzenie zastąpienia
-                              </p>
+                                <AlertTriangle className="w-4 h-4" /> {t("tournamentDetail.potwierdzenie_zastapienia")}</p>
                               <p className="text-xs text-muted-foreground">
-                                Spowoduje to <strong className="text-foreground">usunięcie {players?.length} graczy</strong> z turnieju i zastąpienie ich nowymi z pliku CSV. Tej operacji nie można cofnąć.
-                              </p>
+                                {t("tournamentDetail.spowoduje_to")}{" "}<strong className="text-foreground">{t("tournamentDetail.usuniecie")}{" "}{players?.length} {t("tournamentDetail.graczy_2")}</strong> {t("tournamentDetail.z_turnieju_i_zastapienie_ich")}</p>
                               <div className="flex gap-2 pt-1">
                                 <Button size="sm" className="bg-yellow-500/20 border border-yellow-500/40 text-yellow-300 hover:bg-yellow-500/30" onClick={handleCsvImport} disabled={importPlayers.isPending}>
-                                  {importPlayers.isPending ? "Importowanie…" : "Tak, zastąp graczy"}
+                                  {importPlayers.isPending ? t("tournamentDetail.importowanie") : t("tournamentDetail.tak_zastap_graczy")}
                                 </Button>
-                                <Button size="sm" variant="outline" onClick={() => setCsvConfirmReplace(false)}>Anuluj</Button>
+                                <Button size="sm" variant="outline" onClick={() => setCsvConfirmReplace(false)}>{t("tournamentDetail.anuluj")}</Button>
                               </div>
                             </div>
                           )}
@@ -1287,7 +1269,7 @@ export default function TournamentDetail() {
                               className="w-full"
                             >
                               <Upload className="w-4 h-4 mr-2" />
-                              {importPlayers.isPending ? "Importowanie…" : csvMode === "replace" ? "Zastąp graczy z CSV" : "Importuj z CSV"}
+                              {importPlayers.isPending ? t("tournamentDetail.importowanie") : csvMode === "replace" ? t("tournamentDetail.zastap_graczy_z_csv") : t("tournamentDetail.importuj_z_csv")}
                             </Button>
                           )}
                         </div>
@@ -1295,43 +1277,41 @@ export default function TournamentDetail() {
                     </div>
                   )}
                   <CardContent className="pt-4">
-                    <ReadQueryState query={playersQuery} loadingMessage="Ładowanie listy graczy…" errorMessage="Nie udało się pobrać listy graczy.">
+                    <ReadQueryState query={playersQuery} loadingMessage={t("tournamentDetail.ladowanie_listy_graczy")} errorMessage={t("tournamentDetail.nie_udalo_sie_pobrac_listy")}>
                     {players?.length ? (
                       <div className={isExperimental ? "experimental-player-list space-y-2" : "space-y-2"}>
-                        {isExperimental && displayedPlayers.length === 0 && <div className="organizer-empty-state border border-dashed p-6 text-center text-sm text-muted-foreground">Brak graczy pasujących do wyszukiwania lub filtra.</div>}
+                        {isExperimental && displayedPlayers.length === 0 && <div className="organizer-empty-state border border-dashed p-6 text-center text-sm text-muted-foreground">{t("tournamentDetail.brak_graczy_pasujacych_do_wyszukiwania")}</div>}
                         {(isExperimental ? displayedPlayers : players).map((p) => (
                           capabilities.canManageParticipants && editingPlayerId === p.id ? (
                             // Inline edit form
                             <div key={p.id} className="border border-primary/40 rounded bg-background p-3 space-y-2">
                               <div className="grid grid-cols-2 gap-2">
                                 <div>
-                                  <Label className="text-xs">Nick *</Label>
+                                  <Label className="text-xs">{t("tournamentDetail.nick")}</Label>
                                   <Input value={editName} onChange={(e) => setEditName(e.target.value)} className="h-8 text-sm" />
                                 </div>
                                 <div>
-                                  <Label className="text-xs">Ranga</Label>
-                                  <Input value={editRank} onChange={(e) => setEditRank(e.target.value)} className="h-8 text-sm" placeholder="np. GM" />
+                                  <Label className="text-xs">{t("tournamentDetail.ranga")}</Label>
+                                  <Input value={editRank} onChange={(e) => setEditRank(e.target.value)} className="h-8 text-sm" placeholder={t("tournamentDetail.np_gm")} />
                                 </div>
                                 <div>
-                                  <Label className="text-xs">Drużyna</Label>
+                                  <Label className="text-xs">{t("tournamentDetail.druzyna_2")}</Label>
                                   <Input value={editTeam} onChange={(e) => setEditTeam(e.target.value)} className="h-8 text-sm" />
                                 </div>
                                 <div>
-                                  <Label className="text-xs">Kraj</Label>
-                                  <Input value={editCountry} onChange={(e) => setEditCountry(e.target.value)} className="h-8 text-sm" placeholder="PL" />
+                                  <Label className="text-xs">{t("tournamentDetail.kraj")}</Label>
+                                  <Input value={editCountry} onChange={(e) => setEditCountry(e.target.value)} className="h-8 text-sm" placeholder={t("tournamentDetail.pl")} />
                                 </div>
                                 <div>
-                                  <Label className="text-xs">Rozstawienie</Label>
+                                  <Label className="text-xs">{t("tournamentDetail.rozstawienie")}</Label>
                                   <Input type="number" value={editSeed} onChange={(e) => setEditSeed(e.target.value)} className="h-8 text-sm" />
                                 </div>
                               </div>
                               <div className="flex gap-2 justify-end">
                                 <Button size="sm" variant="outline" onClick={handleCancelEdit}>
-                                  <X className="w-3 h-3 mr-1" /> Anuluj
-                                </Button>
+                                  <X className="w-3 h-3 mr-1" /> {t("tournamentDetail.anuluj")}</Button>
                                 <Button size="sm" onClick={handleSaveEdit} disabled={updatePlayer.isPending || !editName.trim()}>
-                                  <Check className="w-3 h-3 mr-1" /> Zapisz
-                                </Button>
+                                  <Check className="w-3 h-3 mr-1" /> {t("tournamentDetail.zapisz")}</Button>
                               </div>
                             </div>
                           ) : (
@@ -1342,7 +1322,7 @@ export default function TournamentDetail() {
                                 <div>
                                   <div className="flex items-center gap-2">
                                     <span className="font-semibold">{p.name}</span>
-                                    {p.seed != null && <Badge variant="outline" className="text-xs" aria-label={isExperimental ? `Rozstawienie ${p.seed}` : undefined}>#{p.seed}</Badge>}
+                                    {p.seed != null && <Badge variant="outline" className="text-xs" aria-label={isExperimental ? t("tournamentDetail.rozstawienie_seed", { seed: p.seed }) : undefined}>#{p.seed}</Badge>}
                                   </div>
                                   <div className="flex gap-3 mt-0.5">
                                     {p.rank && <span className="text-xs text-muted-foreground">{p.rank}</span>}
@@ -1361,12 +1341,12 @@ export default function TournamentDetail() {
                                     <span className="text-xs text-muted-foreground font-mono">
                                       {(() => {
                                         const standing = standings?.find((entry) => entry.playerId === p.id);
-                                        return `${standing?.matchWins ?? 0}W ${standing?.matchLosses ?? 0}L · gry ${standing?.gameWins ?? 0}:${standing?.gameLosses ?? 0}`;
+                                        return t("tournamentDetail.v0_w_v1_l_gry", { v0: standing?.matchWins ?? 0, v1: standing?.matchLosses ?? 0, v2: standing?.gameWins ?? 0, v3: standing?.gameLosses ?? 0 });
                                       })()}
                                     </span>
                                   )}
                                   <Badge variant={p.status === "eliminated" ? "destructive" : p.status === "winner" ? "default" : "outline"}>
-                                    {PLAYER_STATUS_LABELS[p.status ?? ""] ?? "Nieznany"}
+                                    {PLAYER_STATUS_LABELS[p.status ?? ""] ?? t("tournamentDetail.nieznany")}
                                   </Badge>
                                   {isDeadlock && capabilities.canWriteTournamentResults && (
                                     <Button
@@ -1378,16 +1358,15 @@ export default function TournamentDetail() {
                                         setPendingBans(playerBansMap.get(p.id) ?? []);
                                       }}
                                     >
-                                      {p.id === editingBansPlayerId ? "Zamknij" : "Bany"}
+                                      {p.id === editingBansPlayerId ? t("tournamentDetail.zamknij") : t("tournamentDetail.bany")}
                                     </Button>
                                   )}
                                   {isExperimental && capabilities.canManageParticipants && participantFields.length > 0 && (
-                                    <Button variant="ghost" size="sm" className="h-8 text-xs" aria-expanded={editingFieldsPlayerId === p.id} onClick={() => setEditingFieldsPlayerId(editingFieldsPlayerId === p.id ? null : p.id)} title="Dodatkowe dane — można je zmieniać także w trakcie turnieju">
-                                      Dane
-                                    </Button>
+                                    <Button variant="ghost" size="sm" className="h-8 text-xs" aria-expanded={editingFieldsPlayerId === p.id} onClick={() => setEditingFieldsPlayerId(editingFieldsPlayerId === p.id ? null : p.id)} title={t("tournamentDetail.dodatkowe_dane_mozna_je_zmieniac")}>
+                                      {t("tournamentDetail.dane")}</Button>
                                   )}
                                   {capabilities.canManageParticipants && (tournament.status === "draft" || !isExperimental) && (
-                                    <Button variant="ghost" size="icon" onClick={() => handleStartEdit(p)} className="text-muted-foreground hover:text-foreground h-8 w-8" aria-label={isExperimental ? `Edytuj gracza ${p.name}` : undefined} title={isExperimental ? "Edytuj gracza" : undefined}>
+                                    <Button variant="ghost" size="icon" onClick={() => handleStartEdit(p)} className="text-muted-foreground hover:text-foreground h-8 w-8" aria-label={isExperimental ? t("tournamentDetail.edytuj_gracza_name", { name: p.name }) : undefined} title={isExperimental ? t("tournamentDetail.edytuj_gracza") : undefined}>
                                       <Pencil className="w-3.5 h-3.5" />
                                     </Button>
                                   )}
@@ -1395,14 +1374,12 @@ export default function TournamentDetail() {
                                     confirmDeletePlayerId === p.id ? (
                                       <div className="flex items-center gap-1">
                                         <Button variant="destructive" size="sm" className="h-7 text-xs px-2" onClick={handleConfirmDeletePlayer} disabled={deletePlayer.isPending}>
-                                          Usuń
-                                        </Button>
+                                          {t("tournamentDetail.usun")}</Button>
                                         <Button variant="outline" size="sm" className="h-7 text-xs px-2" onClick={() => setConfirmDeletePlayerId(null)}>
-                                          Anuluj
-                                        </Button>
+                                          {t("tournamentDetail.anuluj")}</Button>
                                       </div>
                                     ) : (
-                                      <Button variant="ghost" size="icon" onClick={() => handleDeletePlayer(p.id)} className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8" aria-label={isExperimental ? `Usuń gracza ${p.name}` : undefined} title={isExperimental ? "Usuń gracza" : undefined}>
+                                      <Button variant="ghost" size="icon" onClick={() => handleDeletePlayer(p.id)} className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8" aria-label={isExperimental ? t("tournamentDetail.usun_gracza_name", { name: p.name }) : undefined} title={isExperimental ? t("tournamentDetail.usun_gracza") : undefined}>
                                         <Trash2 className="w-3.5 h-3.5" />
                                       </Button>
                                     )
@@ -1420,7 +1397,7 @@ export default function TournamentDetail() {
                                   <p className="text-xs font-semibold text-destructive/80 mb-2">
                                     {(() => {
                                       const max = (tournament.gameConfig as any)?.config?.bansPerPlayer ?? 5;
-                                      return `Bany gracza (max ${max}) — ${pendingBans.length}/${max}`;
+                                      return t("tournamentDetail.bany_gracza_max_max_length", { max: max, length: pendingBans.length, max2: max });
                                     })()}
                                   </p>
                                   <HeroPickerGrid
@@ -1440,8 +1417,7 @@ export default function TournamentDetail() {
                                       variant="outline"
                                       onClick={() => setEditingBansPlayerId(null)}
                                     >
-                                      Anuluj
-                                    </Button>
+                                      {t("tournamentDetail.anuluj")}</Button>
                                     <Button
                                       size="sm"
                                       className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
@@ -1451,8 +1427,7 @@ export default function TournamentDetail() {
                                         setEditingBansPlayerId(null);
                                       }}
                                     >
-                                      Zapisz bany
-                                    </Button>
+                                      {t("tournamentDetail.zapisz_bany")}</Button>
                                   </div>
                                 </div>
                               )}
@@ -1463,10 +1438,10 @@ export default function TournamentDetail() {
                     ) : (
                       <div className={isExperimental ? "organizer-empty-state border border-dashed text-center py-8 text-muted-foreground" : "text-center py-8 text-muted-foreground"}>
                         {teamEntries && capabilities.canManageParticipants
-                          ? "Brak drużyn. Dodaj nazwy drużyn — zawodników przypiszesz niżej, w składach."
+                          ? t("tournamentDetail.brak_druzyn_dodaj_nazwy_druzyn")
                           : capabilities.canManageParticipants
-                          ? "Brak graczy. Dodaj ręcznie lub importuj CSV."
-                          : "Brak graczy w tym turnieju."}
+                          ? t("tournamentDetail.brak_graczy_dodaj_recznie_lub")
+                          : t("tournamentDetail.brak_graczy_w_tym_turnieju")}
                       </div>
                     )}
                   </ReadQueryState>
@@ -1476,16 +1451,16 @@ export default function TournamentDetail() {
               <div>
                 {tournament.status === "draft" && capabilities.canManageParticipants && (
                   <Card>
-                    <CardHeader><CardTitle>{teamEntries ? "Dodaj drużynę" : "Dodaj gracza"}</CardTitle></CardHeader>
+                    <CardHeader><CardTitle>{teamEntries ? t("tournamentDetail.dodaj_druzyne") : t("tournamentDetail.dodaj_gracza")}</CardTitle></CardHeader>
                     <CardContent>
                       <form onSubmit={handleAddPlayer} className="space-y-3">
                         <div className="space-y-1">
-                          <Label htmlFor={isExperimental ? "experimental-add-player-nick" : undefined}>{teamEntries ? "Nazwa drużyny *" : "Nick *"}</Label>
+                          <Label htmlFor={isExperimental ? "experimental-add-player-nick" : undefined}>{teamEntries ? t("tournamentDetail.nazwa_druzyny") : t("tournamentDetail.nick")}</Label>
                           <Input
                             id={isExperimental ? "experimental-add-player-nick" : undefined}
                             value={newPlayerName}
                             onChange={(e) => { setNewPlayerName(e.target.value); setAddPlayerError(null); }}
-                            placeholder={teamEntries ? "Np. Orły" : "Alias gracza"}
+                            placeholder={teamEntries ? t("tournamentDetail.np_orly") : t("tournamentDetail.alias_gracza")}
                             required
                             className={addPlayerError ? "border-destructive focus-visible:ring-destructive" : ""}
                           />
@@ -1501,54 +1476,54 @@ export default function TournamentDetail() {
                         )}
                         {isExperimental ? (
                           <details className="experimental-add-player-more">
-                            <summary>{optionalParticipantFields.length ? `Więcej danych (${optionalParticipantFields.length + 4})` : "Więcej danych (ranga, drużyna, kraj, rozstawienie)"}</summary>
+                            <summary>{optionalParticipantFields.length ? t("tournamentDetail.wiecej_danych_v0", { v0: optionalParticipantFields.length + 4 }) : t("tournamentDetail.wiecej_danych_ranga_druzyna_kraj")}</summary>
                             <div className="space-y-3 pt-3">
                         {optionalParticipantFields.length > 0 && (
                           <ParticipantFieldInputs fields={optionalParticipantFields} values={newPlayerFields} idPrefix="experimental-add-player-field" onChange={(key, value) => setNewPlayerFields((current) => ({ ...current, [key]: value }))} />
                         )}
                         <div className="space-y-1">
-                          <Label>Ranga</Label>
-                          <Input value={newPlayerRank} onChange={(e) => setNewPlayerRank(e.target.value)} placeholder="np. GM, Diamond" />
+                          <Label>{t("tournamentDetail.ranga")}</Label>
+                          <Input value={newPlayerRank} onChange={(e) => setNewPlayerRank(e.target.value)} placeholder={t("tournamentDetail.np_gm_diamond")} />
                         </div>
                         <div className="grid grid-cols-2 gap-2">
                           <div className="space-y-1">
-                            <Label>Drużyna</Label>
-                            <Input value={newPlayerTeam} onChange={(e) => setNewPlayerTeam(e.target.value)} placeholder="Nazwa" />
+                            <Label>{t("tournamentDetail.druzyna_2")}</Label>
+                            <Input value={newPlayerTeam} onChange={(e) => setNewPlayerTeam(e.target.value)} placeholder={t("tournamentDetail.nazwa")} />
                           </div>
                           <div className="space-y-1">
-                            <Label>Kraj</Label>
-                            <Input value={newPlayerCountry} onChange={(e) => setNewPlayerCountry(e.target.value)} placeholder="PL, DE..." />
+                            <Label>{t("tournamentDetail.kraj")}</Label>
+                            <Input value={newPlayerCountry} onChange={(e) => setNewPlayerCountry(e.target.value)} placeholder={t("tournamentDetail.pl_de")} />
                           </div>
                         </div>
                         <div className="space-y-1">
-                          <Label htmlFor={isExperimental ? "experimental-add-player-seed" : undefined}>Rozstawienie</Label>
-                          <Input id={isExperimental ? "experimental-add-player-seed" : undefined} type="number" value={newPlayerSeed} onChange={(e) => setNewPlayerSeed(e.target.value)} placeholder={isExperimental ? `Automatycznie: ${(players?.length ?? 0) + 1}` : "1"} />
+                          <Label htmlFor={isExperimental ? "experimental-add-player-seed" : undefined}>{t("tournamentDetail.rozstawienie")}</Label>
+                          <Input id={isExperimental ? "experimental-add-player-seed" : undefined} type="number" value={newPlayerSeed} onChange={(e) => setNewPlayerSeed(e.target.value)} placeholder={isExperimental ? t("tournamentDetail.automatycznie_v0", { v0: (players?.length ?? 0) + 1 }) : "1"} />
                         </div>
                             </div>
                           </details>
                         ) : (
                           <>
                         <div className="space-y-1">
-                          <Label>Ranga</Label>
-                          <Input value={newPlayerRank} onChange={(e) => setNewPlayerRank(e.target.value)} placeholder="np. GM, Diamond" />
+                          <Label>{t("tournamentDetail.ranga")}</Label>
+                          <Input value={newPlayerRank} onChange={(e) => setNewPlayerRank(e.target.value)} placeholder={t("tournamentDetail.np_gm_diamond")} />
                         </div>
                         <div className="grid grid-cols-2 gap-2">
                           <div className="space-y-1">
-                            <Label>Drużyna</Label>
-                            <Input value={newPlayerTeam} onChange={(e) => setNewPlayerTeam(e.target.value)} placeholder="Nazwa" />
+                            <Label>{t("tournamentDetail.druzyna_2")}</Label>
+                            <Input value={newPlayerTeam} onChange={(e) => setNewPlayerTeam(e.target.value)} placeholder={t("tournamentDetail.nazwa")} />
                           </div>
                           <div className="space-y-1">
-                            <Label>Kraj</Label>
-                            <Input value={newPlayerCountry} onChange={(e) => setNewPlayerCountry(e.target.value)} placeholder="PL, DE..." />
+                            <Label>{t("tournamentDetail.kraj")}</Label>
+                            <Input value={newPlayerCountry} onChange={(e) => setNewPlayerCountry(e.target.value)} placeholder={t("tournamentDetail.pl_de")} />
                           </div>
                         </div>
                         <div className="space-y-1">
-                          <Label htmlFor={isExperimental ? "experimental-add-player-seed" : undefined}>Rozstawienie</Label>
-                          <Input id={isExperimental ? "experimental-add-player-seed" : undefined} type="number" value={newPlayerSeed} onChange={(e) => setNewPlayerSeed(e.target.value)} placeholder={isExperimental ? `Automatycznie: ${(players?.length ?? 0) + 1}` : "1"} />
+                          <Label htmlFor={isExperimental ? "experimental-add-player-seed" : undefined}>{t("tournamentDetail.rozstawienie")}</Label>
+                          <Input id={isExperimental ? "experimental-add-player-seed" : undefined} type="number" value={newPlayerSeed} onChange={(e) => setNewPlayerSeed(e.target.value)} placeholder={isExperimental ? t("tournamentDetail.automatycznie_v0", { v0: (players?.length ?? 0) + 1 }) : "1"} />
                         </div>
                           </>
                         )}
-                        <Button type="submit" className="w-full" disabled={addPlayer.isPending}>{isExperimental && addPlayer.isPending ? "Dodawanie…" : teamEntries ? "Dodaj drużynę" : "Dodaj gracza"}</Button>
+                        <Button type="submit" className="w-full" disabled={addPlayer.isPending}>{isExperimental && addPlayer.isPending ? t("tournamentDetail.dodawanie") : teamEntries ? t("tournamentDetail.dodaj_druzyne") : t("tournamentDetail.dodaj_gracza")}</Button>
                       </form>
                     </CardContent>
                   </Card>
@@ -1562,7 +1537,7 @@ export default function TournamentDetail() {
 
           <TabsContent value="matches" className="pt-6">
             <Card>
-              <CardHeader><CardTitle>Mecze</CardTitle></CardHeader>
+              <CardHeader><CardTitle>{t("tournamentDetail.mecze")}</CardTitle></CardHeader>
               <CardContent>
                 {!matches || matches.length === 0 ? (() => {
                   // QW-10: say why the list is empty and where the next step is.
@@ -1581,25 +1556,25 @@ export default function TournamentDetail() {
                         <div className="flex items-center gap-3 mb-2 md:mb-0">
                           <Badge variant="outline">R{m.round}</Badge>
                           <span className="text-xs text-muted-foreground">M{m.matchNumber}</span>
-                          {isTwoLegTie(m) && <Badge variant="outline" className="text-xs">dwumecz</Badge>}
-                          {m.bestOf && m.bestOf > 1 && <Badge variant="outline" className="text-xs">{(() => { const rules = stages?.find((stage) => stage.id === m.stageId)?.matchRules; return rules?.kind === "sets" ? `sety do ${rules.setsToWin}` : rules?.kind === "two_legs" ? "dwumecz" : `BO${m.bestOf}`; })()}</Badge>}
+                          {isTwoLegTie(m) && <Badge variant="outline" className="text-xs">{t("tournamentDetail.dwumecz")}</Badge>}
+                          {m.bestOf && m.bestOf > 1 && <Badge variant="outline" className="text-xs">{(() => { const rules = stages?.find((stage) => stage.id === m.stageId)?.matchRules; return rules?.kind === "sets" ? t("tournamentDetail.sety_do_setstowin", { setsToWin: rules.setsToWin }) : rules?.kind === "two_legs" ? t("tournamentDetail.dwumecz") : `BO${m.bestOf}`; })()}</Badge>}
                         </div>
                         <div className="flex items-center gap-4">
                           <div className={`text-right w-28 truncate text-sm ${m.winnerId === m.player1Id ? "font-bold text-primary" : ""}`}>
-                            {m.player1Name || "TBD"}
+                            {m.player1Name || t("tournamentDetail.tbd")}
                           </div>
                           <div className="flex items-center gap-2 font-mono bg-muted/50 px-2 py-1 rounded text-sm">
                              {tieScoreText(m) && m.status !== "completed" ? (
-                               <span title="Suma po rozegranych spotkaniach">{tieScoreText(m)}</span>
+                               <span title={t("tournamentDetail.suma_po_rozegranych_spotkaniach")}>{tieScoreText(m)}</span>
                              ) : m.resultType === "played" || m.status !== "completed" ? (
                                <><span>{m.score1 !== null ? m.score1 : "-"}</span><span className="text-muted-foreground">:</span><span>{m.score2 !== null ? m.score2 : "-"}</span></>
                              ) : (
-                               <span>{m.resultType === "walkover" ? "W.O." : m.resultType === "bye" ? "BYE" : "N/C"}</span>
+                               <span>{m.resultType === "walkover" ? t("tournamentDetail.w_o") : m.resultType === "bye" ? t("tournamentDetail.bye") : t("tournamentDetail.n_c")}</span>
                              )}
                           </div>
-                          {m.sets?.length ? <span className="text-xs text-muted-foreground tabular-nums" title="Wyniki setów">({setsText(m.sets)})</span> : null}
+                          {m.sets?.length ? <span className="text-xs text-muted-foreground tabular-nums" title={t("tournamentDetail.wyniki_setow")}>({setsText(m.sets)})</span> : null}
                           <div className={`w-28 truncate text-sm ${m.winnerId === m.player2Id ? "font-bold text-primary" : ""}`}>
-                            {m.player2Name || "TBD"}
+                            {m.player2Name || t("tournamentDetail.tbd")}
                           </div>
                         </div>
                         <div className="mt-1 md:mt-0">
@@ -1607,7 +1582,7 @@ export default function TournamentDetail() {
                             m.status === "in_progress" ? "bg-yellow-500/20 text-yellow-400" :
                             m.status === "completed" ? "bg-green-500/20 text-green-400" : "bg-transparent border"
                           }>
-                            {m.status === "completed" ? m.resultType === "walkover" ? "walkower" : m.resultType === "bye" ? "wolny los" : m.resultType === "no_contest" ? "no contest" : "zakończony" : MATCH_STATUS_LABELS[m.status] ?? "Nieznany"}
+                            {m.status === "completed" ? m.resultType === "walkover" ? t("tournamentDetail.walkower") : m.resultType === "bye" ? t("tournamentDetail.wolny_los") : m.resultType === "no_contest" ? t("tournamentDetail.no_contest") : t("tournamentDetail.zakonczony") : MATCH_STATUS_LABELS[m.status] ?? t("tournamentDetail.nieznany")}
                           </Badge>
                         </div>
                       </div>
@@ -1627,16 +1602,16 @@ export default function TournamentDetail() {
           <TabsContent value="standings" className="pt-6">
             {isExperimental && hasMultipleStages && tableStage && liveStageStandings.data?.tables.length ? (
               <Card className="mb-6" data-testid="current-stage-table">
-                <CardHeader><CardTitle>Tabela etapu „{tableStage.name}”</CardTitle></CardHeader>
+                <CardHeader><CardTitle>{t("tournamentDetail.tabela_etapu")}{tableStage.name}”</CardTitle></CardHeader>
                 <CardContent><StageLiveTables data={liveStageStandings.data} /></CardContent>
               </Card>
             ) : null}
             <Card>
-              <CardHeader><CardTitle>{hasMultipleStages ? "Bilans łączny meczów — wszystkie etapy" : stageScopeUnknown ? "Bilans informacyjny — zakres etapów niepotwierdzony" : tournament.format === "single_elimination" ? "Bilans informacyjny" : "Klasyfikacja"}</CardTitle></CardHeader>
+              <CardHeader><CardTitle>{hasMultipleStages ? t("tournamentDetail.bilans_laczny_meczow_wszystkie_etapy") : stageScopeUnknown ? t("tournamentDetail.bilans_informacyjny_zakres_etapow_niepot") : tournament.format === "single_elimination" ? t("tournamentDetail.bilans_informacyjny") : t("tournamentDetail.klasyfikacja")}</CardTitle></CardHeader>
               <CardContent>
                 {standingsInformational && (
                   <p className="mb-4 text-sm text-muted-foreground">
-                    {hasMultipleStages ? "Bilans informacyjny wszystkich etapów — nie klasyfikacja bieżącego etapu. Awans i zwycięzcę wyznaczają wyniki etapów; zobacz Etapy i Drabinka." : "Liczba etapów nie została potwierdzona. Bilans nie może służyć do wyłaniania awansujących ani zwycięzcy."}
+                    {hasMultipleStages ? t("tournamentDetail.bilans_informacyjny_wszystkich_etapow_ni") : t("tournamentDetail.liczba_etapow_nie_zostala_potwierdzona")}
                   </p>
                 )}
                 {!standings || standings.length === 0 ? (
@@ -1645,8 +1620,7 @@ export default function TournamentDetail() {
                   <div>
                     {!standingsInformational && (
                       <p className="mb-4 text-sm text-muted-foreground">
-                        Awans i mistrz wynikają wyłącznie z drabinki. Bilans nie ustala kolejności eliminacji.
-                      </p>
+                        {t("tournamentDetail.awans_i_mistrz_wynikaja_wylacznie")}</p>
                     )}
                     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                       {standings.map((s) => (
@@ -1654,14 +1628,14 @@ export default function TournamentDetail() {
                           <div className="flex items-start justify-between gap-3">
                             <div>
                               <div className="font-semibold">{s.playerName}</div>
-                              <div className="text-xs text-muted-foreground">{[s.teamName, s.country].filter(Boolean).join(" · ") || "Uczestnik"}</div>
+                              <div className="text-xs text-muted-foreground">{[s.teamName, s.country].filter(Boolean).join(" · ") || t("tournamentDetail.uczestnik")}</div>
                             </div>
-                            <Badge variant="outline">{PLAYER_STATUS_LABELS[s.status] ?? "Nieznany"}</Badge>
+                            <Badge variant="outline">{PLAYER_STATUS_LABELS[s.status] ?? t("tournamentDetail.nieznany")}</Badge>
                           </div>
                           <div className="mt-4 grid grid-cols-3 gap-2 text-center text-xs text-muted-foreground">
-                            <div><strong className="block text-base text-foreground">{s.points != null ? `${s.points} pkt` : `${s.matchWins}-${s.matchLosses}`}</strong>{s.points != null ? `${s.matchWins}-${s.matchDraws ?? 0}-${s.matchLosses}` : "Mecze"}</div>
-                            <div><strong className="block text-base text-foreground">{s.gameWins}:{s.gameLosses}</strong>{standingsHaveSets(standings) ? "Sety" : "Gry"}</div>
-                            <div><strong className="block text-base text-foreground">{s.gameDiff > 0 ? "+" : ""}{s.gameDiff}</strong>Różnica</div>
+                            <div><strong className="block text-base text-foreground">{s.points != null ? t("tournamentDetail.points_pkt", { points: s.points }) : `${s.matchWins}-${s.matchLosses}`}</strong>{s.points != null ? `${s.matchWins}-${s.matchDraws ?? 0}-${s.matchLosses}` : t("tournamentDetail.mecze")}</div>
+                            <div><strong className="block text-base text-foreground">{s.gameWins}:{s.gameLosses}</strong>{standingsHaveSets(standings) ? t("tournamentDetail.sety") : t("tournamentDetail.gry")}</div>
+                            <div><strong className="block text-base text-foreground">{s.gameDiff > 0 ? "+" : ""}{s.gameDiff}</strong>{t("tournamentDetail.roznica")}</div>
                           </div>
                         </div>
                       ))}
@@ -1673,16 +1647,16 @@ export default function TournamentDetail() {
                       <thead>
                         <tr className="border-b text-left text-muted-foreground">
                           {!standingsInformational && <th className="py-2 px-2 w-8">#</th>}
-                          <th className="py-2 px-2">Gracz</th>
-                          {standingsHavePoints(standings) && <th className="py-2 px-2 text-center" title="Punkty ligowe">Pkt</th>}
-                          <th className="py-2 px-2 text-center">Mecze</th>
+                          <th className="py-2 px-2">{t("tournamentDetail.gracz")}</th>
+                          {standingsHavePoints(standings) && <th className="py-2 px-2 text-center" title={t("tournamentDetail.punkty_ligowe")}>{t("tournamentDetail.pkt")}</th>}
+                          <th className="py-2 px-2 text-center">{t("tournamentDetail.mecze")}</th>
                           <th className="py-2 px-2 text-center">W</th>
-                          {standingsHavePoints(standings) && <th className="py-2 px-2 text-center" title="Remisy">R</th>}
+                          {standingsHavePoints(standings) && <th className="py-2 px-2 text-center" title={t("tournamentDetail.remisy")}>R</th>}
                           <th className="py-2 px-2 text-center">P</th>
-                          <th className="py-2 px-2 text-center" title={standingsHaveSets(standings) ? "Wygrane i przegrane sety" : undefined}>{standingsHaveSets(standings) ? "Sety" : standingsHavePoints(standings) ? "Bilans" : "Gry"}</th>
-                          {standingsHaveSets(standings) && <th className="py-2 px-2 text-center" title="Małe punkty: suma punktów zdobytych i straconych w setach (informacyjnie, nie rozstrzyga miejsc)">Małe pkt</th>}
-                          {(!isExperimental || standings.some((row) => row.buchholz != null)) && <th className="py-2 px-2 text-center" title="Buchholz: suma punktów rywali (system szwajcarski)">Buchh.</th>}
-                          <th className="py-2 px-2 text-center" title={standingsHaveSets(standings) ? "Różnica setów" : undefined}>+/-</th>
+                          <th className="py-2 px-2 text-center" title={standingsHaveSets(standings) ? t("tournamentDetail.wygrane_i_przegrane_sety") : undefined}>{standingsHaveSets(standings) ? t("tournamentDetail.sety") : standingsHavePoints(standings) ? t("tournamentDetail.bilans") : t("tournamentDetail.gry")}</th>
+                          {standingsHaveSets(standings) && <th className="py-2 px-2 text-center" title={t("tournamentDetail.male_punkty_suma_punktow_zdobytych")}>{t("tournamentDetail.male_pkt")}</th>}
+                          {(!isExperimental || standings.some((row) => row.buchholz != null)) && <th className="py-2 px-2 text-center" title={t("tournamentDetail.buchholz_suma_punktow_rywali_system")}>{t("tournamentDetail.buchh")}</th>}
+                          <th className="py-2 px-2 text-center" title={standingsHaveSets(standings) ? t("tournamentDetail.roznica_setow") : undefined}>+/-</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -1741,7 +1715,7 @@ export default function TournamentDetail() {
 
           <TabsContent value="history" className="pt-6">
             <Card>
-              <CardHeader><CardTitle>Historia wyników</CardTitle></CardHeader>
+              <CardHeader><CardTitle>{t("tournamentDetail.historia_wynikow")}</CardTitle></CardHeader>
               <CardContent>
                 {!history || history.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground" data-testid="history-empty">{historyEmptyText(capabilities.canWriteTournamentResults)}</div>
@@ -1756,7 +1730,7 @@ export default function TournamentDetail() {
                               <Badge variant="outline" className="text-xs">R{r.round} M{r.matchNumber}</Badge>
                               <div className="text-sm">
                                 <span className={r.winnerName === r.player1Name ? "font-bold text-primary" : ""}>{r.player1Name}</span>
-                                <span className="text-muted-foreground mx-2">{r.resultType === "played" ? `${r.score1}:${r.score2}` : r.resultType === "walkover" ? "W.O." : r.resultType === "bye" ? "BYE" : "N/C"}</span>
+                                <span className="text-muted-foreground mx-2">{r.resultType === "played" ? `${r.score1}:${r.score2}` : r.resultType === "walkover" ? t("tournamentDetail.w_o") : r.resultType === "bye" ? t("tournamentDetail.bye") : t("tournamentDetail.n_c")}</span>
                                 <span className={r.winnerName === r.player2Name ? "font-bold text-primary" : ""}>{r.player2Name}</span>
                               </div>
                             </div>
@@ -1765,7 +1739,7 @@ export default function TournamentDetail() {
                                 <span className="text-xs text-muted-foreground flex items-center gap-1">
                                   <ChevronRight className="w-3 h-3 text-primary" /> {r.winnerName}
                                 </span>
-                              ) : <Badge variant="secondary">no contest</Badge>}
+                              ) : <Badge variant="secondary">{t("tournamentDetail.no_contest")}</Badge>}
                               <span className="text-xs text-muted-foreground">
                                 {new Date(r.completedAt).toLocaleTimeString("pl", { hour: "2-digit", minute: "2-digit" })}
                               </span>
@@ -1818,11 +1792,11 @@ export default function TournamentDetail() {
               <div className="bg-primary/5 border border-primary/20 rounded-lg p-4 flex items-start gap-3">
                 <Info className="w-5 h-5 text-primary shrink-0 mt-0.5" />
                 <div className="text-sm">
-                  <p className="font-semibold text-primary mb-1">Kiedy robić backup?</p>
+                  <p className="font-semibold text-primary mb-1">{t("tournamentDetail.kiedy_robic_backup")}</p>
                   <ul className="text-muted-foreground space-y-0.5 list-disc list-inside">
-                    <li>Przed rozpoczęciem turnieju</li>
-                    <li>Po każdej ukończonej rundzie</li>
-                    <li>Przed większymi zmianami (edycja graczy, cofanie wyników)</li>
+                    <li>{t("tournamentDetail.przed_rozpoczeciem_turnieju")}</li>
+                    <li>{t("tournamentDetail.po_kazdej_ukonczonej_rundzie")}</li>
+                    <li>{t("tournamentDetail.przed_wiekszymi_zmianami_edycja_graczy")}</li>
                   </ul>
                 </div>
               </div>
@@ -1831,22 +1805,20 @@ export default function TournamentDetail() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
-                    <Download className="w-4 h-4 text-primary" /> Eksport backupu
-                  </CardTitle>
+                    <Download className="w-4 h-4 text-primary" /> {t("tournamentDetail.eksport_backupu")}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <p className="text-sm text-muted-foreground">
-                    Pobierz pełny stan turnieju do pliku <code className="bg-muted px-1 rounded text-xs">.json</code>. Plik zawiera: graczy, mecze, wyniki, historię zmian, ustawienia BO i status drabinki.
-                  </p>
+                    {t("tournamentDetail.pobierz_pelny_stan_turnieju_do")}{" "}<code className="bg-muted px-1 rounded text-xs">{t("tournamentDetail.json")}</code>{t("tournamentDetail.plik_zawiera_graczy_mecze_wyniki")}</p>
                   <div className="bg-muted/40 rounded p-3 text-xs text-muted-foreground space-y-1">
-                    <p>📁 <strong>Turniej:</strong> {tournament?.name}</p>
-                    <p>👥 <strong>Gracze:</strong> {stats?.totalPlayers ?? "—"}</p>
-                    <p>⚔️ <strong>Mecze:</strong> {stats?.totalMatches ?? "—"} (ukończone: {stats?.completedMatches ?? 0})</p>
-                    <p>📅 <strong>Status:</strong> {TOURNAMENT_STATUS_LABELS[tournament?.status ?? ""] ?? "Nieznany"} · Runda {tournament?.currentRound ?? "—"}/{tournament?.totalRounds ?? "—"}</p>
+                    <p>📁 <strong>{t("tournamentDetail.turniej")}</strong> {tournament?.name}</p>
+                    <p>👥 <strong>{t("tournamentDetail.gracze_2")}</strong> {stats?.totalPlayers ?? "—"}</p>
+                    <p>⚔️ <strong>{t("tournamentDetail.mecze_2")}</strong> {stats?.totalMatches ?? "—"} {t("tournamentDetail.ukonczone")}{" "}{stats?.completedMatches ?? 0})</p>
+                    <p>📅 <strong>{t("tournamentDetail.status")}</strong> {TOURNAMENT_STATUS_LABELS[tournament?.status ?? ""] ?? t("tournamentDetail.nieznany")} {t("tournamentDetail.runda_2")}{" "}{tournament?.currentRound ?? "—"}/{tournament?.totalRounds ?? "—"}</p>
                   </div>
                   <Button onClick={handleExport} disabled={isExporting} className="w-full">
                     <Download className="w-4 h-4 mr-2" />
-                    {isExporting ? "Pobieranie…" : "Pobierz backup (.json)"}
+                    {isExporting ? t("tournamentDetail.pobieranie") : t("tournamentDetail.pobierz_backup_json")}
                   </Button>
                 </CardContent>
               </Card>
@@ -1855,15 +1827,13 @@ export default function TournamentDetail() {
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-base">
-                    <FileUp className="w-4 h-4 text-yellow-400" /> Przywracanie z backupu
-                  </CardTitle>
+                    <FileUp className="w-4 h-4 text-yellow-400" /> {t("tournamentDetail.przywracanie_z_backupu")}</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="bg-yellow-500/10 border border-yellow-500/30 rounded p-3 flex items-start gap-2 text-sm">
                     <AlertTriangle className="w-4 h-4 text-yellow-400 shrink-0 mt-0.5" />
                     <div className="text-muted-foreground">
-                      Import tworzy <strong className="text-foreground">nową kopię</strong> turnieju — obecny turniej pozostaje niezmieniony. Możesz potem usunąć stary z dashboardu.
-                    </div>
+                      {t("tournamentDetail.import_tworzy")}{" "}<strong className="text-foreground">{t("tournamentDetail.nowa_kopie")}</strong> {t("tournamentDetail.turnieju_obecny_turniej_pozostaje_niezmi")}</div>
                   </div>
 
                   {importError && (
@@ -1883,33 +1853,29 @@ export default function TournamentDetail() {
                         onChange={handleImportFile}
                       />
                       <Button variant="outline" className="w-full border-dashed" onClick={() => fileInputRef.current?.click()}>
-                        <Upload className="w-4 h-4 mr-2" /> Wybierz plik backup (.json)
-                      </Button>
+                        <Upload className="w-4 h-4 mr-2" /> {t("tournamentDetail.wybierz_plik_backup_json")}</Button>
                     </div>
                   ) : (
                     <div className="space-y-3">
                       <div className="bg-green-500/10 border border-green-500/30 rounded-lg p-4 space-y-2">
                         <p className="text-sm font-semibold text-green-400 flex items-center gap-2">
-                          <Check className="w-4 h-4" /> Plik odczytany poprawnie
-                        </p>
+                          <Check className="w-4 h-4" /> {t("tournamentDetail.plik_odczytany_poprawnie")}</p>
                         <div className="text-xs text-muted-foreground space-y-1">
-                          <p>🏆 <strong className="text-foreground">Turniej:</strong> {importPreview.tournament.name}</p>
-                          <p>📋 <strong className="text-foreground">Format:</strong> {FORMAT_LABELS[importPreview.tournament.format] ?? importPreview.tournament.format}</p>
-                          <p>👥 <strong className="text-foreground">Gracze:</strong> {importPreview.players?.length ?? 0}</p>
-                          <p>⚔️ <strong className="text-foreground">Mecze:</strong> {importPreview.matches?.length ?? 0}</p>
-                          <p>📊 <strong className="text-foreground">Status:</strong> {TOURNAMENT_STATUS_LABELS[importPreview.tournament.status] ?? "Nieznany"} · Runda {importPreview.tournament.currentRound ?? "—"}/{importPreview.tournament.totalRounds ?? "—"}</p>
-                          <p>📅 <strong className="text-foreground">Data backupu:</strong> {new Date(importPreview.exportedAt).toLocaleString("pl")}</p>
-                          <p>🔖 <strong className="text-foreground">Wersja formatu:</strong> {importPreview.schemaVersion}</p>
+                          <p>🏆 <strong className="text-foreground">{t("tournamentDetail.turniej")}</strong> {importPreview.tournament.name}</p>
+                          <p>📋 <strong className="text-foreground">{t("tournamentDetail.format_2")}</strong> {FORMAT_LABELS[importPreview.tournament.format] ?? importPreview.tournament.format}</p>
+                          <p>👥 <strong className="text-foreground">{t("tournamentDetail.gracze_2")}</strong> {importPreview.players?.length ?? 0}</p>
+                          <p>⚔️ <strong className="text-foreground">{t("tournamentDetail.mecze_2")}</strong> {importPreview.matches?.length ?? 0}</p>
+                          <p>📊 <strong className="text-foreground">{t("tournamentDetail.status")}</strong> {TOURNAMENT_STATUS_LABELS[importPreview.tournament.status] ?? t("tournamentDetail.nieznany")} {t("tournamentDetail.runda_2")}{" "}{importPreview.tournament.currentRound ?? "—"}/{importPreview.tournament.totalRounds ?? "—"}</p>
+                          <p>📅 <strong className="text-foreground">{t("tournamentDetail.data_backupu")}</strong> {new Date(importPreview.exportedAt).toLocaleString("pl")}</p>
+                          <p>🔖 <strong className="text-foreground">{t("tournamentDetail.wersja_formatu")}</strong> {importPreview.schemaVersion}</p>
                         </div>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        Turniej zostanie przywrócony jako <strong>„{importPreview.tournament.name} (kopia)”</strong> i otwarty automatycznie.
-                      </p>
+                        {t("tournamentDetail.turniej_zostanie_przywrocony_jako")}{" "}<strong>„{importPreview.tournament.name} {t("tournamentDetail.kopia")}</strong> {t("tournamentDetail.i_otwarty_automatycznie")}</p>
                       <p className="text-xs text-muted-foreground">
-                        Hasła i tokeny nie są przechowywane w backupie. Ustaw nowe poświadczenia dla odtwarzanej kopii.
-                      </p>
+                        {t("tournamentDetail.hasla_i_tokeny_nie_sa")}</p>
                       <div className="space-y-1.5">
-                        <Label htmlFor="restore-organizer-password-detail">Nowe hasło organizatora *</Label>
+                        <Label htmlFor="restore-organizer-password-detail">{t("tournamentDetail.nowe_haslo_organizatora")}</Label>
                         <Input
                           id="restore-organizer-password-detail"
                           type="password"
@@ -1920,7 +1886,7 @@ export default function TournamentDetail() {
                       </div>
                       {importPreview.tournament.visibility === "private_online" && (
                         <div className="space-y-1.5">
-                          <Label htmlFor="restore-viewer-password-detail">Nowe hasło widza *</Label>
+                          <Label htmlFor="restore-viewer-password-detail">{t("tournamentDetail.nowe_haslo_widza")}</Label>
                           <Input
                             id="restore-viewer-password-detail"
                             type="password"
@@ -1931,7 +1897,7 @@ export default function TournamentDetail() {
                         </div>
                       )}
                       <div className="space-y-1.5">
-                        <Label htmlFor="restore-support-password-detail">Nowe hasło wsparcia (opcjonalne)</Label>
+                        <Label htmlFor="restore-support-password-detail">{t("tournamentDetail.nowe_haslo_wsparcia_opcjonalne")}</Label>
                         <Input
                           id="restore-support-password-detail"
                           type="password"
@@ -1947,7 +1913,7 @@ export default function TournamentDetail() {
                           disabled={importPending}
                         >
                           <FileUp className="w-4 h-4 mr-2" />
-                          {importPending ? "Przywracanie…" : "Przywróć turniej"}
+                          {importPending ? t("tournamentDetail.przywracanie") : t("tournamentDetail.przywroc_turniej")}
                         </Button>
                         <Button variant="outline" onClick={() => {
                           setImportPreview(null);
@@ -1957,8 +1923,7 @@ export default function TournamentDetail() {
                           setRestoreSupportPassword("");
                           if (fileInputRef.current) fileInputRef.current.value = "";
                         }}>
-                          Anuluj
-                        </Button>
+                          {t("tournamentDetail.anuluj")}</Button>
                       </div>
                     </div>
                   )}

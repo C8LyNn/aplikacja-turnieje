@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -34,9 +35,9 @@ interface MarvelEliminationStageProps {
 }
 
 function regroupingLabel(strategy: string): string {
-  if (strategy === "random") return "Losowanie";
-  if (strategy === "manual") return "Ręczny podział";
-  return "Połącz sąsiednie grupy";
+  if (strategy === "random") return t("marvelEliminationStage.losowanie");
+  if (strategy === "manual") return t("marvelEliminationStage.reczny_podzial");
+  return t("marvelEliminationStage.polacz_sasiednie_grupy");
 }
 
 function invalidateMarvelState(
@@ -101,7 +102,7 @@ function GroupResultEditor({
 
   return (
     <div className="mt-3 space-y-3 border-t pt-3">
-      <p className="text-xs font-medium">Końcowa kolejność</p>
+      <p className="text-xs font-medium">{t("marvelEliminationStage.koncowa_kolejnosc")}</p>
       {playerIds.map((playerId, index) => {
         const entry = entryByPlayerId.get(playerId);
         if (!entry) return null;
@@ -115,7 +116,7 @@ function GroupResultEditor({
             </span>
             <span className="min-w-0 truncate text-sm">{entry.playerName}</span>
             <Input
-              aria-label={`Kille ${entry.playerName}`}
+              aria-label={t("marvelEliminationStage.kille_playername", { playerName: entry.playerName })}
               type="number"
               min={0}
               value={kills[playerId] ?? ""}
@@ -125,7 +126,7 @@ function GroupResultEditor({
                   [playerId]: event.target.value,
                 }))
               }
-              placeholder="Kille"
+              placeholder={t("marvelEliminationStage.kille")}
             />
             <div className="flex gap-1">
               <Button
@@ -135,7 +136,7 @@ function GroupResultEditor({
                 className="h-8 w-8"
                 disabled={index === 0}
                 onClick={() => move(index, -1)}
-                aria-label={`Przesuń ${entry.playerName} wyżej`}
+                aria-label={t("marvelEliminationStage.przesun_playername_wyzej", { playerName: entry.playerName })}
               >
                 ↑
               </Button>
@@ -146,7 +147,7 @@ function GroupResultEditor({
                 className="h-8 w-8"
                 disabled={index === playerIds.length - 1}
                 onClick={() => move(index, 1)}
-                aria-label={`Przesuń ${entry.playerName} niżej`}
+                aria-label={t("marvelEliminationStage.przesun_playername_nizej", { playerName: entry.playerName })}
               >
                 ↓
               </Button>
@@ -155,9 +156,7 @@ function GroupResultEditor({
         );
       })}
       <p className="text-xs text-muted-foreground">
-        Kolejność jest autorytatywna. Kille są opcjonalne i nie zmieniają
-        rankingu.
-      </p>
+        {t("marvelEliminationStage.kolejnosc_jest_autorytatywna_kille_sa")}</p>
       <Button
         type="button"
         className="w-full"
@@ -182,11 +181,11 @@ function GroupResultEditor({
             {
               onSuccess: () => {
                 invalidateMarvelState(queryClient, tournamentId, stageId);
-                toast({ title: "Zapisano wynik grupy" });
+                toast({ title: t("marvelEliminationStage.zapisano_wynik_grupy") });
               },
               onError: (error) =>
                 toast({
-                  title: "Nie udało się zapisać wyniku",
+                  title: t("marvelEliminationStage.nie_udalo_sie_zapisac_wyniku"),
                   description: getApiErrorMessage(error),
                   variant: "destructive",
                 }),
@@ -194,7 +193,7 @@ function GroupResultEditor({
           )
         }
       >
-        {mutation.isPending ? "Zapisywanie…" : "Zatwierdź wynik grupy"}
+        {mutation.isPending ? t("marvelEliminationStage.zapisywanie") : t("marvelEliminationStage.zatwierdz_wynik_grupy")}
       </Button>
     </div>
   );
@@ -256,11 +255,9 @@ function ManualGroupingEditor({
     <div className="space-y-3 rounded-lg border border-amber-500/40 bg-amber-500/5 p-4">
       <div>
         <p className="font-semibold">
-          Runda {pendingRound.roundNumber}: ustaw grupy ręcznie
-        </p>
+          {t("marvelEliminationStage.runda")}{" "}{pendingRound.roundNumber}{t("marvelEliminationStage.ustaw_grupy_recznie")}</p>
         <p className="text-xs text-muted-foreground">
-          Każdy kwalifikant musi znaleźć się dokładnie w jednej pełnej grupie.
-        </p>
+          {t("marvelEliminationStage.kazdy_kwalifikant_musi_znalezc_sie")}</p>
       </div>
       <div className="grid gap-2 sm:grid-cols-2">
         {qualifiers.map((entry) => (
@@ -284,7 +281,7 @@ function ManualGroupingEditor({
               <SelectContent>
                 {Array.from({ length: groupCount }, (_, index) => (
                   <SelectItem key={index + 1} value={String(index + 1)}>
-                    Grupa {String.fromCharCode(65 + index)}
+                    {t("marvelEliminationStage.grupa")}{" "}{String.fromCharCode(65 + index)}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -307,11 +304,11 @@ function ManualGroupingEditor({
             {
               onSuccess: () => {
                 invalidateMarvelState(queryClient, tournamentId, stageId);
-                toast({ title: "Zapisano ręczny podział grup" });
+                toast({ title: t("marvelEliminationStage.zapisano_reczny_podzial_grup") });
               },
               onError: (error) =>
                 toast({
-                  title: "Nie udało się zapisać grup",
+                  title: t("marvelEliminationStage.nie_udalo_sie_zapisac_grup"),
                   description: getApiErrorMessage(error),
                   variant: "destructive",
                 }),
@@ -319,7 +316,7 @@ function ManualGroupingEditor({
           );
         }}
       >
-        {mutation.isPending ? "Zapisywanie…" : "Zatwierdź podział"}
+        {mutation.isPending ? t("marvelEliminationStage.zapisywanie") : t("marvelEliminationStage.zatwierdz_podzial")}
       </Button>
     </div>
   );
@@ -344,14 +341,13 @@ export function MarvelEliminationStage({
     return (
       <div className="flex items-center justify-center gap-2 rounded-lg border p-10 text-sm text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" />
-        Ładowanie eliminacyjnych grup Marvel…
-      </div>
+        {t("marvelEliminationStage.ladowanie_eliminacyjnych_grup_marvel")}</div>
     );
   }
   if (query.error || !query.data) {
     return (
       <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-5 text-sm text-destructive">
-        Nie udało się pobrać drabinki Marvel.{" "}
+        {t("marvelEliminationStage.nie_udalo_sie_pobrac_drabinki")}{" "}
         {query.error ? getApiErrorMessage(query.error) : ""}
       </div>
     );
@@ -364,7 +360,7 @@ export function MarvelEliminationStage({
         (group) =>
           [
             group.id,
-            `R${round.roundNumber} · Grupa ${group.groupKey}`,
+            t("marvelEliminationStage.r_roundnumber_grupa_groupkey", { roundNumber: round.roundNumber, groupKey: group.groupKey }),
           ] as const,
       ),
     ),
@@ -373,10 +369,10 @@ export function MarvelEliminationStage({
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-center gap-2 rounded-lg border bg-card p-4 text-sm">
-        <Badge variant="secondary">Marvel FFA</Badge>
-        <span>Grupa: {state.config.groupSize}</span>
-        <span>· TOP {state.config.advancingCount}</span>
-        <span>· limit {state.config.killLimit} killi</span>
+        <Badge variant="secondary">{t("marvelEliminationStage.marvel_ffa")}</Badge>
+        <span>{t("marvelEliminationStage.grupa_2")}{" "}{state.config.groupSize}</span>
+        <span>{t("marvelEliminationStage.top")}{" "}{state.config.advancingCount}</span>
+        <span>{t("marvelEliminationStage.limit")}{" "}{state.config.killLimit} {t("marvelEliminationStage.killi")}</span>
         <span>· {regroupingLabel(state.config.regroupingStrategy)}</span>
       </div>
 
@@ -397,8 +393,8 @@ export function MarvelEliminationStage({
                 <h3 className="font-bold">
                   {round.groups.length === 1 &&
                   roundIndex === state.rounds.length - 1
-                    ? "FINAŁ"
-                    : `RUNDA ${round.roundNumber}`}
+                    ? t("marvelEliminationStage.final")
+                    : t("marvelEliminationStage.runda_roundnumber", { roundNumber: round.roundNumber })}
                 </h3>
                 <Badge
                   variant={
@@ -406,10 +402,10 @@ export function MarvelEliminationStage({
                   }
                 >
                   {round.status === "completed"
-                    ? "zakończona"
+                    ? t("marvelEliminationStage.zakonczona")
                     : round.status === "awaiting_manual"
-                      ? "czeka na podział"
-                      : "w toku"}
+                      ? t("marvelEliminationStage.czeka_na_podzial")
+                      : t("marvelEliminationStage.w_toku")}
                 </Badge>
               </div>
               {round.groups.map((group) => {
@@ -428,9 +424,9 @@ export function MarvelEliminationStage({
                     className="rounded-lg border bg-card p-3 shadow-sm"
                   >
                     <div className="mb-2 flex items-center justify-between">
-                      <p className="font-semibold">Grupa {group.groupKey}</p>
+                      <p className="font-semibold">{t("marvelEliminationStage.grupa")}{" "}{group.groupKey}</p>
                       {group.status === "completed" && (
-                        <Badge variant="outline">wynik</Badge>
+                        <Badge variant="outline">{t("marvelEliminationStage.wynik")}</Badge>
                       )}
                     </div>
                     <div className="space-y-1">
@@ -478,7 +474,7 @@ export function MarvelEliminationStage({
                                 )}
                                 {entry.nextGroupId != null && (
                                   <span
-                                    title={`Dalej: ${groupLabelById.get(entry.nextGroupId)}`}
+                                    title={t("marvelEliminationStage.dalej_v0", { v0: groupLabelById.get(entry.nextGroupId) })}
                                   >
                                     <ArrowRight className="h-3.5 w-3.5 text-emerald-500" />
                                   </span>
@@ -491,9 +487,8 @@ export function MarvelEliminationStage({
                     </div>
                     {group.status === "pending" && round.groups.length > 1 && (
                       <p className="mt-2 flex items-center gap-1 text-xs text-muted-foreground">
-                        <ArrowDown className="h-3 w-3" /> TOP{" "}
-                        {state.config.advancingCount} awansuje
-                      </p>
+                        <ArrowDown className="h-3 w-3" /> {t("marvelEliminationStage.top_2")}{" "}
+                        {state.config.advancingCount} {t("marvelEliminationStage.awansuje")}</p>
                     )}
                     {canManage && currentPending && (
                       <GroupResultEditor

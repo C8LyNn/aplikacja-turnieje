@@ -1,12 +1,13 @@
+import { t } from "@/i18n";
 import { CircleCheck, PencilRuler, Radio, type LucideIcon } from "lucide-react";
 import type { ExperimentalTournamentStatusFilter } from "@/features/experimental-tournaments/experimental-dashboard-toolbar";
 
 type LifecycleStatus = Exclude<ExperimentalTournamentStatusFilter, "all">;
 
 const TILES: Array<{ status: LifecycleStatus; label: string; icon: LucideIcon }> = [
-  { status: "active", label: "Trwające", icon: Radio },
-  { status: "draft", label: "W przygotowaniu", icon: PencilRuler },
-  { status: "completed", label: "Zakończone", icon: CircleCheck },
+  { status: "active", get label() { return t("experimentalDashboardStats.trwajace"); }, icon: Radio },
+  { status: "draft", get label() { return t("experimentalDashboardStats.w_przygotowaniu"); }, icon: PencilRuler },
+  { status: "completed", get label() { return t("experimentalDashboardStats.zakonczone"); }, icon: CircleCheck },
 ];
 
 /**
@@ -23,7 +24,7 @@ export function ExperimentalDashboardStats({
   onStatusChange: (status: ExperimentalTournamentStatusFilter) => void;
 }) {
   return (
-    <div className="experimental-dstats" role="group" aria-label="Filtruj turnieje według etapu">
+    <div className="experimental-dstats" role="group" aria-label={t("experimentalDashboardStats.filtruj_turnieje_wedlug_etapu")}>
       {TILES.map(({ status: tileStatus, label, icon: Icon }) => {
         const pressed = status === tileStatus;
         return (

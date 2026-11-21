@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { lazy, Suspense } from "react";
 import { Switch, Route, Router as WouterRouter } from "wouter";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -61,8 +62,7 @@ const queryClient = new QueryClient({
 function RouteFallback() {
   return (
     <div role="status" aria-live="polite" className="flex min-h-[40vh] items-center justify-center text-sm text-muted-foreground">
-      Ładowanie…
-    </div>
+      {t("app.ladowanie")}</div>
   );
 }
 

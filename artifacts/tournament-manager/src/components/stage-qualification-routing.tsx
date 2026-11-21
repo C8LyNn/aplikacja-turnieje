@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import React, { useRef, useState } from "react";
 import { useQueries, useQueryClient } from "@tanstack/react-query";
 import {
@@ -34,7 +35,7 @@ interface Props {
 
 export function StageQualificationRouting(props: Props) {
   const outputs = props.configuration.baskets.filter(basket => basket.stageId === props.stage.id && basket.type === "output" && basket.qualifierCount !== null);
-  if (props.configuration.flowAuthority !== "basket_v1" || props.stage.status !== "completed" || outputs.length === 0) return <p className="text-sm">Etap zakończony.</p>;
+  if (props.configuration.flowAuthority !== "basket_v1" || props.stage.status !== "completed" || outputs.length === 0) return <p className="text-sm">{t("stageQualificationRouting.etap_zakonczony")}</p>;
   return <QualificationRouting key={props.stage.id} {...props} />;
 }
 
@@ -47,7 +48,7 @@ function QualificationRouting({ tournamentId, stage, stages, configuration, part
   const client = useQueryClient();
   const lock = useRef(false);
   const [pending, setPending] = useState(false);
-  const [pendingMessage, setPendingMessage] = useState("Zapisywanie i odświeżanie stanu…");
+  const [pendingMessage, setPendingMessage] = useState(t("stageQualificationRouting.zapisywanie_i_odswiezanie_stanu"));
   const [error, setError] = useState<string>();
   const [success, setSuccess] = useState<string>();
   const [confirmation, setConfirmation] = useState<string>();
@@ -82,7 +83,7 @@ function QualificationRouting({ tournamentId, stage, stages, configuration, part
     ]);
   }
 
-  async function run(operation: (() => Promise<unknown>) | null, message: string, confirmed?: () => boolean, progress = "Zapisywanie i odświeżanie stanu…") {
+  async function run(operation: (() => Promise<unknown>) | null, message: string, confirmed?: () => boolean, progress = t("stageQualificationRouting.zapisywanie_i_odswiezanie_stanu")) {
     if (lock.current) return;
     lock.current = true;
     setPendingMessage(progress);
@@ -99,12 +100,12 @@ function QualificationRouting({ tournamentId, stage, stages, configuration, part
         return state?.status === "error" && !(operation === null && key === proposalKey && isMissingProposal(state.error));
       });
       if (refreshFailed || confirmed?.() === false) {
-        setError(saved ? "Operacja została przyjęta, ale nie udało się odświeżyć pełnego stanu. Ponów sprawdzenie przed kolejnym krokiem." : "Nie udało się odświeżyć pełnego stanu. Ponów sprawdzenie.");
+        setError(saved ? t("stageQualificationRouting.operacja_zostala_przyjeta_ale_nie") : t("stageQualificationRouting.nie_udalo_sie_odswiezyc_pelnego"));
       } else {
         setSuccess(message);
       }
     } catch (cause) {
-      setError(saved ? "Operacja została przyjęta, ale odświeżenie stanu nie powiodło się. Ponów sprawdzenie." : stageLifecycleError(cause));
+      setError(saved ? t("stageQualificationRouting.operacja_zostala_przyjeta_ale_odswiezeni") : stageLifecycleError(cause));
       if (!saved) await refresh().catch(() => {});
     } finally {
       setConfirmation(undefined);
@@ -114,64 +115,64 @@ function QualificationRouting({ tournamentId, stage, stages, configuration, part
 
   function basketName(id: string) {
     const basket = configuration.baskets.find(entry => entry.id === id);
-    return basket ? `koszyk ${basket.type === "output" ? "wyjściowy" : "wejściowy"} ${basket.ordinal}` : id;
+    return basket ? t("stageQualificationRouting.koszyk_v0_ordinal", { v0: basket.type === "output" ? t("stageQualificationRouting.wyjsciowy") : t("stageQualificationRouting.wejsciowy"), ordinal: basket.ordinal }) : id;
   }
-  const stageName = (id: number) => stages.find(entry => entry.id === id)?.name ?? `Etap #${id}`;
+  const stageName = (id: number) => stages.find(entry => entry.id === id)?.name ?? t("stageQualificationRouting.etap_id", { id: id });
 
-  return <section className="organizer-qualification space-y-4" aria-label="Kwalifikacja i routing">
-    <h4 className="font-semibold">Kwalifikacja i przekazanie uczestników</h4>
-    <p className="text-sm">Stan kwalifikacji{routes.length > 0 && " i routingu"} według serwera.</p>
+  return <section className="organizer-qualification space-y-4" aria-label={t("stageQualificationRouting.kwalifikacja_i_routing")}>
+    <h4 className="font-semibold">{t("stageQualificationRouting.kwalifikacja_i_przekazanie_uczestnikow")}</h4>
+    <p className="text-sm">{t("stageQualificationRouting.stan_kwalifikacji")}{routes.length > 0 && t("stageQualificationRouting.i_routingu")} {t("stageQualificationRouting.wedlug_serwera")}</p>
     {error && <p role="alert" className="organizer-notice organizer-notice--error rounded-md border text-sm text-destructive">{error}</p>}
     {success && <p role="status" className="organizer-notice organizer-notice--success rounded-md border text-sm">{success}</p>}
     {pending && <p role="status" className="organizer-notice organizer-notice--pending text-sm">{pendingMessage}</p>}
-    {proposal.isPending ? <p>Sprawdzanie propozycji kwalifikacji…</p> : missing ? <>
-      <p>Nie przygotowano jeszcze propozycji kwalifikacji.</p>
-      <Button disabled={pending || proposal.isFetching} onClick={() => void run(() => generate.mutateAsync({ id: tournamentId, stageId: stage.id }), "Propozycja kwalifikacji przygotowana. Sprawdź uczestników przed zatwierdzeniem.")}>Przygotuj propozycję kwalifikacji</Button>
-    </> : proposal.isError ? <p role="alert">Nie udało się sprawdzić propozycji kwalifikacji. {stageLifecycleError(proposal.error)}</p> : proposal.data && <>
-      <p>{proposal.data.status === "approved" ? "Kwalifikacja zatwierdzona." : "Propozycja kwalifikacji oczekuje na zatwierdzenie."}</p>
-      <p className="text-sm text-muted-foreground">Wersja propozycji: {proposal.data.revision}. Skład i kolejność wyznaczone przez serwer.</p>
+    {proposal.isPending ? <p>{t("stageQualificationRouting.sprawdzanie_propozycji_kwalifikacji")}</p> : missing ? <>
+      <p>{t("stageQualificationRouting.nie_przygotowano_jeszcze_propozycji_kwal")}</p>
+      <Button disabled={pending || proposal.isFetching} onClick={() => void run(() => generate.mutateAsync({ id: tournamentId, stageId: stage.id }), t("stageQualificationRouting.propozycja_kwalifikacji_przygotowana_spr"))}>{t("stageQualificationRouting.przygotuj_propozycje_kwalifikacji")}</Button>
+    </> : proposal.isError ? <p role="alert">{t("stageQualificationRouting.nie_udalo_sie_sprawdzic_propozycji")}{" "}{stageLifecycleError(proposal.error)}</p> : proposal.data && <>
+      <p>{proposal.data.status === "approved" ? t("stageQualificationRouting.kwalifikacja_zatwierdzona") : t("stageQualificationRouting.propozycja_kwalifikacji_oczekuje_na_zatw")}</p>
+      <p className="text-sm text-muted-foreground">{t("stageQualificationRouting.wersja_propozycji")}{" "}{proposal.data.revision}{t("stageQualificationRouting.sklad_i_kolejnosc_wyznaczone_przez")}</p>
       <div className="overflow-x-auto"><table className="w-full text-sm">
-        <caption className="sr-only">Propozycja kwalifikacji</caption>
-        <thead><tr><th className="text-left">Uczestnik</th><th>Miejsce w etapie</th><th>Koszyk</th><th>Pozycja w koszyku</th></tr></thead>
+        <caption className="sr-only">{t("stageQualificationRouting.propozycja_kwalifikacji")}</caption>
+        <thead><tr><th className="text-left">{t("stageQualificationRouting.uczestnik")}</th><th>{t("stageQualificationRouting.miejsce_w_etapie")}</th><th>{t("stageQualificationRouting.koszyk")}</th><th>{t("stageQualificationRouting.pozycja_w_koszyku")}</th></tr></thead>
         <tbody>{proposal.data.entries.map(entry => <tr key={`${entry.basketId}:${entry.playerId}`}>
-          <td>{participants.find(player => player.playerId === entry.playerId)?.playerName ?? `Gracz #${entry.playerId}`}</td>
+          <td>{participants.find(player => player.playerId === entry.playerId)?.playerName ?? t("stageQualificationRouting.gracz_playerid", { playerId: entry.playerId })}</td>
           <td className="text-center">{entry.placementRank}</td><td className="text-center">{basketName(entry.basketId)}</td><td className="text-center">{entry.basketPosition}</td>
         </tr>)}</tbody>
       </table></div>
       {proposal.data.status === "pending" && <div className="flex flex-wrap gap-2">
-        <Button disabled={!canApprove} onClick={() => setConfirmation(revision)}>Zatwierdź kwalifikację</Button>
-        <Button variant="outline" disabled={!canApprove} onClick={() => void run(() => generate.mutateAsync({ id: tournamentId, stageId: stage.id }), "Propozycja kwalifikacji odświeżona. Sprawdź aktualny skład.")}>Odśwież propozycję z wyników</Button>
+        <Button disabled={!canApprove} onClick={() => setConfirmation(revision)}>{t("stageQualificationRouting.zatwierdz_kwalifikacje")}</Button>
+        <Button variant="outline" disabled={!canApprove} onClick={() => void run(() => generate.mutateAsync({ id: tournamentId, stageId: stage.id }), t("stageQualificationRouting.propozycja_kwalifikacji_odswiezona_spraw"))}>{t("stageQualificationRouting.odswiez_propozycje_z_wynikow")}</Button>
       </div>}
     </>}
     {routes.map((route, index) => {
       const query = routeQueries[index];
       const target = configuration.baskets.find(basket => basket.id === route.targetBasketId);
-      return <div key={route.id} className="organizer-route rounded-md border p-3 space-y-2" aria-label={`Routing ${route.id}`}>
-        <p className="text-sm">{stage.name}: {basketName(route.sourceBasketId)} → {target ? stageName(target.stageId) : "Etap docelowy"}: {basketName(route.targetBasketId)}</p>
-        {query.isPending ? <p>Sprawdzanie routingu…</p> : query.isError ? <p role="alert">Nie udało się sprawdzić routingu. {stageLifecycleError(query.error)}</p> : query.data?.materialized ? <p>Routing wykonany. Przekazano uczestników: {query.data.routedPlayerCount}.</p> : query.data?.sourceOutputApproved ? <>
-          <p>Kwalifikacja zatwierdzona. Następny krok: wykonaj routing.</p>
-          <Button disabled={pending || query.isFetching} onClick={() => void run(() => execute.mutateAsync({ id: tournamentId, stageId: stage.id, basketId: route.sourceBasketId }), "Routing wykonany. Gotowość etapu docelowego została sprawdzona.", () => client.getQueryData<BasketRouteStatus>(routeOptions[index].queryKey)?.materialized === true, "Przekazywanie uczestników i odświeżanie stanu…")}>Wykonaj routing: {basketName(route.sourceBasketId)}</Button>
-        </> : <p>Routing oczekuje na zatwierdzenie kwalifikacji.</p>}
+      return <div key={route.id} className="organizer-route rounded-md border p-3 space-y-2" aria-label={t("stageQualificationRouting.routing_id", { id: route.id })}>
+        <p className="text-sm">{stage.name}: {basketName(route.sourceBasketId)} → {target ? stageName(target.stageId) : t("stageQualificationRouting.etap_docelowy")}: {basketName(route.targetBasketId)}</p>
+        {query.isPending ? <p>{t("stageQualificationRouting.sprawdzanie_routingu")}</p> : query.isError ? <p role="alert">{t("stageQualificationRouting.nie_udalo_sie_sprawdzic_routingu")}{" "}{stageLifecycleError(query.error)}</p> : query.data?.materialized ? <p>{t("stageQualificationRouting.routing_wykonany_przekazano_uczestnikow")}{" "}{query.data.routedPlayerCount}.</p> : query.data?.sourceOutputApproved ? <>
+          <p>{t("stageQualificationRouting.kwalifikacja_zatwierdzona_nastepny_krok_")}</p>
+          <Button disabled={pending || query.isFetching} onClick={() => void run(() => execute.mutateAsync({ id: tournamentId, stageId: stage.id, basketId: route.sourceBasketId }), t("stageQualificationRouting.routing_wykonany_gotowosc_etapu_docelowe"), () => client.getQueryData<BasketRouteStatus>(routeOptions[index].queryKey)?.materialized === true, t("stageQualificationRouting.przekazywanie_uczestnikow_i_odswiezanie_"))}>{t("stageQualificationRouting.wykonaj_routing")}{" "}{basketName(route.sourceBasketId)}</Button>
+        </> : <p>{t("stageQualificationRouting.routing_oczekuje_na_zatwierdzenie_kwalif")}</p>}
       </div>;
     })}
     {targetIds.map((id, index) => {
       const query = readinessQueries[index];
-      return <div key={id} className="text-sm space-y-2" aria-label={`Gotowość: ${stageName(id)}`}>
+      return <div key={id} className="text-sm space-y-2" aria-label={t("stageQualificationRouting.gotowosc_v0", { v0: stageName(id) })}>
         <p className="font-semibold">{stageName(id)}</p>
-        {query.isPending ? <p>Sprawdzanie gotowości…</p> : query.isError ? <p role="alert">Nie udało się sprawdzić gotowości etapu.</p> : query.data?.ready ? <p>Etap gotowy do startu.</p> : query.data && stageReadinessMessages(query.data, { stages, stageId: id, baskets: configuration.baskets, routes: configuration.routes }).map(message => <p key={message}>{message}</p>)}
-        <Button variant="outline" disabled={pending} onClick={() => onSelectStage(id)}>Przejdź do etapu: {stageName(id)}</Button>
+        {query.isPending ? <p>{t("stageQualificationRouting.sprawdzanie_gotowosci")}</p> : query.isError ? <p role="alert">{t("stageQualificationRouting.nie_udalo_sie_sprawdzic_gotowosci")}</p> : query.data?.ready ? <p>{t("stageQualificationRouting.etap_gotowy_do_startu")}</p> : query.data && stageReadinessMessages(query.data, { stages, stageId: id, baskets: configuration.baskets, routes: configuration.routes }).map(message => <p key={message}>{message}</p>)}
+        <Button variant="outline" disabled={pending} onClick={() => onSelectStage(id)}>{t("stageQualificationRouting.przejdz_do_etapu")}{" "}{stageName(id)}</Button>
       </div>;
     })}
-    <Button variant="outline" disabled={pending} onClick={() => void run(null, "Stan kwalifikacji i routingu odświeżony.")}>Ponów sprawdzenie stanu</Button>
+    <Button variant="outline" disabled={pending} onClick={() => void run(null, t("stageQualificationRouting.stan_kwalifikacji_i_routingu_odswiezony"))}>{t("stageQualificationRouting.ponow_sprawdzenie_stanu")}</Button>
     <Dialog open={confirmation !== undefined} onOpenChange={open => { if (!pending && !open) setConfirmation(undefined); }}>
       <DialogContent className="organizer-dialog">
-        <DialogHeader><DialogTitle>Zatwierdzić kwalifikację?</DialogTitle><DialogDescription>Zatwierdzenie utrwali pokazany skład koszyków wyjściowych etapu „{stage.name}”. Zatwierdzonej propozycji nie można ponownie wygenerować. {routes.length > 0 && "Routing wykonuje się osobno, po zatwierdzeniu."}</DialogDescription></DialogHeader>
-        {confirmation !== revision && <p role="alert">Propozycja zmieniła się. Zamknij potwierdzenie i sprawdź aktualny skład.</p>}
-        <DialogFooter><Button variant="outline" disabled={pending} onClick={() => setConfirmation(undefined)}>Anuluj</Button>
+        <DialogHeader><DialogTitle>{t("stageQualificationRouting.zatwierdzic_kwalifikacje")}</DialogTitle><DialogDescription>{t("stageQualificationRouting.zatwierdzenie_utrwali_pokazany_sklad_kos")}{stage.name}{t("stageQualificationRouting.zatwierdzonej_propozycji_nie_mozna_ponow")}{" "}{routes.length > 0 && t("stageQualificationRouting.routing_wykonuje_sie_osobno_po")}</DialogDescription></DialogHeader>
+        {confirmation !== revision && <p role="alert">{t("stageQualificationRouting.propozycja_zmienila_sie_zamknij_potwierd")}</p>}
+        <DialogFooter><Button variant="outline" disabled={pending} onClick={() => setConfirmation(undefined)}>{t("stageQualificationRouting.anuluj")}</Button>
           <Button disabled={!canApprove || confirmation !== revision} onClick={() => {
             if (!canApprove || confirmation !== revision) return;
-            void run(() => approve.mutateAsync({ id: tournamentId, stageId: stage.id }), "Kwalifikacja zatwierdzona.", () => client.getQueryData<QualificationProposal>(proposalKey)?.status === "approved", "Zatwierdzanie zakwalifikowanych i odświeżanie stanu…");
-          }}>{pending ? "Zatwierdzanie i odświeżanie…" : "Potwierdź kwalifikację"}</Button>
+            void run(() => approve.mutateAsync({ id: tournamentId, stageId: stage.id }), t("stageQualificationRouting.kwalifikacja_zatwierdzona"), () => client.getQueryData<QualificationProposal>(proposalKey)?.status === "approved", t("stageQualificationRouting.zatwierdzanie_zakwalifikowanych_i_odswie"));
+          }}>{pending ? t("stageQualificationRouting.zatwierdzanie_i_odswiezanie") : t("stageQualificationRouting.potwierdz_kwalifikacje")}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { ChevronLeft, ChevronRight, LayoutDashboard } from "lucide-react";
 import { Link } from "wouter";
 import { tournamentHref } from "@/features/experimental-tournaments/experimental-tournament-routing";
@@ -16,21 +17,20 @@ export function ExperimentalTournamentContextBar({
 }) {
   if (compact) {
     return (
-      <nav aria-label="Ścieżka w eksperymentalnym panelu turnieju" className="experimental-context-bar experimental-context-bar--compact">
+      <nav aria-label={t("experimentalTournamentContextBar.sciezka_w_eksperymentalnym_panelu_turnie")} className="experimental-context-bar experimental-context-bar--compact">
         <Link
           href="/experimental/tournaments/dashboard"
           className="inline-flex items-center gap-1 rounded-md py-0.5 text-xs font-semibold text-muted-foreground transition hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
         >
           <ChevronLeft className="h-3.5 w-3.5" aria-hidden="true" />
-          Turnieje
-        </Link>
+          {t("experimentalTournamentContextBar.turnieje")}</Link>
         <span className="sr-only">{` › ${tournamentName}${currentLabel ? ` › ${currentLabel}` : ""}`}</span>
       </nav>
     );
   }
   return (
     <nav
-      aria-label="Ścieżka w eksperymentalnym panelu turnieju"
+      aria-label={t("experimentalTournamentContextBar.sciezka_w_eksperymentalnym_panelu_turnie")}
       className="experimental-context-bar flex min-w-0 flex-wrap items-center gap-1.5 rounded-xl border border-border/75 bg-card/45 px-3 py-2 text-xs"
     >
       <Link
@@ -38,8 +38,7 @@ export function ExperimentalTournamentContextBar({
         className="inline-flex items-center gap-1.5 rounded-md px-1.5 py-1 font-semibold text-muted-foreground transition hover:bg-muted/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
       >
         <LayoutDashboard className="h-3.5 w-3.5" aria-hidden="true" />
-        Turnieje
-      </Link>
+        {t("experimentalTournamentContextBar.turnieje")}</Link>
 
       <ChevronRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/55" aria-hidden="true" />
 

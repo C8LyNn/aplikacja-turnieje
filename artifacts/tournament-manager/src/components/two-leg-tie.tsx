@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 /**
  * V5.10 · two-legged ties (dwumecz): the summary every view shows (both legs, the aggregate, who advances) and the
  * host's editor (score of each leg, its date, correcting a leg, the organizer's decision on a level aggregate).
@@ -14,7 +15,7 @@ import { formatLegDate, isTwoLegTie, tieLegRows, tieSentence, TIE_STATE_LABELS }
 function errorText(error: unknown): string {
   const data = (error as { data?: { error?: unknown } } | null)?.data;
   if (data && typeof data.error === "string") return data.error;
-  return error instanceof Error ? error.message : "Nie udało się zapisać. Spróbuj ponownie.";
+  return error instanceof Error ? error.message : t("twoLegTie.nie_udalo_sie_zapisac_sprobuj");
 }
 
 /** Both legs and the aggregate, readable without knowing the data model (bracket details, lists, viewers, Stable). */
@@ -23,8 +24,8 @@ export function TwoLegTieSummary({ match, compact = false }: { match: Match; com
   const rows = tieLegRows(match);
   return (
     <div className="two-leg-tie space-y-1.5 text-sm" data-testid="two-leg-tie-summary" data-state={match.tie.state}>
-      {!compact && <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Dwumecz · {TIE_STATE_LABELS[match.tie.state] ?? match.tie.state}</p>}
-      <ol className="space-y-1" aria-label="Spotkania dwumeczu">
+      {!compact && <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{t("twoLegTie.dwumecz")}{" "}{TIE_STATE_LABELS[match.tie.state] ?? match.tie.state}</p>}
+      <ol className="space-y-1" aria-label={t("twoLegTie.spotkania_dwumeczu")}>
         {rows.map((row) => (
           <li key={row.leg} className="grid grid-cols-[auto_1fr] gap-x-2 sm:grid-cols-[7.5rem_1fr]">
             <span className="text-xs text-muted-foreground">{row.label}</span>
@@ -45,13 +46,13 @@ export function TwoLegTieSummary({ match, compact = false }: { match: Match; com
 function ScoreStepper({ label, value, onChange, disabled }: { label: string; value: number; onChange: (value: number) => void; disabled?: boolean }) {
   return (
     <div className="flex items-center gap-1.5">
-      <Button type="button" variant="outline" size="icon" className="h-9 w-9" aria-label={`Odejmij: ${label}`} disabled={disabled || value <= 0} onClick={() => onChange(Math.max(0, value - 1))}><Minus className="h-4 w-4" /></Button>
+      <Button type="button" variant="outline" size="icon" className="h-9 w-9" aria-label={t("twoLegTie.odejmij_label", { label: label })} disabled={disabled || value <= 0} onClick={() => onChange(Math.max(0, value - 1))}><Minus className="h-4 w-4" /></Button>
       <input
         type="number" inputMode="numeric" min={0} max={999} aria-label={label} value={value} disabled={disabled}
         className="h-9 w-14 rounded-md border bg-background text-center text-lg font-bold tabular-nums"
         onChange={(event) => { const next = Number(event.target.value); onChange(Number.isFinite(next) ? Math.max(0, Math.min(999, Math.trunc(next))) : 0); }}
       />
-      <Button type="button" variant="outline" size="icon" className="h-9 w-9" aria-label={`Dodaj: ${label}`} disabled={disabled || value >= 999} onClick={() => onChange(Math.min(999, value + 1))}><Plus className="h-4 w-4" /></Button>
+      <Button type="button" variant="outline" size="icon" className="h-9 w-9" aria-label={t("twoLegTie.dodaj_label", { label: label })} disabled={disabled || value >= 999} onClick={() => onChange(Math.min(999, value + 1))}><Plus className="h-4 w-4" /></Button>
     </div>
   );
 }
@@ -98,8 +99,8 @@ export function TwoLegTieEditor({ match, canWrite, onChanged }: { match: Match; 
   return (
     <section className="space-y-4" aria-labelledby={`${id}-title`} data-testid="two-leg-tie-editor">
       <div>
-        <h3 id={`${id}-title`} className="text-sm font-semibold">Dwumecz — dwa spotkania, awansuje zwycięzca sumy</h3>
-        <p className="text-xs text-muted-foreground">Wpisz wynik każdego spotkania osobno (bramki lub punkty, remis w jednym spotkaniu jest możliwy). Gospodarz jest podany pierwszy.</p>
+        <h3 id={`${id}-title`} className="text-sm font-semibold">{t("twoLegTie.dwumecz_dwa_spotkania_awansuje_zwyciezca")}</h3>
+        <p className="text-xs text-muted-foreground">{t("twoLegTie.wpisz_wynik_kazdego_spotkania_osobno")}</p>
       </div>
       <div className="grid gap-3 md:grid-cols-2">
         {rows.map((row) => {
@@ -109,20 +110,20 @@ export function TwoLegTieEditor({ match, canWrite, onChanged }: { match: Match; 
             <article key={row.leg} className="rounded-lg border p-3 space-y-3" data-testid={`two-leg-${row.leg}`} data-played={row.played ? "true" : "false"} aria-label={`${row.label}: ${row.homeName} – ${row.awayName}`}>
               <header className="flex flex-wrap items-baseline justify-between gap-2">
                 <h4 className="font-semibold">{row.label}</h4>
-                <span className="text-xs text-muted-foreground">gospodarz: {row.homeName}</span>
+                <span className="text-xs text-muted-foreground">{t("twoLegTie.gospodarz")}{" "}{row.homeName}</span>
               </header>
               {row.played ? (
                 <>
                   <p className="text-center text-lg"><span className="break-words">{row.homeName}</span> <strong className="tabular-nums text-2xl">{row.homeScore}:{row.awayScore}</strong> <span className="break-words">{row.awayName}</span></p>
                   {canWrite && confirmRevert !== row.leg && (
-                    <Button type="button" variant="outline" size="sm" disabled={pending} onClick={() => setConfirmRevert(row.leg)}>Popraw wynik spotkania</Button>
+                    <Button type="button" variant="outline" size="sm" disabled={pending} onClick={() => setConfirmRevert(row.leg)}>{t("twoLegTie.popraw_wynik_spotkania")}</Button>
                   )}
                   {canWrite && confirmRevert === row.leg && (
-                    <div role="alertdialog" aria-label="Potwierdź cofnięcie wyniku spotkania" className="space-y-2 rounded-md border border-orange-500/40 bg-orange-500/10 p-2 text-sm">
-                      <p>Cofnąć wynik tego spotkania? {decided ? "Dwumecz jest rozstrzygnięty — awans zostanie cofnięty, jeśli następny mecz jeszcze się nie zaczął (inaczej system zablokuje zmianę)." : "Suma zostanie przeliczona po ponownym wpisaniu wyniku."}</p>
+                    <div role="alertdialog" aria-label={t("twoLegTie.potwierdz_cofniecie_wyniku_spotkania")} className="space-y-2 rounded-md border border-orange-500/40 bg-orange-500/10 p-2 text-sm">
+                      <p>{t("twoLegTie.cofnac_wynik_tego_spotkania")}{" "}{decided ? t("twoLegTie.dwumecz_jest_rozstrzygniety_awans_zostan") : t("twoLegTie.suma_zostanie_przeliczona_po_ponownym")}</p>
                       <div className="flex gap-2">
-                        <Button type="button" size="sm" variant="destructive" disabled={pending} onClick={() => { setConfirmRevert(null); void run(() => revert.mutateAsync({ id: match.id, leg: row.leg, data: { expectedRevision: legData.revision } }), `Cofnięto wynik: ${row.label}. Wpisz poprawny wynik.`); }}>Cofnij wynik spotkania</Button>
-                        <Button type="button" size="sm" variant="ghost" onClick={() => setConfirmRevert(null)}>Anuluj</Button>
+                        <Button type="button" size="sm" variant="destructive" disabled={pending} onClick={() => { setConfirmRevert(null); void run(() => revert.mutateAsync({ id: match.id, leg: row.leg, data: { expectedRevision: legData.revision } }), t("twoLegTie.cofnieto_wynik_label_wpisz_poprawny", { label: row.label })); }}>{t("twoLegTie.cofnij_wynik_spotkania")}</Button>
+                        <Button type="button" size="sm" variant="ghost" onClick={() => setConfirmRevert(null)}>{t("twoLegTie.anuluj")}</Button>
                       </div>
                     </div>
                   )}
@@ -136,20 +137,19 @@ export function TwoLegTieEditor({ match, canWrite, onChanged }: { match: Match; 
                   </div>
                   <Button type="button" className="w-full" disabled={pending} onClick={() => {
                     const stored = legScoreFromHomeFirst(row.leg, draft.home, draft.away);
-                    void run(() => record.mutateAsync({ id: match.id, leg: row.leg, data: { ...stored, expectedRevision: legData.revision } }), `Zapisano: ${row.label} ${row.homeName} ${draft.home}:${draft.away} ${row.awayName}.`);
-                  }}>Zapisz wynik: {row.label.toLowerCase()}</Button>
+                    void run(() => record.mutateAsync({ id: match.id, leg: row.leg, data: { ...stored, expectedRevision: legData.revision } }), t("twoLegTie.zapisano_label_homename_home_away", { label: row.label, homeName: row.homeName, home: draft.home, away: draft.away, awayName: row.awayName }));
+                  }}>{t("twoLegTie.zapisz_wynik")}{" "}{row.label.toLowerCase()}</Button>
                   <div className="flex flex-wrap items-end gap-2">
-                    <label className="text-xs text-muted-foreground">Termin spotkania
-                      <input type="datetime-local" className="mt-1 block rounded-md border bg-background px-2 py-1 text-sm" value={dates[row.leg] ?? toLocalInput(row.scheduledAt)} onChange={(event) => setDates((previous) => ({ ...previous, [row.leg]: event.target.value }))} />
+                    <label className="text-xs text-muted-foreground">{t("twoLegTie.termin_spotkania")}<input type="datetime-local" className="mt-1 block rounded-md border bg-background px-2 py-1 text-sm" value={dates[row.leg] ?? toLocalInput(row.scheduledAt)} onChange={(event) => setDates((previous) => ({ ...previous, [row.leg]: event.target.value }))} />
                     </label>
                     <Button type="button" variant="outline" size="sm" disabled={pending || dates[row.leg] === undefined} onClick={() => {
                       const value = dates[row.leg];
-                      void run(() => schedule.mutateAsync({ id: match.id, leg: row.leg, data: { scheduledAt: value ? new Date(value).toISOString() : null, expectedScheduledAt: row.scheduledAt } }), `Zapisano termin: ${row.label.toLowerCase()}.`);
-                    }}>Zapisz termin</Button>
+                      void run(() => schedule.mutateAsync({ id: match.id, leg: row.leg, data: { scheduledAt: value ? new Date(value).toISOString() : null, expectedScheduledAt: row.scheduledAt } }), t("twoLegTie.zapisano_termin_v0", { v0: row.label.toLowerCase() }));
+                    }}>{t("twoLegTie.zapisz_termin")}</Button>
                   </div>
                 </>
               ) : (
-                <p className="text-sm text-muted-foreground">{!participantsKnown ? "Para jeszcze nieznana — czeka na zwycięzców poprzedniej rundy." : `Jeszcze nie rozegrane · ${formatLegDate(row.scheduledAt)}`}</p>
+                <p className="text-sm text-muted-foreground">{!participantsKnown ? t("twoLegTie.para_jeszcze_nieznana_czeka_na") : t("twoLegTie.jeszcze_nie_rozegrane_v0", { v0: formatLegDate(row.scheduledAt) })}</p>
               )}
             </article>
           );
@@ -162,30 +162,29 @@ export function TwoLegTieEditor({ match, canWrite, onChanged }: { match: Match; 
 
       {match.tie.state === "awaiting_decision" && canWrite && match.tie.total1 !== match.tie.total2 && (
         <div className="space-y-2 rounded-lg border border-yellow-500/50 bg-yellow-500/10 p-3" data-testid="two-leg-tie-confirm">
-          <p className="text-sm">Oba spotkania są rozegrane, a suma wskazuje zwycięzcę. Zatwierdź awans, aby przejść dalej.</p>
-          <Button type="button" disabled={pending} onClick={() => { void run(() => decide.mutateAsync({ id: match.id, data: { expectedRevision: match.revision } }), "Awans zatwierdzony według sumy."); }}>Zatwierdź awans według sumy</Button>
+          <p className="text-sm">{t("twoLegTie.oba_spotkania_sa_rozegrane_a")}</p>
+          <Button type="button" disabled={pending} onClick={() => { void run(() => decide.mutateAsync({ id: match.id, data: { expectedRevision: match.revision } }), t("twoLegTie.awans_zatwierdzony_wedlug_sumy")); }}>{t("twoLegTie.zatwierdz_awans_wedlug_sumy")}</Button>
         </div>
       )}
       {match.tie.state === "awaiting_decision" && canWrite && match.tie.total1 === match.tie.total2 && (
         <fieldset className="space-y-3 rounded-lg border border-yellow-500/50 bg-yellow-500/10 p-3" data-testid="two-leg-tie-decision">
-          <legend className="px-1 text-sm font-semibold">Remis w sumie — kto awansuje?</legend>
-          <p className="text-sm">System nie wybiera zwycięzcy przy równej sumie i nie wymyśla wyniku dogrywki ani rzutów karnych. Wskaż, kto awansuje (np. po dogrywce lub karnych rozegranych na boisku), i podaj powód — widzowie go zobaczą.</p>
-          <div className="flex flex-col gap-2 sm:flex-row" role="radiogroup" aria-label="Kto awansuje">
+          <legend className="px-1 text-sm font-semibold">{t("twoLegTie.remis_w_sumie_kto_awansuje")}</legend>
+          <p className="text-sm">{t("twoLegTie.system_nie_wybiera_zwyciezcy_przy")}</p>
+          <div className="flex flex-col gap-2 sm:flex-row" role="radiogroup" aria-label={t("twoLegTie.kto_awansuje")}>
             {[{ id: match.player1Id!, name: match.player1Name }, { id: match.player2Id!, name: match.player2Name }].map((option) => (
               <label key={option.id} className="flex items-center gap-2 rounded-md border bg-background px-3 py-2 text-sm">
                 <input type="radio" name={`${id}-winner`} checked={winner === option.id} onChange={() => setWinner(option.id)} /> {option.name}
               </label>
             ))}
           </div>
-          <label className="block text-sm">Powód rozstrzygnięcia (widoczny dla widzów)
-            <input type="text" maxLength={300} value={reason} onChange={(event) => setReason(event.target.value)} placeholder="np. rzuty karne 4:3 albo dogrywka 1:0" className="mt-1 block w-full rounded-md border bg-background px-2 py-1.5" />
+          <label className="block text-sm">{t("twoLegTie.powod_rozstrzygniecia_widoczny_dla_widzo")}<input type="text" maxLength={300} value={reason} onChange={(event) => setReason(event.target.value)} placeholder={t("twoLegTie.np_rzuty_karne_4_3")} className="mt-1 block w-full rounded-md border bg-background px-2 py-1.5" />
           </label>
           <Button type="button" disabled={pending || winner == null || reason.trim().length === 0} onClick={() => {
-            void run(() => decide.mutateAsync({ id: match.id, data: { winnerId: winner!, reason: reason.trim(), expectedRevision: match.revision } }), "Zapisano rozstrzygnięcie — awans wykonany.");
-          }}>Zatwierdź awans</Button>
+            void run(() => decide.mutateAsync({ id: match.id, data: { winnerId: winner!, reason: reason.trim(), expectedRevision: match.revision } }), t("twoLegTie.zapisano_rozstrzygniecie_awans_wykonany"));
+          }}>{t("twoLegTie.zatwierdz_awans")}</Button>
         </fieldset>
       )}
-      {match.tie.state === "awaiting_decision" && !canWrite && <p className="text-sm text-yellow-300">Awans wstrzymany do decyzji organizatora.</p>}
+      {match.tie.state === "awaiting_decision" && !canWrite && <p className="text-sm text-yellow-300">{t("twoLegTie.awans_wstrzymany_do_decyzji_organizatora")}</p>}
       {message && <p role={message.kind === "error" ? "alert" : "status"} className={`text-sm ${message.kind === "error" ? "text-destructive" : "text-green-400"}`}>{message.text}</p>}
     </section>
   );

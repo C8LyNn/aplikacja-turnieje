@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import React from "react";
 import { ArrowDown, ArrowUp, Dices, Plus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -95,7 +96,7 @@ export function StagePlanEditor({ stages, errors, onChange, deadlockEnabled = fa
     [next[index], next[target]] = [next[target], next[index]];
     onChange(synchronizeStageParticipantFlow(next.map((stage, stageIndex) => ({
       ...stage,
-      name: /^Etap \d+$/.test(stage.name) ? `Etap ${stageIndex + 1}` : stage.name,
+      name: /^Etap \d+$/.test(stage.name) ? t("stagePlanEditor.etap_v0", { v0: stageIndex + 1 }) : stage.name,
     }))));
   };
 
@@ -103,10 +104,9 @@ export function StagePlanEditor({ stages, errors, onChange, deadlockEnabled = fa
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h3 className="font-semibold">Plan etapów</h3>
+          <h3 className="font-semibold">{t("stagePlanEditor.plan_etapow")}</h3>
           <p className="text-xs text-muted-foreground">
-            Podstawowe ustawienia są widoczne od razu. Seedowanie i rozmieszczenie są opcjonalne.
-          </p>
+            {t("stagePlanEditor.podstawowe_ustawienia_sa_widoczne_od")}</p>
         </div>
         <Button
           type="button"
@@ -122,8 +122,7 @@ export function StagePlanEditor({ stages, errors, onChange, deadlockEnabled = fa
           }}
         >
           <Plus className="mr-2 h-4 w-4" />
-          Dodaj etap
-        </Button>
+          {t("stagePlanEditor.dodaj_etap")}</Button>
       </div>
 
       {stages.map((stage, index) => {
@@ -147,26 +146,26 @@ export function StagePlanEditor({ stages, errors, onChange, deadlockEnabled = fa
         return (
           <Card key={stage.clientId} className={stageErrors.length > 0 ? "border-destructive/50" : ""}>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
-              <CardTitle className="text-base">Etap {index + 1}</CardTitle>
+              <CardTitle className="text-base">{t("stagePlanEditor.etap")}{" "}{index + 1}</CardTitle>
               <div className="flex gap-1">
-                <Button type="button" variant="ghost" size="icon" aria-label="Przesuń etap w górę" disabled={index === 0} onClick={() => move(index, -1)}>
+                <Button type="button" variant="ghost" size="icon" aria-label={t("stagePlanEditor.przesun_etap_w_gore")} disabled={index === 0} onClick={() => move(index, -1)}>
                   <ArrowUp className="h-4 w-4" />
                 </Button>
-                <Button type="button" variant="ghost" size="icon" aria-label="Przesuń etap w dół" disabled={isLast} onClick={() => move(index, 1)}>
+                <Button type="button" variant="ghost" size="icon" aria-label={t("stagePlanEditor.przesun_etap_w_dol")} disabled={isLast} onClick={() => move(index, 1)}>
                   <ArrowDown className="h-4 w-4" />
                 </Button>
-                <Button type="button" variant="ghost" size="icon" aria-label="Usuń etap" disabled={stages.length === 1} onClick={() => onChange(synchronizeStageParticipantFlow(stages.filter((_, stageIndex) => stageIndex !== index)))}>
+                <Button type="button" variant="ghost" size="icon" aria-label={t("stagePlanEditor.usun_etap")} disabled={stages.length === 1} onClick={() => onChange(synchronizeStageParticipantFlow(stages.filter((_, stageIndex) => stageIndex !== index)))}>
                   <Trash2 className="h-4 w-4" />
                 </Button>
               </div>
             </CardHeader>
             <CardContent className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-2 sm:col-span-2">
-                <Label htmlFor={`stage-${index}-name`}>Nazwa</Label>
+                <Label htmlFor={`stage-${index}-name`}>{t("stagePlanEditor.nazwa")}</Label>
                 <Input id={`stage-${index}-name`} value={stage.name} onChange={(event) => update(index, { name: event.target.value })} />
               </div>
               <div className="space-y-2">
-                <Label>Format</Label>
+                <Label>{t("stagePlanEditor.format")}</Label>
                 <Select value={stage.format} onValueChange={(value) => changeFormat(index, value as StageFormat)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
@@ -177,38 +176,38 @@ export function StagePlanEditor({ stages, errors, onChange, deadlockEnabled = fa
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label>Best of</Label>
+                <Label>{t("stagePlanEditor.best_of")}</Label>
                 <Select value={String(stage.bestOf)} onValueChange={(value) => update(index, { bestOf: Number(value) as StageDraft["bestOf"] })}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    {[1, 3, 5, 7].map((bestOf) => <SelectItem key={bestOf} value={String(bestOf)}>BO{bestOf}</SelectItem>)}
+                    {[1, 3, 5, 7].map((bestOf) => <SelectItem key={bestOf} value={String(bestOf)}>{t("stagePlanEditor.bo")}{bestOf}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor={`stage-${index}-participants`}>Liczba uczestników</Label>
+                <Label htmlFor={`stage-${index}-participants`}>{t("stagePlanEditor.liczba_uczestnikow")}</Label>
                 <Input id={`stage-${index}-participants`} type="number" min={2} value={stage.participantCount} disabled={index > 0} onChange={(event) => update(index, { participantCount: integer(event.target.value, 0) })} />
                 {index > 0 && (
                   <p className="text-xs text-muted-foreground">
-                    {stage.participantCount} uczestników — awansujący z Etapu {index}.
+                    {stage.participantCount} {t("stagePlanEditor.uczestnikow_awansujacy_z_etapu")}{" "}{index}.
                   </p>
                 )}
               </div>
               {stage.format === "swiss" && (
                 <div className="space-y-2">
-                  <Label htmlFor={`stage-${index}-rounds`}>Liczba rund</Label>
+                  <Label htmlFor={`stage-${index}-rounds`}>{t("stagePlanEditor.liczba_rund")}</Label>
                   <Input id={`stage-${index}-rounds`} type="number" min={1} max={20} value={stage.rounds ?? ""} onChange={(event) => update(index, { rounds: integer(event.target.value, 0) })} />
                 </div>
               )}
               {!isLast && (stage.format === "swiss" || stage.format === "round_robin") && (
                 <div className="space-y-2">
-                  <Label htmlFor={`stage-${index}-advancing`}>Liczba kwalifikantów</Label>
+                  <Label htmlFor={`stage-${index}-advancing`}>{t("stagePlanEditor.liczba_kwalifikantow")}</Label>
                   <Input id={`stage-${index}-advancing`} type="number" min={2} max={stage.participantCount} value={stage.advancingCount ?? ""} onChange={(event) => update(index, { advancingCount: integer(event.target.value, 0) })} />
                 </div>
               )}
               {!isLast && stage.format === "single_elimination" && (
                 <div className="space-y-2">
-                  <Label>Liczba kwalifikantów</Label>
+                  <Label>{t("stagePlanEditor.liczba_kwalifikantow")}</Label>
                   <Select value={String(stage.advancingCount ?? "")} onValueChange={(value) => update(index, { advancingCount: Number(value) })}>
                     <SelectTrigger><SelectValue /></SelectTrigger>
                     <SelectContent>
@@ -222,29 +221,29 @@ export function StagePlanEditor({ stages, errors, onChange, deadlockEnabled = fa
 
               {eliminationMetrics && (
                 <div className="rounded-md border bg-muted/30 p-3 text-sm sm:col-span-2">
-                  <div>Awansuje: <strong>{eliminationMetrics.advancingCount}</strong></div>
-                  <div>Rundy do rozegrania: <strong>{eliminationMetrics.rounds}</strong></div>
-                  <div>Przewidywana liczba meczów: <strong>{eliminationMetrics.matchCount}</strong></div>
-                  <div>Etap docelowy: <strong>{isLast ? "zakończenie turnieju" : `Etap ${index + 2}`}</strong></div>
+                  <div>{t("stagePlanEditor.awansuje")}{" "}<strong>{eliminationMetrics.advancingCount}</strong></div>
+                  <div>{t("stagePlanEditor.rundy_do_rozegrania")}{" "}<strong>{eliminationMetrics.rounds}</strong></div>
+                  <div>{t("stagePlanEditor.przewidywana_liczba_meczow")}{" "}<strong>{eliminationMetrics.matchCount}</strong></div>
+                  <div>{t("stagePlanEditor.etap_docelowy")}{" "}<strong>{isLast ? t("stagePlanEditor.zakonczenie_turnieju") : t("stagePlanEditor.etap_v0", { v0: index + 2 })}</strong></div>
                 </div>
               )}
 
               {stage.format === "group_stage" && (
                 <>
                   <div className="space-y-2">
-                    <Label htmlFor={`stage-${index}-group-count`}>Liczba grup</Label>
+                    <Label htmlFor={`stage-${index}-group-count`}>{t("stagePlanEditor.liczba_grup")}</Label>
                     <Input id={`stage-${index}-group-count`} type="number" min={1} max={Math.max(1, Math.floor(stage.participantCount / 2))} value={stage.groupCount ?? 1} onChange={(event) => update(index, { groupCount: integer(event.target.value, 0) })} />
-                    <p className="text-xs text-muted-foreground">Każda grupa musi mieć co najmniej 2 uczestników.</p>
+                    <p className="text-xs text-muted-foreground">{t("stagePlanEditor.kazda_grupa_musi_miec_co")}</p>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor={`stage-${index}-qualifiers`}>Maks. kwalifikantów z grupy</Label>
+                    <Label htmlFor={`stage-${index}-qualifiers`}>{t("stagePlanEditor.maks_kwalifikantow_z_grupy")}</Label>
                     <Input id={`stage-${index}-qualifiers`} type="number" min={1} max={groupSizes.length > 0 ? Math.max(...groupSizes) : 1} value={stage.qualifiersPerGroup ?? 1} onChange={(event) => update(index, { qualifiersPerGroup: integer(event.target.value, 0) })} />
-                    <p className="text-xs text-muted-foreground">Jeśli grupa jest mniejsza od limitu, przechodzą z niej wszyscy.</p>
+                    <p className="text-xs text-muted-foreground">{t("stagePlanEditor.jesli_grupa_jest_mniejsza_od")}</p>
                   </div>
                   <div className="rounded-md border bg-muted/30 p-3 text-sm sm:col-span-2">
-                    <div>Rozmiary grup: <strong>{groupSizes.join(", ") || "—"}</strong></div>
-                    <div>Dalej przechodzi: <strong>{advancing}</strong> z {stage.participantCount}</div>
-                    {everyoneAdvances && <div className="mt-1 font-medium">Wszyscy uczestnicy awansują — etap służy rozstawieniu.</div>}
+                    <div>{t("stagePlanEditor.rozmiary_grup")}{" "}<strong>{groupSizes.join(", ") || "—"}</strong></div>
+                    <div>{t("stagePlanEditor.dalej_przechodzi")}{" "}<strong>{advancing}</strong> z {stage.participantCount}</div>
+                    {everyoneAdvances && <div className="mt-1 font-medium">{t("stagePlanEditor.wszyscy_uczestnicy_awansuja_etap_sluzy")}</div>}
                   </div>
                 </>
               )}
@@ -258,10 +257,10 @@ export function StagePlanEditor({ stages, errors, onChange, deadlockEnabled = fa
               )}
 
               <details className="rounded-md border p-3 sm:col-span-2">
-                <summary className="cursor-pointer text-sm font-medium">Seedowanie i rozmieszczenie (opcjonalne)</summary>
+                <summary className="cursor-pointer text-sm font-medium">{t("stagePlanEditor.seedowanie_i_rozmieszczenie_opcjonalne")}</summary>
                 <div className="mt-4 grid gap-4 sm:grid-cols-2">
                   <div className="space-y-2">
-                    <Label>Seedy na wejściu do etapu</Label>
+                    <Label>{t("stagePlanEditor.seedy_na_wejsciu_do_etapu")}</Label>
                     <Select value={stage.entrySeedingMethod} onValueChange={(value) => update(index, { entrySeedingMethod: value as EntrySeedingMethod })}>
                       <SelectTrigger><SelectValue /></SelectTrigger>
                       <SelectContent>
@@ -271,42 +270,42 @@ export function StagePlanEditor({ stages, errors, onChange, deadlockEnabled = fa
                       </SelectContent>
                     </Select>
                     {stage.entrySeedingMethod === "manual" && (
-                      <p className="text-xs text-muted-foreground">Przed startem etapu każdy uczestnik musi mieć unikalny seed 1–N.</p>
+                      <p className="text-xs text-muted-foreground">{t("stagePlanEditor.przed_startem_etapu_kazdy_uczestnik")}</p>
                     )}
                   </div>
 
                   {stage.format === "group_stage" && (
                     <div className="space-y-2">
-                      <Label>Rozmieszczenie w grupach</Label>
+                      <Label>{t("stagePlanEditor.rozmieszczenie_w_grupach")}</Label>
                       <Select value={stage.placementMethod} onValueChange={(value) => update(index, { placementMethod: value as StagePlacementMethod })}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="snake">Snake — rozdziel najlepsze seedy</SelectItem>
-                          <SelectItem value="random">Losowo</SelectItem>
+                          <SelectItem value="snake">{t("stagePlanEditor.snake_rozdziel_najlepsze_seedy")}</SelectItem>
+                          <SelectItem value="random">{t("stagePlanEditor.losowo")}</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                   )}
                   {(stage.format === "single_elimination" || stage.format === "double_elimination") && (
                     <div className="space-y-2">
-                      <Label>Rozmieszczenie w drabince</Label>
+                      <Label>{t("stagePlanEditor.rozmieszczenie_w_drabince")}</Label>
                       <Select value={stage.placementMethod} onValueChange={(value) => update(index, { placementMethod: value as StagePlacementMethod })}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="standard">Standardowe — najwyższy kontra najniższy</SelectItem>
-                          {stage.format === "single_elimination" && <SelectItem value="random">Losowe miejsca w drabince</SelectItem>}
+                          <SelectItem value="standard">{t("stagePlanEditor.standardowe_najwyzszy_kontra_najnizszy")}</SelectItem>
+                          {stage.format === "single_elimination" && <SelectItem value="random">{t("stagePlanEditor.losowe_miejsca_w_drabince")}</SelectItem>}
                         </SelectContent>
                       </Select>
                     </div>
                   )}
                   {stage.format === "group_stage" && (
                     <div className="space-y-2">
-                      <Label>Nowe seedy po grupach</Label>
+                      <Label>{t("stagePlanEditor.nowe_seedy_po_grupach")}</Label>
                       <Select value={stage.resultSeedingMethod} onValueChange={(value) => update(index, { resultSeedingMethod: value as GroupResultSeedingMethod })}>
                         <SelectTrigger><SelectValue /></SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="rank_bands">Pasma miejsc — 1. miejsca, potem 2. itd.</SelectItem>
-                          <SelectItem value="global_ranking">Klasyfikacja globalna według wyników</SelectItem>
+                          <SelectItem value="rank_bands">{t("stagePlanEditor.pasma_miejsc_1_miejsca_potem")}</SelectItem>
+                          <SelectItem value="global_ranking">{t("stagePlanEditor.klasyfikacja_globalna_wedlug_wynikow")}</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -315,22 +314,22 @@ export function StagePlanEditor({ stages, errors, onChange, deadlockEnabled = fa
                   {stageUsesRandom(stage) && (
                     <>
                       <div className="space-y-2">
-                        <Label htmlFor={`stage-${index}-random-seed`}>Klucz losowania</Label>
+                        <Label htmlFor={`stage-${index}-random-seed`}>{t("stagePlanEditor.klucz_losowania")}</Label>
                         <div className="flex gap-2">
                           <Input id={`stage-${index}-random-seed`} value={stage.randomSeed ?? ""} onChange={(event) => update(index, { randomSeed: event.target.value })} />
-                          <Button type="button" variant="outline" size="icon" aria-label="Wygeneruj nowy klucz losowania" onClick={() => update(index, { randomSeed: globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${index}` })}>
+                          <Button type="button" variant="outline" size="icon" aria-label={t("stagePlanEditor.wygeneruj_nowy_klucz_losowania")} onClick={() => update(index, { randomSeed: globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${index}` })}>
                             <Dices className="h-4 w-4" />
                           </Button>
                         </div>
-                        <p className="text-xs text-muted-foreground">Ten sam klucz zawsze daje ten sam wynik i umożliwia audyt.</p>
+                        <p className="text-xs text-muted-foreground">{t("stagePlanEditor.ten_sam_klucz_zawsze_daje")}</p>
                       </div>
                       <div className="space-y-2">
-                        <Label>Sposób pokazania losowania</Label>
+                        <Label>{t("stagePlanEditor.sposob_pokazania_losowania")}</Label>
                         <Select value={stage.randomRevealOrder} onValueChange={(value) => update(index, { randomRevealOrder: value as RandomRevealOrder })}>
                           <SelectTrigger><SelectValue /></SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="instant">Pokaż cały wynik od razu</SelectItem>
-                            <SelectItem value="sequential">Ujawniaj po kolei — pod przyszłe koło</SelectItem>
+                            <SelectItem value="instant">{t("stagePlanEditor.pokaz_caly_wynik_od_razu")}</SelectItem>
+                            <SelectItem value="sequential">{t("stagePlanEditor.ujawniaj_po_kolei_pod_przyszle")}</SelectItem>
                           </SelectContent>
                         </Select>
                       </div>
@@ -339,20 +338,20 @@ export function StagePlanEditor({ stages, errors, onChange, deadlockEnabled = fa
 
                   {groupPreview.length > 0 && (
                     <div className="rounded-md bg-muted/30 p-3 text-xs sm:col-span-2">
-                      <div className="mb-2 font-medium text-foreground">Podgląd rozmieszczenia seedów</div>
+                      <div className="mb-2 font-medium text-foreground">{t("stagePlanEditor.podglad_rozmieszczenia_seedow")}</div>
                       <div className="grid gap-2 sm:grid-cols-2">
                         {groupPreview.map((seeds, groupIndex) => (
-                          <div key={groupIndex}><strong>Grupa {groupLabelFromIndex(groupIndex)}:</strong> {seeds.map((seed) => `#${seed}`).join(", ")}</div>
+                          <div key={groupIndex}><strong>{t("stagePlanEditor.grupa")}{" "}{groupLabelFromIndex(groupIndex)}:</strong> {seeds.map((seed) => `#${seed}`).join(", ")}</div>
                         ))}
                       </div>
                     </div>
                   )}
                   {bracketPreview.length > 0 && (
                     <div className="rounded-md bg-muted/30 p-3 text-xs sm:col-span-2">
-                      <div className="mb-2 font-medium text-foreground">Podgląd pierwszej rundy</div>
+                      <div className="mb-2 font-medium text-foreground">{t("stagePlanEditor.podglad_pierwszej_rundy")}</div>
                       <div className="grid gap-1 sm:grid-cols-2">
                         {bracketPreview.map(([left, right], matchIndex) => (
-                          <div key={matchIndex}>M{matchIndex + 1}: {previewSeedLabel(left)} vs {previewSeedLabel(right)}</div>
+                          <div key={matchIndex}>M{matchIndex + 1}: {previewSeedLabel(left)} {t("stagePlanEditor.vs")}{" "}{previewSeedLabel(right)}</div>
                         ))}
                       </div>
                     </div>

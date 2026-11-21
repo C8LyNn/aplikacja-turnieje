@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { useEffect, useState } from "react";
 import { LanguageSwitcher } from "@/i18n/react";
 import { Link, useLocation } from "wouter";
@@ -27,8 +28,8 @@ export function Layout({ children, deadlockTheme, colorPreset }: { children: Rea
       : "/";
   const fallbackLabel =
     isExperimentalTournamentView || isTournamentView
-      ? "Wróć do turniejów"
-      : "Wróć do strony głównej";
+      ? t("layout.wroc_do_turniejow")
+      : t("layout.wroc_do_strony_glownej");
   const roleHome = getRoleHomePath(role, fallbackHref, isExperimentalTournamentView);
 
   return (
@@ -43,8 +44,7 @@ export function Layout({ children, deadlockTheme, colorPreset }: { children: Rea
           ? "experimental-skip-link"
           : "sr-only focus:not-sr-only focus:fixed focus:left-2 focus:top-2 focus:z-[100] focus:rounded-md focus:bg-background focus:px-4 focus:py-2 focus:text-foreground focus-visible:ring-2 focus-visible:ring-primary"}
       >
-        Przejdź do głównej treści
-      </a>
+        {t("layout.przejdz_do_glownej_tresci")}</a>
       <header className="border-b border-border bg-card sticky top-0 z-10">
         <div className="container mx-auto px-4 md:px-8 h-14 flex items-center justify-between gap-3">
           {/* QW-01: the group keeps room for the logo and the back arrow (on a phone Stable shows the arrow only), so it
@@ -54,8 +54,7 @@ export function Layout({ children, deadlockTheme, colorPreset }: { children: Rea
             {isExperimentalTournamentView && (
               <span className="experimental-mode-badge">
                 <FlaskConical className="h-3.5 w-3.5" aria-hidden="true" />
-                Experimental
-              </span>
+                {t("layout.experimental")}</span>
             )}
             {location !== roleHome && !(isExperimentalTournamentView && role === "organizer") && (
               <RoleHomeLink
@@ -75,8 +74,7 @@ export function Layout({ children, deadlockTheme, colorPreset }: { children: Rea
               onClick={() => setNavOpen((open) => !open)}
             >
               {navOpen ? <X className="h-4 w-4" aria-hidden="true" /> : <Menu className="h-4 w-4" aria-hidden="true" />}
-              Menu
-            </button>
+              {t("layout.menu")}</button>
           )}
           {/* V5.1: on narrow screens Stable's nav scrolls inside the header instead of widening the page.
               QW-01: its items keep their width (their touch-size min-w-11 let them squash to 44 px and overlap). */}
@@ -86,16 +84,14 @@ export function Layout({ children, deadlockTheme, colorPreset }: { children: Rea
             {role === "organizer" && (
               <>
                 <Link href={isExperimentalTournamentView ? "/experimental/tournaments/dashboard" : "/dashboard"} aria-current={location === "/dashboard" || location === "/experimental/tournaments/dashboard" ? "page" : undefined} className={`px-3 py-1.5 rounded hover:text-foreground hover:bg-muted/40 transition-colors ${location === "/dashboard" || location === "/experimental/tournaments/dashboard" ? "text-foreground bg-muted/30" : ""}`}>
-                  Dashboard
-                </Link>
+                  {t("layout.dashboard")}</Link>
                 <Link href={isExperimentalTournamentView ? "/experimental/tournaments/new" : "/tournaments/create"} className="flex items-center gap-1.5 px-3 py-1.5 rounded hover:text-foreground hover:bg-muted/40 transition-colors">
                   <PlusCircle className="w-4 h-4" />
-                  Nowy turniej
-                </Link>
+                  {t("layout.nowy_turniej")}</Link>
               </>
             )}
             {isExperimentalTournamentView && (
-              <div className="experimental-nav-tools" role="group" aria-label="Narzędzia widoku">
+              <div className="experimental-nav-tools" role="group" aria-label={t("layout.narzedzia_widoku")}>
                 <ExperimentalAppearanceControl />
                 <ExperimentalDensityControl />
                 {role && <RoleSelectionLink className="border border-border rounded-full px-2.5 py-1 text-xs" />}
@@ -104,19 +100,17 @@ export function Layout({ children, deadlockTheme, colorPreset }: { children: Rea
             <Link
               href="/help"
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded hover:text-foreground hover:bg-muted/40 transition-colors ${location === "/help" ? "text-foreground bg-muted/30" : ""}`}
-              title="Instrukcja obsługi"
+              title={t("layout.instrukcja_obslugi")}
               aria-current={location === "/help" ? "page" : undefined}
             >
               <HelpCircle className="w-4 h-4" />
-              Pomoc
-            </Link>
+              {t("layout.pomoc")}</Link>
                       {/* PORTFOLIO_MAIN_MENU_V9: global navigation */}
             <a
               href={`${(import.meta.env?.BASE_URL ?? "/")}portfolio/`}
               className="px-3 py-1.5 rounded hover:text-foreground hover:bg-muted/40 transition-colors"
             >
-              Portfolio
-            </a>
+              {t("layout.portfolio")}</a>
             {/* #323-E: language, per browser (other people keep theirs) */}
             <LanguageSwitcher />
 </nav>

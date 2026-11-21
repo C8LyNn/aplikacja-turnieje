@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { AlertTriangle, FlaskConical, Lock, Trash2, X } from "lucide-react";
 import {
   Dialog,
@@ -42,13 +43,11 @@ export function ExperimentalTestDataDialog({
               <FlaskConical className="h-5 w-5 text-primary" aria-hidden="true" />
             </div>
             <div className="min-w-0 flex-1">
-              <DialogTitle>Dane testowe</DialogTitle>
+              <DialogTitle>{t("experimentalDashboardDialogs.dane_testowe")}</DialogTitle>
               <DialogDescription className="mt-1 leading-6">
-                Utwórz szybki turniej (drabinka eliminacyjna) z przykładowymi graczami.
-                To narzędzie QA — możesz usunąć turniej po zakończeniu testów.
-              </DialogDescription>
+                {t("experimentalDashboardDialogs.utworz_szybki_turniej_drabinka_eliminacy")}</DialogDescription>
             </div>
-            <DialogClose className="experimental-dialog-close" aria-label="Zamknij okno Dane testowe">
+            <DialogClose className="experimental-dialog-close" aria-label={t("experimentalDashboardDialogs.zamknij_okno_dane_testowe")}>
               <X className="h-4 w-4" aria-hidden="true" />
             </DialogClose>
           </div>
@@ -56,7 +55,7 @@ export function ExperimentalTestDataDialog({
 
         <div className="space-y-5 py-1">
           <fieldset className="space-y-2">
-            <legend className="text-sm font-semibold">Liczba graczy</legend>
+            <legend className="text-sm font-semibold">{t("experimentalDashboardDialogs.liczba_graczy")}</legend>
             <div className="grid grid-cols-4 gap-2">
               {sizes.map((size) => (
                 <button
@@ -78,18 +77,17 @@ export function ExperimentalTestDataDialog({
           </fieldset>
 
           <div className="rounded-lg border border-border/70 bg-muted/20 px-3 py-2 text-xs leading-5 text-muted-foreground">
-            Format: <strong>drabinka eliminacyjna</strong> · BO1 · bez seedów.
-          </div>
+            {t("experimentalDashboardDialogs.format")}{" "}<strong>{t("experimentalDashboardDialogs.drabinka_eliminacyjna")}</strong> {t("experimentalDashboardDialogs.bo1_bez_seedow")}</div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="experimental-test-organizer-password">Hasło organizatora *</Label>
+            <Label htmlFor="experimental-test-organizer-password">{t("experimentalDashboardDialogs.haslo_organizatora")}</Label>
             <Input
               id="experimental-test-organizer-password"
               type="password"
               value={organizerPassword}
               onChange={(event) => onOrganizerPasswordChange(event.target.value)}
               minLength={8}
-              placeholder="Minimum 8 znaków"
+              placeholder={t("experimentalDashboardDialogs.minimum_8_znakow")}
               disabled={loading}
             />
           </div>
@@ -98,11 +96,10 @@ export function ExperimentalTestDataDialog({
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>
             <X className="mr-1.5 h-4 w-4" aria-hidden="true" />
-            Anuluj
-          </Button>
+            {t("experimentalDashboardDialogs.anuluj")}</Button>
           <Button onClick={onCreate} disabled={loading || organizerPassword.length < 8}>
             <FlaskConical className="mr-1.5 h-4 w-4" aria-hidden="true" />
-            {loading ? "Tworzenie…" : `Utwórz z ${selectedSize} graczami`}
+            {loading ? t("experimentalDashboardDialogs.tworzenie") : t("experimentalDashboardDialogs.utworz_z_selectedsize_graczami", { selectedSize: selectedSize })}
           </Button>
         </DialogFooter>
       </DialogContent>
@@ -142,13 +139,12 @@ export function ExperimentalDeleteTournamentDialog({
               <AlertTriangle className="h-5 w-5 text-destructive" aria-hidden="true" />
             </div>
             <div className="min-w-0">
-              <DialogTitle>Usuń turniej</DialogTitle>
+              <DialogTitle>{t("experimentalDashboardDialogs.usun_turniej")}</DialogTitle>
               <DialogDescription className="mt-1 leading-6">
-                Trwale usuniesz <strong className="break-words text-foreground">„{tournamentName || "turniej"}”</strong>{" "}
-                wraz z graczami, meczami i historią wyników.
-              </DialogDescription>
+                {t("experimentalDashboardDialogs.trwale_usuniesz")}{" "}<strong className="break-words text-foreground">„{tournamentName || t("experimentalDashboardDialogs.turniej")}”</strong>{" "}
+                {t("experimentalDashboardDialogs.wraz_z_graczami_meczami_i")}</DialogDescription>
             </div>
-            <DialogClose className="experimental-dialog-close" aria-label="Zamknij okno Usuń turniej" disabled={loading}>
+            <DialogClose className="experimental-dialog-close" aria-label={t("experimentalDashboardDialogs.zamknij_okno_usun_turniej")} disabled={loading}>
               <X className="h-4 w-4" aria-hidden="true" />
             </DialogClose>
           </div>
@@ -156,19 +152,17 @@ export function ExperimentalDeleteTournamentDialog({
 
         <div className="space-y-4">
           <p className="rounded-lg border border-destructive/25 bg-destructive/8 px-3 py-2 text-xs font-semibold text-destructive">
-            Tej operacji nie można cofnąć.
-          </p>
+            {t("experimentalDashboardDialogs.tej_operacji_nie_mozna_cofnac")}</p>
 
           {hasOrganizerPassword ? (
             <div className="space-y-2 rounded-lg border border-border/70 bg-muted/20 p-4">
               <Label htmlFor="experimental-delete-password" className="flex items-center gap-2 text-sm font-semibold">
                 <Lock className="h-3.5 w-3.5 text-muted-foreground" aria-hidden="true" />
-                Hasło organizatora
-              </Label>
+                {t("experimentalDashboardDialogs.haslo_organizatora_2")}</Label>
               <Input
                 id="experimental-delete-password"
                 type="password"
-                placeholder="Hasło organizatora tego turnieju"
+                placeholder={t("experimentalDashboardDialogs.haslo_organizatora_tego_turnieju")}
                 value={password}
                 onChange={(event) => onPasswordChange(event.target.value)}
                 onKeyDown={(event) => { if (event.key === "Enter") onDelete(); }}
@@ -187,18 +181,18 @@ export function ExperimentalDeleteTournamentDialog({
             <div className="rounded-lg border border-border/70 bg-muted/20 px-4 py-3">
               <p className="text-xs leading-5 text-muted-foreground">
                 {hasHostCode
-                  ? "Ten historyczny turniej używa starego kodu. Najpierw przejdź do panelu prowadzącego i ustaw hasło organizatora."
-                  : "Ten historyczny turniej nie ma poświadczeń. Operacje administracyjne wymagają odzyskania dostępu."}
+                  ? t("experimentalDashboardDialogs.ten_historyczny_turniej_uzywa_starego")
+                  : t("experimentalDashboardDialogs.ten_historyczny_turniej_nie_ma")}
               </p>
             </div>
           )}
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>Anuluj</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={loading}>{t("experimentalDashboardDialogs.anuluj")}</Button>
           <Button variant="destructive" onClick={onDelete} disabled={loading}>
             <Trash2 className="mr-1.5 h-4 w-4" aria-hidden="true" />
-            {loading ? "Weryfikacja…" : "Usuń na stałe"}
+            {loading ? t("experimentalDashboardDialogs.weryfikacja") : t("experimentalDashboardDialogs.usun_na_stale")}
           </Button>
         </DialogFooter>
       </DialogContent>

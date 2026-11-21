@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import type { Player, StageBasket, TournamentStage } from "@workspace/api-client-react";
 
 /**
@@ -22,7 +23,7 @@ export interface BasketCheck {
 }
 
 const groupWord = (count: number) =>
-  count === 1 ? "grupa" : count % 10 >= 2 && count % 10 <= 4 && (count % 100 < 10 || count % 100 >= 20) ? "grupy" : "grup";
+  count === 1 ? t("basketBulkAssignment.grupa") : count % 10 >= 2 && count % 10 <= 4 && (count % 100 < 10 || count % 100 >= 20) ? t("basketBulkAssignment.grupy") : t("basketBulkAssignment.grup");
 
 const inputsOf = (baskets: readonly StageBasket[], stageId: number) =>
   baskets.filter((basket) => basket.stageId === stageId && basket.type === "input");
@@ -97,7 +98,7 @@ export function checkStageBaskets({
     if (total < min || total > max) {
       checks.push({
         level: "blocker",
-        message: `${stage.groupCount} ${groupWord(stage.groupCount)} po ${stage.participantsPerGroup}: od ${min} do ${max} uczestników — w koszykach będzie ${total}.`,
+        message: t("basketBulkAssignment.groupcount_v1_po_participantspergroup_od", { groupCount: stage.groupCount, v1: groupWord(stage.groupCount), participantsPerGroup: stage.participantsPerGroup, min: min, max: max, total: total }),
       });
     }
   }
@@ -105,8 +106,8 @@ export function checkStageBaskets({
     checks.push({
       level: "blocker",
       message: total < stage.participantCount
-        ? `Etap jest zaplanowany na ${stage.participantCount} uczestników, w koszykach będzie ${total} — brakuje ${stage.participantCount - total}. Start etapu będzie zablokowany.`
-        : `Etap jest zaplanowany na ${stage.participantCount} uczestników, w koszykach będzie ${total} — o ${total - stage.participantCount} za dużo. Start etapu będzie zablokowany.`,
+        ? t("basketBulkAssignment.etap_jest_zaplanowany_na_participantcoun", { participantCount: stage.participantCount, total: total, v2: stage.participantCount - total })
+        : t("basketBulkAssignment.etap_jest_zaplanowany_na_participantcoun_2", { participantCount: stage.participantCount, total: total, v2: total - stage.participantCount }),
     });
   }
   if (firstStage) {
@@ -116,13 +117,13 @@ export function checkStageBaskets({
       const names = outside.slice(0, 3).map((player) => player.name).join(", ");
       checks.push({
         level: "warning",
-        message: `Bez koszyka (nie zagrają w tym etapie): ${outside.length} — ${names}${outside.length > 3 ? " i inni" : ""}.`,
+        message: t("basketBulkAssignment.bez_koszyka_nie_zagraja_w", { length: outside.length, names: names, v2: outside.length > 3 ? t("basketBulkAssignment.i_inni") : "" }),
       });
     }
   }
   if (inputs.length > 1) {
     for (const basket of inputs) {
-      if (!basket.participantIds.length) checks.push({ level: "warning", message: `${labelOf(basket)} będzie pusty.` });
+      if (!basket.participantIds.length) checks.push({ level: "warning", message: t("basketBulkAssignment.v0_bedzie_pusty", { v0: labelOf(basket) }) });
     }
   }
   return checks;

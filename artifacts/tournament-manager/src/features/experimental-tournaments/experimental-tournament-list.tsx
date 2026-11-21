@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import type { MouseEvent } from "react";
 import { Link } from "wouter";
 import { format } from "date-fns";
@@ -23,9 +24,9 @@ export interface ExperimentalTournamentListItem {
 }
 
 const GROUPS: Array<{ status: string; title: string; empty: string }> = [
-  { status: "active", title: "Trwające", empty: "Brak trwających turniejów." },
-  { status: "draft", title: "W przygotowaniu", empty: "Brak szkiców." },
-  { status: "completed", title: "Zakończone", empty: "Brak zakończonych turniejów." },
+  { status: "active", get title() { return t("experimentalTournamentList.trwajace"); }, get empty() { return t("experimentalTournamentList.brak_trwajacych_turniejow"); } },
+  { status: "draft", get title() { return t("experimentalTournamentList.w_przygotowaniu"); }, get empty() { return t("experimentalTournamentList.brak_szkicow"); } },
+  { status: "completed", get title() { return t("experimentalTournamentList.zakonczone"); }, get empty() { return t("experimentalTournamentList.brak_zakonczonych_turniejow"); } },
 ];
 
 const ACTION_LIFECYCLE: Record<TournamentActionGroup, string> = {
@@ -39,11 +40,11 @@ const ACTION_LIFECYCLE: Record<TournamentActionGroup, string> = {
 
 /** V5.11: stage names for the card's format line ("Faza grupowa → Play-off"); the engine's stage formats. */
 const STAGE_FORMAT_SHORT: Record<string, string> = {
-  group_stage: "Faza grupowa",
-  round_robin: "Każdy z każdym",
-  swiss: "System szwajcarski",
+  get group_stage() { return t("experimentalTournamentList.faza_grupowa"); },
+  get round_robin() { return t("experimentalTournamentList.kazdy_z_kazdym"); },
+  get swiss() { return t("experimentalTournamentList.system_szwajcarski"); },
   single_elimination: "Play-off",
-  double_elimination: "Podwójna eliminacja",
+  get double_elimination() { return t("experimentalTournamentList.podwojna_eliminacja"); },
 };
 
 export function tournamentFormatText(
@@ -68,23 +69,23 @@ export function tournamentProgress(tournament: {
   if (stage && stage.matchesTotal > 0) {
     const parts = [
       (tournament.activity?.stageFormats?.length ?? 0) > 1 ? stage.name : null,
-      stage.format === "swiss" && stage.currentRound ? `Runda ${stage.currentRound}${stage.plannedRounds ? ` z ${stage.plannedRounds}` : ""}` : null,
-      `${stage.matchesCompleted}/${stage.matchesTotal} meczów`,
+      stage.format === "swiss" && stage.currentRound ? t("experimentalTournamentList.runda_currentround_v1", { currentRound: stage.currentRound, v1: stage.plannedRounds ? ` z ${stage.plannedRounds}` : "" }) : null,
+      t("experimentalTournamentList.matchescompleted_matchestotal_meczow", { matchesCompleted: stage.matchesCompleted, matchesTotal: stage.matchesTotal }),
     ].filter(Boolean);
     return { label: parts.join(" · "), percent: Math.min(100, Math.round((stage.matchesCompleted / stage.matchesTotal) * 100)) };
   }
   if (!tournament.currentRound) return null;
   const total = tournament.totalRounds ?? null;
   return {
-    label: `Runda ${tournament.currentRound}${total ? ` z ${total}` : ""}`,
+    label: t("experimentalTournamentList.runda_currentround_v1", { currentRound: tournament.currentRound, v1: total ? ` z ${total}` : "" }),
     percent: total ? Math.min(100, Math.round((tournament.currentRound / total) * 100)) : null,
   };
 }
 
 const STATUS_TEXT: Record<string, string> = {
-  active: "Trwa",
-  draft: "Szkic",
-  completed: "Zakończony",
+  get active() { return t("experimentalTournamentList.trwa"); },
+  get draft() { return t("experimentalTournamentList.szkic"); },
+  get completed() { return t("experimentalTournamentList.zakonczony"); },
 };
 
 /** Two-letter badge from the tournament name, e.g. "Winter Clash 2026" -> "WC". Decorative only. */
@@ -117,7 +118,7 @@ export function ExperimentalTournamentList({
   onExport: (event: MouseEvent, tournament: ExperimentalTournamentListItem) => void;
   onDelete: (id: number) => void;
 }) {
-  const labels: Record<string, string> = { double_elimination: "Podwójna eliminacja", ...formatLabels };
+  const labels: Record<string, string> = { double_elimination: t("experimentalTournamentList.podwojna_eliminacja"), ...formatLabels };
   // v4: when the API reports activity, group by the action each tournament needs;
   // otherwise keep the V3 lifecycle grouping unchanged.
   const actions = new Map<number, TournamentAction | null>(tournaments.map((item) => [item.id, tournamentAction(item)]));
@@ -133,14 +134,14 @@ export function ExperimentalTournamentList({
       items: tournaments.filter((item) => actions.get(item.id)?.group === group),
     })).filter((group) => group.items.length > 0);
     const rest = tournaments.filter((item) => !actions.get(item.id));
-    if (rest.length) groups.push({ key: "other", status: "other", title: "Pozostałe", empty: "", items: rest });
+    if (rest.length) groups.push({ key: "other", status: "other", title: t("experimentalTournamentList.pozostale"), empty: "", items: rest });
   } else {
     groups = GROUPS.filter((group) => statusFilter === "all" || group.status === statusFilter)
       .map((group) => ({ ...group, key: group.status, items: tournaments.filter((item) => item.status === group.status) }))
       .filter((group) => group.items.length > 0 || statusFilter !== "all");
     const known = new Set(GROUPS.map((group) => group.status));
     const other = tournaments.filter((item) => !known.has(item.status));
-    if (other.length && statusFilter === "all") groups.push({ key: "other", status: "other", title: "Pozostałe", empty: "", items: other });
+    if (other.length && statusFilter === "all") groups.push({ key: "other", status: "other", title: t("experimentalTournamentList.pozostale"), empty: "", items: other });
   }
 
   return (
@@ -175,9 +176,9 @@ export function ExperimentalTournamentList({
                       </Link>
                       <p className="experimental-tlist-meta">
                         <span>{tournamentFormatText(tournament, labels)}</span>
-                        {tournament.maxPlayers ? <span>{tournament.maxPlayers} miejsc</span> : null}
+                        {tournament.maxPlayers ? <span>{tournament.maxPlayers} {t("experimentalTournamentList.miejsc")}</span> : null}
                         <span className="experimental-tlist-created">
-                          Utworzono {format(new Date(tournament.createdAt), "d MMM yyyy", { locale: pl })}
+                          {t("experimentalTournamentList.utworzono")}{" "}{format(new Date(tournament.createdAt), "d MMM yyyy", { locale: pl })}
                         </span>
                       </p>
                       {action ? <p className="experimental-tlist-hint">{action.hint}</p> : null}
@@ -213,8 +214,8 @@ export function ExperimentalTournamentList({
                         <button
                           type="button"
                           className="experimental-tlist-icon"
-                          aria-label={`Pobierz backup turnieju ${tournament.name}`}
-                          title="Pobierz backup"
+                          aria-label={t("experimentalTournamentList.pobierz_backup_turnieju_name", { name: tournament.name })}
+                          title={t("experimentalTournamentList.pobierz_backup")}
                           disabled={exportingId === tournament.id}
                           onClick={(event) => onExport(event, tournament)}
                         >
@@ -224,8 +225,8 @@ export function ExperimentalTournamentList({
                       <button
                         type="button"
                         className="experimental-tlist-icon experimental-tlist-icon--danger"
-                        aria-label={`Usuń turniej ${tournament.name}`}
-                        title="Usuń turniej"
+                        aria-label={t("experimentalTournamentList.usun_turniej_name", { name: tournament.name })}
+                        title={t("experimentalTournamentList.usun_turniej")}
                         onClick={() => onDelete(tournament.id)}
                       >
                         <Trash2 className="h-4 w-4" aria-hidden="true" />

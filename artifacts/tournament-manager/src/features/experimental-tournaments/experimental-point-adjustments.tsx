@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 /**
  * V5.5 · bonuses and penalties for a points-table stage (organiser, Experimental host panel).
  * Every entry needs a reason and stays in the list after it is revoked; a completed stage is read-only.
@@ -28,7 +29,7 @@ function newRequestKey(): string {
   }
 }
 
-const authorLabel = (label?: string | null) => (!label ? "" : label.startsWith("organizer") ? "organizator" : "pomoc");
+const authorLabel = (label?: string | null) => (!label ? "" : label.startsWith("organizer") ? t("experimentalPointAdjustments.organizator") : t("experimentalPointAdjustments.pomoc"));
 
 export function ExperimentalPointAdjustments({ tournamentId, stage }: { tournamentId: number; stage: TournamentStage }) {
   const client = useQueryClient();
@@ -61,16 +62,16 @@ export function ExperimentalPointAdjustments({ tournamentId, stage }: { tourname
   };
 
   return (
-    <section className="experimental-point-adjustments" aria-label="Korekty punktów">
+    <section className="experimental-point-adjustments" aria-label={t("experimentalPointAdjustments.korekty_punktow")}>
       <button type="button" className="experimental-point-adjustments-head" aria-expanded={open} onClick={() => setOpen((value) => !value)}>
         <Scale className="h-4 w-4" aria-hidden="true" />
-        <span className="font-semibold">Korekty punktów</span>
-        <span className="experimental-point-adjustments-summary">{active.length ? `${active.length} aktywne` : "brak"}{data.locked ? " · etap zakończony" : ""}</span>
+        <span className="font-semibold">{t("experimentalPointAdjustments.korekty_punktow")}</span>
+        <span className="experimental-point-adjustments-summary">{active.length ? t("experimentalPointAdjustments.length_aktywne", { length: active.length }) : t("experimentalPointAdjustments.brak")}{data.locked ? t("experimentalPointAdjustments.etap_zakonczony") : ""}</span>
         <ChevronDown className="experimental-point-adjustments-chevron h-4 w-4" aria-hidden="true" />
       </button>
       {open && (
         <div className="experimental-point-adjustments-body">
-          <p className="text-xs text-muted-foreground">Bonus albo kara zmienia tylko punkty w tabeli; wyniki meczów i mecz bezpośredni zostają bez zmian. Każda korekta wymaga powodu i zostaje w historii także po cofnięciu.</p>
+          <p className="text-xs text-muted-foreground">{t("experimentalPointAdjustments.bonus_albo_kara_zmienia_tylko")}</p>
           {data.entries.length > 0 && (
             <ul className="experimental-point-adjustments-list">
               {data.entries.map((entry) => (
@@ -79,16 +80,15 @@ export function ExperimentalPointAdjustments({ tournamentId, stage }: { tourname
                   <span className="min-w-0 flex-1">
                     <strong>{nameOf.get(entry.playerId) ?? `#${entry.playerId}`}</strong> — {entry.reason}
                     <span className="block text-xs text-muted-foreground">
-                      {new Date(entry.createdAt).toLocaleString("pl-PL")}{entry.createdBy ? ` · dodał: ${authorLabel(entry.createdBy)}` : ""}
-                      {entry.revokedAt ? ` · cofnięta ${new Date(entry.revokedAt).toLocaleString("pl-PL")}${entry.revokedBy ? ` (${authorLabel(entry.revokedBy)})` : ""}` : ""}
+                      {new Date(entry.createdAt).toLocaleString("pl-PL")}{entry.createdBy ? t("experimentalPointAdjustments.dodal_v0", { v0: authorLabel(entry.createdBy) }) : ""}
+                      {entry.revokedAt ? t("experimentalPointAdjustments.cofnieta_v0_v1", { v0: new Date(entry.revokedAt).toLocaleString("pl-PL"), v1: entry.revokedBy ? ` (${authorLabel(entry.revokedBy)})` : "" }) : ""}
                     </span>
                   </span>
                   {!entry.revokedAt && !data.locked && (
                     <button type="button" className="experimental-v4-btn" data-variant="ghost" disabled={revoke.isPending}
-                      aria-label={`Cofnij korektę ${signed(entry.points)} dla ${nameOf.get(entry.playerId) ?? entry.playerId}`}
-                      onClick={() => revoke.mutate({ id: tournamentId, stageId: stage.id, adjustmentId: entry.id }, { onSuccess: () => { setMessage({ tone: "ok", text: "Korekta cofnięta." }); refresh(); }, onError: failure })}>
-                      <Undo2 className="h-4 w-4" aria-hidden="true" /> Cofnij
-                    </button>
+                      aria-label={t("experimentalPointAdjustments.cofnij_korekte_v0_dla_v1", { v0: signed(entry.points), v1: nameOf.get(entry.playerId) ?? entry.playerId })}
+                      onClick={() => revoke.mutate({ id: tournamentId, stageId: stage.id, adjustmentId: entry.id }, { onSuccess: () => { setMessage({ tone: "ok", text: t("experimentalPointAdjustments.korekta_cofnieta") }); refresh(); }, onError: failure })}>
+                      <Undo2 className="h-4 w-4" aria-hidden="true" /> {t("experimentalPointAdjustments.cofnij")}</button>
                   )}
                 </li>
               ))}
@@ -103,33 +103,31 @@ export function ExperimentalPointAdjustments({ tournamentId, stage }: { tourname
                 onSuccess: (result) => {
                   setReason("");
                   setRequestKey(newRequestKey());
-                  setMessage({ tone: "ok", text: result.replayed ? "Ta korekta była już zapisana — nie dodano jej drugi raz." : `Dodano korektę ${signed(points)} pkt.` });
+                  setMessage({ tone: "ok", text: result.replayed ? t("experimentalPointAdjustments.ta_korekta_byla_juz_zapisana") : t("experimentalPointAdjustments.dodano_korekte_v0_pkt", { v0: signed(points) }) });
                   refresh();
                 },
                 // On error the form and the key stay, so "Dodaj korektę" again is a safe retry.
                 onError: failure,
               });
             }}>
-              <label className="grid gap-1 text-sm">Uczestnik
-                <select className="participant-field-control" value={playerId} onChange={(event) => { setPlayerId(event.target.value); setRequestKey(newRequestKey()); }} required>
-                  <option value="">— wybierz —</option>
+              <label className="grid gap-1 text-sm">{t("experimentalPointAdjustments.uczestnik")}<select className="participant-field-control" value={playerId} onChange={(event) => { setPlayerId(event.target.value); setRequestKey(newRequestKey()); }} required>
+                  <option value="">{t("experimentalPointAdjustments.wybierz")}</option>
                   {participants.map((participant) => <option key={participant.id} value={participant.id}>{participant.name}{participant.group ? ` (${participant.group})` : ""}</option>)}
                 </select>
               </label>
               <div className="grid gap-1 text-sm">
-                <span>Punkty</span>
+                <span>{t("experimentalPointAdjustments.punkty")}</span>
                 <div className="flex items-center gap-2">
-                  <button type="button" className="experimental-wizard-step-btn" aria-label="Mniej punktów" onClick={() => { setPoints((value) => Math.max(-100, value - 1 === 0 ? -1 : value - 1)); setRequestKey(newRequestKey()); }}><Minus className="h-4 w-4" /></button>
+                  <button type="button" className="experimental-wizard-step-btn" aria-label={t("experimentalPointAdjustments.mniej_punktow")} onClick={() => { setPoints((value) => Math.max(-100, value - 1 === 0 ? -1 : value - 1)); setRequestKey(newRequestKey()); }}><Minus className="h-4 w-4" /></button>
                   <output className="min-w-12 text-center font-mono text-lg font-bold" aria-live="polite">{signed(points)}</output>
-                  <button type="button" className="experimental-wizard-step-btn" aria-label="Więcej punktów" onClick={() => { setPoints((value) => Math.min(100, value + 1 === 0 ? 1 : value + 1)); setRequestKey(newRequestKey()); }}><Plus className="h-4 w-4" /></button>
-                  <span className="text-xs text-muted-foreground">{points < 0 ? "kara" : "bonus"}</span>
+                  <button type="button" className="experimental-wizard-step-btn" aria-label={t("experimentalPointAdjustments.wiecej_punktow")} onClick={() => { setPoints((value) => Math.min(100, value + 1 === 0 ? 1 : value + 1)); setRequestKey(newRequestKey()); }}><Plus className="h-4 w-4" /></button>
+                  <span className="text-xs text-muted-foreground">{points < 0 ? t("experimentalPointAdjustments.kara") : "bonus"}</span>
                 </div>
               </div>
-              <label className="grid gap-1 text-sm">Powód (widoczny w historii)
-                <input className="participant-field-control" maxLength={200} value={reason} onChange={(event) => { setReason(event.target.value); setRequestKey(newRequestKey()); }} placeholder="Np. walkower bez zgłoszenia" required />
+              <label className="grid gap-1 text-sm">{t("experimentalPointAdjustments.powod_widoczny_w_historii")}<input className="participant-field-control" maxLength={200} value={reason} onChange={(event) => { setReason(event.target.value); setRequestKey(newRequestKey()); }} placeholder={t("experimentalPointAdjustments.np_walkower_bez_zgloszenia")} required />
               </label>
               <button type="submit" className="experimental-v4-btn" data-variant="primary" disabled={add.isPending || !playerId || !reason.trim()}>
-                {add.isPending ? "Zapisywanie…" : "Dodaj korektę"}
+                {add.isPending ? t("experimentalPointAdjustments.zapisywanie") : t("experimentalPointAdjustments.dodaj_korekte")}
               </button>
             </form>
           )}

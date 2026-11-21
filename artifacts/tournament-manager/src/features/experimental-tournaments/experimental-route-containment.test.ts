@@ -3,12 +3,14 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
+import { pl } from "@/i18n/catalog/pl";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const src = path.resolve(here, "..", "..");
 
 function read(relative: string): string {
-  return readFileSync(path.join(src, relative), "utf8");
+  // #323-E: interface texts live in the catalog — read the source with t("key") resolved to its Polish text
+  return readFileSync(path.join(src, relative), "utf8").replace(/\btr?\("([\w.]+)"/g, (call, key: string) => (key in pl ? String((pl as Record<string, unknown>)[key]) : call));
 }
 
 test("experimental route surface is registered", () => {

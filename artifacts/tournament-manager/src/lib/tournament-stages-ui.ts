@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import type {
   Match,
   TournamentInput,
@@ -41,19 +42,19 @@ export interface StagePlanValidationError {
 }
 
 export const STAGE_FORMAT_LABELS: Record<StageFormat, string> = {
-  swiss: "System szwajcarski",
-  round_robin: "Każdy z każdym",
-  group_stage: "Faza grupowa",
-  single_elimination: "Drabinka eliminacyjna",
-  double_elimination: "Podwójna eliminacja",
+  get swiss() { return t("tournamentStagesUi.system_szwajcarski"); },
+  get round_robin() { return t("tournamentStagesUi.kazdy_z_kazdym"); },
+  get group_stage() { return t("tournamentStagesUi.faza_grupowa"); },
+  get single_elimination() { return t("tournamentStagesUi.drabinka_eliminacyjna"); },
+  get double_elimination() { return t("tournamentStagesUi.podwojna_eliminacja"); },
 };
 
 export const ENTRY_SEEDING_LABELS: Record<EntrySeedingMethod, string> = {
-  preserve: "Zachowaj otrzymane seedy",
-  registration_order: "Kolejność dodania",
+  get preserve() { return t("tournamentStagesUi.zachowaj_otrzymane_seedy"); },
+  get registration_order() { return t("tournamentStagesUi.kolejnosc_dodania"); },
   alphabetical: "Alfabetycznie",
-  random: "Losowo (deterministycznie)",
-  manual: "Ręcznie ustawione seedy graczy",
+  get random() { return t("tournamentStagesUi.losowo_deterministycznie"); },
+  get manual() { return t("tournamentStagesUi.recznie_ustawione_seedy_graczy"); },
 };
 
 export function groupLabelFromIndex(index: number): string {
@@ -71,23 +72,23 @@ export function groupLabelFromIndex(index: number): string {
 }
 
 export const STAGE_STATUS_LABELS = {
-  planned: "Planowany",
-  active: "Aktywny",
-  completed: "Zakończony",
+  get planned() { return t("tournamentStagesUi.planowany"); },
+  get active() { return t("tournamentStagesUi.aktywny"); },
+  get completed() { return t("tournamentStagesUi.zakonczony"); },
 } as const;
 
 export const TOURNAMENT_STATUS_LABELS: Record<string, string> = {
-  draft: "Szkic",
-  active: "Aktywny",
-  completed: "Zakończony",
+  get draft() { return t("tournamentStagesUi.szkic"); },
+  get active() { return t("tournamentStagesUi.aktywny"); },
+  get completed() { return t("tournamentStagesUi.zakonczony"); },
 };
 
 export const PLAYER_STATUS_LABELS: Record<string, string> = {
-  active: "Aktywny",
-  pending: "Oczekuje",
+  get active() { return t("tournamentStagesUi.aktywny"); },
+  get pending() { return t("tournamentStagesUi.oczekuje"); },
   qualified: "Zakwalifikowany",
   eliminated: "Wyeliminowany",
-  winner: "Zwycięzca",
+  get winner() { return t("tournamentStagesUi.zwyciezca"); },
 };
 
 export function balancedGroupSizes(participantCount: number, groupCount: number): number[] {
@@ -202,7 +203,7 @@ function defaultPlacement(format: StageFormat): StagePlacementMethod {
 export function createStageDraft(position: number, format: StageFormat = "swiss"): StageDraft {
   return {
     clientId: globalThis.crypto?.randomUUID?.() ?? `stage-${Date.now()}-${position}`,
-    name: `Etap ${position}`,
+    name: t("tournamentStagesUi.etap_position", { position: position }),
     format,
     participantCount: 8,
     bestOf: 1,
@@ -239,7 +240,7 @@ export function copyStageDraftForNextStage(previous: StageDraft, position: numbe
   return {
     ...previous,
     clientId: globalThis.crypto?.randomUUID?.() ?? `stage-${Date.now()}-${position}`,
-    name: `Etap ${position}`,
+    name: t("tournamentStagesUi.etap_position", { position: position }),
     // #324-L01-A: a copied stage draws with its own key, never the previous stage's
     randomSeed: newDrawKey(),
     advancingCount: undefined,
@@ -250,7 +251,7 @@ export function copyStageDraftForNextStage(previous: StageDraft, position: numbe
 export function normalizeStageDrafts(stages: StageDraft[]): StageDraft[] {
   return synchronizeStageParticipantFlow(stages.map((stage, index) => ({
     ...stage,
-    name: /^Etap \d+$/.test(stage.name) ? `Etap ${index + 1}` : stage.name,
+    name: /^Etap \d+$/.test(stage.name) ? t("tournamentStagesUi.etap_v0", { v0: index + 1 }) : stage.name,
     entrySeedingMethod: stage.entrySeedingMethod ?? "preserve",
     placementMethod: stage.placementMethod ?? defaultPlacement(stage.format),
     resultSeedingMethod: stage.resultSeedingMethod ?? "rank_bands",
@@ -269,57 +270,57 @@ export function stageUsesRandom(stage: Pick<StageDraft, "format" | "entrySeeding
 export function validateStageDrafts(stages: StageDraft[]): StagePlanValidationError[] {
   const errors: StagePlanValidationError[] = [];
   if (stages.length < 1 || stages.length > 10) {
-    errors.push({ message: "Plan musi zawierać od 1 do 10 etapów." });
+    errors.push({ message: t("tournamentStagesUi.plan_musi_zawierac_od_1") });
     return errors;
   }
   stages.forEach((stage, index) => {
     const isLast = index === stages.length - 1;
-    if (!stage.name.trim()) errors.push({ stageIndex: index, field: "name", message: `Etap ${index + 1} wymaga nazwy.` });
-    if (!Number.isInteger(stage.participantCount) || stage.participantCount < 2) errors.push({ stageIndex: index, field: "participantCount", message: `Etap ${index + 1} wymaga co najmniej 2 uczestników.` });
-    if (![1, 3, 5, 7].includes(stage.bestOf)) errors.push({ stageIndex: index, field: "bestOf", message: `Etap ${index + 1} ma niepoprawne BO.` });
-    if (!["preserve", "registration_order", "alphabetical", "random", "manual"].includes(stage.entrySeedingMethod)) errors.push({ stageIndex: index, field: "entrySeedingMethod", message: "Wybierz poprawną metodę nadawania seedów." });
-    if (!["instant", "sequential"].includes(stage.randomRevealOrder)) errors.push({ stageIndex: index, field: "randomRevealOrder", message: "Wybierz sposób ujawnienia losowania." });
-    if (stageUsesRandom(stage) && (!stage.randomSeed?.trim() || stage.randomSeed.trim().length > 200)) errors.push({ stageIndex: index, field: "randomSeed", message: "Losowe seedowanie wymaga klucza losowania od 1 do 200 znaków." });
-    if (stage.format === "swiss" && (!Number.isInteger(stage.rounds) || (stage.rounds ?? 0) < 1)) errors.push({ stageIndex: index, field: "rounds", message: `Etap ${index + 1} wymaga liczby rund Swiss.` });
+    if (!stage.name.trim()) errors.push({ stageIndex: index, field: "name", message: t("tournamentStagesUi.etap_v0_wymaga_nazwy", { v0: index + 1 }) });
+    if (!Number.isInteger(stage.participantCount) || stage.participantCount < 2) errors.push({ stageIndex: index, field: "participantCount", message: t("tournamentStagesUi.etap_v0_wymaga_co_najmniej", { v0: index + 1 }) });
+    if (![1, 3, 5, 7].includes(stage.bestOf)) errors.push({ stageIndex: index, field: "bestOf", message: t("tournamentStagesUi.etap_v0_ma_niepoprawne_bo", { v0: index + 1 }) });
+    if (!["preserve", "registration_order", "alphabetical", "random", "manual"].includes(stage.entrySeedingMethod)) errors.push({ stageIndex: index, field: "entrySeedingMethod", message: t("tournamentStagesUi.wybierz_poprawna_metode_nadawania_seedow") });
+    if (!["instant", "sequential"].includes(stage.randomRevealOrder)) errors.push({ stageIndex: index, field: "randomRevealOrder", message: t("tournamentStagesUi.wybierz_sposob_ujawnienia_losowania") });
+    if (stageUsesRandom(stage) && (!stage.randomSeed?.trim() || stage.randomSeed.trim().length > 200)) errors.push({ stageIndex: index, field: "randomSeed", message: t("tournamentStagesUi.losowe_seedowanie_wymaga_klucza_losowani") });
+    if (stage.format === "swiss" && (!Number.isInteger(stage.rounds) || (stage.rounds ?? 0) < 1)) errors.push({ stageIndex: index, field: "rounds", message: t("tournamentStagesUi.etap_v0_wymaga_liczby_rund", { v0: index + 1 }) });
     if (stage.format === "single_elimination") {
-      if (!["standard", "random"].includes(stage.placementMethod)) errors.push({ stageIndex: index, field: "placementMethod", message: "Drabinka wymaga standardowego albo losowego rozmieszczenia." });
+      if (!["standard", "random"].includes(stage.placementMethod)) errors.push({ stageIndex: index, field: "placementMethod", message: t("tournamentStagesUi.drabinka_wymaga_standardowego_albo_losow") });
       if (!isLast) {
         const options = singleEliminationAdvancingOptions(stage.participantCount);
         if (!options.includes(stage.advancingCount ?? 0)) {
           errors.push({
             stageIndex: index,
             field: "advancingCount",
-            message: `Drabinka kwalifikacyjna może przekazać wyłącznie: ${options.join(", ")} uczestników.`,
+            message: t("tournamentStagesUi.drabinka_kwalifikacyjna_moze_przekazac_w", { v0: options.join(", ") }),
           });
         }
       }
     } else if (stage.format === "double_elimination") {
-      if (!isLast) errors.push({ stageIndex: index, field: "format", message: "Podwójna eliminacja musi być ostatnim etapem." });
-      if (stage.placementMethod !== "standard") errors.push({ stageIndex: index, field: "placementMethod", message: "Podwójna eliminacja używa standardowego rozstawienia." });
+      if (!isLast) errors.push({ stageIndex: index, field: "format", message: t("tournamentStagesUi.podwojna_eliminacja_musi_byc_ostatnim") });
+      if (stage.placementMethod !== "standard") errors.push({ stageIndex: index, field: "placementMethod", message: t("tournamentStagesUi.podwojna_eliminacja_uzywa_standardowego_") });
     } else if (stage.format !== "group_stage" && stage.placementMethod !== "standings_order") {
-      errors.push({ stageIndex: index, field: "placementMethod", message: "Ten format używa kolejności seedów bez dodatkowego rozmieszczenia." });
+      errors.push({ stageIndex: index, field: "placementMethod", message: t("tournamentStagesUi.ten_format_uzywa_kolejnosci_seedow") });
     }
     if (stage.format === "group_stage") {
-      if (isLast) errors.push({ stageIndex: index, field: "format", message: "Faza grupowa wymaga kolejnego etapu." });
-      if (!["snake", "random"].includes(stage.placementMethod)) errors.push({ stageIndex: index, field: "placementMethod", message: "Grupy wymagają snake seeding albo losowego rozmieszczenia." });
-      if (!["rank_bands", "global_ranking"].includes(stage.resultSeedingMethod)) errors.push({ stageIndex: index, field: "resultSeedingMethod", message: "Wybierz poprawny sposób nowych seedów po grupach." });
+      if (isLast) errors.push({ stageIndex: index, field: "format", message: t("tournamentStagesUi.faza_grupowa_wymaga_kolejnego_etapu") });
+      if (!["snake", "random"].includes(stage.placementMethod)) errors.push({ stageIndex: index, field: "placementMethod", message: t("tournamentStagesUi.grupy_wymagaja_snake_seeding_albo") });
+      if (!["rank_bands", "global_ranking"].includes(stage.resultSeedingMethod)) errors.push({ stageIndex: index, field: "resultSeedingMethod", message: t("tournamentStagesUi.wybierz_poprawny_sposob_nowych_seedow") });
       const maxGroupCount = Math.floor(stage.participantCount / 2);
-      if (!Number.isInteger(stage.groupCount) || (stage.groupCount ?? 0) < 1 || (stage.groupCount ?? 0) > maxGroupCount) errors.push({ stageIndex: index, field: "groupCount", message: `Liczba grup musi wynosić od 1 do ${Math.max(1, maxGroupCount)}, aby każda grupa miała co najmniej 2 osoby.` });
+      if (!Number.isInteger(stage.groupCount) || (stage.groupCount ?? 0) < 1 || (stage.groupCount ?? 0) > maxGroupCount) errors.push({ stageIndex: index, field: "groupCount", message: t("tournamentStagesUi.liczba_grup_musi_wynosic_od", { v0: Math.max(1, maxGroupCount) }) });
       const sizes = balancedGroupSizes(stage.participantCount, stage.groupCount ?? 0);
       const largestGroupSize = sizes.length > 0 ? Math.max(...sizes) : 0;
-      if (!Number.isInteger(stage.qualifiersPerGroup) || (stage.qualifiersPerGroup ?? 0) < 1 || (stage.qualifiersPerGroup ?? 0) > largestGroupSize) errors.push({ stageIndex: index, field: "qualifiersPerGroup", message: `Maksymalna liczba kwalifikantów z grupy musi wynosić od 1 do ${Math.max(1, largestGroupSize)}.` });
-      if (!isLast && sizes.length > 0 && Number.isInteger(stage.qualifiersPerGroup) && groupAdvancingCount(stage) < 2) errors.push({ stageIndex: index, field: "qualifiersPerGroup", message: "Faza grupowa musi przekazać co najmniej 2 uczestników do kolejnego etapu." });
+      if (!Number.isInteger(stage.qualifiersPerGroup) || (stage.qualifiersPerGroup ?? 0) < 1 || (stage.qualifiersPerGroup ?? 0) > largestGroupSize) errors.push({ stageIndex: index, field: "qualifiersPerGroup", message: t("tournamentStagesUi.maksymalna_liczba_kwalifikantow_z_grupy", { v0: Math.max(1, largestGroupSize) }) });
+      if (!isLast && sizes.length > 0 && Number.isInteger(stage.qualifiersPerGroup) && groupAdvancingCount(stage) < 2) errors.push({ stageIndex: index, field: "qualifiersPerGroup", message: t("tournamentStagesUi.faza_grupowa_musi_przekazac_co") });
     }
     if (!isLast && stage.format !== "group_stage" && stage.format !== "single_elimination") {
-      if (!Number.isInteger(stage.advancingCount) || (stage.advancingCount ?? 0) < 2) errors.push({ stageIndex: index, field: "advancingCount", message: `Etap ${index + 1} wymaga co najmniej 2 kwalifikantów.` });
-      if ((stage.advancingCount ?? 0) > stage.participantCount) errors.push({ stageIndex: index, field: "advancingCount", message: "Nie może awansować więcej osób niż gra w etapie." });
+      if (!Number.isInteger(stage.advancingCount) || (stage.advancingCount ?? 0) < 2) errors.push({ stageIndex: index, field: "advancingCount", message: t("tournamentStagesUi.etap_v0_wymaga_co_najmniej_2", { v0: index + 1 }) });
+      if ((stage.advancingCount ?? 0) > stage.participantCount) errors.push({ stageIndex: index, field: "advancingCount", message: t("tournamentStagesUi.nie_moze_awansowac_wiecej_osob") });
     }
   });
   for (let index = 0; index < stages.length - 1; index += 1) {
     const stage = stages[index];
     const next = stages[index + 1];
     const advancing = stageOutputParticipantCount(stage);
-    if (advancing !== next.participantCount) errors.push({ stageIndex: index, field: stage.format === "group_stage" ? "qualifiersPerGroup" : "advancingCount", message: `Etap ${index + 1} przekazuje ${advancing} osób, a etap ${index + 2} oczekuje ${next.participantCount}.` });
+    if (advancing !== next.participantCount) errors.push({ stageIndex: index, field: stage.format === "group_stage" ? "qualifiersPerGroup" : "advancingCount", message: t("tournamentStagesUi.etap_v0_przekazuje_advancing_osob", { v0: index + 1, advancing: advancing, v2: index + 2, participantCount: next.participantCount }) });
   }
   return errors;
 }
@@ -433,10 +434,10 @@ export function buildStagePlan(stages: StageDraft[]): TournamentStagePlanInput {
 export type SingleStageEntrySeedingMethod = Exclude<EntrySeedingMethod, "preserve">;
 
 export const SINGLE_STAGE_SEEDING_LABELS: Record<SingleStageEntrySeedingMethod, string> = {
-  registration_order: "Kolejność dodania",
+  get registration_order() { return t("tournamentStagesUi.kolejnosc_dodania"); },
   alphabetical: "Alfabetycznie",
-  manual: "Ręcznie ustawione seedy graczy",
-  random: "Losowanie (ceremonia losowania)",
+  get manual() { return t("tournamentStagesUi.recznie_ustawione_seedy_graczy"); },
+  get random() { return t("tournamentStagesUi.losowanie_ceremonia_losowania"); },
 };
 
 /**
@@ -468,7 +469,7 @@ export function buildSingleStageSeedingPlan(
 
   const draft: StageDraft = {
     clientId: globalThis.crypto?.randomUUID?.() ?? `stage-1-${Date.now()}`,
-    name: "Etap 1",
+    name: t("tournamentStagesUi.etap_1"),
     format,
     participantCount,
     bestOf,
@@ -527,17 +528,17 @@ export function getApiErrorMessage(error: unknown): string {
   const response = error as { data?: { code?: string; error?: string }; message?: string };
   const code = response?.data?.code;
   const messages: Record<string, string> = {
-    STAGE_INCOMPLETE: "Nie wszystkie wymagane mecze etapu zostały zakończone.",
-    STAGE_NOT_ACTIVE: "Ten etap nie jest obecnie aktywny.",
-    STAGE_NOT_NEXT_PLANNED: "Można uruchomić tylko najbliższy planowany etap.",
-    PREVIOUS_STAGE_NOT_COMPLETED: "Poprzedni etap nie został jeszcze zakończony.",
-    ACTIVE_STAGE_EXISTS: "Inny etap jest już aktywny.",
-    STAGE_ALREADY_COMPLETED: "Ten etap został już zakończony.",
-    STAGE_ALREADY_STARTED: "Ten etap został już uruchomiony.",
-    QUALIFICATION_CONFIGURATION_INVALID: "Konfiguracja kwalifikacji między etapami jest niespójna.",
-    STAGE_SEEDING_CONFIGURATION_INVALID: "Konfiguracja seedowania lub rozmieszczenia jest niespójna.",
-    RANKING_INCONSISTENT: "Nie można wyliczyć jednoznacznego rankingu etapu.",
-    FORBIDDEN: "Ta operacja jest dostępna wyłącznie dla organizatora.",
+    STAGE_INCOMPLETE: t("tournamentStagesUi.nie_wszystkie_wymagane_mecze_etapu"),
+    STAGE_NOT_ACTIVE: t("tournamentStagesUi.ten_etap_nie_jest_obecnie"),
+    STAGE_NOT_NEXT_PLANNED: t("tournamentStagesUi.mozna_uruchomic_tylko_najblizszy_planowa"),
+    PREVIOUS_STAGE_NOT_COMPLETED: t("tournamentStagesUi.poprzedni_etap_nie_zostal_jeszcze"),
+    ACTIVE_STAGE_EXISTS: t("tournamentStagesUi.inny_etap_jest_juz_aktywny"),
+    STAGE_ALREADY_COMPLETED: t("tournamentStagesUi.ten_etap_zostal_juz_zakonczony"),
+    STAGE_ALREADY_STARTED: t("tournamentStagesUi.ten_etap_zostal_juz_uruchomiony"),
+    QUALIFICATION_CONFIGURATION_INVALID: t("tournamentStagesUi.konfiguracja_kwalifikacji_miedzy_etapami"),
+    STAGE_SEEDING_CONFIGURATION_INVALID: t("tournamentStagesUi.konfiguracja_seedowania_lub_rozmieszczen"),
+    RANKING_INCONSISTENT: t("tournamentStagesUi.nie_mozna_wyliczyc_jednoznacznego_rankin"),
+    FORBIDDEN: t("tournamentStagesUi.ta_operacja_jest_dostepna_wylacznie"),
   };
-  return (code && messages[code]) || response?.data?.error || response?.message || "Nie udało się wykonać operacji.";
+  return (code && messages[code]) || response?.data?.error || response?.message || t("tournamentStagesUi.nie_udalo_sie_wykonac_operacji");
 }

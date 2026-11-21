@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 /**
  * QW-04 · "Co teraz?" for the organizer: the one action that moves the tournament on, plus one-tap access to the
  * matches being played and the ones ready next. Everything comes from data the host already has:
@@ -44,9 +45,9 @@ export function deriveOrganizerNow<M extends NowMatch>(input: {
   if (step.kind === "active_matches") {
     const target = canWriteResults ? live[0] ?? ready[0] : undefined;
     return {
-      title: target ? (target.status === "in_progress" ? "Wpisz wynik meczu w toku" : "Rozegraj następny mecz") : step.title,
+      title: target ? (target.status === "in_progress" ? t("organizerNow.wpisz_wynik_meczu_w_toku") : t("organizerNow.rozegraj_nastepny_mecz")) : step.title,
       description: step.description,
-      primary: target ? { type: "result", match: target, label: `Wpisz wynik: ${pairText(target)}` } : null,
+      primary: target ? { type: "result", match: target, label: t("organizerNow.wpisz_wynik_v0", { v0: pairText(target) }) } : null,
       live: live.slice(0, limit),
       ready: ready.filter((m) => m.id !== target?.id).slice(0, limit - 1),
     };
@@ -66,10 +67,10 @@ export type ViewerShare =
 /** What the organizer may tell viewers, following the tournament's visibility (the sharing panel's rules). */
 export function viewerShareFor(visibility: string | null | undefined): ViewerShare {
   if (visibility === "private_offline") {
-    return { kind: "closed", note: "Turniej jest ukryty: widzowie nie mają dostępu, także pod znanym linkiem. Opublikuj go, gdy będzie gotowy." };
+    return { kind: "closed", note: t("organizerNow.turniej_jest_ukryty_widzowie_nie") };
   }
   if (visibility === "private_online") {
-    return { kind: "password", note: "Kibice otworzą link po podaniu hasła widza." };
+    return { kind: "password", note: t("organizerNow.kibice_otworza_link_po_podaniu") };
   }
-  return { kind: "public", note: "Każdy z tym linkiem może śledzić turniej (tylko odczyt)." };
+  return { kind: "public", note: t("organizerNow.kazdy_z_tym_linkiem_moze") };
 }

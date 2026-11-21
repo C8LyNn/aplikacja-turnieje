@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import React from "react";
 import { Link, useLocation } from "wouter";
 import { ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
@@ -24,7 +25,7 @@ export function OrganizerNextStep({
     <section aria-labelledby="organizer-next-step-title" className="organizer-next-step rounded-lg border border-primary/30 bg-primary/5 p-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="min-w-0">
-          <p className="text-xs font-semibold uppercase tracking-wide text-primary">Następny krok</p>
+          <p className="text-xs font-semibold uppercase tracking-wide text-primary">{t("organizerNextStep.nastepny_krok")}</p>
           <h2 id="organizer-next-step-title" className="mt-1 font-semibold">{step.title}</h2>
           <p className="mt-1 text-sm text-muted-foreground">{step.description}</p>
           {step.readinessFeedback && <>
@@ -39,14 +40,14 @@ export function OrganizerNextStep({
         )}
         {action && onAction && (
           <Button onClick={onAction} disabled={pending} aria-busy={pending} className="organizer-next-action shrink-0">
-            {pending ? "Wykonywanie…" : step.actionLabel}
+            {pending ? t("organizerNextStep.wykonywanie") : step.actionLabel}
             {pending
               ? <Loader2 aria-hidden="true" className="ml-2 h-4 w-4 animate-spin" />
               : <ArrowRight aria-hidden="true" className="ml-2 h-4 w-4" />}
           </Button>
         )}
         {action && onAction && pending && (
-          <span role="status" aria-live="polite" className="sr-only">Trwa wykonywanie następnego kroku.</span>
+          <span role="status" aria-live="polite" className="sr-only">{t("organizerNextStep.trwa_wykonywanie_nastepnego_kroku")}</span>
         )}
         {!action && step.kind === "completed" && <CheckCircle2 aria-hidden="true" className="h-6 w-6 shrink-0 text-primary" />}
       </div>

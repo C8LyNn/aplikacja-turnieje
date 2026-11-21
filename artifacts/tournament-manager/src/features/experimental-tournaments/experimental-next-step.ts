@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 /**
  * Experimental wording for the organizer's next step: the title names the action
  * ("Rozegraj mecze · Etap 1") instead of only the stage name. Logic is unchanged.
@@ -8,11 +9,11 @@ export function experimentalNextStep<T extends { kind: string; title: string }>(
   if (!step) return step;
   switch (step.kind) {
     case "active_matches":
-      return { ...step, title: `Rozegraj mecze · ${step.title}` };
+      return { ...step, title: t("experimentalNextStep.rozegraj_mecze_title", { title: step.title }) };
     case "planned_stage":
-      return { ...step, title: `Rozpocznij etap · ${step.title}` };
+      return { ...step, title: t("experimentalNextStep.rozpocznij_etap_title", { title: step.title }) };
     case "next_stage":
-      return { ...step, title: `Rozpocznij kolejny etap · ${step.title}` };
+      return { ...step, title: t("experimentalNextStep.rozpocznij_kolejny_etap_title", { title: step.title }) };
     default:
       return step;
   }
@@ -44,11 +45,11 @@ export function draftEntrantsStep<T extends { kind: string; title: string }>(
     return {
       kind: "stage_preparation" as const,
       reason: "needs_entrants" as const,
-      title: "Dodaj uczestników",
+      title: t("experimentalNextStep.dodaj_uczestnikow"),
       description: count === 0
-        ? "Turniej jest gotowy do zapisów. Dodaj co najmniej 2 uczestników — pojedynczo lub z pliku CSV."
-        : "Masz 1 uczestnika. Do rozpoczęcia turnieju potrzeba co najmniej 2.",
-      actionLabel: "Dodaj uczestników",
+        ? t("experimentalNextStep.turniej_jest_gotowy_do_zapisow")
+        : t("experimentalNextStep.masz_1_uczestnika_do_rozpoczecia"),
+      actionLabel: t("experimentalNextStep.dodaj_uczestnikow"),
       actionHref: `/tournaments/${input.tournamentId}?tab=players`,
     };
   }

@@ -1,6 +1,7 @@
 // QW-10 · the score between "−" and "+" can be typed: tap/click or Tab into it, type the number (on phones the
 // numeric keypad opens), ↑/↓ change it by one. It only edits the draft — saving stays on "Zapisz wynik", and Enter
 // never saves, so a stray key cannot confirm a result.
+import { t } from "@/i18n";
 import type { FocusEvent, KeyboardEvent } from "react";
 
 /** The value after typing `raw` into a field holding `current`; null when the input cannot be a score. */
@@ -34,8 +35,8 @@ export function ScoreInput({ value, max, name, disabled, className, onChange, on
       pattern="[0-9]*"
       autoComplete="off"
       enterKeyHint="done"
-      aria-label={`Wynik: ${name}`}
-      title={`Wpisz wynik (0–${max}) albo użyj strzałek`}
+      aria-label={t("scoreInput.wynik_name", { name: name })}
+      title={t("scoreInput.wpisz_wynik_0_max_albo", { max: max })}
       value={String(value)}
       disabled={disabled}
       data-testid="score-input"

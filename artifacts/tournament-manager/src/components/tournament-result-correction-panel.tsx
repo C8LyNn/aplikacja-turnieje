@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { customFetch, getListMatchesQueryKey, useListMatches, type Match } from "@workspace/api-client-react";
@@ -338,8 +339,8 @@ export function TournamentResultCorrectionPanel({ tournamentId, enabled }: { tou
     setPreview(null);setApproveRevert(false);setAcceptResubmission(false);
     setOperationError(null);
     setRevertReceipt(receipt.status === "corrected"
-      ? `Mecz #${receipt.matchId}: wynik poprawiono atomowo (cofnięcie #${receipt.revertActionId}, nowy zapis #${receipt.completionActionId}).`
-      : `Mecz #${receipt.matchId}: wynik cofnięto (akcja #${receipt.revertActionId}). Zapisz nowy wynik osobno.`);
+      ? t("tournamentResultCorrectionPanel.mecz_matchid_wynik_poprawiono_atomowo", { matchId: receipt.matchId, revertActionId: receipt.revertActionId, completionActionId: receipt.completionActionId })
+      : t("tournamentResultCorrectionPanel.mecz_matchid_wynik_cofnieto_akcja", { matchId: receipt.matchId, revertActionId: receipt.revertActionId }));
     void queryClient.invalidateQueries();
   };
   const prepare = useMutation({
@@ -353,14 +354,14 @@ export function TournamentResultCorrectionPanel({ tournamentId, enabled }: { tou
       const value = {operationId: receipt.operationId, matchId: receipt.matchId, confirmed: true};
       setPendingIntent(value);window.sessionStorage.setItem(storageKey,JSON.stringify(value));
     },
-    onError: () => setOperationError("Nie udało się potwierdzić zapisu zgody. Ponów przygotowanie z tym samym identyfikatorem."),
+    onError: () => setOperationError(t("tournamentResultCorrectionPanel.nie_udalo_sie_potwierdzic_zapisu")),
   });
   const execute = useMutation({
     mutationFn: async (operationId: string) => customFetch<CorrectionOperationReceipt>(
       `/api/tournaments/${tournamentId}/operations/correction-intents/${encodeURIComponent(operationId)}/execute-atomic`,
       { method: "POST" }),
     onSuccess: (receipt) => finishCorrection(receipt),
-    onError: () => { setOperationError("Nieznany wynik żądania. Najpierw sprawdź status — nie wysyłaj nowej korekty."); void queryClient.invalidateQueries(); },
+    onError: () => { setOperationError(t("tournamentResultCorrectionPanel.nieznany_wynik_zadania_najpierw_sprawdz")); void queryClient.invalidateQueries(); },
   });
   const checkOperation = useMutation({
     mutationFn: async (operationId: string) => customFetch<CorrectionOperationReceipt>(
@@ -375,37 +376,34 @@ export function TournamentResultCorrectionPanel({ tournamentId, enabled }: { tou
       setPendingIntent(value);window.sessionStorage.setItem(storageKey,JSON.stringify(value));
       setOperationError(null);
     },
-    onError: () => setOperationError("Nie udało się odczytać statusu; zachowano identyfikator operacji."),
+    onError: () => setOperationError(t("tournamentResultCorrectionPanel.nie_udalo_sie_odczytac_statusu")),
   });
   if (!enabled) return null;
   function resetOnChange(preserveSeAssessment = false) { if (!preserveSeAssessment) { setSeAssessmentPair(null); setSeAssessmentHistory(emptySeAssessmentHistory()); } setPreview(null);setSeSafety(null);setSeReadiness(null);safetyRequest.reset();readinessRequest.reset(); request.reset();prepare.reset();execute.reset();setRevertReceipt(null);setApproveRevert(false);setAcceptResubmission(false); }
   return (
     <details className="mt-4 rounded-xl border border-border/80 bg-background/30 p-3 sm:p-4">
       <summary className="cursor-pointer text-sm font-semibold focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
-        <span className="inline-flex items-center gap-2"><FileSearch className="h-4 w-4 text-primary" aria-hidden="true" /> Sprawdź skutki korekty wyniku</span>
+        <span className="inline-flex items-center gap-2"><FileSearch className="h-4 w-4 text-primary" aria-hidden="true" /> {t("tournamentResultCorrectionPanel.sprawdz_skutki_korekty_wyniku")}</span>
       </summary>
-      <p className="mt-2 text-xs text-muted-foreground">Podgląd pokazuje blokady i możliwe zależności. Nie cofa meczu i nie wpisuje nowego wyniku.</p>
-      {matchesQuery.isError ? <p role="status" className="mt-3 text-xs text-destructive">Nie udało się wczytać meczów. Sprawdź uprawnienia.</p>
-        : matches.length === 0 ? <p className="mt-3 text-xs text-muted-foreground">Brak zakończonych meczów z wynikiem punktowym.</p>
+      <p className="mt-2 text-xs text-muted-foreground">{t("tournamentResultCorrectionPanel.podglad_pokazuje_blokady_i_mozliwe")}</p>
+      {matchesQuery.isError ? <p role="status" className="mt-3 text-xs text-destructive">{t("tournamentResultCorrectionPanel.nie_udalo_sie_wczytac_meczow")}</p>
+        : matches.length === 0 ? <p className="mt-3 text-xs text-muted-foreground">{t("tournamentResultCorrectionPanel.brak_zakonczonych_meczow_z_wynikiem")}</p>
         : <div className="mt-3 grid gap-3 sm:grid-cols-3">
-          <label className="text-xs font-medium sm:col-span-3">Zakończony mecz
-            <select value={selected} className="mt-1 w-full rounded-md border border-input bg-background p-2 text-sm" onChange={event => {
+          <label className="text-xs font-medium sm:col-span-3">{t("tournamentResultCorrectionPanel.zakonczony_mecz")}<select value={selected} className="mt-1 w-full rounded-md border border-input bg-background p-2 text-sm" onChange={event => {
               const id = event.target.value;
               const selectedMatch = matches.find((item: Match) => String(item.id) === id);
               setSelected(id); setScore1(selectedMatch?.score1 != null ? String(selectedMatch.score1) : "");
               setScore2(selectedMatch?.score2 != null ? String(selectedMatch.score2) : ""); resetOnChange();
             }}>
-              <option value="">Wybierz mecz…</option>
+              <option value="">{t("tournamentResultCorrectionPanel.wybierz_mecz")}</option>
               {matches.map((item: Match) => <option key={item.id} value={String(item.id)}>
                 R{item.round} · M{item.matchNumber} · #{item.id} · {item.score1 ?? "?"}:{item.score2 ?? "?"}
               </option>)}
             </select>
           </label>
-          <label className="text-xs font-medium">Nowy wynik strony 1
-            <Input className="mt-1" type="number" min={0} value={score1} onChange={event => {setScore1(event.target.value); resetOnChange();}} />
+          <label className="text-xs font-medium">{t("tournamentResultCorrectionPanel.nowy_wynik_strony_1")}<Input className="mt-1" type="number" min={0} value={score1} onChange={event => {setScore1(event.target.value); resetOnChange();}} />
           </label>
-          <label className="text-xs font-medium">Nowy wynik strony 2
-            <Input className="mt-1" type="number" min={0} value={score2} onChange={event => {setScore2(event.target.value); resetOnChange();}} />
+          <label className="text-xs font-medium">{t("tournamentResultCorrectionPanel.nowy_wynik_strony_2")}<Input className="mt-1" type="number" min={0} value={score2} onChange={event => {setScore2(event.target.value); resetOnChange();}} />
           </label>
           <div className="flex items-end">
             <Button type="button" variant="outline" size="sm" disabled={!canPreview || request.isPending} onClick={() => {
@@ -414,46 +412,46 @@ export function TournamentResultCorrectionPanel({ tournamentId, enabled }: { tou
               request.mutate({matchId: chosen.id, expectedRevision: chosen.revision,
                 proposedScore1, proposedScore2});
             }}>
-              <FileSearch className="mr-1 h-4 w-4" /> {request.isPending ? "Sprawdzanie…" : "Pokaż skutki"}
+              <FileSearch className="mr-1 h-4 w-4" /> {request.isPending ? t("tournamentResultCorrectionPanel.sprawdzanie") : t("tournamentResultCorrectionPanel.pokaz_skutki")}
             </Button>
           </div>
         </div>}
-      {preview && !shownPreview && <p role="status" className="mt-3 text-xs text-amber-600 dark:text-amber-400">Wynik podglądu wygasł lub nie zgadza się z aktualnym stanem meczów. Pobierz aktualne dane i wykonaj analizę ponownie.</p>}
+      {preview && !shownPreview && <p role="status" className="mt-3 text-xs text-amber-600 dark:text-amber-400">{t("tournamentResultCorrectionPanel.wynik_podgladu_wygasl_lub_nie")}</p>}
       {pendingIntent && <div className="mt-3 space-y-2 rounded-lg border border-amber-500/60 p-3 text-xs" role="status">
-        <p className="font-semibold">{pendingIntent.confirmed ? "Pack 15: zatwierdzenie zapisane — oczekuje na atomową korektę" : "Pack 14: wynik zapisu zgody niepotwierdzony — sprawdź status"}</p>
-        <p>Operacja {pendingIntent.operationId}. Dotyczy meczu #{pendingIntent.matchId}. Nie wysyłaj nowej operacji, zanim sprawdzisz status.</p>
+        <p className="font-semibold">{pendingIntent.confirmed ? t("tournamentResultCorrectionPanel.pack_15_zatwierdzenie_zapisane_oczekuje") : t("tournamentResultCorrectionPanel.pack_14_wynik_zapisu_zgody")}</p>
+        <p>{t("tournamentResultCorrectionPanel.operacja")}{" "}{pendingIntent.operationId}{t("tournamentResultCorrectionPanel.dotyczy_meczu")}{pendingIntent.matchId}{t("tournamentResultCorrectionPanel.nie_wysylaj_nowej_operacji_zanim")}</p>
         <div className="flex flex-wrap gap-2">
           <Button type="button" variant="destructive" size="sm" disabled={!pendingIntent.confirmed || execute.isPending || checkOperation.isPending}
             onClick={() => execute.mutate(pendingIntent.operationId)}>
-            {execute.isPending ? "Wykonywanie…" : "Krok 2: Popraw wynik atomowo"}
+            {execute.isPending ? t("tournamentResultCorrectionPanel.wykonywanie") : t("tournamentResultCorrectionPanel.krok_2_popraw_wynik_atomowo")}
           </Button>
           <Button type="button" variant="outline" size="sm" disabled={execute.isPending || checkOperation.isPending}
             onClick={() => checkOperation.mutate(pendingIntent.operationId)}>
-            {checkOperation.isPending ? "Sprawdzanie…" : "Sprawdź status operacji"}
+            {checkOperation.isPending ? t("tournamentResultCorrectionPanel.sprawdzanie") : t("tournamentResultCorrectionPanel.sprawdz_status_operacji")}
           </Button>
         </div>
-        <p className="text-muted-foreground">Po błędzie sieciowym najpierw sprawdź status. Zatwierdzenie wygasa po 15 minutach; atomowy zapis nie pozostawia meczu bez wyniku.</p>
+        <p className="text-muted-foreground">{t("tournamentResultCorrectionPanel.po_bledzie_sieciowym_najpierw_sprawdz")}</p>
       </div>}
       {operationError && <p role="alert" className="mt-3 text-xs text-destructive">{operationError}</p>}
-      {revertReceipt && <p role="status" className="mt-3 rounded-md border border-amber-500/50 p-3 text-xs font-medium">{revertReceipt} <Link className="underline" href={tournamentModeHref(`/tournaments/${tournamentId}/host?tab=korekta`, experimental)}>Przejdź do korekt</Link></p>}
-      {request.isError && <p role="alert" className="mt-3 text-xs text-destructive">Podgląd nie powiódł się. Odśwież dane meczu i sprawdź sesję organizatora.</p>}
+      {revertReceipt && <p role="status" className="mt-3 rounded-md border border-amber-500/50 p-3 text-xs font-medium">{revertReceipt} <Link className="underline" href={tournamentModeHref(`/tournaments/${tournamentId}/host?tab=korekta`, experimental)}>{t("tournamentResultCorrectionPanel.przejdz_do_korekt")}</Link></p>}
+      {request.isError && <p role="alert" className="mt-3 text-xs text-destructive">{t("tournamentResultCorrectionPanel.podglad_nie_powiodl_sie_odswiez")}</p>}
       {shownPreview?.bracketImpact?.status === "available" && (
-        <section className="mt-3 rounded-lg border border-border/70 p-3 text-xs" aria-label={experimental ? "Bezpieczna ocena korekty w drabince eliminacyjnej" : "Bezpieczna ocena korekty Single Elimination"}>
-          <p className="font-semibold">{experimental ? "Drabinka eliminacyjna" : "Single Elimination"} — kontrola zależnego miejsca w drabince</p>
-          <p className="mt-1 text-muted-foreground">Ta analiza sprawdza historię, kolejny mecz i zatwierdzone awanse. Automatyczne wykonanie SE pozostaje wyłączone.</p>
+        <section className="mt-3 rounded-lg border border-border/70 p-3 text-xs" aria-label={experimental ? t("tournamentResultCorrectionPanel.bezpieczna_ocena_korekty_w_drabince") : t("tournamentResultCorrectionPanel.bezpieczna_ocena_korekty_single_eliminat")}>
+          <p className="font-semibold">{experimental ? t("tournamentResultCorrectionPanel.drabinka_eliminacyjna") : t("tournamentResultCorrectionPanel.single_elimination")} {t("tournamentResultCorrectionPanel.kontrola_zaleznego_miejsca_w_drabince")}</p>
+          <p className="mt-1 text-muted-foreground">{t("tournamentResultCorrectionPanel.ta_analiza_sprawdza_historie_kolejny")}</p>
           <Button type="button" size="sm" variant="outline" className="mt-2"
             disabled={!chosen || safetyRequest.isPending}
             onClick={() => {
               if (chosen) safetyRequest.mutate({ matchId: chosen.id, score1: shownPreview.proposedResult.score1, score2: shownPreview.proposedResult.score2 });
             }}>
-            {safetyRequest.isPending ? "Sprawdzanie…" : "Oceń gotowość SE"}
+            {safetyRequest.isPending ? t("tournamentResultCorrectionPanel.sprawdzanie") : t("tournamentResultCorrectionPanel.ocen_gotowosc_se")}
           </Button>
-          {safetyRequest.isError && <p role="alert" className="mt-2 text-destructive">Nie udało się sprawdzić aktualnej drabinki. Odśwież stan turnieju.</p>}
+          {safetyRequest.isError && <p role="alert" className="mt-2 text-destructive">{t("tournamentResultCorrectionPanel.nie_udalo_sie_sprawdzic_aktualnej")}</p>}
           {seSafety && seSafety.matchId === shownPreview.matchId && !safetyRequest.isPending && (
             <div className="mt-2 space-y-1" role="status">
-              <p className="font-medium">{seSafety.status === "structurally_safe" ? "Struktura jest spójna (podgląd)" : "Korekta ma blokady"}</p>
-              {seSafety.dependentMatch && <p>Powiązany mecz #{seSafety.dependentMatch.id}, runda {seSafety.dependentMatch.round}, miejsce {seSafety.dependentMatch.slot === "player1" ? "1" : "2"}.</p>}
-              {seSafety.issues.length > 0 && <p>Blokady: {seSafety.issues.join(", ")}</p>}
+              <p className="font-medium">{seSafety.status === "structurally_safe" ? t("tournamentResultCorrectionPanel.struktura_jest_spojna_podglad") : t("tournamentResultCorrectionPanel.korekta_ma_blokady")}</p>
+              {seSafety.dependentMatch && <p>{t("tournamentResultCorrectionPanel.powiazany_mecz")}{seSafety.dependentMatch.id}{t("tournamentResultCorrectionPanel.runda")}{" "}{seSafety.dependentMatch.round}{t("tournamentResultCorrectionPanel.miejsce")}{" "}{seSafety.dependentMatch.slot === "player1" ? "1" : "2"}.</p>}
+              {seSafety.issues.length > 0 && <p>{t("tournamentResultCorrectionPanel.blokady")}{" "}{seSafety.issues.join(", ")}</p>}
               <p className="text-muted-foreground">{seSafety.message}</p>
               {seSafety.status === "structurally_safe" && seSafety.activeCompletionActionId != null && chosen && (
                 <Button type="button" size="sm" variant="outline" className="mt-2"
@@ -462,70 +460,69 @@ export function TournamentResultCorrectionPanel({ tournamentId, enabled }: { tou
                     score1:shownPreview.proposedResult.score1,score2:shownPreview.proposedResult.score2,
                     matchRevision:seSafety.matchRevision,stageVersionVector:seSafety.stageVersionVector,
                     completionActionId:seSafety.activeCompletionActionId!})}>
-                  {readinessRequest.isPending ? "Weryfikowanie…" : "Sprawdź spójny snapshot SE"}
+                  {readinessRequest.isPending ? t("tournamentResultCorrectionPanel.weryfikowanie") : t("tournamentResultCorrectionPanel.sprawdz_spojny_snapshot_se")}
                 </Button>
               )}
-              {readinessRequest.isError && <p className="text-destructive">Nie udało się zweryfikować snapshotu. Odśwież dane.</p>}
+              {readinessRequest.isError && <p className="text-destructive">{t("tournamentResultCorrectionPanel.nie_udalo_sie_zweryfikowac_snapshotu")}</p>}
               {seReadiness && seReadiness.matchId === chosen?.id && (
                 <div className="mt-2 rounded-md border border-border p-2">
-                  <p>{seReadiness.status === "candidate" ? "Warunki strukturalne są spełnione" : "Wykryto blokady transakcyjne"}</p>
-                  {seReadiness.issues.length > 0 && <p>Blokady: {seReadiness.issues.join(", ")}</p>}
+                  <p>{seReadiness.status === "candidate" ? t("tournamentResultCorrectionPanel.warunki_strukturalne_sa_spelnione") : t("tournamentResultCorrectionPanel.wykryto_blokady_transakcyjne")}</p>
+                  {seReadiness.issues.length > 0 && <p>{t("tournamentResultCorrectionPanel.blokady")}{" "}{seReadiness.issues.join(", ")}</p>}
                   <p>{seReadiness.reason}</p>
                   {seReadiness.actionPlan &&
                     seReadiness.actionPlan.score.proposed[0] === shownPreview.proposedResult.score1 &&
                     seReadiness.actionPlan.score.proposed[1] === shownPreview.proposedResult.score2 &&
                     seReadiness.actionPlan.evidence.stageVersionVector === seSafety.stageVersionVector && (
-                    <div className="mt-2 space-y-1 border-t border-border pt-2" aria-label="Hipotetyczny plan korekty SE">
-                      <p className="font-medium">Plan operacji SE (tylko podgląd)</p>
-                      <p>{seReadiness.actionPlan.changeType === "winner_change" ? "Zmiana zwycięzcy" :
-                        seReadiness.actionPlan.changeType === "score_only" ? "Bez zmiany zwycięzcy" : "Plan zablokowany"}</p>
-                      {seReadiness.actionPlan.successor && <p>Następny mecz #{seReadiness.actionPlan.successor.matchId},
-                        miejsce {seReadiness.actionPlan.successor.slot === "player1" ? "1" : "2"}:
+                    <div className="mt-2 space-y-1 border-t border-border pt-2" aria-label={t("tournamentResultCorrectionPanel.hipotetyczny_plan_korekty_se")}>
+                      <p className="font-medium">{t("tournamentResultCorrectionPanel.plan_operacji_se_tylko_podglad")}</p>
+                      <p>{seReadiness.actionPlan.changeType === "winner_change" ? t("tournamentResultCorrectionPanel.zmiana_zwyciezcy") :
+                        seReadiness.actionPlan.changeType === "score_only" ? t("tournamentResultCorrectionPanel.bez_zmiany_zwyciezcy") : t("tournamentResultCorrectionPanel.plan_zablokowany")}</p>
+                      {seReadiness.actionPlan.successor && <p>{t("tournamentResultCorrectionPanel.nastepny_mecz")}{seReadiness.actionPlan.successor.matchId}{t("tournamentResultCorrectionPanel.miejsce")}{" "}{seReadiness.actionPlan.successor.slot === "player1" ? "1" : "2"}:
                         #{seReadiness.actionPlan.successor.previousPlayerId} → #{seReadiness.actionPlan.successor.hypotheticalPlayerId}</p>}
                       {seReadiness.actionPlan.steps.length > 0 && <ol className="ml-5 list-decimal space-y-1">
                         {seReadiness.actionPlan.steps.map(step => <li key={step.code}>{step.label}</li>)}
                       </ol>}
                       {seReadiness.actionPlan.blockerCodes.length > 0 &&
-                        <p className="text-destructive">Blokady: {seReadiness.actionPlan.blockerCodes.join(", ")}</p>}
+                        <p className="text-destructive">{t("tournamentResultCorrectionPanel.blokady")}{" "}{seReadiness.actionPlan.blockerCodes.join(", ")}</p>}
                       <p className="text-muted-foreground">{seReadiness.actionPlan.note}</p>
                       {seReadiness.diagnostic?.advisoryOnly === true &&
                        seReadiness.diagnostic.matchId === chosen?.id &&
                        seReadiness.diagnostic.expectedMatchRevision === chosen?.revision &&
                        seReadiness.diagnostic.validity === "snapshot_only" && (
-                        <div className="mt-2 space-y-2 border-t border-border pt-2" aria-label="Diagnostyka korekty SE">
-                          <p className="font-medium">Diagnostyka SE — Tylko podgląd</p>
-                          <p className="text-muted-foreground">Identyfikator analizy: <code className="select-all break-all">{seReadiness.diagnostic.assessmentId.slice(0, 16)}</code></p>
+                        <div className="mt-2 space-y-2 border-t border-border pt-2" aria-label={t("tournamentResultCorrectionPanel.diagnostyka_korekty_se")}>
+                          <p className="font-medium">{t("tournamentResultCorrectionPanel.diagnostyka_se_tylko_podglad")}</p>
+                          <p className="text-muted-foreground">{t("tournamentResultCorrectionPanel.identyfikator_analizy")}{" "}<code className="select-all break-all">{seReadiness.diagnostic.assessmentId.slice(0, 16)}</code></p>
                           <p>{seReadiness.diagnostic.issueCount === 0
-                            ? "Nie wykryto blokad w tym odczycie. Wykonanie korekty SE pozostaje wyłączone."
-                            : `Wykryte blokady: ${seReadiness.diagnostic.issueCount}`}</p>
+                            ? t("tournamentResultCorrectionPanel.nie_wykryto_blokad_w_tym")
+                            : t("tournamentResultCorrectionPanel.wykryte_blokady_issuecount", { issueCount: seReadiness.diagnostic.issueCount })}</p>
                           {seReadiness.diagnostic.blockers.length > 0 && <ul className="space-y-2">
                             {seReadiness.diagnostic.blockers.map(blocker => <li key={blocker.code} className="rounded border border-border/80 p-2">
                               <p className="font-medium">{blocker.title} ({blocker.code})</p>
                               <p>{blocker.detail}</p>
-                              <p className="text-muted-foreground">Co dalej: {blocker.recommendation}</p>
+                              <p className="text-muted-foreground">{t("tournamentResultCorrectionPanel.co_dalej")}{" "}{blocker.recommendation}</p>
                             </li>)}
                           </ul>}
                           {seReadiness.diagnostic.recommendedNextActions.length > 0 &&
-                            <p className="text-muted-foreground">Następny krok: {seReadiness.diagnostic.recommendedNextActions[0]}</p>}
+                            <p className="text-muted-foreground">{t("tournamentResultCorrectionPanel.nastepny_krok")}{" "}{seReadiness.diagnostic.recommendedNextActions[0]}</p>}
                           <p className="text-muted-foreground">{seReadiness.diagnostic.note}</p>
                           {seReadiness.impactGraph?.kind === "se_correction_impact_graph" &&
                            seReadiness.impactGraph.advisoryOnly === true &&
                            seReadiness.impactGraph.executionEnabled === false &&
                            seReadiness.impactGraph.writePerformed === false &&
                            seReadiness.impactGraph.matchId === chosen?.id && (
-                            <section aria-label="Wpływ korekty SE na dalsze rundy i etapy" className="mt-3 space-y-2 rounded border border-border p-3">
-                              <p className="font-medium">Hipotetyczny wpływ na turniej — tylko podgląd</p>
+                            <section aria-label={t("tournamentResultCorrectionPanel.wplyw_korekty_se_na_dalsze")} className="mt-3 space-y-2 rounded border border-border p-3">
+                              <p className="font-medium">{t("tournamentResultCorrectionPanel.hipotetyczny_wplyw_na_turniej_tylko")}</p>
                               <p>{seReadiness.impactGraph.status === "incomplete"
-                                ? "Niekompletny graf: nie wolno zakładać braku skutków."
-                                : `Bezpośredni następca: ${seReadiness.impactGraph.directSuccessorCount}, możliwe kolejne mecze: ${seReadiness.impactGraph.potentialLaterMatchCount}.`}</p>
-                              <p>Rozpoczęte lub zakończone mecze na możliwej ścieżce: {seReadiness.impactGraph.startedDownstreamCount}</p>
+                                ? t("tournamentResultCorrectionPanel.niekompletny_graf_nie_wolno_zakladac")
+                                : t("tournamentResultCorrectionPanel.bezposredni_nastepca_directsuccessorcoun", { directSuccessorCount: seReadiness.impactGraph.directSuccessorCount, potentialLaterMatchCount: seReadiness.impactGraph.potentialLaterMatchCount })}</p>
+                              <p>{t("tournamentResultCorrectionPanel.rozpoczete_lub_zakonczone_mecze_na")}{" "}{seReadiness.impactGraph.startedDownstreamCount}</p>
                               {seReadiness.impactGraph.downstreamMatches.length > 0 && <ol className="space-y-1">
                                 {seReadiness.impactGraph.downstreamMatches.map(item => (
-                                  <li key={item.matchId}>Runda {item.round}, mecz #{item.matchNumber}: {item.relationship === "direct_successor_slot" ? "Bezpośrednio" : "Potencjalnie"}: {item.label} ({item.slot === "player1" ? "slot 1" : "slot 2"}){item.alreadyStarted ? " — rozpoczęty/zakończony" : ""}</li>
+                                  <li key={item.matchId}>{t("tournamentResultCorrectionPanel.runda_2")}{" "}{item.round}{t("tournamentResultCorrectionPanel.mecz")}{item.matchNumber}: {item.relationship === "direct_successor_slot" ? t("tournamentResultCorrectionPanel.bezposrednio") : t("tournamentResultCorrectionPanel.potencjalnie")}: {item.label} ({item.slot === "player1" ? t("tournamentResultCorrectionPanel.slot_1") : t("tournamentResultCorrectionPanel.slot_2")}){item.alreadyStarted ? t("tournamentResultCorrectionPanel.rozpoczety_zakonczony") : ""}</li>
                                 ))}
                               </ol>}
                               {seReadiness.impactGraph.laterStages.length > 0 && (
-                                <p>Etapy wymagające osobnej oceny routingu/raportów: {seReadiness.impactGraph.laterStages.map(item => `${item.position} (${item.status})`).join(", ")}</p>
+                                <p>{t("tournamentResultCorrectionPanel.etapy_wymagajace_osobnej_oceny_routingu")}{" "}{seReadiness.impactGraph.laterStages.map(item => `${item.position} (${item.status})`).join(", ")}</p>
                               )}
                               {seReadiness.impactGraph.warnings.length > 0 && <ul className="space-y-1 text-amber-600">
                                 {seReadiness.impactGraph.warnings.map((warning, i) => <li key={`${i}-${warning}`}>{warning}</li>)}
@@ -536,19 +533,19 @@ export function TournamentResultCorrectionPanel({ tournamentId, enabled }: { tou
                                seReadiness.impactRiskReport.writePerformed === false &&
                                seReadiness.impactRiskReport.matchId === seReadiness.impactGraph.matchId &&
                                seReadiness.impactGraph.matchId === chosen?.id && (
-                                <section className="mt-3 space-y-2 border-t border-border pt-3" aria-label="Raport ryzyka hipotetycznej korekty SE">
-                                  <p className="font-medium">Ryzyka i dalsze kontrole — tylko podgląd</p>
+                                <section className="mt-3 space-y-2 border-t border-border pt-3" aria-label={t("tournamentResultCorrectionPanel.raport_ryzyka_hipotetycznej_korekty_se")}>
+                                  <p className="font-medium">{t("tournamentResultCorrectionPanel.ryzyka_i_dalsze_kontrole_tylko")}</p>
                                   <p>{seReadiness.impactRiskReport.status === "incomplete"
-                                    ? "Brak pewności co do zasięgu skutków: odśwież analizę."
-                                    : `Najwyższy poziom ryzyka: ${seReadiness.impactRiskReport.highestSeverity}.`}</p>
+                                    ? t("tournamentResultCorrectionPanel.brak_pewnosci_co_do_zasiegu")
+                                    : t("tournamentResultCorrectionPanel.najwyzszy_poziom_ryzyka_highestseverity", { highestSeverity: seReadiness.impactRiskReport.highestSeverity })}</p>
                                   <ul className="space-y-2">
                                     {seReadiness.impactRiskReport.items.map((risk,index) => (
                                       <li key={`${risk.code}-${index}`}>
-                                        <strong>{risk.severity === "critical" ? "Krytyczne" : risk.severity === "high" ? "Wysokie" : risk.severity === "medium" ? "Średnie" : "Niskie"}: {risk.message}</strong>
+                                        <strong>{risk.severity === "critical" ? t("tournamentResultCorrectionPanel.krytyczne") : risk.severity === "high" ? t("tournamentResultCorrectionPanel.wysokie") : risk.severity === "medium" ? t("tournamentResultCorrectionPanel.srednie") : t("tournamentResultCorrectionPanel.niskie")}: {risk.message}</strong>
                                         <p className="text-sm text-muted-foreground">{risk.recommendedCheck}</p>
-                                        {risk.affectedMatchIds.length > 0 && <p className="text-xs">Mecze: {risk.affectedMatchIds.join(", ")}</p>}
-                                        {risk.affectedStageIds.length > 0 && <p className="text-xs">Etapy: {risk.affectedStageIds.join(", ")}</p>}
-                                        <p className="text-xs text-muted-foreground">{risk.evidence === "confirmed_in_snapshot" ? "Potwierdzone w odczycie" : risk.evidence === "potential_impact" ? "Możliwy wpływ" : "Niekompletne dane"}</p>
+                                        {risk.affectedMatchIds.length > 0 && <p className="text-xs">{t("tournamentResultCorrectionPanel.mecze")}{" "}{risk.affectedMatchIds.join(", ")}</p>}
+                                        {risk.affectedStageIds.length > 0 && <p className="text-xs">{t("tournamentResultCorrectionPanel.etapy")}{" "}{risk.affectedStageIds.join(", ")}</p>}
+                                        <p className="text-xs text-muted-foreground">{risk.evidence === "confirmed_in_snapshot" ? t("tournamentResultCorrectionPanel.potwierdzone_w_odczycie") : risk.evidence === "potential_impact" ? t("tournamentResultCorrectionPanel.mozliwy_wplyw") : t("tournamentResultCorrectionPanel.niekompletne_dane")}</p>
                                       </li>
                                     ))}
                                   </ul>
@@ -560,64 +557,63 @@ export function TournamentResultCorrectionPanel({ tournamentId, enabled }: { tou
                            )}
                           {seAssessmentPair?.current.diagnostic.assessmentId === seReadiness.diagnostic.assessmentId &&
                            seAssessmentComparison && (
-                            <div className="mt-2 space-y-2 rounded-md border border-border/80 bg-background/50 p-2" aria-label="Porównanie analiz SE">
-                              <p className="font-medium">Zmiany od poprzedniej analizy SE</p>
+                            <div className="mt-2 space-y-2 rounded-md border border-border/80 bg-background/50 p-2" aria-label={t("tournamentResultCorrectionPanel.porownanie_analiz_se")}>
+                              <p className="font-medium">{t("tournamentResultCorrectionPanel.zmiany_od_poprzedniej_analizy_se")}</p>
                               {seAssessmentComparison.kind === "no_baseline" &&
-                                <p className="text-muted-foreground">Pierwszy podgląd tej korekty. Uruchom analizę ponownie, aby porównać dwa odczyty.</p>}
+                                <p className="text-muted-foreground">{t("tournamentResultCorrectionPanel.pierwszy_podglad_tej_korekty_uruchom")}</p>}
                               {(seAssessmentComparison.kind === "different_scope" || seAssessmentComparison.kind === "inconsistent") &&
                                 <p role="alert" className="text-amber-600 dark:text-amber-400">{seAssessmentComparison.message}</p>}
                               {seAssessmentComparison.kind === "identical" &&
-                                <p>Obydwa odczyty mają ten sam identyfikator i zestaw blokad.</p>}
+                                <p>{t("tournamentResultCorrectionPanel.obydwa_odczyty_maja_ten_sam")}</p>}
                               {seAssessmentComparison.kind === "changed" && <>
-                                <p>Poprzednio: {seAssessmentComparison.previousStatus === "candidate" ? "kandydat" : "zablokowano"}; teraz: {seAssessmentComparison.currentStatus === "candidate" ? "kandydat" : "zablokowano"}.</p>
-                                {seAssessmentComparison.revisionChanged && <p>Zmieniono rewizję meczu.</p>}
-                                {seAssessmentComparison.stageVectorChanged && <p>Zmieniono stan meczów etapu.</p>}
-                                {seAssessmentComparison.completionActionChanged && <p>Zmieniono aktywne potwierdzenie wyniku.</p>}
-                                <p>Dodane blokady: {seAssessmentComparison.added.length ? seAssessmentComparison.added.map(b => b.title).join(", ") : "brak"}.</p>
-                                <p>Usunięte z podglądu: {seAssessmentComparison.resolved.length ? seAssessmentComparison.resolved.map(b => b.title).join(", ") : "brak"}.</p>
-                                <p>Nadal obecne: {seAssessmentComparison.continuing.length ? seAssessmentComparison.continuing.map(b => b.title).join(", ") : "brak"}.</p>
+                                <p>{t("tournamentResultCorrectionPanel.poprzednio")}{" "}{seAssessmentComparison.previousStatus === "candidate" ? "kandydat" : "zablokowano"}{t("tournamentResultCorrectionPanel.teraz")}{" "}{seAssessmentComparison.currentStatus === "candidate" ? "kandydat" : "zablokowano"}.</p>
+                                {seAssessmentComparison.revisionChanged && <p>{t("tournamentResultCorrectionPanel.zmieniono_rewizje_meczu")}</p>}
+                                {seAssessmentComparison.stageVectorChanged && <p>{t("tournamentResultCorrectionPanel.zmieniono_stan_meczow_etapu")}</p>}
+                                {seAssessmentComparison.completionActionChanged && <p>{t("tournamentResultCorrectionPanel.zmieniono_aktywne_potwierdzenie_wyniku")}</p>}
+                                <p>{t("tournamentResultCorrectionPanel.dodane_blokady")}{" "}{seAssessmentComparison.added.length ? seAssessmentComparison.added.map(b => b.title).join(", ") : t("tournamentResultCorrectionPanel.brak")}.</p>
+                                <p>{t("tournamentResultCorrectionPanel.usuniete_z_podgladu")}{" "}{seAssessmentComparison.resolved.length ? seAssessmentComparison.resolved.map(b => b.title).join(", ") : t("tournamentResultCorrectionPanel.brak")}.</p>
+                                <p>{t("tournamentResultCorrectionPanel.nadal_obecne")}{" "}{seAssessmentComparison.continuing.length ? seAssessmentComparison.continuing.map(b => b.title).join(", ") : t("tournamentResultCorrectionPanel.brak")}.</p>
                               </>}
-                              <p className="text-muted-foreground">Porównanie jest wyłącznie informacyjne. Nie jest to zgoda na zapis ani dowód, że problemy zostały trwale naprawione.</p>
+                              <p className="text-muted-foreground">{t("tournamentResultCorrectionPanel.porownanie_jest_wylacznie_informacyjne_n")}</p>
                               {seAssessmentHistorySummary.currentAssessmentId === seReadiness.diagnostic.assessmentId && (
-                                <section aria-label="Historia diagnostyki SE" className="mt-3 space-y-2 border-t border-border pt-2">
+                                <section aria-label={t("tournamentResultCorrectionPanel.historia_diagnostyki_se")} className="mt-3 space-y-2 border-t border-border pt-2">
                                   <div className="flex flex-wrap items-center justify-between gap-2">
-                                    <p className="font-medium">Historia tej korekty (bieżąca sesja)</p>
+                                    <p className="font-medium">{t("tournamentResultCorrectionPanel.historia_tej_korekty_biezaca_sesja")}</p>
                                     <button type="button" className="rounded border border-border px-2 py-1 text-xs hover:bg-muted"
                                       onClick={() => { setSeAssessmentHistory(emptySeAssessmentHistory()); setSeAssessmentPair(null); }}>
-                                      Wyczyść historię
-                                    </button>
+                                      {t("tournamentResultCorrectionPanel.wyczysc_historie")}</button>
                                   </div>
-                                  <p>Zachowano {seAssessmentHistorySummary.count} analiz (maks. 12); odrzucono najstarsze: {seAssessmentHistorySummary.evicted}.</p>
-                                  <p>Zmiany rewizji meczu: {seAssessmentHistorySummary.revisionChanges}; stanu etapu: {seAssessmentHistorySummary.stageVectorChanges}; potwierdzenia wyniku: {seAssessmentHistorySummary.completionActionChanges}.</p>
-                                  <p>Blokady obecne w każdej zachowanej analizie: {seAssessmentHistorySummary.persistentCodes.length ? seAssessmentHistorySummary.persistentCodes.join(", ") : "brak"}.</p>
-                                  <p>Powracające blokady: {seAssessmentHistorySummary.reappeared.length}.</p>
+                                  <p>{t("tournamentResultCorrectionPanel.zachowano")}{" "}{seAssessmentHistorySummary.count} {t("tournamentResultCorrectionPanel.analiz_maks_12_odrzucono_najstarsze")}{" "}{seAssessmentHistorySummary.evicted}.</p>
+                                  <p>{t("tournamentResultCorrectionPanel.zmiany_rewizji_meczu")}{" "}{seAssessmentHistorySummary.revisionChanges}{t("tournamentResultCorrectionPanel.stanu_etapu")}{" "}{seAssessmentHistorySummary.stageVectorChanges}{t("tournamentResultCorrectionPanel.potwierdzenia_wyniku")}{" "}{seAssessmentHistorySummary.completionActionChanges}.</p>
+                                  <p>{t("tournamentResultCorrectionPanel.blokady_obecne_w_kazdej_zachowanej")}{" "}{seAssessmentHistorySummary.persistentCodes.length ? seAssessmentHistorySummary.persistentCodes.join(", ") : t("tournamentResultCorrectionPanel.brak")}.</p>
+                                  <p>{t("tournamentResultCorrectionPanel.powracajace_blokady")}{" "}{seAssessmentHistorySummary.reappeared.length}.</p>
                                   {seAssessmentHistorySummary.events.length > 0 && (
                                     <ul className="space-y-1 text-xs">
                                       {seAssessmentHistorySummary.events.slice(-6).map((event, index) => (
                                         <li key={`${event.assessmentId}-${event.code}-${event.type}-${index}`}>
-                                          {event.type === "reappeared" ? "Ponownie wykryto" : event.type === "introduced" ? "Nowa blokada" : "Nieobecna w kolejnym odczycie"}: {event.title} ({event.code})
+                                          {event.type === "reappeared" ? t("tournamentResultCorrectionPanel.ponownie_wykryto") : event.type === "introduced" ? t("tournamentResultCorrectionPanel.nowa_blokada") : t("tournamentResultCorrectionPanel.nieobecna_w_kolejnym_odczycie")}: {event.title} ({event.code})
                                         </li>
                                       ))}
                                     </ul>
                                   )}
                                   <p className="text-xs text-muted-foreground">{seAssessmentHistorySummary.advisoryNote}</p>
                                   {seRemediationPriority && seAssessmentHistorySummary.currentAssessmentId === seReadiness.diagnostic.assessmentId && (
-                                    <section aria-label="Priorytety naprawy SE" className="mt-3 space-y-2 border-t border-border pt-2">
-                                      <p className="font-medium">Kolejność weryfikacji problemów</p>
+                                    <section aria-label={t("tournamentResultCorrectionPanel.priorytety_naprawy_se")} className="mt-3 space-y-2 border-t border-border pt-2">
+                                      <p className="font-medium">{t("tournamentResultCorrectionPanel.kolejnosc_weryfikacji_problemow")}</p>
                                       {seRemediationPriority.status === "inconsistent" ? (
-                                        <p className="text-destructive">Niespójna historia analiz. Wyczyść historię i ponów ocenę.</p>
+                                        <p className="text-destructive">{t("tournamentResultCorrectionPanel.niespojna_historia_analiz_wyczysc_histor")}</p>
                                       ) : seRemediationPriority.status === "no_blockers" ? (
-                                        <p>Brak blokad w bieżącym podglądzie. Wykonywanie korekt SE nadal jest wyłączone.</p>
+                                        <p>{t("tournamentResultCorrectionPanel.brak_blokad_w_biezacym_podgladzie")}</p>
                                       ) : (
                                         <ol className="space-y-2 text-xs">
                                           {seRemediationPriority.steps.map((step, index) => (
                                             <li key={step.id} className="rounded border border-border p-2">
-                                              <p className="font-medium">{index + 1}. {step.title} — {step.priority === "critical" ? "krytyczny" : step.priority === "high" ? "wysoki" : step.priority === "medium" ? "średni" : "ocena ręczna"}</p>
+                                              <p className="font-medium">{index + 1}. {step.title} — {step.priority === "critical" ? t("tournamentResultCorrectionPanel.krytyczny") : step.priority === "high" ? t("tournamentResultCorrectionPanel.wysoki") : step.priority === "medium" ? t("tournamentResultCorrectionPanel.sredni") : t("tournamentResultCorrectionPanel.ocena_reczna")}</p>
                                               <p>{step.instruction}</p>
-                                              <p>Blokady: {step.codes.join(", ")}</p>
-                                              {step.dependsOn.length > 0 && <p>Najpierw: {step.dependsOn.join(", ")}</p>}
-                                              {step.recurringCodes.length > 0 && <p className="text-amber-600">Powracające w historii: {step.recurringCodes.join(", ")}</p>}
-                                              {step.persistentCodes.length > 0 && <p>Obecne w całej historii: {step.persistentCodes.join(", ")}</p>}
+                                              <p>{t("tournamentResultCorrectionPanel.blokady")}{" "}{step.codes.join(", ")}</p>
+                                              {step.dependsOn.length > 0 && <p>{t("tournamentResultCorrectionPanel.najpierw")}{" "}{step.dependsOn.join(", ")}</p>}
+                                              {step.recurringCodes.length > 0 && <p className="text-amber-600">{t("tournamentResultCorrectionPanel.powracajace_w_historii")}{" "}{step.recurringCodes.join(", ")}</p>}
+                                              {step.persistentCodes.length > 0 && <p>{t("tournamentResultCorrectionPanel.obecne_w_calej_historii")}{" "}{step.persistentCodes.join(", ")}</p>}
                                             </li>
                                           ))}
                                         </ol>
@@ -640,28 +636,28 @@ export function TournamentResultCorrectionPanel({ tournamentId, enabled }: { tou
         </section>
       )}
       {shownPreview && shownPreview.version === 1 && shownPreview.advisory && shownPreview.mutationPerformed === false && (
-        <section className="mt-4 rounded-lg border border-border bg-card/60 p-3" aria-label="Wynik analizy korekty">
+        <section className="mt-4 rounded-lg border border-border bg-card/60 p-3" aria-label={t("tournamentResultCorrectionPanel.wynik_analizy_korekty")}>
           <div className="flex items-center gap-2 text-sm font-semibold">
             {shownPreview.state === "blocked" ? <AlertTriangle className="h-4 w-4 text-destructive" /> : <ShieldCheck className="h-4 w-4 text-amber-500" />}
-            {shownPreview.state === "blocked" ? "Standardowa korekta jest zablokowana" : "Korekta wymaga osobnego zatwierdzenia"}
+            {shownPreview.state === "blocked" ? t("tournamentResultCorrectionPanel.standardowa_korekta_jest_zablokowana") : t("tournamentResultCorrectionPanel.korekta_wymaga_osobnego_zatwierdzenia")}
           </div>
           <p className="mt-1 text-xs text-muted-foreground">
-            Mecz #{shownPreview.matchId}: {shownPreview.existingResult.score1 ?? "?"}:{shownPreview.existingResult.score2 ?? "?"} → {shownPreview.proposedResult.score1}:{shownPreview.proposedResult.score2}
-            {shownPreview.proposedResult.winnerChanges === true ? " · zmiana zwycięzcy" : shownPreview.proposedResult.winnerChanges === false ? " · ten sam zwycięzca" : ""}
+            {t("tournamentResultCorrectionPanel.mecz_2")}{shownPreview.matchId}: {shownPreview.existingResult.score1 ?? "?"}:{shownPreview.existingResult.score2 ?? "?"} → {shownPreview.proposedResult.score1}:{shownPreview.proposedResult.score2}
+            {shownPreview.proposedResult.winnerChanges === true ? t("tournamentResultCorrectionPanel.zmiana_zwyciezcy_2") : shownPreview.proposedResult.winnerChanges === false ? t("tournamentResultCorrectionPanel.ten_sam_zwyciezca") : ""}
           </p>
           {shownPreview.issues.length > 0 && <ul className="mt-3 space-y-1">
             {shownPreview.issues.map((issue, index) => <li key={`${issue.code}-${index}`} className={`text-xs ${issue.severity === "block" ? "text-destructive" : "text-muted-foreground"}`}>
-              {issue.severity === "block" ? "Blokada" : "Wymaga kontroli"}: {issue.message}
+              {issue.severity === "block" ? t("tournamentResultCorrectionPanel.blokada") : t("tournamentResultCorrectionPanel.wymaga_kontroli")}: {issue.message}
             </li>)}
           </ul>}
-          <ul className="mt-3 space-y-1" aria-label="Przewidywane skutki">
+          <ul className="mt-3 space-y-1" aria-label={t("tournamentResultCorrectionPanel.przewidywane_skutki")}>
             {shownPreview.effects.map((effect, index) => <li className="text-xs text-muted-foreground" key={`${effect.code}-${index}`}>
-              {effect.certainty === "conditional" ? "Możliwy skutek: " : "Potwierdzone: "}{effect.message}
+              {effect.certainty === "conditional" ? t("tournamentResultCorrectionPanel.mozliwy_skutek") : t("tournamentResultCorrectionPanel.potwierdzone")}{effect.message}
             </li>)}
           </ul>
           {shownPreview.standingsComparison && (
             <details className="mt-3 rounded-md border border-border/80 p-3" open>
-              <summary className="cursor-pointer text-xs font-semibold">Klasyfikacja: przed / po (symulacja)</summary>
+              <summary className="cursor-pointer text-xs font-semibold">{t("tournamentResultCorrectionPanel.klasyfikacja_przed_po_symulacja")}</summary>
               {shownPreview.standingsComparison.status === "unavailable" ? (
                 <p className="mt-2 text-xs text-muted-foreground">{shownPreview.standingsComparison.message}</p>
               ) : (() => {
@@ -669,13 +665,13 @@ export function TournamentResultCorrectionPanel({ tournamentId, enabled }: { tou
                 const changedRows = comparison.diff.rows.filter(row => row.changed);
                 const participantLabel = (id: number) => comparison.diff.rows.find(row => row.playerId === id)?.playerName ?? `#${id}`;
                 return <div className="mt-2 space-y-2">
-                  <p className="text-xs text-muted-foreground">Zakres: {comparison.scope === "group" ? `grupa ${comparison.scopeLabel}` : comparison.scopeLabel} · Zmiana pozycji: {comparison.diff.movedRows} · Zmiana statystyk: {comparison.diff.changedRows}</p>
+                  <p className="text-xs text-muted-foreground">{t("tournamentResultCorrectionPanel.zakres")}{" "}{comparison.scope === "group" ? t("tournamentResultCorrectionPanel.grupa_scopelabel", { scopeLabel: comparison.scopeLabel }) : comparison.scopeLabel} {t("tournamentResultCorrectionPanel.zmiana_pozycji")}{" "}{comparison.diff.movedRows} {t("tournamentResultCorrectionPanel.zmiana_statystyk")}{" "}{comparison.diff.changedRows}</p>
                   {changedRows.length > 0 ? <div className="overflow-x-auto"><table className="w-full text-left text-xs">
                     <thead><tr className="border-b border-border/70">
-                      <th scope="col" className="p-1.5">Uczestnik</th>
-                      <th scope="col" className="p-1.5">Miejsce</th>
-                      <th scope="col" className="p-1.5">Wygrane</th>
-                      <th scope="col" className="p-1.5">Bilans map</th>
+                      <th scope="col" className="p-1.5">{t("tournamentResultCorrectionPanel.uczestnik")}</th>
+                      <th scope="col" className="p-1.5">{t("tournamentResultCorrectionPanel.miejsce_2")}</th>
+                      <th scope="col" className="p-1.5">{t("tournamentResultCorrectionPanel.wygrane")}</th>
+                      <th scope="col" className="p-1.5">{t("tournamentResultCorrectionPanel.bilans_map")}</th>
                     </tr></thead>
                     <tbody>{changedRows.slice(0, 12).map(row => <tr key={row.playerId} className="border-b border-border/40">
                       <th scope="row" className="p-1.5 font-medium">{row.playerName}</th>
@@ -683,13 +679,13 @@ export function TournamentResultCorrectionPanel({ tournamentId, enabled }: { tou
                       <td className="p-1.5 tabular-nums">{row.beforeMatchWins} → {row.afterMatchWins}</td>
                       <td className="p-1.5 tabular-nums">{row.beforeGameDiff} → {row.afterGameDiff}</td>
                     </tr>)}</tbody>
-                  </table></div> : <p className="text-xs text-muted-foreground">Brak zmian w rankingu i statystykach.</p>}
-                  {changedRows.length > 12 && <p className="text-xs text-muted-foreground">Pokazano 12 z {changedRows.length} zmienionych pozycji.</p>}
+                  </table></div> : <p className="text-xs text-muted-foreground">{t("tournamentResultCorrectionPanel.brak_zmian_w_rankingu_i")}</p>}
+                  {changedRows.length > 12 && <p className="text-xs text-muted-foreground">{t("tournamentResultCorrectionPanel.pokazano_12_z")}{" "}{changedRows.length} {t("tournamentResultCorrectionPanel.zmienionych_pozycji")}</p>}
                   {comparison.diff.qualifierImpact.status === "projected" && (
                     <div className="rounded-md border border-border/60 p-2 text-xs">
-                      <p className="font-medium">Hipotetyczny awans — najlepszych {comparison.diff.qualifierImpact.cutoff}</p>
-                      <p className="mt-1">Nowi w strefie awansu: {comparison.diff.qualifierImpact.gainingPlayerIds.length ? comparison.diff.qualifierImpact.gainingPlayerIds.map(participantLabel).join(", ") : "brak"}</p>
-                      <p>Wypadają ze strefy awansu: {comparison.diff.qualifierImpact.losingPlayerIds.length ? comparison.diff.qualifierImpact.losingPlayerIds.map(participantLabel).join(", ") : "brak"}</p>
+                      <p className="font-medium">{t("tournamentResultCorrectionPanel.hipotetyczny_awans_najlepszych")}{" "}{comparison.diff.qualifierImpact.cutoff}</p>
+                      <p className="mt-1">{t("tournamentResultCorrectionPanel.nowi_w_strefie_awansu")}{" "}{comparison.diff.qualifierImpact.gainingPlayerIds.length ? comparison.diff.qualifierImpact.gainingPlayerIds.map(participantLabel).join(", ") : t("tournamentResultCorrectionPanel.brak")}</p>
+                      <p>{t("tournamentResultCorrectionPanel.wypadaja_ze_strefy_awansu")}{" "}{comparison.diff.qualifierImpact.losingPlayerIds.length ? comparison.diff.qualifierImpact.losingPlayerIds.map(participantLabel).join(", ") : t("tournamentResultCorrectionPanel.brak")}</p>
                     </div>
                   )}
                   <p className="text-[11px] text-muted-foreground">{comparison.note}</p>
@@ -699,29 +695,29 @@ export function TournamentResultCorrectionPanel({ tournamentId, enabled }: { tou
           )}
           {shownPreview.bracketImpact?.status === "available" && (
             <details className="mt-3 rounded-md border border-border/80 p-3" open>
-              <summary className="cursor-pointer text-xs font-semibold">Drabinka SE: skutki zmiany zwycięzcy (hipotetyczne)</summary>
+              <summary className="cursor-pointer text-xs font-semibold">{t("tournamentResultCorrectionPanel.drabinka_se_skutki_zmiany_zwyciezcy")}</summary>
               {(() => {
                 const impact = shownPreview.bracketImpact as Extract<EliminationBracketImpact, { status: "available" }>;
                 return <div className="mt-2 space-y-2 text-xs">
                   <p className="text-muted-foreground">{impact.winnerChanges
-                    ? "Zmiana zwycięzcy może wpłynąć na obsadę następnego meczu."
-                    : "Zwycięzca się nie zmienia: obsada dalszych meczów nie zmienia się z powodu samego wyniku punktowego."}</p>
+                    ? t("tournamentResultCorrectionPanel.zmiana_zwyciezcy_moze_wplynac_na")
+                    : t("tournamentResultCorrectionPanel.zwyciezca_sie_nie_zmienia_obsada")}</p>
                   {impact.directSlot && <div className="rounded-md border border-border/60 p-2">
-                    <p className="font-medium">Mecz #{impact.directSlot.matchId}, runda {impact.directSlot.round}, {impact.directSlot.slot === "player1" ? "pierwsze" : "drugie"} miejsce</p>
-                    <p className="mt-1">Obecnie uczestnik #{impact.directSlot.currentPlayerId ?? "?"} → hipotetycznie #{impact.directSlot.hypotheticalPlayerId}</p>
+                    <p className="font-medium">{t("tournamentResultCorrectionPanel.mecz_2")}{impact.directSlot.matchId}{t("tournamentResultCorrectionPanel.runda")}{" "}{impact.directSlot.round}, {impact.directSlot.slot === "player1" ? "pierwsze" : "drugie"} {t("tournamentResultCorrectionPanel.miejsce_3")}</p>
+                    <p className="mt-1">{t("tournamentResultCorrectionPanel.obecnie_uczestnik")}{impact.directSlot.currentPlayerId ?? "?"} {t("tournamentResultCorrectionPanel.hipotetycznie")}{impact.directSlot.hypotheticalPlayerId}</p>
                     <p className="mt-1 text-muted-foreground">{impact.directSlot.pristine
-                      ? "Aktualny stan meczu nie wskazuje na jego rozpoczęcie; zatwierdzenie wymaga ponownej kontroli transakcyjnej."
-                      : "Zależny mecz ma zmieniony stan lub niespójną obsadę — zwykła korekta może być zablokowana."}</p>
+                      ? t("tournamentResultCorrectionPanel.aktualny_stan_meczu_nie_wskazuje")
+                      : t("tournamentResultCorrectionPanel.zalezny_mecz_ma_zmieniony_stan")}</p>
                   </div>}
-                  {impact.finalRoundWinnerMayChange && <p className="font-medium text-amber-600 dark:text-amber-400">Zmiana zwycięzcy meczu finałowego może zmienić mistrza etapu.</p>}
+                  {impact.finalRoundWinnerMayChange && <p className="font-medium text-amber-600 dark:text-amber-400">{t("tournamentResultCorrectionPanel.zmiana_zwyciezcy_meczu_finalowego_moze")}</p>}
                   {impact.possibleDownstream.length > 0 && <div>
-                    <p className="font-medium">Kolejne powiązane mecze ({impact.possibleDownstream.length})</p>
+                    <p className="font-medium">{t("tournamentResultCorrectionPanel.kolejne_powiazane_mecze")}{impact.possibleDownstream.length})</p>
                     <ul className="mt-1 space-y-1">{impact.possibleDownstream.map(item => <li key={item.matchId} className="text-muted-foreground">
-                      R{item.round} · M{item.matchNumber} · #{item.matchId} — {item.relation === "direct_slot" ? "bezpośrednie miejsce zwycięzcy" : "możliwa dalsza zależność"}{item.blocking ? " · mecz już użyty lub niespójny" : ""}
+                      R{item.round} · M{item.matchNumber} · #{item.matchId} — {item.relation === "direct_slot" ? t("tournamentResultCorrectionPanel.bezposrednie_miejsce_zwyciezcy") : t("tournamentResultCorrectionPanel.mozliwa_dalsza_zaleznosc")}{item.blocking ? t("tournamentResultCorrectionPanel.mecz_juz_uzyty_lub_niespojny") : ""}
                     </li>)}</ul>
                   </div>}
-                  {!impact.chainComplete && <p className="font-medium text-amber-600 dark:text-amber-400">Łańcuch zależności jest niepełny — brak pewnego powiązania wszystkich rund.</p>}
-                  {impact.issues.length > 0 && <ul className="space-y-1" aria-label="Niepewności analizy drabinki">
+                  {!impact.chainComplete && <p className="font-medium text-amber-600 dark:text-amber-400">{t("tournamentResultCorrectionPanel.lancuch_zaleznosci_jest_niepelny_brak")}</p>}
+                  {impact.issues.length > 0 && <ul className="space-y-1" aria-label={t("tournamentResultCorrectionPanel.niepewnosci_analizy_drabinki")}>
                     {impact.issues.map(item => <li key={item.code} className="text-amber-600 dark:text-amber-400">{item.message}</li>)}
                   </ul>}
                   <p className="text-[11px] text-muted-foreground">{impact.note}</p>
@@ -731,62 +727,62 @@ export function TournamentResultCorrectionPanel({ tournamentId, enabled }: { tou
           )}
           {shownPreview.doubleEliminationImpact && (
             <details className="mt-3 rounded-md border border-border/80 p-3" open>
-              <summary className="cursor-pointer text-xs font-semibold">Drabinka DE — symulacja routingu v2</summary>
+              <summary className="cursor-pointer text-xs font-semibold">{t("tournamentResultCorrectionPanel.drabinka_de_symulacja_routingu_v2")}</summary>
               {shownPreview.doubleEliminationImpact.status === "unavailable" ? (
                 <p className="mt-2 text-xs text-muted-foreground">{shownPreview.doubleEliminationImpact.message}</p>
               ) : (() => {
                 const impact = shownPreview.doubleEliminationImpact as Extract<DoubleEliminationImpact, {status: "available"}>;
                 return <div className="mt-2 space-y-2 text-xs">
-                  <p className="text-muted-foreground">Plan v{impact.planRevision} · wykonanie v{impact.executionRevision} · zmienione mecze logiczne: {impact.affectedMatches.length}.</p>
-                  <p>Hipotetyczny zwycięzca: #{impact.currentWinnerId} → #{impact.proposedWinnerId}. {impact.winnerChanges ? "Zmienia się zwycięzca." : "Obsada powinna pozostać bez zmian."}</p>
+                  <p className="text-muted-foreground">{t("tournamentResultCorrectionPanel.plan_v")}{impact.planRevision} {t("tournamentResultCorrectionPanel.wykonanie_v")}{impact.executionRevision} {t("tournamentResultCorrectionPanel.zmienione_mecze_logiczne")}{" "}{impact.affectedMatches.length}.</p>
+                  <p>{t("tournamentResultCorrectionPanel.hipotetyczny_zwyciezca")}{impact.currentWinnerId} → #{impact.proposedWinnerId}. {impact.winnerChanges ? t("tournamentResultCorrectionPanel.zmienia_sie_zwyciezca") : t("tournamentResultCorrectionPanel.obsada_powinna_pozostac_bez_zmian")}</p>
                   {impact.invalidatedDecisions.length > 0 && (
-                    <p className="font-medium text-amber-600 dark:text-amber-400">Symulacja unieważnia {impact.invalidatedDecisions.length} wcześniej zapisanych decyzji, w tym {impact.invalidatedDecisions.filter(x=>x.canonicalMatchAlreadyCompleted).length} wyników zakończonych meczów.</p>
+                    <p className="font-medium text-amber-600 dark:text-amber-400">{t("tournamentResultCorrectionPanel.symulacja_uniewaznia")}{" "}{impact.invalidatedDecisions.length} {t("tournamentResultCorrectionPanel.wczesniej_zapisanych_decyzji_w_tym")}{" "}{impact.invalidatedDecisions.filter(x=>x.canonicalMatchAlreadyCompleted).length} {t("tournamentResultCorrectionPanel.wynikow_zakonczonych_meczow")}</p>
                   )}
-                  <ul className="space-y-1" aria-label="Zmiany w meczach Double Elimination">
+                  <ul className="space-y-1" aria-label={t("tournamentResultCorrectionPanel.zmiany_w_meczach_double_elimination")}>
                     {impact.affectedMatches.slice(0, 15).map(item => <li key={item.matchKey} className="rounded border border-border/60 p-2">
                       <span className="font-semibold">{item.label}</span> · {item.currentStatus} → {item.hypotheticalStatus}
                       <span className="block text-muted-foreground">[{item.currentSlots.map(x=>x ?? "?").join(" / ")}] → [{item.hypotheticalSlots.map(x=>x ?? "?").join(" / ")}]</span>
-                      {item.canonicalMatchAlreadyCompleted && item.matchKey !== impact.sourceMatchKey && <span className="block text-amber-600 dark:text-amber-400">Dotyczy już rozegranego meczu.</span>}
+                      {item.canonicalMatchAlreadyCompleted && item.matchKey !== impact.sourceMatchKey && <span className="block text-amber-600 dark:text-amber-400">{t("tournamentResultCorrectionPanel.dotyczy_juz_rozegranego_meczu")}</span>}
                     </li>)}
                   </ul>
-                  {impact.affectedMatches.length > 15 && <p className="text-muted-foreground">Pokazano pierwszych 15 z {impact.affectedMatches.length} meczów.</p>}
-                  {impact.warningCodes.length > 0 && <p className="text-amber-600 dark:text-amber-400">Ostrzeżenia: {impact.warningCodes.join(", ")}.</p>}
+                  {impact.affectedMatches.length > 15 && <p className="text-muted-foreground">{t("tournamentResultCorrectionPanel.pokazano_pierwszych_15_z")}{" "}{impact.affectedMatches.length} {t("tournamentResultCorrectionPanel.meczow")}</p>}
+                  {impact.warningCodes.length > 0 && <p className="text-amber-600 dark:text-amber-400">{t("tournamentResultCorrectionPanel.ostrzezenia")}{" "}{impact.warningCodes.join(", ")}.</p>}
                   <p className="text-[11px] text-muted-foreground">{impact.note}</p>
                 </div>;
               })()}
             </details>
           )}
           {shownPreview.bracketImpact?.status === "unavailable" && shownPreview.bracketImpact.reasonCode === "DE_RUNTIME_REQUIRED" && !shownPreview.doubleEliminationImpact && (
-            <p className="mt-3 rounded-md border border-border/80 p-3 text-xs text-muted-foreground">Drabinka DE: {shownPreview.bracketImpact.message}</p>
+            <p className="mt-3 rounded-md border border-border/80 p-3 text-xs text-muted-foreground">{t("tournamentResultCorrectionPanel.drabinka_de")}{" "}{shownPreview.bracketImpact.message}</p>
           )}
-          {shownPreview.downstreamMatchIds.length > 0 && <p className="mt-2 text-xs text-muted-foreground">Wykryte zależne mecze: {shownPreview.downstreamMatchIds.join(", ")}</p>}
+          {shownPreview.downstreamMatchIds.length > 0 && <p className="mt-2 text-xs text-muted-foreground">{t("tournamentResultCorrectionPanel.wykryte_zalezne_mecze")}{" "}{shownPreview.downstreamMatchIds.join(", ")}</p>}
           {shownPreview.recoveryPlan && shownPreview.recoveryPlan.advisory && shownPreview.recoveryPlan.executable === false && (
             <details className="mt-3 rounded-md border border-border/80 p-3" open>
-              <summary className="cursor-pointer text-xs font-semibold">Plan odzyskiwania — do zatwierdzenia przez organizatora</summary>
+              <summary className="cursor-pointer text-xs font-semibold">{t("tournamentResultCorrectionPanel.plan_odzyskiwania_do_zatwierdzenia_przez")}</summary>
               <div className="mt-2 space-y-2 text-xs">
                 <p className={shownPreview.recoveryPlan.status === "blocked" || shownPreview.recoveryPlan.status === "stale"
                   ? "font-semibold text-destructive" : "font-semibold"}>
-                  Stan: {shownPreview.recoveryPlan.status === "stale" ? "Podgląd nieaktualny"
-                    : shownPreview.recoveryPlan.status === "blocked" ? "Wstrzymany — wymagane rozwiązanie blokad"
-                    : shownPreview.recoveryPlan.status === "no_change" ? "Brak zmiany wyniku"
-                    : "Wymaga ręcznej kontroli i zatwierdzenia"}
-                  {` · Ryzyko: ${shownPreview.recoveryPlan.risk}`}
+                  {t("tournamentResultCorrectionPanel.stan")}{" "}{shownPreview.recoveryPlan.status === "stale" ? t("tournamentResultCorrectionPanel.podglad_nieaktualny")
+                    : shownPreview.recoveryPlan.status === "blocked" ? t("tournamentResultCorrectionPanel.wstrzymany_wymagane_rozwiazanie_blokad")
+                    : shownPreview.recoveryPlan.status === "no_change" ? t("tournamentResultCorrectionPanel.brak_zmiany_wyniku")
+                    : t("tournamentResultCorrectionPanel.wymaga_recznej_kontroli_i_zatwierdzenia")}
+                  {t("tournamentResultCorrectionPanel.ryzyko_risk", { risk: shownPreview.recoveryPlan.risk })}
                 </p>
                 {shownPreview.recoveryPlan.blockerCodes.length > 0 && (
-                  <p className="text-destructive">Blokady: {shownPreview.recoveryPlan.blockerCodes.join(", ")}</p>
+                  <p className="text-destructive">{t("tournamentResultCorrectionPanel.blokady")}{" "}{shownPreview.recoveryPlan.blockerCodes.join(", ")}</p>
                 )}
                 <p className="text-muted-foreground">
-                  Mecze zależne: {shownPreview.recoveryPlan.affected.knownDownstreamMatchIds.length}
-                  {` · Powiązane logiczne: ${shownPreview.recoveryPlan.affected.possibleAffectedLogicalMatches}`}
-                  {` · Potencjalnie unieważnione zakończone wyniki: ${shownPreview.recoveryPlan.affected.potentiallyInvalidatedCompletedResults}`}
+                  {t("tournamentResultCorrectionPanel.mecze_zalezne")}{" "}{shownPreview.recoveryPlan.affected.knownDownstreamMatchIds.length}
+                  {t("tournamentResultCorrectionPanel.powiazane_logiczne_possibleaffectedlogic", { possibleAffectedLogicalMatches: shownPreview.recoveryPlan.affected.possibleAffectedLogicalMatches })}
+                  {t("tournamentResultCorrectionPanel.potencjalnie_uniewaznione_zakonczone_wyn", { potentiallyInvalidatedCompletedResults: shownPreview.recoveryPlan.affected.potentiallyInvalidatedCompletedResults })}
                 </p>
-                {shownPreview.recoveryPlan.approvalQuestions.length > 0 && <ul className="space-y-1" aria-label="Pytania do zatwierdzenia">
+                {shownPreview.recoveryPlan.approvalQuestions.length > 0 && <ul className="space-y-1" aria-label={t("tournamentResultCorrectionPanel.pytania_do_zatwierdzenia")}>
                   {shownPreview.recoveryPlan.approvalQuestions.map((question, index) => <li key={index}>• {question}</li>)}
                 </ul>}
-                <ol className="list-decimal space-y-2 pl-4" aria-label="Etapy planu naprawy">
+                <ol className="list-decimal space-y-2 pl-4" aria-label={t("tournamentResultCorrectionPanel.etapy_planu_naprawy")}>
                   {shownPreview.recoveryPlan.steps.map(item => <li key={item.id}>
                     <span className="font-semibold">{item.title}</span>
-                    {item.mutation && <span className="ml-1 text-amber-600 dark:text-amber-400">(wyłącznie ręcznie)</span>}
+                    {item.mutation && <span className="ml-1 text-amber-600 dark:text-amber-400">{t("tournamentResultCorrectionPanel.wylacznie_recznie")}</span>}
                     <p className="text-muted-foreground">{item.instruction}</p>
                   </li>)}
                 </ol>
@@ -800,12 +796,12 @@ export function TournamentResultCorrectionPanel({ tournamentId, enabled }: { tou
             shownPreview.recoveryPlan.evidence.stageVersionVector &&
             shownPreview.boundedRevertCandidate.expectedCompletionActionId != null && (
             <div className="mt-3 space-y-2 rounded-lg border border-amber-500/40 p-3 text-xs">
-              <p className="font-semibold">Pack 15: dwa etapy — zapisz zgodę, następnie wykonaj atomową korektę Round Robin</p>
-              <p className="text-muted-foreground">Ta operacja cofnie obecny wynik i zapisze nowy w JEDNEJ transakcji. Jeśli nowy zapis nie powiedzie się, poprzedni wynik pozostanie nienaruszony.</p>
+              <p className="font-semibold">{t("tournamentResultCorrectionPanel.pack_15_dwa_etapy_zapisz")}</p>
+              <p className="text-muted-foreground">{t("tournamentResultCorrectionPanel.ta_operacja_cofnie_obecny_wynik")}</p>
               <label className="flex items-start gap-2"><input type="checkbox" checked={approveRevert} onChange={e=>setApproveRevert(e.target.checked)}/>
-                <span>Potwierdzam, że zweryfikowałem wynik źródłowy i świadomie zgadzam się na cofnięcie.</span></label>
+                <span>{t("tournamentResultCorrectionPanel.potwierdzam_ze_zweryfikowalem_wynik_zrod")}</span></label>
               <label className="flex items-start gap-2"><input type="checkbox" checked={acceptResubmission} onChange={e=>setAcceptResubmission(e.target.checked)}/>
-                <span>Rozumiem, że wykonanie jest atomowe i może zostać odrzucone, jeśli dane zmieniły się od podglądu.</span></label>
+                <span>{t("tournamentResultCorrectionPanel.rozumiem_ze_wykonanie_jest_atomowe")}</span></label>
               <Button type="button" variant="outline" size="sm" disabled={!approveRevert||!acceptResubmission||prepare.isPending||pendingIntent?.confirmed === true}
                 onClick={()=>{if(!chosen||!shownPreview.boundedRevertCandidate?.expectedCompletionActionId||!shownPreview.recoveryPlan?.evidence.stageVersionVector) return;
                   const operationId = pendingIntent?.operationId ?? candidateId ?? crypto.randomUUID();setCandidateId(operationId);
@@ -816,16 +812,16 @@ export function TournamentResultCorrectionPanel({ tournamentId, enabled }: { tou
                     proposedScore1, proposedScore2,
                     expectedStageVersionVector:shownPreview.recoveryPlan.evidence.stageVersionVector,
                     approvedByOrganizer:true,understandsRequiresResubmission:true});}}>
-                {prepare.isPending?"Zapisywanie zgody…":"Krok 1: Zapisz zatwierdzenie (bez zmiany wyniku)"}
+                {prepare.isPending?t("tournamentResultCorrectionPanel.zapisywanie_zgody"):t("tournamentResultCorrectionPanel.krok_1_zapisz_zatwierdzenie_bez")}
               </Button>
             </div>
           )}
           <p className="mt-3 text-xs font-medium">{shownPreview.recommendedAction}</p>
           <Link className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline"
             href={tournamentModeHref(`/tournaments/${tournamentId}/host?tab=korekta`, experimental)}>
-            Otwórz istniejący panel korekt <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+            {t("tournamentResultCorrectionPanel.otworz_istniejacy_panel_korekt")}{" "}<ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
           </Link>
-          <p className="mt-2 text-[11px] text-muted-foreground">Podgląd nie stanowi autoryzacji. Między odczytem a wykonaniem dane mogą się zmienić. Backend ponownie sprawdzi je transakcyjnie.</p>
+          <p className="mt-2 text-[11px] text-muted-foreground">{t("tournamentResultCorrectionPanel.podglad_nie_stanowi_autoryzacji_miedzy")}</p>
         </section>)}
     </details>
   );

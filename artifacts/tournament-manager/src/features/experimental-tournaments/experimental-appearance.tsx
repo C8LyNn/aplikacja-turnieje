@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { useEffect, useRef, useState } from "react";
 import { Check, Palette, Save, Sparkles, Trash2 } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -10,145 +11,145 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
  */
 
 export const EXPERIMENTAL_SKINS = [
-  { value: "tournament", label: "Według turnieju", color: "" },
+  { value: "tournament", get label() { return t("experimentalAppearance.wedlug_turnieju"); }, color: "" },
   { value: "classic", label: "Klasyczna", color: "hsl(199 89% 48%)" },
   { value: "deadlock", label: "Deadlock", color: "hsl(148 35% 40%)" },
   { value: "obsidian", label: "Obsydian", color: "hsl(220 12% 60%)" },
-  { value: "crimson-vault", label: "Szkarłatny skarbiec", color: "hsl(355 65% 48%)" },
-  { value: "abyssal", label: "Głębina", color: "hsl(210 80% 60%)" },
-  { value: "iron-citadel", label: "Żelazna cytadela", color: "hsl(200 22% 55%)" },
-  { value: "ember", label: "Żar", color: "hsl(24 72% 52%)" },
+  { value: "crimson-vault", get label() { return t("experimentalAppearance.szkarlatny_skarbiec"); }, color: "hsl(355 65% 48%)" },
+  { value: "abyssal", get label() { return t("experimentalAppearance.glebina"); }, color: "hsl(210 80% 60%)" },
+  { value: "iron-citadel", get label() { return t("experimentalAppearance.zelazna_cytadela"); }, color: "hsl(200 22% 55%)" },
+  { value: "ember", get label() { return t("experimentalAppearance.zar"); }, color: "hsl(24 72% 52%)" },
   { value: "void", label: "Pustka", color: "hsl(270 58% 62%)" },
   { value: "copper-age", label: "Epoka miedzi", color: "hsl(28 62% 50%)" },
   { value: "glacier", label: "Lodowiec", color: "hsl(192 78% 55%)" },
-  { value: "midnight-rose", label: "Nocna róża", color: "hsl(332 58% 58%)" },
+  { value: "midnight-rose", get label() { return t("experimentalAppearance.nocna_roza"); }, color: "hsl(332 58% 58%)" },
   { value: "toxic", label: "Toksyczny", color: "hsl(100 68% 46%)" },
   { value: "sandstorm", label: "Burza piaskowa", color: "hsl(43 68% 52%)" },
 ] as const;
 
 export const EXPERIMENTAL_BACKGROUNDS = [
-  { value: "theme", label: "Motyw", hint: "Charakterystyczne tło wybranej skórki" },
-  { value: "aura", label: "Aura", hint: "Miękka poświata w kolorze motywu" },
-  { value: "nebula", label: "Mgławica", hint: "Wielobarwna, najbardziej wyrazista" },
-  { value: "grid", label: "Siatka areny", hint: "Futurystyczna siatka na całej stronie" },
-  { value: "carbon", label: "Karbon", hint: "Neutralna czerń, najwyższy kontrast" },
-  { value: "solid", label: "Jednolite", hint: "Spokojne tło bez efektów" },
+  { value: "theme", get label() { return t("experimentalAppearance.motyw"); }, get hint() { return t("experimentalAppearance.charakterystyczne_tlo_wybranej_skorki"); } },
+  { value: "aura", label: "Aura", get hint() { return t("experimentalAppearance.miekka_poswiata_w_kolorze_motywu"); } },
+  { value: "nebula", get label() { return t("experimentalAppearance.mglawica"); }, get hint() { return t("experimentalAppearance.wielobarwna_najbardziej_wyrazista"); } },
+  { value: "grid", get label() { return t("experimentalAppearance.siatka_areny"); }, get hint() { return t("experimentalAppearance.futurystyczna_siatka_na_calej_stronie"); } },
+  { value: "carbon", label: "Karbon", get hint() { return t("experimentalAppearance.neutralna_czern_najwyzszy_kontrast"); } },
+  { value: "solid", label: "Jednolite", get hint() { return t("experimentalAppearance.spokojne_tlo_bez_efektow"); } },
 ] as const;
 
 export const EXPERIMENTAL_PALETTES = [
-  { value: "theme", label: "Motyw", hint: "Kolory dobrane do skórki" },
-  { value: "harmony", label: "Harmonia", hint: "Zrównoważone akcenty sekcji" },
+  { value: "theme", get label() { return t("experimentalAppearance.motyw"); }, get hint() { return t("experimentalAppearance.kolory_dobrane_do_skorki"); } },
+  { value: "harmony", label: "Harmonia", get hint() { return t("experimentalAppearance.zrownowazone_akcenty_sekcji"); } },
   { value: "analog", label: "Analogiczny", hint: "Odcienie bliskie motywowi" },
-  { value: "triad", label: "Triada", hint: "Trzy mocne, różne kolory" },
-  { value: "contrast", label: "Kontrast", hint: "Kolor przeciwny do motywu" },
-  { value: "mono", label: "Monochrom", hint: "Jeden kolor w kilku jasnościach" },
+  { value: "triad", label: "Triada", get hint() { return t("experimentalAppearance.trzy_mocne_rozne_kolory"); } },
+  { value: "contrast", get label() { return t("experimentalAppearance.kontrast"); }, get hint() { return t("experimentalAppearance.kolor_przeciwny_do_motywu"); } },
+  { value: "mono", label: "Monochrom", get hint() { return t("experimentalAppearance.jeden_kolor_w_kilku_jasnosciach"); } },
 ] as const;
 
 export const EXPERIMENTAL_TYPOGRAPHY = [
-  { value: "arena", label: "Arena", hint: "Domyślny, nowoczesny krój" },
-  { value: "classic", label: "Systemowy", hint: "Krój Twojego systemu" },
-  { value: "technical", label: "Techniczny", hint: "Cyfry i nagłówki jak na tablicy wyników" },
-  { value: "readable", label: "Czytelny", hint: "Większy tekst i odstępy" },
-  { value: "display", label: "Sportowy", hint: "Wąskie, wersalikowe nagłówki jak na stadionie" },
-  { value: "elegant", label: "Elegancki", hint: "Szeryfowe tytuły, spokojny tekst" },
+  { value: "arena", label: "Arena", get hint() { return t("experimentalAppearance.domyslny_nowoczesny_kroj"); } },
+  { value: "classic", label: "Systemowy", get hint() { return t("experimentalAppearance.kroj_twojego_systemu"); } },
+  { value: "technical", label: "Techniczny", get hint() { return t("experimentalAppearance.cyfry_i_naglowki_jak_na"); } },
+  { value: "readable", get label() { return t("experimentalAppearance.czytelny"); }, get hint() { return t("experimentalAppearance.wiekszy_tekst_i_odstepy"); } },
+  { value: "display", label: "Sportowy", get hint() { return t("experimentalAppearance.waskie_wersalikowe_naglowki_jak_na"); } },
+  { value: "elegant", label: "Elegancki", get hint() { return t("experimentalAppearance.szeryfowe_tytuly_spokojny_tekst"); } },
 ] as const;
 
 export const EXPERIMENTAL_SHAPES = [
-  { value: "arena", label: "Arena", hint: "Łagodne zaokrąglenia" },
-  { value: "sharp", label: "Ostre", hint: "Proste, techniczne krawędzie" },
-  { value: "round", label: "Okrągłe", hint: "Miękkie, duże zaokrąglenia" },
-  { value: "cut", label: "Ścięte", hint: "Ścięte narożniki jak w interfejsie gry" },
+  { value: "arena", label: "Arena", get hint() { return t("experimentalAppearance.lagodne_zaokraglenia"); } },
+  { value: "sharp", label: "Ostre", get hint() { return t("experimentalAppearance.proste_techniczne_krawedzie"); } },
+  { value: "round", get label() { return t("experimentalAppearance.okragle"); }, get hint() { return t("experimentalAppearance.miekkie_duze_zaokraglenia"); } },
+  { value: "cut", get label() { return t("experimentalAppearance.sciete"); }, get hint() { return t("experimentalAppearance.sciete_narozniki_jak_w_interfejsie"); } },
 ] as const;
 
 // V5.4 · more categories. Every option changes the look of real components, not only colours.
 export const EXPERIMENTAL_DENSITY = [
-  { value: "comfortable", label: "Wygodna", hint: "Domyślne odstępy" },
-  { value: "compact", label: "Zwarta", hint: "Więcej treści na ekranie" },
-  { value: "spacious", label: "Przestronna", hint: "Duże odstępy, spokojny układ" },
+  { value: "comfortable", label: "Wygodna", get hint() { return t("experimentalAppearance.domyslne_odstepy"); } },
+  { value: "compact", label: "Zwarta", get hint() { return t("experimentalAppearance.wiecej_tresci_na_ekranie"); } },
+  { value: "spacious", label: "Przestronna", get hint() { return t("experimentalAppearance.duze_odstepy_spokojny_uklad"); } },
 ] as const;
 
 export const EXPERIMENTAL_BUTTONS = [
-  { value: "arena", label: "Arena", hint: "Gradient i miękki blask" },
-  { value: "solid", label: "Pełne", hint: "Jednolity kolor, bez efektów" },
-  { value: "outline", label: "Kontur", hint: "Przezroczyste z wyraźną ramką" },
-  { value: "pill", label: "Pigułki", hint: "W pełni zaokrąglone" },
-  { value: "beveled", label: "Ścięte", hint: "Ścięte rogi, wersaliki" },
+  { value: "arena", label: "Arena", get hint() { return t("experimentalAppearance.gradient_i_miekki_blask"); } },
+  { value: "solid", get label() { return t("experimentalAppearance.pelne"); }, get hint() { return t("experimentalAppearance.jednolity_kolor_bez_efektow"); } },
+  { value: "outline", label: "Kontur", get hint() { return t("experimentalAppearance.przezroczyste_z_wyrazna_ramka"); } },
+  { value: "pill", get label() { return t("experimentalAppearance.pigulki"); }, get hint() { return t("experimentalAppearance.w_pelni_zaokraglone"); } },
+  { value: "beveled", get label() { return t("experimentalAppearance.sciete"); }, get hint() { return t("experimentalAppearance.sciete_rogi_wersaliki"); } },
 ] as const;
 
 export const EXPERIMENTAL_CONTROLS = [
-  { value: "arena", label: "Arena", hint: "Ciemne pola z ramką" },
-  { value: "filled", label: "Wypełnione", hint: "Jasne tło pola, bez ramki" },
-  { value: "underline", label: "Podkreślone", hint: "Tylko linia pod polem" },
-  { value: "outlined", label: "Grube ramki", hint: "Wyraźne, kontrastowe obramowanie" },
+  { value: "arena", label: "Arena", get hint() { return t("experimentalAppearance.ciemne_pola_z_ramka"); } },
+  { value: "filled", get label() { return t("experimentalAppearance.wypelnione"); }, get hint() { return t("experimentalAppearance.jasne_tlo_pola_bez_ramki"); } },
+  { value: "underline", get label() { return t("experimentalAppearance.podkreslone"); }, get hint() { return t("experimentalAppearance.tylko_linia_pod_polem"); } },
+  { value: "outlined", get label() { return t("experimentalAppearance.grube_ramki"); }, get hint() { return t("experimentalAppearance.wyrazne_kontrastowe_obramowanie"); } },
 ] as const;
 
 export const EXPERIMENTAL_BORDERS = [
-  { value: "arena", label: "Arena", hint: "Cienkie linie i miękkie cienie" },
-  { value: "none", label: "Bez ramek", hint: "Panele oddzielone tylko tłem" },
-  { value: "bold", label: "Wyraźne", hint: "Grube linie w kolorze akcentu" },
-  { value: "deep", label: "Głębokie cienie", hint: "Panele unoszą się nad tłem" },
+  { value: "arena", label: "Arena", get hint() { return t("experimentalAppearance.cienkie_linie_i_miekkie_cienie"); } },
+  { value: "none", get label() { return t("experimentalAppearance.bez_ramek"); }, get hint() { return t("experimentalAppearance.panele_oddzielone_tylko_tlem"); } },
+  { value: "bold", get label() { return t("experimentalAppearance.wyrazne"); }, get hint() { return t("experimentalAppearance.grube_linie_w_kolorze_akcentu"); } },
+  { value: "deep", get label() { return t("experimentalAppearance.glebokie_cienie"); }, get hint() { return t("experimentalAppearance.panele_unosza_sie_nad_tlem"); } },
 ] as const;
 
 export const EXPERIMENTAL_GLOW = [
-  { value: "soft", label: "Delikatne", hint: "Lekka poświata akcentów" },
-  { value: "neon", label: "Neon", hint: "Świecące tytuły i ramki" },
-  { value: "none", label: "Bez światła", hint: "Bez poświat" },
+  { value: "soft", get label() { return t("experimentalAppearance.delikatne"); }, get hint() { return t("experimentalAppearance.lekka_poswiata_akcentow"); } },
+  { value: "neon", label: "Neon", get hint() { return t("experimentalAppearance.swiecace_tytuly_i_ramki"); } },
+  { value: "none", get label() { return t("experimentalAppearance.bez_swiatla"); }, get hint() { return t("experimentalAppearance.bez_poswiat"); } },
 ] as const;
 
 export const EXPERIMENTAL_NAV = [
-  { value: "arena", label: "Arena", hint: "Zakładki w panelu" },
-  { value: "underline", label: "Podkreślenie", hint: "Linia pod aktywną zakładką" },
-  { value: "blocks", label: "Bloki", hint: "Wyraźne, pełne przyciski" },
-  { value: "pills", label: "Pigułki", hint: "Zaokrąglone zakładki" },
+  { value: "arena", label: "Arena", get hint() { return t("experimentalAppearance.zakladki_w_panelu"); } },
+  { value: "underline", get label() { return t("experimentalAppearance.podkreslenie"); }, get hint() { return t("experimentalAppearance.linia_pod_aktywna_zakladka"); } },
+  { value: "blocks", label: "Bloki", get hint() { return t("experimentalAppearance.wyrazne_pelne_przyciski"); } },
+  { value: "pills", get label() { return t("experimentalAppearance.pigulki"); }, get hint() { return t("experimentalAppearance.zaokraglone_zakladki"); } },
 ] as const;
 
 export const EXPERIMENTAL_TABLES = [
-  { value: "arena", label: "Arena", hint: "Delikatne linie" },
-  { value: "striped", label: "Pasy", hint: "Naprzemienne tło wierszy" },
-  { value: "lined", label: "Linie", hint: "Mocne linie, wersalikowe nagłówki" },
-  { value: "spacious", label: "Przestronne", hint: "Wyższe wiersze, łatwe na telefonie" },
+  { value: "arena", label: "Arena", get hint() { return t("experimentalAppearance.delikatne_linie"); } },
+  { value: "striped", get label() { return t("experimentalAppearance.pasy"); }, get hint() { return t("experimentalAppearance.naprzemienne_tlo_wierszy"); } },
+  { value: "lined", get label() { return t("experimentalAppearance.linie"); }, get hint() { return t("experimentalAppearance.mocne_linie_wersalikowe_naglowki"); } },
+  { value: "spacious", label: "Przestronne", get hint() { return t("experimentalAppearance.wyzsze_wiersze_latwe_na_telefonie"); } },
 ] as const;
 
 export const EXPERIMENTAL_BRACKETS = [
-  { value: "arena", label: "Arena", hint: "Spokojne linie i karty" },
-  { value: "neon", label: "Neon", hint: "Świecące połączenia" },
-  { value: "minimal", label: "Minimalna", hint: "Cienkie linie, bez tła kart" },
-  { value: "broadcast", label: "Transmisja", hint: "Grube linie, kontrastowe karty" },
+  { value: "arena", label: "Arena", get hint() { return t("experimentalAppearance.spokojne_linie_i_karty"); } },
+  { value: "neon", label: "Neon", get hint() { return t("experimentalAppearance.swiecace_polaczenia"); } },
+  { value: "minimal", label: "Minimalna", get hint() { return t("experimentalAppearance.cienkie_linie_bez_tla_kart"); } },
+  { value: "broadcast", get label() { return t("experimentalAppearance.transmisja"); }, get hint() { return t("experimentalAppearance.grube_linie_kontrastowe_karty"); } },
 ] as const;
 
 export const EXPERIMENTAL_MATCH_CARDS = [
-  { value: "arena", label: "Arena", hint: "Domyślne karty" },
-  { value: "scoreboard", label: "Tablica wyników", hint: "Duże cyfry, ciemny pas wyniku" },
-  { value: "compact", label: "Zwarte", hint: "Mniej miejsca na mecz" },
+  { value: "arena", label: "Arena", get hint() { return t("experimentalAppearance.domyslne_karty"); } },
+  { value: "scoreboard", get label() { return t("experimentalAppearance.tablica_wynikow"); }, get hint() { return t("experimentalAppearance.duze_cyfry_ciemny_pas_wyniku"); } },
+  { value: "compact", label: "Zwarte", get hint() { return t("experimentalAppearance.mniej_miejsca_na_mecz"); } },
 ] as const;
 
 export const EXPERIMENTAL_DECOR = [
-  { value: "none", label: "Brak", hint: "Bez dodatków" },
-  { value: "corners", label: "Narożniki", hint: "Znaczniki w rogach paneli" },
-  { value: "scanlines", label: "Linie ekranu", hint: "Delikatny efekt monitora" },
-  { value: "noise", label: "Ziarno", hint: "Subtelna faktura tła" },
+  { value: "none", get label() { return t("experimentalAppearance.brak"); }, get hint() { return t("experimentalAppearance.bez_dodatkow"); } },
+  { value: "corners", get label() { return t("experimentalAppearance.narozniki"); }, get hint() { return t("experimentalAppearance.znaczniki_w_rogach_paneli"); } },
+  { value: "scanlines", get label() { return t("experimentalAppearance.linie_ekranu"); }, hint: "Delikatny efekt monitora" },
+  { value: "noise", label: "Ziarno", get hint() { return t("experimentalAppearance.subtelna_faktura_tla"); } },
 ] as const;
 
 export const EXPERIMENTAL_CARD_STYLES = [
-  { value: "glass", label: "Szkło", hint: "Półprzezroczyste panele" },
-  { value: "solid", label: "Pełne", hint: "Nieprzezroczyste, spokojne" },
-  { value: "outline", label: "Kontur", hint: "Lekkie panele z wyraźną linią" },
+  { value: "glass", get label() { return t("experimentalAppearance.szklo"); }, get hint() { return t("experimentalAppearance.polprzezroczyste_panele"); } },
+  { value: "solid", get label() { return t("experimentalAppearance.pelne"); }, get hint() { return t("experimentalAppearance.nieprzezroczyste_spokojne"); } },
+  { value: "outline", label: "Kontur", get hint() { return t("experimentalAppearance.lekkie_panele_z_wyrazna_linia"); } },
 ] as const;
 
 export const EXPERIMENTAL_EFFECTS = [
-  { value: "full", label: "Pełne", hint: "Poświaty i głębia" },
-  { value: "subtle", label: "Delikatne", hint: "Mniej cieni i blasku" },
-  { value: "off", label: "Wyłączone", hint: "Bez cieni i poświat" },
+  { value: "full", get label() { return t("experimentalAppearance.pelne"); }, get hint() { return t("experimentalAppearance.poswiaty_i_glebia"); } },
+  { value: "subtle", get label() { return t("experimentalAppearance.delikatne"); }, get hint() { return t("experimentalAppearance.mniej_cieni_i_blasku"); } },
+  { value: "off", get label() { return t("experimentalAppearance.wylaczone"); }, get hint() { return t("experimentalAppearance.bez_cieni_i_poswiat"); } },
 ] as const;
 
 export const EXPERIMENTAL_MOTION = [
-  { value: "system", label: "Jak w systemie", hint: "Szanuje ustawienie ograniczonego ruchu" },
-  { value: "reduced", label: "Ograniczony", hint: "Bez animacji i przejść" },
+  { value: "system", get label() { return t("experimentalAppearance.jak_w_systemie"); }, hint: "Szanuje ustawienie ograniczonego ruchu" },
+  { value: "reduced", label: "Ograniczony", get hint() { return t("experimentalAppearance.bez_animacji_i_przejsc"); } },
 ] as const;
 
 export const EXPERIMENTAL_CONTRAST = [
-  { value: "standard", label: "Standardowy", hint: "Zrównoważony" },
-  { value: "high", label: "Wysoki", hint: "Mocniejszy tekst i linie" },
+  { value: "standard", label: "Standardowy", get hint() { return t("experimentalAppearance.zrownowazony"); } },
+  { value: "high", get label() { return t("experimentalAppearance.wysoki"); }, get hint() { return t("experimentalAppearance.mocniejszy_tekst_i_linie"); } },
 ] as const;
 
 type Values<T extends readonly { value: string }[]> = T[number]["value"];
@@ -231,31 +232,31 @@ const CATEGORIES = Object.keys(CATEGORY_OPTIONS) as Category[];
 /** V5.8 · preset families, so the list reads as a few styles with variants, not fourteen similar tiles. */
 export const EXPERIMENTAL_APPEARANCE_FAMILIES = [
   { id: "arena", label: "Arena", hint: "Futurystycznie i kolorowo" },
-  { id: "broadcast", label: "Transmisja", hint: "Duże wyniki na ekran i projektor" },
+  { id: "broadcast", get label() { return t("experimentalAppearance.transmisja"); }, get hint() { return t("experimentalAppearance.duze_wyniki_na_ekran_i"); } },
   { id: "sport", label: "Sport", hint: "Klasycznie i profesjonalnie" },
-  { id: "arcade", label: "Arcade", hint: "Żywo i dynamicznie" },
-  { id: "technical", label: "Techniczny", hint: "Zwarto, dużo danych" },
-  { id: "comfort", label: "Wygoda", hint: "Czytelność i spokój" },
+  { id: "arcade", label: "Arcade", get hint() { return t("experimentalAppearance.zywo_i_dynamicznie"); } },
+  { id: "technical", label: "Techniczny", get hint() { return t("experimentalAppearance.zwarto_duzo_danych"); } },
+  { id: "comfort", label: "Wygoda", get hint() { return t("experimentalAppearance.czytelnosc_i_spokoj"); } },
 ] as const;
 export type ExperimentalAppearanceFamily = (typeof EXPERIMENTAL_APPEARANCE_FAMILIES)[number]["id"];
 
 /** Ready-made sets: one click for beginners, a starting point for tinkering. */
 export const EXPERIMENTAL_APPEARANCE_PRESETS: Array<{ id: string; label: string; hint: string; family: ExperimentalAppearanceFamily; values: Partial<ExperimentalAppearance> }> = [
-  { id: "arena", label: "Arena", hint: "Domyślny wygląd turnieju", family: "arena", values: {} },
-  { id: "stage", label: "Scena turniejowa", hint: "Na projektor: duże wyniki, ciepłe kolory, dużo miejsca", family: "broadcast", values: { skin: "ember", background: "nebula", palette: "triad", typography: "display", shape: "round", cards: "glass", effects: "full", glow: "neon", density: "spacious", buttons: "pill", nav: "pills", tables: "spacious", brackets: "broadcast", matchCards: "scoreboard", decor: "none" } },
-  { id: "readable", label: "Czytelny", hint: "Duży tekst, wysoki kontrast, wyraźne ramki i pasy w tabelach", family: "comfort", values: { background: "carbon", contrast: "high", typography: "readable", cards: "solid", effects: "subtle", glow: "none", density: "spacious", buttons: "solid", controls: "filled", borders: "bold", nav: "blocks", tables: "striped", matchCards: "arena", decor: "none" } },
-  { id: "pro", label: "Minimal pro", hint: "Stalowe, pełne panele, bez efektów, zwykła gęstość", family: "technical", values: { skin: "iron-citadel", background: "solid", palette: "mono", typography: "classic", shape: "sharp", cards: "solid", effects: "off", glow: "none", density: "comfortable", buttons: "solid", controls: "filled", borders: "none", nav: "blocks", tables: "striped", brackets: "minimal", matchCards: "compact", decor: "none" } },
-  { id: "neon", label: "Neon", hint: "Fiolet i neon, siatka areny, tablica wyników", family: "arena", values: { skin: "void", background: "grid", palette: "contrast", typography: "technical", shape: "arena", cards: "glass", effects: "full", glow: "neon", buttons: "arena", nav: "arena", tables: "lined", brackets: "neon", matchCards: "scoreboard", decor: "corners" } },
-  { id: "calm", label: "Spokojny", hint: "Ciepłe, miękkie barwy, bez animacji i poświaty", family: "comfort", values: { skin: "copper-age", background: "aura", palette: "analog", typography: "readable", shape: "round", cards: "solid", effects: "subtle", motion: "reduced", glow: "none", buttons: "solid", controls: "filled", borders: "none", nav: "underline", tables: "spacious", matchCards: "arena", decor: "none" } },
+  { id: "arena", label: "Arena", get hint() { return t("experimentalAppearance.domyslny_wyglad_turnieju"); }, family: "arena", values: {} },
+  { id: "stage", get label() { return t("experimentalAppearance.scena_turniejowa"); }, get hint() { return t("experimentalAppearance.na_projektor_duze_wyniki_cieple"); }, family: "broadcast", values: { skin: "ember", background: "nebula", palette: "triad", typography: "display", shape: "round", cards: "glass", effects: "full", glow: "neon", density: "spacious", buttons: "pill", nav: "pills", tables: "spacious", brackets: "broadcast", matchCards: "scoreboard", decor: "none" } },
+  { id: "readable", get label() { return t("experimentalAppearance.czytelny"); }, get hint() { return t("experimentalAppearance.duzy_tekst_wysoki_kontrast_wyrazne"); }, family: "comfort", values: { background: "carbon", contrast: "high", typography: "readable", cards: "solid", effects: "subtle", glow: "none", density: "spacious", buttons: "solid", controls: "filled", borders: "bold", nav: "blocks", tables: "striped", matchCards: "arena", decor: "none" } },
+  { id: "pro", label: "Minimal pro", get hint() { return t("experimentalAppearance.stalowe_pelne_panele_bez_efektow"); }, family: "technical", values: { skin: "iron-citadel", background: "solid", palette: "mono", typography: "classic", shape: "sharp", cards: "solid", effects: "off", glow: "none", density: "comfortable", buttons: "solid", controls: "filled", borders: "none", nav: "blocks", tables: "striped", brackets: "minimal", matchCards: "compact", decor: "none" } },
+  { id: "neon", label: "Neon", get hint() { return t("experimentalAppearance.fiolet_i_neon_siatka_areny"); }, family: "arena", values: { skin: "void", background: "grid", palette: "contrast", typography: "technical", shape: "arena", cards: "glass", effects: "full", glow: "neon", buttons: "arena", nav: "arena", tables: "lined", brackets: "neon", matchCards: "scoreboard", decor: "corners" } },
+  { id: "calm", get label() { return t("experimentalAppearance.spokojny"); }, get hint() { return t("experimentalAppearance.cieple_miekkie_barwy_bez_animacji"); }, family: "comfort", values: { skin: "copper-age", background: "aura", palette: "analog", typography: "readable", shape: "round", cards: "solid", effects: "subtle", motion: "reduced", glow: "none", buttons: "solid", controls: "filled", borders: "none", nav: "underline", tables: "spacious", matchCards: "arena", decor: "none" } },
   // V5.4 · styles that differ in shape, type, buttons, tables and brackets — not only in colour.
-  { id: "esport", label: "Futurystyczny e-sport", hint: "Siatka, ścięte rogi, neonowa drabinka", family: "arena", values: { skin: "abyssal", background: "grid", palette: "triad", typography: "technical", shape: "cut", cards: "glass", effects: "full", glow: "neon", buttons: "beveled", nav: "pills", tables: "lined", brackets: "neon", matchCards: "scoreboard", decor: "corners" } },
-  { id: "minimal", label: "Minimalistyczny profesjonalny", hint: "Zwarty, ostry, bez efektów", family: "technical", values: { skin: "obsidian", background: "solid", palette: "mono", typography: "classic", shape: "sharp", cards: "outline", effects: "off", glow: "none", density: "compact", buttons: "outline", controls: "underline", nav: "underline", tables: "lined", brackets: "minimal", matchCards: "compact", borders: "arena" } },
-  { id: "arcade", label: "Energetyczny arcade", hint: "Pigułki, grube ramki, linie ekranu", family: "arcade", values: { skin: "toxic", background: "grid", palette: "triad", typography: "display", shape: "round", cards: "solid", effects: "full", glow: "neon", buttons: "pill", controls: "outlined", borders: "bold", nav: "pills", tables: "striped", matchCards: "scoreboard", decor: "scanlines" } },
-  { id: "cyberpunk", label: "Cyberpunk", hint: "Róż i cyjan, ścięte panele, neon", family: "arena", values: { skin: "midnight-rose", background: "nebula", palette: "contrast", typography: "technical", shape: "cut", cards: "outline", effects: "full", glow: "neon", buttons: "beveled", controls: "outlined", borders: "bold", nav: "blocks", tables: "lined", brackets: "neon", matchCards: "scoreboard", decor: "scanlines" } },
-  { id: "sport", label: "Klasyczny sport", hint: "Tablica wyników, pasy w tabeli", family: "sport", values: { skin: "classic", background: "solid", palette: "harmony", typography: "display", shape: "sharp", cards: "solid", effects: "subtle", glow: "none", buttons: "solid", controls: "filled", borders: "arena", nav: "blocks", tables: "striped", brackets: "arena", matchCards: "scoreboard", decor: "none" } },
-  { id: "broadcast", label: "Transmisja TV", hint: "Mocny kontrast, duże wyniki, przestrzeń", family: "broadcast", values: { skin: "crimson-vault", background: "carbon", palette: "contrast", typography: "display", shape: "sharp", cards: "solid", effects: "subtle", glow: "soft", density: "spacious", buttons: "solid", nav: "underline", tables: "spacious", brackets: "broadcast", matchCards: "scoreboard", borders: "deep", decor: "corners" } },
-  { id: "premium", label: "Elegancki premium", hint: "Złoto, szeryfy, dużo powietrza", family: "sport", values: { skin: "sandstorm", background: "aura", palette: "analog", typography: "elegant", shape: "round", cards: "glass", effects: "subtle", glow: "soft", density: "spacious", buttons: "outline", controls: "underline", borders: "deep", nav: "underline", tables: "spacious", brackets: "minimal", matchCards: "arena", decor: "noise" } },
-  { id: "scifi", label: "Techniczny sci-fi", hint: "Chłodne kolory, siatka, znaczniki", family: "technical", values: { skin: "glacier", background: "grid", palette: "analog", typography: "technical", shape: "cut", cards: "outline", effects: "subtle", glow: "soft", density: "compact", buttons: "outline", controls: "outlined", borders: "bold", nav: "underline", tables: "lined", brackets: "minimal", matchCards: "compact", decor: "corners" } },
+  { id: "esport", label: "Futurystyczny e-sport", get hint() { return t("experimentalAppearance.siatka_sciete_rogi_neonowa_drabinka"); }, family: "arena", values: { skin: "abyssal", background: "grid", palette: "triad", typography: "technical", shape: "cut", cards: "glass", effects: "full", glow: "neon", buttons: "beveled", nav: "pills", tables: "lined", brackets: "neon", matchCards: "scoreboard", decor: "corners" } },
+  { id: "minimal", label: "Minimalistyczny profesjonalny", get hint() { return t("experimentalAppearance.zwarty_ostry_bez_efektow"); }, family: "technical", values: { skin: "obsidian", background: "solid", palette: "mono", typography: "classic", shape: "sharp", cards: "outline", effects: "off", glow: "none", density: "compact", buttons: "outline", controls: "underline", nav: "underline", tables: "lined", brackets: "minimal", matchCards: "compact", borders: "arena" } },
+  { id: "arcade", label: "Energetyczny arcade", get hint() { return t("experimentalAppearance.pigulki_grube_ramki_linie_ekranu"); }, family: "arcade", values: { skin: "toxic", background: "grid", palette: "triad", typography: "display", shape: "round", cards: "solid", effects: "full", glow: "neon", buttons: "pill", controls: "outlined", borders: "bold", nav: "pills", tables: "striped", matchCards: "scoreboard", decor: "scanlines" } },
+  { id: "cyberpunk", label: "Cyberpunk", get hint() { return t("experimentalAppearance.roz_i_cyjan_sciete_panele"); }, family: "arena", values: { skin: "midnight-rose", background: "nebula", palette: "contrast", typography: "technical", shape: "cut", cards: "outline", effects: "full", glow: "neon", buttons: "beveled", controls: "outlined", borders: "bold", nav: "blocks", tables: "lined", brackets: "neon", matchCards: "scoreboard", decor: "scanlines" } },
+  { id: "sport", label: "Klasyczny sport", get hint() { return t("experimentalAppearance.tablica_wynikow_pasy_w_tabeli"); }, family: "sport", values: { skin: "classic", background: "solid", palette: "harmony", typography: "display", shape: "sharp", cards: "solid", effects: "subtle", glow: "none", buttons: "solid", controls: "filled", borders: "arena", nav: "blocks", tables: "striped", brackets: "arena", matchCards: "scoreboard", decor: "none" } },
+  { id: "broadcast", get label() { return t("experimentalAppearance.transmisja_tv"); }, get hint() { return t("experimentalAppearance.mocny_kontrast_duze_wyniki_przestrzen"); }, family: "broadcast", values: { skin: "crimson-vault", background: "carbon", palette: "contrast", typography: "display", shape: "sharp", cards: "solid", effects: "subtle", glow: "soft", density: "spacious", buttons: "solid", nav: "underline", tables: "spacious", brackets: "broadcast", matchCards: "scoreboard", borders: "deep", decor: "corners" } },
+  { id: "premium", label: "Elegancki premium", get hint() { return t("experimentalAppearance.zloto_szeryfy_duzo_powietrza"); }, family: "sport", values: { skin: "sandstorm", background: "aura", palette: "analog", typography: "elegant", shape: "round", cards: "glass", effects: "subtle", glow: "soft", density: "spacious", buttons: "outline", controls: "underline", borders: "deep", nav: "underline", tables: "spacious", brackets: "minimal", matchCards: "arena", decor: "noise" } },
+  { id: "scifi", label: "Techniczny sci-fi", get hint() { return t("experimentalAppearance.chlodne_kolory_siatka_znaczniki"); }, family: "technical", values: { skin: "glacier", background: "grid", palette: "analog", typography: "technical", shape: "cut", cards: "outline", effects: "subtle", glow: "soft", density: "compact", buttons: "outline", controls: "outlined", borders: "bold", nav: "underline", tables: "lined", brackets: "minimal", matchCards: "compact", decor: "corners" } },
 ];
 
 function optionValues(category: Category): readonly string[] {
@@ -431,7 +432,7 @@ export function ExperimentalAppearanceControl() {
     setOpen(next);
   };
   const saveCustom = () => {
-    const label = customName.trim().slice(0, 40) || `Mój zestaw ${custom.length + 1}`;
+    const label = customName.trim().slice(0, 40) || t("experimentalAppearance.moj_zestaw_v0", { v0: custom.length + 1 });
     const next = [{ id: `c${Date.now().toString(36)}`, label, values: draft }, ...custom].slice(0, MAX_CUSTOM_APPEARANCES);
     setCustom(next);
     writeCustomAppearances(next);
@@ -447,25 +448,24 @@ export function ExperimentalAppearanceControl() {
   return (
     <Popover open={open} onOpenChange={onOpenChange}>
       <PopoverTrigger asChild>
-        <button type="button" className="experimental-appearance-trigger" aria-label="Wygląd: tło i kolory" title="Wygląd: zestawy, skórka, tło, kolory i więcej">
+        <button type="button" className="experimental-appearance-trigger" aria-label={t("experimentalAppearance.wyglad_tlo_i_kolory")} title={t("experimentalAppearance.wyglad_zestawy_skorka_tlo_kolory")}>
           <Palette className="h-4 w-4" aria-hidden="true" />
-          <span className="experimental-appearance-trigger-label">Wygląd</span>
+          <span className="experimental-appearance-trigger-label">{t("experimentalAppearance.wyglad")}</span>
         </button>
       </PopoverTrigger>
       <PopoverContent align="end" sideOffset={8} className="experimental-appearance-panel">
-        <p className="experimental-appearance-title">Wygląd</p>
+        <p className="experimental-appearance-title">{t("experimentalAppearance.wyglad")}</p>
         <p className="experimental-appearance-note">
-          Tylko dla Ciebie, w tej przeglądarce. Nie zmienia ustawień turnieju ani tego, co widzą inni.
-        </p>
-        <div className="experimental-appearance-tabs" role="tablist" aria-label="Rodzaj ustawień">
-          <button type="button" role="tab" aria-selected={tab === "sets"} onClick={() => setTab("sets")}>Zestawy</button>
-          <button type="button" role="tab" aria-selected={tab === "details"} onClick={() => setTab("details")}>Szczegóły</button>
+          {t("experimentalAppearance.tylko_dla_ciebie_w_tej")}</p>
+        <div className="experimental-appearance-tabs" role="tablist" aria-label={t("experimentalAppearance.rodzaj_ustawien")}>
+          <button type="button" role="tab" aria-selected={tab === "sets"} onClick={() => setTab("sets")}>{t("experimentalAppearance.zestawy")}</button>
+          <button type="button" role="tab" aria-selected={tab === "details"} onClick={() => setTab("details")}>{t("experimentalAppearance.szczegoly")}</button>
         </div>
 
         {tab === "sets" && (
-          <div role="tabpanel" aria-label="Zestawy">
+          <div role="tabpanel" aria-label={t("experimentalAppearance.zestawy")}>
             <fieldset className="experimental-appearance-group">
-              <legend>Gotowe zestawy</legend>
+              <legend>{t("experimentalAppearance.gotowe_zestawy")}</legend>
               {EXPERIMENTAL_APPEARANCE_FAMILIES.map((family) => (
               <div key={family.id} className="experimental-appearance-family" role="group" aria-label={`${family.label}: ${family.hint}`}>
               <p className="experimental-appearance-family-label"><strong>{family.label}</strong> <span>{family.hint}</span></p>
@@ -489,32 +489,32 @@ export function ExperimentalAppearanceControl() {
               ))}
             </fieldset>
             <fieldset className="experimental-appearance-group">
-              <legend>Twoje zestawy</legend>
-              {custom.length === 0 && <p className="experimental-appearance-note">Dopasuj szczegóły i zapisz własny zestaw (do {MAX_CUSTOM_APPEARANCES}).</p>}
+              <legend>{t("experimentalAppearance.twoje_zestawy")}</legend>
+              {custom.length === 0 && <p className="experimental-appearance-note">{t("experimentalAppearance.dopasuj_szczegoly_i_zapisz_wlasny")}{" "}{MAX_CUSTOM_APPEARANCES}).</p>}
               <ul className="experimental-appearance-custom">
                 {custom.map((item) => (
                   <li key={item.id}>
                     <button type="button" className="experimental-appearance-custom-apply" aria-pressed={same(item.values, draft)} onClick={() => setDraft(item.values)}>
                       <Sparkles className="h-3.5 w-3.5" aria-hidden="true" /> {item.label}
                     </button>
-                    <button type="button" className="experimental-appearance-custom-remove" aria-label={`Usuń zestaw ${item.label}`} onClick={() => removeCustom(item.id)}>
+                    <button type="button" className="experimental-appearance-custom-remove" aria-label={t("experimentalAppearance.usun_zestaw_label", { label: item.label })} onClick={() => removeCustom(item.id)}>
                       <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
                     </button>
                   </li>
                 ))}
               </ul>
               <div className="experimental-appearance-save">
-                <input aria-label="Nazwa własnego zestawu" placeholder="Nazwa zestawu" maxLength={40} value={customName} onChange={(event) => setCustomName(event.target.value)} />
-                <button type="button" onClick={saveCustom}><Save className="h-3.5 w-3.5" aria-hidden="true" /> Zapisz obecny</button>
+                <input aria-label={t("experimentalAppearance.nazwa_wlasnego_zestawu")} placeholder={t("experimentalAppearance.nazwa_zestawu")} maxLength={40} value={customName} onChange={(event) => setCustomName(event.target.value)} />
+                <button type="button" onClick={saveCustom}><Save className="h-3.5 w-3.5" aria-hidden="true" /> {t("experimentalAppearance.zapisz_obecny")}</button>
               </div>
             </fieldset>
           </div>
         )}
 
         {tab === "details" && (
-          <div role="tabpanel" aria-label="Szczegóły">
+          <div role="tabpanel" aria-label={t("experimentalAppearance.szczegoly")}>
             <fieldset className="experimental-appearance-group">
-              <legend>Skórka</legend>
+              <legend>{t("experimentalAppearance.skorka")}</legend>
               <div className="experimental-appearance-skins">
                 {EXPERIMENTAL_SKINS.map((option) => (
                   <label key={option.value} className="experimental-appearance-skin" title={option.label}>
@@ -532,53 +532,52 @@ export function ExperimentalAppearanceControl() {
               </div>
             </fieldset>
             <details className="experimental-appearance-section" open>
-              <summary>Kolory, tło i faktura</summary>
-              <OptionGroup category="background" legend="Tło" value={draft.background} onChange={(background) => update({ background })} swatch="bg" />
-              <OptionGroup category="palette" legend="System kolorów" value={draft.palette} onChange={(palette) => update({ palette })} swatch="palette" />
-              <OptionGroup category="decor" legend="Dodatki" value={draft.decor} onChange={(decor) => update({ decor })} />
+              <summary>{t("experimentalAppearance.kolory_tlo_i_faktura")}</summary>
+              <OptionGroup category="background" legend={t("experimentalAppearance.tlo")} value={draft.background} onChange={(background) => update({ background })} swatch="bg" />
+              <OptionGroup category="palette" legend={t("experimentalAppearance.system_kolorow")} value={draft.palette} onChange={(palette) => update({ palette })} swatch="palette" />
+              <OptionGroup category="decor" legend={t("experimentalAppearance.dodatki")} value={draft.decor} onChange={(decor) => update({ decor })} />
             </details>
             <details className="experimental-appearance-section">
-              <summary>Tekst, układ i kształty</summary>
+              <summary>{t("experimentalAppearance.tekst_uklad_i_ksztalty")}</summary>
               <OptionGroup category="typography" legend="Typografia" value={draft.typography} onChange={(typography) => update({ typography })} />
-              <OptionGroup category="density" legend="Gęstość" value={draft.density} onChange={(density) => update({ density })} />
-              <OptionGroup category="shape" legend="Kształty" value={draft.shape} onChange={(shape) => update({ shape })} />
-              <OptionGroup category="cards" legend="Karty i panele" value={draft.cards} onChange={(cards) => update({ cards })} />
-              <OptionGroup category="borders" legend="Obramowania i cienie" value={draft.borders} onChange={(borders) => update({ borders })} />
+              <OptionGroup category="density" legend={t("experimentalAppearance.gestosc")} value={draft.density} onChange={(density) => update({ density })} />
+              <OptionGroup category="shape" legend={t("experimentalAppearance.ksztalty")} value={draft.shape} onChange={(shape) => update({ shape })} />
+              <OptionGroup category="cards" legend={t("experimentalAppearance.karty_i_panele")} value={draft.cards} onChange={(cards) => update({ cards })} />
+              <OptionGroup category="borders" legend={t("experimentalAppearance.obramowania_i_cienie")} value={draft.borders} onChange={(borders) => update({ borders })} />
             </details>
             <details className="experimental-appearance-section">
-              <summary>Przyciski, pola i nawigacja</summary>
-              <OptionGroup category="buttons" legend="Przyciski" value={draft.buttons} onChange={(buttons) => update({ buttons })} />
-              <OptionGroup category="controls" legend="Pola formularzy" value={draft.controls} onChange={(controls) => update({ controls })} />
-              <OptionGroup category="nav" legend="Nawigacja" value={draft.nav} onChange={(nav) => update({ nav })} />
+              <summary>{t("experimentalAppearance.przyciski_pola_i_nawigacja")}</summary>
+              <OptionGroup category="buttons" legend={t("experimentalAppearance.przyciski")} value={draft.buttons} onChange={(buttons) => update({ buttons })} />
+              <OptionGroup category="controls" legend={t("experimentalAppearance.pola_formularzy")} value={draft.controls} onChange={(controls) => update({ controls })} />
+              <OptionGroup category="nav" legend={t("experimentalAppearance.nawigacja")} value={draft.nav} onChange={(nav) => update({ nav })} />
             </details>
             <details className="experimental-appearance-section">
-              <summary>Tabele, drabinki i mecze</summary>
-              <OptionGroup category="tables" legend="Tabele" value={draft.tables} onChange={(tables) => update({ tables })} />
-              <OptionGroup category="brackets" legend="Drabinki" value={draft.brackets} onChange={(brackets) => update({ brackets })} />
-              <OptionGroup category="matchCards" legend="Karty meczów i wyniki" value={draft.matchCards} onChange={(matchCards) => update({ matchCards })} />
+              <summary>{t("experimentalAppearance.tabele_drabinki_i_mecze")}</summary>
+              <OptionGroup category="tables" legend={t("experimentalAppearance.tabele")} value={draft.tables} onChange={(tables) => update({ tables })} />
+              <OptionGroup category="brackets" legend={t("experimentalAppearance.drabinki")} value={draft.brackets} onChange={(brackets) => update({ brackets })} />
+              <OptionGroup category="matchCards" legend={t("experimentalAppearance.karty_meczow_i_wyniki")} value={draft.matchCards} onChange={(matchCards) => update({ matchCards })} />
             </details>
             <details className="experimental-appearance-section">
-              <summary>Światło, ruch i kontrast</summary>
-              <OptionGroup category="effects" legend="Efekty" value={draft.effects} onChange={(effects) => update({ effects })} />
-              <OptionGroup category="glow" legend="Efekty świetlne" value={draft.glow} onChange={(glow) => update({ glow })} />
-              <OptionGroup category="contrast" legend="Kontrast" value={draft.contrast} onChange={(contrast) => update({ contrast })} />
-              {highContrastNote && <p className="experimental-appearance-note" role="status">Wysoki kontrast zamienia szkło na pełne karty, ogranicza efekty i dodatki — tak tekst zawsze pozostaje czytelny.</p>}
-              <OptionGroup category="motion" legend="Ruch" value={draft.motion} onChange={(motion) => update({ motion })} />
+              <summary>{t("experimentalAppearance.swiatlo_ruch_i_kontrast")}</summary>
+              <OptionGroup category="effects" legend={t("experimentalAppearance.efekty")} value={draft.effects} onChange={(effects) => update({ effects })} />
+              <OptionGroup category="glow" legend={t("experimentalAppearance.efekty_swietlne")} value={draft.glow} onChange={(glow) => update({ glow })} />
+              <OptionGroup category="contrast" legend={t("experimentalAppearance.kontrast")} value={draft.contrast} onChange={(contrast) => update({ contrast })} />
+              {highContrastNote && <p className="experimental-appearance-note" role="status">{t("experimentalAppearance.wysoki_kontrast_zamienia_szklo_na")}</p>}
+              <OptionGroup category="motion" legend={t("experimentalAppearance.ruch")} value={draft.motion} onChange={(motion) => update({ motion })} />
             </details>
-            <p className="experimental-appearance-note">Barwy i logo turnieju ustala organizator (skórka „Według turnieju”). Te ustawienia zmieniają tylko Twój widok.</p>
+            <p className="experimental-appearance-note">{t("experimentalAppearance.barwy_i_logo_turnieju_ustala")}</p>
           </div>
         )}
 
         <div className="experimental-appearance-footer">
-          {dirty && <p className="experimental-appearance-note" role="status">Podgląd — kliknij „Zastosuj”, aby zachować.</p>}
+          {dirty && <p className="experimental-appearance-note" role="status">{t("experimentalAppearance.podglad_kliknij_zastosuj_aby_zachowac")}</p>}
           {/* V5.8: every shared element (forms, tables, dialogs, notices) under each set, without saving anything. */}
-          <a href={`${(import.meta.env?.BASE_URL ?? "/").replace(/\/$/, "")}/experimental/tournaments/katalog`} className="experimental-appearance-note underline">Zobacz wszystkie elementy w katalogu</a>
+          <a href={`${(import.meta.env?.BASE_URL ?? "/").replace(/\/$/, "")}/experimental/tournaments/katalog`} className="experimental-appearance-note underline">{t("experimentalAppearance.zobacz_wszystkie_elementy_w_katalogu")}</a>
           <div className="experimental-appearance-actions">
             <button type="button" className="experimental-appearance-reset" disabled={same(draft, DEFAULT_EXPERIMENTAL_APPEARANCE)} onClick={() => setDraft(DEFAULT_EXPERIMENTAL_APPEARANCE)}>
-              Przywróć domyślne
-            </button>
-            <button type="button" className="experimental-appearance-cancel" disabled={!dirty} onClick={cancel}>Anuluj</button>
-            <button type="button" className="experimental-appearance-apply" disabled={!dirty} onClick={apply}>Zastosuj</button>
+              {t("experimentalAppearance.przywroc_domyslne")}</button>
+            <button type="button" className="experimental-appearance-cancel" disabled={!dirty} onClick={cancel}>{t("experimentalAppearance.anuluj")}</button>
+            <button type="button" className="experimental-appearance-apply" disabled={!dirty} onClick={apply}>{t("experimentalAppearance.zastosuj")}</button>
           </div>
         </div>
       </PopoverContent>

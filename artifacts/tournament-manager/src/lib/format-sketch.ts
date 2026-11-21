@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 /**
  * #323-C · a visual sketch of the tournament layout before it is created (pure geometry, testable).
  * Input: the stage summaries of the server's preset preview — the same numbers the preview lists as text.
@@ -51,14 +52,14 @@ const MAX_FIRST_COLUMN = 8;
 const nextPowerOfTwo = (n: number) => { let size = 1; while (size < n) size *= 2; return size; };
 const range = (n: number) => Array.from({ length: Math.max(0, n) }, (_, i) => i);
 const rangeText = (r: { min: number; max: number }) => (r.min === r.max ? String(r.min) : `${r.min}–${r.max}`);
-const matchesText = (r: { min: number; max: number }) => `${rangeText(r)} ${plural(r.max, "mecz", "mecze", "meczów")}`;
-const roundsText = (r: { min: number; max: number }) => `${rangeText(r)} ${plural(r.max, "runda", "rundy", "rund")}`;
+const matchesText = (r: { min: number; max: number }) => `${rangeText(r)} ${plural(r.max, t("formatSketch.mecz"), t("formatSketch.mecze"), t("formatSketch.meczow"))}`;
+const roundsText = (r: { min: number; max: number }) => `${rangeText(r)} ${plural(r.max, t("formatSketch.runda"), t("formatSketch.rundy"), t("formatSketch.rund"))}`;
 
 /** "Finał", "Półfinał", "Ćwierćfinał", "1/8"… by the number of matches in the round. */
 export function knockoutRoundName(matchesInRound: number): string {
-  if (matchesInRound === 1) return "Finał";
-  if (matchesInRound === 2) return "Półfinał";
-  if (matchesInRound === 4) return "Ćwierćfinał";
+  if (matchesInRound === 1) return t("formatSketch.final");
+  if (matchesInRound === 2) return t("formatSketch.polfinal");
+  if (matchesInRound === 4) return t("formatSketch.cwiercfinal");
   return `1/${matchesInRound}`;
 }
 
@@ -126,12 +127,12 @@ function singleElimination(stage: SketchStageInput): SketchStage {
   const byes = firstVisibleIsFirstRound ? spreadIndices(stage.byes, visible[0]) : undefined;
   const laneHeight = visible[0] * SLOT;
   const lane = knockoutColumns(visible, 0, SKETCH_WIDTH, HEADER, laneHeight, { byes, lastKind: "final" });
-  const byeText = stage.byes > 0 ? `, ${stage.byes} ${plural(stage.byes, "wolny los", "wolne losy", "wolnych losów")} w 1. rundzie` : "";
+  const byeText = stage.byes > 0 ? t("formatSketch.byes_v1_w_1_rundzie", { byes: stage.byes, v1: plural(stage.byes, t("formatSketch.wolny_los"), t("formatSketch.wolne_losy"), t("formatSketch.wolnych_losow")) }) : "";
   return {
     key: stage.key, format: stage.format, width: SKETCH_WIDTH, height: HEADER + laneHeight + 4,
     boxes: lane.boxes, paths: lane.paths, texts: lane.texts,
-    summary: `Drabinka pucharowa: ${stage.participantCount} uczestników, ${roundsText(stage.rounds)}, ${matchesText(stage.matches)}${byeText}. Przegrany odpada.`,
-    note: hidden > 0 ? `Pokazano ostatnie ${visible.length} rundy; wcześniej ${hidden} ${plural(hidden, "runda", "rundy", "rund")} eliminacji.` : null,
+    summary: t("formatSketch.drabinka_pucharowa_participantcount_ucze", { participantCount: stage.participantCount, v1: roundsText(stage.rounds), v2: matchesText(stage.matches), byeText: byeText }),
+    note: hidden > 0 ? t("formatSketch.pokazano_ostatnie_length_rundy_wczesniej", { length: visible.length, hidden: hidden, v2: plural(hidden, t("formatSketch.runda"), t("formatSketch.rundy"), t("formatSketch.rund")) }) : null,
   };
 }
 
@@ -156,7 +157,7 @@ function doubleElimination(stage: SketchStageInput): SketchStage {
   });
   const boxes = [...upperLane.boxes];
   const paths = [...upperLane.paths];
-  const texts: SketchText[] = [{ x: 0, y: upperY - 6, text: "Górna drabinka", anchor: "start" }];
+  const texts: SketchText[] = [{ x: 0, y: upperY - 6, text: t("formatSketch.gorna_drabinka"), anchor: "start" }];
   let lowerCentre = lowerY + lowerH / 2;
   let lowerRight = 0;
   if (lower.length > 0) {
@@ -165,21 +166,21 @@ function doubleElimination(stage: SketchStageInput): SketchStage {
     paths.push(...lowerLane.paths);
     lowerCentre = lowerLane.lastCentre;
     lowerRight = lowerLane.lastRight;
-    texts.push({ x: 0, y: lowerY - 6, text: "Dolna drabinka — druga szansa", anchor: "start" });
+    texts.push({ x: 0, y: lowerY - 6, text: t("formatSketch.dolna_drabinka_druga_szansa"), anchor: "start" });
   }
   const boxW = Math.min(64, colW - 12);
   const gx = (columns - 1) * colW + (colW - boxW) / 2;
   const gy = (upperLane.lastCentre + lowerCentre) / 2;
   boxes.push({ x: gx, y: gy - BOX_H / 2, w: boxW, h: BOX_H, kind: "final" });
-  texts.push({ x: gx + boxW, y: gy - BOX_H / 2 - 5, text: "Wielki finał", anchor: "end" });
+  texts.push({ x: gx + boxW, y: gy - BOX_H / 2 - 5, text: t("formatSketch.wielki_final"), anchor: "end" });
   const midX = (upperLane.lastRight + gx) / 2;
   paths.push(`M${upperLane.lastRight.toFixed(1)} ${upperLane.lastCentre.toFixed(1)}H${midX.toFixed(1)}V${gy.toFixed(1)}H${gx.toFixed(1)}`);
   if (lower.length > 0) paths.push(`M${lowerRight.toFixed(1)} ${lowerCentre.toFixed(1)}H${midX.toFixed(1)}V${gy.toFixed(1)}`);
   return {
     key: stage.key, format: stage.format, width: SKETCH_WIDTH, height: lowerY + lowerH + 4,
     boxes, paths, texts,
-    summary: `Podwójna eliminacja: ${stage.participantCount} uczestników, ${matchesText(stage.matches)}. Po pierwszej porażce gra się dalej w dolnej drabince; odpada się po drugiej.`,
-    note: hidden > 0 ? "Pokazano końcowe rundy obu drabinek." : null,
+    summary: t("formatSketch.podwojna_eliminacja_participantcount_ucz", { participantCount: stage.participantCount, v1: matchesText(stage.matches) }),
+    note: hidden > 0 ? t("formatSketch.pokazano_koncowe_rundy_obu_drabinek") : null,
   };
 }
 
@@ -198,9 +199,9 @@ function roundRobin(stage: SketchStageInput): SketchStage {
   return {
     key: stage.key, format: stage.format, width: SKETCH_WIDTH, height: HEADER + shown * cell + 4,
     boxes, paths: [],
-    texts: [{ x: SKETCH_WIDTH / 2, y: HEADER - 6, text: twice ? "Każdy z każdym — mecz i rewanż" : "Każdy z każdym", anchor: "middle" }],
-    summary: `Tabela każdy z każdym: ${n} uczestników, ${matchesText(stage.matches)} w ${rangeText(stage.rounds)} ${plural(stage.rounds.max, "kolejce", "kolejkach", "kolejkach")}${twice ? " (mecz i rewanż)" : ""}. Wygrywa tabela.`,
-    note: shown < n ? `Pokazano ${shown} z ${n} wierszy tabeli.` : null,
+    texts: [{ x: SKETCH_WIDTH / 2, y: HEADER - 6, text: twice ? t("formatSketch.kazdy_z_kazdym_mecz_i") : t("formatSketch.kazdy_z_kazdym"), anchor: "middle" }],
+    summary: t("formatSketch.tabela_kazdy_z_kazdym_n", { n: n, v1: matchesText(stage.matches), v2: rangeText(stage.rounds), v3: plural(stage.rounds.max, t("formatSketch.kolejce"), t("formatSketch.kolejkach"), t("formatSketch.kolejkach")), v4: twice ? t("formatSketch.mecz_i_rewanz") : "" }),
+    note: shown < n ? t("formatSketch.pokazano_shown_z_n_wierszy", { shown: shown, n: n }) : null,
   };
 }
 
@@ -221,7 +222,7 @@ function groupStage(stage: SketchStageInput): SketchStage {
     const x = (index % perRow) * (boxW + gap);
     const y = 4 + Math.floor(index / perRow) * (boxH + gap);
     boxes.push({ x, y, w: boxW, h: boxH, kind: "group" });
-    texts.push({ x: x + boxW / 2, y: y + 13, text: `Grupa ${String.fromCharCode(65 + index)}`, anchor: "middle" });
+    texts.push({ x: x + boxW / 2, y: y + 13, text: t("formatSketch.grupa_v0", { v0: String.fromCharCode(65 + index) }), anchor: "middle" });
     const seatW = Math.min(12, (boxW - 8) / 4);
     for (const seat of range(size)) {
       const sx = x + (boxW - seatW * Math.min(4, size)) / 2 + (seat % 4) * seatW;
@@ -231,13 +232,13 @@ function groupStage(stage: SketchStageInput): SketchStage {
   });
   const groups = sizes.length;
   const advance = qualifiers != null
-    ? ` Z każdej grupy awansuje ${qualifiers} (zaznaczeni).`
-    : stage.advancingCount != null ? ` Awansuje łącznie ${stage.advancingCount}.` : "";
+    ? t("formatSketch.z_kazdej_grupy_awansuje_qualifiers", { qualifiers: qualifiers })
+    : stage.advancingCount != null ? t("formatSketch.awansuje_lacznie_advancingcount", { advancingCount: stage.advancingCount }) : "";
   return {
     key: stage.key, format: stage.format, width: SKETCH_WIDTH, height: 4 + rows * (boxH + gap),
     boxes, paths: [], texts,
-    summary: `Faza grupowa: ${groups} ${plural(groups, "grupa", "grupy", "grup")}, ${matchesText(stage.matches)}; w grupie każdy gra z każdym.${advance}`,
-    note: shownGroups.length < sizes.length ? `Pokazano ${shownGroups.length} z ${sizes.length} grup.` : null,
+    summary: t("formatSketch.faza_grupowa_groups_v1_v2", { groups: groups, v1: plural(groups, t("formatSketch.grupa"), t("formatSketch.grupy"), t("formatSketch.grup")), v2: matchesText(stage.matches), advance: advance }),
+    note: shownGroups.length < sizes.length ? t("formatSketch.pokazano_length_z_length2_grup", { length: shownGroups.length, length2: sizes.length }) : null,
   };
 }
 
@@ -252,7 +253,7 @@ function swiss(stage: SketchStageInput): SketchStage {
   const paths: string[] = [];
   for (const r of range(shown)) {
     const x = r * colW + (colW - boxW) / 2;
-    texts.push({ x: x + boxW / 2, y: HEADER - 6, text: shown > 4 ? `R${r + 1}` : `Runda ${r + 1}`, anchor: "middle" });
+    texts.push({ x: x + boxW / 2, y: HEADER - 6, text: shown > 4 ? `R${r + 1}` : t("formatSketch.runda_v0", { v0: r + 1 }), anchor: "middle" });
     // Before round r+1 everybody has played r games: r+1 groups by record (w wins, r-w losses).
     for (const wins of range(r + 1).reverse()) {
       const y = HEADER + (r - wins) * (bucketH + 4) + ((shown - 1 - r) * (bucketH + 4)) / 2;
@@ -262,8 +263,8 @@ function swiss(stage: SketchStageInput): SketchStage {
   return {
     key: stage.key, format: stage.format, width: SKETCH_WIDTH, height: HEADER + shown * (bucketH + 4) + 2,
     boxes, paths, texts,
-    summary: `System szwajcarski: ${stage.participantCount} uczestników, ${roundsText(stage.rounds)}, ${matchesText(stage.matches)}. Nikt nie odpada; w każdej rundzie grają ze sobą osoby z takim samym bilansem.`,
-    note: shown < rounds ? `Pokazano ${shown} z ${rounds} rund.` : null,
+    summary: t("formatSketch.system_szwajcarski_participantcount_ucze", { participantCount: stage.participantCount, v1: roundsText(stage.rounds), v2: matchesText(stage.matches) }),
+    note: shown < rounds ? t("formatSketch.pokazano_shown_z_rounds_rund", { shown: shown, rounds: rounds }) : null,
   };
 }
 

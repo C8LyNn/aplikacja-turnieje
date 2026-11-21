@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { useLocation } from "wouter";
 import { ArrowLeft, Eye, FlaskConical, UserCog, Users } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
@@ -16,8 +17,8 @@ const TOURNAMENT_ROLES: {
 }[] = [
   {
     id: "organizer",
-    label: "Organizator",
-    desc: "Tworzenie turniejów i pełne zarządzanie rozgrywkami.",
+    get label() { return t("tournamentsHome.organizator"); },
+    get desc() { return t("tournamentsHome.tworzenie_turniejow_i_pelne_zarzadzanie"); },
     icon: <UserCog className="h-11 w-11" />,
     href: "/dashboard",
     cardHover: "hover:border-primary/60 hover:bg-primary/10",
@@ -25,8 +26,8 @@ const TOURNAMENT_ROLES: {
   },
   {
     id: "support",
-    label: "Pomoc",
-    desc: "Obsługa meczów i wprowadzanie wyników jako wsparcie organizatora.",
+    get label() { return t("tournamentsHome.pomoc"); },
+    get desc() { return t("tournamentsHome.obsluga_meczow_i_wprowadzanie_wynikow"); },
     icon: <Users className="h-11 w-11" />,
     href: "/support",
     cardHover: "hover:border-green-500/60 hover:bg-green-500/10",
@@ -34,8 +35,8 @@ const TOURNAMENT_ROLES: {
   },
   {
     id: "fan",
-    label: "Widz",
-    desc: "Publiczny dostęp do turniejów, drabinek i wyników.",
+    get label() { return t("tournamentsHome.widz"); },
+    get desc() { return t("tournamentsHome.publiczny_dostep_do_turniejow_drabinek"); },
     icon: <Eye className="h-11 w-11" />,
     href: "/fan",
     cardHover: "hover:border-orange-500/60 hover:bg-orange-500/10",
@@ -67,25 +68,23 @@ export default function TournamentsHome() {
           className="mb-8 inline-flex min-h-11 items-center gap-2 -ml-2 px-2 rounded-md text-sm font-medium text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
         >
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />
-          Wszystkie kategorie
-        </button>
+          {t("tournamentsHome.wszystkie_kategorie")}</button>
 
         <div className={`mb-10 text-center ${isExperimental ? "experimental-entry-hero p-6 sm:p-8" : ""}`}>
           {isExperimental && (
             <div className="mb-3 flex justify-center">
               <span className="experimental-mode-badge">
                 <FlaskConical className="h-3.5 w-3.5" aria-hidden="true" />
-                Experimental
-              </span>
+                {t("tournamentsHome.experimental")}</span>
             </div>
           )}
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight text-primary">
-            {isExperimental ? "Turnieje — nowy interfejs" : "Turnieje"}
+            {isExperimental ? t("tournamentsHome.turnieje_nowy_interfejs") : t("tournamentsHome.turnieje")}
           </h1>
           <p className="mt-3 text-base text-muted-foreground">
             {isExperimental
-              ? "Kim jesteś? Organizator tworzy i prowadzi turniej, Pomoc wpisuje wyniki, Widz ogląda drabinkę i tabelę."
-              : "Wybierz sposób wejścia do modułu turniejowego."}
+              ? t("tournamentsHome.kim_jestes_organizator_tworzy_i")
+              : t("tournamentsHome.wybierz_sposob_wejscia_do_modulu")}
           </p>
         </div>
 
@@ -105,8 +104,7 @@ export default function TournamentsHome() {
               <p className="text-sm leading-relaxed text-muted-foreground">{item.desc}</p>
               {role === item.id && (
                 <span className="absolute right-3 top-3 rounded-full bg-primary/15 px-2 py-0.5 text-xs font-semibold text-primary">
-                  ostatnio używane
-                </span>
+                  {t("tournamentsHome.ostatnio_uzywane")}</span>
               )}
             </button>
           ))}

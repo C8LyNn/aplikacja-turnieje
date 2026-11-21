@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { useRef, useState } from "react";
 import { AlertTriangle, CheckCircle2, Download, FileJson, Loader2, Sparkles, Upload, X } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
@@ -41,7 +42,7 @@ export function ExperimentalAiImport({
     setNetworkError(null);
     if (new Blob([raw]).size > MAX_BYTES) {
       setStatus("done");
-      setResult({ valid: false, problems: [{ path: "", code: "TOO_LARGE", message: "Plik jest za duży (maks. 64 KB)." }] });
+      setResult({ valid: false, problems: [{ path: "", code: "TOO_LARGE", message: t("experimentalAiImport.plik_jest_za_duzy_maks") }] });
       return;
     }
     setStatus("checking");
@@ -55,7 +56,7 @@ export function ExperimentalAiImport({
       setResult(body);
       setStatus("done");
     } catch {
-      setNetworkError("Nie udało się połączyć z serwerem. Spróbuj ponownie.");
+      setNetworkError(t("experimentalAiImport.nie_udalo_sie_polaczyc_z"));
       setStatus("error");
     }
   };
@@ -64,7 +65,7 @@ export function ExperimentalAiImport({
     if (!file) return;
     if (file.size > MAX_BYTES) {
       setStatus("done");
-      setResult({ valid: false, problems: [{ path: "", code: "TOO_LARGE", message: "Plik jest za duży (maks. 64 KB)." }] });
+      setResult({ valid: false, problems: [{ path: "", code: "TOO_LARGE", message: t("experimentalAiImport.plik_jest_za_duzy_maks") }] });
       return;
     }
     const content = await file.text();
@@ -77,33 +78,30 @@ export function ExperimentalAiImport({
     <section className="experimental-ai-import" aria-labelledby="experimental-ai-import-title">
       <div className="experimental-ai-import-head">
         <div>
-          <p className="experimental-wizard-eyebrow"><Sparkles className="inline h-3.5 w-3.5" aria-hidden="true" /> Projektowanie z AI</p>
-          <h3 id="experimental-ai-import-title">Wczytaj plan przygotowany przez AI</h3>
+          <p className="experimental-wizard-eyebrow"><Sparkles className="inline h-3.5 w-3.5" aria-hidden="true" /> {t("experimentalAiImport.projektowanie_z_ai")}</p>
+          <h3 id="experimental-ai-import-title">{t("experimentalAiImport.wczytaj_plan_przygotowany_przez_ai")}</h3>
         </div>
-        <button type="button" className="experimental-wizard-step-btn" aria-label="Zamknij import" onClick={onClose}>
+        <button type="button" className="experimental-wizard-step-btn" aria-label={t("experimentalAiImport.zamknij_import")} onClick={onClose}>
           <X className="h-4 w-4" />
         </button>
       </div>
 
       <ol className="experimental-ai-import-steps">
         <li>
-          <strong>Pobierz specyfikację</strong> i przekaż ją dowolnemu modelowi AI.
-          <span className="experimental-ai-import-links">
+          <strong>{t("experimentalAiImport.pobierz_specyfikacje")}</strong> {t("experimentalAiImport.i_przekaz_ja_dowolnemu_modelowi")}<span className="experimental-ai-import-links">
             <a className="experimental-v4-btn" href={AI_SPEC_URL} download>
-              <Download className="h-4 w-4" aria-hidden="true" /> Specyfikacja dla AI (.md)
-            </a>
+              <Download className="h-4 w-4" aria-hidden="true" /> {t("experimentalAiImport.specyfikacja_dla_ai_md")}</a>
             <a className="experimental-v4-btn" data-variant="ghost" href={AI_SCHEMA_URL} download>
-              <FileJson className="h-4 w-4" aria-hidden="true" /> Schemat JSON
-            </a>
+              <FileJson className="h-4 w-4" aria-hidden="true" /> {t("experimentalAiImport.schemat_json")}</a>
           </span>
         </li>
-        <li><strong>Opisz rozgrywki</strong> — np. „24 drużyny, grupy po 4, dwie najlepsze do drabinki”.</li>
-        <li><strong>Wklej odpowiedź AI</strong> albo wczytaj plik. Sprawdzimy go, zanim cokolwiek zapiszemy.</li>
-        <li><strong>Popraw i zatwierdź</strong> — nazwę i hasło wpiszesz sam; plik nie może ich ustawić.</li>
+        <li><strong>{t("experimentalAiImport.opisz_rozgrywki")}</strong> {t("experimentalAiImport.np_24_druzyny_grupy_po")}</li>
+        <li><strong>{t("experimentalAiImport.wklej_odpowiedz_ai")}</strong> {t("experimentalAiImport.albo_wczytaj_plik_sprawdzimy_go")}</li>
+        <li><strong>{t("experimentalAiImport.popraw_i_zatwierdz")}</strong> {t("experimentalAiImport.nazwe_i_haslo_wpiszesz_sam")}</li>
       </ol>
 
       <div className="experimental-wizard-field">
-        <label htmlFor="experimental-ai-import-text" className="experimental-wizard-legend">Plik JSON od AI</label>
+        <label htmlFor="experimental-ai-import-text" className="experimental-wizard-legend">{t("experimentalAiImport.plik_json_od_ai")}</label>
         <Textarea
           id="experimental-ai-import-text"
           rows={8}
@@ -120,17 +118,15 @@ export function ExperimentalAiImport({
         <div className="experimental-wizard-inline-actions">
           <button type="button" className="experimental-v4-btn" data-variant="primary" disabled={!text.trim() || status === "checking"} onClick={() => void check(text)}>
             {status === "checking" ? <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> : <CheckCircle2 className="h-4 w-4" aria-hidden="true" />}
-            Sprawdź plik
-          </button>
+            {t("experimentalAiImport.sprawdz_plik")}</button>
           <button type="button" className="experimental-v4-btn" onClick={() => fileRef.current?.click()}>
-            <Upload className="h-4 w-4" aria-hidden="true" /> Wczytaj plik
-          </button>
+            <Upload className="h-4 w-4" aria-hidden="true" /> {t("experimentalAiImport.wczytaj_plik")}</button>
           <input
             ref={fileRef}
             type="file"
             accept="application/json,.json,.txt"
             className="experimental-wizard-sr"
-            aria-label="Wybierz plik JSON od AI"
+            aria-label={t("experimentalAiImport.wybierz_plik_json_od_ai")}
             onChange={(event) => {
               void loadFile(event.target.files?.[0]);
               event.target.value = "";
@@ -145,7 +141,7 @@ export function ExperimentalAiImport({
 
       {result && !result.valid && (
         <div className="experimental-ai-import-problems" role="alert">
-          <p><AlertTriangle className="inline h-4 w-4" aria-hidden="true" /> Plik wymaga poprawek ({result.problems.length}). Nic nie zostało zapisane.</p>
+          <p><AlertTriangle className="inline h-4 w-4" aria-hidden="true" /> {t("experimentalAiImport.plik_wymaga_poprawek")}{result.problems.length}{t("experimentalAiImport.nic_nie_zostalo_zapisane")}</p>
           <ul>
             {result.problems.map((problem, index) => (
               <li key={`${problem.path}-${index}`}>
@@ -153,32 +149,31 @@ export function ExperimentalAiImport({
               </li>
             ))}
           </ul>
-          <p className="experimental-wizard-help">Możesz skopiować tę listę do AI i poprosić o poprawiony plik.</p>
+          <p className="experimental-wizard-help">{t("experimentalAiImport.mozesz_skopiowac_te_liste_do")}</p>
         </div>
       )}
 
       {valid && (
         <div className="experimental-ai-import-ok" role="status">
-          <p className="experimental-ai-import-ok-title"><CheckCircle2 className="h-5 w-5" aria-hidden="true" /> Plik jest poprawny</p>
+          <p className="experimental-ai-import-ok-title"><CheckCircle2 className="h-5 w-5" aria-hidden="true" /> {t("experimentalAiImport.plik_jest_poprawny")}</p>
           <p>
-            <strong>{valid.preview.label}</strong> · {valid.config.participants.count} {valid.config.participants.type === "teams" ? plural(valid.config.participants.count, "drużyna", "drużyny", "drużyn") : plural(valid.config.participants.count, "uczestnik", "uczestników", "uczestników")}
-            {" · "}{rangeText(valid.preview.totals.matches)} {plural(valid.preview.totals.matches.max, "mecz", "mecze", "meczów")}
+            <strong>{valid.preview.label}</strong> · {valid.config.participants.count} {valid.config.participants.type === "teams" ? plural(valid.config.participants.count, t("experimentalAiImport.druzyna"), t("experimentalAiImport.druzyny"), t("experimentalAiImport.druzyn")) : plural(valid.config.participants.count, t("experimentalAiImport.uczestnik"), t("experimentalAiImport.uczestnikow"), t("experimentalAiImport.uczestnikow"))}
+            {" · "}{rangeText(valid.preview.totals.matches)} {plural(valid.preview.totals.matches.max, t("experimentalAiImport.mecz"), t("experimentalAiImport.mecze"), t("experimentalAiImport.meczow"))}
             {" · "}{valid.preview.stages.map((stage) => stage.name).join(" → ")}
           </p>
           {valid.notes && (
             <figure className="experimental-ai-import-notes">
-              <figcaption>Uwagi z pliku (tylko do przeczytania, nie są zapisywane)</figcaption>
+              <figcaption>{t("experimentalAiImport.uwagi_z_pliku_tylko_do")}</figcaption>
               <blockquote>{valid.notes}</blockquote>
             </figure>
           )}
           <p className="experimental-wizard-help">
             {valid.continueIn === "wizard"
-              ? "Przejdziesz do kroku „Dopasuj”, gdzie możesz wszystko zmienić. Nic nie zostanie zapisane, dopóki nie klikniesz „Utwórz turniej”."
-              : "To własny plan etapów — otworzymy go w trybie zaawansowanym. Nic nie zostanie zapisane, dopóki nie klikniesz „Utwórz turniej”."}
+              ? t("experimentalAiImport.przejdziesz_do_kroku_dopasuj_gdzie")
+              : t("experimentalAiImport.to_wlasny_plan_etapow_otworzymy")}
           </p>
           <button type="button" className="experimental-v4-btn" data-variant="primary" onClick={() => onUse(valid)}>
-            Użyj tej konfiguracji
-          </button>
+            {t("experimentalAiImport.uzyj_tej_konfiguracji")}</button>
         </div>
       )}
     </section>

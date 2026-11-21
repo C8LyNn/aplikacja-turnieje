@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import type { StageSchedule, StageScheduleMatch } from "@workspace/api-client-react";
 import { formatLocalSlot, WORK_STATE_LABELS } from "@/lib/match-work-state";
 
@@ -26,8 +27,8 @@ export function leagueNextAction(schedule: StageSchedule): LeagueNextAction {
     const n = schedule.overdue.length;
     return {
       kind: "enter_overdue",
-      title: `${n} ${plural(n, "mecz czeka", "mecze czekają", "meczów czeka")} na wynik`,
-      detail: `Dzień meczu minął, a wyniku nie ma — najstarszy: ${matchTitle(first)} (${formatSlot(first)}). Jeśli mecz się nie odbył, przełóż go.`,
+      title: t("experimentalLeagueModel.n_v1_na_wynik", { n: n, v1: plural(n, t("experimentalLeagueModel.mecz_czeka"), t("experimentalLeagueModel.mecze_czekaja"), t("experimentalLeagueModel.meczow_czeka")) }),
+      detail: t("experimentalLeagueModel.dzien_meczu_minal_a_wyniku", { v0: matchTitle(first), v1: formatSlot(first) }),
       matchId: first.matchId,
     };
   }
@@ -38,8 +39,8 @@ export function leagueNextAction(schedule: StageSchedule): LeagueNextAction {
     const first = due[0]!;
     return {
       kind: "start_due",
-      title: `Pora zacząć: ${due.length} ${plural(due.length, "mecz", "mecze", "meczów")}`,
-      detail: `Planowany start minął (${formatSlot(first)}): ${matchTitle(first)}. Rozpocznij mecz albo go przełóż — wynik wpiszesz po meczu.`,
+      title: t("experimentalLeagueModel.pora_zaczac_length_v1", { length: due.length, v1: plural(due.length, t("experimentalLeagueModel.mecz"), t("experimentalLeagueModel.mecze"), t("experimentalLeagueModel.meczow")) }),
+      detail: t("experimentalLeagueModel.planowany_start_minal_v0_v1", { v0: formatSlot(first), v1: matchTitle(first) }),
       matchId: first.matchId,
     };
   }
@@ -47,28 +48,28 @@ export function leagueNextAction(schedule: StageSchedule): LeagueNextAction {
     const postponed = schedule.rounds.flatMap((round) => round.matches).find((match) => match.scheduleState === "postponed");
     return {
       kind: "reschedule_postponed",
-      title: `Ustal nowy termin: ${counts.postponed} ${plural(counts.postponed, "przełożony mecz", "przełożone mecze", "przełożonych meczów")}`,
-      detail: "Przełożony mecz zachowuje pary i historię. Wybierz nowy termin, a potem przywróć go do kolejki.",
+      title: t("experimentalLeagueModel.ustal_nowy_termin_postponed_v1", { postponed: counts.postponed, v1: plural(counts.postponed, t("experimentalLeagueModel.przelozony_mecz"), t("experimentalLeagueModel.przelozone_mecze"), t("experimentalLeagueModel.przelozonych_meczow")) }),
+      detail: t("experimentalLeagueModel.przelozony_mecz_zachowuje_pary_i"),
       matchId: postponed?.matchId ?? null,
     };
   }
   if (schedule.currentRound == null) {
-    return { kind: "finished", title: "Wszystkie mecze rozegrane", detail: "Tabela jest końcowa.", matchId: null };
+    return { kind: "finished", title: t("experimentalLeagueModel.wszystkie_mecze_rozegrane"), detail: t("experimentalLeagueModel.tabela_jest_koncowa"), matchId: null };
   }
   const round = schedule.rounds.find((entry) => entry.round === schedule.currentRound)!;
   if (counts.total > 0 && counts.unscheduled === counts.total) {
     return {
       kind: "plan_schedule",
-      title: `Kolejka ${round.round}: rozegrano ${round.completed} z ${round.total}`,
-      detail: "Liga nie ma terminarza. Możesz grać w dowolnej kolejności albo ułożyć terminy kolejek jednym kliknięciem.",
+      title: t("experimentalLeagueModel.kolejka_round_rozegrano_completed_z", { round: round.round, completed: round.completed, total: round.total }),
+      detail: t("experimentalLeagueModel.liga_nie_ma_terminarza_mozesz"),
       matchId: round.matches.find((match) => match.scheduleState === "unscheduled")?.matchId ?? null,
     };
   }
   const next = round.matches.find((match) => match.scheduleState !== "completed" && match.scheduleState !== "cancelled");
   return {
     kind: "play_round",
-    title: `Kolejka ${round.round}: rozegrano ${round.completed} z ${round.total}`,
-    detail: next ? `Następny: ${matchTitle(next)}${next.localDate ? ` · ${formatSlot(next)}` : ""}.` : "Kolejka czeka na ostatnie wyniki.",
+    title: t("experimentalLeagueModel.kolejka_round_rozegrano_completed_z", { round: round.round, completed: round.completed, total: round.total }),
+    detail: next ? t("experimentalLeagueModel.nastepny_v0_v1", { v0: matchTitle(next), v1: next.localDate ? ` · ${formatSlot(next)}` : "" }) : t("experimentalLeagueModel.kolejka_czeka_na_ostatnie_wyniki"),
     matchId: next?.matchId ?? null,
   };
 }
@@ -84,12 +85,12 @@ export function formatSlot(match: Pick<StageScheduleMatch, "localDate" | "localT
 
 /** Same words as the host work queue (lib/match-work-state). */
 export const SCHEDULE_STATE_LABELS: Record<StageScheduleMatch["scheduleState"], string> = {
-  completed: "Rozegrany",
+  get completed() { return t("experimentalLeagueModel.rozegrany"); },
   postponed: WORK_STATE_LABELS.postponed,
   cancelled: WORK_STATE_LABELS.cancelled,
   in_progress: WORK_STATE_LABELS.in_progress,
   due: WORK_STATE_LABELS.due,
   awaiting_result: WORK_STATE_LABELS.needs_result,
-  scheduled: "Zaplanowany",
-  unscheduled: "Bez terminu",
+  get scheduled() { return t("experimentalLeagueModel.zaplanowany"); },
+  get unscheduled() { return t("experimentalLeagueModel.bez_terminu"); },
 };

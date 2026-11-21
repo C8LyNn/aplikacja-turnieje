@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { Link, useLocation } from "wouter";
 import { ArrowLeft, Trophy } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
@@ -5,9 +6,9 @@ import type { Role } from "@/lib/auth";
 import { isExperimentalTournamentPath, tournamentRoleHomeHref } from "@/features/experimental-tournaments/experimental-tournament-routing";
 
 const ROLE_HOME: Record<Role, { href: string; label: string }> = {
-  organizer: { href: "/dashboard", label: "Wróć do dashboardu" },
-  support: { href: "/support", label: "Wróć do turniejów" },
-  fan: { href: "/fan", label: "Wróć do turniejów" },
+  organizer: { href: "/dashboard", get label() { return t("appNavigation.wroc_do_dashboardu"); } },
+  support: { href: "/support", get label() { return t("appNavigation.wroc_do_turniejow"); } },
+  fan: { href: "/fan", get label() { return t("appNavigation.wroc_do_turniejow"); } },
 
 };
 
@@ -44,17 +45,17 @@ export function AppLogoLink({
       href={homeHref}
       aria-current={location === homeHref ? "page" : undefined}
       className={`inline-flex items-center gap-2 rounded-sm font-bold tracking-tight text-primary ${navigationTouch} ${navigationFocus} ${className}`}
-      aria-label="Strona główna aktualnej roli"
+      aria-label={t("appNavigation.strona_glowna_aktualnej_roli")}
     >
       <Trophy className="w-6 h-6" aria-hidden="true" />
-      <span>TM_SYS</span>
+      <span>{t("appNavigation.tm_sys")}</span>
     </Link>
   );
 }
 
 export function RoleHomeLink({
   fallbackHref = "/",
-  fallbackLabel = "Wróć do strony głównej",
+  fallbackLabel = t("appNavigation.wroc_do_strony_glownej"),
   className = "",
   labelClassName = "",
 }: {
@@ -94,12 +95,12 @@ export function RoleSelectionLink({ className = "" }: { className?: string }) {
     <Link
       href={selectionHref}
       aria-current={location === selectionHref ? "page" : undefined}
-      aria-label="Zmień rolę turniejową"
+      aria-label={t("appNavigation.zmien_role_turniejowa")}
       className={`inline-flex items-center gap-1.5 whitespace-nowrap rounded-md text-sm text-muted-foreground transition-colors hover:text-foreground ${navigationTouch} ${navigationFocus} ${className}`}
     >
       <ArrowLeft className="w-4 h-4" aria-hidden="true" />
-      <span className="sm:hidden" aria-hidden="true">Zmień rolę</span>
-      <span className="hidden sm:inline" aria-hidden="true">Zmień rolę turniejową</span>
+      <span className="sm:hidden" aria-hidden="true">{t("appNavigation.zmien_role")}</span>
+      <span className="hidden sm:inline" aria-hidden="true">{t("appNavigation.zmien_role_turniejowa")}</span>
     </Link>
   );
 }

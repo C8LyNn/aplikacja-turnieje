@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import {
   Activity,
   Clock3,
@@ -59,16 +60,16 @@ export function ExperimentalHostCommandCenter({
   finalPlacesHref?: string;
 }) {
   const stateLabel = dataError
-    ? "Dane wymagają odświeżenia"
+    ? t("experimentalHostCommandCenter.dane_wymagaja_odswiezenia")
     : dataLoading
-      ? "Pobieranie stanu"
+      ? t("experimentalHostCommandCenter.pobieranie_stanu")
       : isCompleted
-        ? "Turniej zakończony"
+        ? t("experimentalHostCommandCenter.turniej_zakonczony")
         : liveCount > 0
-          ? "Mecz na żywo"
+          ? t("experimentalHostCommandCenter.mecz_na_zywo")
           : readyCount > 0
-            ? "Mecze gotowe"
-            : "Oczekiwanie";
+            ? t("experimentalHostCommandCenter.mecze_gotowe")
+            : t("experimentalHostCommandCenter.oczekiwanie");
   const stateTone =
     dataError
       ? "danger"
@@ -85,23 +86,23 @@ export function ExperimentalHostCommandCenter({
   const queueHref = (filter: string) => tournamentHref(tournamentId, true, `/host?kolejka=${filter}`);
   const subtitle = isCompleted
     ? championName
-      ? `Zwycięzca: ${championName}.`
-      : "Turniej został zakończony."
+      ? t("experimentalHostCommandCenter.zwyciezca_championname", { championName: championName })
+      : t("experimentalHostCommandCenter.turniej_zostal_zakonczony")
     : [formatLabel && formatLabel !== stageName ? formatLabel : null, roundLabel].filter(Boolean).join(" · ");
   const alerts = isCompleted || dataLoading || dataError ? [] : [
-    liveCount > 0 && { key: "in_progress", label: "Na żywo", tone: "live" as const, value: liveCount, meta: "mecze w trakcie", icon: Activity },
-    needsResultCount > 0 && { key: "needs_result", label: "Czeka na wynik", tone: "danger" as const, value: needsResultCount, meta: "dzień meczu minął, brak wyniku", icon: PenLine },
-    dueCount > 0 && { key: "due", label: "Start minął", tone: "warning" as const, value: dueCount, meta: "rozpocznij albo przełóż", icon: Clock3 },
+    liveCount > 0 && { key: "in_progress", label: t("experimentalHostCommandCenter.na_zywo"), tone: "live" as const, value: liveCount, meta: t("experimentalHostCommandCenter.mecze_w_trakcie"), icon: Activity },
+    needsResultCount > 0 && { key: "needs_result", label: t("experimentalHostCommandCenter.czeka_na_wynik"), tone: "danger" as const, value: needsResultCount, meta: t("experimentalHostCommandCenter.dzien_meczu_minal_brak_wyniku"), icon: PenLine },
+    dueCount > 0 && { key: "due", label: t("experimentalHostCommandCenter.start_minal"), tone: "warning" as const, value: dueCount, meta: t("experimentalHostCommandCenter.rozpocznij_albo_przeloz"), icon: Clock3 },
   ].filter((alert): alert is Exclude<typeof alert, false> => Boolean(alert));
   return (
     <section
-      aria-label="Centrum prowadzenia turnieju"
+      aria-label={t("experimentalHostCommandCenter.centrum_prowadzenia_turnieju")}
       className="experimental-host-command-center rounded-xl border p-4 sm:p-5"
       data-compact="true"
     >
       <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
         <div className="min-w-0">
-          <p className="experimental-host-overline">{isCompleted ? "Podsumowanie" : "Bieżący etap"}</p>
+          <p className="experimental-host-overline">{isCompleted ? t("experimentalHostCommandCenter.podsumowanie") : t("experimentalHostCommandCenter.biezacy_etap")}</p>
           <h2 className="mt-0.5 text-lg font-semibold leading-tight">{stageName}</h2>
           <p className="mt-0.5 text-sm text-muted-foreground">{subtitle}</p>
         </div>
@@ -110,25 +111,24 @@ export function ExperimentalHostCommandCenter({
           {!isCompleted && totalCount > 0 && (
             <Link href={tournamentHref(tournamentId, true, "/host?tab=wyniki")} className={linkClass}>
               <Trophy className="h-4 w-4" aria-hidden="true" />
-              Wszystkie wyniki
-            </Link>
+              {t("experimentalHostCommandCenter.wszystkie_wyniki")}</Link>
           )}
         </div>
       </div>
       {totalCount > 0 && (
         <div className="mt-3">
           <div className="flex items-baseline justify-between text-xs text-muted-foreground">
-            <span>Postęp etapu</span>
-            <span className="tabular-nums">{completedCount}/{totalCount} meczów · {progress}%</span>
+            <span>{t("experimentalHostCommandCenter.postep_etapu")}</span>
+            <span className="tabular-nums">{completedCount}/{totalCount} {t("experimentalHostCommandCenter.meczow")}{" "}{progress}%</span>
           </div>
           <div
             className="experimental-host-progress mt-1.5"
             role="progressbar"
-            aria-label="Postęp bieżącego etapu"
+            aria-label={t("experimentalHostCommandCenter.postep_biezacego_etapu")}
             aria-valuemin={0}
             aria-valuemax={totalCount}
             aria-valuenow={completedCount}
-            aria-valuetext={`${completedCount} z ${totalCount} meczów zakończonych`}
+            aria-valuetext={t("experimentalHostCommandCenter.completedcount_z_totalcount_meczow_zakon", { completedCount: completedCount, totalCount: totalCount })}
           >
             <span style={{ width: `${progress}%` }} />
           </div>
@@ -137,20 +137,20 @@ export function ExperimentalHostCommandCenter({
       {isCompleted && (
         <div className="mt-4 rounded-lg border border-primary/30 bg-primary/5 p-3 text-sm" data-testid="host-completed-summary">
           {/* V5.6: the winner is named once, in the heading above. */}
-          <p className="font-semibold">Co dalej</p>
-          <p className="mt-1 text-muted-foreground">Sprawdź końcowe miejsca, pokaż wyniki widzom, zapisz kopię zapasową i przygotuj następny turniej.</p>
+          <p className="font-semibold">{t("experimentalHostCommandCenter.co_dalej")}</p>
+          <p className="mt-1 text-muted-foreground">{t("experimentalHostCommandCenter.sprawdz_koncowe_miejsca_pokaz_wyniki")}</p>
           <div className="mt-2 flex flex-wrap gap-2">
-            <Link href={finalPlacesHref ?? tournamentHref(tournamentId, true, "?tab=standings")} className={linkClass}><Trophy className="h-4 w-4" aria-hidden="true" />Końcowe miejsca</Link>
-            <Link href={tournamentHref(tournamentId, true, "/audience")} className={linkClass}><Eye className="h-4 w-4" aria-hidden="true" />Widok widzów</Link>
-            <Link href={tournamentHref(tournamentId, true, "?tab=backup")} className={linkClass}><ListChecks className="h-4 w-4" aria-hidden="true" />Kopia zapasowa</Link>
-            <Link href={tournamentHref(tournamentId, true, "?tab=backup&kopiuj=1")} className={linkClass}><CopyPlus className="h-4 w-4" aria-hidden="true" />Następny turniej</Link>
+            <Link href={finalPlacesHref ?? tournamentHref(tournamentId, true, "?tab=standings")} className={linkClass}><Trophy className="h-4 w-4" aria-hidden="true" />{t("experimentalHostCommandCenter.koncowe_miejsca")}</Link>
+            <Link href={tournamentHref(tournamentId, true, "/audience")} className={linkClass}><Eye className="h-4 w-4" aria-hidden="true" />{t("experimentalHostCommandCenter.widok_widzow")}</Link>
+            <Link href={tournamentHref(tournamentId, true, "?tab=backup")} className={linkClass}><ListChecks className="h-4 w-4" aria-hidden="true" />{t("experimentalHostCommandCenter.kopia_zapasowa")}</Link>
+            <Link href={tournamentHref(tournamentId, true, "?tab=backup&kopiuj=1")} className={linkClass}><CopyPlus className="h-4 w-4" aria-hidden="true" />{t("experimentalHostCommandCenter.nastepny_turniej")}</Link>
           </div>
         </div>
       )}
       {alerts.length > 0 && (
-        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3" role="group" aria-label="Wymaga działania">
+        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-3" role="group" aria-label={t("experimentalHostCommandCenter.wymaga_dzialania")}>
           {alerts.map((alert) => (
-            <Link key={alert.key} href={queueHref(alert.key)} className="experimental-host-alert rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" aria-label={`${alert.label}: ${alert.value} — pokaż w kolejce`}>
+            <Link key={alert.key} href={queueHref(alert.key)} className="experimental-host-alert rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" aria-label={t("experimentalHostCommandCenter.label_value_pokaz_w_kolejce", { label: alert.label, value: alert.value })}>
               <ExperimentalMetricCard label={alert.label} tone={alert.tone} value={alert.value} meta={alert.meta} icon={alert.icon} />
             </Link>
           ))}

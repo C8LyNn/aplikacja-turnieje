@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { Layout } from "@/components/layout";
 import {
   BookOpen, Play, RotateCcw, Download, Upload, Clock, AlertTriangle,
@@ -78,187 +79,125 @@ export default function HelpPage() {
         <div className="flex items-center gap-3">
           <div>
             <h1 className="text-2xl font-bold flex items-center gap-2">
-              <HelpCircle className="w-6 h-6 text-primary" /> Instrukcja obsługi
-            </h1>
-            <p className="text-sm text-muted-foreground">Krok po kroku — jak przygotować i poprowadzić turniej.</p>
+              <HelpCircle className="w-6 h-6 text-primary" /> {t("help.instrukcja_obslugi")}</h1>
+            <p className="text-sm text-muted-foreground">{t("help.krok_po_kroku_jak_przygotowac")}</p>
           </div>
         </div>
 
-        <Section icon={<Users className="w-5 h-5" />} title="1. Przygotowanie turnieju" defaultOpen>
+        <Section icon={<Users className="w-5 h-5" />} title={t("help.1_przygotowanie_turnieju")} defaultOpen>
           <div className="space-y-2">
             <Step n={1}>
-              Kliknij <strong>Nowy turniej</strong> na dashboardzie i uzupełnij:
-              nazwę, opis (opcjonalnie), format (polecamy <em>Drabinka eliminacyjna</em> dla 1v1),
-              maksymalną liczbę graczy (np. 32) i domyślny format meczów (BO1 / BO3 / BO5 / BO7).
-            </Step>
+              {t("help.kliknij")}{" "}<strong>{t("help.nowy_turniej")}</strong> {t("help.na_dashboardzie_i_uzupelnij_nazwe")}{" "}<em>{t("help.drabinka_eliminacyjna")}</em> {t("help.dla_1v1_maksymalna_liczbe_graczy")}</Step>
             <Step n={2}>
-              Przejdź do zakładki <strong>Gracze</strong> i dodaj zawodników.
-              Możesz dodawać ręcznie lub wczytać plik CSV. Format CSV:
-              <code className="block bg-muted px-3 py-2 rounded text-xs mt-1.5 text-foreground font-mono whitespace-pre">
-{`name,seed,rank
-Alpha,1,Immortal
-Bravo,2,Divine
-Charlie,,Ancient`}
+              {t("help.przejdz_do_zakladki")}{" "}<strong>{t("help.gracze")}</strong> {t("help.i_dodaj_zawodnikow_mozesz_dodawac")}<code className="block bg-muted px-3 py-2 rounded text-xs mt-1.5 text-foreground font-mono whitespace-pre">
+{t("help.name_seed_rank_alpha_1")}
               </code>
-              Kolumna <code>name</code> (lub <code>nick</code>) jest wymagana. Pozostałe opcjonalne.
-            </Step>
+              {t("help.kolumna")}{" "}<code>{t("help.name")}</code> {t("help.lub")}{" "}<code>{t("help.nick")}</code>{t("help.jest_wymagana_pozostale_opcjonalne")}</Step>
             <Step n={3}>
-              <strong>Rozstawienie (seed):</strong> jeśli chcesz, żeby najlepsi gracze nie grali ze sobą
-              w pierwszej rundzie, przypisz im numerki seed (1 = najlepszy).
-              Aplikacja automatycznie ułoży drabinkę wg standardu:
-              seed 1 vs ostatni, seed 2 vs przedostatni, itd.
-              Jeśli nie zależy Ci na rozstawieniu — nie wypełniaj pola seed.
-            </Step>
+              <strong>{t("help.rozstawienie_seed")}</strong> {t("help.jesli_chcesz_zeby_najlepsi_gracze")}</Step>
             <Step n={4}>
-              Ustaw <strong>hasło organizatora</strong> podczas tworzenia nowego turnieju.
-              Dostęp dla obsługi i widzów konfiguruj osobno; sam link do turnieju nie jest hasłem.
-            </Step>
+              {t("help.ustaw")}{" "}<strong>{t("help.haslo_organizatora")}</strong> {t("help.podczas_tworzenia_nowego_turnieju_dostep")}</Step>
             <Step n={5}>
-              Kliknij <strong>Wystartuj turniej</strong> — aplikacja wygeneruje drabinkę,
-              harmonogram Round Robin albo pierwszą rundę Swiss i zablokuje listę graczy.
-            </Step>
-            <Tip>Sprawdź drabinkę w zakładce Drabinka zanim zaczniesz grę — po wystartowaniu nie można już edytować listy graczy.</Tip>
+              {t("help.kliknij")}{" "}<strong>{t("help.wystartuj_turniej")}</strong> {t("help.aplikacja_wygeneruje_drabinke_harmonogra")}</Step>
+            <Tip>{t("help.sprawdz_drabinke_w_zakladce_drabinka")}</Tip>
           </div>
         </Section>
 
-        <Section icon={<Play className="w-5 h-5" />} title="2. Prowadzenie meczów">
+        <Section icon={<Play className="w-5 h-5" />} title={t("help.2_prowadzenie_meczow")}>
           <div className="space-y-2">
             <Step n={1}>
-              Otwórz <strong>Panel prowadzącego</strong> z poziomu turnieju.
-              Zaloguj się hasłem organizatora lub uprawnioną sesją obsługi.
-              W starszych turniejach może być dostępny dotychczasowy kod prowadzącego.
-            </Step>
+              {t("help.otworz")}{" "}<strong>{t("help.panel_prowadzacego")}</strong> {t("help.z_poziomu_turnieju_zaloguj_sie")}</Step>
             <Step n={2}>
-              Kliknij <strong>Rozpocznij</strong> dla aktywnego meczu.
-              Mecz zmienia status na LIVE i pojawia się na widoku widzów.
-            </Step>
+              {t("help.kliknij")}{" "}<strong>{t("help.rozpocznij")}</strong> {t("help.dla_aktywnego_meczu_mecz_zmienia")}</Step>
             <Step n={3}>
-              Klikaj <strong>+</strong> / <strong>-</strong> przy każdym zawodniku, by aktualizować wynik.
-              Format BO1/BO3/BO5/BO7 możesz zmienić przyciskami w nagłówku meczu przed jego rozpoczęciem.
-            </Step>
+              {t("help.klikaj")}{" "}<strong>+</strong> / <strong>-</strong> {t("help.przy_kazdym_zawodniku_by_aktualizowac")}</Step>
             <Step n={4}>
-              Po osiągnięciu pełnego progu serii kliknij <strong>Zakończ rozegrany mecz</strong>.
-              Dla BO3 poprawne wyniki to 2:0 albo 2:1. W eliminacjach zwycięzca automatycznie awansuje.
-            </Step>
+              {t("help.po_osiagnieciu_pelnego_progu_serii")}{" "}<strong>{t("help.zakoncz_rozegrany_mecz")}</strong>{t("help.dla_bo3_poprawne_wyniki_to")}</Step>
             <Step n={5}>
-              Jeśli zawodnik <strong>nie pojawił się</strong> (walkower): użyj przycisku <strong>W.O.</strong>
-              i wybierz zwycięzcę. Walkower jest osobnym rozstrzygnięciem i nie zapisuje sztucznego score 1:0.
-            </Step>
+              {t("help.jesli_zawodnik")}{" "}<strong>{t("help.nie_pojawil_sie")}</strong> {t("help.walkower_uzyj_przycisku")}{" "}<strong>{t("help.w_o")}</strong>
+              {t("help.i_wybierz_zwyciezce_walkower_jest")}</Step>
             <Step n={6}>
-              Mecze możesz <strong>przełożyć</strong> (znikają z kolejki, wróć do nich później)
-              albo oznaczyć jako <strong>no contest</strong> w formacie, który pozwala zakończyć mecz bez zwycięzcy.
-            </Step>
-            <Good>Wynik można cofnąć, dopóki nie rozpoczęto zależnego meczu lub kolejnej rundy. Systemowego bye nie cofa się ręcznie.</Good>
-            <Tip>Po zakończeniu wszystkich meczów rundy aplikacja automatycznie zaproponuje przejście do następnej rundy (dla Swiss). Dla drabinki eliminacyjnej kolejne mecze wypełniają się automatycznie.</Tip>
+              {t("help.mecze_mozesz")}{" "}<strong>{t("help.przelozyc")}</strong> {t("help.znikaja_z_kolejki_wroc_do")}{" "}<strong>{t("help.no_contest")}</strong> {t("help.w_formacie_ktory_pozwala_zakonczyc")}</Step>
+            <Good>{t("help.wynik_mozna_cofnac_dopoki_nie")}</Good>
+            <Tip>{t("help.po_zakonczeniu_wszystkich_meczow_rundy")}</Tip>
           </div>
         </Section>
 
-        <Section icon={<Monitor className="w-5 h-5" />} title="3. Widok widzów (projektor)">
+        <Section icon={<Monitor className="w-5 h-5" />} title={t("help.3_widok_widzow_projektor")}>
           <div className="space-y-2">
             <Step n={1}>
-              Przejdź do <strong>Widok widzów</strong> (link /audience) — pełnoekranowy widok
-              zaprojektowany do wyświetlania na projektorze lub dodatkowym monitorze.
-            </Step>
+              {t("help.przejdz_do")}{" "}<strong>{t("help.widok_widzow")}</strong> {t("help.link_audience_pelnoekranowy_widok_zaproj")}</Step>
             <Step n={2}>
-              Widok odświeża się automatycznie co 4 sekundy.
-              Pokazuje: bieżący mecz LIVE, klasyfikację lub bilans, ostatnie wyniki i nadchodzące mecze.
-            </Step>
+              {t("help.widok_odswieza_sie_automatycznie_co")}</Step>
             <Step n={3}>
-              Możesz <strong>wyróżnić konkretny mecz</strong> (gwiazdka ★ w panelu prowadzącego),
-              żeby zawsze był widoczny na górze ekranu widzów.
-            </Step>
+              {t("help.mozesz")}{" "}<strong>{t("help.wyroznic_konkretny_mecz")}</strong> {t("help.gwiazdka_w_panelu_prowadzacego_zeby")}</Step>
             <Step n={4}>
-              Link /bracket pokazuje pełną drabinkę — przydatny jako drugi widok.
-              Kliknij ikonę ⛶ aby wejść w tryb pełnoekranowy.
-            </Step>
-            <Good>Widok widzów nie ma żadnych przycisków edycji — można go bezpiecznie wyświetlić publiczności.</Good>
+              {t("help.link_bracket_pokazuje_pelna_drabinke")}</Step>
+            <Good>{t("help.widok_widzow_nie_ma_zadnych")}</Good>
           </div>
         </Section>
 
-        <Section icon={<RotateCcw className="w-5 h-5" />} title="4. Co zrobić przy pomyłce">
+        <Section icon={<RotateCcw className="w-5 h-5" />} title={t("help.4_co_zrobic_przy_pomylce")}>
           <div className="space-y-2">
             <Step n={1}>
-              <strong>Błędny wynik:</strong> kliknij <em>Cofnij wynik</em> przy zakończonym meczu
-              albo użyj <em>Cofnij</em> w górnym pasku. Mecz wróci do stanu oczekującego, a jego historia pozostanie w audycie.
-            </Step>
+              <strong>{t("help.bledny_wynik")}</strong> {t("help.kliknij_2")}{" "}<em>{t("help.cofnij_wynik")}</em> {t("help.przy_zakonczonym_meczu_albo_uzyj")}{" "}<em>{t("help.cofnij")}</em> {t("help.w_gornym_pasku_mecz_wroci")}</Step>
             <Step n={2}>
-              <strong>Cofnięcie działa tylko o 1 akcję w tył.</strong> Jeśli popełniłeś kilka błędów pod rząd,
-              cofaj je kolejno — każde cofnięcie odsłania poprzednią akcję.
-            </Step>
+              <strong>{t("help.cofniecie_dziala_tylko_o_1")}</strong> {t("help.jesli_popelniles_kilka_bledow_pod")}</Step>
             <Step n={3}>
-              <strong>Cofnąłeś za dużo?</strong> Przejdź do zakładki <em>Log akcji</em>,
-              znajdź właściwy mecz i ponownie zatwierdź wynik.
-            </Step>
+              <strong>{t("help.cofnales_za_duzo")}</strong> {t("help.przejdz_do_zakladki")}{" "}<em>{t("help.log_akcji")}</em>{t("help.znajdz_wlasciwy_mecz_i_ponownie")}</Step>
             <Step n={4}>
-              <strong>Coś poszło bardzo nie tak?</strong> Sprawdź dostępny backup (patrz sekcja niżej).
-              Import zgodnego pliku V2 tworzy nowy turniej; import eksportu V3 jest obecnie wyłączony.
-            </Step>
+              <strong>{t("help.cos_poszlo_bardzo_nie_tak")}</strong> {t("help.sprawdz_dostepny_backup_patrz_sekcja")}</Step>
             <Tip>
-              Jeśli cofasz wynik i zwycięzca już grał kolejny mecz —
-              musisz najpierw cofnąć wynik tego kolejnego meczu, dopiero potem poprzedniego.
-            </Tip>
+              {t("help.jesli_cofasz_wynik_i_zwyciezca")}</Tip>
           </div>
         </Section>
 
-        <Section icon={<Download className="w-5 h-5" />} title="5. Backup i przywracanie">
+        <Section icon={<Download className="w-5 h-5" />} title={t("help.5_backup_i_przywracanie")}>
           <div className="space-y-2">
             <Step n={1}>
-              W panelu turnieju wybierz <strong>Eksport backupu</strong> i zachowaj plik JSON.
-              Eksport V3 jest dostępny, ale <strong>import V3 jest wyłączony</strong>.
+              {t("help.w_panelu_turnieju_wybierz")}{" "}<strong>{t("help.eksport_backupu")}</strong> {t("help.i_zachowaj_plik_json_eksport")}{" "}<strong>{t("help.import_v3_jest_wylaczony")}</strong>.
             </Step>
             <Step n={2}>
-              Rób backup <strong>po każdej rundzie</strong> i zawsze przed przerwą lub zakończeniem turnieju.
-            </Step>
+              {t("help.rob_backup")}{" "}<strong>{t("help.po_kazdej_rundzie")}</strong> {t("help.i_zawsze_przed_przerwa_lub")}</Step>
             <Step n={3}>
-              <strong>Import V2:</strong> wybierz <em>Import backupu</em> i wczytaj zgodny plik V2.
-              Serwer weryfikuje plik przed utworzeniem nowego turnieju. Eksportu V3 nie można tam wczytać.
-            </Step>
-            <Good>Chroń pliki backupu: mogą zawierać dane zawodników, mecze i historię turnieju.</Good>
-            <Tip>Po imporcie V2 sprawdź aktualne uprawnienia i ustaw nowe dane dostępu. Nie traktuj backupu jako kopii aktywnych sesji.</Tip>
+              <strong>{t("help.import_v2")}</strong> {t("help.wybierz")}{" "}<em>{t("help.import_backupu")}</em> {t("help.i_wczytaj_zgodny_plik_v2")}</Step>
+            <Good>{t("help.chron_pliki_backupu_moga_zawierac")}</Good>
+            <Tip>{t("help.po_imporcie_v2_sprawdz_aktualne")}</Tip>
           </div>
         </Section>
 
-        <Section icon={<Swords className="w-5 h-5" />} title="6. Szybki start — turniej Deadlock 1v1">
+        <Section icon={<Swords className="w-5 h-5" />} title={t("help.6_szybki_start_turniej_deadlock")}>
           <div className="space-y-2">
-            <p className="text-foreground/80">Sprawdzony przepis na turniej 1v1:</p>
+            <p className="text-foreground/80">{t("help.sprawdzony_przepis_na_turniej_1v1")}</p>
             <div className="bg-muted/30 rounded-lg px-4 py-3 space-y-1.5 text-xs text-foreground/70">
-              <div>✅ Format: <strong>Drabinka eliminacyjna</strong></div>
-              <div>✅ Maks. graczy: <strong>32</strong></div>
-              <div>✅ Domyślny format meczu: <strong>BO3</strong> (lub BO1 dla szybszego turnieju)</div>
-              <div>✅ Model wyniku: <strong>series_v1</strong> — rezultat oznacza wygrane gry lub mapy, a mecz wyłania zwycięzcę.</div>
-              <div>✅ Losowanie przez import CSV bez seedów = losowe pary R1</div>
-              <div>✅ Backup po każdej rundzie</div>
+              <div>{t("help.format")}{" "}<strong>{t("help.drabinka_eliminacyjna")}</strong></div>
+              <div>{t("help.maks_graczy")}{" "}<strong>32</strong></div>
+              <div>{t("help.domyslny_format_meczu")}{" "}<strong>{t("help.bo3")}</strong> {t("help.lub_bo1_dla_szybszego_turnieju")}</div>
+              <div>{t("help.model_wyniku")}{" "}<strong>{t("help.series_v1")}</strong> {t("help.rezultat_oznacza_wygrane_gry_lub")}</div>
+              <div>{t("help.losowanie_przez_import_csv_bez")}</div>
+              <div>{t("help.backup_po_kazdej_rundzie")}</div>
             </div>
             <Step n={1}>
-              Użyj przycisku <strong>Dane testowe</strong> na dashboardzie, żeby sprawdzić aplikację
-              przed prawdziwym turniejem — tworzy gotowy turniej z przykładowymi graczami.
-            </Step>
-            <Good>Przetestuj pełny przebieg (wyniki, cofnięcie, backup, import) na danych testowych zanim zaczną grać prawdziwi zawodnicy.</Good>
+              {t("help.uzyj_przycisku")}{" "}<strong>{t("help.dane_testowe")}</strong> {t("help.na_dashboardzie_zeby_sprawdzic_aplikacje")}</Step>
+            <Good>{t("help.przetestuj_pelny_przebieg_wyniki_cofniec")}</Good>
           </div>
         </Section>
 
-        <Section icon={<Shield className="w-5 h-5" />} title="7. Bezpieczeństwo i dostęp do turnieju">
+        <Section icon={<Shield className="w-5 h-5" />} title={t("help.7_bezpieczenstwo_i_dostep_do")}>
           <div className="space-y-2">
             <Step n={1}>
-              W nowych turniejach chroń <strong>hasło organizatora</strong>.
-              Konta lub sesje obsługi przyznawaj tylko zaufanym osobom.
-            </Step>
+              {t("help.w_nowych_turniejach_chron")}{" "}<strong>{t("help.haslo_organizatora")}</strong>{t("help.konta_lub_sesje_obslugi_przyznawaj")}</Step>
             <Step n={2}>
-              Hasło i sesja dostępu to różne rzeczy. Na współdzielonym urządzeniu
-              wyloguj się po zakończeniu pracy i nie pozostawiaj otwartego panelu organizatora.
-            </Step>
+              {t("help.haslo_i_sesja_dostepu_to")}</Step>
             <Step n={3}>
-              Widok widzów jest przeznaczony do odczytu. Jeśli ustawiono hasło widza,
-              odbiorca musi się uwierzytelnić. Nie zakładaj, że każdy widok jest publiczny.
-            </Step>
-            <Tip>Nie udostępniaj haseł organizatora lub obsługi. Adres panelu nie powinien zastępować weryfikacji uprawnień.</Tip>
+              {t("help.widok_widzow_jest_przeznaczony_do")}</Step>
+            <Tip>{t("help.nie_udostepniaj_hasel_organizatora_lub")}</Tip>
           </div>
         </Section>
 
         <div className="text-center pt-2 pb-6">
           <p className="text-xs text-muted-foreground">
-            TM_SYS · Pytania? Zajrzyj do panelu prowadzącego lub sprawdź zakładkę Asystent w szczegółach turnieju.
-          </p>
+            {t("help.tm_sys_pytania_zajrzyj_do")}</p>
         </div>
       </div>
     </Layout>

@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { useEffect, useMemo, useState, useCallback } from "react";
 import {
   DEADLOCK_CONFIG_VERSION,
@@ -51,7 +52,7 @@ export function DeadlockHeroIcon({
   if (failed) {
     return (
       <span
-        aria-label={`${hero.displayName} — brak ikony`}
+        aria-label={t("deadlockGameConfig.displayname_brak_ikony", { displayName: hero.displayName })}
         className={cn(
           "inline-flex items-center justify-center rounded bg-muted font-semibold text-muted-foreground",
           className,
@@ -92,7 +93,7 @@ export function ForcedHeroBadge({
       ) : (
         <Gamepad2 className={compact ? "h-6 w-6" : "h-8 w-8"} />
       )}
-      <span>Deadlock</span>
+      <span>{t("deadlockGameConfig.deadlock")}</span>
       {hero && <span className="font-semibold">· {hero.displayName}</span>}
     </Badge>
   );
@@ -127,8 +128,7 @@ export function GameConfigPicker({
     <div className="space-y-4">
       <div className="space-y-2">
         <Label htmlFor="tournament-game">
-          Specjalne zasady gry (opcjonalnie)
-        </Label>
+          {t("deadlockGameConfig.specjalne_zasady_gry_opcjonalnie")}</Label>
         <Select
           value={value?.gameId ?? "none"}
           disabled={disabled || lockGameSelection}
@@ -150,20 +150,18 @@ export function GameConfigPicker({
             )
           }
         >
-          <SelectTrigger id="tournament-game" aria-label="Gra (opcjonalnie)">
+          <SelectTrigger id="tournament-game" aria-label={t("deadlockGameConfig.gra_opcjonalnie")}>
             <SelectValue />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="none">Bez konfiguracji gry</SelectItem>
-            <SelectItem value={DEADLOCK_GAME_ID}>Deadlock</SelectItem>
+            <SelectItem value="none">{t("deadlockGameConfig.bez_konfiguracji_gry")}</SelectItem>
+            <SelectItem value={DEADLOCK_GAME_ID}>{t("deadlockGameConfig.deadlock")}</SelectItem>
             <SelectItem value={MARVEL_GAME_ID}>
-              Marvel — Eliminacyjne grupy
-            </SelectItem>
+              {t("deadlockGameConfig.marvel_eliminacyjne_grupy")}</SelectItem>
           </SelectContent>
         </Select>
         <p className="text-xs text-muted-foreground">
-          Marvel uruchamia eliminacyjne grupy FFA wewnątrz jednego etapu.
-        </p>
+          {t("deadlockGameConfig.marvel_uruchamia_eliminacyjne_grupy_ffa")}</p>
       </div>
 
       {value?.gameId === DEADLOCK_GAME_ID && (
@@ -171,20 +169,19 @@ export function GameConfigPicker({
 
           <div className="space-y-3">
             <div>
-              <Label>Wymuszona postać (opcjonalnie)</Label>
+              <Label>{t("deadlockGameConfig.wymuszona_postac_opcjonalnie")}</Label>
               <p className="text-xs text-muted-foreground">
-                Jeżeli wybierzesz postać, obowiązuje ona wszystkich uczestników turnieju.
-              </p>
+                {t("deadlockGameConfig.jezeli_wybierzesz_postac_obowiazuje_ona")}</p>
             </div>
             <div className="relative">
               <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
               <Input
-                aria-label="Szukaj postaci Deadlocka"
+                aria-label={t("deadlockGameConfig.szukaj_postaci_deadlocka")}
                 className="pl-9"
                 value={search}
                 disabled={disabled}
                 onChange={(event) => setSearch(event.target.value)}
-                placeholder="Szukaj postaci…"
+                placeholder={t("deadlockGameConfig.szukaj_postaci")}
               />
             </div>
             <div className="max-h-72 overflow-y-auto rounded-md border p-2">
@@ -223,7 +220,7 @@ export function GameConfigPicker({
 
           {/* Ban mode */}
           <div className="space-y-2">
-            <Label>Tryb banowania</Label>
+            <Label>{t("deadlockGameConfig.tryb_banowania")}</Label>
             <div className="grid grid-cols-2 gap-2">
               {(["shared_pool", "opponent_only"] as const).map((mode) => (
                 <button
@@ -240,12 +237,12 @@ export function GameConfigPicker({
                   )}
                 >
                   <p className="font-semibold text-sm mb-0.5">
-                    {mode === "shared_pool" ? "Wspólna pula banów" : "Bany przeciwnika"}
+                    {mode === "shared_pool" ? t("deadlockGameConfig.wspolna_pula_banow") : t("deadlockGameConfig.bany_przeciwnika")}
                   </p>
                   <p className="text-muted-foreground text-[11px] leading-snug">
                     {mode === "shared_pool"
-                      ? "Gracz nie może wybrać hero zbanowanego przez siebie ani przeciwnika."
-                      : "Gracz nie może wybrać hero zbanowanego przez przeciwnika (własne bany go nie blokują)."}
+                      ? t("deadlockGameConfig.gracz_nie_moze_wybrac_hero")
+                      : t("deadlockGameConfig.gracz_nie_moze_wybrac_hero_2")}
                   </p>
                 </button>
               ))}
@@ -254,11 +251,11 @@ export function GameConfigPicker({
 
           {/* Bans per player */}
           <div className="space-y-2">
-            <Label>Bany na gracza (0–20)</Label>
+            <Label>{t("deadlockGameConfig.bany_na_gracza_0_20")}</Label>
             <div className="flex items-center gap-2">
               <button
                 type="button"
-                aria-label="Zmniejsz liczbę banów"
+                aria-label={t("deadlockGameConfig.zmniejsz_liczbe_banow")}
                 disabled={disabled || bansPerPlayer <= 0}
                 onClick={() => onChange({ ...value!, config: { ...value!.config, bansPerPlayer: Math.max(0, bansPerPlayer - 1) } })}
                 className="w-8 h-8 flex items-center justify-center rounded border border-border hover:bg-muted/50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
@@ -268,7 +265,7 @@ export function GameConfigPicker({
               <span className="w-8 text-center font-mono font-bold text-lg" aria-live="polite">{bansPerPlayer}</span>
               <button
                 type="button"
-                aria-label="Zwiększ liczbę banów"
+                aria-label={t("deadlockGameConfig.zwieksz_liczbe_banow")}
                 disabled={disabled || bansPerPlayer >= 20}
                 onClick={() => onChange({ ...value!, config: { ...value!.config, bansPerPlayer: Math.min(20, bansPerPlayer + 1) } })}
                 className="w-8 h-8 flex items-center justify-center rounded border border-border hover:bg-muted/50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
@@ -276,7 +273,7 @@ export function GameConfigPicker({
                 <Plus className="w-3.5 h-3.5" />
               </button>
               <span className="text-xs text-muted-foreground">
-                {bansPerPlayer === 0 ? "Bany wyłączone" : `${bansPerPlayer} ban${bansPerPlayer === 1 ? "" : "y/ów"} na gracza`}
+                {bansPerPlayer === 0 ? t("deadlockGameConfig.bany_wylaczone") : t("deadlockGameConfig.bansperplayer_ban_v1_na_gracza", { bansPerPlayer: bansPerPlayer, v1: bansPerPlayer === 1 ? "" : "y/ów" })}
               </span>
             </div>
           </div>
@@ -286,15 +283,13 @@ export function GameConfigPicker({
       {value?.gameId === MARVEL_GAME_ID && marvelConfig && (
         <div className="space-y-4 rounded-lg border bg-muted/10 p-4">
           <div>
-            <p className="font-semibold">Marvel FFA</p>
+            <p className="font-semibold">{t("deadlockGameConfig.marvel_ffa")}</p>
             <p className="text-xs text-muted-foreground">
-              Organizator zapisuje końcową kolejność po mapie. Kille są
-              opcjonalne, a wpisana kolejność rozstrzyga także remisy.
-            </p>
+              {t("deadlockGameConfig.organizator_zapisuje_koncowa_kolejnosc_p")}</p>
           </div>
           <div className="grid gap-4 sm:grid-cols-3">
             <div className="space-y-2">
-              <Label htmlFor="marvel-group-size">Rozmiar grupy</Label>
+              <Label htmlFor="marvel-group-size">{t("deadlockGameConfig.rozmiar_grupy")}</Label>
               <Input
                 id="marvel-group-size"
                 type="number"
@@ -319,7 +314,7 @@ export function GameConfigPicker({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="marvel-advancing-count">Awansuje z grupy</Label>
+              <Label htmlFor="marvel-advancing-count">{t("deadlockGameConfig.awansuje_z_grupy")}</Label>
               <Input
                 id="marvel-advancing-count"
                 type="number"
@@ -339,7 +334,7 @@ export function GameConfigPicker({
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="marvel-kill-limit">Limit killi</Label>
+              <Label htmlFor="marvel-kill-limit">{t("deadlockGameConfig.limit_killi")}</Label>
               <Input
                 id="marvel-kill-limit"
                 type="number"
@@ -359,7 +354,7 @@ export function GameConfigPicker({
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="marvel-regrouping">Kolejna runda</Label>
+            <Label htmlFor="marvel-regrouping">{t("deadlockGameConfig.kolejna_runda")}</Label>
             <Select
               value={marvelConfig.regroupingStrategy}
               disabled={disabled}
@@ -379,17 +374,14 @@ export function GameConfigPicker({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="paired_merge">
-                  Połącz sąsiednie grupy
-                </SelectItem>
-                <SelectItem value="random">Losuj ponownie</SelectItem>
-                <SelectItem value="manual">Ustaw ręcznie</SelectItem>
+                  {t("deadlockGameConfig.polacz_sasiednie_grupy")}</SelectItem>
+                <SelectItem value="random">{t("deadlockGameConfig.losuj_ponownie")}</SelectItem>
+                <SelectItem value="manual">{t("deadlockGameConfig.ustaw_recznie")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <p className="text-xs text-muted-foreground">
-            Wymagane: 1 ≤ liczba awansujących &lt; rozmiar grupy, limit killi
-            &gt; 0. Dla Marvela system banów nie jest tworzony ani wyświetlany.
-          </p>
+            {t("deadlockGameConfig.wymagane_1_liczba_awansujacych_rozmiar")}</p>
         </div>
       )}
     </div>
@@ -419,17 +411,15 @@ export function TournamentGameConfigPanel({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Gra i reguły</CardTitle>
+        <CardTitle>{t("deadlockGameConfig.gra_i_reguly")}</CardTitle>
         <CardDescription>
-          Opcjonalna konfiguracja gry. Po rozpoczęciu turnieju reguły pozostają tylko do odczytu.
-        </CardDescription>
+          {t("deadlockGameConfig.opcjonalna_konfiguracja_gry_po_rozpoczec")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-6">
         {/* ── Reguły gry (locked after draft) ── */}
         <div className="space-y-4">
           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-            Reguły gry
-          </p>
+            {t("deadlockGameConfig.reguly_gry")}</p>
           <GameConfigPicker
             value={value}
             onChange={setValue}
@@ -482,8 +472,7 @@ export function TournamentGameConfigPanel({
               <ForcedHeroBadge gameConfig={tournament.gameConfig} />
               <p className="text-xs text-muted-foreground flex items-center gap-1.5">
                 <Lock className="w-3 h-3 shrink-0" />
-                Turniej aktywny — reguły zablokowane.
-              </p>
+                {t("deadlockGameConfig.turniej_aktywny_reguly_zablokowane")}</p>
             </div>
           ) : (
             <Button
@@ -501,11 +490,11 @@ export function TournamentGameConfigPanel({
                           tournament.id,
                         ),
                       });
-                      toast({ title: "Zapisano konfigurację gry" });
+                      toast({ title: t("deadlockGameConfig.zapisano_konfiguracje_gry") });
                     },
                     onError: (error) =>
                       toast({
-                        title: "Nie udało się zapisać konfiguracji gry",
+                        title: t("deadlockGameConfig.nie_udalo_sie_zapisac_konfiguracji"),
                         description: error instanceof Error ? error.message : undefined,
                         variant: "destructive",
                       }),
@@ -513,7 +502,7 @@ export function TournamentGameConfigPanel({
                 )
               }
             >
-              {updateTournament.isPending ? "Zapisywanie…" : "Zapisz konfigurację gry"}
+              {updateTournament.isPending ? t("deadlockGameConfig.zapisywanie") : t("deadlockGameConfig.zapisz_konfiguracje_gry")}
             </Button>
           )}
         </div>
@@ -541,11 +530,11 @@ const COLOR_PRESETS = [
 ] as const;
 
 const FONT_PRESETS = [
-  { id: "inter",    label: "Inter",    note: "Domyślna" },
+  { id: "inter",    label: "Inter",    get note() { return t("deadlockGameConfig.domyslna"); } },
   { id: "rajdhani", label: "Rajdhani", note: "Geometryczna" },
   { id: "orbitron", label: "Orbitron", note: "Sci-fi" },
   { id: "exo2",     label: "Exo 2",   note: "Tech" },
-  { id: "saira",    label: "Saira",    note: "Wąska" },
+  { id: "saira",    label: "Saira",    get note() { return t("deadlockGameConfig.waska"); } },
   { id: "play",     label: "Play",     note: "Gamelike" },
 ] as const;
 
@@ -555,7 +544,7 @@ const FRAME_PRESETS = [
   { id: "tech",    label: "Tech",    note: "4 px" },
   { id: "rounded", label: "Rounded", note: "8 px" },
   { id: "pill",    label: "Pill",    note: "24 px" },
-  { id: "glow",    label: "Glow",    note: "Poświata" },
+  { id: "glow",    label: "Glow",    get note() { return t("deadlockGameConfig.poswiata"); } },
 ] as const;
 
 export function TournamentPresentationPanel({ tournament }: { tournament: Tournament }) {
@@ -597,11 +586,11 @@ export function TournamentPresentationPanel({ tournament }: { tournament: Tourna
         {
           onSuccess: () => {
             void queryClient.invalidateQueries({ queryKey: getGetTournamentQueryKey(tournament.id) });
-            toast({ title: "Zapisano ustawienia prezentacji" });
+            toast({ title: t("deadlockGameConfig.zapisano_ustawienia_prezentacji") });
           },
           onError: (error) =>
             toast({
-              title: "Nie udało się zapisać ustawień prezentacji",
+              title: t("deadlockGameConfig.nie_udalo_sie_zapisac_ustawien"),
               description: error instanceof Error ? error.message : undefined,
               variant: "destructive",
             }),
@@ -629,11 +618,11 @@ export function TournamentPresentationPanel({ tournament }: { tournament: Tourna
 
   return (
     <div className="space-y-5 border-t border-border/50 pt-4">
-      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Wizualia prezentacji</p>
+      <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{t("deadlockGameConfig.wizualia_prezentacji")}</p>
 
       {/* ── Colour presets ── */}
       <div className="space-y-2">
-        <p className="text-xs text-muted-foreground font-medium">Motyw kolorów</p>
+        <p className="text-xs text-muted-foreground font-medium">{t("deadlockGameConfig.motyw_kolorow")}</p>
         <div className="grid grid-cols-3 gap-2">
           {COLOR_PRESETS.map((preset) => {
             const active = colorPreset === preset.id;
@@ -658,7 +647,7 @@ export function TournamentPresentationPanel({ tournament }: { tournament: Tourna
                 <span className="min-w-0 truncate font-medium leading-none">
                   {preset.label}
                   {"recommendedFor" in preset && preset.recommendedFor === "deadlock" && (
-                    <span className={cn("ml-1 text-[9px] uppercase tracking-wide", isDeadlock ? "text-primary" : "text-muted-foreground")}>Deadlock</span>
+                    <span className={cn("ml-1 text-[9px] uppercase tracking-wide", isDeadlock ? "text-primary" : "text-muted-foreground")}>{t("deadlockGameConfig.deadlock")}</span>
                   )}
                 </span>
               </button>
@@ -669,7 +658,7 @@ export function TournamentPresentationPanel({ tournament }: { tournament: Tourna
 
       {/* ── Font presets ── */}
       <div className="space-y-2">
-        <p className="text-xs text-muted-foreground font-medium">Czcionka</p>
+        <p className="text-xs text-muted-foreground font-medium">{t("deadlockGameConfig.czcionka")}</p>
         <div className="grid grid-cols-3 gap-2">
           {FONT_PRESETS.map((preset) => {
             const active = fontPreset === preset.id;
@@ -696,7 +685,7 @@ export function TournamentPresentationPanel({ tournament }: { tournament: Tourna
 
       {/* ── Frame presets ── */}
       <div className="space-y-2">
-        <p className="text-xs text-muted-foreground font-medium">Styl ramek</p>
+        <p className="text-xs text-muted-foreground font-medium">{t("deadlockGameConfig.styl_ramek")}</p>
         <div className="grid grid-cols-3 gap-2">
           {FRAME_PRESETS.map((preset) => {
             const active = frameStyle === preset.id;

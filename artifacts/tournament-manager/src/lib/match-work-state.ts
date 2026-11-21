@@ -1,3 +1,4 @@
+import { getLang, t } from "@/i18n";
 /**
  * V5.6 · the work state of one match for the organiser: what it is waiting for, why, and the one concrete action.
  *
@@ -44,14 +45,14 @@ export interface MatchWorkInput {
 }
 
 export const WORK_STATE_LABELS: Record<MatchWorkState, string> = {
-  needs_result: "Czeka na wynik",
-  in_progress: "W trakcie",
-  due: "Start minął",
-  ready: "Gotowy",
-  postponed: "Przełożony",
-  waiting: "Czeka na parę",
-  completed: "Zakończony",
-  cancelled: "Anulowany",
+  get needs_result() { return t("matchWorkState.czeka_na_wynik"); },
+  get in_progress() { return t("matchWorkState.w_trakcie"); },
+  get due() { return t("matchWorkState.start_minal"); },
+  get ready() { return t("matchWorkState.gotowy"); },
+  get postponed() { return t("matchWorkState.przelozony"); },
+  get waiting() { return t("matchWorkState.czeka_na_pare"); },
+  get completed() { return t("matchWorkState.zakonczony"); },
+  get cancelled() { return t("matchWorkState.anulowany"); },
 };
 
 /** Order of the work queue: what blocks the table first. */
@@ -74,15 +75,19 @@ function partsIn(instant: Date, timeZone: string): { date: string; time: string 
   return { date: `${values.year}-${values.month}-${values.day}`, time: `${values.hour}:${values.minute}` };
 }
 
-const WEEKDAYS = ["nd", "pn", "wt", "śr", "cz", "pt", "sb"];
-const MONTHS = ["sty", "lut", "mar", "kwi", "maja", "cze", "lip", "sie", "wrz", "paź", "lis", "gru"];
+// Polish keeps its compact "sb 5 gru"; other languages use Intl ("Sat 5 Dec"). i18n-ignore below: Polish-only data.
+const WEEKDAYS = ["nd", "pn", "wt", "śr", "cz", "pt", "sb"]; // i18n-ignore
+const MONTHS = ["sty", "lut", "mar", "kwi", "maja", "cze", "lip", "sie", "wrz", "paź", "lis", "gru"]; // i18n-ignore
+const EN_SLOT = new Intl.DateTimeFormat("en-GB", { weekday: "short", day: "numeric", month: "short", timeZone: "UTC" });
 
 /** "sb 5 gru, 18:00" — a local league date and time exactly as given (no browser re-conversion). */
 export function formatLocalSlot(localDate: string | null | undefined, localTime?: string | null): string {
-  if (!localDate) return "bez terminu";
+  if (!localDate) return t("matchWorkState.bez_terminu");
   const [year, month, day] = localDate.split("-").map(Number);
-  const weekday = WEEKDAYS[new Date(Date.UTC(year!, month! - 1, day!)).getUTCDay()];
-  return `${weekday} ${day} ${MONTHS[month! - 1]}${localTime ? `, ${localTime}` : ""}`;
+  const date = new Date(Date.UTC(year!, month! - 1, day!));
+  const time = localTime ? `, ${localTime}` : "";
+  if (getLang() !== "pl") return `${EN_SLOT.format(date).replace(/,/g, "")}${time}`;
+  return `${WEEKDAYS[date.getUTCDay()]} ${day} ${MONTHS[month! - 1]}${time}`;
 }
 
 export function matchWorkState(
@@ -95,53 +100,53 @@ export function matchWorkState(
   const slot = planned && !Number.isNaN(planned.getTime()) ? partsIn(planned, timeZone) : null;
   const today = partsIn(now, timeZone).date;
   const dayOver = !!slot && slot.date < today;
-  const enter = { kind: "enter_result" as const, label: "Wpisz wynik" };
+  const enter = { kind: "enter_result" as const, label: t("matchWorkState.wpisz_wynik") };
   const info = (state: MatchWorkState, reason: string, action: MatchWorkInfo["action"]): MatchWorkInfo =>
     ({ state, label: WORK_STATE_LABELS[state], reason, action, slot });
 
   if (match.status === "completed") {
-    return info("completed", match.resultType === "bye" ? "Wolny los — awans bez meczu." : "Wynik jest zapisany.",
-      match.resultType === "bye" ? { kind: "none", label: "" } : { kind: "correct", label: "Popraw wynik" });
+    return info("completed", match.resultType === "bye" ? t("matchWorkState.wolny_los_awans_bez_meczu") : t("matchWorkState.wynik_jest_zapisany"),
+      match.resultType === "bye" ? { kind: "none", label: "" } : { kind: "correct", label: t("matchWorkState.popraw_wynik") });
   }
-  if (match.status === "cancelled") return info("cancelled", "Mecz anulowany — nie liczy się do tabeli.", { kind: "restore", label: "Przywróć do kolejki" });
+  if (match.status === "cancelled") return info("cancelled", t("matchWorkState.mecz_anulowany_nie_liczy_sie"), { kind: "restore", label: t("matchWorkState.przywroc_do_kolejki") });
   if (match.legs && match.legs.length === 2 && match.tie) {
     // V5.10: a two-legged tie is worked leg by leg: no "start", each leg has its own date.
-    if (!match.player1Id || !match.player2Id) return info("waiting", "Para dwumeczu ustali się po wcześniejszych meczach.", { kind: "none", label: "" });
-    const enterLeg = { kind: "enter_result" as const, label: "Wpisz wynik spotkania" };
+    if (!match.player1Id || !match.player2Id) return info("waiting", t("matchWorkState.para_dwumeczu_ustali_sie_po"), { kind: "none", label: "" });
+    const enterLeg = { kind: "enter_result" as const, label: t("matchWorkState.wpisz_wynik_spotkania") };
     if (match.tie.state === "awaiting_decision") {
       return info("needs_result", match.tie.total1 === match.tie.total2
-        ? `Oba spotkania rozegrane, suma ${match.tie.total1}:${match.tie.total2} — wskaż, kto awansuje, i podaj powód.`
-        : `Oba spotkania rozegrane — zatwierdź awans według sumy ${match.tie.total1}:${match.tie.total2}.`, { kind: "enter_result", label: "Rozstrzygnij awans" });
+        ? t("matchWorkState.oba_spotkania_rozegrane_suma_total1", { total1: match.tie.total1, total2: match.tie.total2 })
+        : t("matchWorkState.oba_spotkania_rozegrane_zatwierdz_awans", { total1: match.tie.total1, total2: match.tie.total2 }), { kind: "enter_result", label: t("matchWorkState.rozstrzygnij_awans") });
     }
     const next = match.legs.slice().sort((left, right) => left.leg - right.leg).find((leg) => leg.status !== "completed");
     const nextPlanned = next?.scheduledAt ? new Date(next.scheduledAt) : null;
     const nextSlot = nextPlanned && !Number.isNaN(nextPlanned.getTime()) ? partsIn(nextPlanned, timeZone) : null;
     const legInfo = (state: MatchWorkState, reason: string): MatchWorkInfo => ({ state, label: WORK_STATE_LABELS[state], reason, action: enterLeg, slot: nextSlot });
-    const sum = match.tie.state === "first_leg_played" ? `Po 1. spotkaniu suma ${match.tie.total1}:${match.tie.total2}. ` : "";
-    if (!next) return legInfo("in_progress", "Oba spotkania rozegrane.");
-    if (nextSlot && nextSlot.date < today) return legInfo("needs_result", `${sum}Dzień ${next.leg}. spotkania (${formatLocalSlot(nextSlot.date, nextSlot.time)}) minął, a wyniku nie ma.`);
-    return legInfo(match.tie.state === "first_leg_played" ? "in_progress" : "ready", `${sum}Następne: ${next.leg}. spotkanie — ${nextSlot ? formatLocalSlot(nextSlot.date, nextSlot.time) : "bez terminu"}.`);
+    const sum = match.tie.state === "first_leg_played" ? t("matchWorkState.po_1_spotkaniu_suma_total1", { total1: match.tie.total1, total2: match.tie.total2 }) : "";
+    if (!next) return legInfo("in_progress", t("matchWorkState.oba_spotkania_rozegrane"));
+    if (nextSlot && nextSlot.date < today) return legInfo("needs_result", t("matchWorkState.sum_dzien_leg_spotkania_v2", { sum: sum, leg: next.leg, v2: formatLocalSlot(nextSlot.date, nextSlot.time) }));
+    return legInfo(match.tie.state === "first_leg_played" ? "in_progress" : "ready", t("matchWorkState.sum_nastepne_leg_spotkanie_v2", { sum: sum, leg: next.leg, v2: nextSlot ? formatLocalSlot(nextSlot.date, nextSlot.time) : t("matchWorkState.bez_terminu") }));
   }
   if (match.status === "postponed") {
-    return info("postponed", slot ? `Przełożony z ${formatLocalSlot(slot.date, slot.time)}. Ustal nowy termin i przywróć go do kolejki.` : "Ustal nowy termin i przywróć mecz do kolejki.",
-      { kind: "restore", label: "Przywróć do kolejki" });
+    return info("postponed", slot ? t("matchWorkState.przelozony_z_v0_ustal_nowy", { v0: formatLocalSlot(slot.date, slot.time) }) : t("matchWorkState.ustal_nowy_termin_i_przywroc"),
+      { kind: "restore", label: t("matchWorkState.przywroc_do_kolejki") });
   }
   if (!match.player1Id || !match.player2Id) {
-    return info("waiting", "Para ustali się po wcześniejszych meczach.", { kind: "none", label: "" });
+    return info("waiting", t("matchWorkState.para_ustali_sie_po_wczesniejszych"), { kind: "none", label: "" });
   }
   if (match.status === "in_progress") {
     return dayOver
-      ? info("needs_result", `Mecz rozpoczęto, a dzień meczu (${formatLocalSlot(slot!.date)}) już minął.`, enter)
-      : info("in_progress", "Mecz trwa. Wynik wpisz po jego zakończeniu.", enter);
+      ? info("needs_result", t("matchWorkState.mecz_rozpoczeto_a_dzien_meczu", { v0: formatLocalSlot(slot!.date) }), enter)
+      : info("in_progress", t("matchWorkState.mecz_trwa_wynik_wpisz_po"), enter);
   }
   if (dayOver) {
-    return info("needs_result", `Dzień meczu (${formatLocalSlot(slot!.date, slot!.time)}) minął, a wyniku nie ma. Jeśli mecz się nie odbył — przełóż go.`, enter);
+    return info("needs_result", t("matchWorkState.dzien_meczu_v0_minal_a", { v0: formatLocalSlot(slot!.date, slot!.time) }), enter);
   }
-  const start = options.canStart === false ? enter : { kind: "start" as const, label: "Rozpocznij mecz" };
+  const start = options.canStart === false ? enter : { kind: "start" as const, label: t("matchWorkState.rozpocznij_mecz") };
   if (slot && planned!.getTime() <= now.getTime()) {
-    return info("due", `Planowany start ${slot.time} minął, a mecz nie jest oznaczony jako rozpoczęty.`, start);
+    return info("due", t("matchWorkState.planowany_start_time_minal_a", { time: slot.time }), start);
   }
-  if (!slot) return { ...info("ready", "Bez terminu — można rozegrać w dowolnej chwili.", start), routine: true };
+  if (!slot) return { ...info("ready", t("matchWorkState.bez_terminu_mozna_rozegrac_w"), start), routine: true };
   return info("ready", `Start: ${formatLocalSlot(slot.date, slot.time)}.`, start);
 }
 

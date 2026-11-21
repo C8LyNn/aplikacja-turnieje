@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import {
   DEADLOCK_HEROES,
   getDeadlockEffectiveStageBans,
@@ -40,18 +41,17 @@ export function DeadlockStageBansEditor({
   return (
     <div className="space-y-3 rounded-md border p-3 sm:col-span-2">
       <div>
-        <p className="text-sm font-medium">Dodatkowe bany postaci w tym etapie</p>
+        <p className="text-sm font-medium">{t("deadlockStageBansEditor.dodatkowe_bany_postaci_w_tym")}</p>
         <p className="text-xs text-muted-foreground">
-          Bany kumulują się. Odziedziczonych z wcześniejszych etapów nie można tutaj usunąć.
-        </p>
+          {t("deadlockStageBansEditor.bany_kumuluja_sie_odziedziczonych_z")}</p>
         <p className="mt-1 text-xs text-muted-foreground" aria-live="polite" aria-atomic="true">
-          Odziedziczone: {inheritedSet.size}. Dodane w tym etapie: {additionalSet.size}.
+          {t("deadlockStageBansEditor.odziedziczone")}{" "}{inheritedSet.size}{t("deadlockStageBansEditor.dodane_w_tym_etapie")}{" "}{additionalSet.size}.
         </p>
       </div>
 
       {inherited.length > 0 && (
         <div className="space-y-2">
-          <p className="text-xs font-medium text-muted-foreground">Odziedziczone</p>
+          <p className="text-xs font-medium text-muted-foreground">{t("deadlockStageBansEditor.odziedziczone_2")}</p>
           <div className="flex flex-wrap gap-2">
             {HEROES.filter((hero) => inheritedSet.has(hero.id)).map((hero) => (
               <Badge key={hero.id} variant="secondary" className="gap-2 py-1 pr-2">
@@ -68,10 +68,10 @@ export function DeadlockStageBansEditor({
           const inheritedHero = inheritedSet.has(hero.id);
           const selected = inheritedHero || additionalSet.has(hero.id);
           const actionLabel = inheritedHero
-            ? `${hero.displayName} — ban odziedziczony z poprzedniego etapu, nie można usunąć`
+            ? t("deadlockStageBansEditor.displayname_ban_odziedziczony_z_poprzedn", { displayName: hero.displayName })
             : additionalSet.has(hero.id)
-              ? `Usuń ban postaci ${hero.displayName} z tego etapu`
-              : `Dodaj ban postaci ${hero.displayName} do tego etapu`;
+              ? t("deadlockStageBansEditor.usun_ban_postaci_displayname_z", { displayName: hero.displayName })
+              : t("deadlockStageBansEditor.dodaj_ban_postaci_displayname_do", { displayName: hero.displayName });
           return (
             <Button
               key={hero.id}
@@ -80,7 +80,7 @@ export function DeadlockStageBansEditor({
               disabled={disabled || inheritedHero}
               aria-pressed={selected}
               aria-label={actionLabel}
-              title={inheritedHero ? "Ban odziedziczony z poprzedniego etapu" : undefined}
+              title={inheritedHero ? t("deadlockStageBansEditor.ban_odziedziczony_z_poprzedniego_etapu") : undefined}
               onClick={() => toggle(hero.id)}
               className={cn(
                 "h-auto min-h-12 justify-start gap-2 px-2 py-2 text-left",
@@ -114,8 +114,7 @@ export function DeadlockStageBansSummary({
   return (
     <div className="rounded-lg border bg-card p-3">
       <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        Obowiązujące bany postaci w tym etapie
-      </p>
+        {t("deadlockStageBansEditor.obowiazujace_bany_postaci_w_tym")}</p>
       <div className="flex flex-wrap gap-2">
         {HEROES.filter((hero) => heroSet.has(hero.id)).map((hero) => (
           <Badge key={hero.id} variant="secondary" className="gap-2 py-1 pr-2">

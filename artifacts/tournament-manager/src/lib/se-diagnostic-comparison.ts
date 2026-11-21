@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 /** Pack22: non-authoritative, in-memory comparison of two SE safety assessments.
  * No network, persistence, authorization decisions or mutation actions.
  */
@@ -100,14 +101,14 @@ export function compareSeAssessments(previous: SeAssessmentSnapshot | null,
   const next = captureSeAssessment(current);
   const old = previous == null ? null : captureSeAssessment(previous);
   if (!next || (previous !== null && !old)) return {
-    ...FLAGS, kind: "inconsistent", message: "Dane porównania są niespójne. Odśwież podgląd od początku.",
+    ...FLAGS, kind: "inconsistent", message: t("seDiagnosticComparison.dane_porownania_sa_niespojne_odswiez"),
   };
   if (!old) return { ...FLAGS, kind: "no_baseline" };
   if (old.tournamentId !== next.tournamentId || old.matchId !== next.matchId ||
       old.proposedScore1 !== next.proposedScore1 || old.proposedScore2 !== next.proposedScore2)
     return {
       ...FLAGS, kind: "different_scope",
-      message: "Zmienił się mecz lub proponowany wynik. Porównanie różnych korekt zostało wyłączone.",
+      message: t("seDiagnosticComparison.zmienil_sie_mecz_lub_proponowany"),
     };
   const older = new Map(old.diagnostic.blockers.map((b) => [b.code, b]));
   const newer = new Map(next.diagnostic.blockers.map((b) => [b.code, b]));
@@ -123,7 +124,7 @@ export function compareSeAssessments(previous: SeAssessmentSnapshot | null,
        old.diagnostic.status !== next.diagnostic.status || added.length > 0 || resolved.length > 0))
     return {
       ...FLAGS, kind: "inconsistent",
-      message: "Ten sam identyfikator występuje przy różnych danych. Zrezygnuj z porównania i odśwież analizę.",
+      message: t("seDiagnosticComparison.ten_sam_identyfikator_wystepuje_przy"),
     };
   const kind = old.diagnostic.assessmentId === next.diagnostic.assessmentId &&
     old.diagnostic.status === next.diagnostic.status && added.length === 0 && resolved.length === 0
@@ -133,6 +134,6 @@ export function compareSeAssessments(previous: SeAssessmentSnapshot | null,
     previousStatus: old.diagnostic.status, currentStatus: next.diagnostic.status,
     revisionChanged, stageVectorChanged, completionActionChanged,
     added, resolved, continuing,
-    note: "To porównanie dwóch odczytów, a nie dowód usunięcia problemów ani zgoda na wykonanie korekty. Sprawdź aktualność danych.",
+    note: t("seDiagnosticComparison.to_porownanie_dwoch_odczytow_a"),
   };
 }

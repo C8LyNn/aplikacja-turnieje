@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import type { CSSProperties } from "react";
 import { SKETCH_FONT, sketchStages, type SketchBox, type SketchStageInput } from "@/lib/format-sketch";
 
@@ -34,7 +35,7 @@ export function FormatSketch({
     <figure
       className={className}
       data-testid="format-sketch"
-      aria-label="Szkic układu turnieju"
+      aria-label={t("formatSketch.szkic_ukladu_turnieju")}
       style={{ margin: 0, display: "grid", gap: "0.75rem", ["--sketch-accent" as string]: accent }}
     >
       {sketches.map((sketch, index) => {

@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { useEffect, useMemo, useState } from "react";
 import {
   type Bracket,
@@ -138,18 +139,17 @@ export function StageProgressView({
     return (
       <div className="flex items-center justify-center gap-2 rounded-lg border p-10 text-sm text-muted-foreground">
         <Loader2 className="h-4 w-4 animate-spin" />
-        Ładowanie etapów…
-      </div>
+        {t("stageProgressView.ladowanie_etapow")}</div>
     );
   }
 
   if (stagesQuery.isError && stages.length === 0) {
     return (
       <div role="alert" className="rounded-lg border border-destructive/40 bg-destructive/5 p-6 text-sm text-destructive">
-        <p>Nie udało się pobrać listy etapów. Nie oznacza to, że turniej nie ma drabinki.</p>
+        <p>{t("stageProgressView.nie_udalo_sie_pobrac_listy")}</p>
         <button type="button" onClick={() => void stagesQuery.refetch()} disabled={stagesQuery.isFetching}
           className="mt-3 min-h-11 rounded-md border border-destructive/40 px-4 font-medium hover:bg-destructive/10 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
-          {stagesQuery.isFetching ? "Ponawianie…" : "Ponów odczyt etapów"}
+          {stagesQuery.isFetching ? t("stageProgressView.ponawianie") : t("stageProgressView.ponow_odczyt_etapow")}
         </button>
       </div>
     );
@@ -158,8 +158,7 @@ export function StageProgressView({
   if (!stages.length) {
     return (
       <div className="rounded-lg border border-dashed p-10 text-center text-sm text-muted-foreground">
-        Brak drabinki. Wystartuj turniej.
-      </div>
+        {t("stageProgressView.brak_drabinki_wystartuj_turniej")}</div>
     );
   }
 
@@ -167,10 +166,9 @@ export function StageProgressView({
     <div className="space-y-5">
       {stagesQuery.isError && (
         <div role="status" className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-4 text-sm">
-          Nie udało się odświeżyć listy etapów. Widoczne dane mogą być nieaktualne.
-          <button type="button" onClick={() => void stagesQuery.refetch()} disabled={stagesQuery.isFetching}
+          {t("stageProgressView.nie_udalo_sie_odswiezyc_listy")}<button type="button" onClick={() => void stagesQuery.refetch()} disabled={stagesQuery.isFetching}
             className="ml-2 min-h-11 rounded-md px-3 font-medium underline underline-offset-4 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-primary">
-            {stagesQuery.isFetching ? "Ponawianie…" : "Ponów odczyt etapów"}
+            {stagesQuery.isFetching ? t("stageProgressView.ponawianie") : t("stageProgressView.ponow_odczyt_etapow")}
           </button>
         </div>
       )}
@@ -185,18 +183,17 @@ export function StageProgressView({
       {detailQuery.isLoading && (
         <div className="flex items-center justify-center gap-2 rounded-lg border p-10 text-sm text-muted-foreground">
           <Loader2 className="h-4 w-4 animate-spin" />
-          Ładowanie danych etapu…
-        </div>
+          {t("stageProgressView.ladowanie_danych_etapu")}</div>
       )}
 
       {detailQuery.error && (
         <div role="alert" className="rounded-lg border border-destructive/40 bg-destructive/5 p-5 text-sm text-destructive">
-          {detail ? "Nie udało się odświeżyć danych etapu. Pokazujemy ostatnio pobrane dane." : "Nie udało się pobrać danych etapu."}{" "}
+          {detail ? t("stageProgressView.nie_udalo_sie_odswiezyc_danych") : t("stageProgressView.nie_udalo_sie_pobrac_danych")}{" "}
           {getApiErrorMessage(detailQuery.error)}
           {!denied && (
             <button type="button" onClick={() => void detailQuery.refetch()} disabled={detailQuery.isFetching}
               className="mt-3 block min-h-11 rounded-md border border-destructive/40 px-4 font-medium hover:bg-destructive/10 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
-              {detailQuery.isFetching ? "Ponawianie…" : "Ponów odczyt etapu"}
+              {detailQuery.isFetching ? t("stageProgressView.ponawianie") : t("stageProgressView.ponow_odczyt_etapu")}
             </button>
           )}
         </div>
@@ -208,9 +205,7 @@ export function StageProgressView({
             return (
               <div className="space-y-3">
                 <p className="px-1 text-sm font-medium text-muted-foreground">
-                  {STAGE_FORMAT_LABELS[selected.format]} — oczekuje na
-                  uruchomienie
-                </p>
+                  {STAGE_FORMAT_LABELS[selected.format]} {t("stageProgressView.oczekuje_na_uruchomienie")}</p>
                 <PlannedStageParticipants
                   stagePosition={selected.position}
                   participants={detail.participants}
@@ -242,15 +237,13 @@ export function StageProgressView({
             if (!selectedMatches.length) {
               return (
                 <div className="flex items-center justify-center rounded-lg border border-dashed py-20 text-sm text-muted-foreground">
-                  Brak meczów w tym etapie.
-                </div>
+                  {t("stageProgressView.brak_meczow_w_tym_etapie")}</div>
               );
             }
             return (
               <div>
                 <p className="mb-3 text-xs text-muted-foreground">
-                  Przewijaj poziomo i pionowo, aby zobaczyć całą drabinkę.
-                </p>
+                  {t("stageProgressView.przewijaj_poziomo_i_pionowo_aby")}</p>
                 <div
                   className="overflow-auto rounded-lg border border-border bg-background/50"
                   style={{ maxHeight: "75vh" }}
@@ -273,17 +266,16 @@ export function StageProgressView({
               return (
                 <div className="flex items-center justify-center gap-2 rounded-lg border p-10 text-sm text-muted-foreground">
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Ładowanie drabinki podwójnej eliminacji…
-                </div>
+                  {t("stageProgressView.ladowanie_drabinki_podwojnej_eliminacji")}</div>
               );
             }
             if (!doubleEliminationQuery.data) {
               return (
                 <div role="alert" className="rounded-lg border border-destructive/40 bg-destructive/5 p-5 text-sm text-destructive">
-                  Nie udało się pobrać drabinki. {doubleEliminationQuery.error ? getApiErrorMessage(doubleEliminationQuery.error) : ""}
+                  {t("stageProgressView.nie_udalo_sie_pobrac_drabinki")}{" "}{doubleEliminationQuery.error ? getApiErrorMessage(doubleEliminationQuery.error) : ""}
                   <button type="button" onClick={() => void doubleEliminationQuery.refetch()} disabled={doubleEliminationQuery.isFetching}
                     className="mt-3 block min-h-11 rounded-md border border-destructive/40 px-4 font-medium hover:bg-destructive/10 disabled:opacity-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary">
-                    {doubleEliminationQuery.isFetching ? "Ponawianie…" : "Ponów odczyt drabinki"}
+                    {doubleEliminationQuery.isFetching ? t("stageProgressView.ponawianie") : t("stageProgressView.ponow_odczyt_drabinki")}
                   </button>
                 </div>
               );
@@ -306,12 +298,12 @@ export function StageProgressView({
                   matches={selectedMatches}
                   title={
                     selected.status === "completed"
-                      ? "Końcowe miejsca etapu"
-                      : "Ranking bieżący etapu"
+                      ? t("stageProgressView.koncowe_miejsca_etapu")
+                      : t("stageProgressView.ranking_biezacy_etapu")
                   }
                 />}
                 <div>
-                  <h4 className="mb-3 text-sm font-semibold">Rundy</h4>
+                  <h4 className="mb-3 text-sm font-semibold">{t("stageProgressView.rundy")}</h4>
                   <div
                     className="overflow-auto rounded-lg border border-border bg-background/50 p-4"
                     style={{ maxHeight: "70vh" }}
@@ -335,12 +327,12 @@ export function StageProgressView({
                   matches={selectedMatches}
                   title={
                     selected.status === "completed"
-                      ? "Klasyfikacja końcowa etapu"
-                      : "Klasyfikacja bieżąca etapu"
+                      ? t("stageProgressView.klasyfikacja_koncowa_etapu")
+                      : t("stageProgressView.klasyfikacja_biezaca_etapu")
                   }
                 />}
                 <div>
-                  <h4 className="mb-3 text-sm font-semibold">Terminarz</h4>
+                  <h4 className="mb-3 text-sm font-semibold">{t("stageProgressView.terminarz")}</h4>
                   <div
                     className="overflow-auto rounded-lg border border-border bg-background/50 p-4"
                     style={{ maxHeight: "70vh" }}

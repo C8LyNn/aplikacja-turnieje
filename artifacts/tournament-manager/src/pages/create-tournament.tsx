@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { Globe, Layers3, Lock, Shuffle, Trophy } from "lucide-react";
@@ -64,20 +65,20 @@ const FORMAT_INFO: Record<
   { label: string; desc: string }
 > = {
   single_elimination: {
-    label: "Drabinka eliminacyjna",
-    desc: "Przegrana oznacza odpadnięcie z turnieju.",
+    get label() { return t("createTournament.drabinka_eliminacyjna"); },
+    get desc() { return t("createTournament.przegrana_oznacza_odpadniecie_z_turnieju"); },
   },
   swiss: {
-    label: "System szwajcarski",
-    desc: "Wszyscy grają ustaloną liczbę rund, a ranking uwzględnia bilans i Buchholza.",
+    get label() { return t("createTournament.system_szwajcarski"); },
+    get desc() { return t("createTournament.wszyscy_graja_ustalona_liczbe_rund"); },
   },
   round_robin: {
-    label: "Każdy z każdym",
-    desc: "Każdy uczestnik rozgrywa mecz z każdym pozostałym.",
+    get label() { return t("createTournament.kazdy_z_kazdym"); },
+    get desc() { return t("createTournament.kazdy_uczestnik_rozgrywa_mecz_z"); },
   },
   double_elimination: {
-    label: "Podwójna eliminacja",
-    desc: "Przegrana nie eliminuje — każdy ma drugą szansę w drabince przegranych.",
+    get label() { return t("createTournament.podwojna_eliminacja"); },
+    get desc() { return t("createTournament.przegrana_nie_eliminuje_kazdy_ma"); },
   },
 };
 
@@ -222,7 +223,7 @@ function CreateTournamentForm() {
     }
     if (quickPresetActive) {
       if (!quickPreview) {
-        setSubmitError("Układ z „Szybkiego wyboru” nie jest jeszcze gotowy. Sprawdź liczbę uczestników albo ustaw format ręcznie.");
+        setSubmitError(t("createTournament.uklad_z_szybkiego_wyboru_nie"));
         return;
       }
       if (submitInFlightRef.current) return;
@@ -247,8 +248,8 @@ function CreateTournamentForm() {
       } catch (error) {
         setSubmitError(
           error instanceof Error
-            ? `Nieprawidłowy przepływ Marvel: ${error.message}`
-            : "Nieprawidłowy przepływ Marvel.",
+            ? t("createTournament.nieprawidlowy_przeplyw_marvel_message", { message: error.message })
+            : t("createTournament.nieprawidlowy_przeplyw_marvel"),
         );
         return;
       }
@@ -305,7 +306,7 @@ function CreateTournamentForm() {
               {
                 key: "stage_1",
                 position: 1,
-                name: "Marvel — Eliminacyjne grupy",
+                name: t("createTournament.marvel_eliminacyjne_grupy"),
                 format: "group_stage",
                 participantCount: marvelParticipantCount,
                 bestOf: 1,
@@ -339,31 +340,29 @@ function CreateTournamentForm() {
         <div className="mb-6 flex items-center gap-3">
           <Trophy className="h-7 w-7 text-primary" />
           <div>
-            <h1 className="text-2xl font-bold">Nowy turniej</h1>
+            <h1 className="text-2xl font-bold">{t("createTournament.nowy_turniej")}</h1>
             <p className="text-sm text-muted-foreground">
-              Skonfiguruj pojedynczy format albo plan do dziesięciu etapów.
-            </p>
+              {t("createTournament.skonfiguruj_pojedynczy_format_albo_plan")}</p>
           </div>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>Dane turnieju</CardTitle>
+            <CardTitle>{t("createTournament.dane_turnieju")}</CardTitle>
             <CardDescription>
-              Podstawowe informacje i przebieg rozgrywek
-            </CardDescription>
+              {t("createTournament.podstawowe_informacje_i_przebieg_rozgryw")}</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} noValidate className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="tournament-name">Nazwa turnieju *</Label>
+                <Label htmlFor="tournament-name">{t("createTournament.nazwa_turnieju")}</Label>
                 <Input
                   id="tournament-name"
                   ref={nameInputRef}
                   value={name}
                   onChange={(event) => setName(event.target.value)}
                   onBlur={() => setNameTouched(true)}
-                  placeholder="np. Spring Championship 2026"
+                  placeholder={t("createTournament.np_spring_championship_2026")}
                   aria-describedby={(nameTouched || showValidation) && tournamentNameError(name) ? "tournament-name-error" : undefined}
                   aria-invalid={(nameTouched || showValidation) && !!tournamentNameError(name) ? true : undefined}
                   required
@@ -376,13 +375,12 @@ function CreateTournamentForm() {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="tournament-description">
-                  Opis (opcjonalnie)
-                </Label>
+                  {t("createTournament.opis_opcjonalnie")}</Label>
                 <Textarea
                   id="tournament-description"
                   value={description}
                   onChange={(event) => setDescription(event.target.value)}
-                  placeholder="Krótki opis turnieju…"
+                  placeholder={t("createTournament.krotki_opis_turnieju")}
                   rows={2}
                 />
               </div>
@@ -419,12 +417,11 @@ function CreateTournamentForm() {
                     <Layers3 className="mt-0.5 h-5 w-5 text-primary" />
                     <div>
                       <Label htmlFor="stage-mode" className="text-base">
-                        Turniej wieloetapowy
-                      </Label>
+                        {t("createTournament.turniej_wieloetapowy")}</Label>
                       <p className="text-xs text-muted-foreground">
                         {marvelConfig
-                          ? "Marvel używa jednej fazy z wewnętrznymi rundami grup FFA."
-                          : "Włącz, aby połączyć 1–10 formatów z osobnymi BO i zasadami awansu."}
+                          ? t("createTournament.marvel_uzywa_jednej_fazy_z")
+                          : t("createTournament.wlacz_aby_polaczyc_1_10")}
                       </p>
                     </div>
                   </div>
@@ -453,15 +450,13 @@ function CreateTournamentForm() {
               ) : marvelConfig ? (
                 <div className="space-y-4 rounded-lg border p-4">
                   <div>
-                    <Label>Format</Label>
-                    <p className="font-semibold">Marvel — Eliminacyjne grupy</p>
+                    <Label>{t("createTournament.format")}</Label>
+                    <p className="font-semibold">{t("createTournament.marvel_eliminacyjne_grupy")}</p>
                     <p className="text-xs text-muted-foreground">
-                      Jedna faza grupowa zawierająca kolejne rundy FFA aż do
-                      finału.
-                    </p>
+                      {t("createTournament.jedna_faza_grupowa_zawierajaca_kolejne")}</p>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="max-players">Liczba graczy *</Label>
+                    <Label htmlFor="max-players">{t("createTournament.liczba_graczy")}</Label>
                     <Input
                       id="max-players"
                       type="number"
@@ -471,15 +466,14 @@ function CreateTournamentForm() {
                       required
                     />
                     <p className="text-xs text-muted-foreground">
-                      Każda runda przed finałem musi dzielić się na pełne grupy
-                      po {marvelConfig.groupSize}.
+                      {t("createTournament.kazda_runda_przed_finalem_musi")}{" "}{marvelConfig.groupSize}.
                     </p>
                   </div>
                 </div>
               ) : (
                 <div className="space-y-5 rounded-lg border p-4">
                   <div className="space-y-2">
-                    <Label>Format *</Label>
+                    <Label>{t("createTournament.format_2")}</Label>
                     <Select
                       value={format}
                       onValueChange={(value) =>
@@ -501,7 +495,7 @@ function CreateTournamentForm() {
                   </div>
                   {format === "swiss" && (
                     <div className="space-y-2">
-                      <Label htmlFor="swiss-rounds">Liczba rund Swiss</Label>
+                      <Label htmlFor="swiss-rounds">{t("createTournament.liczba_rund_swiss")}</Label>
                       <Input
                         id="swiss-rounds"
                         type="number"
@@ -509,24 +503,24 @@ function CreateTournamentForm() {
                         max="20"
                         value={swissRounds}
                         onChange={(event) => setSwissRounds(event.target.value)}
-                        placeholder="Automatycznie"
+                        placeholder={t("createTournament.automatycznie")}
                       />
                     </div>
                   )}
                   <div className="grid gap-4 sm:grid-cols-2">
                     <div className="space-y-2">
-                      <Label htmlFor="max-players">Maks. graczy</Label>
+                      <Label htmlFor="max-players">{t("createTournament.maks_graczy")}</Label>
                       <Input
                         id="max-players"
                         type="number"
                         min="2"
                         value={maxPlayers}
                         onChange={(event) => setMaxPlayers(event.target.value)}
-                        placeholder="Bez limitu"
+                        placeholder={t("createTournament.bez_limitu")}
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label>Best of</Label>
+                      <Label>{t("createTournament.best_of")}</Label>
                       <Select
                         value={defaultBestOf}
                         onValueChange={setDefaultBestOf}
@@ -537,7 +531,7 @@ function CreateTournamentForm() {
                         <SelectContent>
                           {[1, 3, 5, 7].map((bestOf) => (
                             <SelectItem key={bestOf} value={String(bestOf)}>
-                              Best of {bestOf}
+                              {t("createTournament.best_of")}{" "}{bestOf}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -549,10 +543,9 @@ function CreateTournamentForm() {
                   <div className="space-y-3 border-t pt-4">
                     <div className="flex items-center gap-2 text-sm font-medium">
                       <Shuffle className="h-4 w-4 text-primary" />
-                      Seedowanie uczestników
-                    </div>
+                      {t("createTournament.seedowanie_uczestnikow")}</div>
                     <div className="space-y-2">
-                      <Label htmlFor="entry-seeding-method">Metoda seedowania</Label>
+                      <Label htmlFor="entry-seeding-method">{t("createTournament.metoda_seedowania")}</Label>
                       <Select
                         value={entrySeedingMethod}
                         onValueChange={(value) =>
@@ -575,12 +568,12 @@ function CreateTournamentForm() {
                     </div>
                     {entrySeedingMethod === "random" && (
                       <div className="space-y-2">
-                        <Label>Typ ceremonii losowania</Label>
+                        <Label>{t("createTournament.typ_ceremonii_losowania")}</Label>
                         <div className="flex flex-col gap-2">
                           {(
                             [
-                              { value: "sequential", label: "Sekwencyjne — jeden losowany seed po drugim" },
-                              { value: "instant", label: "Natychmiastowe — wszystkie seedy od razu" },
+                              { value: "sequential", label: t("createTournament.sekwencyjne_jeden_losowany_seed_po") },
+                              { value: "instant", label: t("createTournament.natychmiastowe_wszystkie_seedy_od_razu") },
                             ] as { value: RandomRevealOrder; label: string }[]
                           ).map((option) => (
                             <label
@@ -603,17 +596,11 @@ function CreateTournamentForm() {
                     )}
                     {entrySeedingMethod === "manual" && (
                       <p className="text-xs text-muted-foreground">
-                        Ustaw numery seedów dla graczy na liście uczestników przed
-                        uruchomieniem turnieju. Gracz z niższym numerem seeda
-                        otrzymuje korzystniejszą pozycję startową.
-                      </p>
+                        {t("createTournament.ustaw_numery_seedow_dla_graczy")}</p>
                     )}
                     {entrySeedingMethod === "random" && (
                       <p className="text-xs text-muted-foreground">
-                        Po utworzeniu turnieju i dodaniu uczestników uruchom
-                        ceremonię losowania, aby przypisać seedy. Wynik jest
-                        zapisany po stronie serwera i stabilny między przeładowaniami.
-                      </p>
+                        {t("createTournament.po_utworzeniu_turnieju_i_dodaniu")}</p>
                     )}
                   </div>
                 </div>
@@ -623,35 +610,31 @@ function CreateTournamentForm() {
               <div className="rounded-lg border bg-muted/20 p-3 text-xs text-muted-foreground">
                 <p>
                   <strong className="text-foreground">
-                    Wynik oznacza wygrane gry lub mapy.
-                  </strong>
+                    {t("createTournament.wynik_oznacza_wygrane_gry_lub")}</strong>
                 </p>
                 <p className="mt-1">
-                  BO3 wymaga 2 wygranych, BO5 wymaga 3. Wynik 2:1 jest wynikiem
-                  serii, nie liczbą goli.
-                </p>
+                  {t("createTournament.bo3_wymaga_2_wygranych_bo5")}</p>
               </div>
 
               <div className="space-y-3 border-t pt-5">
                 <div className="flex items-center gap-2 text-sm font-medium">
                   <Globe className="h-4 w-4" />
-                  Widoczność turnieju
-                </div>
+                  {t("createTournament.widocznosc_turnieju")}</div>
                 {[
                   {
                     value: "public_online",
-                    label: "Publiczny online",
-                    description: "Kibic może wejść bez hasła.",
+                    label: t("createTournament.publiczny_online"),
+                    description: t("createTournament.kibic_moze_wejsc_bez_hasla"),
                   },
                   {
                     value: "private_online",
-                    label: "Prywatny online",
-                    description: "Kibic musi podać hasło widza.",
+                    label: t("createTournament.prywatny_online"),
+                    description: t("createTournament.kibic_musi_podac_haslo_widza"),
                   },
                   {
                     value: "private_offline",
-                    label: "Ukryty (prywatny offline)",
-                    description: "Niewidoczny dla widzów, aż go opublikujesz. Dostęp tylko dla organizatora i wsparcia.",
+                    label: t("createTournament.ukryty_prywatny_offline"),
+                    description: t("createTournament.niewidoczny_dla_widzow_az_go"),
                   },
                 ].map((option) => (
                   <label
@@ -681,20 +664,19 @@ function CreateTournamentForm() {
               <div className="space-y-4 border-t pt-5">
                 <div className="flex items-center gap-2 text-sm font-medium">
                   <Lock className="h-4 w-4" />
-                  Hasła dostępu
-                </div>
+                  {t("createTournament.hasla_dostepu")}</div>
                 <PasswordField
                   id="organizer-password"
-                  label="Hasło organizatora *"
+                  label={t("createTournament.haslo_organizatora")}
                   value={organizerPassword}
                   onChange={setOrganizerPassword}
                   visible={showOrgPass}
                   onToggle={() => setShowOrgPass((value) => !value)}
                   inputRef={organizerPasswordInputRef}
                   minLength={ORGANIZER_PASSWORD_MIN_LENGTH}
-                  description="Wymagane, minimum 8 znaków. Zachowaj je: pozwoli wrócić po wylogowaniu, utracie danych przeglądarki lub na drugim urządzeniu. Aplikacja nie pokaże go ponownie; w tej wersji nie ma zmiany ani resetu hasła organizatora."
+                  description={t("createTournament.wymagane_minimum_8_znakow_zachowaj")}
                   detail={organizerPasswordRemaining(organizerPassword) > 0
-                    ? `Brakuje jeszcze ${organizerPasswordRemaining(organizerPassword)} znaków`
+                    ? t("createTournament.brakuje_jeszcze_v0_znakow", { v0: organizerPasswordRemaining(organizerPassword) })
                     : undefined}
                   error={(organizerPasswordTouched || showValidation)
                     ? organizerPasswordError(organizerPassword) ?? undefined
@@ -703,7 +685,7 @@ function CreateTournamentForm() {
                 />
                 <PasswordField
                   id="support-password"
-                  label="Hasło wsparcia"
+                  label={t("createTournament.haslo_wsparcia")}
                   value={supportPassword}
                   onChange={setSupportPassword}
                   visible={showSupPass}
@@ -712,7 +694,7 @@ function CreateTournamentForm() {
                 {visibility === "private_online" && (
                   <PasswordField
                     id="viewer-password"
-                    label="Hasło widza *"
+                    label={t("createTournament.haslo_widza")}
                     value={viewerPassword}
                     onChange={setViewerPassword}
                     visible={showViewerPass}
@@ -731,7 +713,7 @@ function CreateTournamentForm() {
                 className="w-full"
                 disabled={createTournament.isPending}
               >
-                {createTournament.isPending ? "Tworzenie…" : "Utwórz turniej"}
+                {createTournament.isPending ? t("createTournament.tworzenie") : t("createTournament.utworz_turniej")}
               </Button>
             </form>
           </CardContent>

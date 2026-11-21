@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { AlignJustify, Rows3 } from "lucide-react";
 import { useEffect, useState } from "react";
 
@@ -40,14 +41,14 @@ export function ExperimentalDensityControl() {
       aria-pressed={compact}
       onClick={() => setDensity(compact ? "comfortable" : "compact")}
       className="hidden items-center gap-1.5 rounded-lg border border-border px-2.5 py-1.5 text-xs font-semibold text-muted-foreground transition hover:bg-muted/40 hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50 md:inline-flex"
-      title={compact ? "Przełącz na wygodniejszy układ" : "Włącz bardziej kompaktowy układ"}
+      title={compact ? t("experimentalDensityControl.przelacz_na_wygodniejszy_uklad") : t("experimentalDensityControl.wlacz_bardziej_kompaktowy_uklad")}
     >
       {compact ? (
         <Rows3 className="h-3.5 w-3.5" aria-hidden="true" />
       ) : (
         <AlignJustify className="h-3.5 w-3.5" aria-hidden="true" />
       )}
-      {compact ? "Wygodny" : "Kompakt"}
+      {compact ? t("experimentalDensityControl.wygodny") : t("experimentalDensityControl.kompakt")}
     </button>
   );
 }

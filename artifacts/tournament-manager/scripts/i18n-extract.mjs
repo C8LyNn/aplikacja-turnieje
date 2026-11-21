@@ -18,6 +18,7 @@ import path from "node:path";
 import { createRequire } from "node:module";
 const require = createRequire(import.meta.url);
 const ts = require("typescript");
+import { polishDetector } from "./i18n-polish.mjs";
 
 const args = process.argv.slice(2);
 const dry = args.includes("--dry");
@@ -90,7 +91,7 @@ function insideFunction(node) {
 }
 function isAlreadyWrapped(node) {
   const p = node.parent;
-  return p && ts.isCallExpression(p) && ts.isIdentifier(p.expression) && (p.expression.text === "t" || p.expression.text === "tp");
+  return p && ts.isCallExpression(p) && ts.isIdentifier(p.expression) && ["t", "tp", "tr"].includes(p.expression.text);
 }
 function renderedInJsx(node) {
   let p = node.parent;
@@ -120,7 +121,50 @@ function contextOk(node) {
   return false;
 }
 
-function templateCall(sf, node, prefix) {
+// ── --deep: the second pass ───────────────────────────────────────────────────
+// * inside functions: every remaining Polish literal that is not logic (comparisons, keys, technical attributes, …);
+// * at module level: `label: "Tekst"` in object literals becomes `get label() { return t("key"); }`, so constant label
+//   maps follow a language switch (read at use time, not frozen at import).
+const deep = args.includes("--deep");
+const POLISH = /[ąćęłńśźżĄĆĘŁŃŚŹŻ]|\b(nie|brak|oraz|lub|jest|dla|przez|wynik|mecz|mecze|etap|etapy|gracz|gracze|graczy|turniej|turnieju|runda|rundy|grupa|grupy|koszyk|zapisz|anuluj|zamknij|dodaj|otworz|kolejka|uczestnik|uczestnicy|wyniki|tabela|drabinka|awans|aktywny|aktywne|planowany|planowane|zakonczony|trwa|trwaja|gotowy|gotowe|czeka|brak)\b/i;
+const TECH_PROPS = new Set(["id", "key", "value", "slug", "type", "kind", "code", "status", "format", "variant", "href", "to", "path", "url", "icon", "color", "className", "testId", "role", "mode", "tone", "field", "column", "event", "action", "route", "tab", "query", "param", "lang", "locale", "pattern", "regex", "separator", "delimiter", "storageKey", "cssVar", "font", "fontFamily"]);
+const TECH_ATTRS = new Set(["className", "id", "key", "href", "to", "type", "name", "value", "defaultValue", "role", "htmlFor", "variant", "size", "src", "method", "autoComplete", "inputMode", "pattern", "rel", "target", "form", "accept", "dir", "lang", "style"]);
+// methods (obj.name) and plain functions that take technical strings, never text for people
+const LOGIC_METHODS = /\.(includes|startsWith|endsWith|split|replace|replaceAll|match|matchAll|test|exec|search|indexOf|lastIndexOf|localeCompare|querySelector|querySelectorAll|getElementById|addEventListener|removeEventListener|parse|getItem|setItem|removeItem|has|get|set|delete|log|warn|error|info|debug|trace|postMessage|dispatchEvent|createElement|getAttribute|setAttribute|setProperty|getPropertyValue|toggle|add|remove|contains)$/;
+const LOGIC_FUNCTIONS = /^(fetch|navigate|setLocation|require|t|tr|tp|hasKey|RegExp|Symbol|CustomEvent|parseInt|parseFloat|Number|encodeURIComponent|decodeURIComponent|apiFetch|apiUrl|matchMedia)$/;
+function deepLogic(node) {
+  let p = node.parent;
+  let child = node;
+  while (p && (ts.isParenthesizedExpression(p) || ts.isAsExpression(p) || ts.isSatisfiesExpression?.(p) || ts.isTypeAssertionExpression(p))) { child = p; p = p.parent; }
+  if (!p) return true;
+  if (ts.isImportDeclaration(p) || ts.isExportDeclaration(p) || ts.isExternalModuleReference(p) || ts.isLiteralTypeNode(p) || ts.isCaseClause(p) || ts.isElementAccessExpression(p)) return true;
+  if (ts.isPropertyAssignment(p)) {
+    if (p.name === child) return true;
+    const name = ts.isIdentifier(p.name) || ts.isStringLiteral(p.name) ? p.name.text : "";
+    return TECH_PROPS.has(name);
+  }
+  if (ts.isBinaryExpression(p) && [ts.SyntaxKind.EqualsEqualsEqualsToken, ts.SyntaxKind.ExclamationEqualsEqualsToken, ts.SyntaxKind.EqualsEqualsToken, ts.SyntaxKind.ExclamationEqualsToken, ts.SyntaxKind.InKeyword, ts.SyntaxKind.InstanceOfKeyword].includes(p.operatorToken.kind)) return true;
+  if (ts.isCallExpression(p) || ts.isNewExpression(p)) {
+    if (p.expression === child) return true;
+    const callee = p.expression.getText();
+    if (LOGIC_METHODS.test(callee) || LOGIC_FUNCTIONS.test(callee)) return true;
+  }
+  if (ts.isJsxExpression(p) && ts.isJsxAttribute(p.parent)) return TECH_ATTRS.has(p.parent.name.getText()) || p.parent.name.getText().startsWith("data-");
+  if (ts.isJsxAttribute(p)) return TECH_ATTRS.has(p.name.getText()) || p.name.getText().startsWith("data-");
+  if (ts.isTaggedTemplateExpression(p)) return true;
+  return false;
+}
+const isPolishVocab = polishDetector(ROOT);
+const isPolishHuman = (text) => looksHuman(text) && (POLISH.test(text) || isPolishVocab(text));
+/** plural(n, "mecz", "mecze", "meczów"): every form is text, also the short lowercase ones looksHuman() would skip. */
+const isPluralFormArg = (node) => ts.isCallExpression(node.parent) && node.parent.arguments.includes(node) && /plural/i.test(node.parent.expression.getText()) && letters(node.text) >= 2;
+const IGNORE = /i18n-ignore/;
+// --words: also single Polish words ("brak", "dwumecz", "grupa" in a plural ternary) outside arrays, URLs and file names
+const words = args.includes("--words");
+const inArray = (node) => { let p = node.parent; while (p && (ts.isParenthesizedExpression(p) || ts.isAsExpression(p))) p = p.parent; return !!p && ts.isArrayLiteralExpression(p); };
+const isPolishWord = (node, text) => words && isPolishVocab(text) && !/[\/?=_.#&]/.test(text) && !inArray(node);
+
+function templateCall(sf, node, prefix, fn = "t") {
   // `a ${x} b ${y.z}` → t("key", { x, z: y.z }) with "a {x} b {z}"
   let text = node.head.text;
   const vars = [];
@@ -135,8 +179,8 @@ function templateCall(sf, node, prefix) {
     vars.push(`${unique}: ${expr.getText(sf)}`);
     text += `{${unique}}${span.literal.text}`;
   });
-  if (text.includes("{{") || !looksHuman(text.replace(/\{\w+\}/g, ""))) return null;
-  return `t("${keyFor(prefix, text)}", { ${vars.join(", ")} })`;
+  if (text.includes("{{") || (!looksHuman(text.replace(/\{\w+\}/g, "")) && !(words && isPolishVocab(text)))) return null;
+  return `${fn}("${keyFor(prefix, text)}", { ${vars.join(", ")} })`;
 }
 
 function transform(file) {
@@ -144,32 +188,76 @@ function transform(file) {
   const sf = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true, file.endsWith(".tsx") ? ts.ScriptKind.TSX : ts.ScriptKind.TS);
   const prefix = prefixOf(file);
   const edits = [];
+  // a local `t` (a tournament, a loop variable…) would shadow the translator: then the file imports it as `tr`
+  let shadow = false;
+  const scan = (node) => {
+    if ((ts.isParameter(node) || ts.isVariableDeclaration(node) || ts.isBindingElement(node) || ts.isFunctionDeclaration(node)) && node.name && ts.isIdentifier(node.name) && node.name.text === "t") shadow = true;
+    ts.forEachChild(node, scan);
+  };
+  scan(sf);
+  const fn = shadow ? "tr" : "t";
+  const visitDeep = (node) => {
+    if (ts.isPropertyAssignment(node) && !insideFunction(node) && (ts.isStringLiteral(node.initializer) || ts.isNoSubstitutionTemplateLiteral(node.initializer))) {
+      const name = ts.isIdentifier(node.name) || ts.isStringLiteral(node.name) ? node.name.text : "";
+      const value = node.initializer.text;
+      if (name && !TECH_PROPS.has(name) && isPolishHuman(value) && !value.includes("{") && ts.isObjectLiteralExpression(node.parent)) {
+        const propName = ts.isIdentifier(node.name) ? name : JSON.stringify(name);
+        edits.push({ start: node.getStart(sf), end: node.getEnd(), text: `get ${propName}() { return ${fn}("${keyFor(prefix, value)}"); }` });
+        report.texts++;
+        return;
+      }
+    }
+    if ((ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) && !isAlreadyWrapped(node)) {
+      const value = node.text;
+      const line = source.split(/\r?\n/)[sf.getLineAndCharacterOfPosition(node.getStart(sf)).line] ?? "";
+      if (!IGNORE.test(line) && !/^\s*[\/?#]|[?&]\w+=/.test(value) && (isPluralFormArg(node) || ((isPolishHuman(value) || isPolishWord(node, value)) && !deepLogic(node))) && !value.includes("{")) {
+        if (!insideFunction(node)) report.skippedModuleLevel.push(`${path.relative(ROOT, file)}: ${value.slice(0, 60)}`);
+        else {
+          const jsxAttr = ts.isJsxAttribute(node.parent);
+          edits.push({ start: node.getStart(sf), end: node.getEnd(), text: jsxAttr ? `{${fn}("${keyFor(prefix, value)}")}` : `${fn}("${keyFor(prefix, value)}")` });
+          report.texts++;
+        }
+      }
+      return;
+    }
+    if (ts.isTemplateExpression(node) && !isAlreadyWrapped(node) && insideFunction(node) && !deepLogic(node)) {
+      const text = [node.head.text, ...node.templateSpans.map((s) => s.literal.text)].join(" ");
+      if (/^\s*[\/?#]|[?&]\w+=|\.(json|csv|png|svg)/.test(text)) { ts.forEachChild(node, visitDeep); return; } // URLs, file names
+      if (isPolishHuman(text) || isPolishWord(node, text)) {
+        const call = templateCall(sf, node, prefix, fn);
+        if (call) { edits.push({ start: node.getStart(sf), end: node.getEnd(), text: call }); report.texts++; return; }
+      }
+    }
+    ts.forEachChild(node, visitDeep);
+  };
   const visit = (node) => {
+    if (deep) return visitDeep(node);
     if (ts.isJsxText(node)) {
       const rendered = jsxRendered(node.text);
       const core = rendered.trim();
       if (core && letters(core) >= 2 && !core.includes("{") && insideFunction(node)) {
         const lead = /^\s/.test(rendered) ? '{" "}' : "";
         const trail = /\s$/.test(rendered) ? '{" "}' : "";
-        edits.push({ start: node.getStart(sf), end: node.getEnd(), text: `${lead}{t("${keyFor(prefix, core)}")}${trail}` });
+        // node.pos, not getStart(): getStart() skips the leading whitespace, which would survive next to the added {" "}
+        edits.push({ start: node.pos, end: node.getEnd(), text: `${lead}{${fn}("${keyFor(prefix, core)}")}${trail}` });
         report.texts++;
       }
     } else if (ts.isJsxAttribute(node) && node.initializer && ts.isStringLiteral(node.initializer) && USER_ATTRS.has(node.name.getText())) {
       const value = node.initializer.text;
       if (looksHuman(value) && !value.includes("{") && insideFunction(node)) {
-        edits.push({ start: node.initializer.getStart(sf), end: node.initializer.getEnd(), text: `{t("${keyFor(prefix, value)}")}` });
+        edits.push({ start: node.initializer.getStart(sf), end: node.initializer.getEnd(), text: `{${fn}("${keyFor(prefix, value)}")}` });
         report.texts++;
       }
     } else if ((ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) && !ts.isJsxAttribute(node.parent) && !isAlreadyWrapped(node) && !ts.isImportDeclaration(node.parent) && !ts.isExportDeclaration(node.parent)) {
       const value = node.text;
       if (looksHuman(value) && !value.includes("{") && contextOk(node)) {
         if (!insideFunction(node)) report.skippedModuleLevel.push(`${path.relative(ROOT, file)}: ${value.slice(0, 60)}`);
-        else { edits.push({ start: node.getStart(sf), end: node.getEnd(), text: `t("${keyFor(prefix, value)}")` }); report.texts++; }
+        else { edits.push({ start: node.getStart(sf), end: node.getEnd(), text: `${fn}("${keyFor(prefix, value)}")` }); report.texts++; }
       }
     } else if (ts.isTemplateExpression(node) && !isAlreadyWrapped(node) && contextOk(node)) {
       if (!insideFunction(node)) report.skippedModuleLevel.push(`${path.relative(ROOT, file)}: \`${node.head.text.slice(0, 60)}…\``);
       else {
-        const call = templateCall(sf, node, prefix);
+        const call = templateCall(sf, node, prefix, fn);
         if (call) { edits.push({ start: node.getStart(sf), end: node.getEnd(), text: call }); report.texts++; return; }
       }
     }
@@ -186,7 +274,7 @@ function transform(file) {
     const lines = out.split(eol);
     let at = 0;
     while (at < lines.length && (lines[at].startsWith("//") || lines[at].startsWith("\"use ") || lines[at].trim() === "")) at++;
-    lines.splice(at, 0, 'import { t } from "@/i18n";');
+    lines.splice(at, 0, shadow ? 'import { t as tr } from "@/i18n";' : 'import { t } from "@/i18n";');
     out = lines.join(eol);
   }
   if (!dry) writeFileSync(file, out);

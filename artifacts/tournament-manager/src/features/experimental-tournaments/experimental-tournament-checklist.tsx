@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { useEffect, useState } from "react";
 import { CheckSquare, ExternalLink, RotateCcw, Square } from "lucide-react";
 import { Link } from "wouter";
@@ -12,14 +13,14 @@ import { Button } from "@/components/ui/button";
 import { tournamentHref } from "@/features/experimental-tournaments/experimental-tournament-routing";
 
 const ITEMS = [
-  { id: "config", label: "Konfiguracja turnieju sprawdzona", detail: "Nazwa, format, maksymalna liczba graczy, domyślne BO i widoczność są poprawne." },
-  { id: "players", label: "Lista uczestników gotowa", detail: "Sprawdź nicki, seedy i ewentualny import CSV przed rozpoczęciem etapu." },
-  { id: "stages", label: "Etapy i przepływ uczestników sprawdzone", detail: "Zweryfikuj kolejność etapów, formaty, koszyki i qualification routing." },
-  { id: "readiness", label: "Readiness nie zgłasza blokującego problemu", detail: "Decyzję o gotowości bierze istniejąca logika turniejowa — checklista jej nie zastępuje." },
-  { id: "security", label: "Dostęp organizatora i wsparcia sprawdzony", detail: "Upewnij się, że właściwe osoby mają odpowiednie poświadczenia." },
-  { id: "audience", label: "Widok widzów sprawdzony", detail: "Zweryfikuj LIVE, klasyfikację, drabinkę i długie nazwy na docelowym ekranie." },
-  { id: "backup", label: "Backup wykonany przed wydarzeniem", detail: "Pełny eksport zmniejsza ryzyko utraty konfiguracji przy błędzie operacyjnym." },
-  { id: "dryrun", label: "Próbny mecz zapisany i cofnięty", detail: "Przetestuj zapis wyniku, konflikt/revision handling oraz korektę wyniku." },
+  { id: "config", get label() { return t("experimentalTournamentChecklist.konfiguracja_turnieju_sprawdzona"); }, get detail() { return t("experimentalTournamentChecklist.nazwa_format_maksymalna_liczba_graczy"); } },
+  { id: "players", get label() { return t("experimentalTournamentChecklist.lista_uczestnikow_gotowa"); }, get detail() { return t("experimentalTournamentChecklist.sprawdz_nicki_seedy_i_ewentualny"); } },
+  { id: "stages", get label() { return t("experimentalTournamentChecklist.etapy_i_przeplyw_uczestnikow_sprawdzone"); }, get detail() { return t("experimentalTournamentChecklist.zweryfikuj_kolejnosc_etapow_formaty_kosz"); } },
+  { id: "readiness", get label() { return t("experimentalTournamentChecklist.readiness_nie_zglasza_blokujacego_proble"); }, get detail() { return t("experimentalTournamentChecklist.decyzje_o_gotowosci_bierze_istniejaca"); } },
+  { id: "security", get label() { return t("experimentalTournamentChecklist.dostep_organizatora_i_wsparcia_sprawdzon"); }, get detail() { return t("experimentalTournamentChecklist.upewnij_sie_ze_wlasciwe_osoby"); } },
+  { id: "audience", get label() { return t("experimentalTournamentChecklist.widok_widzow_sprawdzony"); }, get detail() { return t("experimentalTournamentChecklist.zweryfikuj_live_klasyfikacje_drabinke_i"); } },
+  { id: "backup", get label() { return t("experimentalTournamentChecklist.backup_wykonany_przed_wydarzeniem"); }, get detail() { return t("experimentalTournamentChecklist.pelny_eksport_zmniejsza_ryzyko_utraty"); } },
+  { id: "dryrun", get label() { return t("experimentalTournamentChecklist.probny_mecz_zapisany_i_cofniety"); }, get detail() { return t("experimentalTournamentChecklist.przetestuj_zapis_wyniku_konflikt_revisio"); } },
 ] as const;
 
 function storageKey(tournamentId: number) { return `tm_exp_checklist_${tournamentId}_v1`; }
@@ -50,11 +51,9 @@ export function ExperimentalTournamentChecklist({ open, onClose, tournamentId, t
         <DialogHeader className="shrink-0 border-b px-5 pb-3 pt-5">
           <DialogTitle className="flex items-center gap-2">
             <CheckSquare className="h-5 w-5 text-primary" aria-hidden="true" />
-            Checklista wydarzenia
-          </DialogTitle>
+            {t("experimentalTournamentChecklist.checklista_wydarzenia")}</DialogTitle>
           <DialogDescription className="leading-5">
-            {tournamentName ? `„${tournamentName}” · ` : ""}{done}/{ITEMS.length} ({pct}%). To pomoc operacyjna, nie źródło reguł turnieju.
-          </DialogDescription>
+            {tournamentName ? `„${tournamentName}” · ` : ""}{done}/{ITEMS.length} ({pct}{t("experimentalTournamentChecklist.to_pomoc_operacyjna_nie_zrodlo")}</DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 space-y-2 overflow-y-auto px-5 py-3">
@@ -74,11 +73,11 @@ export function ExperimentalTournamentChecklist({ open, onClose, tournamentId, t
         </div>
 
         <div className="flex shrink-0 flex-wrap items-center justify-between gap-2 border-t px-5 py-3">
-          <Button variant="ghost" size="sm" onClick={reset}><RotateCcw className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />Resetuj</Button>
+          <Button variant="ghost" size="sm" onClick={reset}><RotateCcw className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />{t("experimentalTournamentChecklist.resetuj")}</Button>
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" size="sm" asChild><Link href={tournamentHref(tournamentId, true, "?tab=stages")}>Etapy</Link></Button>
-            <Button variant="outline" size="sm" asChild><Link href={tournamentHref(tournamentId, true, "/audience")}><ExternalLink className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />Widok widzów</Link></Button>
-            <Button size="sm" onClick={onClose}>Zamknij</Button>
+            <Button variant="outline" size="sm" asChild><Link href={tournamentHref(tournamentId, true, "?tab=stages")}>{t("experimentalTournamentChecklist.etapy")}</Link></Button>
+            <Button variant="outline" size="sm" asChild><Link href={tournamentHref(tournamentId, true, "/audience")}><ExternalLink className="mr-1.5 h-3.5 w-3.5" aria-hidden="true" />{t("experimentalTournamentChecklist.widok_widzow")}</Link></Button>
+            <Button size="sm" onClick={onClose}>{t("experimentalTournamentChecklist.zamknij")}</Button>
           </div>
         </div>
       </DialogContent>

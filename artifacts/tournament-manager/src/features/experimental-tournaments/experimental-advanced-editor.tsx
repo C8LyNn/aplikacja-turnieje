@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 /**
  * V5.4 · advanced creation editor.
  *
@@ -74,9 +75,9 @@ const SECTION_PARAMS: Record<SectionId, readonly PresetParamKey[]> = {
 };
 
 const VISIBILITY_TEXT: Record<Visibility, { label: string; hint: string }> = {
-  public_online: { label: "Każdy z linkiem", hint: "Publiczne wyniki." },
-  private_online: { label: "Z hasłem", hint: "Widzowie podają hasło." },
-  private_offline: { label: "Ukryty", hint: "Widzowie nie widzą turnieju, aż go opublikujesz." },
+  public_online: { get label() { return t("experimentalAdvancedEditor.kazdy_z_linkiem"); }, get hint() { return t("experimentalAdvancedEditor.publiczne_wyniki"); } },
+  private_online: { get label() { return t("experimentalAdvancedEditor.z_haslem"); }, get hint() { return t("experimentalAdvancedEditor.widzowie_podaja_haslo"); } },
+  private_offline: { get label() { return t("experimentalAdvancedEditor.ukryty"); }, get hint() { return t("experimentalAdvancedEditor.widzowie_nie_widza_turnieju_az"); } },
 };
 
 const WIZARD_PATH = "/experimental/tournaments/new";
@@ -100,7 +101,7 @@ function limitText(limit: PresetParamLimit | undefined): string | null {
   if (!limit) return null;
   if (limit.optionLabels) return limit.optionLabels[limit.options.indexOf(limit.value)] ?? null;
   if (limit.key === "bestOf" || limit.key === "playoffBestOf") return bestOfLabel(limit.value);
-  if (limit.key === "legs") return limit.value === 2 ? "mecz i rewanż" : "jeden mecz";
+  if (limit.key === "legs") return limit.value === 2 ? t("experimentalAdvancedEditor.mecz_i_rewanz") : t("experimentalAdvancedEditor.jeden_mecz");
   return `${limit.label.toLowerCase()}: ${limit.value}`;
 }
 
@@ -143,10 +144,10 @@ function Section({
           <span className="experimental-advanced-section-summary">{summary}</span>
           {overrides !== undefined && (
             <span className="experimental-advanced-section-tag" data-changed={overrides > 0 ? "true" : "false"}>
-              {overrides > 0 ? `zmienione: ${overrides}` : "domyślne"}
+              {overrides > 0 ? t("experimentalAdvancedEditor.zmienione_overrides", { overrides: overrides }) : t("experimentalAdvancedEditor.domyslne")}
             </span>
           )}
-          {invalid && <AlertTriangle className="h-4 w-4 shrink-0 text-destructive" aria-label="Wymaga poprawy" />}
+          {invalid && <AlertTriangle className="h-4 w-4 shrink-0 text-destructive" aria-label={t("experimentalAdvancedEditor.wymaga_poprawy")} />}
           <ChevronDown className="experimental-advanced-section-chevron h-4 w-4 shrink-0" aria-hidden="true" />
         </button>
       </h3>
@@ -155,8 +156,8 @@ function Section({
           {children}
           {onReset && overrides !== undefined && overrides > 0 && (
             <p className="experimental-advanced-section-reset">
-              <button type="button" className="experimental-wizard-link" onClick={onReset}>Przywróć domyślne w tej sekcji</button>
-              <span> — zdejmuje tylko Twoje zmiany z tej sekcji; reszta ustawień zostaje.</span>
+              <button type="button" className="experimental-wizard-link" onClick={onReset}>{t("experimentalAdvancedEditor.przywroc_domyslne_w_tej_sekcji")}</button>
+              <span> {t("experimentalAdvancedEditor.zdejmuje_tylko_twoje_zmiany_z")}</span>
             </p>
           )}
         </div>
@@ -215,7 +216,7 @@ export function ExperimentalAdvancedEditor() {
           setPreview({ status: "ready", data: body, error: null });
         })
         .catch(() => {
-          if (!controller.signal.aborted) setPreview((current) => ({ status: "error", data: current.data, error: "Nie udało się pobrać podglądu." }));
+          if (!controller.signal.aborted) setPreview((current) => ({ status: "error", data: current.data, error: t("experimentalAdvancedEditor.nie_udalo_sie_pobrac_podgladu") }));
         });
     }, 120);
     return () => {
@@ -288,20 +289,20 @@ export function ExperimentalAdvancedEditor() {
   const nameProblem = tournamentNameError(draft.name);
   const organizerProblem = organizerPasswordError(organizerPassword);
   const supportProblem = supportPassword.length > 0 && supportPassword.length < ORGANIZER_PASSWORD_MIN_LENGTH
-    ? `Hasło pomocnika musi mieć co najmniej ${ORGANIZER_PASSWORD_MIN_LENGTH} znaków albo pozostać puste.`
+    ? t("experimentalAdvancedEditor.haslo_pomocnika_musi_miec_co", { ORGANIZER_PASSWORD_MIN_LENGTH: ORGANIZER_PASSWORD_MIN_LENGTH })
     : null;
   const viewerProblem = draft.visibility === "private_online" && viewerPassword.length < ORGANIZER_PASSWORD_MIN_LENGTH
-    ? `Hasło dla widzów musi mieć co najmniej ${ORGANIZER_PASSWORD_MIN_LENGTH} znaków.`
+    ? t("experimentalAdvancedEditor.haslo_dla_widzow_musi_miec", { ORGANIZER_PASSWORD_MIN_LENGTH: ORGANIZER_PASSWORD_MIN_LENGTH })
     : null;
   const accessInvalid = showValidation && Boolean(nameProblem || organizerProblem || supportProblem || viewerProblem);
 
   const blockers = [
-    !previewValid ? { text: preview.error ?? "Podgląd rozgrywek nie jest gotowy.", section: errorSection ?? "structure" as SectionId } : null,
-    nameProblem ? { text: "Wpisz nazwę turnieju.", section: "access" as SectionId } : null,
-    organizerProblem ? { text: "Ustaw hasło organizatora.", section: "access" as SectionId } : null,
-    viewerProblem ? { text: "Ustaw hasło dla widzów.", section: "access" as SectionId } : null,
-    supportProblem ? { text: "Hasło pomocnika jest za krótkie.", section: "access" as SectionId } : null,
-    apiStatus === "unavailable" ? { text: "Serwer turniejowy jest niedostępny.", section: null } : null,
+    !previewValid ? { text: preview.error ?? t("experimentalAdvancedEditor.podglad_rozgrywek_nie_jest_gotowy"), section: errorSection ?? "structure" as SectionId } : null,
+    nameProblem ? { text: t("experimentalAdvancedEditor.wpisz_nazwe_turnieju"), section: "access" as SectionId } : null,
+    organizerProblem ? { text: t("experimentalAdvancedEditor.ustaw_haslo_organizatora"), section: "access" as SectionId } : null,
+    viewerProblem ? { text: t("experimentalAdvancedEditor.ustaw_haslo_dla_widzow"), section: "access" as SectionId } : null,
+    supportProblem ? { text: t("experimentalAdvancedEditor.haslo_pomocnika_jest_za_krotkie"), section: "access" as SectionId } : null,
+    apiStatus === "unavailable" ? { text: t("experimentalAdvancedEditor.serwer_turniejowy_jest_niedostepny"), section: null } : null,
   ].filter((item): item is { text: string; section: SectionId | null } => item != null);
 
   const backToWizard = () => {
@@ -320,11 +321,11 @@ export function ExperimentalAdvancedEditor() {
     }
     if (!shown || !previewValid) {
       if (errorSection) setOpen(errorSection);
-      setSubmitError("Popraw ustawienia rozgrywek — podgląd zgłasza błąd.");
+      setSubmitError(t("experimentalAdvancedEditor.popraw_ustawienia_rozgrywek_podglad_zgla"));
       return;
     }
     if (apiStatus !== "ready") {
-      setSubmitError("Serwer turniejowy jest teraz niedostępny. Sprawdź połączenie i spróbuj ponownie.");
+      setSubmitError(t("experimentalAdvancedEditor.serwer_turniejowy_jest_teraz_niedostepny"));
       return;
     }
     if (submitInFlight.current) return;
@@ -356,47 +357,46 @@ export function ExperimentalAdvancedEditor() {
 
   const toggle = (id: SectionId) => setOpen((current) => (current === id ? current : id));
   const structureSummary = custom
-    ? `${custom.label} · ${custom.preview.stages.length} ${plural(custom.preview.stages.length, "etap", "etapy", "etapów")}`
+    ? `${custom.label} · ${custom.preview.stages.length} ${plural(custom.preview.stages.length, t("experimentalAdvancedEditor.etap"), t("experimentalAdvancedEditor.etapy"), t("experimentalAdvancedEditor.etapow"))}`
     : [presetId ? PRESET_LABELS[presetId] : null, `${answers.participantCount} ${noun(answers.participantCount)}`, limitText(limits.get("groupCount")), limitText(limits.get("advancingCount")), limitText(limits.get("swissRounds"))]
         .filter(Boolean).join(" · ");
   const setRules = shown?.matchRules?.kind === "sets" ? shown.matchRules : null;
   const matchesSummary = setRules
-    ? [`do ${setRules.setsToWin} wygranych setów`, `set do ${setRules.pointsPerSet}`, setRules.winBy > 1 ? `przewaga ${setRules.winBy}` : null].filter(Boolean).join(" · ")
+    ? [t("experimentalAdvancedEditor.do_setstowin_wygranych_setow", { setsToWin: setRules.setsToWin }), `set do ${setRules.pointsPerSet}`, setRules.winBy > 1 ? `przewaga ${setRules.winBy}` : null].filter(Boolean).join(" · ")
     : [limitText(limits.get("bestOf")),
         // V5.8: a play-off with its own length is an exception, and the summary says so.
         limits.get("playoffBestOf") && (params.playoffBestOf ?? limits.get("playoffBestOf")!.value) !== (params.bestOf ?? limits.get("bestOf")?.value)
-          ? `play-off inaczej: ${limitText(limits.get("playoffBestOf"))?.toLowerCase()}` : null,
-        shown?.leagueRules?.allowDraws ? "remisy" : null].filter(Boolean).join(" · ");
+          ? t("experimentalAdvancedEditor.play_off_inaczej_v0", { v0: limitText(limits.get("playoffBestOf"))?.toLowerCase() }) : null,
+        shown?.leagueRules?.allowDraws ? t("experimentalAdvancedEditor.remisy") : null].filter(Boolean).join(" · ");
   const scoringSummary = shown?.leagueRules
-    ? [`zwycięstwo ${shown.leagueRules.points.win}`, shown.leagueRules.allowDraws ? `remis ${shown.leagueRules.points.draw}` : "bez remisów", `porażka ${shown.leagueRules.points.loss}`, draft.schedule ? "terminarz" : null].filter(Boolean).join(" · ")
+    ? [t("experimentalAdvancedEditor.zwyciestwo_win", { win: shown.leagueRules.points.win }), shown.leagueRules.allowDraws ? t("experimentalAdvancedEditor.remis_draw", { draw: shown.leagueRules.points.draw }) : t("experimentalAdvancedEditor.bez_remisow"), t("experimentalAdvancedEditor.porazka_loss", { loss: shown.leagueRules.points.loss }), draft.schedule ? t("experimentalAdvancedEditor.terminarz") : null].filter(Boolean).join(" · ")
     : "—";
   const advancement = shown && shown.stages.length > 1 ? shown.stages[0]?.advancementText ?? null : null;
-  const seedingSummary = custom ? "według planu z pliku" : [limitText(limits.get("entrySeeding")), limitText(limits.get("groupPlacement")), advancement].filter(Boolean).join(" · ");
+  const seedingSummary = custom ? t("experimentalAdvancedEditor.wedlug_planu_z_pliku") : [limitText(limits.get("entrySeeding")), limitText(limits.get("groupPlacement")), advancement].filter(Boolean).join(" · ");
   const participantsSummary = answers.participantType === "teams"
-    ? `Drużyny${draft.rosterMin != null ? ` · min. ${draft.rosterMin} w podstawie` : ""}`
-    : "Gracze";
-  const accessSummary = `${draft.name.trim() || "bez nazwy"} · ${VISIBILITY_TEXT[draft.visibility].label}`;
+    ? t("experimentalAdvancedEditor.druzyny_v0", { v0: draft.rosterMin != null ? t("experimentalAdvancedEditor.min_rostermin_w_podstawie", { rosterMin: draft.rosterMin }) : "" })
+    : t("experimentalAdvancedEditor.gracze");
+  const accessSummary = `${draft.name.trim() || t("experimentalAdvancedEditor.bez_nazwy")} · ${VISIBILITY_TEXT[draft.visibility].label}`;
 
   return (
     <div className="experimental-wizard experimental-advanced" data-step="advanced">
       <header className="experimental-wizard-top">
         <div>
-          <p className="experimental-wizard-eyebrow">Nowe rozgrywki · tryb zaawansowany</p>
-          <h2 className="experimental-wizard-title">Wszystkie ustawienia</h2>
+          <p className="experimental-wizard-eyebrow">{t("experimentalAdvancedEditor.nowe_rozgrywki_tryb_zaawansowany")}</p>
+          <h2 className="experimental-wizard-title">{t("experimentalAdvancedEditor.wszystkie_ustawienia")}</h2>
         </div>
         <div className="experimental-wizard-top-actions">
           <button type="button" className="experimental-v4-btn" data-variant="ghost" onClick={backToWizard}>
-            <ArrowLeft className="h-4 w-4" aria-hidden="true" /> Prosty kreator
-          </button>
+            <ArrowLeft className="h-4 w-4" aria-hidden="true" /> {t("experimentalAdvancedEditor.prosty_kreator")}</button>
         </div>
       </header>
 
       <div className="experimental-wizard-body" data-has-preview="true">
         <div className="experimental-wizard-main experimental-advanced-sections">
-          <Section id="structure" overrides={overridesOf("structure")} onReset={() => resetSection("structure")} title="Format i etapy" icon={<Layers className="h-4 w-4" />} summary={structureSummary} open={open === "structure"} invalid={errorSection === "structure"} onToggle={toggle}>
+          <Section id="structure" overrides={overridesOf("structure")} onReset={() => resetSection("structure")} title={t("experimentalAdvancedEditor.format_i_etapy")} icon={<Layers className="h-4 w-4" />} summary={structureSummary} open={open === "structure"} invalid={errorSection === "structure"} onToggle={toggle}>
             <fieldset className="experimental-wizard-field">
-              <legend className="experimental-wizard-legend">Format</legend>
-              <div className="experimental-advanced-formats" role="radiogroup" aria-label="Format">
+              <legend className="experimental-wizard-legend">{t("experimentalAdvancedEditor.format")}</legend>
+              <div className="experimental-advanced-formats" role="radiogroup" aria-label={t("experimentalAdvancedEditor.format")}>
                 {ALL_PRESET_IDS.map((id) => (
                   <button key={id} type="button" role="radio" aria-checked={!custom && presetId === id} className="experimental-wizard-chip" onClick={() => choosePreset(id)}>
                     {PRESET_LABELS[id]}
@@ -408,17 +408,15 @@ export function ExperimentalAdvancedEditor() {
               <p className="experimental-wizard-note" data-tone="info" role="status">
                 <Layers className="h-4 w-4 shrink-0" aria-hidden="true" />
                 <span>
-                  Używasz własnego planu <strong>{custom.label}</strong>. Etapy, awanse i rozstawienie pochodzą z pliku i zostaną zapisane bez zmian.
-                </span>
+                  {t("experimentalAdvancedEditor.uzywasz_wlasnego_planu")}{" "}<strong>{custom.label}</strong>{t("experimentalAdvancedEditor.etapy_awanse_i_rozstawienie_pochodza")}</span>
               </p>
             )}
             {confirmReplace && custom && (
               <div className="experimental-wizard-note" data-tone="danger" role="alert">
                 <AlertTriangle className="h-4 w-4 shrink-0" aria-hidden="true" />
                 <span>
-                  „{PRESET_LABELS[confirmReplace]}” zastąpi własny plan z pliku ({custom.preview.stages.length} {plural(custom.preview.stages.length, "etap", "etapy", "etapów")}). Jego etapy i rozstawienie nie zostaną zachowane.
-                  {" "}<button type="button" className="experimental-wizard-link" onClick={() => choosePreset(confirmReplace)}>Zastąp plan</button>
-                  {" "}<button type="button" className="experimental-wizard-link" onClick={() => setConfirmReplace(null)}>Zostaw plan</button>
+                  „{PRESET_LABELS[confirmReplace]}{t("experimentalAdvancedEditor.zastapi_wlasny_plan_z_pliku")}{custom.preview.stages.length} {plural(custom.preview.stages.length, t("experimentalAdvancedEditor.etap"), t("experimentalAdvancedEditor.etapy"), t("experimentalAdvancedEditor.etapow"))}{t("experimentalAdvancedEditor.jego_etapy_i_rozstawienie_nie")}{" "}<button type="button" className="experimental-wizard-link" onClick={() => choosePreset(confirmReplace)}>{t("experimentalAdvancedEditor.zastap_plan")}</button>
+                  {" "}<button type="button" className="experimental-wizard-link" onClick={() => setConfirmReplace(null)}>{t("experimentalAdvancedEditor.zostaw_plan")}</button>
                 </span>
               </div>
             )}
@@ -426,7 +424,7 @@ export function ExperimentalAdvancedEditor() {
           </Section>
 
           {!custom && (
-            <Section id="matches" overrides={overridesOf("matches")} onReset={() => resetSection("matches")} title="Mecze" icon={<Swords className="h-4 w-4" />} summary={matchesSummary} open={open === "matches"} invalid={errorSection === "matches"} onToggle={toggle}>
+            <Section id="matches" overrides={overridesOf("matches")} onReset={() => resetSection("matches")} title={t("experimentalAdvancedEditor.mecze")} icon={<Swords className="h-4 w-4" />} summary={matchesSummary} open={open === "matches"} invalid={errorSection === "matches"} onToggle={toggle}>
               {shown && (
                 <MatchRulesChoice
                   preview={shown}
@@ -439,7 +437,7 @@ export function ExperimentalAdvancedEditor() {
           )}
 
           {hasTable && shown && (
-            <Section id="scoring" overrides={overridesOf("scoring")} onReset={() => resetSection("scoring")} title="Punktacja i terminy" icon={<Scale className="h-4 w-4" />} summary={scoringSummary} open={open === "scoring"} invalid={errorSection === "scoring"} onToggle={toggle}>
+            <Section id="scoring" overrides={overridesOf("scoring")} onReset={() => resetSection("scoring")} title={t("experimentalAdvancedEditor.punktacja_i_terminy")} icon={<Scale className="h-4 w-4" />} summary={scoringSummary} open={open === "scoring"} invalid={errorSection === "scoring"} onToggle={toggle}>
               <LeagueOptions
                 preview={shown}
                 params={params}
@@ -451,67 +449,66 @@ export function ExperimentalAdvancedEditor() {
             </Section>
           )}
 
-          <Section id="seeding" overrides={overridesOf("seeding")} onReset={() => resetSection("seeding")} title="Rozstawienie i awanse" icon={<ListOrdered className="h-4 w-4" />} summary={seedingSummary} open={open === "seeding"} invalid={errorSection === "seeding"} onToggle={toggle}>
+          <Section id="seeding" overrides={overridesOf("seeding")} onReset={() => resetSection("seeding")} title={t("experimentalAdvancedEditor.rozstawienie_i_awanse")} icon={<ListOrdered className="h-4 w-4" />} summary={seedingSummary} open={open === "seeding"} invalid={errorSection === "seeding"} onToggle={toggle}>
             {shown && <FlowSteps preview={shown} noun={noun} />}
             {!custom && paramControls(SECTION_PARAMS.seeding)}
             <p className="experimental-wizard-help">
-              Liczby awansów zmienisz w sekcji „Format i etapy”. Koszyki i nietypowe połączenia etapów ustawisz po utworzeniu, w zakładce Etapy.
-            </p>
+              {t("experimentalAdvancedEditor.liczby_awansow_zmienisz_w_sekcji")}</p>
           </Section>
 
-          <Section id="participants" title="Uczestnicy" icon={<Users className="h-4 w-4" />} summary={participantsSummary} open={open === "participants"} onToggle={toggle}>
-            <div className="experimental-wizard-segments" role="radiogroup" aria-label="Kto bierze udział">
+          <Section id="participants" title={t("experimentalAdvancedEditor.uczestnicy")} icon={<Users className="h-4 w-4" />} summary={participantsSummary} open={open === "participants"} onToggle={toggle}>
+            <div className="experimental-wizard-segments" role="radiogroup" aria-label={t("experimentalAdvancedEditor.kto_bierze_udzial")}>
               {(["players", "teams"] as const).map((type) => (
                 <button key={type} type="button" role="radio" aria-checked={answers.participantType === type} className="experimental-wizard-chip"
                   onClick={() => setDraft((current) => ({ ...current, answers: { ...current.answers, participantType: type } }))}>
-                  {type === "players" ? "Gracze" : "Drużyny"}
+                  {type === "players" ? t("experimentalAdvancedEditor.gracze") : t("experimentalAdvancedEditor.druzyny")}
                 </button>
               ))}
             </div>
             {answers.participantType === "teams" && (
               <div className="experimental-wizard-inline-actions">
                 <label className="experimental-wizard-roster-limit">
-                  <span>Minimum w podstawie</span>
-                  <select aria-label="Minimum zawodników w podstawie" value={draft.rosterMin ?? ""} onChange={(event) => update({ rosterMin: event.target.value ? Number(event.target.value) : null })}>
-                    <option value="">bez limitu</option>
+                  <span>{t("experimentalAdvancedEditor.minimum_w_podstawie")}</span>
+                  <select aria-label={t("experimentalAdvancedEditor.minimum_zawodnikow_w_podstawie")} value={draft.rosterMin ?? ""} onChange={(event) => update({ rosterMin: event.target.value ? Number(event.target.value) : null })}>
+                    <option value="">{t("experimentalAdvancedEditor.bez_limitu")}</option>
                     {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((value) => <option key={value} value={value}>{value}</option>)}
                   </select>
                 </label>
                 <label className="experimental-wizard-roster-limit">
-                  <span>Maksimum w składzie</span>
-                  <select aria-label="Maksimum osób w składzie" value={draft.rosterMax ?? ""} onChange={(event) => update({ rosterMax: event.target.value ? Number(event.target.value) : null })}>
-                    <option value="">bez limitu</option>
+                  <span>{t("experimentalAdvancedEditor.maksimum_w_skladzie")}</span>
+                  <select aria-label={t("experimentalAdvancedEditor.maksimum_osob_w_skladzie")} value={draft.rosterMax ?? ""} onChange={(event) => update({ rosterMax: event.target.value ? Number(event.target.value) : null })}>
+                    <option value="">{t("experimentalAdvancedEditor.bez_limitu")}</option>
                     {[2, 3, 4, 5, 6, 7, 8, 10, 12, 15, 20, 25].map((value) => <option key={value} value={value}>{value}</option>)}
                   </select>
                 </label>
               </div>
             )}
             {draft.rosterMin != null && draft.rosterMax != null && draft.rosterMax < draft.rosterMin && (
-              <p role="alert" className="experimental-wizard-error">Maksimum nie może być mniejsze od minimum — maksimum zostanie pominięte.</p>
+              <p role="alert" className="experimental-wizard-error">{t("experimentalAdvancedEditor.maksimum_nie_moze_byc_mniejsze")}</p>
             )}
-            <p className="experimental-wizard-help">Dodatkowe pola uczestników (np. ranga, Discord) włączysz po utworzeniu, na liście uczestników.</p>
+            <p className="experimental-wizard-help">{t("experimentalAdvancedEditor.dodatkowe_pola_uczestnikow_np_ranga")}</p>
           </Section>
 
-          <Section id="access" title="Nazwa i dostęp" icon={<Lock className="h-4 w-4" />} summary={accessSummary} open={open === "access"} invalid={accessInvalid} onToggle={toggle}>
+          <Section id="access" title={t("experimentalAdvancedEditor.nazwa_i_dostep")} icon={<Lock className="h-4 w-4" />} summary={accessSummary} open={open === "access"} invalid={accessInvalid} onToggle={toggle}>
             <div className="experimental-wizard-field">
-              <Label htmlFor="experimental-advanced-name" className="experimental-wizard-legend">Nazwa turnieju <span className="experimental-wizard-required">wymagane</span></Label>
-              <Input id="experimental-advanced-name" ref={nameRef} value={draft.name} autoComplete="off" placeholder="Np. Wiosenny Puchar Klubu"
+              <Label htmlFor="experimental-advanced-name" className="experimental-wizard-legend">{t("experimentalAdvancedEditor.nazwa_turnieju")}{" "}<span className="experimental-wizard-required">{t("experimentalAdvancedEditor.wymagane")}</span></Label>
+              <Input id="experimental-advanced-name" ref={nameRef} value={draft.name} autoComplete="off" placeholder={t("experimentalAdvancedEditor.np_wiosenny_puchar_klubu")}
                 aria-invalid={showValidation && nameProblem ? true : undefined} onChange={(event) => update({ name: event.target.value })} />
               {showValidation && nameProblem && <p role="alert" className="experimental-wizard-error">{nameProblem}</p>}
             </div>
             <PasswordField
               id="experimental-advanced-organizer-password"
-              label="Hasło organizatora (wymagane)"
+              label={t("experimentalAdvancedEditor.haslo_organizatora_wymagane")}
               value={organizerPassword}
               onChange={setOrganizerPassword}
               visible={showPassword.organizer}
               onToggle={() => setShowPassword((current) => ({ ...current, organizer: !current.organizer }))}
               inputRef={organizerRef}
               minLength={ORGANIZER_PASSWORD_MIN_LENGTH}
-              detail={organizerPasswordRemaining(organizerPassword) > 0 ? `Jeszcze ${organizerPasswordRemaining(organizerPassword)} ${plural(organizerPasswordRemaining(organizerPassword), "znak", "znaki", "znaków")}` : undefined}
+              detail={organizerPasswordRemaining(organizerPassword) > 0 ? t("experimentalAdvancedEditor.jeszcze_v0_v1", { v0: organizerPasswordRemaining(organizerPassword), v1: plural(organizerPasswordRemaining(organizerPassword), t("experimentalAdvancedEditor.znak"), t("experimentalAdvancedEditor.znaki"), t("experimentalAdvancedEditor.znakow")) }) : undefined}
               error={showValidation ? organizerProblem ?? undefined : undefined}
             />
-            <div className="experimental-wizard-segments" role="radiogroup" aria-label="Kto może oglądać">
+            <div className="experimental-wizard-segments" role="radiogroup" aria-label={t("experimentalAdvancedEditor.kto_moze_ogladac")}>
               {(Object.keys(VISIBILITY_TEXT) as Visibility[]).map((value) => (
                 <button key={value} type="button" role="radio" aria-checked={draft.visibility === value} className="experimental-wizard-chip" title={VISIBILITY_TEXT[value].hint} onClick={() => update({ visibility: value })}>
                   {VISIBILITY_TEXT[value].label}
@@ -521,7 +518,7 @@ export function ExperimentalAdvancedEditor() {
             {draft.visibility === "private_online" && (
               <PasswordField
                 id="experimental-advanced-viewer-password"
-                label="Hasło dla widzów (wymagane)"
+                label={t("experimentalAdvancedEditor.haslo_dla_widzow_wymagane")}
                 value={viewerPassword}
                 onChange={setViewerPassword}
                 visible={showPassword.viewer}
@@ -532,22 +529,22 @@ export function ExperimentalAdvancedEditor() {
               />
             )}
             <details className="experimental-wizard-more" open={Boolean(supportPassword || draft.description) || undefined}>
-              <summary>Opis i hasło pomocnika (opcjonalnie)</summary>
+              <summary>{t("experimentalAdvancedEditor.opis_i_haslo_pomocnika_opcjonalnie")}</summary>
               <div className="experimental-wizard-stack">
                 <div className="experimental-wizard-field">
-                  <Label htmlFor="experimental-advanced-description" className="experimental-wizard-legend">Opis</Label>
-                  <Textarea id="experimental-advanced-description" rows={3} value={draft.description} placeholder="Krótka informacja dla uczestników i widzów" onChange={(event) => update({ description: event.target.value })} />
+                  <Label htmlFor="experimental-advanced-description" className="experimental-wizard-legend">{t("experimentalAdvancedEditor.opis")}</Label>
+                  <Textarea id="experimental-advanced-description" rows={3} value={draft.description} placeholder={t("experimentalAdvancedEditor.krotka_informacja_dla_uczestnikow_i")} onChange={(event) => update({ description: event.target.value })} />
                 </div>
                 <PasswordField
                   id="experimental-advanced-support-password"
-                  label="Hasło pomocnika"
+                  label={t("experimentalAdvancedEditor.haslo_pomocnika")}
                   value={supportPassword}
                   onChange={setSupportPassword}
                   visible={showPassword.support}
                   onToggle={() => setShowPassword((current) => ({ ...current, support: !current.support }))}
                   inputRef={supportRef}
                   minLength={ORGANIZER_PASSWORD_MIN_LENGTH}
-                  description="Pomocnik może wpisywać wyniki, ale nie zmieni ustawień."
+                  description={t("experimentalAdvancedEditor.pomocnik_moze_wpisywac_wyniki_ale")}
                   error={showValidation ? supportProblem ?? undefined : undefined}
                 />
               </div>
@@ -557,9 +554,9 @@ export function ExperimentalAdvancedEditor() {
 
         <div className="experimental-advanced-side">
           <PreviewPanel preview={shown} noun={noun} loading={preview.status === "loading"} stale={preview.status === "error"} schedule={draft.schedule} compact />
-          <section className="experimental-advanced-ready" aria-label="Gotowość">
+          <section className="experimental-advanced-ready" aria-label={t("experimentalAdvancedEditor.gotowosc")}>
             {blockers.length === 0 ? (
-              <p className="experimental-advanced-ready-ok"><CheckCircle2 className="h-4 w-4" aria-hidden="true" /> Gotowe do utworzenia</p>
+              <p className="experimental-advanced-ready-ok"><CheckCircle2 className="h-4 w-4" aria-hidden="true" /> {t("experimentalAdvancedEditor.gotowe_do_utworzenia")}</p>
             ) : (
               <ul>
                 {blockers.map((item) => (
@@ -569,7 +566,7 @@ export function ExperimentalAdvancedEditor() {
                       <button type="button" className="experimental-wizard-link" onClick={() => setOpen(item.section!)}>{item.text}</button>
                     ) : (
                       <span>
-                        {item.text} <button type="button" className="experimental-wizard-link" onClick={() => void checkApiHealth()}>Sprawdź ponownie</button>
+                        {item.text} <button type="button" className="experimental-wizard-link" onClick={() => void checkApiHealth()}>{t("experimentalAdvancedEditor.sprawdz_ponownie")}</button>
                       </span>
                     )}
                   </li>
@@ -583,9 +580,9 @@ export function ExperimentalAdvancedEditor() {
             )}
             <button type="button" className="experimental-v4-btn experimental-wizard-primary" data-variant="primary" disabled={createTournament.isPending || apiStatus === "checking"} onClick={submit}>
               <Trophy className="h-4 w-4" aria-hidden="true" />
-              {createTournament.isPending ? "Tworzenie…" : apiStatus === "checking" ? "Sprawdzanie serwera…" : "Utwórz turniej"}
+              {createTournament.isPending ? t("experimentalAdvancedEditor.tworzenie") : apiStatus === "checking" ? t("experimentalAdvancedEditor.sprawdzanie_serwera") : t("experimentalAdvancedEditor.utworz_turniej")}
             </button>
-            <Link href="/experimental/tournaments/dashboard" className="experimental-v4-btn" data-variant="ghost">Anuluj</Link>
+            <Link href="/experimental/tournaments/dashboard" className="experimental-v4-btn" data-variant="ghost">{t("experimentalAdvancedEditor.anuluj")}</Link>
           </section>
         </div>
       </div>
@@ -597,7 +594,7 @@ export function ExperimentalAdvancedEditor() {
 export function FlowSteps({ preview, noun }: { preview: Pick<PresetPreview, "stages">; noun: (n: number) => string }) {
   if (preview.stages.length === 0) return null;
   return (
-    <ol className="experimental-flow-steps" aria-label="Przepływ uczestników">
+    <ol className="experimental-flow-steps" aria-label={t("experimentalAdvancedEditor.przeplyw_uczestnikow")}>
       {preview.stages.map((stage, index) => {
         const next = preview.stages[index + 1];
         const groups = stage.groupSizes;
@@ -608,13 +605,13 @@ export function FlowSteps({ preview, noun }: { preview: Pick<PresetPreview, "sta
             </p>
             <p className="experimental-flow-step-facts">
               {stage.participantCount} {noun(stage.participantCount)}
-              {groups && groups.length > 0 ? ` → ${groups.length} ${plural(groups.length, "grupa", "grupy", "grup")} po ${[...new Set(groups)].join("–")}` : ""}
+              {groups && groups.length > 0 ? t("experimentalAdvancedEditor.length_v1_po_v2", { length: groups.length, v1: plural(groups.length, t("experimentalAdvancedEditor.grupa"), t("experimentalAdvancedEditor.grupy"), t("experimentalAdvancedEditor.grup")), v2: [...new Set(groups)].join("–") }) : ""}
             </p>
             {next && stage.advancingCount != null && (
               <p className="experimental-flow-step-advance">
-                Awans: {stage.advancingCount} → {next.name}
+                {t("experimentalAdvancedEditor.awans")}{" "}{stage.advancingCount} → {next.name}
                 {next.participantCount !== stage.advancingCount && (
-                  <strong className="experimental-flow-step-mismatch"> (etap czeka na {next.participantCount})</strong>
+                  <strong className="experimental-flow-step-mismatch"> {t("experimentalAdvancedEditor.etap_czeka_na")}{" "}{next.participantCount})</strong>
                 )}
               </p>
             )}

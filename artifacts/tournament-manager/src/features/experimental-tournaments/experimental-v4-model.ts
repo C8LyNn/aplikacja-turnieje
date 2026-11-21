@@ -1,3 +1,4 @@
+import { t as tr } from "@/i18n";
 /**
  * SWARM-006 UX v4 — pure view models for the Experimental screens.
  * No API calls and no writes: everything is derived from data the pages already load,
@@ -74,21 +75,21 @@ export function rosterHealth(
   const exact = typeof requiredCount === "number" && requiredCount >= 2 ? requiredCount : null;
   if (exact !== null && count < exact) {
     const missingCount = exact - count;
-    issues.push({ key: "min", tone: "warning", label: `Plan wymaga dokładnie ${exact} — brakuje ${missingCount}` });
+    issues.push({ key: "min", tone: "warning", label: tr("experimentalV4Model.plan_wymaga_dokladnie_exact_brakuje", { exact: exact, missingCount: missingCount }) });
   } else if (exact !== null && count > exact) {
-    issues.push({ key: "over", tone: "danger", label: `Za dużo uczestników: ${count}/${exact} (plan jest stały)` });
+    issues.push({ key: "over", tone: "danger", label: tr("experimentalV4Model.za_duzo_uczestnikow_count_exact", { count: count, exact: exact }) });
   } else if (exact === null && count < 2) {
-    issues.push({ key: "min", tone: "warning", label: count === 0 ? "Brak uczestników — potrzeba co najmniej 2" : "Potrzeba jeszcze 1 uczestnika" });
+    issues.push({ key: "min", tone: "warning", label: count === 0 ? tr("experimentalV4Model.brak_uczestnikow_potrzeba_co_najmniej") : tr("experimentalV4Model.potrzeba_jeszcze_1_uczestnika") });
   }
   if (exact === null && max !== null && count > max) {
-    issues.push({ key: "over", tone: "danger", label: `Przekroczony limit: ${count}/${max}` });
+    issues.push({ key: "over", tone: "danger", label: tr("experimentalV4Model.przekroczony_limit_count_max", { count: count, max: max }) });
   }
 
   const names = new Map<string, number>();
   for (const p of list) names.set(nameKey(p.name), (names.get(nameKey(p.name)) ?? 0) + 1);
   const dupNames = [...names.values()].filter((n) => n > 1).length;
   if (dupNames > 0) {
-    issues.push({ key: "dup-name", tone: "danger", label: dupNames === 1 ? "1 powtórzony nick" : `${dupNames} powtórzone nicki` });
+    issues.push({ key: "dup-name", tone: "danger", label: dupNames === 1 ? tr("experimentalV4Model.1_powtorzony_nick") : tr("experimentalV4Model.dupnames_powtorzone_nicki", { dupNames: dupNames }) });
   }
 
   const seeds = new Map<number, number>();
@@ -99,14 +100,14 @@ export function rosterHealth(
   }
   const dupSeeds = [...seeds.entries()].filter(([, n]) => n > 1).map(([s]) => s).sort((a, b) => a - b);
   if (dupSeeds.length > 0) {
-    issues.push({ key: "dup-seed", tone: "danger", label: `Powtórzone rozstawienie: ${dupSeeds.join(", ")}` });
+    issues.push({ key: "dup-seed", tone: "danger", label: tr("experimentalV4Model.powtorzone_rozstawienie_v0", { v0: dupSeeds.join(", ") }) });
   }
   if (count > 0 && missing > 0) {
-    issues.push({ key: "seed-missing", tone: "info", label: missing === count ? "Rozstawienie zostanie nadane automatycznie" : `${missing} bez rozstawienia (nadane automatycznie)` });
+    issues.push({ key: "seed-missing", tone: "info", label: missing === count ? tr("experimentalV4Model.rozstawienie_zostanie_nadane_automatyczn") : tr("experimentalV4Model.missing_bez_rozstawienia_nadane_automaty", { missing: missing }) });
   }
 
   if (typeof teamsNotReady === "number" && teamsNotReady > 0) {
-    issues.push({ key: "team-roster", tone: "danger", label: teamsNotReady === 1 ? "1 drużyna bez pełnego składu" : `${teamsNotReady} drużyn bez pełnego składu` });
+    issues.push({ key: "team-roster", tone: "danger", label: teamsNotReady === 1 ? tr("experimentalV4Model.1_druzyna_bez_pelnego_skladu") : tr("experimentalV4Model.teamsnotready_druzyn_bez_pelnego_skladu", { teamsNotReady: teamsNotReady }) });
   }
   const ready = (exact !== null ? count === exact : count >= 2) && !issues.some((i) => i.tone === "danger");
   return { count, max, freeSlots, ready, issues };
@@ -147,7 +148,7 @@ export function stageRail(
     // V5.8: groups play their rounds side by side — progress is the match count, not "Runda 1/3".
     const roundLabel =
       s.status === "active" && typeof s.currentRound === "number" && s.format !== "group_stage"
-        ? rounds ? `Runda ${s.currentRound}/${rounds}` : `Runda ${s.currentRound}`
+        ? rounds ? tr("experimentalV4Model.runda_currentround_rounds", { currentRound: s.currentRound, rounds: rounds }) : tr("experimentalV4Model.runda_currentround", { currentRound: s.currentRound })
         : null;
     return { id: s.id, name: s.name, format: s.format, status: s.status, done: c.done, total: c.total, roundLabel, isCurrent: s.id === currentId };
   });
@@ -194,12 +195,12 @@ export interface TournamentAction {
 }
 
 export const ACTION_GROUPS: ReadonlyArray<{ group: TournamentActionGroup; title: string }> = [
-  { group: "play", title: "Do prowadzenia teraz" },
-  { group: "advance", title: "Czekają na kolejny krok" },
-  { group: "start", title: "Gotowe do startu" },
-  { group: "roster", title: "Brakuje uczestników" },
-  { group: "prepare", title: "Wymagają przygotowania" },
-  { group: "done", title: "Zakończone" },
+  { group: "play", get title() { return tr("experimentalV4Model.do_prowadzenia_teraz"); } },
+  { group: "advance", get title() { return tr("experimentalV4Model.czekaja_na_kolejny_krok"); } },
+  { group: "start", get title() { return tr("experimentalV4Model.gotowe_do_startu"); } },
+  { group: "roster", get title() { return tr("experimentalV4Model.brakuje_uczestnikow"); } },
+  { group: "prepare", get title() { return tr("experimentalV4Model.wymagaja_przygotowania"); } },
+  { group: "done", get title() { return tr("experimentalV4Model.zakonczone"); } },
 ];
 
 export function plural(n: number, one: string, few: string, many: string): string {
@@ -217,44 +218,44 @@ export function tournamentAction(t: { id: number; status: string; activity?: Tou
   const base = `/experimental/tournaments/${t.id}`;
   const a = t.activity;
   if (!a) return null;
-  if (t.status === "completed") return { group: "done", label: "Zobacz wyniki", hint: "Turniej zakończony", href: base };
+  if (t.status === "completed") return { group: "done", label: tr("experimentalV4Model.zobacz_wyniki"), hint: tr("experimentalV4Model.turniej_zakonczony"), href: base };
   if (t.status === "active") {
     if (a.liveMatchCount + a.readyMatchCount > 0) {
       const parts = [
-        a.liveMatchCount ? plural(a.liveMatchCount, "mecz trwa", "mecze trwają", "meczów trwa") : "",
-        a.readyMatchCount ? plural(a.readyMatchCount, "mecz gotowy", "mecze gotowe", "meczów gotowych") : "",
+        a.liveMatchCount ? plural(a.liveMatchCount, tr("experimentalV4Model.mecz_trwa"), tr("experimentalV4Model.mecze_trwaja"), tr("experimentalV4Model.meczow_trwa")) : "",
+        a.readyMatchCount ? plural(a.readyMatchCount, tr("experimentalV4Model.mecz_gotowy"), tr("experimentalV4Model.mecze_gotowe"), tr("experimentalV4Model.meczow_gotowych")) : "",
       ].filter(Boolean);
-      return { group: "play", label: "Prowadź mecze", hint: parts.join(" · "), href: `${base}/host` };
+      return { group: "play", label: tr("experimentalV4Model.prowadz_mecze"), hint: parts.join(" · "), href: `${base}/host` };
     }
     // V5.11: the engine's stage summary names the move instead of a generic "next step".
     const stage = a.currentStage;
     if (stage?.status === "active" && stage.matchesTotal > 0 && stage.matchesCompleted >= stage.matchesTotal) {
       if (stage.format === "swiss" && stage.currentRound && stage.plannedRounds && stage.currentRound < stage.plannedRounds) {
-        return { group: "advance", label: `Generuj rundę ${stage.currentRound + 1}`, hint: `Runda ${stage.currentRound} z ${stage.plannedRounds} zakończona`, href: `${base}/host` };
+        return { group: "advance", label: tr("experimentalV4Model.generuj_runde_v0", { v0: stage.currentRound + 1 }), hint: tr("experimentalV4Model.runda_currentround_z_plannedrounds_zakon", { currentRound: stage.currentRound, plannedRounds: stage.plannedRounds }), href: `${base}/host` };
       }
       if (stage.format !== "swiss" || stage.plannedRounds) {
-        return { group: "advance", label: "Zakończ etap", hint: `Wszystkie mecze etapu „${stage.name}” mają wyniki — zatwierdź tabelę i awans`, href: `${base}?tab=stages&stage=${stage.id}&action=complete` };
+        return { group: "advance", label: tr("experimentalV4Model.zakoncz_etap"), hint: tr("experimentalV4Model.wszystkie_mecze_etapu_name_maja", { name: stage.name }), href: `${base}?tab=stages&stage=${stage.id}&action=complete` };
       }
     }
     if (stage?.status === "planned") {
-      return { group: "advance", label: "Rozpocznij etap", hint: `Etap „${stage.name}” czeka na start`, href: `${base}?tab=stages&stage=${stage.id}&action=start` };
+      return { group: "advance", label: tr("experimentalV4Model.rozpocznij_etap"), hint: tr("experimentalV4Model.etap_name_czeka_na_start", { name: stage.name }), href: `${base}?tab=stages&stage=${stage.id}&action=start` };
     }
-    return { group: "advance", label: "Następny krok", hint: "Brak meczów do rozegrania — rozpocznij rundę lub etap", href: `${base}/host` };
+    return { group: "advance", label: tr("experimentalV4Model.nastepny_krok"), hint: tr("experimentalV4Model.brak_meczow_do_rozegrania_rozpocznij"), href: `${base}/host` };
   }
   if (t.status === "draft") {
     // V5.11: drafts follow the engine's start readiness of the first stage (exact sizes, baskets, seeds);
     // fewer than 2 participants always asks for participants first (V5.8 rule).
     const readiness = a.playerCount >= 2 ? a.startReadiness : null;
     if (readiness) {
-      if (readiness.ready) return { group: "start", label: "Uruchom turniej", hint: `${plural(a.playerCount, "uczestnik", "uczestników", "uczestników")} — wszystko gotowe`, href: base };
+      if (readiness.ready) return { group: "start", label: tr("experimentalV4Model.uruchom_turniej"), hint: tr("experimentalV4Model.v0_wszystko_gotowe", { v0: plural(a.playerCount, tr("experimentalV4Model.uczestnik"), tr("experimentalV4Model.uczestnikow"), tr("experimentalV4Model.uczestnikow")) }), href: base };
       if (readiness.reasonCode === "STAGE_PARTICIPANTS_INCONSISTENT" && readiness.participantCount < readiness.requiredParticipantCount) {
         const missing = readiness.requiredParticipantCount - readiness.participantCount;
-        return { group: "roster", label: "Dodaj uczestników", hint: `Dodaj jeszcze ${missing} · na liście ${readiness.participantCount} z ${readiness.requiredParticipantCount}`, href: `${base}?tab=players` };
+        return { group: "roster", label: tr("experimentalV4Model.dodaj_uczestnikow"), hint: tr("experimentalV4Model.dodaj_jeszcze_missing_na_liscie", { missing: missing, participantCount: readiness.participantCount, requiredParticipantCount: readiness.requiredParticipantCount }), href: `${base}?tab=players` };
       }
-      return { group: "prepare", label: "Sprawdź przygotowanie", hint: "Pierwszy etap wymaga przygotowania przed startem", href: `${base}?tab=stages` };
+      return { group: "prepare", label: tr("experimentalV4Model.sprawdz_przygotowanie"), hint: tr("experimentalV4Model.pierwszy_etap_wymaga_przygotowania_przed"), href: `${base}?tab=stages` };
     }
-    if (a.playerCount >= 2) return { group: "start", label: "Uruchom turniej", hint: plural(a.playerCount, "uczestnik", "uczestników", "uczestników"), href: base };
-    return { group: "roster", label: "Dodaj uczestników", hint: a.playerCount === 1 ? "Jest 1 uczestnik, potrzeba 2" : "Brak uczestników", href: `${base}?tab=players` };
+    if (a.playerCount >= 2) return { group: "start", label: tr("experimentalV4Model.uruchom_turniej"), hint: plural(a.playerCount, tr("experimentalV4Model.uczestnik"), tr("experimentalV4Model.uczestnikow"), tr("experimentalV4Model.uczestnikow")), href: base };
+    return { group: "roster", label: tr("experimentalV4Model.dodaj_uczestnikow"), hint: a.playerCount === 1 ? tr("experimentalV4Model.jest_1_uczestnik_potrzeba_2") : tr("experimentalV4Model.brak_uczestnikow"), href: `${base}?tab=players` };
   }
   return null;
 }
@@ -282,10 +283,11 @@ export interface BulkParse {
   headerDetected: boolean;
 }
 
-const NAME_KEYS = ["name", "nick", "nazwa", "gracz", "zawodnik"];
-const TEAM_KEYS = ["team", "druzyna", "drużyna"];
-const SEED_KEYS = ["seed", "rozstawienie"];
-const HEADER_WORDS = new Set([...NAME_KEYS, ...TEAM_KEYS, ...SEED_KEYS, "rank", "ranga", "country", "kraj"]);
+// CSV header aliases (data, both languages are accepted) — i18n-ignore
+const NAME_KEYS = ["name", "nick", "nazwa", "gracz", "zawodnik"]; // i18n-ignore
+const TEAM_KEYS = ["team", "druzyna", "drużyna"]; // i18n-ignore
+const SEED_KEYS = ["seed", "rozstawienie"]; // i18n-ignore
+const HEADER_WORDS = new Set([...NAME_KEYS, ...TEAM_KEYS, ...SEED_KEYS, "rank", "ranga", "country", "kraj"]); // i18n-ignore
 /** Server limits (tournament-roster.ts): name ≤ 100, seed 1–999, default capacity 256. */
 export const BULK_NAME_MAX = 100;
 const DEFAULT_CAPACITY = 256;
@@ -338,16 +340,16 @@ export function parseBulkRoster(
     const seedText = seedCol >= 0 ? (cells[seedCol] ?? "").trim() : "";
     const row: BulkRow = { line, raw, name, team, seed: null, error: null };
     const key = name.toLocaleLowerCase("pl");
-    if (!name) row.error = "Brak nicku";
-    else if (name.length > BULK_NAME_MAX) row.error = `Nick za długi (${name.length}/${BULK_NAME_MAX} znaków)`;
-    else if (/[;,\t]/.test(name) || /[;,\t]/.test(team)) row.error = "Nick i drużyna nie mogą zawierać przecinka ani średnika";
-    else if (seen.has(key)) row.error = "Powtórzony w tej liście";
-    else if (existing.has(key)) row.error = "Już jest na liście turnieju";
+    if (!name) row.error = tr("experimentalV4Model.brak_nicku");
+    else if (name.length > BULK_NAME_MAX) row.error = tr("experimentalV4Model.nick_za_dlugi_length_bulk", { length: name.length, BULK_NAME_MAX: BULK_NAME_MAX });
+    else if (/[;,\t]/.test(name) || /[;,\t]/.test(team)) row.error = tr("experimentalV4Model.nick_i_druzyna_nie_moga");
+    else if (seen.has(key)) row.error = tr("experimentalV4Model.powtorzony_w_tej_liscie");
+    else if (existing.has(key)) row.error = tr("experimentalV4Model.juz_jest_na_liscie_turnieju");
     if (!row.error && seedText) {
       const seed = Number(seedText);
-      if (!Number.isInteger(seed) || seed < 1 || seed > 999) row.error = `Rozstawienie „${seedText}” poza zakresem 1–999`;
-      else if (seeds.has(seed)) row.error = `Rozstawienie ${seed} powtórzone`;
-      else if (takenSeeds.has(seed)) row.error = `Rozstawienie ${seed} jest już zajęte na liście turnieju`;
+      if (!Number.isInteger(seed) || seed < 1 || seed > 999) row.error = tr("experimentalV4Model.rozstawienie_seedtext_poza_zakresem_1", { seedText: seedText });
+      else if (seeds.has(seed)) row.error = tr("experimentalV4Model.rozstawienie_seed_powtorzone", { seed: seed });
+      else if (takenSeeds.has(seed)) row.error = tr("experimentalV4Model.rozstawienie_seed_jest_juz_zajete", { seed: seed });
       else row.seed = seed;
     }
     if (!row.error) {
@@ -477,7 +479,7 @@ export function stageMap(
     const s = byId.get(item.id)!;
     const own = allBaskets.filter((b) => b.stageId === s.id).sort((a, b) => a.ordinal - b.ordinal);
     const inputs = own.filter((b) => b.type === "input").map((b) => ({
-      label: `Koszyk ${b.ordinal}`,
+      label: tr("experimentalV4Model.koszyk_ordinal", { ordinal: b.ordinal }),
       direct: b.participantIds.length,
       // V5.6: once the source stage is completed its qualifiers already sit in this basket (counted in `direct`).
       incoming: (routesTo.get(b.id) ?? []).reduce((sum, r) => {
@@ -489,7 +491,7 @@ export function stageMap(
       .filter((b) => b.type === "output")
       .flatMap((b) => (routesFrom.get(b.id) ?? []).map((r): StageMapLink | null => {
         const target = byId.get(basketById.get(r.targetBasketId)?.stageId ?? -1);
-        const label = b.qualifierCount === null && outputsPerStage.get(s.id) === 1 ? "Awans" : `Koszyk wyjściowy ${b.ordinal}`;
+        const label = b.qualifierCount === null && outputsPerStage.get(s.id) === 1 ? tr("experimentalV4Model.awans") : tr("experimentalV4Model.koszyk_wyjsciowy_ordinal", { ordinal: b.ordinal });
         return target ? { label, count: quotaOf(b), targetStageId: target.id, targetName: target.name } : null;
       }))
       .filter((l): l is StageMapLink => l !== null);
@@ -497,14 +499,14 @@ export function stageMap(
     const advancing = advancingOf(s);
     // Without explicit basket routes, a qualifying stage feeds the next stage by position.
     if (outgoing.length === 0 && next && s.qualificationMode !== "none") {
-      outgoing = [{ label: "Awans", count: advancing, targetStageId: next.id, targetName: next.name }];
+      outgoing = [{ label: tr("experimentalV4Model.awans"), count: advancing, targetStageId: next.id, targetName: next.name }];
     }
     const qualification =
       s.qualificationMode === "top_n_per_group" && s.qualifiersPerGroup
-        ? `Awans: ${s.qualifiersPerGroup} najlepszych z każdej grupy${s.groupCount ? ` (${s.groupCount} gr.)` : ""}`
+        ? tr("experimentalV4Model.awans_qualifierspergroup_najlepszych_z_k", { qualifiersPerGroup: s.qualifiersPerGroup, v1: s.groupCount ? ` (${s.groupCount} gr.)` : "" })
         : s.qualificationMode === "top_n" && s.advancingCount
-          ? `Awans: ${s.advancingCount} najlepszych`
-          : outgoing.length ? "Awans według koszyków" : next ? "Bez awansu do kolejnego etapu" : "Etap końcowy — wyłania zwycięzcę";
+          ? tr("experimentalV4Model.awans_advancingcount_najlepszych", { advancingCount: s.advancingCount })
+          : outgoing.length ? tr("experimentalV4Model.awans_wedlug_koszykow") : next ? tr("experimentalV4Model.bez_awansu_do_kolejnego_etapu") : tr("experimentalV4Model.etap_koncowy_wylania_zwyciezce");
     const routedOut = outgoing.reduce((sum, l) => sum + (l.count ?? 0), 0);
     const eliminated =
       s.participantCount > 0 && outgoing.length > 0 && outgoing.every((l) => l.count !== null)

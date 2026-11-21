@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 /**
  * V5.7 · "how a match is decided", in the wizard and the advanced editor. Three things stay apart:
  * the format (step 1), the match rules (this choice) and the classification points (league options).
@@ -51,7 +52,7 @@ export function paramsForMatchRuleOption(id: MatchRuleOptionId, params: PresetPa
   return { ...base, bestOf: preset.bestOf, ...(hasLeague ? { allowDraws: preset.allowDraws ? 1 : 0 } : {}) };
 }
 
-const pointsWord = (value: number) => (value === 1 ? "punkt" : value >= 2 && value <= 4 ? "punkty" : "punktów");
+const pointsWord = (value: number) => (value === 1 ? t("experimentalMatchRulesChoice.punkt") : value >= 2 && value <= 4 ? t("experimentalMatchRulesChoice.punkty") : t("experimentalMatchRulesChoice.punktow"));
 
 /** The one-sentence summary shown under the choice (match rules, then what a result is worth). */
 export function matchRulesSentence(preview: PresetPreview): string {
@@ -60,17 +61,17 @@ export function matchRulesSentence(preview: PresetPreview): string {
   if (preview.params.twoLegs === 1) {
     // V5.10: format and decision stay apart — "a knockout bracket, each pair plays two legs".
     const bracket = preview.stages.find((stage) => stage.format === "single_elimination");
-    const where = preview.stages.length > 1 ? `W etapie „${bracket?.name ?? "Play-off"}” (drabinka)` : "Turniej eliminacyjny (drabinka)";
-    const table = league ? ` W tabeli zwycięstwo daje ${league.points.win} ${pointsWord(league.points.win)}${league.allowDraws ? `, remis ${league.points.draw}` : ""}.` : "";
-    return `${where}, w którym każda para rozgrywa dwa spotkania. O awansie decyduje suma wyników; przy równej sumie rozstrzyga organizator.${table}`;
+    const where = preview.stages.length > 1 ? t("experimentalMatchRulesChoice.w_etapie_v0_drabinka", { v0: bracket?.name ?? "Play-off" }) : t("experimentalMatchRulesChoice.turniej_eliminacyjny_drabinka");
+    const table = league ? t("experimentalMatchRulesChoice.w_tabeli_zwyciestwo_daje_win", { win: league.points.win, v1: pointsWord(league.points.win), v2: league.allowDraws ? t("experimentalMatchRulesChoice.remis_draw", { draw: league.points.draw }) : "" }) : "";
+    return t("experimentalMatchRulesChoice.where_w_ktorym_kazda_para", { where: where, table: table });
   }
   if (!league) {
     const elimination = preview.stages.some((stage) => stage.format === "single_elimination" || stage.format === "double_elimination");
-    return `${rules}${elimination ? " Zwycięzca meczu przechodzi dalej w drabince." : ""}`.trim();
+    return `${rules}${elimination ? t("experimentalMatchRulesChoice.zwyciezca_meczu_przechodzi_dalej_w") : ""}`.trim();
   }
-  const win = `Zwycięstwo daje ${league.points.win} ${pointsWord(league.points.win)} w tabeli`;
-  const draw = league.allowDraws ? `, remis ${league.points.draw}` : "";
-  const loss = league.points.loss ? `, porażka ${league.points.loss}` : "";
+  const win = t("experimentalMatchRulesChoice.zwyciestwo_daje_win_v1_w", { win: league.points.win, v1: pointsWord(league.points.win) });
+  const draw = league.allowDraws ? t("experimentalMatchRulesChoice.remis_draw", { draw: league.points.draw }) : "";
+  const loss = league.points.loss ? t("experimentalMatchRulesChoice.porazka_loss", { loss: league.points.loss }) : "";
   return `${rules} ${win}${draw}${loss}.`.trim();
 }
 
@@ -100,8 +101,8 @@ export function MatchRulesChoice({
   return (
     <div className="experimental-wizard-param experimental-match-rules-choice" data-testid="match-rules-choice" data-invalid={ownError ? "true" : undefined}>
       <div className="experimental-wizard-param-head">
-        <span className="experimental-wizard-legend" id={`${id}-label`}>Jak rozstrzyga się mecz</span>
-        <span className="experimental-wizard-help">Wybierz gotowe zasady. Format rozgrywek i punktacja tabeli zostają bez zmian.</span>
+        <span className="experimental-wizard-legend" id={`${id}-label`}>{t("experimentalMatchRulesChoice.jak_rozstrzyga_sie_mecz")}</span>
+        <span className="experimental-wizard-help">{t("experimentalMatchRulesChoice.wybierz_gotowe_zasady_format_rozgrywek")}</span>
       </div>
       <div className="experimental-wizard-segments experimental-match-rules-options" role="radiogroup" aria-labelledby={`${id}-label`} aria-describedby={selectedPreset ? `${id}-description` : undefined}>
         {options.map((option) => (
@@ -117,16 +118,16 @@ export function MatchRulesChoice({
             {option.label}
           </button>
         ))}
-        {selected === "custom" && <span className="experimental-wizard-chip" role="radio" aria-checked="true">Własne zasady</span>}
+        {selected === "custom" && <span className="experimental-wizard-chip" role="radio" aria-checked="true">{t("experimentalMatchRulesChoice.wlasne_zasady")}</span>}
       </div>
       {selectedPreset && <p id={`${id}-description`} className="experimental-wizard-help" data-testid="match-rules-description">{selectedPreset.description}</p>}
       <p className="experimental-match-rules-summary" role="status" aria-live="polite">{matchRulesSentence(preview)}</p>
       {ownError && <p role="alert" className="experimental-wizard-error">{ownError}</p>}
       <details className="experimental-match-rules-details" open={!!ownError || selected === "custom" || undefined}>
-        <summary className="cursor-pointer">Dostosuj zasady</summary>
+        <summary className="cursor-pointer">{t("experimentalMatchRulesChoice.dostosuj_zasady")}</summary>
         <div className="mt-3 space-y-3">
-          {twoLegsActive && <p className="experimental-wizard-help">Każde spotkanie dwumeczu to jedna gra na bramki lub punkty (remis w jednym spotkaniu jest możliwy). Terminy obu spotkań ustawisz po starcie, osobno dla każdego. Bramki wyjazdowe nie są liczone.</p>}
-          {setsActive && <p className="experimental-wizard-help">Długość meczu wynika z setów: do {limits.get("setsToWin")?.value} wygranych setów. Wszystkie sety mają te same zasady.</p>}
+          {twoLegsActive && <p className="experimental-wizard-help">{t("experimentalMatchRulesChoice.kazde_spotkanie_dwumeczu_to_jedna")}</p>}
+          {setsActive && <p className="experimental-wizard-help">{t("experimentalMatchRulesChoice.dlugosc_meczu_wynika_z_setow")}{" "}{limits.get("setsToWin")?.value} {t("experimentalMatchRulesChoice.wygranych_setow_wszystkie_sety_maja")}</p>}
           {detailKeys.map((key) => limits.get(key)).filter((limit): limit is NonNullable<typeof limit> => !!limit).map((limit) => (
             <ParamControl
               key={limit.key}
@@ -137,12 +138,11 @@ export function MatchRulesChoice({
           ))}
           {!setsActive && !twoLegsActive && (
             <button type="button" className="experimental-v4-btn" data-variant="ghost" onClick={() => onParams(paramsForMatchRuleOption("sets_2_11", params, hasLeague))}>
-              Mecz na sety
-            </button>
+              {t("experimentalMatchRulesChoice.mecz_na_sety")}</button>
           )}
           {(setsActive || twoLegsActive) && (
             <button type="button" className="experimental-v4-btn" data-variant="ghost" onClick={() => onParams(paramsForMatchRuleOption("single_game", params, hasLeague))}>
-              {twoLegsActive ? "Jeden mecz zamiast dwumeczu" : "Bez setów"}
+              {twoLegsActive ? t("experimentalMatchRulesChoice.jeden_mecz_zamiast_dwumeczu") : t("experimentalMatchRulesChoice.bez_setow")}
             </button>
           )}
         </div>

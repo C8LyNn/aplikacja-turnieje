@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import type {
   Match,
   StageStartReadiness,
@@ -34,10 +35,10 @@ export interface OrganizerNextStepModel {
 }
 
 const formatLabels: Record<string, string> = {
-  swiss: "System szwajcarski",
-  round_robin: "Każdy z każdym",
-  group_stage: "Faza grupowa",
-  single_elimination: "Drabinka eliminacyjna",
+  get swiss() { return t("organizerNextStep.system_szwajcarski"); },
+  get round_robin() { return t("organizerNextStep.kazdy_z_kazdym"); },
+  get group_stage() { return t("organizerNextStep.faza_grupowa"); },
+  get single_elimination() { return t("organizerNextStep.drabinka_eliminacyjna"); },
 };
 
 export function estimateStageMatches(stage: TournamentStage): number | undefined {
@@ -71,15 +72,15 @@ export function deriveOrganizerNextStep(input: {
   if (tournament.status === "completed" && !stages.some(s => s.status !== "completed") && !input.transitionStep) {
     return {
       kind: "completed",
-      title: "Turniej zakończony",
-      description: "Wszystkie etapy są zakończone. Wyniki są gotowe do pokazania widzom i zapisania w kopii zapasowej.",
+      title: t("organizerNextStep.turniej_zakonczony"),
+      description: t("organizerNextStep.wszystkie_etapy_sa_zakonczone_wyniki"),
     };
   }
   if (stages.length === 0) {
     return {
       kind: "no_stages",
-      title: "Brak skonfigurowanych etapów",
-      description: "Plan turnieju nie zawiera etapu, który można obecnie prowadzić.",
+      title: t("organizerNextStep.brak_skonfigurowanych_etapow"),
+      description: t("organizerNextStep.plan_turnieju_nie_zawiera_etapu"),
     };
   }
 
@@ -88,8 +89,8 @@ export function deriveOrganizerNextStep(input: {
     if (matches === undefined) {
       return {
         kind: "not_ready",
-        title: "Sprawdzanie stanu etapu",
-        description: "Trwa pobieranie meczów. Akcja pojawi się po potwierdzeniu gotowości.",
+        title: t("organizerNextStep.sprawdzanie_stanu_etapu"),
+        description: t("organizerNextStep.trwa_pobieranie_meczow_akcja_pojawi"),
         stageId: active.id,
       };
     }
@@ -97,8 +98,8 @@ export function deriveOrganizerNextStep(input: {
     if (stageMatches.length === 0) {
       return {
         kind: "stage_not_materialized",
-        title: "Etap nie ma jeszcze meczów",
-        description: "Nie można potwierdzić gotowości do zakończenia. Sprawdź materializację etapu.",
+        title: t("organizerNextStep.etap_nie_ma_jeszcze_meczow"),
+        description: t("organizerNextStep.nie_mozna_potwierdzic_gotowosci_do"),
         stageId: active.id,
       };
     }
@@ -108,9 +109,9 @@ export function deriveOrganizerNextStep(input: {
       return {
         kind: "active_matches",
         title: active.name,
-        description: `${completed} z ${stageMatches.length} meczów zakończonych, pozostało ${remaining}.`,
+        description: t("organizerNextStep.completed_z_length_meczow_zakonczonych", { completed: completed, length: stageMatches.length, remaining: remaining }),
         actionLabel: surface === "details" && capabilities.canAccessConducting
-          ? "Przejdź do prowadzenia"
+          ? t("organizerNextStep.przejdz_do_prowadzenia")
           : undefined,
         actionHref: surface === "details" && capabilities.canAccessConducting
           ? `/tournaments/${tournament.id}/host?tab=prowadzenie`
@@ -123,9 +124,9 @@ export function deriveOrganizerNextStep(input: {
     if (active.format === "swiss" && currentRound > 0 && currentRound < totalRounds) {
       return {
         kind: "swiss_round",
-        title: `Runda ${currentRound} zakończona`,
-        description: `Etap ${active.name} jest gotowy na kolejną rundę.`,
-        actionLabel: capabilities.canGenerateRound ? `Wygeneruj rundę ${currentRound + 1}` : undefined,
+        title: t("organizerNextStep.runda_currentround_zakonczona", { currentRound: currentRound }),
+        description: t("organizerNextStep.etap_name_jest_gotowy_na", { name: active.name }),
+        actionLabel: capabilities.canGenerateRound ? t("organizerNextStep.wygeneruj_runde_v0", { v0: currentRound + 1 }) : undefined,
         actionHref: capabilities.canGenerateRound
           ? `/tournaments/${tournament.id}/host?tab=prowadzenie`
           : undefined,
@@ -137,11 +138,11 @@ export function deriveOrganizerNextStep(input: {
     const next = stages.find((stage) => stage.position > active.position && stage.status === "planned");
     return {
       kind: "complete_stage",
-      title: "Sprawdź zakończenie etapu",
+      title: t("organizerNextStep.sprawdz_zakonczenie_etapu"),
       description: next
-        ? `Wszystkie mecze etapu mają wyniki. Zakończ etap, aby zatwierdzić tabelę i awans — potem przejdziesz do etapu „${next.name}”.`
-        : "Wszystkie mecze etapu mają wyniki. Zakończ etap: sprawdzimy warunki zakończenia etapu i zatwierdzimy końcowe miejsca oraz zwycięzcę.",
-      actionLabel: capabilities.canManageLifecycle ? "Zakończ etap" : undefined,
+        ? t("organizerNextStep.wszystkie_mecze_etapu_maja_wyniki", { name: next.name })
+        : t("organizerNextStep.wszystkie_mecze_etapu_maja_wyniki_2"),
+      actionLabel: capabilities.canManageLifecycle ? t("organizerNextStep.zakoncz_etap") : undefined,
       actionHref: capabilities.canManageLifecycle ? `/tournaments/${tournament.id}?tab=stages&stage=${active.id}&action=complete` : undefined,
       stageId: active.id,
     };
@@ -163,19 +164,19 @@ export function deriveOrganizerNextStep(input: {
         return {
           kind: "stage_preparation",
           reason: "needs_entrants",
-          title: `Dodaj jeszcze ${missing} ${missing === 1 ? "uczestnika" : "uczestników"}`,
-          description: `${planned.name}: na liście ${readiness.participantCount} z ${readiness.requiredParticipantCount}. Całą listę możesz wkleić naraz.`,
-          actionLabel: capabilities.canManageParticipants ? "Dodaj uczestników" : undefined,
+          title: t("organizerNextStep.dodaj_jeszcze_missing_v1", { missing: missing, v1: missing === 1 ? t("organizerNextStep.uczestnika") : t("organizerNextStep.uczestnikow") }),
+          description: t("organizerNextStep.name_na_liscie_participantcount_z", { name: planned.name, participantCount: readiness.participantCount, requiredParticipantCount: readiness.requiredParticipantCount }),
+          actionLabel: capabilities.canManageParticipants ? t("organizerNextStep.dodaj_uczestnikow") : undefined,
           actionHref: capabilities.canManageParticipants ? `/tournaments/${tournament.id}?tab=players` : undefined,
           stageId: planned.id,
         };
       }
       return {
         kind: "stage_preparation",
-        title: "Etap wymaga przygotowania",
-        description: feedback?.summary ?? "Trwa sprawdzanie składu i konfiguracji etapu.",
+        title: t("organizerNextStep.etap_wymaga_przygotowania"),
+        description: feedback?.summary ?? t("organizerNextStep.trwa_sprawdzanie_skladu_i_konfiguracji"),
         readinessFeedback: feedback,
-        actionLabel: capabilities.canManageLifecycle ? "Sprawdź gotowość etapu" : undefined,
+        actionLabel: capabilities.canManageLifecycle ? t("organizerNextStep.sprawdz_gotowosc_etapu") : undefined,
         actionHref: capabilities.canManageLifecycle ? `/tournaments/${tournament.id}?tab=stages` : undefined,
         stageId: planned.id,
       };
@@ -188,10 +189,10 @@ export function deriveOrganizerNextStep(input: {
       title: planned.name,
       // V5.8: the format is named only when the stage name does not already say it ("Faza grupowa").
       description: (formatLabels[planned.format] ?? planned.format) === planned.name
-        ? "Wszystko gotowe — możesz zaczynać."
-        : `${formatLabels[planned.format] ?? planned.format} · Wszystko gotowe — możesz zaczynać.`,
+        ? t("organizerNextStep.wszystko_gotowe_mozesz_zaczynac")
+        : t("organizerNextStep.v0_wszystko_gotowe_mozesz_zaczynac", { v0: formatLabels[planned.format] ?? planned.format }),
       actionLabel: mayAct
-        ? "Rozpocznij etap"
+        ? t("organizerNextStep.rozpocznij_etap")
         : undefined,
       actionHref: mayAct ? `/tournaments/${tournament.id}?tab=stages&stage=${planned.id}&action=start` : undefined,
       stageId: planned.id,
@@ -200,7 +201,7 @@ export function deriveOrganizerNextStep(input: {
 
   return {
     kind: "not_ready",
-    title: "Brak dostępnej akcji",
-    description: "Sprawdź konfigurację etapów i aktualny stan turnieju.",
+    title: t("organizerNextStep.brak_dostepnej_akcji"),
+    description: t("organizerNextStep.sprawdz_konfiguracje_etapow_i_aktualny"),
   };
 }

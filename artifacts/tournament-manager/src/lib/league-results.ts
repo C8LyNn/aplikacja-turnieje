@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 /**
  * V5.3 — client-side result rules shared by Stable and Experimental. They mirror the server exactly:
  *  - a stage without draws keeps series results (one side reaches ceil(bestOf / 2) wins);
@@ -27,11 +28,11 @@ export type ScoreCheck =
 
 export function checkScore(score1: number, score2: number, bestOf: number | null | undefined, allowDraws: boolean): ScoreCheck {
   if (!Number.isInteger(score1) || !Number.isInteger(score2) || score1 < 0 || score2 < 0) {
-    return { ok: false, title: "Nieprawidłowy wynik", description: "Wynik to dwie liczby całkowite, nie mniejsze niż 0." };
+    return { ok: false, title: t("leagueResults.nieprawidlowy_wynik"), description: t("leagueResults.wynik_to_dwie_liczby_calkowite") };
   }
   if (allowDraws) {
     if (score1 > LEAGUE_SCORE_MAX || score2 > LEAGUE_SCORE_MAX) {
-      return { ok: false, title: "Za wysoki wynik", description: `Maksymalnie ${LEAGUE_SCORE_MAX}.` };
+      return { ok: false, title: t("leagueResults.za_wysoki_wynik"), description: t("leagueResults.maksymalnie_league_score_max", { LEAGUE_SCORE_MAX: LEAGUE_SCORE_MAX }) };
     }
     return { ok: true, outcome: score1 === score2 ? "draw" : score1 > score2 ? "player1" : "player2" };
   }
@@ -41,8 +42,8 @@ export function checkScore(score1: number, score2: number, bestOf: number | null
   if (!complete) {
     return {
       ok: false,
-      title: "Seria nie jest zakończona",
-      description: `W BO${bo} jedna strona musi osiągnąć ${winsRequired} wygranych gier/map.`,
+      title: t("leagueResults.seria_nie_jest_zakonczona"),
+      description: t("leagueResults.w_bo_bo_jedna_strona", { bo: bo, winsRequired: winsRequired }),
     };
   }
   return { ok: true, outcome: score1 === winsRequired ? "player1" : "player2" };
@@ -66,14 +67,14 @@ export function matchResultLabel(match: ResultLike): string {
   if (match.resultType === "bye") return "BYE";
   if (match.resultType === "no_contest") return "N/C";
   const score = `${match.score1 ?? 0}:${match.score2 ?? 0}`;
-  return isDrawResult(match) ? `${score} · remis` : score;
+  return isDrawResult(match) ? t("leagueResults.score_remis", { score: score }) : score;
 }
 
 /** Plain hint for the result form. */
 export function scoreEntryHint(bestOf: number | null | undefined, allowDraws: boolean): string {
-  if (allowDraws) return "Wpisz wynik meczu (np. gole lub punkty) w polach albo przyciskami + i −. Równy wynik to remis.";
+  if (allowDraws) return t("leagueResults.wpisz_wynik_meczu_np_gole");
   const wins = scoreCap(bestOf, false);
-  return `Do wygrania meczu potrzeba ${wins} ${wins === 1 ? "wygranej" : "wygranych"}. Wpisz wynik w polach albo ustaw go przyciskami + i −.`;
+  return t("leagueResults.do_wygrania_meczu_potrzeba_wins", { wins: wins, v1: wins === 1 ? t("leagueResults.wygranej") : t("leagueResults.wygranych") });
 }
 
 export interface StandingLike {
@@ -93,18 +94,18 @@ export function standingsHavePoints(rows: readonly StandingLike[] | null | undef
 }
 
 export const DECIDED_BY_LABELS: Readonly<Record<string, string>> = Object.freeze({
-  head_to_head: "mecze bezpośrednie",
-  score_difference: "różnica wyników",
-  scored: "więcej zdobytych",
-  wins: "więcej zwycięstw",
-  seed: "rozstawienie (remis po wszystkich kryteriach)",
+  get head_to_head() { return t("leagueResults.mecze_bezposrednie"); },
+  get score_difference() { return t("leagueResults.roznica_wynikow"); },
+  get scored() { return t("leagueResults.wiecej_zdobytych"); },
+  get wins() { return t("leagueResults.wiecej_zwyciestw"); },
+  get seed() { return t("leagueResults.rozstawienie_remis_po_wszystkich_kryteri"); },
 });
 
 /** V5.7: in a set stage the match score counts sets. */
 export const DECIDED_BY_SET_LABELS: Readonly<Record<string, string>> = Object.freeze({
   ...DECIDED_BY_LABELS,
-  score_difference: "różnica setów",
-  scored: "więcej wygranych setów",
+  get score_difference() { return t("leagueResults.roznica_setow"); },
+  get scored() { return t("leagueResults.wiecej_wygranych_setow"); },
 });
 
 /** True when the rows come from a set stage. */
@@ -120,7 +121,7 @@ export function standingsTieNotes(rows: readonly StandingLike[] | null | undefin
   rows.forEach((row, index) => {
     if (index === 0 || !row.decidedBy || row.decidedBy === "points") return;
     const above = rows[index - 1]!;
-    notes.push(`${above.playerName} przed ${row.playerName} (po ${row.points ?? 0} pkt): ${labels[row.decidedBy] ?? row.decidedBy}.`);
+    notes.push(t("leagueResults.playername_przed_playername2_po_v2", { playerName: above.playerName, playerName2: row.playerName, v2: row.points ?? 0, v3: labels[row.decidedBy] ?? row.decidedBy }));
   });
   return notes;
 }

@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 /**
  * V5.7 · set results inside the one match editor ("Wybrany mecz"). The preview uses the same rules as the
  * API (@workspace/match-rules); the API still decides and validates on save.
@@ -37,11 +38,11 @@ export function SetScoreEditor({
   };
   const winnerName = value?.decided ? (value.winnerSide === 1 ? player1Name : player2Name) : null;
   return (
-    <section className="set-score-editor" aria-label="Wyniki setów" data-decided={value?.decided ? "true" : undefined}>
+    <section className="set-score-editor" aria-label={t("setScoreEditor.wyniki_setow")} data-decided={value?.decided ? "true" : undefined}>
       <div className="set-score-editor-tally" aria-live="polite">
-        <span className="set-score-editor-tally-label">Sety</span>
+        <span className="set-score-editor-tally-label">{t("setScoreEditor.sety")}</span>
         <strong className="set-score-editor-tally-value tabular-nums">{value ? `${value.setsWon1}:${value.setsWon2}` : "–"}</strong>
-        {value && (value.points1 > 0 || value.points2 > 0) && <span className="set-score-editor-points tabular-nums">małe punkty {value.points1}:{value.points2}</span>}
+        {value && (value.points1 > 0 || value.points2 > 0) && <span className="set-score-editor-points tabular-nums">{t("setScoreEditor.male_punkty")}{" "}{value.points1}:{value.points2}</span>}
       </div>
       {sets.length > 0 && (
         <div className="set-score-editor-head" aria-hidden="true">
@@ -54,19 +55,19 @@ export function SetScoreEditor({
         {sets.map((set, index) => {
           const state = setState(set, rules, index);
           const note = state.kind === "finished"
-            ? `wygrywa ${state.winner === 1 ? player1Name : player2Name}`
-            : state.kind === "in_progress" ? "trwa" : state.problem.message.replace(/^Set \d+: /, "");
+            ? t("setScoreEditor.wygrywa_v0", { v0: state.winner === 1 ? player1Name : player2Name })
+            : state.kind === "in_progress" ? t("setScoreEditor.trwa") : state.problem.message.replace(/^Set \d+: /, "");
           return (
             <li key={index} className="set-score-editor-row" data-state={state.kind}>
-              <span className="set-score-editor-set" id={`${id}-set-${index}`}>Set {index + 1}</span>
+              <span className="set-score-editor-set" id={`${id}-set-${index}`}>{t("setScoreEditor.set")}{" "}{index + 1}</span>
               {[1, 2].map((side) => {
                 const score = side === 1 ? set.score1 : set.score2;
                 const name = side === 1 ? player1Name : player2Name;
                 return readOnly ? (
-                  <span key={side} className="set-score-editor-score tabular-nums" aria-label={`Set ${index + 1} — ${name}`}>{score}</span>
+                  <span key={side} className="set-score-editor-score tabular-nums" aria-label={t("setScoreEditor.set_v0_name", { v0: index + 1, name: name })}>{score}</span>
                 ) : (
                   <span key={side} className="set-score-editor-input">
-                    <button type="button" className="set-score-editor-step" aria-label={`Set ${index + 1}: ${name} minus punkt`} disabled={disabled || score <= 0} onClick={() => change(index, side as 1 | 2, score - 1)}>
+                    <button type="button" className="set-score-editor-step" aria-label={t("setScoreEditor.set_v0_name_minus_punkt", { v0: index + 1, name: name })} disabled={disabled || score <= 0} onClick={() => change(index, side as 1 | 2, score - 1)}>
                       <Minus className="h-3.5 w-3.5" aria-hidden="true" />
                     </button>
                     <input
@@ -76,12 +77,12 @@ export function SetScoreEditor({
                       max={999}
                       value={score}
                       disabled={disabled}
-                      aria-label={`Set ${index + 1} — ${name}`}
+                      aria-label={t("setScoreEditor.set_v0_name", { v0: index + 1, name: name })}
                       aria-describedby={`${id}-note-${index}`}
                       onChange={(event) => change(index, side as 1 | 2, Number(event.target.value))}
                       onFocus={(event) => event.target.select()}
                     />
-                    <button type="button" className="set-score-editor-step" aria-label={`Set ${index + 1}: ${name} plus punkt`} disabled={disabled || score >= 999} onClick={() => change(index, side as 1 | 2, score + 1)}>
+                    <button type="button" className="set-score-editor-step" aria-label={t("setScoreEditor.set_v0_name_plus_punkt", { v0: index + 1, name: name })} disabled={disabled || score >= 999} onClick={() => change(index, side as 1 | 2, score + 1)}>
                       <Plus className="h-3.5 w-3.5" aria-hidden="true" />
                     </button>
                   </span>
@@ -95,12 +96,11 @@ export function SetScoreEditor({
       {!readOnly && (
         <div className="set-score-editor-actions">
           <button type="button" className="experimental-v4-btn" disabled={disabled || !(sets.length === 0 || value?.canAddSet)} onClick={() => onChange?.([...sets, { score1: 0, score2: 0 }])}>
-            <Plus className="h-4 w-4" aria-hidden="true" /> {sets.length === 0 ? "Wpisz pierwszy set" : `Dodaj set ${sets.length + 1}`}
+            <Plus className="h-4 w-4" aria-hidden="true" /> {sets.length === 0 ? t("setScoreEditor.wpisz_pierwszy_set") : t("setScoreEditor.dodaj_set_v0", { v0: sets.length + 1 })}
           </button>
           {sets.length > 0 && (
             <button type="button" className="experimental-v4-btn" data-variant="ghost" disabled={disabled} onClick={() => onChange?.(sets.slice(0, -1))}>
-              <Trash2 className="h-4 w-4" aria-hidden="true" /> Usuń ostatni set
-            </button>
+              <Trash2 className="h-4 w-4" aria-hidden="true" /> {t("setScoreEditor.usun_ostatni_set")}</button>
           )}
         </div>
       )}
@@ -108,9 +108,9 @@ export function SetScoreEditor({
         {!progress.ok
           ? progress.problem.message
           : value!.decided
-            ? `Mecz rozstrzygnięty: wygrywa ${winnerName} (${value!.setsWon1}:${value!.setsWon2} w setach).`
+            ? t("setScoreEditor.mecz_rozstrzygniety_wygrywa_winnername_s", { winnerName: winnerName, setsWon1: value!.setsWon1, setsWon2: value!.setsWon2 })
             : sets.length === 0
-              ? `Mecz do ${rules.setsToWin} wygranych setów; set do ${rules.pointsPerSet} pkt${rules.winBy > 1 ? ` z przewagą ${rules.winBy}` : ""}.`
+              ? t("setScoreEditor.mecz_do_setstowin_wygranych_setow", { setsToWin: rules.setsToWin, pointsPerSet: rules.pointsPerSet, v2: rules.winBy > 1 ? t("setScoreEditor.z_przewaga_winby", { winBy: rules.winBy }) : "" })
               : value!.missing}
       </p>
     </section>

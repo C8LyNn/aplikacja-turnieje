@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { ReadQueryState } from "@/components/read-query-state";
 import { configurationErrorFeedback, configurationProblemMessage, type ConfigurationProblem } from "@/lib/stage-configuration-feedback";
 import React, { useState, useMemo } from "react";
@@ -43,9 +44,9 @@ export const BASKET_COLOR_DEFS: {
   { id: "blue",   label: "Niebieski",     bg: "bg-blue-500/20",   border: "border-blue-500/50",   text: "text-blue-400",   dot: "bg-blue-400"   },
   { id: "red",    label: "Czerwony",      bg: "bg-red-500/20",    border: "border-red-500/50",    text: "text-red-400",    dot: "bg-red-400"    },
   { id: "green",  label: "Zielony",       bg: "bg-green-500/20",  border: "border-green-500/50",  text: "text-green-400",  dot: "bg-green-400"  },
-  { id: "yellow", label: "Żółty",         bg: "bg-yellow-500/20", border: "border-yellow-500/50", text: "text-yellow-400", dot: "bg-yellow-400" },
+  { id: "yellow", get label() { return t("stageBasketsPanel.zolty"); },         bg: "bg-yellow-500/20", border: "border-yellow-500/50", text: "text-yellow-400", dot: "bg-yellow-400" },
   { id: "purple", label: "Fioletowy",     bg: "bg-purple-500/20", border: "border-purple-500/50", text: "text-purple-400", dot: "bg-purple-400" },
-  { id: "orange", label: "Pomarańczowy",  bg: "bg-orange-500/20", border: "border-orange-500/50", text: "text-orange-400", dot: "bg-orange-400" },
+  { id: "orange", get label() { return t("stageBasketsPanel.pomaranczowy"); },  bg: "bg-orange-500/20", border: "border-orange-500/50", text: "text-orange-400", dot: "bg-orange-400" },
 ];
 
 const NEUTRAL_STYLE = {
@@ -71,7 +72,7 @@ export function ordinalLabel(ordinal: number): string {
 export function basketLabel(type: string, ordinal: number): string {
   return type === "input"
     ? `Start ${ordinalLabel(ordinal)}`
-    : `Awans ${ordinalLabel(ordinal)}`;
+    : t("stageBasketsPanel.awans_v0", { v0: ordinalLabel(ordinal) });
 }
 
 /** Returns the first ordinal in 1–4 not already present in the list. */
@@ -222,7 +223,7 @@ export function BasketCard({
             <button
               className="text-xs text-muted-foreground hover:text-foreground transition-colors"
               onClick={(e) => { e.stopPropagation(); setShowColors((v) => !v); }}
-              aria-label={`Zmień kolor koszyka ${label}`}
+              aria-label={t("stageBasketsPanel.zmien_kolor_koszyka_label", { label: label })}
             >
               🎨
             </button>
@@ -230,7 +231,7 @@ export function BasketCard({
               <button
                 className="text-xs text-muted-foreground hover:text-destructive transition-colors"
                 onClick={(e) => { e.stopPropagation(); onRemove?.(basket.id); }}
-                aria-label={`Usuń koszyk ${label}`}
+                aria-label={t("stageBasketsPanel.usun_koszyk_label", { label: label })}
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -244,7 +245,7 @@ export function BasketCard({
         <div className="flex flex-wrap gap-1 pt-1" onClick={(e) => e.stopPropagation()}>
           <button
             className={`w-5 h-5 rounded-full border border-border bg-muted-foreground/40 hover:ring-2 hover:ring-primary`}
-            title="Bez koloru"
+            title={t("stageBasketsPanel.bez_koloru")}
             onClick={() => { onColorChange?.(basket.id, null); setShowColors(false); }}
           />
           {BASKET_COLOR_DEFS.map((c) => (
@@ -262,8 +263,7 @@ export function BasketCard({
       {basket.type === "output" && isAdvanced && !isLocked && (
         <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
           <label className="text-xs text-muted-foreground shrink-0" htmlFor={`qc-${basket.id}`}>
-            Przechodzi:
-          </label>
+            {t("stageBasketsPanel.przechodzi")}</label>
           <input
             id={`qc-${basket.id}`}
             type="number"
@@ -286,7 +286,7 @@ export function BasketCard({
       {/* Qualifier count readonly display */}
       {basket.type === "output" && (!isAdvanced || isLocked) && basket.qualifierCount !== null && (
         <div className="text-xs text-muted-foreground">
-          Przechodzi: {basket.qualifierCount}
+          {t("stageBasketsPanel.przechodzi")}{" "}{basket.qualifierCount}
         </div>
       )}
 
@@ -294,10 +294,10 @@ export function BasketCard({
       {basket.type === "input" && (
         <div className="text-xs text-muted-foreground">
           {assignedNames.length === 0
-            ? "0 uczestników"
+            ? t("stageBasketsPanel.0_uczestnikow")
             : assignedNames.length === 1
             ? assignedNames[0]
-            : `${assignedNames.length} uczestników`}
+            : t("stageBasketsPanel.length_uczestnikow", { length: assignedNames.length })}
         </div>
       )}
 
@@ -308,7 +308,7 @@ export function BasketCard({
             className="text-xs text-primary hover:underline"
             onClick={(e) => { e.stopPropagation(); setShowPlayers((v) => !v); }}
           >
-            {showPlayers ? "Schowaj graczy" : "Przypisz graczy"}
+            {showPlayers ? t("stageBasketsPanel.schowaj_graczy") : t("stageBasketsPanel.przypisz_graczy")}
           </button>
           {showPlayers && (
             <div className="mt-1 max-h-32 overflow-y-auto space-y-0.5 border border-border rounded p-1 bg-card">
@@ -341,11 +341,11 @@ export function BasketCard({
 // ─── StageBlock ──────────────────────────────────────────────────────────────
 
 const FORMAT_LABELS: Record<string, string> = {
-  single_elimination: "Drabinka",
-  double_elimination: "Podwójna eliminacja",
-  swiss: "System szwajcarski",
-  round_robin: "Każdy z każdym",
-  group_stage: "Faza grupowa",
+  get single_elimination() { return t("stageBasketsPanel.drabinka"); },
+  get double_elimination() { return t("stageBasketsPanel.podwojna_eliminacja"); },
+  get swiss() { return t("stageBasketsPanel.system_szwajcarski"); },
+  get round_robin() { return t("stageBasketsPanel.kazdy_z_kazdym"); },
+  get group_stage() { return t("stageBasketsPanel.faza_grupowa"); },
 };
 
 interface StageBlockProps {
@@ -417,14 +417,14 @@ export function StageBlock({
         <div className="flex items-center gap-2 mt-0.5">
           <span className="text-xs text-muted-foreground">{formatLabel}</span>
           <span className="text-xs text-muted-foreground">·</span>
-          <span className="text-xs text-muted-foreground">{participantCount} uczestników</span>
+          <span className="text-xs text-muted-foreground">{participantCount} {t("stageBasketsPanel.uczestnikow")}</span>
         </div>
         {explicitAuthority && (
           <div
             className="mt-2 text-xs text-muted-foreground"
             data-testid={`stage-flow-summary-${stage.id}`}
           >
-            Z zapisów: {flowCounts?.directParticipantCount ?? 0} · Z awansu: {flowCounts?.incomingRouteQuota ?? 0} · Razem: {participantCount}
+            {t("stageBasketsPanel.z_zapisow")}{" "}{flowCounts?.directParticipantCount ?? 0} {t("stageBasketsPanel.z_awansu")}{" "}{flowCounts?.incomingRouteQuota ?? 0} {t("stageBasketsPanel.razem")}{" "}{participantCount}
           </div>
         )}
       </div>
@@ -433,7 +433,7 @@ export function StageBlock({
       <div className="organizer-flow-stage-body grid grid-cols-2 flex-1">
         {/* Inputs */}
         <div className="space-y-1.5">
-          <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide" title="Gdzie uczestnicy zaczynają ten etap">Start</div>
+          <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide" title={t("stageBasketsPanel.gdzie_uczestnicy_zaczynaja_ten_etap")}>{t("stageBasketsPanel.start")}</div>
           {inputBaskets
             .slice()
             .sort((a, b) => a.ordinal - b.ordinal)
@@ -459,16 +459,15 @@ export function StageBlock({
             <button
               className="w-full rounded border border-dashed border-border text-xs text-muted-foreground hover:text-foreground hover:border-primary py-1 transition-colors"
               onClick={() => onAddInput?.(stage.id)}
-              aria-label="Dodaj koszyk wejściowy"
+              aria-label={t("stageBasketsPanel.dodaj_koszyk_wejsciowy")}
             >
-              <Plus className="w-3 h-3 inline mr-1" />Dodaj koszyk startowy
-            </button>
+              <Plus className="w-3 h-3 inline mr-1" />{t("stageBasketsPanel.dodaj_koszyk_startowy")}</button>
           )}
         </div>
 
         {/* Outputs */}
         <div className="space-y-1.5">
-          <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide" title="Kto awansuje do kolejnego etapu">Awans</div>
+          <div className="text-xs font-medium text-muted-foreground uppercase tracking-wide" title={t("stageBasketsPanel.kto_awansuje_do_kolejnego_etapu")}>{t("stageBasketsPanel.awans")}</div>
           {outputBaskets
             .slice()
             .sort((a, b) => a.ordinal - b.ordinal)
@@ -494,10 +493,9 @@ export function StageBlock({
             <button
               className="w-full rounded border border-dashed border-border text-xs text-muted-foreground hover:text-foreground hover:border-primary py-1 transition-colors"
               onClick={() => onAddOutput?.(stage.id)}
-              aria-label="Dodaj koszyk wyjściowy"
+              aria-label={t("stageBasketsPanel.dodaj_koszyk_wyjsciowy")}
             >
-              <Plus className="w-3 h-3 inline mr-1" />Dodaj grupę awansu
-            </button>
+              <Plus className="w-3 h-3 inline mr-1" />{t("stageBasketsPanel.dodaj_grupe_awansu")}</button>
           )}
         </div>
       </div>
@@ -520,9 +518,9 @@ export function StageBlock({
             }`}
             data-testid={`quota-summary-${stage.id}`}
           >
-            <span>Łącznie przechodzi: <strong className={overQuota ? "text-destructive" : ""}>{total} / {participantCount}</strong></span>
-            {!overQuota && <span>· Odpada: {eliminated}</span>}
-            {overQuota && <span className="text-destructive">— przekroczono limit!</span>}
+            <span>{t("stageBasketsPanel.lacznie_przechodzi")}{" "}<strong className={overQuota ? "text-destructive" : ""}>{total} / {participantCount}</strong></span>
+            {!overQuota && <span>{t("stageBasketsPanel.odpada")}{" "}{eliminated}</span>}
+            {overQuota && <span className="text-destructive">{t("stageBasketsPanel.przekroczono_limit")}</span>}
           </div>
         );
       })()}
@@ -563,13 +561,12 @@ export function RouteConnector({
   if (relevant.length === 0) {
     return (
       <div className="self-center shrink-0 px-3 text-xs text-muted-foreground">
-        Brak połączeń
-      </div>
+        {t("stageBasketsPanel.brak_polaczen")}</div>
     );
   }
 
   return (
-    <div className="organizer-route-summary flex flex-col justify-center gap-2 self-center shrink-0" role="list" aria-label="Połączenia między etapami" data-testid="route-connector">
+    <div className="organizer-route-summary flex flex-col justify-center gap-2 self-center shrink-0" role="list" aria-label={t("stageBasketsPanel.polaczenia_miedzy_etapami")} data-testid="route-connector">
       {relevant.map((route) => {
         const src = basketById.get(route.sourceBasketId);
         const tgt = basketById.get(route.targetBasketId);
@@ -589,15 +586,15 @@ export function RouteConnector({
           : tgtBasketLabel;
 
         return (
-          <div key={route.id} role="listitem" aria-label={`${srcStage?.name ?? "Źródło"}: ${srcLabel} → ${tgtStage?.name ?? "Cel"}: ${tgtBasketLabel}`} className="rounded-lg border border-border bg-card p-2 text-sm" data-testid={`route-${route.id}`}>
+          <div key={route.id} role="listitem" aria-label={`${srcStage?.name ?? t("stageBasketsPanel.zrodlo")}: ${srcLabel} → ${tgtStage?.name ?? t("stageBasketsPanel.cel")}: ${tgtBasketLabel}`} className="rounded-lg border border-border bg-card p-2 text-sm" data-testid={`route-${route.id}`}>
             <div className="grid grid-cols-[minmax(0,1fr)_1.5rem_minmax(0,1fr)] items-center gap-1">
               <div className={`min-w-0 rounded border p-1.5 ${srcColor.bg} ${srcColor.border}`}>
-                <span className="block text-xs text-muted-foreground break-words">{srcStage?.name ?? "Źródło"}</span>
+                <span className="block text-xs text-muted-foreground break-words">{srcStage?.name ?? t("stageBasketsPanel.zrodlo")}</span>
                 <span className="block font-medium break-words">{srcLabel}</span>
               </div>
               <ArrowRight aria-hidden="true" className="h-6 w-6 text-foreground" />
               <div className={`min-w-0 rounded border p-1.5 ${tgtColor.bg} ${tgtColor.border}`} data-testid={`route-target-${route.id}`}>
-                <span className="block text-xs text-muted-foreground break-words">{tgtStage?.name ?? "Cel"}</span>
+                <span className="block text-xs text-muted-foreground break-words">{tgtStage?.name ?? t("stageBasketsPanel.cel")}</span>
                 <span className="block font-medium break-words">{tgtBasketLabel}</span>
               </div>
             </div>
@@ -605,10 +602,9 @@ export function RouteConnector({
               <button
                 className="mt-1 ml-auto flex min-h-6 items-center gap-1 rounded px-1 text-xs text-muted-foreground hover:text-destructive focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring transition-colors"
                 onClick={() => onRemoveRoute?.(route.id)}
-                aria-label={`Usuń połączenie ${srcLabel} → ${displayTgtLabel}`}
+                aria-label={t("stageBasketsPanel.usun_polaczenie_srclabel_displaytgtlabel", { srcLabel: srcLabel, displayTgtLabel: displayTgtLabel })}
               >
-                <X aria-hidden="true" className="w-3 h-3" /> Usuń połączenie
-              </button>
+                <X aria-hidden="true" className="w-3 h-3" /> {t("stageBasketsPanel.usun_polaczenie")}</button>
             )}
           </div>
         );
@@ -671,59 +667,55 @@ function AddRoutePanel({
   return (
     <div className="border border-dashed border-primary/40 rounded-lg p-3 bg-primary/5 space-y-2">
       <div className="text-xs font-medium text-primary flex items-center gap-1.5">
-        <ArrowRight className="w-3.5 h-3.5" /> Dodaj połączenie między etapami
-      </div>
+        <ArrowRight className="w-3.5 h-3.5" /> {t("stageBasketsPanel.dodaj_polaczenie_miedzy_etapami")}</div>
       <div className="grid grid-cols-2 gap-2">
         <div>
-          <label className="text-xs text-muted-foreground block mb-0.5">Koszyk wyjściowy (źródło)</label>
+          <label className="text-xs text-muted-foreground block mb-0.5">{t("stageBasketsPanel.koszyk_wyjsciowy_zrodlo")}</label>
           <select
             className="min-h-9 w-full text-sm rounded-md border border-border bg-card px-2 py-1.5"
             value={sourceId}
             onChange={(e) => { setSourceId(e.target.value); setTargetId(""); }}
           >
-            <option value="">— wybierz —</option>
+            <option value="">{t("stageBasketsPanel.wybierz")}</option>
             {availableOutputs.map((b) => {
               const stage = stages.find((s) => s.id === b.stageId);
               return (
                 <option key={b.id} value={b.id}>
-                  {stage?.name ?? `Etap ${b.stageId}`}: {basketLabel(b.type, b.ordinal)}
+                  {stage?.name ?? t("stageBasketsPanel.etap_stageid", { stageId: b.stageId })}: {basketLabel(b.type, b.ordinal)}
                 </option>
               );
             })}
           </select>
         </div>
         <div>
-          <label className="text-xs text-muted-foreground block mb-0.5">Koszyk wejściowy (cel)</label>
+          <label className="text-xs text-muted-foreground block mb-0.5">{t("stageBasketsPanel.koszyk_wejsciowy_cel")}</label>
           <select
             className="min-h-9 w-full text-sm rounded-md border border-border bg-card px-2 py-1.5"
             value={targetId}
             onChange={(e) => setTargetId(e.target.value)}
             disabled={validTargets.length === 0}
           >
-            <option value="">— wybierz —</option>
+            <option value="">{t("stageBasketsPanel.wybierz")}</option>
             {validTargets.map((b) => {
               const stage = stages.find((s) => s.id === b.stageId);
               return (
                 <option key={b.id} value={b.id}>
-                  {stage?.name ?? `Etap ${b.stageId}`}: {basketLabel(b.type, b.ordinal)}
+                  {stage?.name ?? t("stageBasketsPanel.etap_stageid", { stageId: b.stageId })}: {basketLabel(b.type, b.ordinal)}
                 </option>
               );
             })}
           </select>
           {sourceId && validTargets.length === 0 && (
             <p className="text-xs text-destructive mt-1">
-              Brak dostępnych celów — wybierz wyjście z wcześniejszego etapu lub usuń istniejące połączenie.
-            </p>
+              {t("stageBasketsPanel.brak_dostepnych_celow_wybierz_wyjscie")}</p>
           )}
         </div>
       </div>
       <div className="flex gap-2">
         <Button size="sm" variant="secondary" onClick={handleAdd} disabled={!sourceId || !targetId}>
-          <ArrowRight className="w-3.5 h-3.5 mr-1" /> Połącz
-        </Button>
+          <ArrowRight className="w-3.5 h-3.5 mr-1" /> {t("stageBasketsPanel.polacz")}</Button>
         <Button size="sm" variant="ghost" onClick={() => { onCancelRouteSource(); setSourceId(""); setTargetId(""); }}>
-          Anuluj
-        </Button>
+          {t("stageBasketsPanel.anuluj")}</Button>
       </div>
     </div>
   );
@@ -753,7 +745,7 @@ export function FlowSummary({
   const ordered = [...stages].sort((a, b) => a.position - b.position);
   if (ordered.length === 0) return null;
   return (
-    <ol className="organizer-flow-summary mt-3 space-y-1 text-sm" aria-label="Plan przepływu">
+    <ol className="organizer-flow-summary mt-3 space-y-1 text-sm" aria-label={t("stageBasketsPanel.plan_przeplywu")}>
       {ordered.map((stage, index) => {
         const counts = flowCountsByStage?.get(stage.id);
         const planned = stage.participantCount;
@@ -763,11 +755,11 @@ export function FlowSummary({
         return (
           <li key={stage.id} className="flex flex-wrap items-baseline gap-x-2" data-flow-gap={gap !== 0 ? "true" : undefined}>
             <span className="font-medium">{stage.position}. {stage.name}</span>
-            <span className="text-muted-foreground">planowane: {planned}</span>
-            {actual != null && <span className="text-muted-foreground">{first ? "zapisanych" : "z koszyków"}: {actual}</span>}
-            {gap < 0 && <span className="font-medium text-amber-500">brakuje {-gap}</span>}
-            {gap > 0 && <span className="font-medium text-destructive">o {gap} za dużo</span>}
-            {!first && !counts && <span className="text-muted-foreground">(z awansu z etapu {ordered[index - 1].position})</span>}
+            <span className="text-muted-foreground">{t("stageBasketsPanel.planowane")}{" "}{planned}</span>
+            {actual != null && <span className="text-muted-foreground">{first ? t("stageBasketsPanel.zapisanych") : t("stageBasketsPanel.z_koszykow")}: {actual}</span>}
+            {gap < 0 && <span className="font-medium text-amber-500">{t("stageBasketsPanel.brakuje")}{" "}{-gap}</span>}
+            {gap > 0 && <span className="font-medium text-destructive">o {gap} {t("stageBasketsPanel.za_duzo")}</span>}
+            {!first && !counts && <span className="text-muted-foreground">{t("stageBasketsPanel.z_awansu_z_etapu")}{" "}{ordered[index - 1].position})</span>}
           </li>
         );
       })}
@@ -996,9 +988,9 @@ export function StageBasketsPanel({ tournamentId, tournamentStatus, orgToken }: 
   const routesForDisplay = active?.routes ?? [];
 
   return (
-    <ReadQueryState query={basketsQuery} loadingMessage="Ładowanie konfiguracji koszyków…" errorMessage="Nie udało się pobrać konfiguracji koszyków.">
-    <ReadQueryState query={stagesQuery} loadingMessage="Ładowanie etapów…" errorMessage="Nie udało się pobrać etapów.">
-    <ReadQueryState query={playersQuery} loadingMessage="Ładowanie listy graczy…" errorMessage="Nie udało się pobrać listy graczy.">
+    <ReadQueryState query={basketsQuery} loadingMessage={t("stageBasketsPanel.ladowanie_konfiguracji_koszykow")} errorMessage={t("stageBasketsPanel.nie_udalo_sie_pobrac_konfiguracji")}>
+    <ReadQueryState query={stagesQuery} loadingMessage={t("stageBasketsPanel.ladowanie_etapow")} errorMessage={t("stageBasketsPanel.nie_udalo_sie_pobrac_etapow")}>
+    <ReadQueryState query={playersQuery} loadingMessage={t("stageBasketsPanel.ladowanie_listy_graczy")} errorMessage={t("stageBasketsPanel.nie_udalo_sie_pobrac_listy")}>
     <div data-exp-locked={isLocked ? "true" : "false"} className="min-w-0 max-w-full space-y-4">
       {/* Locked banner */}
       {isLocked && (
@@ -1009,8 +1001,7 @@ export function StageBasketsPanel({ tournamentId, tournamentStatus, orgToken }: 
           data-testid="baskets-locked-banner"
         >
           <Lock className="w-4 h-4 shrink-0" />
-          Koszyki są zablokowane — konfiguracja jest tylko do odczytu po rozpoczęciu turnieju.
-        </div>
+          {t("stageBasketsPanel.koszyki_sa_zablokowane_konfiguracja_jest")}</div>
       )}
 
       {/* Info for legacy baskets */}
@@ -1018,7 +1009,7 @@ export function StageBasketsPanel({ tournamentId, tournamentStatus, orgToken }: 
         <div className="rounded-lg border border-border bg-muted/20 px-4 py-2.5 flex items-center gap-2 text-sm text-muted-foreground">
           <Info className="w-4 h-4 shrink-0" />
           {/* V5.8: after the start the "before the start" advice no longer applies (the locked note says why). */}
-          {isLocked ? "Domyślna konfiguracja koszyków — wygenerowana automatycznie." : "Domyślna konfiguracja koszyków — wygenerowana automatycznie. Przed startem możesz ją dostosować w trybie zaawansowanym."}
+          {isLocked ? t("stageBasketsPanel.domyslna_konfiguracja_koszykow_wygenerow") : t("stageBasketsPanel.domyslna_konfiguracja_koszykow_wygenerow_2")}
         </div>
       )}
 
@@ -1028,8 +1019,7 @@ export function StageBasketsPanel({ tournamentId, tournamentStatus, orgToken }: 
           data-testid="explicit-basket-authority-banner"
         >
           <Info className="w-4 h-4 shrink-0" />
-          Liczby uczestników wynikają z koszyków: kto zaczyna w danym etapie, kto przechodzi z poprzedniego i ilu awansuje dalej. Zmieniasz to tutaj.
-        </div>
+          {t("stageBasketsPanel.liczby_uczestnikow_wynikaja_z_koszykow")}</div>
       )}
 
       {advancedMode && !persistedAuthority && (
@@ -1038,8 +1028,7 @@ export function StageBasketsPanel({ tournamentId, tournamentStatus, orgToken }: 
           data-testid="basket-authority-draft-preview-banner"
         >
           <Info className="w-4 h-4 shrink-0" />
-          To podgląd: liczby z koszyków zaczną obowiązywać dopiero po zapisaniu.
-        </div>
+          {t("stageBasketsPanel.to_podglad_liczby_z_koszykow")}</div>
       )}
 
       {/* API validation errors */}
@@ -1066,29 +1055,25 @@ export function StageBasketsPanel({ tournamentId, tournamentStatus, orgToken }: 
       {/* Toolbar */}
       <div className="organizer-section-heading flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <h3 className="font-semibold">Przepływ uczestników</h3>
+          <h3 className="font-semibold">{t("stageBasketsPanel.przeplyw_uczestnikow")}</h3>
           <p className="text-sm text-muted-foreground mt-1">
-            Kto zaczyna w którym etapie i kto awansuje dalej.
-          </p>
+            {t("stageBasketsPanel.kto_zaczyna_w_ktorym_etapie")}</p>
           {/* V5.8: the words used below, once — basket, group and advancing set are different things. */}
           <p className="text-xs text-muted-foreground mt-1" data-testid="baskets-terms">
-            „Start” to koszyk uczestników, którzy zaczynają etap; „Awans” — tych, którzy z niego przechodzą dalej. Grupy powstają z koszyka startowego przy losowaniu etapu.
-          </p>
+            {t("stageBasketsPanel.start_to_koszyk_uczestnikow_ktorzy")}</p>
           <FlowSummary stages={stages} registered={players?.length ?? null} flowCountsByStage={showDerivedFlow ? flowCountsByStage : undefined} />
         </div>
         {canEdit && !advancedMode && (
           <Button variant="outline" size="sm" onClick={enterAdvancedMode} data-testid="enter-advanced-btn">
-            <Settings2 className="w-3.5 h-3.5 mr-1.5" /> Zaawansowane koszyki
-          </Button>
+            <Settings2 className="w-3.5 h-3.5 mr-1.5" /> {t("stageBasketsPanel.zaawansowane_koszyki")}</Button>
         )}
         {advancedMode && (
           <div className="flex gap-2">
             <Button size="sm" variant="ghost" onClick={cancelAdvancedMode}>
-              <X className="w-3.5 h-3.5 mr-1" /> Anuluj
-            </Button>
+              <X className="w-3.5 h-3.5 mr-1" /> {t("stageBasketsPanel.anuluj")}</Button>
             <Button size="sm" onClick={handleSave} disabled={update.isPending} data-testid="save-baskets-btn">
               <Save className="w-3.5 h-3.5 mr-1" />
-              {update.isPending ? "Zapisywanie…" : "Zapisz konfigurację"}
+              {update.isPending ? t("stageBasketsPanel.zapisywanie") : t("stageBasketsPanel.zapisz_konfiguracje")}
             </Button>
           </div>
         )}
@@ -1110,8 +1095,7 @@ export function StageBasketsPanel({ tournamentId, tournamentStatus, orgToken }: 
       {/* Horizontal stage map */}
       {stages.length === 0 && (
         <div className="organizer-empty-state flex items-center justify-center border border-dashed py-12 text-muted-foreground text-sm">
-          Brak etapów — dodaj etapy do turnieju, aby skonfigurować koszyki.
-        </div>
+          {t("stageBasketsPanel.brak_etapow_dodaj_etapy_do")}</div>
       )}
 
       {stages.length > 0 && (
@@ -1199,8 +1183,7 @@ export function StageBasketsPanel({ tournamentId, tournamentStatus, orgToken }: 
             onClick={() => setAddingRoute(true)}
             data-testid="add-route-btn"
           >
-            <ArrowRight className="w-3.5 h-3.5 mr-1.5" /> Dodaj połączenie między etapami
-          </Button>
+            <ArrowRight className="w-3.5 h-3.5 mr-1.5" /> {t("stageBasketsPanel.dodaj_polaczenie_miedzy_etapami")}</Button>
         </div>
       )}
 
@@ -1209,8 +1192,7 @@ export function StageBasketsPanel({ tournamentId, tournamentStatus, orgToken }: 
         <div role="alert" className="organizer-notice rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-3 text-sm" data-testid="baskets-validation-warning">
           <div className="flex items-center gap-1.5 text-yellow-400 font-medium mb-1">
             <AlertTriangle className="w-4 h-4 shrink-0" />
-            Konfiguracja koszyków jest nieprawidłowa
-          </div>
+            {t("stageBasketsPanel.konfiguracja_koszykow_jest_nieprawidlowa")}</div>
           <ul className="list-disc list-inside text-xs text-yellow-300/80 space-y-0.5">
             {basketConfig.validation.problems.map((p, i) => (
               <li key={i}>{configurationProblemMessage(p, { stages, baskets: active?.baskets, routes: active?.routes })}</li>

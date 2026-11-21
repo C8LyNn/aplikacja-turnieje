@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 /**
  * Shared components for displaying Deadlock hero bans and per-game picks.
  *
@@ -76,8 +77,8 @@ export function BanIcon({
     <span
       className="relative inline-flex shrink-0 overflow-hidden rounded-[4px] ring-2 ring-destructive"
       style={{ width: size, height: size }}
-      title={title ?? `Ban: ${hero.displayName}`}
-      aria-label={`Zbanowany: ${hero.displayName}`}
+      title={title ?? t("deadlockBansDisplay.ban_displayname", { displayName: hero.displayName })}
+      aria-label={t("deadlockBansDisplay.zbanowany_displayname", { displayName: hero.displayName })}
     >
       <HeroImg hero={hero} size={size} />
     </span>
@@ -108,8 +109,8 @@ export function PickIcon({
       <span
         className="inline-flex items-center justify-center rounded-full bg-muted/40 border border-dashed border-muted-foreground/30 text-muted-foreground/40 shrink-0"
         style={{ width: size, height: size }}
-        title={title ?? "Nieznana postać"}
-        aria-label="Nieznana postać"
+        title={title ?? t("deadlockBansDisplay.nieznana_postac")}
+        aria-label={t("deadlockBansDisplay.nieznana_postac")}
       >
         <span style={{ fontSize: Math.max(6, size * 0.4) }}>?</span>
       </span>
@@ -165,10 +166,9 @@ export function PlayerBansRow({
     <div className={cn("flex items-center gap-1", className)}>
       <span
         className="text-[10px] font-semibold text-destructive/80 shrink-0 leading-none"
-        aria-label="Zbanowane postacie"
+        aria-label={t("deadlockBansDisplay.zbanowane_postacie")}
       >
-        Bany:
-      </span>
+        {t("deadlockBansDisplay.bany")}</span>
       <div className="flex items-center gap-0.5">
         {bannedHeroIds.slice(0, maxBans).map((id) => (
           <BanIcon key={id} heroId={id} size={size} />
@@ -226,7 +226,7 @@ export function GamePicksRow({
     return (
       <span className="flex items-center gap-1">
         <span className="text-[10px] text-muted-foreground/60 font-mono w-5 shrink-0">G{gameNumber}</span>
-        <span className="text-[10px] text-muted-foreground/30 italic">brak picka</span>
+        <span className="text-[10px] text-muted-foreground/30 italic">{t("deadlockBansDisplay.brak_picka")}</span>
       </span>
     );
   }
@@ -240,18 +240,18 @@ export function GamePicksRow({
         invalid={p1Invalid}
         title={
           hero1
-            ? `${player1Name ?? "Zawodnik A"}: ${hero1.displayName}${p1Invalid ? " ⚠️ ZBANOWANA przez przeciwnika!" : ""}`
+            ? `${player1Name ?? t("deadlockBansDisplay.zawodnik_a")}: ${hero1.displayName}${p1Invalid ? t("deadlockBansDisplay.zbanowana_przez_przeciwnika") : ""}`
             : undefined
         }
       />
-      <span className="text-[9px] text-muted-foreground/40">vs</span>
+      <span className="text-[9px] text-muted-foreground/40">{t("deadlockBansDisplay.vs")}</span>
       <PickIcon
         heroId={player2HeroId}
         size={size}
         invalid={p2Invalid}
         title={
           hero2
-            ? `${player2Name ?? "Zawodnik B"}: ${hero2.displayName}${p2Invalid ? " ⚠️ ZBANOWANA przez przeciwnika!" : ""}`
+            ? `${player2Name ?? t("deadlockBansDisplay.zawodnik_b")}: ${hero2.displayName}${p2Invalid ? t("deadlockBansDisplay.zbanowana_przez_przeciwnika") : ""}`
             : undefined
         }
       />
@@ -322,7 +322,7 @@ export function HeroPickerGrid({
 export function HeroSelectorButton({
   heroId,
   onSelect,
-  placeholder = "Wybierz postać",
+  placeholder = t("deadlockBansDisplay.wybierz_postac"),
   size = 24,
   variant = "pick",
   bannedByOpponent = [],
@@ -342,8 +342,8 @@ export function HeroSelectorButton({
   const hero = heroId ? getDeadlockHero(heroId as never) : null;
   const currentIsBanned = !!heroId && bannedByOpponent.includes(heroId);
   const banLabel = opponentName
-    ? `Zbanowana przez ${opponentName}`
-    : "Zbanowana przez przeciwnika";
+    ? t("deadlockBansDisplay.zbanowana_przez_opponentname", { opponentName: opponentName })
+    : t("deadlockBansDisplay.zbanowana_przez_przeciwnika_2");
 
   return (
     <div className="relative">
@@ -371,8 +371,7 @@ export function HeroSelectorButton({
             <span className="max-w-[80px] truncate text-foreground">{hero.displayName}</span>
             {currentIsBanned && (
               <span className="text-[9px] font-bold text-destructive leading-none ml-0.5">
-                BAN!
-              </span>
+                {t("deadlockBansDisplay.ban")}</span>
             )}
           </>
         ) : (
@@ -391,15 +390,12 @@ export function HeroSelectorButton({
               className="w-full text-left text-xs px-2 py-1 mb-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded transition-colors"
               onClick={() => { onSelect(null); setOpen(false); }}
             >
-              ✕ Wyczyść wybór
-            </button>
+              {t("deadlockBansDisplay.wyczysc_wybor")}</button>
           )}
           {/* Ban notice */}
           {bannedByOpponent.length > 0 && (
             <p className="text-[10px] text-destructive/70 px-1 mb-1.5 leading-snug border-b border-destructive/20 pb-1.5">
-              🚫 Postaci zbanowane przez{opponentName ? ` ${opponentName}` : " przeciwnika"} są
-              zablokowane i nie mogą być wybrane
-            </p>
+              {t("deadlockBansDisplay.postaci_zbanowane_przez")}{opponentName ? ` ${opponentName}` : t("deadlockBansDisplay.przeciwnika")} {t("deadlockBansDisplay.sa_zablokowane_i_nie_moga")}</p>
           )}
           {/* Hero grid */}
           <div className="flex flex-wrap gap-1 max-h-52 overflow-y-auto">

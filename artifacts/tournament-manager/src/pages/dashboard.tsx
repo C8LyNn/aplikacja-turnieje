@@ -1,3 +1,4 @@
+import { t as tr } from "@/i18n";
 import {
   useListTournaments, useDeleteTournament, useCreateTournament, useImportPlayers,
   getListTournamentsQueryKey, exportTournament,
@@ -33,26 +34,26 @@ type TestSize = typeof TEST_SIZES[number];
 function generateTestCsv(size: TestSize): string {
   const rows = ["name"];
   for (let i = 1; i <= size; i++) {
-    rows.push(`Gracz ${i}`);
+    rows.push(tr("dashboard.gracz_i", { i: i }));
   }
   return rows.join("\n");
 }
 
 const FORMAT_LABELS: Record<string, string> = {
-  single_elimination: "Drabinka eliminacyjna",
-  swiss: "System szwajcarski",
-  round_robin: "Każdy z każdym",
+  get single_elimination() { return tr("dashboard.drabinka_eliminacyjna"); },
+  get swiss() { return tr("dashboard.system_szwajcarski"); },
+  get round_robin() { return tr("dashboard.kazdy_z_kazdym"); },
 };
 
 const STATUS_LABELS: Record<string, string> = {
-  draft: "SZKIC",
-  active: "AKTYWNY",
-  completed: "ZAKOŃCZONY",
+  get draft() { return tr("dashboard.szkic"); },
+  get active() { return tr("dashboard.aktywny"); },
+  get completed() { return tr("dashboard.zakonczony"); },
 };
 
 function experimentalSummary(counts: { all: number; draft: number; active: number; completed: number }): string {
-  if (counts.all === 0) return "Nie masz jeszcze żadnego turnieju.";
-  return "Prowadź rozgrywki, etapy i wyniki w jednym miejscu.";
+  if (counts.all === 0) return tr("dashboard.nie_masz_jeszcze_zadnego_turnieju");
+  return tr("dashboard.prowadz_rozgrywki_etapy_i_wyniki");
 }
 
 export default function Dashboard() {
@@ -118,8 +119,8 @@ export default function Dashboard() {
         createTournament.mutate(
           {
             data: {
-              name: `Test ${testDataSize} graczy (${new Date().toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" })})`,
-              description: "Turniej testowy — możesz go usunąć po teście.",
+              name: tr("dashboard.test_testdatasize_graczy_v1", { testDataSize: testDataSize, v1: new Date().toLocaleTimeString("pl-PL", { hour: "2-digit", minute: "2-digit" }) }),
+              description: tr("dashboard.turniej_testowy_mozesz_go_usunac"),
               format: "single_elimination",
               maxPlayers: testDataSize,
               defaultBestOf: 1,
@@ -145,12 +146,12 @@ export default function Dashboard() {
       });
 
       queryClient.invalidateQueries({ queryKey: getListTournamentsQueryKey() });
-      toast({ title: `Turniej testowy (${testDataSize} graczy) gotowy!`, description: "Możesz teraz go uruchomić i przetestować wszystkie funkcje." });
+      toast({ title: tr("dashboard.turniej_testowy_testdatasize_graczy_goto", { testDataSize: testDataSize }), description: tr("dashboard.mozesz_teraz_go_uruchomic_i") });
       setShowTestDataModal(false);
       setTestDataOrganizerPassword("");
       navigate(tournamentHref(tournament.id, isExperimental));
     } catch {
-      toast({ title: "Błąd tworzenia danych testowych", variant: "destructive" });
+      toast({ title: tr("dashboard.blad_tworzenia_danych_testowych"), variant: "destructive" });
     } finally {
       setTestDataLoading(false);
     }
@@ -170,9 +171,9 @@ export default function Dashboard() {
       const a = document.createElement("a");
       a.href = url; a.download = fileName; a.click();
       URL.revokeObjectURL(url);
-      toast({ title: "Backup zapisany", description: fileName });
+      toast({ title: tr("dashboard.backup_zapisany"), description: fileName });
     } catch {
-      toast({ title: "Błąd eksportu", variant: "destructive" });
+      toast({ title: tr("dashboard.blad_eksportu"), variant: "destructive" });
     } finally {
       setActiveOrganizerToken(null);
       setExportingId(null);
@@ -186,15 +187,15 @@ export default function Dashboard() {
     if (!confirmTarget.hasOrganizerPassword) {
       setDeletePasswordError(
         confirmTarget.hasHostCode
-          ? "Najpierw otwórz panel prowadzącego i zamień historyczny kod na hasło organizatora."
-          : "Ten turniej wymaga administracyjnego odzyskania poświadczeń. Nie można go przejąć ani usunąć anonimowo.",
+          ? tr("dashboard.najpierw_otworz_panel_prowadzacego_i")
+          : tr("dashboard.ten_turniej_wymaga_administracyjnego_odz"),
       );
       return;
     }
 
     const needsAuth = true;
     if (needsAuth && !deletePassword.trim()) {
-      setDeletePasswordError("Podaj hasło organizatora, aby potwierdzić usunięcie.");
+      setDeletePasswordError(tr("dashboard.podaj_haslo_organizatora_aby_potwierdzic"));
       return;
     }
 
@@ -210,13 +211,13 @@ export default function Dashboard() {
         });
         const data = await resp.json().catch(() => ({}));
         if (!resp.ok) {
-          setDeletePasswordError(data.error ?? "Nieprawidłowe hasło organizatora.");
+          setDeletePasswordError(data.error ?? tr("dashboard.nieprawidlowe_haslo_organizatora"));
           setDeleteLoading(false);
           return;
         }
         setActiveOrganizerToken(data.token);
       } catch {
-        setDeletePasswordError("Błąd połączenia. Spróbuj ponownie.");
+        setDeletePasswordError(tr("dashboard.blad_polaczenia_sprobuj_ponownie"));
         setDeleteLoading(false);
         return;
       }
@@ -229,7 +230,7 @@ export default function Dashboard() {
         onSuccess: () => {
           if (confirmTarget.hasOrganizerPassword) setActiveOrganizerToken(null);
           queryClient.invalidateQueries({ queryKey: getListTournamentsQueryKey() });
-          toast({ title: "Turniej usunięty", description: `„${confirmTarget.name}" został trwale usunięty.` });
+          toast({ title: tr("dashboard.turniej_usuniety"), description: tr("dashboard.name_zostal_trwale_usuniety", { name: confirmTarget.name }) });
           closeDeleteModal();
         },
         onError: (e: any) => {
@@ -237,9 +238,9 @@ export default function Dashboard() {
           setDeleteLoading(false);
           const msg: string = e?.data?.error ?? e?.message ?? "";
           if (e?.status === 403) {
-            setDeletePasswordError(msg || "Brak uprawnień. Sprawdź hasło organizatora.");
+            setDeletePasswordError(msg || tr("dashboard.brak_uprawnien_sprawdz_haslo_organizator"));
           } else {
-            toast({ title: "Błąd usuwania", description: msg, variant: "destructive" });
+            toast({ title: tr("dashboard.blad_usuwania"), description: msg, variant: "destructive" });
             closeDeleteModal();
           }
         },
@@ -252,9 +253,9 @@ export default function Dashboard() {
       <div className="organizer-workspace flex flex-col gap-6">
         <div className="organizer-header flex justify-between items-center gap-3 flex-wrap">
           <div>
-            {isExperimental && <p className="experimental-eyebrow">Centrum turniejów</p>}
-            <h1 className="text-3xl font-bold tracking-tight text-primary">{isExperimental ? "Twoje turnieje" : "Turnieje"}</h1>
-            <p className="text-muted-foreground">{isExperimental ? experimentalSummary(tournamentCounts) : "Zarządzaj rozgrywkami, drabinkami i wynikami."}</p>
+            {isExperimental && <p className="experimental-eyebrow">{tr("dashboard.centrum_turniejow")}</p>}
+            <h1 className="text-3xl font-bold tracking-tight text-primary">{isExperimental ? tr("dashboard.twoje_turnieje") : tr("dashboard.turnieje")}</h1>
+            <p className="text-muted-foreground">{isExperimental ? experimentalSummary(tournamentCounts) : tr("dashboard.zarzadzaj_rozgrywkami_drabinkami_i_wynik")}</p>
           </div>
           <div className="organizer-header-actions flex gap-2">
             <Button
@@ -262,24 +263,21 @@ export default function Dashboard() {
               onClick={() => setShowRestoreDialog(true)}
             >
               <FileUp className="w-4 h-4 mr-2" />
-              Przywróć backup
-            </Button>
+              {tr("dashboard.przywroc_backup")}</Button>
             <Button
               variant="outline"
               onClick={() => setShowTestDataModal(true)}
-              title={isExperimental ? undefined : "Utwórz turniej z przykładowymi graczami do testowania"}
+              title={isExperimental ? undefined : tr("dashboard.utworz_turniej_z_przykladowymi_graczami")}
             >
               <FlaskConical className="w-4 h-4 mr-2" />
-              Dane testowe
-            </Button>
+              {tr("dashboard.dane_testowe")}</Button>
             {role === "organizer" && (
               <Link
                 href={isExperimental ? "/experimental/tournaments/new" : "/tournaments/create"}
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2 gap-2 shadow-md"
               >
                 <PlusCircle className="w-4 h-4" />
-                Utwórz turniej
-              </Link>
+                {tr("dashboard.utworz_turniej")}</Link>
             )}
           </div>
         </div>
@@ -342,14 +340,13 @@ export default function Dashboard() {
                   <FlaskConical className="w-5 h-5 text-primary" />
                 </div>
                 <div>
-                  <h2 className="text-lg font-bold">Dane testowe</h2>
+                  <h2 className="text-lg font-bold">{tr("dashboard.dane_testowe")}</h2>
                   <p className="text-sm text-muted-foreground mt-0.5">
-                    Tworzy turniej z przykładowymi graczami (Gracz 1…N) do testowania wszystkich funkcji.
-                  </p>
+                    {tr("dashboard.tworzy_turniej_z_przykladowymi_graczami")}</p>
                 </div>
               </div>
               <div>
-                <p className="text-sm font-medium mb-2">Liczba graczy:</p>
+                <p className="text-sm font-medium mb-2">{tr("dashboard.liczba_graczy")}</p>
                 <div className="flex gap-2">
                   {TEST_SIZES.map((size) => (
                     <button
@@ -367,26 +364,24 @@ export default function Dashboard() {
                 </div>
               </div>
               <p className="text-xs text-muted-foreground bg-muted/30 rounded px-3 py-2">
-                Zostanie utworzony turniej <strong>single elimination</strong>, BO1, bez seedów. Możesz go usunąć po teście.
-              </p>
+                {tr("dashboard.zostanie_utworzony_turniej")}{" "}<strong>{tr("dashboard.single_elimination")}</strong>{tr("dashboard.bo1_bez_seedow_mozesz_go")}</p>
               <div className="space-y-1.5">
-                <Label htmlFor="test-organizer-password">Hasło organizatora *</Label>
+                <Label htmlFor="test-organizer-password">{tr("dashboard.haslo_organizatora")}</Label>
                 <Input
                   id="test-organizer-password"
                   type="password"
                   value={testDataOrganizerPassword}
                   onChange={(event) => setTestDataOrganizerPassword(event.target.value)}
                   minLength={8}
-                  placeholder="Minimum 8 znaków"
+                  placeholder={tr("dashboard.minimum_8_znakow")}
                 />
               </div>
               <div className="flex gap-2 justify-end">
                 <Button variant="outline" onClick={() => setShowTestDataModal(false)} disabled={testDataLoading}>
-                  <X className="w-4 h-4 mr-1.5" /> Anuluj
-                </Button>
+                  <X className="w-4 h-4 mr-1.5" /> {tr("dashboard.anuluj")}</Button>
                 <Button onClick={handleCreateTestData} disabled={testDataLoading || testDataOrganizerPassword.length < 8}>
                   <FlaskConical className="w-4 h-4 mr-1.5" />
-                  {testDataLoading ? "Tworzenie…" : `Utwórz z ${testDataSize} graczami`}
+                  {testDataLoading ? tr("dashboard.tworzenie") : tr("dashboard.utworz_z_testdatasize_graczami", { testDataSize: testDataSize })}
                 </Button>
               </div>
             </div>
@@ -403,15 +398,13 @@ export default function Dashboard() {
                   <AlertTriangle className="w-5 h-5 text-destructive" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <h2 className="text-lg font-bold text-foreground">Usuń turniej</h2>
+                  <h2 className="text-lg font-bold text-foreground">{tr("dashboard.usun_turniej")}</h2>
                   <p className="text-muted-foreground text-sm mt-1">
-                    Trwale usuniesz turniej{" "}
+                    {tr("dashboard.trwale_usuniesz_turniej")}{" "}
                     <strong className="text-foreground break-words">„{confirmTarget.name}"</strong>{" "}
-                    wraz ze wszystkimi graczami, meczami i historią wyników.
-                  </p>
+                    {tr("dashboard.wraz_ze_wszystkimi_graczami_meczami")}</p>
                   <p className="text-destructive/80 text-xs mt-1.5 font-medium">
-                    Tej operacji nie można cofnąć.
-                  </p>
+                    {tr("dashboard.tej_operacji_nie_mozna_cofnac")}</p>
                 </div>
               </div>
 
@@ -420,12 +413,11 @@ export default function Dashboard() {
                 <div className="space-y-2 rounded-lg border border-border/60 bg-muted/20 p-4">
                   <Label htmlFor="delete-password" className="flex items-center gap-2 text-sm font-semibold">
                     <Lock className="w-3.5 h-3.5 text-muted-foreground" />
-                    Hasło organizatora
-                  </Label>
+                    {tr("dashboard.haslo_organizatora_2")}</Label>
                   <Input
                     id="delete-password"
                     type="password"
-                    placeholder="Wpisz hasło organizatora tego turnieju"
+                    placeholder={tr("dashboard.wpisz_haslo_organizatora_tego_turnieju")}
                     value={deletePassword}
                     onChange={(e) => { setDeletePassword(e.target.value); setDeletePasswordError(null); }}
                     onKeyDown={(e) => { if (e.key === "Enter") handleDelete(); }}
@@ -440,8 +432,7 @@ export default function Dashboard() {
                     </p>
                   )}
                   <p className="text-[11px] text-muted-foreground">
-                    Wymagane hasło organizatora właśnie tego turnieju — hasło z innego turnieju nie zadziała.
-                  </p>
+                    {tr("dashboard.wymagane_haslo_organizatora_wlasnie_tego")}</p>
                 </div>
               )}
 
@@ -449,30 +440,27 @@ export default function Dashboard() {
               {!confirmTarget.hasOrganizerPassword && !confirmTarget.hasHostCode && (
                 <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/5 px-4 py-3">
                   <p className="text-xs text-yellow-400/90 font-medium">
-                    Ten historyczny turniej nie ma żadnych poświadczeń. Mutacje są zablokowane do czasu administracyjnego odzyskania.
-                  </p>
+                    {tr("dashboard.ten_historyczny_turniej_nie_ma")}</p>
                 </div>
               )}
               {!confirmTarget.hasOrganizerPassword && confirmTarget.hasHostCode && (
                 <div className="rounded-lg border border-yellow-500/30 bg-yellow-500/5 px-4 py-3">
                   <p className="text-xs text-yellow-400/90 font-medium">
-                    Ten turniej używa starego kodu. Przejdź do panelu prowadzącego i ustaw hasło organizatora przed operacjami administracyjnymi.
-                  </p>
+                    {tr("dashboard.ten_turniej_uzywa_starego_kodu")}</p>
                 </div>
               )}
 
               {/* Actions */}
               <div className="flex gap-3 justify-end pt-1">
                 <Button variant="outline" onClick={closeDeleteModal} disabled={deleteLoading}>
-                  <X className="w-4 h-4 mr-1.5" /> Anuluj
-                </Button>
+                  <X className="w-4 h-4 mr-1.5" /> {tr("dashboard.anuluj")}</Button>
                 <Button
                   variant="destructive"
                   onClick={handleDelete}
                   disabled={deleteLoading}
                 >
                   <Trash2 className="w-4 h-4 mr-1.5" />
-                  {deleteLoading ? "Weryfikacja…" : "Usuń na stałe"}
+                  {deleteLoading ? tr("dashboard.weryfikacja") : tr("dashboard.usun_na_stale")}
                 </Button>
               </div>
             </div>
@@ -490,32 +478,29 @@ export default function Dashboard() {
           </div>
         ) : isError ? (
           <div role="alert" className="rounded-lg border p-4">
-            <p>Nie udało się pobrać listy turniejów.</p>
-            <p className="text-sm text-muted-foreground">Sprawdź połączenie z API i spróbuj ponownie.</p>
+            <p>{tr("dashboard.nie_udalo_sie_pobrac_listy")}</p>
+            <p className="text-sm text-muted-foreground">{tr("dashboard.sprawdz_polaczenie_z_api_i")}</p>
             <Button variant="outline" className="mt-3" disabled={isFetching} onClick={() => void refetch()}>
-              Spróbuj ponownie
-            </Button>
+              {tr("dashboard.sprobuj_ponownie")}</Button>
           </div>
         ) : !tournaments || tournaments.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center border rounded-lg bg-card/50">
             <Trophy className="w-12 h-12 text-muted-foreground mb-4 opacity-20" />
-            <h3 className="text-xl font-semibold mb-2">Brak turniejów</h3>
+            <h3 className="text-xl font-semibold mb-2">{tr("dashboard.brak_turniejow")}</h3>
             <p className="text-muted-foreground mb-6 max-w-md">
-              Utwórz swój pierwszy turniej, aby zarządzać graczami, drabinką i wynikami.
-            </p>
+              {tr("dashboard.utworz_swoj_pierwszy_turniej_aby")}</p>
             {role === "organizer" && (
               <Link
                 href={isExperimental ? "/experimental/tournaments/new" : "/tournaments/create"}
                 className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-10 px-4 py-2"
               >
-                Utwórz turniej
-              </Link>
+                {tr("dashboard.utworz_turniej")}</Link>
             )}
           </div>
         ) : isExperimental && filteredTournaments.length === 0 ? (
           <ExperimentalStatePanel
-            title="Brak turniejów pasujących do filtrów"
-            description="Zmień status albo frazę wyszukiwania. Dane turniejów nie zostały usunięte."
+            title={tr("dashboard.brak_turniejow_pasujacych_do_filtrow")}
+            description={tr("dashboard.zmien_status_albo_fraze_wyszukiwania")}
           />
         ) : isExperimental ? (
           <ExperimentalTournamentList
@@ -574,7 +559,7 @@ export default function Dashboard() {
                         <button
                           onClick={(e) => handleQuickExport(e, tournament)}
                           className={`opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-primary/15 text-muted-foreground hover:text-primary ${isExperimental ? "group-focus-within:opacity-100 focus:opacity-100" : ""}`}
-                          title="Pobierz backup"
+                          title={tr("dashboard.pobierz_backup")}
                           disabled={exportingId === tournament.id}
                         >
                           <Download className="w-3.5 h-3.5" />
@@ -587,21 +572,21 @@ export default function Dashboard() {
                           setConfirmDeleteId(tournament.id);
                         }}
                         className={`opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-destructive/15 text-muted-foreground hover:text-destructive ${isExperimental ? "group-focus-within:opacity-100 focus:opacity-100" : ""}`}
-                        title="Usuń turniej"
+                        title={tr("dashboard.usun_turniej")}
                       >
                         <Trash2 className="w-3.5 h-3.5" />
                       </button>
                     </div>
                   </div>
                   <CardDescription className="line-clamp-2 mt-2 min-h-10">
-                    {tournament.description || "Brak opisu."}
+                    {tournament.description || tr("dashboard.brak_opisu")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="py-4 flex-1">
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <Users className="w-4 h-4" />
-                      <span>Maks: {tournament.maxPlayers || "∞"}</span>
+                      <span>{tr("dashboard.maks")}{" "}{tournament.maxPlayers || "∞"}</span>
                     </div>
                     <div className="flex items-center gap-2 text-muted-foreground">
                       <Trophy className="w-4 h-4" />
@@ -615,7 +600,7 @@ export default function Dashboard() {
                     <span>{format(new Date(tournament.createdAt), "d MMM yyyy", { locale: pl })}</span>
                   </div>
                   {tournament.currentRound && (
-                    <span>Runda {tournament.currentRound}/{tournament.totalRounds ?? "?"}</span>
+                    <span>{tr("dashboard.runda")}{" "}{tournament.currentRound}/{tournament.totalRounds ?? "?"}</span>
                   )}
                 </CardFooter>
               </Card>

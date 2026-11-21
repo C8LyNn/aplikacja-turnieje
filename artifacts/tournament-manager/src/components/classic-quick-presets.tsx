@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { useEffect, useMemo, useState } from "react";
 import { Zap } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -30,10 +31,10 @@ type Estimate = { status: "ready"; text: string } | { status: "unavailable"; tex
 
 function participantsText(preview: PresetPreview): string {
   const { mode, count, minimum } = preview.participants;
-  const noun = plural(count, "uczestnik", "uczestników", "uczestników");
+  const noun = plural(count, t("classicQuickPresets.uczestnik"), t("classicQuickPresets.uczestnikow"), t("classicQuickPresets.uczestnikow"));
   return mode === "exact"
-    ? `Dokładnie ${count} ${noun}.`
-    : `Maks. ${count} ${noun}; turniej wystartuje już od ${minimum}.`;
+    ? t("classicQuickPresets.dokladnie_count_noun", { count: count, noun: noun })
+    : t("classicQuickPresets.maks_count_noun_turniej_wystartuje", { count: count, noun: noun, minimum: minimum });
 }
 
 /**
@@ -71,12 +72,12 @@ export function ClassicQuickPresets({
       postPresetJson("/api/tournaments/presets/recommend", quickRecommendBody(participantCount), controller.signal)
         .then((data) => {
           const list = recommendationsFrom(data);
-          if (!list) throw new Error("Nieoczekiwana odpowiedź serwera.");
+          if (!list) throw new Error(t("classicQuickPresets.nieoczekiwana_odpowiedz_serwera"));
           const byPreset: Partial<Record<PresetId, Estimate>> = {};
           for (const item of list) {
             byPreset[item.presetId] = item.available && isUsablePreview(item.preview)
               ? { status: "ready", text: estimateText(item.preview) }
-              : { status: "unavailable", text: item.unavailableReason || "Niedostępne dla tej liczby uczestników." };
+              : { status: "unavailable", text: item.unavailableReason || t("classicQuickPresets.niedostepne_dla_tej_liczby_uczestnikow") };
           }
           setEstimates({ count: participantCount, byPreset });
           setEstimatesError(null);
@@ -99,7 +100,7 @@ export function ClassicQuickPresets({
     const timer = window.setTimeout(() => {
       postPresetJson("/api/tournaments/presets/preview", quickPreviewBody(presetId, participantCount, bestOf), controller.signal)
         .then((data) => {
-          if (!isUsablePreview(data) || data.presetId !== presetId) throw new Error("Nieoczekiwana odpowiedź serwera.");
+          if (!isUsablePreview(data) || data.presetId !== presetId) throw new Error(t("classicQuickPresets.nieoczekiwana_odpowiedz_serwera"));
           setPreview({ key: previewKey, data });
           onPreview(data);
         })
@@ -116,7 +117,7 @@ export function ClassicQuickPresets({
   const current = preview && preview.key === previewKey ? preview.data : null;
   const shownEstimates = estimates && estimates.count === participantCount ? estimates.byPreset : null;
   const selected = useMemo(() => QUICK_PRESETS.find((item) => item.presetId === presetId) ?? null, [presetId]);
-  const countProblem = count.trim() !== "" && participantCount === null ? "Podaj liczbę od 2 do 128." : null;
+  const countProblem = count.trim() !== "" && participantCount === null ? t("classicQuickPresets.podaj_liczbe_od_2_do") : null;
 
   const choose = (id: PresetId) => {
     if (participantCount === null) onCountChange(String(QUICK_PRESET_DEFAULT_COUNT));
@@ -128,14 +129,13 @@ export function ClassicQuickPresets({
       <div className="flex items-start gap-3">
         <Zap className="mt-0.5 h-5 w-5 shrink-0 text-primary" aria-hidden="true" />
         <div>
-          <h2 id="quick-presets-title" className="text-base font-medium">Szybki wybór</h2>
+          <h2 id="quick-presets-title" className="text-base font-medium">{t("classicQuickPresets.szybki_wybor")}</h2>
           <p className="text-xs text-muted-foreground">
-            Gotowy układ dla podanej liczby uczestników. Możesz też ustawić format ręcznie poniżej.
-          </p>
+            {t("classicQuickPresets.gotowy_uklad_dla_podanej_liczby")}</p>
         </div>
       </div>
       <div className="max-w-[14rem] space-y-2">
-        <Label htmlFor="quick-participant-count">Liczba uczestników</Label>
+        <Label htmlFor="quick-participant-count">{t("classicQuickPresets.liczba_uczestnikow")}</Label>
         <Input
           id="quick-participant-count"
           type="number"
@@ -185,18 +185,18 @@ export function ClassicQuickPresets({
         })}
       </div>
       {estimatesError && (
-        <p className="text-xs text-muted-foreground">Nie udało się policzyć przybliżeń ({estimatesError}). Wybór nadal działa.</p>
+        <p className="text-xs text-muted-foreground">{t("classicQuickPresets.nie_udalo_sie_policzyc_przyblizen")}{estimatesError}{t("classicQuickPresets.wybor_nadal_dziala")}</p>
       )}
       {selected && (
         <div className="space-y-3 rounded-lg border bg-muted/20 p-3" data-testid="quick-preset-summary">
           <p className="text-sm font-medium">
             {selected.label}
-            {current ? ` — ${estimateText(current)}` : previewError ? "" : " — liczę układ…"}
+            {current ? ` — ${estimateText(current)}` : previewError ? "" : t("classicQuickPresets.licze_uklad")}
           </p>
           {current && (
             <>
               <p className="text-xs text-muted-foreground">{participantsText(current)}</p>
-              <ol className="list-decimal space-y-1 pl-5 text-xs" aria-label="Układ etapów">
+              <ol className="list-decimal space-y-1 pl-5 text-xs" aria-label={t("classicQuickPresets.uklad_etapow")}>
                 {stageChain(current).map((line, index) => <li key={index}>{line}</li>)}
               </ol>
               <FormatSketch stages={current.stages} accent="hsl(var(--primary))" />
@@ -209,7 +209,7 @@ export function ClassicQuickPresets({
           )}
           {previewError && <p className="text-xs font-medium text-destructive" data-testid="quick-preset-error">{previewError}</p>}
           <div className="space-y-2">
-            <p className="text-xs font-medium" id="quick-best-of-label">Długość meczu</p>
+            <p className="text-xs font-medium" id="quick-best-of-label">{t("classicQuickPresets.dlugosc_meczu")}</p>
             <div role="group" aria-labelledby="quick-best-of-label" className="flex flex-wrap gap-2">
               {QUICK_BEST_OF_OPTIONS.map((option) => (
                 <Button
@@ -220,14 +220,13 @@ export function ClassicQuickPresets({
                   aria-pressed={option === bestOf}
                   onClick={() => onBestOfChange(option)}
                 >
-                  BO{option}
+                  {t("classicQuickPresets.bo")}{option}
                 </Button>
               ))}
             </div>
           </div>
           <Button type="button" variant="ghost" size="sm" onClick={() => onSelect(null)}>
-            Ustaw format ręcznie
-          </Button>
+            {t("classicQuickPresets.ustaw_format_recznie")}</Button>
         </div>
       )}
     </section>

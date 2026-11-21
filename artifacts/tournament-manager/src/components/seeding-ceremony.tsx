@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DrawPresenter, TOURNAMENT_PRESENTERS, Wheel, loadPresenter, savePresenter, usePrefersReducedMotion, type PresenterId } from "@/components/draw-presenters";
 import type { TournamentStage } from "@workspace/api-client-react";
@@ -120,11 +121,11 @@ function AnimSettingsPanel({
 
   return (
     <div className="rounded-lg border bg-muted/20 p-4 space-y-5 text-sm">
-      <p className="font-semibold">Animacja losowania</p>
+      <p className="font-semibold">{t("seedingCeremony.animacja_losowania")}</p>
 
       {/* ── Duration section ── */}
       <div className="space-y-3">
-        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Czas</p>
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">{t("seedingCeremony.czas")}</p>
         <div className="flex flex-wrap items-center gap-2">
           <Select
             value={settings.durationMode}
@@ -132,8 +133,8 @@ function AnimSettingsPanel({
           >
             <SelectTrigger className="h-7 w-24 text-sm"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="fixed">Stały</SelectItem>
-              <SelectItem value="random">Losowy</SelectItem>
+              <SelectItem value="fixed">{t("seedingCeremony.staly")}</SelectItem>
+              <SelectItem value="random">{t("seedingCeremony.losowy")}</SelectItem>
             </SelectContent>
           </Select>
 
@@ -169,13 +170,12 @@ function AnimSettingsPanel({
               id="dur-long-switch"
             />
             <Label htmlFor="dur-long-switch" className="text-sm cursor-pointer">
-              Dodatkowy rzadszy wariant
-            </Label>
+              {t("seedingCeremony.dodatkowy_rzadszy_wariant")}</Label>
           </div>
           {settings.durationLongEnabled && (
             <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-muted-foreground">
               <div className="flex items-center gap-1">
-                <span>Szansa</span>
+                <span>{t("seedingCeremony.szansa")}</span>
                 <NumInput
                   value={settings.durationLongChance}
                   min={1} max={99} step={5} suffix="%"
@@ -183,7 +183,7 @@ function AnimSettingsPanel({
                 />
               </div>
               <div className="flex items-center gap-1">
-                <span>Zakres</span>
+                <span>{t("seedingCeremony.zakres")}</span>
                 <NumInput
                   value={settings.durationLongMin}
                   min={settings.durationMax + 0.5} max={Math.min(settings.durationLongMax, 60)} step={0.5}
@@ -204,8 +204,7 @@ function AnimSettingsPanel({
       {/* ── Speed section ── */}
       <div className="space-y-3">
         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
-          Prędkość obrotu
-        </p>
+          {t("seedingCeremony.predkosc_obrotu")}</p>
         <div className="flex flex-wrap items-center gap-2">
           <Select
             value={settings.speedMode}
@@ -213,8 +212,8 @@ function AnimSettingsPanel({
           >
             <SelectTrigger className="h-7 w-24 text-sm"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="fixed">Stała</SelectItem>
-              <SelectItem value="random">Losowa</SelectItem>
+              <SelectItem value="fixed">{t("seedingCeremony.stala")}</SelectItem>
+              <SelectItem value="random">{t("seedingCeremony.losowa")}</SelectItem>
             </SelectContent>
           </Select>
 
@@ -241,8 +240,7 @@ function AnimSettingsPanel({
           )}
         </div>
         <p className="text-xs text-muted-foreground">
-          Mnożnik prędkości (1× = 4 pełne obroty przy danym czasie)
-        </p>
+          {t("seedingCeremony.mnoznik_predkosci_1_4_pelne")}</p>
 
         {/* Speed alt variant */}
         <div className="ml-3 border-l pl-3 space-y-2">
@@ -253,13 +251,12 @@ function AnimSettingsPanel({
               id="speed-alt-switch"
             />
             <Label htmlFor="speed-alt-switch" className="text-sm cursor-pointer">
-              Dodatkowy rzadszy wariant
-            </Label>
+              {t("seedingCeremony.dodatkowy_rzadszy_wariant")}</Label>
           </div>
           {settings.speedAltEnabled && (
             <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-muted-foreground">
               <div className="flex items-center gap-1">
-                <span>Szansa</span>
+                <span>{t("seedingCeremony.szansa")}</span>
                 <NumInput
                   value={settings.speedAltChance}
                   min={1} max={99} step={5} suffix="%"
@@ -267,7 +264,7 @@ function AnimSettingsPanel({
                 />
               </div>
               <div className="flex items-center gap-1">
-                <span>Zakres</span>
+                <span>{t("seedingCeremony.zakres")}</span>
                 <NumInput
                   value={settings.speedAltMin}
                   min={0.5} max={Math.min(settings.speedAltMax, 5)} step={0.1}
@@ -287,8 +284,7 @@ function AnimSettingsPanel({
 
       <div className="flex items-center gap-3 border-t pt-3">
         <p className="text-xs text-muted-foreground flex-1">
-          Czas i prędkość są losowane niezależnie. Wynik losowania nie jest zmieniony.
-        </p>
+          {t("seedingCeremony.czas_i_predkosc_sa_losowane")}</p>
         <Button
           type="button"
           variant="ghost"
@@ -296,8 +292,7 @@ function AnimSettingsPanel({
           className="h-7 text-xs"
           onClick={() => onChange({ ...ANIM_DEFAULTS })}
         >
-          Przywróć domyślne
-        </Button>
+          {t("seedingCeremony.przywroc_domyslne")}</Button>
       </div>
     </div>
   );
@@ -315,11 +310,11 @@ interface SeedingCeremonyProps {
 
 function statusLabel(state: SeedingCeremonyState): string {
   switch (state.status) {
-    case "prepared": return "Gotowe do rozpoczęcia";
-    case "in_progress": return "Losowanie w toku";
-    case "completed": return "Losowanie zakończone";
-    case "applied": return "Wynik zastosowany";
-    default: return "Nieznany stan";
+    case "prepared": return t("seedingCeremony.gotowe_do_rozpoczecia");
+    case "in_progress": return t("seedingCeremony.losowanie_w_toku");
+    case "completed": return t("seedingCeremony.losowanie_zakonczone");
+    case "applied": return t("seedingCeremony.wynik_zastosowany");
+    default: return t("seedingCeremony.nieznany_stan");
   }
 }
 
@@ -330,10 +325,10 @@ function PlacementPreview({ state }: { state: SeedingCeremonyState }) {
     for (const draw of revealed) {
       const key =
         draw.placement.kind === "group"
-          ? `Grupa ${draw.placement.groupKey}`
+          ? t("seedingCeremony.grupa_groupkey", { groupKey: draw.placement.groupKey })
           : draw.placement.kind === "bracket"
-            ? `Mecz ${draw.placement.matchNumber}`
-            : "Kolejność seedów";
+            ? t("seedingCeremony.mecz_matchnumber", { matchNumber: draw.placement.matchNumber })
+            : t("seedingCeremony.kolejnosc_seedow");
       const rows = map.get(key) ?? [];
       rows.push(draw);
       map.set(key, rows);
@@ -344,8 +339,7 @@ function PlacementPreview({ state }: { state: SeedingCeremonyState }) {
   if (revealed.length === 0) {
     return (
       <div className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
-        Po każdym losie zawodnik pojawi się tutaj w swoim seedzie, grupie albo slocie drabinki.
-      </div>
+        {t("seedingCeremony.po_kazdym_losie_zawodnik_pojawi")}</div>
     );
   }
 
@@ -422,8 +416,7 @@ function CeremonyBody({
           <div>
             <div className="mb-2 flex items-center justify-between gap-3 text-sm">
               <span>
-                {state.revealedCount} z {state.draws.length} ujawnionych
-              </span>
+                {state.revealedCount} z {state.draws.length} {t("seedingCeremony.ujawnionych")}</span>
               <Badge>{statusLabel(state)}</Badge>
             </div>
             <Progress value={progress} />
@@ -435,7 +428,7 @@ function CeremonyBody({
             {spinning ? (
               <>
                 <Loader2 className="mx-auto mb-3 h-8 w-8 animate-spin text-primary" />
-                <p className="font-semibold">{presenter === "kolo" ? "Koło się obraca…" : "Losowanie…"}</p>
+                <p className="font-semibold">{presenter === "kolo" ? t("seedingCeremony.kolo_sie_obraca") : t("seedingCeremony.losowanie")}</p>
               </>
             ) : currentDraw ? (
               <>
@@ -449,7 +442,7 @@ function CeremonyBody({
             ) : (
               <>
                 <Dices className="mx-auto mb-2 h-7 w-7 text-muted-foreground" />
-                <p className="font-semibold">Oczekiwanie na kolejny los</p>
+                <p className="font-semibold">{t("seedingCeremony.oczekiwanie_na_kolejny_los")}</p>
               </>
             )}
           </div>
@@ -463,7 +456,7 @@ function CeremonyBody({
                   <strong>{draw.drawNumber}.</strong> {draw.playerName}
                 </span>
                 <span className="text-right text-xs text-muted-foreground">
-                  Seed {draw.seed} · {draw.placement.label}
+                  {t("seedingCeremony.seed")}{" "}{draw.seed} · {draw.placement.label}
                 </span>
               </div>
             ))}
@@ -471,7 +464,7 @@ function CeremonyBody({
         </div>
       </div>
       <div>
-        <h4 className="mb-3 font-semibold">Rozmieszczenie na żywo</h4>
+        <h4 className="mb-3 font-semibold">{t("seedingCeremony.rozmieszczenie_na_zywo")}</h4>
         <PlacementPreview state={state} />
       </div>
     </div>
@@ -687,8 +680,7 @@ export function SeedingCeremony({
     return (
       <Card>
         <CardContent className="flex items-center justify-center gap-2 p-8 text-sm text-muted-foreground">
-          <Loader2 className="h-4 w-4 animate-spin" /> Ładowanie losowania…
-        </CardContent>
+          <Loader2 className="h-4 w-4 animate-spin" /> {t("seedingCeremony.ladowanie_losowania")}</CardContent>
       </Card>
     );
   }
@@ -700,12 +692,9 @@ export function SeedingCeremony({
         <CardHeader className="flex flex-row items-start justify-between gap-4 space-y-0">
           <div>
             <CardTitle className="flex items-center gap-2 text-base">
-              <Dices className="h-5 w-5 text-primary" /> Ceremonia losowania
-            </CardTitle>
+              <Dices className="h-5 w-5 text-primary" /> {t("seedingCeremony.ceremonia_losowania")}</CardTitle>
             <p className="mt-1 text-sm text-muted-foreground">
-              Wynik jest wyliczony deterministycznie na serwerze. Koło wyłącznie ujawnia zapisane
-              przydziały.
-            </p>
+              {t("seedingCeremony.wynik_jest_wyliczony_deterministycznie_n")}</p>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             {canManage && (
@@ -714,8 +703,8 @@ export function SeedingCeremony({
                 variant={showSettings ? "secondary" : "ghost"}
                 size="sm"
                 onClick={() => setShowSettings((v) => !v)}
-                aria-label="Ustawienia animacji"
-                title="Ustawienia animacji"
+                aria-label={t("seedingCeremony.ustawienia_animacji")}
+                title={t("seedingCeremony.ustawienia_animacji")}
               >
                 <Settings className="h-4 w-4" />
               </Button>
@@ -727,8 +716,7 @@ export function SeedingCeremony({
                 size="sm"
                 onClick={() => setPresentationOpen(true)}
               >
-                <Maximize2 className="mr-2 h-4 w-4" /> Prezentacja
-              </Button>
+                <Maximize2 className="mr-2 h-4 w-4" /> {t("seedingCeremony.prezentacja")}</Button>
             )}
           </div>
         </CardHeader>
@@ -745,11 +733,9 @@ export function SeedingCeremony({
 
           {!state ? (
             <div className="rounded-lg border border-dashed p-6 text-center">
-              <p className="font-medium">Losowanie nie zostało jeszcze przygotowane.</p>
+              <p className="font-medium">{t("seedingCeremony.losowanie_nie_zostalo_jeszcze_przygotowa")}</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                Przygotowanie zapisze wszystkie wyniki i pozwoli bezpiecznie wznowić ceremonię po
-                odświeżeniu strony.
-              </p>
+                {t("seedingCeremony.przygotowanie_zapisze_wszystkie_wyniki_i")}</p>
               {controls && (
                 <Button className="mt-4" type="button" onClick={prepare} disabled={acting}>
                   {acting ? (
@@ -757,8 +743,7 @@ export function SeedingCeremony({
                   ) : (
                     <Dices className="mr-2 h-4 w-4" />
                   )}
-                  Przygotuj losowanie
-                </Button>
+                  {t("seedingCeremony.przygotuj_losowanie")}</Button>
               )}
             </div>
           ) : (
@@ -785,8 +770,7 @@ export function SeedingCeremony({
                       ) : (
                         <Play className="mr-2 h-4 w-4" />
                       )}
-                      Losuj następnego
-                    </Button>
+                      {t("seedingCeremony.losuj_nastepnego")}</Button>
                   )}
                   {state.revealedCount < state.draws.length && (
                     <Button
@@ -800,21 +784,20 @@ export function SeedingCeremony({
                       ) : (
                         <RefreshCcw className="mr-2 h-4 w-4" />
                       )}
-                      {autoPlay ? "Pauza" : "Losuj automatycznie"}
+                      {autoPlay ? t("seedingCeremony.pauza") : t("seedingCeremony.losuj_automatycznie")}
                     </Button>
                   )}
                   {spinning && (
                     // #324-L01-B: the result is already stored — stop the animation and show it now
                     <Button type="button" variant="secondary" onClick={() => finishSpin.current?.()} data-testid="ceremony-show-now">
-                      <FastForward className="mr-2 h-4 w-4" /> Pokaż wynik od razu
-                    </Button>
+                      <FastForward className="mr-2 h-4 w-4" /> {t("seedingCeremony.pokaz_wynik_od_razu")}</Button>
                   )}
                   <label className="flex items-center gap-2 text-sm">
-                    <span className="text-muted-foreground">Prezentacja</span>
+                    <span className="text-muted-foreground">{t("seedingCeremony.prezentacja")}</span>
                     <select className="min-h-9 rounded-md border bg-background px-2" value={presenter} disabled={spinning}
-                      onChange={(event) => setPresenter(event.target.value as PresenterId)} aria-label="Prezentacja losowania">
+                      onChange={(event) => setPresenter(event.target.value as PresenterId)} aria-label={t("seedingCeremony.prezentacja_losowania")}>
                       {TOURNAMENT_PRESENTERS.map((option) => (
-                        <option key={option.id} value={option.id}>{option.label}{option.status === "STABLE_CANDIDATE" ? " (nowa)" : ""}</option>
+                        <option key={option.id} value={option.id}>{option.label}{option.status === "STABLE_CANDIDATE" ? t("seedingCeremony.nowa") : ""}</option>
                       ))}
                     </select>
                   </label>
@@ -825,8 +808,7 @@ export function SeedingCeremony({
                       onClick={revealAll}
                       disabled={acting || spinning}
                     >
-                      <FastForward className="mr-2 h-4 w-4" /> Pomiń animację
-                    </Button>
+                      <FastForward className="mr-2 h-4 w-4" /> {t("seedingCeremony.pomin_animacje")}</Button>
                   )}
                   <Button
                     type="button"
@@ -835,8 +817,7 @@ export function SeedingCeremony({
                     disabled={acting || spinning}
                     className="ml-auto"
                   >
-                    <RotateCcw className="mr-2 h-4 w-4" /> Resetuj
-                  </Button>
+                    <RotateCcw className="mr-2 h-4 w-4" /> {t("seedingCeremony.resetuj")}</Button>
                 </div>
               )}
             </>
@@ -847,10 +828,9 @@ export function SeedingCeremony({
       <Dialog open={presentationOpen} onOpenChange={setPresentationOpen}>
         <DialogContent className="max-h-[92vh] max-w-6xl overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Losowanie — {stage.name}</DialogTitle>
+            <DialogTitle>{t("seedingCeremony.losowanie_2")}{" "}{stage.name}</DialogTitle>
             <DialogDescription>
-              Widok prezentacyjny może być pokazany uczestnikom lub publiczności.
-            </DialogDescription>
+              {t("seedingCeremony.widok_prezentacyjny_moze_byc_pokazany")}</DialogDescription>
           </DialogHeader>
           {state && (
             <CeremonyBody

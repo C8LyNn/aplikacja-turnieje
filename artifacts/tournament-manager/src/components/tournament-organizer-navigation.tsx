@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { useEffect, useRef } from "react";
 import { Link, useLocation } from "wouter";
 import { ChevronDown } from "lucide-react";
@@ -46,7 +47,7 @@ export type OrganizerDetailTab =
 export type OrganizerHostTab = "prowadzenie" | "wyniki" | "tabela" | "drabinka" | "korekta";
 
 const readOnlyDetailTabs = ["overview", "stages", "baskets", "players", "matches", "bracket", "standings", "history"] as const;
-const hostTabs = ["prowadzenie", "wyniki", "tabela", "drabinka", "korekta"] as const;
+const hostTabs = ["prowadzenie", "wyniki", "tabela", "drabinka", "korekta"] as const; // i18n-ignore: tab ids in links
 
 export function organizerDetailTab(
   search: string,
@@ -72,8 +73,8 @@ export function organizerHostTab(
   capabilities: OrganizerCapabilities,
 ): OrganizerHostTab {
   const requested = new URLSearchParams(search).get("tab");
-  if (!hostTabs.includes(requested as (typeof hostTabs)[number])) return "prowadzenie";
-  if (requested === "korekta" && !capabilities.canUndo) return "prowadzenie";
+  if (!hostTabs.includes(requested as (typeof hostTabs)[number])) return "prowadzenie";  // i18n-ignore
+  if (requested === "korekta" && !capabilities.canUndo) return "prowadzenie";  // i18n-ignore
   return requested as OrganizerHostTab;
 }
 
@@ -122,12 +123,12 @@ export function organizerAreaForHostTab(tab: OrganizerHostTab): OrganizerArea {
 
 export function organizerNavigationItems(tournamentId: number) {
   return [
-    { area: "conducting" as const, label: "Prowadzenie", href: `/tournaments/${tournamentId}/host?tab=prowadzenie` },
-    { area: "stages" as const, label: "Etapy", href: `/tournaments/${tournamentId}?tab=stages` },
-    { area: "baskets" as const, label: "Koszyki", href: `/tournaments/${tournamentId}?tab=baskets` },
-    { area: "players" as const, label: "Gracze", href: `/tournaments/${tournamentId}?tab=players` },
-    { area: "bracket" as const, label: "Drabinka", href: `/tournaments/${tournamentId}?tab=bracket` },
-    { area: "standings" as const, label: "Tabela", href: `/tournaments/${tournamentId}?tab=standings` },
+    { area: "conducting" as const, label: t("tournamentOrganizerNavigation.prowadzenie"), href: `/tournaments/${tournamentId}/host?tab=prowadzenie` },
+    { area: "stages" as const, label: t("tournamentOrganizerNavigation.etapy"), href: `/tournaments/${tournamentId}?tab=stages` },
+    { area: "baskets" as const, label: t("tournamentOrganizerNavigation.koszyki"), href: `/tournaments/${tournamentId}?tab=baskets` },
+    { area: "players" as const, label: t("tournamentOrganizerNavigation.gracze"), href: `/tournaments/${tournamentId}?tab=players` },
+    { area: "bracket" as const, label: t("tournamentOrganizerNavigation.drabinka"), href: `/tournaments/${tournamentId}?tab=bracket` },
+    { area: "standings" as const, label: t("tournamentOrganizerNavigation.tabela"), href: `/tournaments/${tournamentId}?tab=standings` },
   ];
 }
 
@@ -137,29 +138,29 @@ export function organizerMoreItems(
   options: { broadcast?: boolean } = {},
 ) {
   const items: Array<{ area: OrganizerArea; label: string; href: string }> = [
-    { area: "history", label: "Historia", href: `/tournaments/${tournamentId}?tab=history` },
+    { area: "history", label: t("tournamentOrganizerNavigation.historia"), href: `/tournaments/${tournamentId}?tab=history` },
   ];
   if (capabilities.canManageOrganizerSettings) {
-    items.push({ area: "game-rules", label: "Reguły gry", href: `/tournaments/${tournamentId}?tab=game-rules` });
+    items.push({ area: "game-rules", label: t("tournamentOrganizerNavigation.reguly_gry"), href: `/tournaments/${tournamentId}?tab=game-rules` });
   }
   // #331: the look of the broadcast can be delegated ("presentation.settings").
   if (capabilities.canManageOrganizerSettings || capabilities.canEditPresentation) {
-    items.push({ area: "visuals", label: "Wizualia", href: `/tournaments/${tournamentId}?tab=visuals` });
+    items.push({ area: "visuals", label: t("tournamentOrganizerNavigation.wizualia"), href: `/tournaments/${tournamentId}?tab=visuals` });
   }
   if (capabilities.canUndo) {
-    items.push({ area: "correction", label: "Korekta", href: `/tournaments/${tournamentId}/host?tab=korekta` });
+    items.push({ area: "correction", label: t("tournamentOrganizerNavigation.korekta"), href: `/tournaments/${tournamentId}/host?tab=korekta` });
   }
   if (capabilities.canManageSharing) {
-    items.push({ area: "sharing", label: "Udostępnianie", href: `/tournaments/${tournamentId}?tab=sharing` });
+    items.push({ area: "sharing", label: t("tournamentOrganizerNavigation.udostepnianie"), href: `/tournaments/${tournamentId}?tab=sharing` });
   }
   if (options.broadcast && capabilities.canAccessConducting) {
-    items.push({ area: "broadcast", label: "Transmisja", href: `/tournaments/${tournamentId}?tab=broadcast` });
+    items.push({ area: "broadcast", label: t("tournamentOrganizerNavigation.transmisja"), href: `/tournaments/${tournamentId}?tab=broadcast` });
   }
   if (capabilities.canManageBackup) {
-    items.push({ area: "backup", label: "Backup", href: `/tournaments/${tournamentId}?tab=backup` });
+    items.push({ area: "backup", label: t("tournamentOrganizerNavigation.backup"), href: `/tournaments/${tournamentId}?tab=backup` });
   }
   if (capabilities.canManageOrganizerSettings) {
-    items.push({ area: "security", label: "Bezpieczeństwo", href: `/tournaments/${tournamentId}?tab=security` });
+    items.push({ area: "security", label: t("tournamentOrganizerNavigation.bezpieczenstwo"), href: `/tournaments/${tournamentId}?tab=security` });
   }
   return items;
 }
@@ -185,9 +186,9 @@ export function relevantOrganizerAreas(stages: ReadonlyArray<{ format: string }>
 export function bracketAreaLabel(stages: ReadonlyArray<{ format: string }> | null | undefined): string {
   const formats = new Set((stages ?? []).map((stage) => stage.format));
   const bracket = formats.has("single_elimination") || formats.has("double_elimination");
-  if (formats.has("group_stage")) return bracket ? "Grupy i drabinka" : "Grupy";
-  if (formats.has("swiss")) return bracket ? "Rundy i drabinka" : "Rundy";
-  return "Drabinka";
+  if (formats.has("group_stage")) return bracket ? t("tournamentOrganizerNavigation.grupy_i_drabinka") : t("tournamentOrganizerNavigation.grupy");
+  if (formats.has("swiss")) return bracket ? t("tournamentOrganizerNavigation.rundy_i_drabinka") : t("tournamentOrganizerNavigation.rundy");
+  return t("tournamentOrganizerNavigation.drabinka");
 }
 
 export function TournamentOrganizerNavigation({
@@ -215,7 +216,7 @@ export function TournamentOrganizerNavigation({
     .map((item) => ({
       ...item,
       // V5.8: players and teams are both "Uczestnicy" in Experimental.
-      label: isExperimental && item.area === "players" ? "Uczestnicy"
+      label: isExperimental && item.area === "players" ? t("tournamentOrganizerNavigation.uczestnicy")
         : isExperimental && item.area === "bracket" ? bracketAreaLabel(stages) : item.label,
       href: tournamentModeHref(item.href, isExperimental),
     }));
@@ -226,7 +227,7 @@ export function TournamentOrganizerNavigation({
   const moreActiveItem = more.find((item) => item.area === active);
   const moreActive = Boolean(moreActiveItem);
   return (
-    <nav aria-label="Nawigacja organizatora turnieju" className="organizer-navigation rounded-lg border bg-card">
+    <nav aria-label={t("tournamentOrganizerNavigation.nawigacja_organizatora_turnieju")} className="organizer-navigation rounded-lg border bg-card">
       <div className="flex items-stretch overflow-x-auto overscroll-x-contain [scrollbar-width:thin]">
         {main.map((item) => (
           <Link
@@ -251,9 +252,9 @@ export function TournamentOrganizerNavigation({
                 variant="ghost"
                 className={`min-h-11 shrink-0 rounded-none border-b-2 px-4 py-3 focus-visible:ring-2 focus-visible:ring-primary ${moreActive ? "border-primary bg-primary/10 text-primary" : "border-transparent"}`}
                 aria-current={moreActive ? "page" : undefined}
-                aria-label={moreActiveItem ? `Więcej obszarów turnieju, aktywny obszar: ${moreActiveItem.label}` : "Więcej obszarów turnieju"}
+                aria-label={moreActiveItem ? t("tournamentOrganizerNavigation.wiecej_obszarow_turnieju_aktywny_obszar", { label: moreActiveItem.label }) : t("tournamentOrganizerNavigation.wiecej_obszarow_turnieju")}
               >
-                Więcej <ChevronDown aria-hidden="true" className="ml-1 h-4 w-4" />
+                {t("tournamentOrganizerNavigation.wiecej")}{" "}<ChevronDown aria-hidden="true" className="ml-1 h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">

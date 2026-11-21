@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { useId } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -23,22 +24,18 @@ export function TournamentPresentationPanel({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Palette className="h-5 w-5" aria-hidden="true" />
-          Wizualia
-        </CardTitle>
+          {t("tournamentPresentationPanel.wizualia")}</CardTitle>
         <CardDescription>
-          Ustawienia prezentacyjne turnieju. Można zmieniać niezależnie od statusu turnieju — nie wpływają na reguły rozgrywki.
-        </CardDescription>
+          {t("tournamentPresentationPanel.ustawienia_prezentacyjne_turnieju_mozna_")}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {isDeadlock ? (
           <div className="flex items-center justify-between gap-4 py-1">
             <div className="space-y-0.5">
               <Label htmlFor={switchId} className="text-sm font-medium cursor-pointer">
-                Motyw Deadlock
-              </Label>
+                {t("tournamentPresentationPanel.motyw_deadlock")}</Label>
               <p id={descriptionId} className="text-xs text-muted-foreground">
-                Beżowo-ciemnobrązowy motyw Deadlock w tej przeglądarce. Nie zmienia wyglądu na innych urządzeniach.
-              </p>
+                {t("tournamentPresentationPanel.bezowo_ciemnobrazowy_motyw_deadlock_w")}</p>
             </div>
             <Switch
               id={switchId}
@@ -49,8 +46,7 @@ export function TournamentPresentationPanel({
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">
-            Ustawienia motywu wizualnego są dostępne dla turniejów Deadlock.
-          </p>
+            {t("tournamentPresentationPanel.ustawienia_motywu_wizualnego_sa_dostepne")}</p>
         )}
       </CardContent>
     </Card>
