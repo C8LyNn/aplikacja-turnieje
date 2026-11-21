@@ -168,7 +168,7 @@ function CountField({ value, onChange, noun }: { value: number; onChange: (value
   };
   return (
     <fieldset className="experimental-wizard-field">
-      <legend className="experimental-wizard-legend">{noun(5) === "drużyn" ? t("experimentalCreateWizard.ile") : t("experimentalCreateWizard.ilu")} {noun(5)} {t("experimentalCreateWizard.planujesz")}</legend>
+      <legend className="experimental-wizard-legend">{noun(5) === participantNoun("teams", 5) ? t("experimentalCreateWizard.ile") : t("experimentalCreateWizard.ilu")} {noun(5)} {t("experimentalCreateWizard.planujesz")}</legend>
       <p className="experimental-wizard-help">{t("experimentalCreateWizard.wystarczy_przyblizona_liczba_zmienisz_ja")}</p>
       <div className="experimental-wizard-count">
         <button type="button" className="experimental-wizard-step-btn" aria-label={t("experimentalCreateWizard.mniej")} disabled={value <= MIN_PARTICIPANTS} onClick={() => onChange(value - 1)}>
@@ -270,7 +270,7 @@ export function StageFlow({ preview }: { preview: PresetPreview }) {
             {stage.groupSizes && (
               <li>
                 {stage.groupSizes.length} {plural(stage.groupSizes.length, t("experimentalCreateWizard.grupa"), t("experimentalCreateWizard.grupy"), t("experimentalCreateWizard.grup"))}
-                {new Set(stage.groupSizes).size === 1 ? ` po ${stage.groupSizes[0]}` : ` (${stage.groupSizes.join(", ")})`}
+                {new Set(stage.groupSizes).size === 1 ? ` ${t("i18n.word.groupOf")} ${stage.groupSizes[0]}` : ` (${stage.groupSizes.join(", ")})`}
               </li>
             )}
             <li>{rangeText(stage.matches)} {plural(stage.matches.max, t("experimentalCreateWizard.mecz"), t("experimentalCreateWizard.mecze_2"), t("experimentalCreateWizard.meczow"))} · {rangeText(stage.rounds)} {plural(stage.rounds.max, t("experimentalCreateWizard.runda"), t("experimentalCreateWizard.rundy_2"), t("experimentalCreateWizard.rund"))}</li>
@@ -332,7 +332,7 @@ export function PreviewPanel({
             : t("experimentalCreateWizard.od_minimum_do_count_v2", { minimum: people.minimum, count: people.count, v2: noun(5) })}
         </p>
       </div>
-      <PresetStats preview={preview} teams={noun(5) === "drużyn"} />
+      <PresetStats preview={preview} teams={noun(5) === participantNoun("teams", 5)} />
       {/* #323-C: the layout drawn from the same preview numbers, before anything is created. */}
       <FormatSketch stages={preview.stages} accent="var(--x-gold)" captions={!compact} className="experimental-wizard-sketch" />
       <StageFlow preview={preview} />
@@ -1120,7 +1120,7 @@ export function ExperimentalCreateWizard() {
                   <p className="experimental-wizard-eyebrow">{t("experimentalCreateWizard.utworzysz")}</p>
                   <p className="experimental-wizard-summary-line">
                     <strong>{draft.name.trim() || t("experimentalCreateWizard.turniej_bez_nazwy")}</strong> · {shownPreview.label} ·{" "}
-                    {shownPreview.participants.mode === "exact" ? t("experimentalCreateWizard.dokladnie") : "do"} {shownPreview.participants.count} {noun(shownPreview.participants.count)}
+                    {shownPreview.participants.mode === "exact" ? t("experimentalCreateWizard.dokladnie") : t("experimentalCreateWizard.do_up_to")} {shownPreview.participants.count} {noun(shownPreview.participants.count)}
                   </p>
                   <ol className="experimental-wizard-chain" aria-label={t("experimentalCreateWizard.etapy")}>
                     {stageChain(shownPreview).map((item) => <li key={item}>{item}</li>)}

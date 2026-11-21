@@ -69,7 +69,7 @@ export function tournamentProgress(tournament: {
   if (stage && stage.matchesTotal > 0) {
     const parts = [
       (tournament.activity?.stageFormats?.length ?? 0) > 1 ? stageLabel(stage.name) : null,
-      stage.format === "swiss" && stage.currentRound ? t("experimentalTournamentList.runda_currentround_v1", { currentRound: stage.currentRound, v1: stage.plannedRounds ? ` z ${stage.plannedRounds}` : "" }) : null,
+      stage.format === "swiss" && stage.currentRound ? t("experimentalTournamentList.runda_currentround_v1", { currentRound: stage.currentRound, v1: stage.plannedRounds ? ` ${t("i18n.word.of")} ${stage.plannedRounds}` : "" }) : null,
       t("experimentalTournamentList.matchescompleted_matchestotal_meczow", { matchesCompleted: stage.matchesCompleted, matchesTotal: stage.matchesTotal }),
     ].filter(Boolean);
     return { label: parts.join(" · "), percent: Math.min(100, Math.round((stage.matchesCompleted / stage.matchesTotal) * 100)) };
@@ -77,7 +77,7 @@ export function tournamentProgress(tournament: {
   if (!tournament.currentRound) return null;
   const total = tournament.totalRounds ?? null;
   return {
-    label: t("experimentalTournamentList.runda_currentround_v1", { currentRound: tournament.currentRound, v1: total ? ` z ${total}` : "" }),
+    label: t("experimentalTournamentList.runda_currentround_v1", { currentRound: tournament.currentRound, v1: total ? ` ${t("i18n.word.of")} ${total}` : "" }),
     percent: total ? Math.min(100, Math.round((tournament.currentRound / total) * 100)) : null,
   };
 }

@@ -96,7 +96,7 @@ export function BasketBulkAssignment({
     if (!preview || !preview.moves.length) return;
     setHistory((current) => [...current, baskets.map((basket) => ({ ...basket, participantIds: [...basket.participantIds] }))]);
     onApply(preview.baskets);
-    setNotice(t("basketBulkAssignment.v0_length_zmiana_jest_w", { v0: preview.target ? `Przeniesiono do ${where(preview.target)}` : t("basketBulkAssignment.usunieto_z_koszykow"), length: preview.moves.length }));
+    setNotice(t("basketBulkAssignment.v0_length_zmiana_jest_w", { v0: preview.target ? t("basketBulkAssignment.przeniesiono_do_where", { where: where(preview.target) }) : t("basketBulkAssignment.usunieto_z_koszykow"), length: preview.moves.length }));
     setSelected(new Set());
     setPreview(null);
   };

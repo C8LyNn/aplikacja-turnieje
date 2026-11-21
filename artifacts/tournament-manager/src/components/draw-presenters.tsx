@@ -11,8 +11,8 @@ export const DRAW_PRESENTERS: { id: PresenterId; label: string; status: Presente
   { id: "kolo", get label() { return t("drawPresenters.kolo"); }, status: "STABLE", get description() { return t("drawPresenters.kolo_z_pozostalymi_wynikami_zatrzymuje"); } },
   { id: "szybko", get label() { return t("drawPresenters.szybkie_odsloniecie"); }, status: "STABLE", get description() { return t("drawPresenters.bez_animacji_wynik_od_razu"); } },
   { id: "karty", get label() { return t("drawPresenters.karty"); }, status: "STABLE_CANDIDATE", get description() { return t("drawPresenters.zakryte_karty_odwraca_sie_ta"); } },
-  { id: "automat", label: "Automat", status: "STABLE_CANDIDATE", get description() { return t("drawPresenters.beben_przewija_wyniki_i_staje"); } },
-  { id: "skan", label: "Skan", status: "STABLE_CANDIDATE", get description() { return t("drawPresenters.podswietlenie_przebiega_liste_i_zwalnia"); } },
+  { id: "automat", get label() { return t("drawPresenters.automat"); }, status: "STABLE_CANDIDATE", get description() { return t("drawPresenters.beben_przewija_wyniki_i_staje"); } },
+  { id: "skan", get label() { return t("drawPresenters.skan"); }, status: "STABLE_CANDIDATE", get description() { return t("drawPresenters.podswietlenie_przebiega_liste_i_zwalnia"); } },
   { id: "kule", get label() { return t("drawPresenters.kule"); }, status: "TESTED", get description() { return t("drawPresenters.kule_w_bebnie_wypada_ta"); } },
 ];
 

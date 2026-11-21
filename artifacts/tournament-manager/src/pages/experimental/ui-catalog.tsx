@@ -132,7 +132,7 @@ export default function ExperimentalUiCatalog() {
           <div className="grid max-w-xl gap-3">
             <label className="grid gap-1 text-sm">{t("uiCatalog.nazwa_turnieju")}<Input defaultValue="Puchar Wiosny" /></label>
             <label className="grid gap-1 text-sm">{t("uiCatalog.pole_z_bledem")}<Input aria-invalid="true" defaultValue="" placeholder={t("uiCatalog.wpisz_nazwe")} /><span role="alert" className="text-xs text-destructive">{t("uiCatalog.podaj_nazwe_turnieju")}</span></label>
-            <label className="grid gap-1 text-sm">{t("uiCatalog.niedostepne")}<Input disabled defaultValue="tylko do odczytu" /></label>
+            <label className="grid gap-1 text-sm">{t("uiCatalog.niedostepne")}<Input disabled defaultValue={t("uiCatalog.tylko_do_odczytu")} /></label>
             <div role="radiogroup" aria-label={t("uiCatalog.dlugosc_meczu")} className="experimental-wizard-segments flex flex-wrap gap-1.5">
               <button type="button" role="radio" aria-checked="true" className="experimental-wizard-chip">{t("uiCatalog.jedna_gra")}</button>
               <button type="button" role="radio" aria-checked="false" className="experimental-wizard-chip">{t("uiCatalog.do_2_wygranych")}</button>

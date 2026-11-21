@@ -237,7 +237,7 @@ export function RegistrationPanel({
           )}
           {canConfigure && !experimental && (
             <div className="stable-participant-fields">
-              <ParticipantFieldsManager tournamentId={tournamentId} participantNoun={participantNoun === "drużyn" ? t("registrationPanel.druzyn") : t("registrationPanel.graczy")} />
+              <ParticipantFieldsManager tournamentId={tournamentId} participantNoun={participantNoun === t("tournamentDetail.druzyn_2") ? t("registrationPanel.druzyn") : t("registrationPanel.graczy")} />
             </div>
           )}
         </>

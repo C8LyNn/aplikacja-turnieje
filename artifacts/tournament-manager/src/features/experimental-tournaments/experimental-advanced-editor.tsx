@@ -362,7 +362,7 @@ export function ExperimentalAdvancedEditor() {
         .filter(Boolean).join(" · ");
   const setRules = shown?.matchRules?.kind === "sets" ? shown.matchRules : null;
   const matchesSummary = setRules
-    ? [t("experimentalAdvancedEditor.do_setstowin_wygranych_setow", { setsToWin: setRules.setsToWin }), `set do ${setRules.pointsPerSet}`, setRules.winBy > 1 ? `przewaga ${setRules.winBy}` : null].filter(Boolean).join(" · ")
+    ? [t("experimentalAdvancedEditor.do_setstowin_wygranych_setow", { setsToWin: setRules.setsToWin }), t("i18n.sets.setTo", { pointsPerSet: setRules.pointsPerSet }), setRules.winBy > 1 ? t("i18n.sets.winBy", { winBy: setRules.winBy }) : null].filter(Boolean).join(" · ")
     : [limitText(limits.get("bestOf")),
         // V5.8: a play-off with its own length is an exception, and the summary says so.
         limits.get("playoffBestOf") && (params.playoffBestOf ?? limits.get("playoffBestOf")!.value) !== (params.bestOf ?? limits.get("bestOf")?.value)

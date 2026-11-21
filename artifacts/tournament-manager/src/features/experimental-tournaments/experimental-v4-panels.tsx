@@ -55,7 +55,7 @@ export function ExperimentalResumeCard({ tournaments }: { tournaments: ReadonlyA
   const Icon = reason === "active" ? PlayCircle : PencilRuler;
   const detail = action?.hint ?? (reason === "active"
     ? tournament.currentRound
-      ? t("experimentalV4Panels.runda_currentround_v1", { currentRound: tournament.currentRound, v1: tournament.totalRounds ? ` z ${tournament.totalRounds}` : "" })
+      ? t("experimentalV4Panels.runda_currentround_v1", { currentRound: tournament.currentRound, v1: tournament.totalRounds ? ` ${t("i18n.word.of")} ${tournament.totalRounds}` : "" })
       : t("experimentalV4Panels.turniej_trwa")
     : t("experimentalV4Panels.szkic_dodaj_uczestnikow_i_uruchom"));
   return (
@@ -271,7 +271,7 @@ function structureLine(nodes: ReturnType<typeof stageMap>): string | null {
   if (first.participants) parts.push(t("experimentalV4Panels.participants_uczestnikow", { participants: first.participants }));
   nodes.forEach((node, index) => {
     const size = node.groups && node.participants ? Math.ceil(node.participants / node.groups) : null;
-    parts.push(node.groups ? `${node.name}: ${node.groups} ${node.groups === 1 ? t("experimentalV4Panels.grupa") : node.groups < 5 ? t("experimentalV4Panels.grupy") : t("experimentalV4Panels.grup")}${size ? ` po ${size}` : ""}` : node.name);
+    parts.push(node.groups ? `${node.name}: ${node.groups} ${node.groups === 1 ? t("experimentalV4Panels.grupa") : node.groups < 5 ? t("experimentalV4Panels.grupy") : t("experimentalV4Panels.grup")}${size ? ` ${t("i18n.word.groupOf")} ${size}` : ""}` : node.name);
     const next = nodes[index + 1];
     const link = next ? node.outgoing.find((candidate) => candidate.targetStageId === next.id) : undefined;
     if (next) parts.push(link?.count != null ? t("experimentalV4Panels.awansuje_count", { count: link.count }) : t("experimentalV4Panels.awans"));

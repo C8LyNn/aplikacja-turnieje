@@ -271,7 +271,7 @@ export const FORMAT_LABELS: Record<string, string> = {
 /** How long the match is, in the same words as the rest of the app (the engine's own summary for sets). */
 export function matchFormatText(match: Pick<PublicMatch, "bestOf">, stage: Pick<PublicStage, "matchRules" | "allowDraws"> | null): string {
   const rules = stage?.matchRules;
-  if (rules?.kind === "sets") return `${rules.setsToWin === 1 ? tr("broadcastOverlay.jeden_set") : tr("broadcastOverlay.do_setstowin_wygranych_setow", { setsToWin: rules.setsToWin })} · set do ${rules.pointsPerSet}`;
+  if (rules?.kind === "sets") return `${rules.setsToWin === 1 ? tr("broadcastOverlay.jeden_set") : tr("broadcastOverlay.do_setstowin_wygranych_setow", { setsToWin: rules.setsToWin })} · ${tr("i18n.sets.setTo", { pointsPerSet: rules.pointsPerSet })}`;
   if (stage?.allowDraws) return tr("broadcastOverlay.mecz_ligowy_remis_mozliwy");
   return match.bestOf <= 1 ? tr("broadcastOverlay.jedna_gra") : tr("broadcastOverlay.do_v0_wygranych", { v0: Math.ceil(match.bestOf / 2) });
 }
@@ -630,5 +630,5 @@ export function winnerModel(tournament: PublicTournament, matches: readonly Publ
   const stage = stages.find((s) => s.id === last.stageId) ?? null;
   const score = last.resultType === "walkover" ? tr("broadcastOverlay.walkower_2") : `${last.winnerId === last.player1Id ? last.score1 : last.score2}:${last.winnerId === last.player1Id ? last.score2 : last.score1}`;
   const context = stageRoundText(last, stage, matches.filter((m) => m.stageId === last.stageId));
-  return { title: tournament.name, heading: tr("broadcastOverlay.zwyciezca_meczu"), name: winner, detail: `${score}${loser ? ` z ${loser}` : ""} · ${context}`, champion: false, reason: null };
+  return { title: tournament.name, heading: tr("broadcastOverlay.zwyciezca_meczu"), name: winner, detail: `${score}${loser ? ` ${tr("i18n.word.against")} ${loser}` : ""} · ${context}`, champion: false, reason: null };
 }

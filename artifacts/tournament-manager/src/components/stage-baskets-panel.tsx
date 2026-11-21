@@ -41,11 +41,11 @@ export const BASKET_COLOR_DEFS: {
   text: string;
   dot: string;
 }[] = [
-  { id: "blue",   label: "Niebieski",     bg: "bg-blue-500/20",   border: "border-blue-500/50",   text: "text-blue-400",   dot: "bg-blue-400"   },
-  { id: "red",    label: "Czerwony",      bg: "bg-red-500/20",    border: "border-red-500/50",    text: "text-red-400",    dot: "bg-red-400"    },
-  { id: "green",  label: "Zielony",       bg: "bg-green-500/20",  border: "border-green-500/50",  text: "text-green-400",  dot: "bg-green-400"  },
+  { id: "blue",   get label() { return t("stageBasketsPanel.niebieski"); },     bg: "bg-blue-500/20",   border: "border-blue-500/50",   text: "text-blue-400",   dot: "bg-blue-400"   },
+  { id: "red",    get label() { return t("stageBasketsPanel.czerwony"); },      bg: "bg-red-500/20",    border: "border-red-500/50",    text: "text-red-400",    dot: "bg-red-400"    },
+  { id: "green",  get label() { return t("stageBasketsPanel.zielony"); },       bg: "bg-green-500/20",  border: "border-green-500/50",  text: "text-green-400",  dot: "bg-green-400"  },
   { id: "yellow", get label() { return t("stageBasketsPanel.zolty"); },         bg: "bg-yellow-500/20", border: "border-yellow-500/50", text: "text-yellow-400", dot: "bg-yellow-400" },
-  { id: "purple", label: "Fioletowy",     bg: "bg-purple-500/20", border: "border-purple-500/50", text: "text-purple-400", dot: "bg-purple-400" },
+  { id: "purple", get label() { return t("stageBasketsPanel.fioletowy"); },     bg: "bg-purple-500/20", border: "border-purple-500/50", text: "text-purple-400", dot: "bg-purple-400" },
   { id: "orange", get label() { return t("stageBasketsPanel.pomaranczowy"); },  bg: "bg-orange-500/20", border: "border-orange-500/50", text: "text-orange-400", dot: "bg-orange-400" },
 ];
 

@@ -30,7 +30,7 @@ import {
 } from "./camera-chat-settings";
 
 const LAYOUT_OPTIONS = [
-  { value: "right", label: "Prawo" },
+  { value: "right", get label() { return t("obsLab.prawo"); } },
   { value: "below", get label() { return t("obsLab.dol"); } },
   { value: "overlay", get label() { return t("obsLab.na_kamerce"); } },
 ] as const;

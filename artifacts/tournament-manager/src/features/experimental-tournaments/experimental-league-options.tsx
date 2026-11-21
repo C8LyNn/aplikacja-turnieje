@@ -21,8 +21,8 @@ const INTERVAL_OPTIONS = [1, 2, 3, 7, 14] as const;
 function intervalLabel(days: number): string {
   if (days === 7) return t("experimentalLeagueOptions.co_tydzien");
   if (days === 14) return t("experimentalLeagueOptions.co_2_tygodnie");
-  if (days === 1) return "Codziennie";
-  return `Co ${days} dni`;
+  if (days === 1) return t("experimentalLeagueOptions.codziennie");
+  return t("experimentalLeagueOptions.co_days_dni", { days });
 }
 
 function PointStepper({ limit, onChange }: { limit: PresetParamLimit; onChange: (value: number) => void }) {

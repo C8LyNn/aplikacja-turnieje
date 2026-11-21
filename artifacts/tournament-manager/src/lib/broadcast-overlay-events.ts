@@ -125,7 +125,7 @@ export function eventText(event: Exclude<OverlayEvent, { kind: "reverted" }>): {
     case "match_end":
       return event.draw
         ? { label: t("broadcastOverlayEvents.koniec_meczu"), text: t("broadcastOverlayEvents.remis_score", { score: event.score }) }
-        : { label: t("broadcastOverlayEvents.koniec_meczu"), text: t("broadcastOverlayEvents.wygrywa_winner_v1", { winner: event.winner, v1: event.loser ? ` · ${event.score} z ${event.loser}` : ` · ${event.score}` }) };
+        : { label: t("broadcastOverlayEvents.koniec_meczu"), text: t("broadcastOverlayEvents.wygrywa_winner_v1", { winner: event.winner, v1: event.loser ? ` · ${event.score} ${t("i18n.word.against")} ${event.loser}` : ` · ${event.score}` }) };
     case "advance":
       return { label: t("broadcastOverlayEvents.awans"), text: `${event.name} → ${event.where}` };
     case "stage":

@@ -12,19 +12,19 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 
 export const EXPERIMENTAL_SKINS = [
   { value: "tournament", get label() { return t("experimentalAppearance.wedlug_turnieju"); }, color: "" },
-  { value: "classic", label: "Klasyczna", color: "hsl(199 89% 48%)" },
+  { value: "classic", get label() { return t("experimentalAppearance.klasyczna"); }, color: "hsl(199 89% 48%)" },
   { value: "deadlock", label: "Deadlock", color: "hsl(148 35% 40%)" },
-  { value: "obsidian", label: "Obsydian", color: "hsl(220 12% 60%)" },
+  { value: "obsidian", get label() { return t("experimentalAppearance.obsydian"); }, color: "hsl(220 12% 60%)" },
   { value: "crimson-vault", get label() { return t("experimentalAppearance.szkarlatny_skarbiec"); }, color: "hsl(355 65% 48%)" },
   { value: "abyssal", get label() { return t("experimentalAppearance.glebina"); }, color: "hsl(210 80% 60%)" },
   { value: "iron-citadel", get label() { return t("experimentalAppearance.zelazna_cytadela"); }, color: "hsl(200 22% 55%)" },
   { value: "ember", get label() { return t("experimentalAppearance.zar"); }, color: "hsl(24 72% 52%)" },
-  { value: "void", label: "Pustka", color: "hsl(270 58% 62%)" },
-  { value: "copper-age", label: "Epoka miedzi", color: "hsl(28 62% 50%)" },
-  { value: "glacier", label: "Lodowiec", color: "hsl(192 78% 55%)" },
+  { value: "void", get label() { return t("experimentalAppearance.pustka"); }, color: "hsl(270 58% 62%)" },
+  { value: "copper-age", get label() { return t("experimentalAppearance.epoka_miedzi"); }, color: "hsl(28 62% 50%)" },
+  { value: "glacier", get label() { return t("experimentalAppearance.lodowiec"); }, color: "hsl(192 78% 55%)" },
   { value: "midnight-rose", get label() { return t("experimentalAppearance.nocna_roza"); }, color: "hsl(332 58% 58%)" },
-  { value: "toxic", label: "Toksyczny", color: "hsl(100 68% 46%)" },
-  { value: "sandstorm", label: "Burza piaskowa", color: "hsl(43 68% 52%)" },
+  { value: "toxic", get label() { return t("experimentalAppearance.toksyczny"); }, color: "hsl(100 68% 46%)" },
+  { value: "sandstorm", get label() { return t("experimentalAppearance.burza_piaskowa"); }, color: "hsl(43 68% 52%)" },
 ] as const;
 
 export const EXPERIMENTAL_BACKGROUNDS = [
@@ -32,46 +32,46 @@ export const EXPERIMENTAL_BACKGROUNDS = [
   { value: "aura", label: "Aura", get hint() { return t("experimentalAppearance.miekka_poswiata_w_kolorze_motywu"); } },
   { value: "nebula", get label() { return t("experimentalAppearance.mglawica"); }, get hint() { return t("experimentalAppearance.wielobarwna_najbardziej_wyrazista"); } },
   { value: "grid", get label() { return t("experimentalAppearance.siatka_areny"); }, get hint() { return t("experimentalAppearance.futurystyczna_siatka_na_calej_stronie"); } },
-  { value: "carbon", label: "Karbon", get hint() { return t("experimentalAppearance.neutralna_czern_najwyzszy_kontrast"); } },
-  { value: "solid", label: "Jednolite", get hint() { return t("experimentalAppearance.spokojne_tlo_bez_efektow"); } },
+  { value: "carbon", get label() { return t("experimentalAppearance.karbon"); }, get hint() { return t("experimentalAppearance.neutralna_czern_najwyzszy_kontrast"); } },
+  { value: "solid", get label() { return t("experimentalAppearance.jednolite"); }, get hint() { return t("experimentalAppearance.spokojne_tlo_bez_efektow"); } },
 ] as const;
 
 export const EXPERIMENTAL_PALETTES = [
   { value: "theme", get label() { return t("experimentalAppearance.motyw"); }, get hint() { return t("experimentalAppearance.kolory_dobrane_do_skorki"); } },
-  { value: "harmony", label: "Harmonia", get hint() { return t("experimentalAppearance.zrownowazone_akcenty_sekcji"); } },
-  { value: "analog", label: "Analogiczny", hint: "Odcienie bliskie motywowi" },
-  { value: "triad", label: "Triada", get hint() { return t("experimentalAppearance.trzy_mocne_rozne_kolory"); } },
+  { value: "harmony", get label() { return t("experimentalAppearance.harmonia"); }, get hint() { return t("experimentalAppearance.zrownowazone_akcenty_sekcji"); } },
+  { value: "analog", get label() { return t("experimentalAppearance.analogiczny"); }, get hint() { return t("experimentalAppearance.odcienie_bliskie_motywowi"); } },
+  { value: "triad", get label() { return t("experimentalAppearance.triada"); }, get hint() { return t("experimentalAppearance.trzy_mocne_rozne_kolory"); } },
   { value: "contrast", get label() { return t("experimentalAppearance.kontrast"); }, get hint() { return t("experimentalAppearance.kolor_przeciwny_do_motywu"); } },
-  { value: "mono", label: "Monochrom", get hint() { return t("experimentalAppearance.jeden_kolor_w_kilku_jasnosciach"); } },
+  { value: "mono", get label() { return t("experimentalAppearance.monochrom"); }, get hint() { return t("experimentalAppearance.jeden_kolor_w_kilku_jasnosciach"); } },
 ] as const;
 
 export const EXPERIMENTAL_TYPOGRAPHY = [
   { value: "arena", label: "Arena", get hint() { return t("experimentalAppearance.domyslny_nowoczesny_kroj"); } },
-  { value: "classic", label: "Systemowy", get hint() { return t("experimentalAppearance.kroj_twojego_systemu"); } },
-  { value: "technical", label: "Techniczny", get hint() { return t("experimentalAppearance.cyfry_i_naglowki_jak_na"); } },
+  { value: "classic", get label() { return t("experimentalAppearance.systemowy"); }, get hint() { return t("experimentalAppearance.kroj_twojego_systemu"); } },
+  { value: "technical", get label() { return t("experimentalAppearance.techniczny"); }, get hint() { return t("experimentalAppearance.cyfry_i_naglowki_jak_na"); } },
   { value: "readable", get label() { return t("experimentalAppearance.czytelny"); }, get hint() { return t("experimentalAppearance.wiekszy_tekst_i_odstepy"); } },
-  { value: "display", label: "Sportowy", get hint() { return t("experimentalAppearance.waskie_wersalikowe_naglowki_jak_na"); } },
-  { value: "elegant", label: "Elegancki", get hint() { return t("experimentalAppearance.szeryfowe_tytuly_spokojny_tekst"); } },
+  { value: "display", get label() { return t("experimentalAppearance.sportowy"); }, get hint() { return t("experimentalAppearance.waskie_wersalikowe_naglowki_jak_na"); } },
+  { value: "elegant", get label() { return t("experimentalAppearance.elegancki"); }, get hint() { return t("experimentalAppearance.szeryfowe_tytuly_spokojny_tekst"); } },
 ] as const;
 
 export const EXPERIMENTAL_SHAPES = [
   { value: "arena", label: "Arena", get hint() { return t("experimentalAppearance.lagodne_zaokraglenia"); } },
-  { value: "sharp", label: "Ostre", get hint() { return t("experimentalAppearance.proste_techniczne_krawedzie"); } },
+  { value: "sharp", get label() { return t("experimentalAppearance.ostre"); }, get hint() { return t("experimentalAppearance.proste_techniczne_krawedzie"); } },
   { value: "round", get label() { return t("experimentalAppearance.okragle"); }, get hint() { return t("experimentalAppearance.miekkie_duze_zaokraglenia"); } },
   { value: "cut", get label() { return t("experimentalAppearance.sciete"); }, get hint() { return t("experimentalAppearance.sciete_narozniki_jak_w_interfejsie"); } },
 ] as const;
 
 // V5.4 · more categories. Every option changes the look of real components, not only colours.
 export const EXPERIMENTAL_DENSITY = [
-  { value: "comfortable", label: "Wygodna", get hint() { return t("experimentalAppearance.domyslne_odstepy"); } },
-  { value: "compact", label: "Zwarta", get hint() { return t("experimentalAppearance.wiecej_tresci_na_ekranie"); } },
-  { value: "spacious", label: "Przestronna", get hint() { return t("experimentalAppearance.duze_odstepy_spokojny_uklad"); } },
+  { value: "comfortable", get label() { return t("experimentalAppearance.wygodna"); }, get hint() { return t("experimentalAppearance.domyslne_odstepy"); } },
+  { value: "compact", get label() { return t("experimentalAppearance.zwarta"); }, get hint() { return t("experimentalAppearance.wiecej_tresci_na_ekranie"); } },
+  { value: "spacious", get label() { return t("experimentalAppearance.przestronna"); }, get hint() { return t("experimentalAppearance.duze_odstepy_spokojny_uklad"); } },
 ] as const;
 
 export const EXPERIMENTAL_BUTTONS = [
   { value: "arena", label: "Arena", get hint() { return t("experimentalAppearance.gradient_i_miekki_blask"); } },
   { value: "solid", get label() { return t("experimentalAppearance.pelne"); }, get hint() { return t("experimentalAppearance.jednolity_kolor_bez_efektow"); } },
-  { value: "outline", label: "Kontur", get hint() { return t("experimentalAppearance.przezroczyste_z_wyrazna_ramka"); } },
+  { value: "outline", get label() { return t("experimentalAppearance.kontur"); }, get hint() { return t("experimentalAppearance.przezroczyste_z_wyrazna_ramka"); } },
   { value: "pill", get label() { return t("experimentalAppearance.pigulki"); }, get hint() { return t("experimentalAppearance.w_pelni_zaokraglone"); } },
   { value: "beveled", get label() { return t("experimentalAppearance.sciete"); }, get hint() { return t("experimentalAppearance.sciete_rogi_wersaliki"); } },
 ] as const;
@@ -99,7 +99,7 @@ export const EXPERIMENTAL_GLOW = [
 export const EXPERIMENTAL_NAV = [
   { value: "arena", label: "Arena", get hint() { return t("experimentalAppearance.zakladki_w_panelu"); } },
   { value: "underline", get label() { return t("experimentalAppearance.podkreslenie"); }, get hint() { return t("experimentalAppearance.linia_pod_aktywna_zakladka"); } },
-  { value: "blocks", label: "Bloki", get hint() { return t("experimentalAppearance.wyrazne_pelne_przyciski"); } },
+  { value: "blocks", get label() { return t("experimentalAppearance.bloki"); }, get hint() { return t("experimentalAppearance.wyrazne_pelne_przyciski"); } },
   { value: "pills", get label() { return t("experimentalAppearance.pigulki"); }, get hint() { return t("experimentalAppearance.zaokraglone_zakladki"); } },
 ] as const;
 
@@ -107,33 +107,33 @@ export const EXPERIMENTAL_TABLES = [
   { value: "arena", label: "Arena", get hint() { return t("experimentalAppearance.delikatne_linie"); } },
   { value: "striped", get label() { return t("experimentalAppearance.pasy"); }, get hint() { return t("experimentalAppearance.naprzemienne_tlo_wierszy"); } },
   { value: "lined", get label() { return t("experimentalAppearance.linie"); }, get hint() { return t("experimentalAppearance.mocne_linie_wersalikowe_naglowki"); } },
-  { value: "spacious", label: "Przestronne", get hint() { return t("experimentalAppearance.wyzsze_wiersze_latwe_na_telefonie"); } },
+  { value: "spacious", get label() { return t("experimentalAppearance.przestronne"); }, get hint() { return t("experimentalAppearance.wyzsze_wiersze_latwe_na_telefonie"); } },
 ] as const;
 
 export const EXPERIMENTAL_BRACKETS = [
   { value: "arena", label: "Arena", get hint() { return t("experimentalAppearance.spokojne_linie_i_karty"); } },
   { value: "neon", label: "Neon", get hint() { return t("experimentalAppearance.swiecace_polaczenia"); } },
-  { value: "minimal", label: "Minimalna", get hint() { return t("experimentalAppearance.cienkie_linie_bez_tla_kart"); } },
+  { value: "minimal", get label() { return t("experimentalAppearance.minimalna"); }, get hint() { return t("experimentalAppearance.cienkie_linie_bez_tla_kart"); } },
   { value: "broadcast", get label() { return t("experimentalAppearance.transmisja"); }, get hint() { return t("experimentalAppearance.grube_linie_kontrastowe_karty"); } },
 ] as const;
 
 export const EXPERIMENTAL_MATCH_CARDS = [
   { value: "arena", label: "Arena", get hint() { return t("experimentalAppearance.domyslne_karty"); } },
   { value: "scoreboard", get label() { return t("experimentalAppearance.tablica_wynikow"); }, get hint() { return t("experimentalAppearance.duze_cyfry_ciemny_pas_wyniku"); } },
-  { value: "compact", label: "Zwarte", get hint() { return t("experimentalAppearance.mniej_miejsca_na_mecz"); } },
+  { value: "compact", get label() { return t("experimentalAppearance.zwarte"); }, get hint() { return t("experimentalAppearance.mniej_miejsca_na_mecz"); } },
 ] as const;
 
 export const EXPERIMENTAL_DECOR = [
   { value: "none", get label() { return t("experimentalAppearance.brak"); }, get hint() { return t("experimentalAppearance.bez_dodatkow"); } },
   { value: "corners", get label() { return t("experimentalAppearance.narozniki"); }, get hint() { return t("experimentalAppearance.znaczniki_w_rogach_paneli"); } },
   { value: "scanlines", get label() { return t("experimentalAppearance.linie_ekranu"); }, get hint() { return t("experimentalAppearance.delikatny_efekt_monitora"); } },
-  { value: "noise", label: "Ziarno", get hint() { return t("experimentalAppearance.subtelna_faktura_tla"); } },
+  { value: "noise", get label() { return t("experimentalAppearance.ziarno"); }, get hint() { return t("experimentalAppearance.subtelna_faktura_tla"); } },
 ] as const;
 
 export const EXPERIMENTAL_CARD_STYLES = [
   { value: "glass", get label() { return t("experimentalAppearance.szklo"); }, get hint() { return t("experimentalAppearance.polprzezroczyste_panele"); } },
   { value: "solid", get label() { return t("experimentalAppearance.pelne"); }, get hint() { return t("experimentalAppearance.nieprzezroczyste_spokojne"); } },
-  { value: "outline", label: "Kontur", get hint() { return t("experimentalAppearance.lekkie_panele_z_wyrazna_linia"); } },
+  { value: "outline", get label() { return t("experimentalAppearance.kontur"); }, get hint() { return t("experimentalAppearance.lekkie_panele_z_wyrazna_linia"); } },
 ] as const;
 
 export const EXPERIMENTAL_EFFECTS = [
@@ -144,11 +144,11 @@ export const EXPERIMENTAL_EFFECTS = [
 
 export const EXPERIMENTAL_MOTION = [
   { value: "system", get label() { return t("experimentalAppearance.jak_w_systemie"); }, get hint() { return t("experimentalAppearance.szanuje_ustawienie_ograniczonego_ruchu"); } },
-  { value: "reduced", label: "Ograniczony", get hint() { return t("experimentalAppearance.bez_animacji_i_przejsc"); } },
+  { value: "reduced", get label() { return t("experimentalAppearance.ograniczony"); }, get hint() { return t("experimentalAppearance.bez_animacji_i_przejsc"); } },
 ] as const;
 
 export const EXPERIMENTAL_CONTRAST = [
-  { value: "standard", label: "Standardowy", get hint() { return t("experimentalAppearance.zrownowazony"); } },
+  { value: "standard", get label() { return t("experimentalAppearance.standardowy"); }, get hint() { return t("experimentalAppearance.zrownowazony"); } },
   { value: "high", get label() { return t("experimentalAppearance.wysoki"); }, get hint() { return t("experimentalAppearance.mocniejszy_tekst_i_linie"); } },
 ] as const;
 
@@ -231,12 +231,12 @@ const CATEGORIES = Object.keys(CATEGORY_OPTIONS) as Category[];
 
 /** V5.8 · preset families, so the list reads as a few styles with variants, not fourteen similar tiles. */
 export const EXPERIMENTAL_APPEARANCE_FAMILIES = [
-  { id: "arena", label: "Arena", hint: "Futurystycznie i kolorowo" },
+  { id: "arena", label: "Arena", get hint() { return t("experimentalAppearance.futurystycznie_i_kolorowo"); } },
   { id: "broadcast", get label() { return t("experimentalAppearance.transmisja"); }, get hint() { return t("experimentalAppearance.duze_wyniki_na_ekran_i"); } },
-  { id: "sport", label: "Sport", hint: "Klasycznie i profesjonalnie" },
+  { id: "sport", label: "Sport", get hint() { return t("experimentalAppearance.klasycznie_i_profesjonalnie"); } },
   { id: "arcade", label: "Arcade", get hint() { return t("experimentalAppearance.zywo_i_dynamicznie"); } },
-  { id: "technical", label: "Techniczny", get hint() { return t("experimentalAppearance.zwarto_duzo_danych"); } },
-  { id: "comfort", label: "Wygoda", get hint() { return t("experimentalAppearance.czytelnosc_i_spokoj"); } },
+  { id: "technical", get label() { return t("experimentalAppearance.techniczny"); }, get hint() { return t("experimentalAppearance.zwarto_duzo_danych"); } },
+  { id: "comfort", get label() { return t("experimentalAppearance.wygoda"); }, get hint() { return t("experimentalAppearance.czytelnosc_i_spokoj"); } },
 ] as const;
 export type ExperimentalAppearanceFamily = (typeof EXPERIMENTAL_APPEARANCE_FAMILIES)[number]["id"];
 
@@ -249,14 +249,14 @@ export const EXPERIMENTAL_APPEARANCE_PRESETS: Array<{ id: string; label: string;
   { id: "neon", label: "Neon", get hint() { return t("experimentalAppearance.fiolet_i_neon_siatka_areny"); }, family: "arena", values: { skin: "void", background: "grid", palette: "contrast", typography: "technical", shape: "arena", cards: "glass", effects: "full", glow: "neon", buttons: "arena", nav: "arena", tables: "lined", brackets: "neon", matchCards: "scoreboard", decor: "corners" } },
   { id: "calm", get label() { return t("experimentalAppearance.spokojny"); }, get hint() { return t("experimentalAppearance.cieple_miekkie_barwy_bez_animacji"); }, family: "comfort", values: { skin: "copper-age", background: "aura", palette: "analog", typography: "readable", shape: "round", cards: "solid", effects: "subtle", motion: "reduced", glow: "none", buttons: "solid", controls: "filled", borders: "none", nav: "underline", tables: "spacious", matchCards: "arena", decor: "none" } },
   // V5.4 · styles that differ in shape, type, buttons, tables and brackets — not only in colour.
-  { id: "esport", label: "Futurystyczny e-sport", get hint() { return t("experimentalAppearance.siatka_sciete_rogi_neonowa_drabinka"); }, family: "arena", values: { skin: "abyssal", background: "grid", palette: "triad", typography: "technical", shape: "cut", cards: "glass", effects: "full", glow: "neon", buttons: "beveled", nav: "pills", tables: "lined", brackets: "neon", matchCards: "scoreboard", decor: "corners" } },
-  { id: "minimal", label: "Minimalistyczny profesjonalny", get hint() { return t("experimentalAppearance.zwarty_ostry_bez_efektow"); }, family: "technical", values: { skin: "obsidian", background: "solid", palette: "mono", typography: "classic", shape: "sharp", cards: "outline", effects: "off", glow: "none", density: "compact", buttons: "outline", controls: "underline", nav: "underline", tables: "lined", brackets: "minimal", matchCards: "compact", borders: "arena" } },
-  { id: "arcade", label: "Energetyczny arcade", get hint() { return t("experimentalAppearance.pigulki_grube_ramki_linie_ekranu"); }, family: "arcade", values: { skin: "toxic", background: "grid", palette: "triad", typography: "display", shape: "round", cards: "solid", effects: "full", glow: "neon", buttons: "pill", controls: "outlined", borders: "bold", nav: "pills", tables: "striped", matchCards: "scoreboard", decor: "scanlines" } },
+  { id: "esport", get label() { return t("experimentalAppearance.futurystyczny_e_sport"); }, get hint() { return t("experimentalAppearance.siatka_sciete_rogi_neonowa_drabinka"); }, family: "arena", values: { skin: "abyssal", background: "grid", palette: "triad", typography: "technical", shape: "cut", cards: "glass", effects: "full", glow: "neon", buttons: "beveled", nav: "pills", tables: "lined", brackets: "neon", matchCards: "scoreboard", decor: "corners" } },
+  { id: "minimal", get label() { return t("experimentalAppearance.minimalistyczny_profesjonalny"); }, get hint() { return t("experimentalAppearance.zwarty_ostry_bez_efektow"); }, family: "technical", values: { skin: "obsidian", background: "solid", palette: "mono", typography: "classic", shape: "sharp", cards: "outline", effects: "off", glow: "none", density: "compact", buttons: "outline", controls: "underline", nav: "underline", tables: "lined", brackets: "minimal", matchCards: "compact", borders: "arena" } },
+  { id: "arcade", get label() { return t("experimentalAppearance.energetyczny_arcade"); }, get hint() { return t("experimentalAppearance.pigulki_grube_ramki_linie_ekranu"); }, family: "arcade", values: { skin: "toxic", background: "grid", palette: "triad", typography: "display", shape: "round", cards: "solid", effects: "full", glow: "neon", buttons: "pill", controls: "outlined", borders: "bold", nav: "pills", tables: "striped", matchCards: "scoreboard", decor: "scanlines" } },
   { id: "cyberpunk", label: "Cyberpunk", get hint() { return t("experimentalAppearance.roz_i_cyjan_sciete_panele"); }, family: "arena", values: { skin: "midnight-rose", background: "nebula", palette: "contrast", typography: "technical", shape: "cut", cards: "outline", effects: "full", glow: "neon", buttons: "beveled", controls: "outlined", borders: "bold", nav: "blocks", tables: "lined", brackets: "neon", matchCards: "scoreboard", decor: "scanlines" } },
-  { id: "sport", label: "Klasyczny sport", get hint() { return t("experimentalAppearance.tablica_wynikow_pasy_w_tabeli"); }, family: "sport", values: { skin: "classic", background: "solid", palette: "harmony", typography: "display", shape: "sharp", cards: "solid", effects: "subtle", glow: "none", buttons: "solid", controls: "filled", borders: "arena", nav: "blocks", tables: "striped", brackets: "arena", matchCards: "scoreboard", decor: "none" } },
+  { id: "sport", get label() { return t("experimentalAppearance.klasyczny_sport"); }, get hint() { return t("experimentalAppearance.tablica_wynikow_pasy_w_tabeli"); }, family: "sport", values: { skin: "classic", background: "solid", palette: "harmony", typography: "display", shape: "sharp", cards: "solid", effects: "subtle", glow: "none", buttons: "solid", controls: "filled", borders: "arena", nav: "blocks", tables: "striped", brackets: "arena", matchCards: "scoreboard", decor: "none" } },
   { id: "broadcast", get label() { return t("experimentalAppearance.transmisja_tv"); }, get hint() { return t("experimentalAppearance.mocny_kontrast_duze_wyniki_przestrzen"); }, family: "broadcast", values: { skin: "crimson-vault", background: "carbon", palette: "contrast", typography: "display", shape: "sharp", cards: "solid", effects: "subtle", glow: "soft", density: "spacious", buttons: "solid", nav: "underline", tables: "spacious", brackets: "broadcast", matchCards: "scoreboard", borders: "deep", decor: "corners" } },
-  { id: "premium", label: "Elegancki premium", get hint() { return t("experimentalAppearance.zloto_szeryfy_duzo_powietrza"); }, family: "sport", values: { skin: "sandstorm", background: "aura", palette: "analog", typography: "elegant", shape: "round", cards: "glass", effects: "subtle", glow: "soft", density: "spacious", buttons: "outline", controls: "underline", borders: "deep", nav: "underline", tables: "spacious", brackets: "minimal", matchCards: "arena", decor: "noise" } },
-  { id: "scifi", label: "Techniczny sci-fi", get hint() { return t("experimentalAppearance.chlodne_kolory_siatka_znaczniki"); }, family: "technical", values: { skin: "glacier", background: "grid", palette: "analog", typography: "technical", shape: "cut", cards: "outline", effects: "subtle", glow: "soft", density: "compact", buttons: "outline", controls: "outlined", borders: "bold", nav: "underline", tables: "lined", brackets: "minimal", matchCards: "compact", decor: "corners" } },
+  { id: "premium", get label() { return t("experimentalAppearance.elegancki_premium"); }, get hint() { return t("experimentalAppearance.zloto_szeryfy_duzo_powietrza"); }, family: "sport", values: { skin: "sandstorm", background: "aura", palette: "analog", typography: "elegant", shape: "round", cards: "glass", effects: "subtle", glow: "soft", density: "spacious", buttons: "outline", controls: "underline", borders: "deep", nav: "underline", tables: "spacious", brackets: "minimal", matchCards: "arena", decor: "noise" } },
+  { id: "scifi", get label() { return t("experimentalAppearance.techniczny_sci_fi"); }, get hint() { return t("experimentalAppearance.chlodne_kolory_siatka_znaczniki"); }, family: "technical", values: { skin: "glacier", background: "grid", palette: "analog", typography: "technical", shape: "cut", cards: "outline", effects: "subtle", glow: "soft", density: "compact", buttons: "outline", controls: "outlined", borders: "bold", nav: "underline", tables: "lined", brackets: "minimal", matchCards: "compact", decor: "corners" } },
 ];
 
 function optionValues(category: Category): readonly string[] {

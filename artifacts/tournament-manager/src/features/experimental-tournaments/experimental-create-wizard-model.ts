@@ -176,7 +176,7 @@ export function matchLengthText(stage: { bestOf?: number | null; matchRules?: Ma
 /** V5.10: how a match of a stage is decided, in the stage flow of the wizard (format and decision stay apart). */
 export function stageDecisionText(rules: MatchRules | null | undefined, bestOf: number): string {
   if (rules?.kind === "two_legs") return t("experimentalCreateWizardModel.dwumecz_dwa_spotkania_kazdej_pary");
-  if (rules?.kind === "sets") return `do ${rules.setsToWin} ${rules.setsToWin === 1 ? t("experimentalCreateWizardModel.wygranego_seta") : t("experimentalCreateWizardModel.wygranych_setow")} (set do ${rules.pointsPerSet})`;
+  if (rules?.kind === "sets") return t("experimentalCreateWizardModel.do_setstowin_won_set_do", { setsToWin: rules.setsToWin, won: rules.setsToWin === 1 ? t("experimentalCreateWizardModel.wygranego_seta") : t("experimentalCreateWizardModel.wygranych_setow"), pointsPerSet: rules.pointsPerSet });
   return `${bestOfLabel(bestOf).toLowerCase()}${bestOf > 1 ? ` (BO${bestOf})` : t("experimentalCreateWizardModel.na_mecz")}`;
 }
 
@@ -579,7 +579,7 @@ export function stageChain(preview: Pick<PresetPreview, "stages">): string[] {
     const parts = [stage.name];
     if (stage.groupSizes && stage.groupSizes.length > 0) {
       const sizes = [...new Set(stage.groupSizes)];
-      parts.push(`${stage.groupSizes.length} ${plural(stage.groupSizes.length, t("experimentalCreateWizardModel.grupa"), t("experimentalCreateWizardModel.grupy"), t("experimentalCreateWizardModel.grup"))} po ${sizes.join("–")}`);
+      parts.push(`${stage.groupSizes.length} ${plural(stage.groupSizes.length, t("experimentalCreateWizardModel.grupa"), t("experimentalCreateWizardModel.grupy"), t("experimentalCreateWizardModel.grup"))} ${t("i18n.word.groupOf")} ${sizes.join("–")}`);
     } else {
       parts.push(`${stage.participantCount} ${plural(stage.participantCount, t("experimentalCreateWizardModel.uczestnik"), t("experimentalCreateWizardModel.uczestnikow"), t("experimentalCreateWizardModel.uczestnikow"))}`);
     }

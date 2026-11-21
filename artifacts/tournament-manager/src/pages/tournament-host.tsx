@@ -1304,7 +1304,7 @@ export default function TournamentHost() {
                       : "text-muted-foreground hover:text-foreground"
                   }`}
                 >
-                  {isExperimental ? (n === 1 ? t("tournamentHost.1_gra") : `do ${Math.ceil(n / 2)}`) : t("tournamentHost.bo_n", { n: n })}
+                  {isExperimental ? (n === 1 ? t("tournamentHost.1_gra") : t("tournamentHost.do_n", { n: Math.ceil(n / 2) })) : t("tournamentHost.bo_n", { n: n })}
                 </button>
               ))}
             </div>
