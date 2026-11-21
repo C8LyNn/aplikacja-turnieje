@@ -1,3 +1,4 @@
+import { t as tr } from "@/i18n";
 import { useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { useListTournaments } from "@workspace/api-client-react";
@@ -13,9 +14,9 @@ import { STAGE_FORMAT_LABELS } from "@/lib/tournament-stages-ui";
 
 import { LanguageSwitcher } from "@/i18n/react";
 const FORMAT_LABELS: Record<string, string> = {
-  single_elimination: "Drabinka eliminacyjna",
-  swiss: "System szwajcarski",
-  round_robin: "Każdy z każdym",
+  get single_elimination() { return tr("supportEntry.drabinka_eliminacyjna"); },
+  get swiss() { return tr("supportEntry.system_szwajcarski"); },
+  get round_robin() { return tr("supportEntry.kazdy_z_kazdym"); },
 };
 
 const EXPERIMENTAL_SUPPORT_NICK_KEY = "tm_exp_support_nick_v1";
@@ -54,7 +55,7 @@ export default function SupportEntry() {
       }
       navigate(tournamentHref(selectedId, isExperimental, "/host"));
     } catch (err: any) {
-      setError(err.message ?? "Błąd logowania");
+      setError(err.message ?? tr("supportEntry.blad_logowania"));
     } finally {
       submitLock.current = false;
       setLoading(false);
@@ -70,9 +71,7 @@ export default function SupportEntry() {
             <LanguageSwitcher />
             {isExperimental && (
               <span className="experimental-mode-badge">
-                <FlaskConical className="h-3.5 w-3.5" aria-hidden="true" />
-                Experimental
-              </span>
+                <FlaskConical className="h-3.5 w-3.5" aria-hidden="true" />{tr("supportEntry.experimental")}</span>
             )}
           </div>
           <RoleSelectionLink />
@@ -83,37 +82,35 @@ export default function SupportEntry() {
         <div className="mb-8">
           <div className="flex items-center gap-2 mb-1">
             <Users className="w-5 h-5 text-green-400" />
-            <h1 className="text-2xl font-bold">Wsparcie organizatora</h1>
+            <h1 className="text-2xl font-bold">{tr("supportEntry.wsparcie_organizatora")}</h1>
           </div>
-          <p className="text-muted-foreground text-sm">Wybierz turniej i zaloguj się hasłem wsparcia lub osobistym kodem od organizatora.</p>
+          <p className="text-muted-foreground text-sm">{tr("supportEntry.wybierz_turniej_i_zaloguj_sie")}</p>
         </div>
 
         {isError && hasLoadedList && (
           <div role="alert" className="mb-5 flex flex-col gap-3 rounded-lg border border-destructive/40 bg-card p-4 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm">Nie udało się odświeżyć listy turniejów. Pokazujemy ostatnio pobrane dane.</p>
+            <p className="text-sm">{tr("supportEntry.nie_udalo_sie_odswiezyc_listy")}</p>
             <Button type="button" variant="outline" disabled={isFetching} onClick={() => { void refetch(); }}>
-              {isFetching ? "Ponawianie…" : "Spróbuj ponownie"}
+              {isFetching ? tr("supportEntry.ponawianie") : tr("supportEntry.sprobuj_ponownie")}
             </Button>
           </div>
         )}
 
         {!hasLoadedList && isError ? (
           <div role="alert" className="rounded-xl border border-destructive/40 bg-card p-6 text-center space-y-3">
-            <p className="font-semibold">Nie udało się pobrać listy turniejów.</p>
-            <p className="text-sm text-muted-foreground">Sprawdź połączenie i spróbuj ponownie.</p>
+            <p className="font-semibold">{tr("supportEntry.nie_udalo_sie_pobrac_listy")}</p>
+            <p className="text-sm text-muted-foreground">{tr("supportEntry.sprawdz_polaczenie_i_sprobuj_ponownie")}</p>
             <Button type="button" variant="outline" disabled={isFetching} onClick={() => { void refetch(); }}>
-              {isFetching ? "Ponawianie…" : "Spróbuj ponownie"}
+              {isFetching ? tr("supportEntry.ponawianie") : tr("supportEntry.sprobuj_ponownie")}
             </Button>
           </div>
         ) : !hasLoadedList ? (
-          <div role="status" className="rounded-xl border bg-card/50 p-6 text-center text-sm text-muted-foreground">
-            Pobieranie listy turniejów…
-          </div>
+          <div role="status" className="rounded-xl border bg-card/50 p-6 text-center text-sm text-muted-foreground">{tr("supportEntry.pobieranie_listy_turniejow")}</div>
         ) : active.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-20 text-center border rounded-xl bg-card/50">
             <Trophy className="w-10 h-10 text-muted-foreground mb-3 opacity-20" />
-            <h3 className="text-lg font-semibold mb-1">Brak aktywnych turniejów</h3>
-            <p className="text-muted-foreground text-sm">Poczekaj na uruchomienie turnieju przez organizatora.</p>
+            <h3 className="text-lg font-semibold mb-1">{tr("supportEntry.brak_aktywnych_turniejow")}</h3>
+            <p className="text-muted-foreground text-sm">{tr("supportEntry.poczekaj_na_uruchomienie_turnieju_przez")}</p>
           </div>
         ) : !selectedId ? (
           <div className="space-y-3">
@@ -126,18 +123,18 @@ export default function SupportEntry() {
                 <>
                   {active.length > 5 && (
                     <div className="space-y-1.5">
-                      <Label htmlFor="experimental-support-search">Znajdź turniej</Label>
+                      <Label htmlFor="experimental-support-search">{tr("supportEntry.znajdz_turniej")}</Label>
                       <Input
                         id="experimental-support-search"
                         value={supportQuery}
                         onChange={(event) => setSupportQuery(event.target.value)}
-                        placeholder="Nazwa turnieju"
+                        placeholder={tr("supportEntry.nazwa_turnieju")}
                         autoComplete="off"
                       />
                     </div>
                   )}
-                  <p className="text-sm font-medium text-muted-foreground">Wybierz turniej, w którym pomagasz:</p>
-                  {visible.length === 0 && <p className="organizer-empty-state rounded-xl border border-dashed p-6 text-center text-sm">Brak turniejów pasujących do wyszukiwania.</p>}
+                  <p className="text-sm font-medium text-muted-foreground">{tr("supportEntry.wybierz_turniej_w_ktorym_pomagasz")}</p>
+                  {visible.length === 0 && <p className="organizer-empty-state rounded-xl border border-dashed p-6 text-center text-sm">{tr("supportEntry.brak_turniejow_pasujacych_do_wyszukiwani")}</p>}
                   {visible.map((t) => {
                     const available = Boolean(t.hasSupportPassword);
                     return (
@@ -152,13 +149,11 @@ export default function SupportEntry() {
                       >
                         <div className="flex items-center justify-between gap-3">
                           <div className="font-semibold">{t.name}</div>
-                          <span className="experimental-support-access">{available ? "Dostęp dla wsparcia" : "Bez dostępu"}</span>
+                          <span className="experimental-support-access">{available ? tr("supportEntry.dostep_dla_wsparcia") : tr("supportEntry.bez_dostepu")}</span>
                         </div>
                         <div className="text-sm text-muted-foreground">{(STAGE_FORMAT_LABELS as Record<string, string>)[t.format] ?? FORMAT_LABELS[t.format] ?? t.format}</div>
                         {!available && (
-                          <div id={`support-unavailable-${t.id}`} className="mt-1 text-xs text-muted-foreground">
-                            Organizator nie ustawił hasła wsparcia. Poproś go o włączenie dostępu.
-                          </div>
+                          <div id={`support-unavailable-${t.id}`} className="mt-1 text-xs text-muted-foreground">{tr("supportEntry.organizator_nie_ustawil_hasla_wsparcia")}</div>
                         )}
                       </button>
                     );
@@ -167,7 +162,7 @@ export default function SupportEntry() {
               );
             })() : (
               <>
-            <p className="text-sm font-medium text-muted-foreground mb-4">Wybierz turniej:</p>
+            <p className="text-sm font-medium text-muted-foreground mb-4">{tr("supportEntry.wybierz_turniej")}</p>
               {active.map((t) => (
                 <button
                   key={t.id}
@@ -186,30 +181,28 @@ export default function SupportEntry() {
             <div className="flex items-center justify-between">
               <div>
                 <div className="font-bold">{tournaments?.find((t) => t.id === selectedId)?.name}</div>
-                <div className="text-sm text-muted-foreground">Logowanie jako wsparcie</div>
+                <div className="text-sm text-muted-foreground">{tr("supportEntry.logowanie_jako_wsparcie")}</div>
               </div>
-              <button onClick={() => { setSelectedId(null); setError(null); }} className="text-xs text-muted-foreground hover:text-foreground underline">
-                zmień
-              </button>
+              <button onClick={() => { setSelectedId(null); setError(null); }} className="text-xs text-muted-foreground hover:text-foreground underline">{tr("supportEntry.zmien")}</button>
             </div>
 
             <form onSubmit={handleLogin} className="space-y-4">
               <div className="space-y-1.5">
-                <Label htmlFor="support-entry-nick" className="flex items-center gap-1.5"><User aria-hidden="true" className="w-3.5 h-3.5" />Twój nick</Label>
+                <Label htmlFor="support-entry-nick" className="flex items-center gap-1.5"><User aria-hidden="true" className="w-3.5 h-3.5" />{tr("supportEntry.twoj_nick")}</Label>
                 <Input
                   id="support-entry-nick"
                   value={nick}
                   aria-describedby={error ? "support-entry-login-error" : undefined}
                   autoComplete="nickname"
                   onChange={(e) => { setNick(e.target.value); setError(null); }}
-                  placeholder="np. Sędzia1"
+                  placeholder={tr("supportEntry.np_sedzia1")}
                   required
                   maxLength={40}
                   autoFocus
                 />
               </div>
               <div className="space-y-1.5">
-                <Label htmlFor="support-entry-password" className="flex items-center gap-1.5"><Lock aria-hidden="true" className="w-3.5 h-3.5" />Hasło wsparcia lub osobisty kod</Label>
+                <Label htmlFor="support-entry-password" className="flex items-center gap-1.5"><Lock aria-hidden="true" className="w-3.5 h-3.5" />{tr("supportEntry.haslo_wsparcia_lub_osobisty_kod")}</Label>
                 <Input
                   id="support-entry-password"
                   type="password"
@@ -217,7 +210,7 @@ export default function SupportEntry() {
                   aria-describedby={error ? "support-entry-login-error" : undefined}
                   autoComplete="current-password"
                   onChange={(e) => { setPassword(e.target.value); setError(null); }}
-                  placeholder="Podane przez organizatora"
+                  placeholder={tr("supportEntry.podane_przez_organizatora")}
                   required
                 />
               </div>
@@ -228,7 +221,7 @@ export default function SupportEntry() {
 
               <Button type="submit" className="w-full" disabled={loading || !nick.trim() || !password}>
                 <Users className="w-4 h-4 mr-2" />
-                {loading ? "Logowanie…" : "Zaloguj się jako wsparcie"}
+                {loading ? tr("supportEntry.logowanie") : tr("supportEntry.zaloguj_sie_jako_wsparcie")}
               </Button>
             </form>
           </div>

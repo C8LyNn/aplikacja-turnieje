@@ -1,9 +1,10 @@
+import { t } from "@/i18n";
 import { useEffect, useRef, useState } from "react";
 import { Check, Copy } from "lucide-react";
 import { copyLinkText, type LinkCopyResult } from "@/lib/link-clipboard";
 
 /** Use inside a wrapping flex row: the optional manual field occupies a full row. */
-export function CopyLinkButton({ text, label = "Kopiuj link", showLabel = false }: {
+export function CopyLinkButton({ text, label = t("copyLinkButton.kopiuj_link"), showLabel = false }: {
   text: string;
   label?: string;
   /** QW-06b: a labelled outline button (e.g. the sign-up link) instead of the icon-only one. */
@@ -25,10 +26,10 @@ export function CopyLinkButton({ text, label = "Kopiuj link", showLabel = false 
   const pending = pendingText !== null;
   const needsManualCopy = state === "failed" || state === "unavailable";
   const message = pending
-    ? pendingText === text ? "Kopiowanie linku…" : "Trwa kopiowanie poprzednio wybranego linku…"
-    : state === "copied" ? "Link skopiowany."
-    : state === "unavailable" ? "Ta przeglądarka nie udostępnia schowka. Skopiuj link ręcznie."
-    : state === "failed" ? "Nie udało się skopiować linku. Skopiuj go ręcznie poniżej."
+    ? pendingText === text ? t("copyLinkButton.kopiowanie_linku") : t("copyLinkButton.trwa_kopiowanie_poprzednio_wybranego_lin")
+    : state === "copied" ? t("copyLinkButton.link_skopiowany")
+    : state === "unavailable" ? t("copyLinkButton.ta_przegladarka_nie_udostepnia_schowka")
+    : state === "failed" ? t("copyLinkButton.nie_udalo_sie_skopiowac_linku")
     : "";
 
   async function handleCopy() {
@@ -60,16 +61,14 @@ export function CopyLinkButton({ text, label = "Kopiuj link", showLabel = false 
       {state === "copied"
         ? <Check aria-hidden="true" className="h-4 w-4 text-green-400" />
         : <Copy aria-hidden="true" className="h-4 w-4" />}
-      {showLabel && <span>{state === "copied" ? "Skopiowano" : label}</span>}
+      {showLabel && <span>{state === "copied" ? t("copyLinkButton.skopiowano") : label}</span>}
     </button>
     <span role="status" aria-live="polite" aria-atomic="true"
       className={needsManualCopy ? "basis-full text-xs text-destructive" : "sr-only"}>
       {message}
     </span>
     {needsManualCopy && <div className="min-w-0 basis-full space-y-2">
-      <label className="block text-xs text-muted-foreground">
-        Link do ręcznego skopiowania
-        <input
+      <label className="block text-xs text-muted-foreground">{t("copyLinkButton.link_do_recznego_skopiowania")}<input
           ref={manualInput}
           type="text"
           readOnly
@@ -86,10 +85,8 @@ export function CopyLinkButton({ text, label = "Kopiuj link", showLabel = false 
         <button type="button" onClick={() => {
           manualInput.current?.focus();
           manualInput.current?.select();
-        }} className="rounded px-2 py-1 text-xs text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">
-          Zaznacz link
-        </button>
-        <span className="text-xs text-muted-foreground">Użyj Ctrl+C, ⌘C lub opcji Kopiuj w menu urządzenia.</span>
+        }} className="rounded px-2 py-1 text-xs text-primary underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary">{t("copyLinkButton.zaznacz_link")}</button>
+        <span className="text-xs text-muted-foreground">{t("copyLinkButton.uzyj_ctrl_c_c_lub")}</span>
       </div>
     </div>}
   </>;

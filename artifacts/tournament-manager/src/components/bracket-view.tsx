@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { Bracket, Match } from "@workspace/api-client-react";
 import { Trophy } from "lucide-react";
 import { getDeadlockHero, type DeadlockHeroId } from "@workspace/game-catalog";
@@ -58,12 +59,12 @@ export function layoutBracket(bracket: Bracket) {
 }
 
 function roundLabel(round: number, total: number, format?: string): string {
-  if (format && format !== "single_elimination") return `Runda ${round}`;
+  if (format && format !== "single_elimination") return t("bracketView.runda_round", { round: round });
   const remaining = total - round + 1;
-  if (remaining === 1) return "Finał";
-  if (remaining === 2) return "Półfinał";
-  if (remaining === 3) return "Ćwierćfinał";
-  return `Runda ${round}`;
+  if (remaining === 1) return t("bracketView.final");
+  if (remaining === 2) return t("bracketView.polfinal");
+  if (remaining === 3) return t("bracketView.cwiercfinal");
+  return t("bracketView.runda_round", { round: round });
 }
 
 /** Summary pick for a match: hero played in the last (decisive) game. */
@@ -93,9 +94,7 @@ interface BracketViewProps {
 export function BracketView({ bracket, format, forcedHeroId, matchPicksMap, scale = 1, onOpenMatch }: BracketViewProps) {
   if (!bracket || !bracket.rounds || bracket.rounds.length === 0) {
     return (
-      <div className="flex items-center justify-center py-20 text-muted-foreground border border-dashed border-border rounded-lg bg-background/50">
-        Brak drabinki. Wystartuj turniej, żeby zobaczyć drabinkę.
-      </div>
+      <div className="flex items-center justify-center py-20 text-muted-foreground border border-dashed border-border rounded-lg bg-background/50">{t("bracketView.brak_drabinki_wystartuj_turniej_zeby")}</div>
     );
   }
 
@@ -103,7 +102,7 @@ export function BracketView({ bracket, format, forcedHeroId, matchPicksMap, scal
   const layout = layoutBracket(bracket);
 
   return (
-    <div className="w-full min-w-0 max-w-full overflow-x-auto overscroll-x-contain select-none" aria-label="Drabinka eliminacyjna" tabIndex={0}>
+    <div className="w-full min-w-0 max-w-full overflow-x-auto overscroll-x-contain select-none" aria-label={t("bracketView.drabinka_eliminacyjna")} tabIndex={0}>
       <div className="relative overflow-hidden" style={{ width: layout.width * scale, height: layout.height * scale }}>
         <div className="absolute left-0 top-0" style={{ width: layout.width, height: layout.height, transform: `scale(${scale})`, transformOrigin: "top left" }}>
           <svg aria-hidden="true" className="absolute inset-0 pointer-events-none" width={layout.width} height={layout.height}>
@@ -125,7 +124,7 @@ export function BracketView({ bracket, format, forcedHeroId, matchPicksMap, scal
                 {openable ? (
                   <button type="button" className="block h-full w-full select-text rounded-md text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
                     onClick={() => onOpenMatch!(match.id)}
-                    aria-label={`Otwórz w edytorze meczu: ${match.player1Name ?? "?"} – ${match.player2Name ?? "?"}, mecz ${match.matchNumber}`}>
+                    aria-label={t("bracketView.otworz_w_edytorze_meczu_v0", { v0: match.player1Name ?? "?", v1: match.player2Name ?? "?", matchNumber: match.matchNumber })}>
                     <MatchBox match={match} forcedHeroId={forcedHeroId} matchPicksMap={matchPicksMap} />
                   </button>
                 ) : <MatchBox match={match} forcedHeroId={forcedHeroId} matchPicksMap={matchPicksMap} />}
@@ -134,8 +133,8 @@ export function BracketView({ bracket, format, forcedHeroId, matchPicksMap, scal
           </div>)}
           {bracket.winner && layout.winner && <>
             <div className="absolute text-center font-bold text-[10px] text-primary uppercase tracking-wider"
-              style={{ left: layout.winner.x, top: PADDING, width: CARD_W, height: HEADER_H, lineHeight: `${HEADER_H}px` }}>Zwycięzca</div>
-            <div aria-label="Zwycięzca drabinki" style={{ left: layout.winner.x, top: layout.winner.y, width: CARD_W, height: CARD_H }}
+              style={{ left: layout.winner.x, top: PADDING, width: CARD_W, height: HEADER_H, lineHeight: `${HEADER_H}px` }}>{t("bracketView.zwyciezca")}</div>
+            <div aria-label={t("bracketView.zwyciezca_drabinki")} style={{ left: layout.winner.x, top: layout.winner.y, width: CARD_W, height: CARD_H }}
               className="absolute border-2 border-primary rounded-lg bg-primary/10 shadow-[0_0_20px_rgba(0,200,255,0.15)] flex flex-col items-center justify-center gap-1 px-2">
               <Trophy className="w-4 h-4 text-primary shrink-0" />
               <span title={bracket.winner.name} className="max-w-full line-clamp-2 font-bold text-xs text-primary text-center leading-tight break-all">{bracket.winner.name}</span>
@@ -154,7 +153,7 @@ function TwoLegTieDetails({ bracket, format }: { bracket: Bracket; format?: stri
   if (ties.length === 0) return null;
   return (
     <details className="mt-3 rounded-md border bg-card/60 p-3" data-testid="two-leg-tie-details">
-      <summary className="cursor-pointer text-sm font-semibold">Szczegóły dwumeczów ({ties.length}) — wynik każdego spotkania i suma</summary>
+      <summary className="cursor-pointer text-sm font-semibold">{t("bracketView.szczegoly_dwumeczow")}{ties.length}{t("bracketView.wynik_kazdego_spotkania_i_suma")}</summary>
       <ul className="mt-3 grid gap-3 md:grid-cols-2">
         {ties.map(({ round, match }) => (
           <li key={match.id} className="rounded-md border p-3" data-match-id={match.id}>
@@ -208,24 +207,20 @@ function MatchBox({
           M{match.matchNumber}
         </span>
         {twoLegs && (
-          <span className={`text-[8px] leading-none ${match.tie!.state === "awaiting_decision" ? "text-yellow-400 font-bold" : "text-muted-foreground"}`} title="Dwumecz: wyniki obu spotkań i suma">
-            {match.tie!.state === "awaiting_decision" ? "SUMA RÓWNA" : match.tie!.decidedBy === "organizer" ? "DWUMECZ · DECYZJA" : "DWUMECZ"}
+          <span className={`text-[8px] leading-none ${match.tie!.state === "awaiting_decision" ? "text-yellow-400 font-bold" : "text-muted-foreground"}`} title={t("bracketView.dwumecz_wyniki_obu_spotkan_i")}>
+            {match.tie!.state === "awaiting_decision" ? t("bracketView.suma_rowna") : match.tie!.decidedBy === "organizer" ? t("bracketView.dwumecz_decyzja") : t("bracketView.dwumecz")}
           </span>
         )}
         {isLive && (
-          <span className="text-[8px] text-yellow-400 font-bold animate-pulse leading-none">
-            LIVE
-          </span>
+          <span className="text-[8px] text-yellow-400 font-bold animate-pulse leading-none">{t("bracketView.live")}</span>
         )}
         {isDone && (
           <span className="text-[8px] text-green-400 leading-none">
-            {match.resultType === "walkover" ? "WO" : match.resultType === "no_contest" ? "NC" : "✓"}
+            {match.resultType === "walkover" ? t("bracketView.wo") : match.resultType === "no_contest" ? t("bracketView.nc") : "✓"}
           </span>
         )}
         {isBye && (
-          <span className="text-[8px] text-muted-foreground leading-none">
-            BYE
-          </span>
+          <span className="text-[8px] text-muted-foreground leading-none">{t("bracketView.bye")}</span>
         )}
       </div>
 
@@ -284,16 +279,16 @@ function PlayerRow({
             : "text-foreground"
         }`}
       >
-        {isPending ? "TBD" : name || "?"}
+        {isPending ? t("bracketView.tbd") : name || "?"}
       </span>
       {pickHero && (
         <PickIcon
           heroId={pickHeroId}
           size={18}
-          title={`Grana postać: ${pickHero.displayName}`}
+          title={t("bracketView.grana_postac_displayname", { displayName: pickHero.displayName })}
         />
       )}
-      {legs && <span className="text-[9px] font-mono text-muted-foreground shrink-0" aria-label={`spotkania: ${legs.replace("·", " i ")}`}>{legs}</span>}
+      {legs && <span className="text-[9px] font-mono text-muted-foreground shrink-0" aria-label={t("bracketView.spotkania_v0", { v0: legs.replace("·", " i ") })}>{legs}</span>}
       <span
         className={`text-[11px] font-mono font-bold w-5 text-right shrink-0 ${
           isWinner ? "text-primary" : "text-muted-foreground"

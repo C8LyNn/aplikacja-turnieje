@@ -25,6 +25,7 @@ const POLISH = /[ąćęłńśźżĄĆĘŁŃŚŹŻ]|\b(nie|brak|oraz|lub|jest|dla
 const TECH_PROPS = new Set(["id", "key", "value", "slug", "type", "kind", "code", "status", "format", "variant", "href", "to", "path", "url", "icon", "color", "className", "testId", "role", "mode", "tone", "field", "column", "event", "action", "route", "tab", "query", "param", "lang", "locale", "pattern", "regex", "separator", "delimiter", "storageKey"]);
 const TECH_ATTRS = new Set(["className", "id", "key", "href", "to", "type", "name", "value", "defaultValue", "role", "htmlFor", "variant", "size", "src", "method", "autoComplete", "inputMode", "pattern", "rel", "target", "form", "accept", "dir", "lang", "style"]);
 const IGNORE = /i18n-ignore/;
+const isClassList = (text) => { const tokens = text.trim().split(/\s+/); return !/[A-ZĄĆĘŁŃÓŚŹŻąćęłńóśźż{}]/.test(text) && tokens.filter((x) => /[-:\/\[]/.test(x)).length / tokens.length >= 0.5; };
 const SKIP_FILE = /(\.test\.|\.spec\.|[\\/]i18n[\\/]catalog[\\/]|[\\/]test[\\/]|\.d\.ts$)/;
 
 function walk(target, out) {
@@ -65,7 +66,7 @@ for (const file of roots.flatMap((r) => walk(path.resolve(r), []))) {
     else if (ts.isTemplateExpression(node)) text = [node.head.text, ...node.templateSpans.map((s) => s.literal.text)].join("{}");
     else if (ts.isJsxText(node)) text = node.text.trim();
     const lineNo = sf.getLineAndCharacterOfPosition(node.getStart(sf)).line;
-    if (text && /[A-Za-zÀ-ž]{2}/.test(text) && !/^\s*[\/?#]|[?&]\w+=|^[\w.-]+\.(json|csv)$/.test(text) && (POLISH.test(text) || isPolishVocab(text)) && !isLogic(node) && !IGNORE.test(lines[lineNo] ?? "")) {
+    if (text && /[A-Za-zÀ-ž]{2}/.test(text) && !/^\s*[\/?#]|[?&]\w+=|^[\w.-]+\.(json|csv)$/.test(text) && (POLISH.test(text) || isPolishVocab(text)) && !isLogic(node) && !isClassList(text) && !IGNORE.test(lines[lineNo] ?? "")) {
       hits.push({ line: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1, text: text.replace(/\s+/g, " ").slice(0, 120) });
     }
     if (!ts.isTemplateExpression(node)) ts.forEachChild(node, visit);

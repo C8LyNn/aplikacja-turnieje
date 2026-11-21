@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { setsText } from "@/components/set-score-editor";
 import { matchResultLabel } from "@/lib/league-results";
 import { ReadQueryState } from "@/components/read-query-state";
@@ -67,24 +68,24 @@ import { ParticipantFieldChips, useParticipantFields } from "@/features/experime
 
 import { LanguageSwitcher } from "@/i18n/react";
 const FORMAT_LABELS: Record<string, string> = {
-  single_elimination: "Drabinka eliminacyjna",
-  swiss: "System szwajcarski",
-  round_robin: "Każdy z każdym",
+  get single_elimination() { return t("tournamentAudience.drabinka_eliminacyjna"); },
+  get swiss() { return t("tournamentAudience.system_szwajcarski"); },
+  get round_robin() { return t("tournamentAudience.kazdy_z_kazdym"); },
 };
 
 const STATUS_LABELS: Record<string, string> = {
-  draft: "SZKIC",
-  active: "AKTYWNY",
-  completed: "ZAKOŃCZONY",
+  get draft() { return t("tournamentAudience.szkic"); },
+  get active() { return t("tournamentAudience.aktywny"); },
+  get completed() { return t("tournamentAudience.zakonczony_2"); },
 };
 
 
 const MATCH_STATUS_LABELS: Record<string, string> = {
-  pending: "Oczekuje",
-  in_progress: "W trakcie",
-  completed: "Zakończony",
-  postponed: "Przełożony",
-  cancelled: "Anulowany",
+  get pending() { return t("tournamentAudience.oczekuje"); },
+  get in_progress() { return t("tournamentAudience.w_trakcie"); },
+  get completed() { return t("tournamentAudience.zakonczony"); },
+  get postponed() { return t("tournamentAudience.przelozony"); },
+  get cancelled() { return t("tournamentAudience.anulowany"); },
 };
 
 function WinDots({ wins, needed, side }: { wins: number; needed: number; side: "left" | "right" }) {
@@ -243,7 +244,7 @@ export default function TournamentAudience() {
   const activeSection: AudienceSectionId = resolveAudienceSection(requestedSection, publicStage, isHeroLive || !!featuredMatch);
   const audienceSections = audienceSectionsFor(sectionStage);
   if (!audienceSections.some((section) => section.id === activeSection) && activeSection !== "stages") {
-    audienceSections.splice(1, 0, { id: activeSection, label: activeSection === "bracket" ? "Drabinka" : activeSection === "table" ? "Tabela" : activeSection });
+    audienceSections.splice(1, 0, { id: activeSection, label: activeSection === "bracket" ? t("tournamentAudience.drabinka") : activeSection === "table" ? t("tournamentAudience.tabela") : activeSection });
   }
   const noStageStarted = !!stages && stages.length > 0 && stages.every((stage) => stage.status === "planned");
   const sectionHref = (section: AudienceSectionId, stageId: number | null = requestedStageId) => {
@@ -256,7 +257,7 @@ export default function TournamentAudience() {
   const matchHref = (match: { id: number; stageId?: number | null }) => {
     const query = new URLSearchParams({ section: "matches" });
     if (match.stageId != null) query.set("stage", String(match.stageId));
-    query.set("mecz", String(match.id));
+    query.set("mecz", String(match.id)); // i18n-ignore: link parameter
     return tournamentHref(id, isExperimental, `/audience?${query.toString()}`);
   };
   const isHeroDone = heroMatch?.status === "completed";
@@ -269,9 +270,9 @@ export default function TournamentAudience() {
   const p1Won = isHeroDone && heroMatch?.winnerId === heroMatch?.player1Id;
   const p2Won = isHeroDone && heroMatch?.winnerId === heroMatch?.player2Id;
   const heroResultLabel = heroMatch?.resultType === "walkover"
-    ? "WALKOWER"
+    ? t("tournamentAudience.walkower")
     : heroMatch?.resultType === "bye"
-      ? "WOLNY LOS"
+      ? t("tournamentAudience.wolny_los")
       : heroMatch?.resultType === "no_contest"
         ? "NO CONTEST"
         : null;
@@ -311,7 +312,7 @@ export default function TournamentAudience() {
   }
 
   if (!tournament) return <div className="min-h-dvh bg-background text-foreground flex items-center justify-center p-4">
-    <ReadQueryState query={tournamentQuery} loadingMessage="Ładowanie turnieju…" errorMessage={(tournamentError as { status?: number } | null)?.status === 404 ? "Nie znaleziono turnieju. Sprawdź adres." : "Nie udało się pobrać turnieju."} />
+    <ReadQueryState query={tournamentQuery} loadingMessage={t("tournamentAudience.ladowanie_turnieju")} errorMessage={(tournamentError as { status?: number } | null)?.status === 404 ? t("tournamentAudience.nie_znaleziono_turnieju_sprawdz_adres") : t("tournamentAudience.nie_udalo_sie_pobrac_turnieju")} />
   </div>;
 
   // QW-05: NOW → NEXT → RECENT, only from what the public API returns (lib/audience-now).
@@ -360,7 +361,7 @@ export default function TournamentAudience() {
           {/* #323-E: each viewer picks their own language */}
           <LanguageSwitcher className="order-last sm:order-none" />
           <span className="text-white/20 hidden sm:block">·</span>
-          <h1 className={isExperimental ? "min-w-0 flex-1 break-words font-bold text-sm sm:text-base" : "min-w-0 flex-1 font-bold text-sm sm:text-base truncate"} title={tournament?.name}>{tournament?.name ?? "Ładowanie…"}</h1>
+          <h1 className={isExperimental ? "min-w-0 flex-1 break-words font-bold text-sm sm:text-base" : "min-w-0 flex-1 font-bold text-sm sm:text-base truncate"} title={tournament?.name}>{tournament?.name ?? t("tournamentAudience.ladowanie")}</h1>
           <ForcedHeroBadge gameConfig={tournament?.gameConfig} compact />
         </div>
         <div className="flex max-w-full flex-wrap items-center gap-2">
@@ -387,30 +388,28 @@ export default function TournamentAudience() {
               href={registrationPath(id, isExperimental)}
               className="inline-flex shrink-0 whitespace-nowrap items-center gap-1.5 rounded-md bg-cyan-500/15 px-2.5 py-1.5 text-xs font-semibold text-cyan-300 hover:bg-cyan-500/25 transition-colors"
               data-testid="audience-signup-link"
-            >
-              Zapisy otwarte — zapisz się
-            </Link>
+            >{t("tournamentAudience.zapisy_otwarte_zapisz_sie")}</Link>
           )}
           {(organizerToken || supportSession || (!!id && getMgmtFlag(id))) && (
             <Link
               href={tournamentHref(id, isExperimental)}
               className="inline-flex shrink-0 whitespace-nowrap items-center gap-1.5 rounded-md px-2.5 py-1.5 text-xs font-medium text-white/70 hover:text-white hover:bg-white/8 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-400 focus-visible:ring-offset-[#080d1a]"
-              title="Wróć do panelu zarządzania tym turniejem"
+              title={t("tournamentAudience.wroc_do_panelu_zarzadzania_tym")}
             >
               <Settings2 className="w-3.5 h-3.5 shrink-0" />
-              <span>Panel organizatora</span>
+              <span>{t("tournamentAudience.panel_organizatora")}</span>
             </Link>
           )}
           <RoleHomeLink
             fallbackHref="/fan"
-            fallbackLabel="Wróć do turniejów"
+            fallbackLabel={t("tournamentAudience.wroc_do_turniejow")}
             className="shrink-0 whitespace-nowrap text-white/60 hover:text-white focus-visible:ring-cyan-400 focus-visible:ring-offset-[#080d1a]"
           />
         </div>
       </header>
 
       <nav
-        aria-label="Sekcje publicznego widoku turnieju"
+        aria-label={t("tournamentAudience.sekcje_publicznego_widoku_turnieju")}
         className="min-w-0 max-w-full flex-none border-b border-white/8 bg-card/80 px-4 sm:px-6"
       >
         <div className="mx-auto flex min-w-0 w-full max-w-5xl items-center gap-1 overflow-x-auto py-2">
@@ -434,7 +433,7 @@ export default function TournamentAudience() {
           })}
         </div>
         {hasMultipleStages && stages && (
-          <div className="mx-auto flex min-w-0 w-full max-w-5xl items-center gap-2 overflow-x-auto pb-2" role="list" aria-label="Etapy turnieju">
+          <div className="mx-auto flex min-w-0 w-full max-w-5xl items-center gap-2 overflow-x-auto pb-2" role="list" aria-label={t("tournamentAudience.etapy_turnieju")}>
             {[...stages].sort((a, b) => a.position - b.position).map((stage) => {
               const current = stage.id === publicStage?.id;
               return (
@@ -464,23 +463,23 @@ export default function TournamentAudience() {
       {/* ── MAIN CONTENT ── */}
       <main className="flex-1 flex flex-col items-center px-4 sm:px-6 pt-6 pb-8 gap-6">
 
-        <ReadQueryState query={tournamentQuery} loadingMessage="Ładowanie turnieju…" errorMessage="Nie udało się pobrać turnieju." />
+        <ReadQueryState query={tournamentQuery} loadingMessage={t("tournamentAudience.ladowanie_turnieju")} errorMessage={t("tournamentAudience.nie_udalo_sie_pobrac_turnieju")} />
         {activeSection === "live" && <>
-        <ReadQueryState query={matchesQuery} loadingMessage="Ładowanie meczów…" errorMessage="Nie udało się pobrać meczów.">
-        <ReadQueryState query={standingsQuery} loadingMessage="Ładowanie klasyfikacji…" errorMessage="Nie udało się pobrać klasyfikacji." />
-        <ReadQueryState query={playersQuery} loadingMessage="Ładowanie listy graczy…" errorMessage="Nie udało się pobrać listy graczy." />
+        <ReadQueryState query={matchesQuery} loadingMessage={t("tournamentAudience.ladowanie_meczow")} errorMessage={t("tournamentAudience.nie_udalo_sie_pobrac_meczow")}>
+        <ReadQueryState query={standingsQuery} loadingMessage={t("tournamentAudience.ladowanie_klasyfikacji")} errorMessage={t("tournamentAudience.nie_udalo_sie_pobrac_klasyfikacji")} />
+        <ReadQueryState query={playersQuery} loadingMessage={t("tournamentAudience.ladowanie_listy_graczy")} errorMessage={t("tournamentAudience.nie_udalo_sie_pobrac_listy")} />
 
         {/* ══ TERAZ — where the tournament stands (QW-05) ══ */}
-        <section aria-label="Teraz" data-audience-now={now.phase} className="experimental-audience-now w-full max-w-5xl rounded-xl border border-white/10 bg-card/60 px-4 py-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm">
-          <span className="text-xs font-black uppercase tracking-[0.15em] text-white/70">Teraz</span>
+        <section aria-label={t("tournamentAudience.teraz")} data-audience-now={now.phase} className="experimental-audience-now w-full max-w-5xl rounded-xl border border-white/10 bg-card/60 px-4 py-3 flex flex-wrap items-center gap-x-4 gap-y-1.5 text-sm">
+          <span className="text-xs font-black uppercase tracking-[0.15em] text-white/70">{t("tournamentAudience.teraz")}</span>
           <Badge variant="outline" className={now.phase === "active" ? "border-cyan-500/40 text-cyan-300" : now.phase === "completed" ? "border-yellow-500/40 text-yellow-300" : "border-white/20 text-white/60"}>
-            {now.phase === "active" ? "W trakcie" : now.phase === "completed" ? "Zakończony" : "Jeszcze się nie rozpoczął"}
+            {now.phase === "active" ? t("tournamentAudience.w_trakcie") : now.phase === "completed" ? t("tournamentAudience.zakonczony") : t("tournamentAudience.jeszcze_sie_nie_rozpoczal")}
           </Badge>
           {publicStage && <span className="text-white/75">{publicStage.name}</span>}
           {roundLabel && <span className="text-white/55">{roundLabel}</span>}
-          {now.progress && <span className="text-white/55 tabular-nums">{now.progress.done} z {now.progress.total} meczów rozegranych</span>}
-          {now.live.length > 0 && <span className="text-red-300 tabular-nums">{now.live.length === 1 ? "1 mecz w toku" : `${now.live.length} mecze w toku`}</span>}
-          {updatedLabel && <span className="ml-auto text-xs text-white/40 tabular-nums" title="Widok odświeża się sam co kilka sekund">Zaktualizowano {updatedLabel}</span>}
+          {now.progress && <span className="text-white/55 tabular-nums">{now.progress.done} z {now.progress.total}{" "}{t("tournamentAudience.meczow_rozegranych")}</span>}
+          {now.live.length > 0 && <span className="text-red-300 tabular-nums">{now.live.length === 1 ? t("tournamentAudience.1_mecz_w_toku") : t("tournamentAudience.length_mecze_w_toku", { length: now.live.length })}</span>}
+          {updatedLabel && <span className="ml-auto text-xs text-white/40 tabular-nums" title={t("tournamentAudience.widok_odswieza_sie_sam_co")}>{t("tournamentAudience.zaktualizowano")}{" "}{updatedLabel}</span>}
         </section>
 
         {/* ══ FEATURED / LIVE MATCH ══ */}
@@ -491,17 +490,17 @@ export default function TournamentAudience() {
               {isHeroLive && (
                 <>
                   <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
-                  <span className="text-red-400 font-black tracking-[0.2em] text-sm uppercase">Na żywo</span>
+                  <span className="text-red-400 font-black tracking-[0.2em] text-sm uppercase">{t("tournamentAudience.na_zywo")}</span>
                   <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
                 </>
               )}
               {isHeroFeatured && !isHeroDone && (
                 <>
-                  <span className="text-cyan-400/60 font-bold tracking-[0.15em] text-xs uppercase">★ Wyróżniony mecz</span>
+                  <span className="text-cyan-400/60 font-bold tracking-[0.15em] text-xs uppercase">{t("tournamentAudience.wyrozniony_mecz")}</span>
                 </>
               )}
               {isHeroDone && (
-                <span className="text-green-400 font-black tracking-[0.15em] text-sm uppercase">Zakończony</span>
+                <span className="text-green-400 font-black tracking-[0.15em] text-sm uppercase">{t("tournamentAudience.zakonczony")}</span>
               )}
             </div>
 
@@ -514,7 +513,7 @@ export default function TournamentAudience() {
                 </span>
                 {bo > 1 && (
                   <Badge className="bg-cyan-500/15 text-cyan-400 border-cyan-500/30 text-[11px] font-bold tracking-wider px-2">
-                    {rulesOf(heroMatch) ? `Do ${rulesOf(heroMatch)!.setsToWin} wygranych setów` : `Best of ${bo}`}
+                    {rulesOf(heroMatch) ? t("tournamentAudience.do_setstowin_wygranych_setow", { setsToWin: rulesOf(heroMatch)!.setsToWin }) : t("tournamentAudience.best_of_bo", { bo: bo })}
                   </Badge>
                 )}
               </div>
@@ -524,7 +523,7 @@ export default function TournamentAudience() {
                 {/* Player 1 */}
                 <div className={`flex-1 flex flex-col items-center justify-center gap-3 transition-all ${p1Won ? "opacity-100" : isHeroDone && heroMatch.winnerId ? "opacity-40" : "opacity-100"}`}>
                   <div className={`text-2xl sm:text-4xl lg:text-5xl font-black text-center leading-tight transition-all ${p1Won ? "text-cyan-300" : "text-white"}`}>
-                    {heroMatch.player1Name || "TBD"}
+                    {heroMatch.player1Name || t("tournamentAudience.tbd")}
                   </div>
                   {isDeadlock && heroMatch.player1Id && ((tournament?.gameConfig as any)?.config?.bansPerPlayer ?? 5) > 0 && (
                     <PlayerBansRow bannedHeroIds={audienceBansMap.get(heroMatch.player1Id) ?? []} size={30} maxBans={(tournament?.gameConfig as any)?.config?.bansPerPlayer ?? 5} />
@@ -543,9 +542,7 @@ export default function TournamentAudience() {
                     <WinDots wins={s1} needed={winsNeeded} side="left" />
                   )}
                   {p1Won && (
-                    <Badge className="bg-cyan-500/20 text-cyan-300 border-cyan-400/40 text-xs font-bold tracking-widest mt-1">
-                      ZWYCIĘZCA
-                    </Badge>
+                    <Badge className="bg-cyan-500/20 text-cyan-300 border-cyan-400/40 text-xs font-bold tracking-widest mt-1">{t("tournamentAudience.zwyciezca")}</Badge>
                   )}
                 </div>
 
@@ -561,7 +558,7 @@ export default function TournamentAudience() {
                 {/* Player 2 */}
                 <div className={`flex-1 flex flex-col items-center justify-center gap-3 transition-all ${p2Won ? "opacity-100" : isHeroDone && heroMatch.winnerId ? "opacity-40" : "opacity-100"}`}>
                   <div className={`text-2xl sm:text-4xl lg:text-5xl font-black text-center leading-tight transition-all ${p2Won ? "text-cyan-300" : "text-white"}`}>
-                    {heroMatch.player2Name || "TBD"}
+                    {heroMatch.player2Name || t("tournamentAudience.tbd")}
                   </div>
                   {isDeadlock && heroMatch.player2Id && ((tournament?.gameConfig as any)?.config?.bansPerPlayer ?? 5) > 0 && (
                     <PlayerBansRow bannedHeroIds={audienceBansMap.get(heroMatch.player2Id) ?? []} size={30} maxBans={(tournament?.gameConfig as any)?.config?.bansPerPlayer ?? 5} />
@@ -580,9 +577,7 @@ export default function TournamentAudience() {
                     <WinDots wins={s2} needed={winsNeeded} side="right" />
                   )}
                   {p2Won && (
-                    <Badge className="bg-cyan-500/20 text-cyan-300 border-cyan-400/40 text-xs font-bold tracking-widest mt-1">
-                      ZWYCIĘZCA
-                    </Badge>
+                    <Badge className="bg-cyan-500/20 text-cyan-300 border-cyan-400/40 text-xs font-bold tracking-widest mt-1">{t("tournamentAudience.zwyciezca")}</Badge>
                   )}
                 </div>
               </div>
@@ -599,10 +594,9 @@ export default function TournamentAudience() {
           <section className="w-full max-w-2xl">
             <div className="flex flex-col items-center justify-center gap-4 py-16 text-center">
               <Trophy className="w-20 h-20 text-yellow-400 drop-shadow-[0_0_30px_rgba(250,200,0,0.4)]" />
-              <h2 className="text-4xl sm:text-5xl font-black text-yellow-400 tracking-tight">Turniej zakończony!</h2>
+              <h2 className="text-4xl sm:text-5xl font-black text-yellow-400 tracking-tight">{t("tournamentAudience.turniej_zakonczony")}</h2>
               {winnerName && (
-                <div className="mt-2 text-xl text-white/60">
-                  Zwycięzca:{" "}
+                <div className="mt-2 text-xl text-white/60">{t("tournamentAudience.zwyciezca_2")}{" "}
                   <span className="text-white font-black text-2xl">{winnerName}</span>
                 </div>
               )}
@@ -618,16 +612,16 @@ export default function TournamentAudience() {
               <div className="w-20 h-20 rounded-full border-2 border-white/15 flex items-center justify-center bg-white/5">
                 <span className="text-4xl">⏸</span>
               </div>
-              <h2 className="text-3xl font-bold text-white/50 tracking-tight">{now.phase === "draft" ? "Turniej jeszcze się nie rozpoczął" : hasNextMatches ? "Teraz nie trwa żaden mecz" : "Brak meczów do rozegrania"}</h2>
-              <p className="text-white/40">{hasNextMatches ? "Następne mecze znajdziesz poniżej." : now.waiting ?? "Na razie żaden mecz nie jest gotowy do rozegrania."}</p>
+              <h2 className="text-3xl font-bold text-white/50 tracking-tight">{now.phase === "draft" ? t("tournamentAudience.turniej_jeszcze_sie_nie_rozpoczal") : hasNextMatches ? t("tournamentAudience.teraz_nie_trwa_zaden_mecz") : t("tournamentAudience.brak_meczow_do_rozegrania")}</h2>
+              <p className="text-white/40">{hasNextMatches ? t("tournamentAudience.nastepne_mecze_znajdziesz_ponizej") : now.waiting ?? t("tournamentAudience.na_razie_zaden_mecz_nie")}</p>
             </div>
           </section>
         )}
 
         {/* ══ OTHER MATCHES MARKED IN PROGRESS (QW-05: all of them, not only the hero) ══ */}
         {otherLiveMatches.length > 0 && (
-          <section aria-label="Także w toku" className="w-full max-w-5xl">
-            <Panel title={`Także w toku (${otherLiveMatches.length})`}>
+          <section aria-label={t("tournamentAudience.takze_w_toku")} className="w-full max-w-5xl">
+            <Panel title={t("tournamentAudience.takze_w_toku_length", { length: otherLiveMatches.length })}>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                 {otherLiveMatches.map((m) => (
                   <div key={m.id} data-exp-match-state={m.status} className="experimental-audience-match-row flex items-center gap-2 px-3 py-2 rounded-lg border border-cyan-500/30 bg-cyan-500/5">
@@ -648,13 +642,13 @@ export default function TournamentAudience() {
 
             {/* ── KOLEJNE MECZE ── */}
             {hasNextMatches && (
-              <Panel title="Następne mecze" className={!hasResults && !hasStandings ? "lg:col-span-3" : !hasResults || !hasStandings ? "lg:col-span-2" : ""}>
+              <Panel title={t("tournamentAudience.nastepne_mecze")} className={!hasResults && !hasStandings ? "lg:col-span-3" : !hasResults || !hasStandings ? "lg:col-span-2" : ""}>
                 <div className="space-y-2.5">
                   {nextMatches.map((m) => (
                     <div key={m.id} className="flex items-center gap-2">
                       <span className="text-[10px] text-white/25 font-mono min-w-10 shrink-0 whitespace-nowrap" title={matchTitle(m)}>{matchCode(m)}</span>
                       <span className="text-sm font-semibold text-white/80 flex-1 truncate">{m.player1Name}</span>
-                      <span className="text-[10px] text-white/30 shrink-0">vs</span>
+                      <span className="text-[10px] text-white/30 shrink-0">{t("tournamentAudience.vs")}</span>
                       <span className="text-sm font-semibold text-white/80 flex-1 truncate text-right">{m.player2Name}</span>
                       {m.scheduledAt && (
                         <time dateTime={m.scheduledAt} className="text-[10px] text-white/45 shrink-0 tabular-nums">
@@ -662,7 +656,7 @@ export default function TournamentAudience() {
                         </time>
                       )}
                       {m.bestOf && m.bestOf > 1 && (
-                        <span className="text-[10px] text-cyan-500/50 shrink-0 font-mono">{rulesOf(m) ? `sety do ${rulesOf(m)!.setsToWin}` : `BO${m.bestOf}`}</span>
+                        <span className="text-[10px] text-cyan-500/50 shrink-0 font-mono">{rulesOf(m) ? t("tournamentAudience.sety_do_setstowin", { setsToWin: rulesOf(m)!.setsToWin }) : t("tournamentAudience.bo_bestof", { bestOf: m.bestOf })}</span>
                       )}
                     </div>
                   ))}
@@ -672,7 +666,7 @@ export default function TournamentAudience() {
 
             {/* ── OSTATNIE WYNIKI ── */}
             {hasResults && (
-              <Panel title="Ostatnie wyniki">
+              <Panel title={t("tournamentAudience.ostatnie_wyniki")}>
                 <div className="space-y-2.5">
                   {recentResults.map((m) => (
                     <div key={m.id}>
@@ -681,14 +675,14 @@ export default function TournamentAudience() {
                       <span className={`text-sm flex-1 truncate ${m.winnerId === m.player1Id ? "font-bold text-white" : "text-white/40"}`}>
                         {m.player1Name}
                       </span>
-                      <span className="font-mono text-sm font-bold text-white/70 bg-white/6 px-2 py-0.5 rounded shrink-0 tabular-nums" title={m.sets?.length ? `Sety: ${setsText(m.sets)}` : undefined}>
+                      <span className="font-mono text-sm font-bold text-white/70 bg-white/6 px-2 py-0.5 rounded shrink-0 tabular-nums" title={m.sets?.length ? t("tournamentAudience.sety_v0", { v0: setsText(m.sets) }) : undefined}>
                         {matchResultLabel(m)}
                       </span>
                       <span className={`text-sm flex-1 truncate text-right ${m.winnerId === m.player2Id ? "font-bold text-white" : "text-white/40"}`}>
                         {m.player2Name}
                       </span>
                     </div>
-                    {m.sets?.length ? <p className="mt-0.5 pl-12 text-center text-[11px] text-white/45 tabular-nums">Sety: {setsText(m.sets)}</p> : null}
+                    {m.sets?.length ? <p className="mt-0.5 pl-12 text-center text-[11px] text-white/45 tabular-nums">{t("tournamentAudience.sety")}{" "}{setsText(m.sets)}</p> : null}
                     </div>
                   ))}
                 </div>
@@ -697,20 +691,20 @@ export default function TournamentAudience() {
 
             {/* ── TABELA ETAPU (V5.4: engine-ranked, stage-scoped) ── */}
             {liveStandings && liveStandings.tables.length > 0 && fullBelow !== "table" && (
-              <Panel title={liveStandings.tables.length > 1 ? `${publicStage?.name ?? "Etap"} — czołówka grup` : publicStage?.format === "swiss" ? "Ranking" : "Tabela"} className={!hasNextMatches && !hasResults ? "lg:col-span-3" : ""}>
+              <Panel title={liveStandings.tables.length > 1 ? t("tournamentAudience.v0_czolowka_grup", { v0: publicStage?.name ?? t("tournamentAudience.etap") }) : publicStage?.format === "swiss" ? t("tournamentAudience.ranking") : t("tournamentAudience.tabela")} className={!hasNextMatches && !hasResults ? "lg:col-span-3" : ""}>
                 <div className="audience-live-tables space-y-3 text-foreground">
                   <StageLiveTables data={liveStandings} compact rowLimit={liveStandings.tables.length > 1 ? Math.max(2, liveStandings.advancingPlaces ?? 2) : 8} />
                 </div>
-                <Link href={sectionHref("table")} className="mt-3 inline-block text-xs font-medium text-cyan-300 hover:underline">Pełna tabela</Link>
+                <Link href={sectionHref("table")} className="mt-3 inline-block text-xs font-medium text-cyan-300 hover:underline">{t("tournamentAudience.pelna_tabela")}</Link>
               </Panel>
             )}
 
             {/* ── KLASYFIKACJA ── */}
             {hasStandings && !(liveStandings && liveStandings.tables.length > 0) && (
-              <Panel title={hasMultipleStages ? "Bilans łączny meczów — wszystkie etapy" : stageScopeUnknown ? "Bilans informacyjny — zakres etapów niepotwierdzony" : "Klasyfikacja"} className={!hasNextMatches && !hasResults ? "lg:col-span-3" : ""}>
+              <Panel title={hasMultipleStages ? t("tournamentAudience.bilans_laczny_meczow_wszystkie_etapy") : stageScopeUnknown ? t("tournamentAudience.bilans_informacyjny_zakres_etapow_niepot") : t("tournamentAudience.klasyfikacja")} className={!hasNextMatches && !hasResults ? "lg:col-span-3" : ""}>
                 {standingsInformational && (
                   <p className="mb-3 text-xs text-white/55">
-                    {hasMultipleStages ? "To zbiorcze statystyki meczów, nie klasyfikacja etapu. Awans i zwycięzcę wyznaczają wyniki etapów — zobacz Etapy i Drabinka." : "Liczba etapów nie została potwierdzona. Ten bilans nie jest podstawą awansu ani wyłonienia zwycięzcy."}
+                    {hasMultipleStages ? t("tournamentAudience.to_zbiorcze_statystyki_meczow_nie") : t("tournamentAudience.liczba_etapow_nie_zostala_potwierdzona")}
                   </p>
                 )}
                 <div className="space-y-2">
@@ -741,7 +735,7 @@ export default function TournamentAudience() {
 
             {/* ── RUNDA (round summary for active tournaments) ── */}
             {hasRound && !hasNextMatches && !hasResults && !hasStandings && (
-              <Panel title={`Runda ${tournament?.currentRound} — przebieg`} className="lg:col-span-3">
+              <Panel title={t("tournamentAudience.runda_currentround_przebieg", { currentRound: tournament?.currentRound })} className="lg:col-span-3">
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   {currentRoundMatches.map((m) => (
                     <div key={m.id} data-exp-match-state={m.status} className={`experimental-audience-match-row flex items-center gap-2 px-3 py-2 rounded-lg border ${
@@ -790,7 +784,7 @@ export default function TournamentAudience() {
             audience
           />
         )}
-        {activeSection === "matches" && <ReadQueryState query={matchesQuery} loadingMessage="Ładowanie meczów…" errorMessage="Nie udało się pobrać meczów.">
+        {activeSection === "matches" && <ReadQueryState query={matchesQuery} loadingMessage={t("tournamentAudience.ladowanie_meczow")} errorMessage={t("tournamentAudience.nie_udalo_sie_pobrac_meczow")}>
           <PublicMatchesSection
             matches={(matches ?? []).filter((match) => !publicStage || match.stageId === publicStage.id)}
             format={publicStage?.format}
@@ -804,28 +798,28 @@ export default function TournamentAudience() {
         </ReadQueryState>}
         {(activeSection === "table" || fullBelow === "table") && (
           <AudienceSectionShell
-            title={publicStage?.format === "group_stage" ? "Grupy" : publicStage?.format === "swiss" ? "Ranking" : "Tabela"}
-            description={publicStage ? `${hasMultipleStages ? `${publicStage.name} · ` : ""}${STAGE_STATE_LABELS[publicStage.status] ?? publicStage.status}` : "Brak etapu."}
+            title={publicStage?.format === "group_stage" ? t("tournamentAudience.grupy") : publicStage?.format === "swiss" ? t("tournamentAudience.ranking") : t("tournamentAudience.tabela")}
+            description={publicStage ? `${hasMultipleStages ? `${publicStage.name} · ` : ""}${STAGE_STATE_LABELS[publicStage.status] ?? publicStage.status}` : t("tournamentAudience.brak_etapu")}
           >
             {!publicStage ? (
-              <ReadQueryState query={stagesQuery} loadingMessage="Ładowanie etapów…" errorMessage="Nie udało się pobrać etapów.">
-                <EmptyAudienceSection>Brak rozpoczętego etapu.</EmptyAudienceSection>
+              <ReadQueryState query={stagesQuery} loadingMessage={t("tournamentAudience.ladowanie_etapow")} errorMessage={t("tournamentAudience.nie_udalo_sie_pobrac_etapow")}>
+                <EmptyAudienceSection>{t("tournamentAudience.brak_rozpoczetego_etapu")}</EmptyAudienceSection>
               </ReadQueryState>
             ) : stagePlanned ? (
-              <EmptyAudienceSection>{noStageStarted ? "Brak rozpoczętego etapu." : "Ten etap jeszcze się nie zaczął — tabela pojawi się po jego starcie."}</EmptyAudienceSection>
+              <EmptyAudienceSection>{noStageStarted ? t("tournamentAudience.brak_rozpoczetego_etapu") : t("tournamentAudience.ten_etap_jeszcze_sie_nie")}</EmptyAudienceSection>
             ) : (
-              <ReadQueryState query={liveStandingsQuery} loadingMessage="Ładowanie tabeli…" errorMessage="Nie udało się pobrać tabeli.">
+              <ReadQueryState query={liveStandingsQuery} loadingMessage={t("tournamentAudience.ladowanie_tabeli")} errorMessage={t("tournamentAudience.nie_udalo_sie_pobrac_tabeli")}>
                 {liveStandings && liveStandings.tables.length > 0
                   ? <div className="audience-live-tables text-foreground"><StageLiveTables data={liveStandings} /></div>
-                  : <EmptyAudienceSection>Tabela pojawi się po pierwszych meczach.</EmptyAudienceSection>}
+                  : <EmptyAudienceSection>{t("tournamentAudience.tabela_pojawi_sie_po_pierwszych")}</EmptyAudienceSection>}
               </ReadQueryState>
             )}
           </AudienceSectionShell>
         )}
-        {activeSection === "stats" && <ReadQueryState query={standingsQuery} loadingMessage="Ładowanie statystyk…" errorMessage="Nie udało się pobrać statystyk."><PublicStandingsSection standings={standings ?? []} format={tournament?.format ?? "single_elimination"} aggregate={hasMultipleStages} unknownScope={stageScopeUnknown} /></ReadQueryState>}
+        {activeSection === "stats" && <ReadQueryState query={standingsQuery} loadingMessage={t("tournamentAudience.ladowanie_statystyk")} errorMessage={t("tournamentAudience.nie_udalo_sie_pobrac_statystyk")}><PublicStandingsSection standings={standings ?? []} format={tournament?.format ?? "single_elimination"} aggregate={hasMultipleStages} unknownScope={stageScopeUnknown} /></ReadQueryState>}
         {activeSection === "players" && (
-          <ReadQueryState query={playersQuery} loadingMessage="Ładowanie listy graczy…" errorMessage="Nie udało się pobrać listy graczy.">
-          <ReadQueryState query={standingsQuery} loadingMessage="Ładowanie statystyk graczy…" errorMessage="Nie udało się pobrać statystyk graczy." />
+          <ReadQueryState query={playersQuery} loadingMessage={t("tournamentAudience.ladowanie_listy_graczy")} errorMessage={t("tournamentAudience.nie_udalo_sie_pobrac_listy")}>
+          <ReadQueryState query={standingsQuery} loadingMessage={t("tournamentAudience.ladowanie_statystyk_graczy")} errorMessage={t("tournamentAudience.nie_udalo_sie_pobrac_statystyk_2")} />
           <PublicPlayersSection
             fields={publicFields}
             players={players ?? []}
@@ -839,14 +833,14 @@ export default function TournamentAudience() {
           />
           </ReadQueryState>
         )}
-        {(activeSection === "bracket" || fullBelow === "bracket") && <ReadQueryState query={stagesQuery} loadingMessage="Ładowanie etapów…" errorMessage="Nie udało się pobrać etapów.">
+        {(activeSection === "bracket" || fullBelow === "bracket") && <ReadQueryState query={stagesQuery} loadingMessage={t("tournamentAudience.ladowanie_etapow")} errorMessage={t("tournamentAudience.nie_udalo_sie_pobrac_etapow")}>
           {!publicStage || stagePlanned ? (
-            <AudienceSectionShell title="Drabinka" description={publicStage && !noStageStarted ? `${publicStage.name} · ${STAGE_STATE_LABELS.planned}` : stages ? "Brak rozpoczętego etapu." : "Ładowanie etapów…"}>
-              <EmptyAudienceSection>{publicStage && !noStageStarted ? "Drabinka powstanie, gdy zakończy się poprzedni etap i znani będą awansujący." : "Drabinka nie jest jeszcze dostępna."}</EmptyAudienceSection>
+            <AudienceSectionShell title={t("tournamentAudience.drabinka")} description={publicStage && !noStageStarted ? `${publicStage.name} · ${STAGE_STATE_LABELS.planned}` : stages ? t("tournamentAudience.brak_rozpoczetego_etapu") : t("tournamentAudience.ladowanie_etapow")}>
+              <EmptyAudienceSection>{publicStage && !noStageStarted ? t("tournamentAudience.drabinka_powstanie_gdy_zakonczy_sie") : t("tournamentAudience.drabinka_nie_jest_jeszcze_dostepna")}</EmptyAudienceSection>
             </AudienceSectionShell>
           ) : marvelStage ? (
             <AudienceSectionShell
-              title="Drabinka"
+              title={t("tournamentAudience.drabinka")}
               description={publicStageLabel(publicStage, true)}
             >
               <div className="rounded-xl border border-white/8 bg-card p-4 text-foreground">
@@ -858,17 +852,17 @@ export default function TournamentAudience() {
             </AudienceSectionShell>
           ) : doubleEliminationStage ? (
             <AudienceSectionShell
-              title="Drabinka"
+              title={t("tournamentAudience.drabinka")}
               description={publicStageLabel(publicStage, true)}
             >
-              <ReadQueryState query={doubleEliminationQuery} loadingMessage="Ładowanie drabinki Double Elimination…" errorMessage="Nie udało się pobrać drabinki Double Elimination.">
+              <ReadQueryState query={doubleEliminationQuery} loadingMessage={t("tournamentAudience.ladowanie_drabinki_double_elimination")} errorMessage={t("tournamentAudience.nie_udalo_sie_pobrac_drabinki")}>
                 {doubleEliminationQuery.data && <div className="rounded-xl border border-white/8 bg-card p-4 text-foreground">
                   <DoubleEliminationBracket tournamentId={id} stageId={doubleEliminationStage.id} state={doubleEliminationQuery.data} showDropLines={showDropLines} />
                 </div>}
               </ReadQueryState>
             </AudienceSectionShell>
           ) : (
-            <ReadQueryState query={bracketQuery} loadingMessage="Ładowanie drabinki…" errorMessage="Nie udało się pobrać drabinki.">
+            <ReadQueryState query={bracketQuery} loadingMessage={t("tournamentAudience.ladowanie_drabinki")} errorMessage={t("tournamentAudience.nie_udalo_sie_pobrac_drabinki_2")}>
             <PublicBracketSection
               bracket={bracket}
               stageLabel={publicStageLabel(publicStage, true)}
@@ -945,7 +939,7 @@ function PublicMatchesSection({
 }) {
   useEffect(() => {
     if (highlightMatchId == null) return;
-    const target = document.getElementById(`mecz-${highlightMatchId}`);
+    const target = document.getElementById(`mecz-${highlightMatchId}`); // i18n-ignore: element id
     target?.scrollIntoView?.({ block: "center", behavior: window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth" });
   }, [highlightMatchId, matches.length]);
   // V5.4-006: matches of the shown stage, grouped by round ("Kolejka" in a league), group shown per match.
@@ -953,11 +947,11 @@ function PublicMatchesSection({
   for (const match of [...matches].sort((a, b) => a.round - b.round || (a.stageGroupId ?? 0) - (b.stageGroupId ?? 0) || a.matchNumber - b.matchNumber)) {
     rounds.set(match.round, [...(rounds.get(match.round) ?? []), match]);
   }
-  const title = format === "round_robin" ? "Terminarz" : format === "swiss" ? "Rundy" : format === "group_stage" ? "Mecze grup" : "Mecze";
+  const title = format === "round_robin" ? t("tournamentAudience.terminarz") : format === "swiss" ? t("tournamentAudience.rundy") : format === "group_stage" ? t("tournamentAudience.mecze_grup") : t("tournamentAudience.mecze");
   return (
-    <AudienceSectionShell title={title} description={stageLabel ? `${stageLabel} · wyniki i nadchodzące mecze` : "Wyniki i nadchodzące mecze."}>
+    <AudienceSectionShell title={title} description={stageLabel ? t("tournamentAudience.stagelabel_wyniki_i_nadchodzace_mecze", { stageLabel: stageLabel }) : t("tournamentAudience.wyniki_i_nadchodzace_mecze")}>
       {matches.length === 0 ? (
-        <EmptyAudienceSection>{planned ? "Mecze tego etapu pojawią się po jego starcie." : "Brak meczów do wyświetlenia."}</EmptyAudienceSection>
+        <EmptyAudienceSection>{planned ? t("tournamentAudience.mecze_tego_etapu_pojawia_sie") : t("tournamentAudience.brak_meczow_do_wyswietlenia")}</EmptyAudienceSection>
       ) : (
         <div className="space-y-5">
           {[...rounds.entries()].map(([round, list]) => (
@@ -971,30 +965,30 @@ function PublicMatchesSection({
                   return (
                     <article key={match.id} id={`mecz-${match.id}`} data-exp-match-state={match.status} data-highlight={match.id === highlightMatchId ? "true" : undefined} className="experimental-public-match-card grid min-w-0 grid-cols-[minmax(0,1fr)_auto] md:grid-cols-[9rem_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 rounded-xl border border-white/8 bg-card px-3 py-2.5 md:px-4">
                       <div className="min-w-0 text-xs text-white/40">
-                        {groupLabel ?? `Mecz ${match.matchNumber}`}
+                        {groupLabel ?? t("tournamentAudience.mecz_matchnumber", { matchNumber: match.matchNumber })}
                         {when && <span className="block text-white/55">{when}</span>}
                       </div>
                       <div className="flex flex-wrap items-center justify-end gap-2 text-xs md:col-start-3 md:row-start-1">
-                        {match.bestOf && match.bestOf > 1 && <span className="font-mono text-cyan-400/60">{matchRules ? `sety do ${matchRules.setsToWin}` : `BO${match.bestOf}`}</span>}
+                        {match.bestOf && match.bestOf > 1 && <span className="font-mono text-cyan-400/60">{matchRules ? t("tournamentAudience.sety_do_setstowin", { setsToWin: matchRules.setsToWin }) : t("tournamentAudience.bo_bestof", { bestOf: match.bestOf })}</span>}
                         <span className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-white/55">
                           {MATCH_STATUS_LABELS[match.status] ?? match.status}
                         </span>
                         {matchHref && (
-                          <Link href={matchHref(match)} className="experimental-public-match-link inline-flex h-7 w-7 items-center justify-center rounded-md text-white/45 hover:text-white" aria-label={`Link do meczu: ${match.player1Name || "TBD"} – ${match.player2Name || "TBD"}`} title="Link do tego meczu">
+                          <Link href={matchHref(match)} className="experimental-public-match-link inline-flex h-7 w-7 items-center justify-center rounded-md text-white/45 hover:text-white" aria-label={t("tournamentAudience.link_do_meczu_v0_v1", { v0: match.player1Name || "TBD", v1: match.player2Name || "TBD" })} title={t("tournamentAudience.link_do_tego_meczu")}>
                             <Link2 className="h-3.5 w-3.5" aria-hidden="true" />
                           </Link>
                         )}
                       </div>
                       <div className="col-span-2 grid min-w-0 grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 md:col-span-1 md:col-start-2 md:row-start-1 md:gap-3">
-                        <span title={match.player1Name || "TBD"} className={`truncate text-right font-semibold ${match.winnerId === match.player1Id ? "text-cyan-300" : "text-white/75"}`}>
-                          {match.player1Name || "TBD"}
+                        <span title={match.player1Name || t("tournamentAudience.tbd")} className={`truncate text-right font-semibold ${match.winnerId === match.player1Id ? "text-cyan-300" : "text-white/75"}`}>
+                          {match.player1Name || t("tournamentAudience.tbd")}
                         </span>
-                        <span className="min-w-12 rounded-md bg-black/20 px-2 py-1 text-center font-mono font-bold tabular-nums text-white" title={match.sets?.length ? `Sety: ${setsText(match.sets)}` : undefined}>
+                        <span className="min-w-12 rounded-md bg-black/20 px-2 py-1 text-center font-mono font-bold tabular-nums text-white" title={match.sets?.length ? t("tournamentAudience.sety_v0", { v0: setsText(match.sets) }) : undefined}>
                           {tieScoreText(match) ?? (showsScore ? matchResultLabel(match) : "vs")}
                           {showsScore && match.sets?.length ? <span className="block text-[10px] font-normal text-white/60">{setsText(match.sets)}</span> : null}
                         </span>
-                        <span title={match.player2Name || "TBD"} className={`truncate font-semibold ${match.winnerId === match.player2Id ? "text-cyan-300" : "text-white/75"}`}>
-                          {match.player2Name || "TBD"}
+                        <span title={match.player2Name || t("tournamentAudience.tbd")} className={`truncate font-semibold ${match.winnerId === match.player2Id ? "text-cyan-300" : "text-white/75"}`}>
+                          {match.player2Name || t("tournamentAudience.tbd")}
                         </span>
                       </div>
                       {isTwoLegTie(match) && match.player1Id != null && match.player2Id != null && (
@@ -1017,11 +1011,11 @@ function PublicMatchesSection({
 function PublicStandingsSection({ standings, format, aggregate, unknownScope }: { standings: Standing[]; format: string; aggregate: boolean; unknownScope: boolean }) {
   return (
     <AudienceSectionShell
-      title={aggregate ? "Statystyki meczów — wszystkie etapy" : unknownScope ? "Bilans informacyjny — zakres etapów niepotwierdzony" : format === "single_elimination" ? "Bilans informacyjny" : "Klasyfikacja"}
-      description={aggregate ? "Suma meczów ze wszystkich etapów — to nie jest klasyfikacja. Miejsca i awanse pokazują tabele i drabinki etapów." : unknownScope ? "Liczba etapów nie została potwierdzona. Ten bilans nie jest podstawą awansu ani wyłonienia zwycięzcy." : format === "single_elimination" ? "Awans wynika wyłącznie z drabinki; bilans służy informacyjnie." : "Klasyfikacja obliczana z rozstrzygniętych meczów."}
+      title={aggregate ? t("tournamentAudience.statystyki_meczow_wszystkie_etapy") : unknownScope ? t("tournamentAudience.bilans_informacyjny_zakres_etapow_niepot") : format === "single_elimination" ? t("tournamentAudience.bilans_informacyjny") : t("tournamentAudience.klasyfikacja")}
+      description={aggregate ? t("tournamentAudience.suma_meczow_ze_wszystkich_etapow") : unknownScope ? t("tournamentAudience.liczba_etapow_nie_zostala_potwierdzona") : format === "single_elimination" ? t("tournamentAudience.awans_wynika_wylacznie_z_drabinki") : t("tournamentAudience.klasyfikacja_obliczana_z_rozstrzygnietyc")}
     >
       {standings.length === 0 ? (
-        <EmptyAudienceSection>Tabela nie jest jeszcze dostępna.</EmptyAudienceSection>
+        <EmptyAudienceSection>{t("tournamentAudience.tabela_nie_jest_jeszcze_dostepna")}</EmptyAudienceSection>
       ) : format === "single_elimination" ? (
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
           {standings.map((standing) => (
@@ -1029,32 +1023,32 @@ function PublicStandingsSection({ standings, format, aggregate, unknownScope }: 
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="font-semibold text-white">{standing.playerName}</div>
-                  <div className="text-xs text-white/40">{standing.teamName || "Uczestnik"}</div>
+                  <div className="text-xs text-white/40">{standing.teamName || t("tournamentAudience.uczestnik")}</div>
                 </div>
                 <span className="rounded-full border border-white/10 px-2 py-1 text-[10px] uppercase tracking-wider text-white/45">{standing.status}</span>
               </div>
               <div className="mt-4 grid grid-cols-3 gap-2 text-center text-[10px] uppercase tracking-wider text-white/35">
-                <div><strong className="block text-lg text-white">{standing.matchWins}-{standing.matchLosses}</strong>Mecze</div>
-                <div><strong className="block text-lg text-white">{standing.gameWins}:{standing.gameLosses}</strong>Gry</div>
-                <div><strong className="block text-lg text-cyan-300">{standing.gameDiff > 0 ? "+" : ""}{standing.gameDiff}</strong>Różnica</div>
+                <div><strong className="block text-lg text-white">{standing.matchWins}-{standing.matchLosses}</strong>{t("tournamentAudience.mecze")}</div>
+                <div><strong className="block text-lg text-white">{standing.gameWins}:{standing.gameLosses}</strong>{t("tournamentAudience.gry")}</div>
+                <div><strong className="block text-lg text-cyan-300">{standing.gameDiff > 0 ? "+" : ""}{standing.gameDiff}</strong>{t("tournamentAudience.roznica")}</div>
               </div>
             </div>
           ))}
         </div>
       ) : (
         <div className="overflow-x-auto rounded-xl border border-white/8 bg-card">
-          <table className="w-full min-w-[680px] text-sm" aria-label="Pełna klasyfikacja turnieju">
+          <table className="w-full min-w-[680px] text-sm" aria-label={t("tournamentAudience.pelna_klasyfikacja_turnieju")}>
             <thead className="border-b border-white/8 bg-white/3 text-left text-[11px] uppercase tracking-wider text-white/35">
               <tr>
-                {!aggregate && !unknownScope && <th className="px-4 py-3 text-center">Miejsce</th>}
-                <th className="px-4 py-3">Gracz</th>
-                <th className="px-4 py-3">Drużyna</th>
-                <th className="px-3 py-3 text-center">Mecze</th>
+                {!aggregate && !unknownScope && <th className="px-4 py-3 text-center">{t("tournamentAudience.miejsce")}</th>}
+                <th className="px-4 py-3">{t("tournamentAudience.gracz")}</th>
+                <th className="px-4 py-3">{t("tournamentAudience.druzyna")}</th>
+                <th className="px-3 py-3 text-center">{t("tournamentAudience.mecze")}</th>
                 <th className="px-3 py-3 text-center">W</th>
                 <th className="px-3 py-3 text-center">P</th>
-                <th className="px-4 py-3 text-right">Bilans gier</th>
+                <th className="px-4 py-3 text-right">{t("tournamentAudience.bilans_gier")}</th>
                 <th className="px-4 py-3 text-right">+/−</th>
-                <th className="px-4 py-3 text-right">Buchholz</th>
+                <th className="px-4 py-3 text-right">{t("tournamentAudience.buchholz")}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-white/6">
@@ -1110,16 +1104,16 @@ function PublicPlayersSection({
     .filter((match) => match.resultType !== "bye")
     .sort((a, b) => (a.stageId ?? 0) - (b.stageId ?? 0) || a.round - b.round || a.matchNumber - b.matchNumber);
   return (
-    <AudienceSectionShell title="Uczestnicy" description="Znajdź uczestnika i zobacz jego mecze.">
+    <AudienceSectionShell title={t("tournamentAudience.uczestnicy")} description={t("tournamentAudience.znajdz_uczestnika_i_zobacz_jego")}>
       {players.length === 0 ? (
-        <EmptyAudienceSection>Nie dodano jeszcze uczestników.</EmptyAudienceSection>
+        <EmptyAudienceSection>{t("tournamentAudience.nie_dodano_jeszcze_uczestnikow")}</EmptyAudienceSection>
       ) : (
         <>
         <label className="experimental-public-search mb-3 flex items-center gap-2 rounded-xl border border-white/10 bg-card px-3 py-2">
           <Search className="h-4 w-4 shrink-0 text-white/45" aria-hidden="true" />
-          <span className="sr-only">Znajdź uczestnika</span>
-          <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Znajdź uczestnika lub drużynę" className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-white/35" autoComplete="off" />
-          {needle && <span className="text-xs text-white/45" role="status" aria-live="polite">{shown.length === 0 ? "Brak wyników" : `Znaleziono: ${shown.length}`}</span>}
+          <span className="sr-only">{t("tournamentAudience.znajdz_uczestnika")}</span>
+          <input type="search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder={t("tournamentAudience.znajdz_uczestnika_lub_druzyne")} className="min-w-0 flex-1 bg-transparent text-sm text-white outline-none placeholder:text-white/35" autoComplete="off" />
+          {needle && <span className="text-xs text-white/45" role="status" aria-live="polite">{shown.length === 0 ? t("tournamentAudience.brak_wynikow") : t("tournamentAudience.znaleziono_length", { length: shown.length })}</span>}
         </label>
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
           {shown.map((player) => {
@@ -1136,26 +1130,26 @@ function PublicPlayersSection({
                   {player.seed != null && <span className="rounded-full border border-white/10 px-2 py-0.5 text-xs text-white/40">#{player.seed}</span>}
                 </div>
                 {standings !== undefined && <dl className="mt-4 grid grid-cols-4 gap-2 border-t border-white/6 pt-3 text-center">
-                  <PlayerStat label="Mecze" value={standing?.matchesPlayed ?? 0} />
+                  <PlayerStat label={t("tournamentAudience.mecze")} value={standing?.matchesPlayed ?? 0} />
                   <PlayerStat label="W" value={standing?.matchWins ?? 0} />
                   <PlayerStat label="P" value={standing?.matchLosses ?? 0} />
-                  <PlayerStat label="Gry +/-" value={standing?.gameDiff ?? 0} emphasize />
+                  <PlayerStat label={t("tournamentAudience.gry_2")} value={standing?.gameDiff ?? 0} emphasize />
                 </dl>}
                 {(() => {
                   const path = pathOf(player.id);
                   if (path.length === 0) return null;
                   return (
                     <details className="experimental-public-path mt-3 border-t border-white/6 pt-3">
-                      <summary className="cursor-pointer text-xs font-semibold text-white/70">Droga w turnieju · {path.length} {path.length === 1 ? "mecz" : path.length < 5 ? "mecze" : "meczów"}</summary>
+                      <summary className="cursor-pointer text-xs font-semibold text-white/70">{t("tournamentAudience.droga_w_turnieju")}{" "}{path.length} {path.length === 1 ? t("tournamentAudience.mecz") : path.length < 5 ? t("tournamentAudience.mecze_2") : t("tournamentAudience.meczow")}</summary>
                       <ol className="mt-2 space-y-1">
                         {path.map((match) => {
                           const opponent = match.player1Id === player.id ? match.player2Name : match.player1Name;
                           const outcome = match.status !== "completed" ? (MATCH_STATUS_LABELS[match.status] ?? match.status)
-                            : match.winnerId == null ? `remis ${matchResultLabel(match)}`
-                            : match.winnerId === player.id ? `wygrana ${matchResultLabel(match)}` : `porażka ${matchResultLabel(match)}`;
+                            : match.winnerId == null ? t("tournamentAudience.remis_v0", { v0: matchResultLabel(match) })
+                            : match.winnerId === player.id ? `wygrana ${matchResultLabel(match)}` : t("tournamentAudience.porazka_v0", { v0: matchResultLabel(match) });
                           return (
                             <li key={match.id} className="flex items-center justify-between gap-2 text-xs">
-                              <span className="min-w-0 truncate text-white/60">{stageNames?.get(match.stageId ?? -1) ? `${stageNames.get(match.stageId ?? -1)} · ` : ""}R{match.round} · vs {opponent || "TBD"}</span>
+                              <span className="min-w-0 truncate text-white/60">{stageNames?.get(match.stageId ?? -1) ? `${stageNames.get(match.stageId ?? -1)} · ` : ""}R{match.round}{" "}{t("tournamentAudience.vs_2")}{" "}{opponent || t("tournamentAudience.tbd")}</span>
                               {matchHref ? <Link href={matchHref(match)} className="shrink-0 font-mono text-white/80 hover:underline">{outcome}</Link> : <span className="shrink-0 font-mono text-white/80">{outcome}</span>}
                             </li>
                           );
@@ -1169,7 +1163,7 @@ function PublicPlayersSection({
                     {bans.length > 0 ? (
                       <PlayerBansRow bannedHeroIds={bans} size={30} maxBans={bansPerPlayer} />
                     ) : (
-                      <p className="text-xs text-white/30 italic">Brak banów</p>
+                      <p className="text-xs text-white/30 italic">{t("tournamentAudience.brak_banow")}</p>
                     )}
                   </div>
                 )}
@@ -1214,9 +1208,9 @@ function PublicBracketSection({
   standings?: Standing[];
 }) {
   return (
-    <AudienceSectionShell title="Drabinka" description={stageLabel}>
+    <AudienceSectionShell title={t("tournamentAudience.drabinka")} description={stageLabel}>
       {!bracket ? (
-        <EmptyAudienceSection>Drabinka nie jest jeszcze dostępna.</EmptyAudienceSection>
+        <EmptyAudienceSection>{t("tournamentAudience.drabinka_nie_jest_jeszcze_dostepna")}</EmptyAudienceSection>
       ) : (
         <div className="experimental-public-bracket-surface overflow-x-auto rounded-xl border border-white/8 bg-card p-4 text-foreground">
           {format === "swiss" ? (

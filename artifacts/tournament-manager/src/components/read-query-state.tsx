@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import type { ReactNode } from "react";
 import { AlertTriangle, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,14 +14,14 @@ export function ReadQueryState({ query, loadingMessage, errorMessage, children }
   return <>
     {query.error ? <div role="alert" className="read-query-state read-query-state--error w-full rounded-lg border border-destructive/40 bg-card p-4 text-foreground space-y-3">
       <p className="flex items-center gap-2"><AlertTriangle aria-hidden="true" className="h-4 w-4 shrink-0 text-destructive" />{errorMessage}</p>
-      {hasData && <p className="text-sm text-muted-foreground">Pokazujemy ostatnio pobrane dane. Nie udało się potwierdzić ich aktualności.</p>}
+      {hasData && <p className="text-sm text-muted-foreground">{t("readQueryState.pokazujemy_ostatnio_pobrane_dane_nie")}</p>}
       <Button type="button" variant="outline" className="gap-2" disabled={query.isFetching} onClick={() => { void query.refetch(); }}>
         {query.isFetching && <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />}
-        {query.isFetching ? "Ponawianie…" : "Spróbuj ponownie"}
+        {query.isFetching ? t("readQueryState.ponawianie") : t("readQueryState.sprobuj_ponownie")}
       </Button>
     </div> : !hasData ? <p role="status" className="read-query-state read-query-state--loading flex items-center gap-2 p-4 text-sm text-muted-foreground">
       <Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />{loadingMessage}
-    </p> : query.isFetching ? <p aria-hidden="true" className="read-query-state read-query-state--refreshing text-xs text-muted-foreground">Odświeżanie danych…</p> : null}
+    </p> : query.isFetching ? <p aria-hidden="true" className="read-query-state read-query-state--refreshing text-xs text-muted-foreground">{t("readQueryState.odswiezanie_danych")}</p> : null}
     {hasData && children}
   </>;
 }

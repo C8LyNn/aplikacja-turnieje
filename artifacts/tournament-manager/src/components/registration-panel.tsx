@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 /**
  * #329 · "Zapisy" in the participants tab (Classic and Experimental). Optional: while off, the organizer adds
  * participants by hand as always. The owner switches the public page on/off, opens/closes it and picks manual or
@@ -32,11 +33,11 @@ import {
 } from "@/lib/registrations";
 
 const STATE_LABEL: Record<RegistrationList["state"], string> = {
-  disabled: "Wyłączone",
-  hidden: "Turniej ukryty — formularz niedostępny",
-  started: "Zamknięte — turniej wystartował",
-  closed: "Zamknięte",
-  open: "Otwarte",
+  get disabled() { return t("registrationPanel.wylaczone"); },
+  get hidden() { return t("registrationPanel.turniej_ukryty_formularz_niedostepny"); },
+  get started() { return t("registrationPanel.zamkniete_turniej_wystartowal"); },
+  get closed() { return t("registrationPanel.zamkniete"); },
+  get open() { return t("registrationPanel.otwarte"); },
 };
 
 export function RegistrationPanel({
@@ -44,7 +45,7 @@ export function RegistrationPanel({
   experimental,
   canConfigure,
   canReview,
-  participantNoun = "uczestników",
+  participantNoun = t("registrationPanel.uczestnikow"),
   tournamentName = "",
 }: {
   tournamentId: number;
@@ -77,7 +78,7 @@ export function RegistrationPanel({
       setLoadError(null);
       setDraft((current) => current ?? { approval: next.settings.approval, capacity: next.settings.capacity == null ? "" : String(next.settings.capacity), note: next.settings.note ?? "" });
     } catch (failure) {
-      setLoadError(registrationErrorMessage(failure, "Nie udało się wczytać zapisów."));
+      setLoadError(registrationErrorMessage(failure, t("registrationPanel.nie_udalo_sie_wczytac_zapisow")));
     }
   }, [tournamentId]);
   useEffect(() => { void refresh(); }, [refresh]);
@@ -96,7 +97,7 @@ export function RegistrationPanel({
   const save = async (patch: Partial<{ enabled: boolean; open: boolean }>, note?: string) => {
     if (!data || !draft) return;
     const capacity = draft.capacity.trim() === "" ? null : Number(draft.capacity);
-    if (capacity !== null && (!Number.isInteger(capacity) || capacity < 1)) { setMessage({ tone: "error", text: "Limit miejsc: liczba całkowita od 1 albo puste pole (bez limitu)." }); return; }
+    if (capacity !== null && (!Number.isInteger(capacity) || capacity < 1)) { setMessage({ tone: "error", text: t("registrationPanel.limit_miejsc_liczba_calkowita_od") }); return; }
     setBusy("settings"); setMessage(null);
     try {
       await saveRegistrationSettings(tournamentId, {
@@ -106,10 +107,10 @@ export function RegistrationPanel({
         capacity,
         note: draft.note.trim() || null,
       });
-      setMessage({ tone: "ok", text: note ?? "Zapisano ustawienia zapisów." });
+      setMessage({ tone: "ok", text: note ?? t("registrationPanel.zapisano_ustawienia_zapisow") });
       await refresh();
     } catch (failure) {
-      setMessage({ tone: "error", text: registrationErrorMessage(failure, "Nie udało się zapisać ustawień.") });
+      setMessage({ tone: "error", text: registrationErrorMessage(failure, t("registrationPanel.nie_udalo_sie_zapisac_ustawien")) });
     } finally {
       setBusy(null);
     }
@@ -121,11 +122,11 @@ export function RegistrationPanel({
       const missingFields = row.missing.map((item) => labels.get(item.key)).filter((field): field is NonNullable<typeof field> => !!field);
       await approveRegistration(tournamentId, row.id, values ? formValuesToPayload(missingFields, values) : undefined);
       setCompleting(null);
-      setMessage({ tone: "ok", text: `„${row.name}” jest na liście ${participantNoun}.` });
+      setMessage({ tone: "ok", text: t("registrationPanel.name_jest_na_liscie_participantnoun", { name: row.name, participantNoun: participantNoun }) });
       void client.invalidateQueries({ queryKey: getListPlayersQueryKey(tournamentId) });
       await refresh();
     } catch (failure) {
-      setMessage({ tone: "error", text: registrationErrorMessage(failure, "Nie udało się zatwierdzić zgłoszenia.") });
+      setMessage({ tone: "error", text: registrationErrorMessage(failure, t("registrationPanel.nie_udalo_sie_zatwierdzic_zgloszenia")) });
     } finally {
       setBusy(null);
     }
@@ -135,10 +136,10 @@ export function RegistrationPanel({
     setBusy(`r${row.id}`); setMessage(null);
     try {
       await rejectRegistration(tournamentId, row.id);
-      setMessage({ tone: "ok", text: `Odrzucono zgłoszenie „${row.name}”.` });
+      setMessage({ tone: "ok", text: t("registrationPanel.odrzucono_zgloszenie_name", { name: row.name }) });
       await refresh();
     } catch (failure) {
-      setMessage({ tone: "error", text: registrationErrorMessage(failure, "Nie udało się odrzucić zgłoszenia.") });
+      setMessage({ tone: "error", text: registrationErrorMessage(failure, t("registrationPanel.nie_udalo_sie_odrzucic_zgloszenia")) });
     } finally {
       setBusy(null);
     }
@@ -158,33 +159,26 @@ export function RegistrationPanel({
     <section className="registration-panel mb-4 rounded-xl border border-border bg-card p-4 space-y-3" aria-labelledby="registration-panel-title" data-testid="registration-panel">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 id="registration-panel-title" className="flex items-center gap-2 font-semibold">
-          <ClipboardList aria-hidden="true" className="h-4 w-4 text-primary" /> Zapisy
-          {data && <span className="rounded-full border border-border px-2 py-0.5 text-xs font-medium text-muted-foreground" data-testid="registration-state">{STATE_LABEL[data.state]}</span>}
+          <ClipboardList aria-hidden="true" className="h-4 w-4 text-primary" />{" "}{t("registrationPanel.zapisy")}{data && <span className="rounded-full border border-border px-2 py-0.5 text-xs font-medium text-muted-foreground" data-testid="registration-state">{STATE_LABEL[data.state]}</span>}
         </h3>
         {data && data.settings.enabled && (
-          <p className="text-xs text-muted-foreground">
-            Oczekuje: <strong className="text-foreground">{data.counts.pending}</strong> · przyjęte: {data.counts.approved}
-            {data.places.remaining != null && <> · wolne miejsca: {data.places.remaining}</>}
+          <p className="text-xs text-muted-foreground">{t("registrationPanel.oczekuje")}{" "}<strong className="text-foreground">{data.counts.pending}</strong>{" "}{t("registrationPanel.przyjete")}{" "}{data.counts.approved}
+            {data.places.remaining != null && <>{" "}{t("registrationPanel.wolne_miejsca")}{" "}{data.places.remaining}</>}
           </p>
         )}
       </div>
       {loadError && (
         <p className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
           {loadError}
-          <button type="button" className="underline" onClick={() => void refresh()}>Spróbuj ponownie</button>
+          <button type="button" className="underline" onClick={() => void refresh()}>{t("registrationPanel.sprobuj_ponownie")}</button>
         </p>
       )}
 
       {data && !data.settings.enabled && (
         <div className="space-y-2 text-sm">
-          <p className="text-muted-foreground">
-            Zapisy są opcjonalne. Możesz dodawać {participantNoun} ręcznie albo włączyć publiczny formularz — zgłoszenia trafią tutaj,
-            a po akceptacji na tę samą listę. Konta graczy nie są potrzebne.
-          </p>
+          <p className="text-muted-foreground">{t("registrationPanel.zapisy_sa_opcjonalne_mozesz_dodawac")}{" "}{participantNoun}{" "}{t("registrationPanel.recznie_albo_wlaczyc_publiczny_formularz")}</p>
           {canConfigure && (
-            <Button size="sm" onClick={() => void save({ enabled: true, open: false }, "Zapisy włączone — sprawdź ustawienia i otwórz formularz.")} disabled={busy === "settings"}>
-              Włącz zapisy
-            </Button>
+            <Button size="sm" onClick={() => void save({ enabled: true, open: false }, t("registrationPanel.zapisy_wlaczone_sprawdz_ustawienia_i"))} disabled={busy === "settings"}>{t("registrationPanel.wlacz_zapisy")}</Button>
           )}
         </div>
       )}
@@ -194,60 +188,56 @@ export function RegistrationPanel({
           <div className="flex flex-wrap items-center gap-2 rounded-lg bg-muted/40 p-2">
             <code className="basis-full min-w-0 break-all text-xs sm:basis-auto sm:flex-1" data-testid="registration-link">{link}</code>
             {/* QW-06b: the shared copy button (feedback + manual fallback) and, while sign-ups are open, the system share sheet */}
-            <CopyLinkButton text={link} label="Kopiuj link do zapisów" showLabel />
+            <CopyLinkButton text={link} label={t("registrationPanel.kopiuj_link_do_zapisow")} showLabel />
             {data.state === "open" && (
-              <ShareLinkButton target={{ url: link, title: tournamentName || "Zapisy", text: shareText("signup", tournamentName) }} label="Udostępnij zapisy" showLabel />
+              <ShareLinkButton target={{ url: link, title: tournamentName || t("registrationPanel.zapisy"), text: shareText("signup", tournamentName) }} label={t("registrationPanel.udostepnij_zapisy")} showLabel />
             )}
             <Button size="sm" variant="outline" asChild>
-              <a href={registrationPath(tournamentId, experimental)} target="_blank" rel="noopener noreferrer"><ExternalLink aria-hidden="true" className="mr-1.5 h-3.5 w-3.5" /> Podgląd</a>
+              <a href={registrationPath(tournamentId, experimental)} target="_blank" rel="noopener noreferrer"><ExternalLink aria-hidden="true" className="mr-1.5 h-3.5 w-3.5" />{" "}{t("registrationPanel.podglad")}</a>
             </Button>
           </div>
-          {data.state === "hidden" && <p className="text-xs text-muted-foreground">Turniej jest ukryty — formularz zadziała dopiero po opublikowaniu turnieju.</p>}
-          {data.state === "started" && <p className="text-xs text-muted-foreground">Po starcie nowe zgłoszenia nie są przyjmowane, a oczekujących nie da się dopisać do wygenerowanej drabinki.</p>}
+          {data.state === "hidden" && <p className="text-xs text-muted-foreground">{t("registrationPanel.turniej_jest_ukryty_formularz_zadziala")}</p>}
+          {data.state === "started" && <p className="text-xs text-muted-foreground">{t("registrationPanel.po_starcie_nowe_zgloszenia_nie")}</p>}
 
           {canConfigure && draft && (
             <div className="grid gap-3 rounded-lg border border-border p-3">
               <div className="flex flex-wrap items-center gap-2">
-                <span className="text-sm font-medium">Formularz:</span>
+                <span className="text-sm font-medium">{t("registrationPanel.formularz")}</span>
                 <Button size="sm" variant={data.settings.open ? "default" : "outline"} aria-pressed={data.settings.open} disabled={busy === "settings" || data.state === "started"}
-                  onClick={() => void save({ open: true }, "Zapisy otwarte — link przyjmuje zgłoszenia.")}>Otwarte</Button>
+                  onClick={() => void save({ open: true }, t("registrationPanel.zapisy_otwarte_link_przyjmuje_zgloszenia"))}>{t("registrationPanel.otwarte")}</Button>
                 <Button size="sm" variant={!data.settings.open ? "default" : "outline"} aria-pressed={!data.settings.open} disabled={busy === "settings"}
-                  onClick={() => void save({ open: false }, "Zapisy zamknięte — link pokazuje, że zapisy są zamknięte.")}>Zamknięte</Button>
+                  onClick={() => void save({ open: false }, t("registrationPanel.zapisy_zamkniete_link_pokazuje_ze"))}>{t("registrationPanel.zamkniete")}</Button>
               </div>
               <fieldset className="grid gap-1.5 text-sm">
-                <legend className="mb-1 font-medium">Akceptacja zgłoszeń</legend>
+                <legend className="mb-1 font-medium">{t("registrationPanel.akceptacja_zgloszen")}</legend>
                 <label className="flex items-start gap-2"><input type="radio" name={`approval-${tournamentId}`} className="mt-1" checked={draft.approval === "manual"} onChange={() => setDraft({ ...draft, approval: "manual" })} />
-                  <span>Ręczna — każde zgłoszenie czeka na Twoją decyzję (zalecane)</span></label>
+                  <span>{t("registrationPanel.reczna_kazde_zgloszenie_czeka_na")}</span></label>
                 <label className="flex items-start gap-2"><input type="radio" name={`approval-${tournamentId}`} className="mt-1" checked={draft.approval === "auto"} onChange={() => setDraft({ ...draft, approval: "auto" })} />
-                  <span>Automatyczna — zgłoszenie od razu trafia na listę, dopóki są wolne miejsca</span></label>
+                  <span>{t("registrationPanel.automatyczna_zgloszenie_od_razu_trafia")}</span></label>
               </fieldset>
               <div className="grid gap-1 sm:max-w-xs">
-                <Label htmlFor={`registration-capacity-${tournamentId}`} className="text-sm">Limit miejsc (puste = limit turnieju)</Label>
+                <Label htmlFor={`registration-capacity-${tournamentId}`} className="text-sm">{t("registrationPanel.limit_miejsc_puste_limit_turnieju")}</Label>
                 <Input id={`registration-capacity-${tournamentId}`} type="number" inputMode="numeric" min={1} value={draft.capacity} onChange={(event) => setDraft({ ...draft, capacity: event.target.value })} />
               </div>
               <div className="grid gap-1">
-                <Label htmlFor={`registration-note-${tournamentId}`} className="text-sm">Informacja dla zapisujących (opcjonalnie)</Label>
+                <Label htmlFor={`registration-note-${tournamentId}`} className="text-sm">{t("registrationPanel.informacja_dla_zapisujacych_opcjonalnie")}</Label>
                 <textarea id={`registration-note-${tournamentId}`} rows={2} maxLength={500} value={draft.note} onChange={(event) => setDraft({ ...draft, note: event.target.value })}
-                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" placeholder="Np. termin, zasady, kontakt" />
+                  className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm" placeholder={t("registrationPanel.np_termin_zasady_kontakt")} />
               </div>
-              <p className="text-xs text-muted-foreground">
-                Pytania formularza to pola uczestników z zaznaczonym „Zapisy”: {data.questions.length
+              <p className="text-xs text-muted-foreground">{t("registrationPanel.pytania_formularza_to_pola_uczestnikow")}{" "}{data.questions.length
                   ? data.questions.map((question) => `${question.label}${question.required ? " *" : ""}`).join(", ")
-                  : "brak — formularz pyta tylko o nick"}.
+                  : t("registrationPanel.brak_formularz_pyta_tylko_o")}.
               </p>
               <div className="flex flex-wrap gap-2">
                 <Button size="sm" onClick={() => void save({})} disabled={busy === "settings"} aria-busy={busy === "settings"}>
-                  {busy === "settings" && <Loader2 aria-hidden="true" className="mr-1.5 h-3.5 w-3.5 animate-spin" />} Zapisz ustawienia
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => void save({ enabled: false, open: false }, "Zapisy wyłączone — link nie przyjmuje zgłoszeń. Lista uczestników bez zmian.")} disabled={busy === "settings"}>
-                  Wyłącz zapisy
-                </Button>
+                  {busy === "settings" && <Loader2 aria-hidden="true" className="mr-1.5 h-3.5 w-3.5 animate-spin" />}{" "}{t("registrationPanel.zapisz_ustawienia")}</Button>
+                <Button size="sm" variant="ghost" onClick={() => void save({ enabled: false, open: false }, t("registrationPanel.zapisy_wylaczone_link_nie_przyjmuje"))} disabled={busy === "settings"}>{t("registrationPanel.wylacz_zapisy")}</Button>
               </div>
             </div>
           )}
           {canConfigure && !experimental && (
             <div className="stable-participant-fields">
-              <ParticipantFieldsManager tournamentId={tournamentId} participantNoun={participantNoun === "drużyn" ? "drużyn" : "graczy"} />
+              <ParticipantFieldsManager tournamentId={tournamentId} participantNoun={participantNoun === "drużyn" ? t("registrationPanel.druzyn") : t("registrationPanel.graczy")} />
             </div>
           )}
         </>
@@ -257,8 +247,8 @@ export function RegistrationPanel({
 
       {canReview && data && (pending.length > 0 || decided.length > 0) && (
         <div className="space-y-2">
-          <h4 className="text-sm font-semibold">Zgłoszenia oczekujące ({pending.length})</h4>
-          {pending.length === 0 && <p className="text-sm text-muted-foreground">Brak nowych zgłoszeń.</p>}
+          <h4 className="text-sm font-semibold">{t("registrationPanel.zgloszenia_oczekujace")}{pending.length})</h4>
+          {pending.length === 0 && <p className="text-sm text-muted-foreground">{t("registrationPanel.brak_nowych_zgloszen")}</p>}
           <ul className="space-y-2">
             {pending.map((row) => (
               <li key={row.id} className="rounded-lg border border-border p-3" data-testid="registration-row">
@@ -267,16 +257,14 @@ export function RegistrationPanel({
                     <p className="font-medium break-words">{row.name}</p>
                     <p className="text-xs text-muted-foreground">{new Date(row.createdAt).toLocaleString("pl", { dateStyle: "short", timeStyle: "short" })}</p>
                     {answerText(row) && <p className="mt-0.5 text-xs text-muted-foreground break-words">{answerText(row)}</p>}
-                    {row.missing.length > 0 && <p className="mt-0.5 text-xs text-amber-500">Brakuje: {row.missing.map((item) => item.label).join(", ")} — uzupełnisz przy akceptacji.</p>}
+                    {row.missing.length > 0 && <p className="mt-0.5 text-xs text-amber-500">{t("registrationPanel.brakuje")}{" "}{row.missing.map((item) => item.label).join(", ")}{" "}{t("registrationPanel.uzupelnisz_przy_akceptacji")}</p>}
                   </div>
                   <div className="flex shrink-0 gap-2">
                     <Button size="sm" disabled={busy === `r${row.id}`}
                       onClick={() => (row.missing.length ? setCompleting({ id: row.id, values: {} }) : void approve(row))}>
-                      <Check aria-hidden="true" className="mr-1.5 h-3.5 w-3.5" /> Zatwierdź
-                    </Button>
+                      <Check aria-hidden="true" className="mr-1.5 h-3.5 w-3.5" />{" "}{t("registrationPanel.zatwierdz")}</Button>
                     <Button size="sm" variant="outline" disabled={busy === `r${row.id}`} onClick={() => setRejecting(row)}>
-                      <X aria-hidden="true" className="mr-1.5 h-3.5 w-3.5" /> Odrzuć
-                    </Button>
+                      <X aria-hidden="true" className="mr-1.5 h-3.5 w-3.5" />{" "}{t("registrationPanel.odrzuc")}</Button>
                   </div>
                 </div>
                 {completing?.id === row.id && (
@@ -286,8 +274,8 @@ export function RegistrationPanel({
                       values={completing.values} idPrefix={`registration-${row.id}`}
                       onChange={(key, value) => setCompleting({ id: row.id, values: { ...completing.values, [key]: value } })} />
                     <div className="flex gap-2">
-                      <Button type="submit" size="sm" disabled={busy === `r${row.id}`}>Zatwierdź z uzupełnieniem</Button>
-                      <Button type="button" size="sm" variant="ghost" onClick={() => setCompleting(null)}>Anuluj</Button>
+                      <Button type="submit" size="sm" disabled={busy === `r${row.id}`}>{t("registrationPanel.zatwierdz_z_uzupelnieniem")}</Button>
+                      <Button type="button" size="sm" variant="ghost" onClick={() => setCompleting(null)}>{t("registrationPanel.anuluj")}</Button>
                     </div>
                   </form>
                 )}
@@ -296,14 +284,13 @@ export function RegistrationPanel({
           </ul>
           {decided.length > 0 && (
             <div>
-              <button type="button" className="text-xs text-muted-foreground underline" aria-expanded={showDecided} onClick={() => setShowDecided((value) => !value)}>
-                Rozpatrzone ({decided.length})
+              <button type="button" className="text-xs text-muted-foreground underline" aria-expanded={showDecided} onClick={() => setShowDecided((value) => !value)}>{t("registrationPanel.rozpatrzone")}{decided.length})
               </button>
               {showDecided && (
                 <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
                   {decided.map((row) => (
                     <li key={row.id}>
-                      <span className="text-foreground">{row.name}</span> — {row.status === "approved" ? (row.onList ? "na liście" : "przyjęte, później usunięte z listy") : "odrzucone"}
+                      <span className="text-foreground">{row.name}</span> — {row.status === "approved" ? (row.onList ? t("registrationPanel.na_liscie") : t("registrationPanel.przyjete_pozniej_usuniete_z_listy")) : t("registrationPanel.odrzucone")}
                       {row.decidedBy ? ` · ${row.decidedBy}` : ""}
                     </li>
                   ))}
@@ -317,12 +304,12 @@ export function RegistrationPanel({
       <AlertDialog open={!!rejecting} onOpenChange={(open) => { if (!open) setRejecting(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Odrzucić zgłoszenie „{rejecting?.name}”?</AlertDialogTitle>
-            <AlertDialogDescription>Osoba nie trafi na listę. Decyzji nie można cofnąć — w razie pomyłki dodaj ją ręcznie albo poproś o ponowne zgłoszenie.</AlertDialogDescription>
+            <AlertDialogTitle>{t("registrationPanel.odrzucic_zgloszenie")}{rejecting?.name}”?</AlertDialogTitle>
+            <AlertDialogDescription>{t("registrationPanel.osoba_nie_trafi_na_liste")}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Anuluj</AlertDialogCancel>
-            <AlertDialogAction onClick={() => { const row = rejecting; setRejecting(null); if (row) void reject(row); }}>Odrzuć</AlertDialogAction>
+            <AlertDialogCancel>{t("registrationPanel.anuluj")}</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { const row = rejecting; setRejecting(null); if (row) void reject(row); }}>{t("registrationPanel.odrzuc")}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

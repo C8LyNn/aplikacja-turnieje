@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { useState } from "react";
 import { CopyLinkButton } from "./copy-link-button";
 import { ShareLinkButton } from "./share-link-button";
@@ -33,22 +34,22 @@ type Visibility = "public_online" | "private_online" | "private_offline";
 
 const VISIBILITY_INFO: Record<Visibility, { label: string; icon: React.ReactNode; desc: string; badge: string }> = {
   public_online: {
-    label: "Publiczny online",
+    get label() { return t("sharingPanel.publiczny_online"); },
     icon: <Globe className="w-4 h-4 text-green-400" />,
-    desc: "Widz może wejść przez link bez hasła. Turniej widoczny na dashboardzie.",
-    badge: "Publiczny",
+    get desc() { return t("sharingPanel.widz_moze_wejsc_przez_link"); },
+    get badge() { return t("sharingPanel.publiczny"); },
   },
   private_online: {
-    label: "Prywatny online",
+    get label() { return t("sharingPanel.prywatny_online"); },
     icon: <Lock className="w-4 h-4 text-yellow-400" />,
-    desc: "Dostępny przez link, ale widz musi podać hasło widza. Widoczny na dashboardzie.",
-    badge: "Chroniony hasłem",
+    get desc() { return t("sharingPanel.dostepny_przez_link_ale_widz"); },
+    get badge() { return t("sharingPanel.chroniony_haslem"); },
   },
   private_offline: {
-    label: "Ukryty (prywatny offline)",
+    get label() { return t("sharingPanel.ukryty_prywatny_offline"); },
     icon: <EyeOff className="w-4 h-4 text-red-400" />,
-    desc: "Niewidoczny na dashboardzie. Dostępny tylko dla organizatora i wsparcia przez bezpośredni link.",
-    badge: "Ukryty",
+    get desc() { return t("sharingPanel.niewidoczny_na_dashboardzie_dostepny_tyl"); },
+    get badge() { return t("sharingPanel.ukryty"); },
   },
 };
 
@@ -61,7 +62,7 @@ function LinkRow({ label, url, icon }: { label: string; url: string; icon: React
       </div>
       <div className="flex flex-wrap items-center gap-2 bg-muted/40 rounded-lg px-3 py-2 border border-border/50">
         <span className="text-xs text-foreground/80 truncate flex-1 font-mono">{url}</span>
-        <CopyLinkButton text={url} label={`Kopiuj: ${label}`} />
+        <CopyLinkButton text={url} label={t("sharingPanel.kopiuj_label", { label: label })} />
       </div>
     </div>
   );
@@ -169,38 +170,37 @@ export function SharingPanel({ tournament, orgToken }: Props) {
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between">
             <CardTitle className="text-base flex items-center gap-2">
-              <Link2 className="w-4 h-4" /> Bezpośrednie linki
-            </CardTitle>
+              <Link2 className="w-4 h-4" />{" "}{t("sharingPanel.bezposrednie_linki")}</CardTitle>
             <Badge variant="outline" className="text-xs gap-1">
               {VISIBILITY_INFO[currentVisibility].icon}
               {VISIBILITY_INFO[currentVisibility].badge}
             </Badge>
           </div>
-          <CardDescription>Udostępnij te linki odpowiednim osobom</CardDescription>
+          <CardDescription>{t("sharingPanel.udostepnij_te_linki_odpowiednim_osobom")}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
           {/* QW-06b: the viewer link says what a viewer gets (public / password / hidden) and can go to the share sheet */}
           <div className="space-y-1.5" data-testid="sharing-viewer-link">
             <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
               <Eye className="w-3.5 h-3.5" />
-              {viewerShare.kind === "public" ? "Link widza — publiczny" : viewerShare.kind === "password" ? "Link widza — wymaga hasła widza" : "Link turnieju — widzowie nie mają dostępu"}
+              {viewerShare.kind === "public" ? t("sharingPanel.link_widza_publiczny") : viewerShare.kind === "password" ? t("sharingPanel.link_widza_wymaga_hasla_widza") : t("sharingPanel.link_turnieju_widzowie_nie_maja")}
             </div>
             <div className="flex flex-wrap items-center gap-2 bg-muted/40 rounded-lg px-3 py-2 border border-border/50">
               <span className="text-xs text-foreground/80 truncate flex-1 font-mono">{links.viewer}</span>
-              <CopyLinkButton text={links.viewer} label="Kopiuj: link widza" />
+              <CopyLinkButton text={links.viewer} label={t("sharingPanel.kopiuj_link_widza")} />
               {viewerShare.kind !== "closed" && (
-                <ShareLinkButton target={{ url: links.viewer, title: tournament.name, text: shareText(viewerShare.kind, tournament.name) }} label="Udostępnij link widza" />
+                <ShareLinkButton target={{ url: links.viewer, title: tournament.name, text: shareText(viewerShare.kind, tournament.name) }} label={t("sharingPanel.udostepnij_link_widza")} />
               )}
             </div>
             <p className="text-xs text-muted-foreground">{viewerShare.note}</p>
           </div>
           <LinkRow
-            label="Link organizatora (otwiera okno logowania)"
+            label={t("sharingPanel.link_organizatora_otwiera_okno_logowania")}
             url={links.organizer}
             icon={<Key className="w-3.5 h-3.5" />}
           />
           <LinkRow
-            label="Link wsparcia (otwiera okno logowania wsparcia)"
+            label={t("sharingPanel.link_wsparcia_otwiera_okno_logowania")}
             url={links.support}
             icon={<Shield className="w-3.5 h-3.5" />}
           />
@@ -208,56 +208,52 @@ export function SharingPanel({ tournament, orgToken }: Props) {
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
-                <Tv2 className="w-3.5 h-3.5" />
-                Projektor OBS (Browser Source)
-              </div>
+                <Tv2 className="w-3.5 h-3.5" />{t("sharingPanel.projektor_obs_browser_source")}</div>
               <button
                 type="button"
                 className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
                 onClick={() => setShowObsConfig(v => !v)}
               >
                 {showObsConfig ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
-                {showObsConfig ? "Zwiń" : "Konfiguruj"}
+                {showObsConfig ? t("sharingPanel.zwin") : t("sharingPanel.konfiguruj")}
               </button>
             </div>
             <div className="flex flex-wrap items-center gap-2 bg-muted/40 rounded-lg px-3 py-2 border border-border/50">
               <span className="text-xs text-foreground/80 truncate flex-1 font-mono">{links.projector}</span>
-              <CopyLinkButton text={links.projector} label="Kopiuj link projektora OBS" />
+              <CopyLinkButton text={links.projector} label={t("sharingPanel.kopiuj_link_projektora_obs")} />
             </div>
 
             {showObsConfig && (
               <div className="rounded-lg border border-border bg-muted/20 p-3 space-y-3 mt-1">
-                <p className="text-[11px] text-muted-foreground">
-                  Skonfiguruj wygląd projektora. URL zaktualizuje się automatycznie.
-                </p>
+                <p className="text-[11px] text-muted-foreground">{t("sharingPanel.skonfiguruj_wyglad_projektora_url_zaktua")}</p>
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1">
-                    <Label className="text-[11px]">Preset</Label>
+                    <Label className="text-[11px]">{t("sharingPanel.preset")}</Label>
                     <select
                       className="w-full text-xs rounded-md border border-border bg-background px-2 py-1.5"
                       value={obsPreset}
                       onChange={e => setObsPreset(e.target.value)}
                     >
-                      <option value="classic">Classic</option>
-                      <option value="dark-minimal">Dark Minimal</option>
-                      <option value="deadlock">Deadlock</option>
-                      <option value="neon">Neon</option>
+                      <option value="classic">{t("sharingPanel.classic")}</option>
+                      <option value="dark-minimal">{t("sharingPanel.dark_minimal")}</option>
+                      <option value="deadlock">{t("sharingPanel.deadlock")}</option>
+                      <option value="neon">{t("sharingPanel.neon")}</option>
                     </select>
                   </div>
                   <div className="space-y-1">
-                    <Label className="text-[11px]">Grand Finał</Label>
+                    <Label className="text-[11px]">{t("sharingPanel.grand_final")}</Label>
                     <select
                       className="w-full text-xs rounded-md border border-border bg-background px-2 py-1.5"
                       value={obsFinals}
                       onChange={e => setObsFinals(e.target.value as "upper" | "between")}
                     >
-                      <option value="upper">Przy Upper</option>
-                      <option value="between">Pomiędzy UB i LB</option>
+                      <option value="upper">{t("sharingPanel.przy_upper")}</option>
+                      <option value="between">{t("sharingPanel.pomiedzy_ub_i_lb")}</option>
                     </select>
                   </div>
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-[11px]">Zoom (np. 0.8, 1, 1.2)</Label>
+                  <Label className="text-[11px]">{t("sharingPanel.zoom_np_0_8_1")}</Label>
                   <Input
                     type="number"
                     min={0.3}
@@ -270,10 +266,10 @@ export function SharingPanel({ tournament, orgToken }: Props) {
                 </div>
                 <div className="grid grid-cols-2 gap-2">
                   {[
-                    { key: "obsTransparent", label: "Transparent BG", val: obsTransparent, set: setObsTransparent },
-                    { key: "obsCompact", label: "Compact", val: obsCompact, set: setObsCompact },
-                    { key: "obsHideHeader", label: "Ukryj nagłówek", val: obsHideHeader, set: setObsHideHeader },
-                    { key: "obsShowDrops", label: "Pokaż przejścia UB→LB", val: obsShowDrops, set: setObsShowDrops },
+                    { key: "obsTransparent", label: t("sharingPanel.transparent_bg"), val: obsTransparent, set: setObsTransparent },
+                    { key: "obsCompact", label: t("sharingPanel.compact"), val: obsCompact, set: setObsCompact },
+                    { key: "obsHideHeader", label: t("sharingPanel.ukryj_naglowek"), val: obsHideHeader, set: setObsHideHeader },
+                    { key: "obsShowDrops", label: t("sharingPanel.pokaz_przejscia_ub_lb"), val: obsShowDrops, set: setObsShowDrops },
                   ].map(({ key, label, val, set }) => (
                     <label key={key} className="flex items-center gap-1.5 cursor-pointer">
                       <input
@@ -292,12 +288,10 @@ export function SharingPanel({ tournament, orgToken }: Props) {
                     target="_blank"
                     rel="noreferrer"
                     className="text-[11px] text-primary underline-offset-2 hover:underline"
-                  >
-                    Otwórz w nowej karcie ↗
-                  </a>
+                  >{t("sharingPanel.otworz_w_nowej_karcie")}</a>
                   <span className="text-muted-foreground/40 text-[11px]">·</span>
-                  <CopyLinkButton text={links.projector} label="Kopiuj link projektora OBS" />
-                  <span className="text-[11px] text-muted-foreground/60">Skopiuj URL do OBS</span>
+                  <CopyLinkButton text={links.projector} label={t("sharingPanel.kopiuj_link_projektora_obs")} />
+                  <span className="text-[11px] text-muted-foreground/60">{t("sharingPanel.skopiuj_url_do_obs")}</span>
                 </div>
               </div>
             )}
@@ -311,9 +305,8 @@ export function SharingPanel({ tournament, orgToken }: Props) {
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
-            <Globe className="w-4 h-4" /> Tryb widoczności
-          </CardTitle>
-          <CardDescription>Kontroluj kto może zobaczyć turniej</CardDescription>
+            <Globe className="w-4 h-4" />{" "}{t("sharingPanel.tryb_widocznosci")}</CardTitle>
+          <CardDescription>{t("sharingPanel.kontroluj_kto_moze_zobaczyc_turniej")}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSaveVisibility} className="space-y-4">
@@ -346,7 +339,7 @@ export function SharingPanel({ tournament, orgToken }: Props) {
                       {meta.label}
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">{meta.desc}</p>
-                    {hideLocked && <p className="text-xs text-amber-400 mt-0.5">Po rozpoczęciu turnieju nie można go ukryć.</p>}
+                    {hideLocked && <p className="text-xs text-amber-400 mt-0.5">{t("sharingPanel.po_rozpoczeciu_turnieju_nie_mozna")}</p>}
                   </div>
                 </label>
                 );
@@ -355,15 +348,14 @@ export function SharingPanel({ tournament, orgToken }: Props) {
 
             {newVisibility === "private_online" && (visibilityChanged || !tournament.hasViewerPassword) && (
               <div className="space-y-1.5">
-                <Label>
-                  Hasło widza {!tournament.hasViewerPassword && <span className="text-red-400">*</span>}
+                <Label>{t("sharingPanel.haslo_widza")}{" "}{!tournament.hasViewerPassword && <span className="text-red-400">*</span>}
                 </Label>
                 <div className="relative">
                   <Input
                     type={showViewerPass ? "text" : "password"}
                     value={viewerPass}
                     onChange={(e) => setViewerPass(e.target.value)}
-                    placeholder="Ustaw hasło dla widzów..."
+                    placeholder={t("sharingPanel.ustaw_haslo_dla_widzow")}
                     className="pr-10"
                     required={requiresViewerPass && !tournament.hasViewerPassword}
                   />
@@ -376,7 +368,7 @@ export function SharingPanel({ tournament, orgToken }: Props) {
                   </button>
                 </div>
                 {tournament.hasViewerPassword && (
-                  <p className="text-xs text-muted-foreground">Zostaw puste, aby zachować obecne hasło widza.</p>
+                  <p className="text-xs text-muted-foreground">{t("sharingPanel.zostaw_puste_aby_zachowac_obecne")}</p>
                 )}
               </div>
             )}
@@ -389,13 +381,11 @@ export function SharingPanel({ tournament, orgToken }: Props) {
             )}
             {saveSuccess && (
               <div className="flex items-center gap-2 text-sm text-green-400 bg-green-500/10 border border-green-500/20 rounded-lg px-3 py-2">
-                <Check className="w-4 h-4 shrink-0" />
-                Zapisano pomyślnie.
-              </div>
+                <Check className="w-4 h-4 shrink-0" />{t("sharingPanel.zapisano_pomyslnie")}</div>
             )}
 
             <Button type="submit" disabled={saving || (!visibilityChanged && !viewerPass)} className="w-full">
-              {saving ? "Zapisywanie…" : "Zapisz ustawienia widoczności"}
+              {saving ? t("sharingPanel.zapisywanie") : t("sharingPanel.zapisz_ustawienia_widocznosci")}
             </Button>
           </form>
         </CardContent>
@@ -406,20 +396,19 @@ export function SharingPanel({ tournament, orgToken }: Props) {
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
-              <Lock className="w-4 h-4" /> Zmień hasło widza
-            </CardTitle>
-            <CardDescription>Poprzednie tokeny widzów zostaną unieważnione</CardDescription>
+              <Lock className="w-4 h-4" />{" "}{t("sharingPanel.zmien_haslo_widza")}</CardTitle>
+            <CardDescription>{t("sharingPanel.poprzednie_tokeny_widzow_zostana_uniewaz")}</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleChangeViewerPassword} className="space-y-4">
               <div className="space-y-1.5">
-                <Label>Nowe hasło widza</Label>
+                <Label>{t("sharingPanel.nowe_haslo_widza")}</Label>
                 <div className="relative">
                   <Input
                     type={showNewVPw ? "text" : "password"}
                     value={newViewerPw}
                     onChange={(e) => setNewViewerPw(e.target.value)}
-                    placeholder="Nowe hasło widza..."
+                    placeholder={t("sharingPanel.nowe_haslo_widza_2")}
                     className="pr-10"
                     minLength={8}
                   />
@@ -440,12 +429,10 @@ export function SharingPanel({ tournament, orgToken }: Props) {
               )}
               {vPwSuccess && (
                 <div className="flex items-center gap-2 text-sm text-green-400 bg-green-500/10 border border-green-500/20 rounded-lg px-3 py-2">
-                  <Check className="w-4 h-4 shrink-0" />
-                  Hasło widza zostało zmienione.
-                </div>
+                  <Check className="w-4 h-4 shrink-0" />{t("sharingPanel.haslo_widza_zostalo_zmienione")}</div>
               )}
               <Button type="submit" disabled={changingVPw || newViewerPw.length < 8} variant="outline" className="w-full">
-                {changingVPw ? "Zmienianie…" : "Zmień hasło widza"}
+                {changingVPw ? t("sharingPanel.zmienianie") : t("sharingPanel.zmien_haslo_widza")}
               </Button>
             </form>
           </CardContent>

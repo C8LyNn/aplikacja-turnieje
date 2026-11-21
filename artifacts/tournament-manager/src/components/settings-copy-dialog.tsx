@@ -1,5 +1,6 @@
 // QW-09 · "Nowy turniej z tymi ustawieniami": one dialog for both views. The summary comes from the server, so the
 // dialog never guesses what will be copied; the new tournament opens in the same view the organizer is using.
+import { t } from "@/i18n";
 import { useEffect, useRef, useState } from "react";
 import { useLocation } from "wouter";
 import { CopyPlus } from "lucide-react";
@@ -48,7 +49,7 @@ export function SettingsCopyDialog({ tournamentId, experimental, open, onOpenCha
     setSummary(null); setForm(null); setLoadError(null); setProblem(null);
     fetchSettingsCopy(tournamentId).then(
       (value) => { if (alive) { setSummary(value); setForm(initialCopyForm(value)); } },
-      (error) => { if (alive) setLoadError(registrationErrorMessage(error, "Nie udało się wczytać ustawień turnieju.")); },
+      (error) => { if (alive) setLoadError(registrationErrorMessage(error, t("settingsCopyDialog.nie_udalo_sie_wczytac_ustawien"))); },
     );
     return () => { alive = false; };
   }, [open, tournamentId]);
@@ -76,7 +77,7 @@ export function SettingsCopyDialog({ tournamentId, experimental, open, onOpenCha
       onOpenChange(false);
       navigate(tournamentHref(created.id, experimental));
     } catch (error) {
-      setProblem(registrationErrorMessage(error, "Nie udało się utworzyć turnieju. Sprawdź połączenie i spróbuj ponownie."));
+      setProblem(registrationErrorMessage(error, t("settingsCopyDialog.nie_udalo_sie_utworzyc_turnieju")));
     } finally {
       setBusy(false);
     }
@@ -86,71 +87,68 @@ export function SettingsCopyDialog({ tournamentId, experimental, open, onOpenCha
     <Dialog open={open} onOpenChange={(value) => { if (!busy) onOpenChange(value); }}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Nowy turniej z tymi ustawieniami</DialogTitle>
-          <DialogDescription>
-            Kolejny event z tym samym formatem i zasadami. Bez uczestników, wyników i historii.
-          </DialogDescription>
+          <DialogTitle>{t("settingsCopyDialog.nowy_turniej_z_tymi_ustawieniami")}</DialogTitle>
+          <DialogDescription>{t("settingsCopyDialog.kolejny_event_z_tym_samym")}</DialogDescription>
         </DialogHeader>
         {loadError && <p role="alert" className="text-sm text-destructive" data-testid="settings-copy-error">{loadError}</p>}
-        {!loadError && (!summary || !form) && <p className="text-sm text-muted-foreground" role="status">Wczytywanie ustawień…</p>}
+        {!loadError && (!summary || !form) && <p className="text-sm text-muted-foreground" role="status">{t("settingsCopyDialog.wczytywanie_ustawien")}</p>}
         {summary && form && (
           <form onSubmit={submit} className="space-y-4" noValidate data-testid="settings-copy-form">
             <div className="grid gap-3 sm:grid-cols-2 text-sm" data-testid="settings-copy-summary">
               <div>
-                <p className="font-semibold mb-1">Skopiujemy</p>
+                <p className="font-semibold mb-1">{t("settingsCopyDialog.skopiujemy")}</p>
                 <ul className="list-disc pl-5 space-y-0.5 text-muted-foreground">
                   {copiedLines(summary).map((line) => <li key={line}>{line}</li>)}
                 </ul>
               </div>
               <div>
-                <p className="font-semibold mb-1">Nie kopiujemy</p>
+                <p className="font-semibold mb-1">{t("settingsCopyDialog.nie_kopiujemy")}</p>
                 <ul className="list-disc pl-5 space-y-0.5 text-muted-foreground">
                   {summary.notCopied.map((line) => <li key={line}>{line}</li>)}
                 </ul>
               </div>
             </div>
             <div className="space-y-1.5">
-              <Label htmlFor="settings-copy-name">Nazwa nowego turnieju *</Label>
-              <Input id="settings-copy-name" ref={nameRef} value={form.name} maxLength={200} placeholder={`np. ${summary.sourceName} — kolejna edycja`}
+              <Label htmlFor="settings-copy-name">{t("settingsCopyDialog.nazwa_nowego_turnieju")}</Label>
+              <Input id="settings-copy-name" ref={nameRef} value={form.name} maxLength={200} placeholder={t("settingsCopyDialog.np_sourcename_kolejna_edycja", { sourceName: summary.sourceName })}
                 onChange={(event) => update({ name: event.target.value })} />
             </div>
             {summary.mode === "plan" && (
               <div className="space-y-1.5">
-                <Label htmlFor="settings-copy-participantCount">Liczba uczestników</Label>
+                <Label htmlFor="settings-copy-participantCount">{t("settingsCopyDialog.liczba_uczestnikow")}</Label>
                 {resizableCount ? (
                   <Input id="settings-copy-participantCount" inputMode="numeric" value={form.participantCount}
                     min={COPY_PARTICIPANTS.min} max={COPY_PARTICIPANTS.max} onChange={(event) => update({ participantCount: event.target.value })} />
                 ) : (
                   <p id="settings-copy-participantCount" className="text-sm text-muted-foreground">
-                    {summary.participantCount} — jak poprzednio. Plan kilku etapów kopiujemy bez zmian; inną liczbę ustawisz w kreatorze.
-                  </p>
+                    {summary.participantCount}{" "}{t("settingsCopyDialog.jak_poprzednio_plan_kilku_etapow")}</p>
                 )}
               </div>
             )}
             <div className="space-y-1.5">
-              <Label htmlFor="settings-copy-visibility">Widoczność</Label>
+              <Label htmlFor="settings-copy-visibility">{t("settingsCopyDialog.widocznosc")}</Label>
               <select id="settings-copy-visibility" value={form.visibility}
                 className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                 onChange={(event) => update({ visibility: event.target.value as SettingsCopyForm["visibility"] })}>
                 {COPY_VISIBILITY_OPTIONS.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
               </select>
             </div>
-            <PasswordField id="settings-copy-organizerPassword" label="Hasło organizatora nowego turnieju *" value={form.organizerPassword}
+            <PasswordField id="settings-copy-organizerPassword" label={t("settingsCopyDialog.haslo_organizatora_nowego_turnieju")} value={form.organizerPassword}
               onChange={(value) => update({ organizerPassword: value })} visible={show.organizer}
               onToggle={() => setShow((value) => ({ ...value, organizer: !value.organizer }))} minLength={ORGANIZER_PASSWORD_MIN_LENGTH}
-              description="Nowy turniej ma własne hasła — możesz wpisać to samo co poprzednio." />
+              description={t("settingsCopyDialog.nowy_turniej_ma_wlasne_hasla")} />
             {form.visibility === "private_online" && (
-              <PasswordField id="settings-copy-viewerPassword" label="Hasło widza *" value={form.viewerPassword}
+              <PasswordField id="settings-copy-viewerPassword" label={t("settingsCopyDialog.haslo_widza")} value={form.viewerPassword}
                 onChange={(value) => update({ viewerPassword: value })} visible={show.viewer}
                 onToggle={() => setShow((value) => ({ ...value, viewer: !value.viewer }))} />
             )}
-            <PasswordField id="settings-copy-supportPassword" label="Hasło wsparcia (opcjonalne)" value={form.supportPassword}
+            <PasswordField id="settings-copy-supportPassword" label={t("settingsCopyDialog.haslo_wsparcia_opcjonalne")} value={form.supportPassword}
               onChange={(value) => update({ supportPassword: value })} visible={show.support}
               onToggle={() => setShow((value) => ({ ...value, support: !value.support }))} />
             {problem && <p role="alert" className="text-sm text-destructive" data-testid="settings-copy-error">{problem}</p>}
             <DialogFooter className="gap-2">
-              <Button type="button" variant="outline" disabled={busy} onClick={() => onOpenChange(false)}>Anuluj</Button>
-              <Button type="submit" disabled={busy}>{busy ? "Tworzenie…" : "Utwórz turniej"}</Button>
+              <Button type="button" variant="outline" disabled={busy} onClick={() => onOpenChange(false)}>{t("settingsCopyDialog.anuluj")}</Button>
+              <Button type="submit" disabled={busy}>{busy ? t("settingsCopyDialog.tworzenie") : t("settingsCopyDialog.utworz_turniej")}</Button>
             </DialogFooter>
           </form>
         )}
@@ -165,12 +163,9 @@ export function SettingsCopyCard({ tournamentId, experimental, autoOpen = false 
   return (
     <section className="rounded-lg border border-border bg-card p-4" aria-labelledby="settings-copy-heading" data-testid="settings-copy-card">
       <h2 id="settings-copy-heading" className="text-base font-semibold flex items-center gap-2">
-        <CopyPlus className="h-4 w-4 text-primary" aria-hidden="true" /> Następny turniej
-      </h2>
-      <p className="mt-1 text-sm text-muted-foreground">
-        Utwórz kolejny event z tym samym formatem, zasadami i polami uczestników — bez uczestników, wyników i historii.
-      </p>
-      <Button className="mt-3" variant="outline" onClick={() => setOpen(true)}>Nowy turniej z tymi ustawieniami</Button>
+        <CopyPlus className="h-4 w-4 text-primary" aria-hidden="true" />{" "}{t("settingsCopyDialog.nastepny_turniej")}</h2>
+      <p className="mt-1 text-sm text-muted-foreground">{t("settingsCopyDialog.utworz_kolejny_event_z_tym")}</p>
+      <Button className="mt-3" variant="outline" onClick={() => setOpen(true)}>{t("settingsCopyDialog.nowy_turniej_z_tymi_ustawieniami")}</Button>
       <SettingsCopyDialog tournamentId={tournamentId} experimental={experimental} open={open} onOpenChange={setOpen} />
     </section>
   );

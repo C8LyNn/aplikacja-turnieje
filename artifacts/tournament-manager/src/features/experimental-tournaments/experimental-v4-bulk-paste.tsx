@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 /**
  * SWARM-006 UX v4 — paste a whole participant list, see every problem before saving.
  * Accepts one nick per line, numbered lists, Excel/Sheets columns (tab) and CSV with
@@ -86,20 +87,19 @@ export function ExperimentalBulkPaste({
     return (
       <section className="experimental-v4-bulk" aria-labelledby={`${id}-done`}>
         <p id={`${id}-done`} className="experimental-v4-bulk-done" role="status">
-          <CheckCircle2 className="h-5 w-5" aria-hidden="true" />
-          Dodano {teams ? plural(outcome.imported ?? 0, "drużynę", "drużyny", "drużyn") : plural(outcome.imported ?? 0, "zawodnika", "zawodników", "zawodników")}
-          {outcome.replacedCount ? ` · usunięto poprzednich: ${outcome.replacedCount}` : ""}
-          {outcome.skipped ? ` · pominięto: ${outcome.skipped}` : ""}
+          <CheckCircle2 className="h-5 w-5" aria-hidden="true" />{t("experimentalV4BulkPaste.dodano")}{" "}{teams ? plural(outcome.imported ?? 0, t("experimentalV4BulkPaste.druzyne"), t("experimentalV4BulkPaste.druzyny"), t("experimentalV4BulkPaste.druzyn")) : plural(outcome.imported ?? 0, t("experimentalV4BulkPaste.zawodnika"), t("experimentalV4BulkPaste.zawodnikow"), t("experimentalV4BulkPaste.zawodnikow"))}
+          {outcome.replacedCount ? t("experimentalV4BulkPaste.usunieto_poprzednich_replacedcount", { replacedCount: outcome.replacedCount }) : ""}
+          {outcome.skipped ? t("experimentalV4BulkPaste.pominieto_skipped", { skipped: outcome.skipped }) : ""}
         </p>
-        {outcome.limitExceeded ? <p className="experimental-v4-bulk-warn"><AlertTriangle className="h-4 w-4" aria-hidden="true" />Osiągnięto limit miejsc — część listy nie została dodana.</p> : null}
+        {outcome.limitExceeded ? <p className="experimental-v4-bulk-warn"><AlertTriangle className="h-4 w-4" aria-hidden="true" />{t("experimentalV4BulkPaste.osiagnieto_limit_miejsc_czesc_listy")}</p> : null}
         {outcome.errors?.length ? (
           <ul className="experimental-v4-bulk-errors" role="list">
             {outcome.errors.map((error, index) => <li key={index}><strong>{error.content}</strong> — {error.reason}</li>)}
           </ul>
         ) : null}
         <div className="experimental-v4-bulk-actions">
-          <button type="button" className="experimental-v4-btn" onClick={() => setOutcome(null)}>Wklej kolejną listę</button>
-          <button type="button" className="experimental-v4-btn" data-variant="ghost" onClick={onClose}>Zamknij</button>
+          <button type="button" className="experimental-v4-btn" onClick={() => setOutcome(null)}>{t("experimentalV4BulkPaste.wklej_kolejna_liste")}</button>
+          <button type="button" className="experimental-v4-btn" data-variant="ghost" onClick={onClose}>{t("experimentalV4BulkPaste.zamknij")}</button>
         </div>
       </section>
     );
@@ -108,14 +108,13 @@ export function ExperimentalBulkPaste({
   return (
     <section className="experimental-v4-bulk" aria-labelledby={`${id}-title`}>
       <div className="experimental-v4-bulk-head">
-        <h3 id={`${id}-title`} className="experimental-v4-bulk-title"><ClipboardPaste className="h-4 w-4" aria-hidden="true" />Wklej listę uczestników</h3>
+        <h3 id={`${id}-title`} className="experimental-v4-bulk-title"><ClipboardPaste className="h-4 w-4" aria-hidden="true" />{t("experimentalV4BulkPaste.wklej_liste_uczestnikow")}</h3>
         <input ref={fileRef} type="file" accept=".csv,.txt,.tsv" className="sr-only" tabIndex={-1} onChange={loadFile} aria-hidden="true" />
         <button type="button" className="experimental-v4-btn" data-variant="ghost" onClick={() => fileRef.current?.click()}>
-          <FileUp className="h-4 w-4" aria-hidden="true" />Wczytaj plik
-        </button>
+          <FileUp className="h-4 w-4" aria-hidden="true" />{t("experimentalV4BulkPaste.wczytaj_plik")}</button>
       </div>
       <label htmlFor={`${id}-text`} className="experimental-v4-muted">
-        {teams ? "Jedna drużyna w wierszu. Możesz wkleić kolumny z arkusza (nazwa, rozstawienie) albo CSV z nagłówkiem. Składy uzupełnisz poniżej." : "Jeden zawodnik w wierszu. Możesz wkleić kolumny z arkusza (nick, drużyna, rozstawienie) albo CSV z nagłówkiem."}
+        {teams ? t("experimentalV4BulkPaste.jedna_druzyna_w_wierszu_mozesz") : t("experimentalV4BulkPaste.jeden_zawodnik_w_wierszu_mozesz")}
       </label>
       <textarea
         id={`${id}-text`}
@@ -124,66 +123,64 @@ export function ExperimentalBulkPaste({
         onChange={(event) => { setText(event.target.value); setConfirmReplace(false); }}
         rows={7}
         spellCheck={false}
-        placeholder={"Kowalski\nNowak\tTeam Alfa\t3\nWiśniewska"}
+        placeholder={t("experimentalV4BulkPaste.kowalski_nowak_team_alfa_3")}
         aria-describedby={`${id}-summary`}
       />
 
       {hasPlayers ? (
         <fieldset className="experimental-v4-bulk-mode">
-          <legend className="experimental-v4-kicker">Co zrobić z obecną listą ({existingNames.length})?</legend>
-          <label><input type="radio" name={`${id}-mode`} checked={mode === "append"} onChange={() => { setMode("append"); setConfirmReplace(false); }} /> Dopisz do listy</label>
-          <label><input type="radio" name={`${id}-mode`} checked={mode === "replace"} onChange={() => { setMode("replace"); setConfirmReplace(false); }} /> Zastąp całą listę</label>
+          <legend className="experimental-v4-kicker">{t("experimentalV4BulkPaste.co_zrobic_z_obecna_lista")}{existingNames.length})?</legend>
+          <label><input type="radio" name={`${id}-mode`} checked={mode === "append"} onChange={() => { setMode("append"); setConfirmReplace(false); }} />{" "}{t("experimentalV4BulkPaste.dopisz_do_listy")}</label>
+          <label><input type="radio" name={`${id}-mode`} checked={mode === "replace"} onChange={() => { setMode("replace"); setConfirmReplace(false); }} />{" "}{t("experimentalV4BulkPaste.zastap_cala_liste")}</label>
         </fieldset>
       ) : null}
 
       {parsed.rows.length > 0 ? (
         <>
           <div id={`${id}-summary`} className="experimental-v4-bulk-summary" role="status" aria-live="polite">
-            <span className="experimental-v4-chip" data-tone="success"><CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />{plural(toAdd, "do dodania", "do dodania", "do dodania")}</span>
-            {parsed.invalid.length ? <span className="experimental-v4-chip" data-tone="danger"><AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />{plural(parsed.invalid.length, "wiersz z błędem", "wiersze z błędem", "wierszy z błędem")}</span> : null}
-            {parsed.overCapacity ? <span className="experimental-v4-chip" data-tone="warning"><AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />{plural(parsed.overCapacity, "nie zmieści się", "nie zmieszczą się", "nie zmieści się")} (limit {maxPlayers ?? 256})</span> : null}
-            {parsed.headerDetected ? <span className="experimental-v4-chip" data-tone="info">Nagłówek rozpoznany</span> : null}
+            <span className="experimental-v4-chip" data-tone="success"><CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />{plural(toAdd, t("experimentalV4BulkPaste.do_dodania"), t("experimentalV4BulkPaste.do_dodania"), t("experimentalV4BulkPaste.do_dodania"))}</span>
+            {parsed.invalid.length ? <span className="experimental-v4-chip" data-tone="danger"><AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />{plural(parsed.invalid.length, t("experimentalV4BulkPaste.wiersz_z_bledem"), t("experimentalV4BulkPaste.wiersze_z_bledem"), t("experimentalV4BulkPaste.wierszy_z_bledem"))}</span> : null}
+            {parsed.overCapacity ? <span className="experimental-v4-chip" data-tone="warning"><AlertTriangle className="h-3.5 w-3.5" aria-hidden="true" />{plural(parsed.overCapacity, t("experimentalV4BulkPaste.nie_zmiesci_sie"), t("experimentalV4BulkPaste.nie_zmieszcza_sie"), t("experimentalV4BulkPaste.nie_zmiesci_sie"))}{" "}{t("experimentalV4BulkPaste.limit")}{" "}{maxPlayers ?? 256})</span> : null}
+            {parsed.headerDetected ? <span className="experimental-v4-chip" data-tone="info">{t("experimentalV4BulkPaste.naglowek_rozpoznany")}</span> : null}
           </div>
           {parsed.invalid.length ? (
             <div className="experimental-v4-bulk-actions">
-              <label className="experimental-v4-bulk-toggle"><input type="checkbox" checked={onlyErrors} onChange={(event) => setOnlyErrors(event.target.checked)} /> Pokaż tylko błędy</label>
-              <button type="button" className="experimental-v4-btn" data-variant="ghost" onClick={removeInvalid}><Trash2 className="h-4 w-4" aria-hidden="true" />Usuń błędne wiersze</button>
+              <label className="experimental-v4-bulk-toggle"><input type="checkbox" checked={onlyErrors} onChange={(event) => setOnlyErrors(event.target.checked)} />{" "}{t("experimentalV4BulkPaste.pokaz_tylko_bledy")}</label>
+              <button type="button" className="experimental-v4-btn" data-variant="ghost" onClick={removeInvalid}><Trash2 className="h-4 w-4" aria-hidden="true" />{t("experimentalV4BulkPaste.usun_bledne_wiersze")}</button>
             </div>
           ) : null}
-          <div className="experimental-v4-bulk-table" tabIndex={0} role="region" aria-label="Podgląd wklejonej listy">
+          <div className="experimental-v4-bulk-table" tabIndex={0} role="region" aria-label={t("experimentalV4BulkPaste.podglad_wklejonej_listy")}>
             <table>
-              <thead><tr><th scope="col">Wiersz</th><th scope="col">Nick</th><th scope="col">Drużyna</th><th scope="col">Rozst.</th><th scope="col">Stan</th></tr></thead>
+              <thead><tr><th scope="col">{t("experimentalV4BulkPaste.wiersz")}</th><th scope="col">{t("experimentalV4BulkPaste.nick")}</th><th scope="col">{t("experimentalV4BulkPaste.druzyna")}</th><th scope="col">{t("experimentalV4BulkPaste.rozst")}</th><th scope="col">{t("experimentalV4BulkPaste.stan")}</th></tr></thead>
               <tbody>
                 {rows.slice(0, PREVIEW_LIMIT).map((row) => (
                   <tr key={row.line} data-invalid={row.error ? "true" : undefined}>
                     <td className="tabular-nums">{row.line}</td>
-                    <td>{row.name || <em className="experimental-v4-muted">(pusty)</em>}</td>
+                    <td>{row.name || <em className="experimental-v4-muted">{t("experimentalV4BulkPaste.pusty")}</em>}</td>
                     <td>{row.team}</td>
                     <td className="tabular-nums">
                       {row.seed ?? ""}
-                      {row.autoSeed ? <small className="experimental-v4-muted" title="Rozstawienie nadane automatycznie po wpisanych"> auto</small> : null}
+                      {row.autoSeed ? <small className="experimental-v4-muted" title={t("experimentalV4BulkPaste.rozstawienie_nadane_automatycznie_po_wpi")}>{" "}{t("experimentalV4BulkPaste.auto")}</small> : null}
                     </td>
-                    <td>{row.error ? <span className="experimental-v4-bulk-error">{row.error}</span> : <span className="experimental-v4-bulk-ok">OK</span>}</td>
+                    <td>{row.error ? <span className="experimental-v4-bulk-error">{row.error}</span> : <span className="experimental-v4-bulk-ok">{t("experimentalV4BulkPaste.ok")}</span>}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
-            {rows.length > PREVIEW_LIMIT ? <p className="experimental-v4-muted">Pokazano {PREVIEW_LIMIT} z {rows.length} wierszy.</p> : null}
+            {rows.length > PREVIEW_LIMIT ? <p className="experimental-v4-muted">{t("experimentalV4BulkPaste.pokazano")}{" "}{PREVIEW_LIMIT} z {rows.length}{" "}{t("experimentalV4BulkPaste.wierszy")}</p> : null}
           </div>
         </>
       ) : null}
 
       {confirmReplace ? (
         <p className="experimental-v4-bulk-warn" role="alert">
-          <AlertTriangle className="h-4 w-4" aria-hidden="true" />
-          Obecni zawodnicy ({existingNames.length}) zostaną usunięci i zastąpieni nową listą. Kliknij ponownie, aby potwierdzić.
-        </p>
+          <AlertTriangle className="h-4 w-4" aria-hidden="true" />{t("experimentalV4BulkPaste.obecni_zawodnicy")}{existingNames.length}{t("experimentalV4BulkPaste.zostana_usunieci_i_zastapieni_nowa")}</p>
       ) : null}
       <div className="experimental-v4-bulk-actions">
         <button type="button" className="experimental-v4-btn" data-variant="primary" disabled={!toAdd || pending} onClick={() => void submit()}>
-          {pending ? "Dodawanie…" : confirmReplace ? `Zastąp listę (${toAdd})` : toAdd ? `Dodaj ${teams ? plural(toAdd, "drużynę", "drużyny", "drużyn") : plural(toAdd, "zawodnika", "zawodników", "zawodników")}` : teams ? "Dodaj drużyny" : "Dodaj zawodników"}
+          {pending ? t("experimentalV4BulkPaste.dodawanie") : confirmReplace ? t("experimentalV4BulkPaste.zastap_liste_toadd", { toAdd: toAdd }) : toAdd ? t("experimentalV4BulkPaste.dodaj_v0", { v0: teams ? plural(toAdd, t("experimentalV4BulkPaste.druzyne"), t("experimentalV4BulkPaste.druzyny"), t("experimentalV4BulkPaste.druzyn")) : plural(toAdd, t("experimentalV4BulkPaste.zawodnika"), t("experimentalV4BulkPaste.zawodnikow"), t("experimentalV4BulkPaste.zawodnikow")) }) : teams ? t("experimentalV4BulkPaste.dodaj_druzyny") : t("experimentalV4BulkPaste.dodaj_zawodnikow")}
         </button>
-        <button type="button" className="experimental-v4-btn" data-variant="ghost" onClick={onClose}>Anuluj</button>
+        <button type="button" className="experimental-v4-btn" data-variant="ghost" onClick={onClose}>{t("experimentalV4BulkPaste.anuluj")}</button>
       </div>
     </section>
   );

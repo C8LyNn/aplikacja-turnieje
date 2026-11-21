@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { ShieldCheck } from "lucide-react";
 import { describeSupportPermissions } from "@/lib/organizer-capabilities";
 
@@ -22,10 +23,10 @@ export function SupportPermissionsNote({
     >
       <ShieldCheck aria-hidden="true" className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
       <span>
-        {nick ? <>Jesteś wsparciem jako <strong className="text-foreground">{nick}</strong>. </> : "Jesteś wsparciem. "}
+        {nick ? <>{t("supportPermissionsNote.jestes_wsparciem_jako")}{" "}<strong className="text-foreground">{nick}</strong>. </> : t("supportPermissionsNote.jestes_wsparciem")}
         {allowed.length
-          ? <>Możesz: {allowed.join(", ")}. Pozostałe działania wykonuje organizator.</>
-          : <>Masz tylko podgląd — zmiany wykonuje organizator.</>}
+          ? <>{t("supportPermissionsNote.mozesz")}{" "}{allowed.join(", ")}{t("supportPermissionsNote.pozostale_dzialania_wykonuje_organizator")}</>
+          : <>{t("supportPermissionsNote.masz_tylko_podglad_zmiany_wykonuje")}</>}
       </span>
     </p>
   );

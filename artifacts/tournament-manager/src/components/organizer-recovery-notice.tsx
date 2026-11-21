@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { useId } from "react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -10,12 +11,9 @@ export function OrganizerRecoveryNotice({ tournamentId }: { tournamentId: number
   const descriptionId = useId();
   return (
     <section aria-labelledby={headingId} aria-describedby={descriptionId} className="rounded-lg border border-yellow-500/30 bg-yellow-500/10 p-4 space-y-2">
-      <h2 id={headingId} className="font-semibold">Zabezpiecz dostęp organizatora</h2>
-      <p id={descriptionId} className="text-sm">
-        Ten turniej nie ma hasła organizatora. Po utracie tej sesji nie odzyskasz
-        dostępu samodzielnie. Ustaw i zachowaj hasło, aby wrócić także z innej przeglądarki.
-      </p>
-      <Button asChild size="sm"><Link href={tournamentHref(tournamentId, experimental, "?tab=security")}>Ustaw hasło organizatora</Link></Button>
+      <h2 id={headingId} className="font-semibold">{t("organizerRecoveryNotice.zabezpiecz_dostep_organizatora")}</h2>
+      <p id={descriptionId} className="text-sm">{t("organizerRecoveryNotice.ten_turniej_nie_ma_hasla")}</p>
+      <Button asChild size="sm"><Link href={tournamentHref(tournamentId, experimental, "?tab=security")}>{t("organizerRecoveryNotice.ustaw_haslo_organizatora")}</Link></Button>
     </section>
   );
 }

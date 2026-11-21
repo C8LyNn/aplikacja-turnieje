@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 /**
  * #329 · the public sign-up page of one tournament (/tournaments/:id/zapisy, same in Experimental).
  * No account; the nick becomes the participant name only after the organizer accepts it (or straight away when the
@@ -50,7 +51,7 @@ export default function TournamentSignup() {
       setLoadError(null);
     } catch (failure) {
       const status = (failure as { status?: number }).status;
-      setLoadError({ status, message: registrationErrorMessage(failure, "Nie udało się wczytać zapisów.") });
+      setLoadError({ status, message: registrationErrorMessage(failure, t("tournamentSignup.nie_udalo_sie_wczytac_zapisow")) });
     }
   }, [id]);
   useEffect(() => { if (id > 0 && authReady) void load(); }, [id, authReady, load]);
@@ -63,9 +64,9 @@ export default function TournamentSignup() {
     event.preventDefault();
     if (!page || sending) return;
     const nick = name.replace(/\s+/g, " ").trim();
-    if (!nick) { setError("Podaj nick."); return; }
+    if (!nick) { setError(t("tournamentSignup.podaj_nick")); return; }
     const missing = missingRequired(page.fields, answers);
-    if (missing.length) { setError(`Uzupełnij: ${missing.map((field) => field.label).join(", ")}.`); return; }
+    if (missing.length) { setError(t("tournamentSignup.uzupelnij_v0", { v0: missing.map((field) => field.label).join(", ") })); return; }
     setSending(true); setError(null);
     try {
       const result = await submitRegistration(id, { name: nick, customFields: formValuesToPayload(page.fields, answers), clientToken: token.current });
@@ -89,39 +90,37 @@ export default function TournamentSignup() {
     <Layout>
       <div className="tournament-signup mx-auto w-full max-w-xl">
         {!page && !loadError && (
-          <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" /> Wczytywanie zapisów…</p>
+          <p role="status" className="flex items-center gap-2 text-sm text-muted-foreground"><Loader2 aria-hidden="true" className="h-4 w-4 animate-spin" />{" "}{t("tournamentSignup.wczytywanie_zapisow")}</p>
         )}
         {loadError && (
           <div role="alert" className="rounded-xl border border-border bg-card p-5 space-y-3">
             <p className="flex items-center gap-2 font-semibold"><Lock aria-hidden="true" className="h-4 w-4" />
-              {loadError.status === 403 ? "Turniej jest prywatny — zapisy nie są dostępne pod tym linkiem." : loadError.status === 404 ? "Nie ma takiego turnieju." : loadError.message}
+              {loadError.status === 403 ? t("tournamentSignup.turniej_jest_prywatny_zapisy_nie") : loadError.status === 404 ? t("tournamentSignup.nie_ma_takiego_turnieju") : loadError.message}
             </p>
             {loadError.status === 403 && (
-              <p className="text-sm text-muted-foreground">
-                Jeśli masz hasło widza, podaj je w <Link href={tournamentHref(id, experimental, "/audience")} className="text-primary underline">widoku widza</Link> i wróć tutaj.
-              </p>
+              <p className="text-sm text-muted-foreground">{t("tournamentSignup.jesli_masz_haslo_widza_podaj")}{" "}<Link href={tournamentHref(id, experimental, "/audience")} className="text-primary underline">{t("tournamentSignup.widoku_widza")}</Link>{" "}{t("tournamentSignup.i_wroc_tutaj")}</p>
             )}
-            {loadError.status !== 404 && <Button variant="outline" size="sm" onClick={() => void load()}>Spróbuj ponownie</Button>}
+            {loadError.status !== 404 && <Button variant="outline" size="sm" onClick={() => void load()}>{t("tournamentSignup.sprobuj_ponownie")}</Button>}
           </div>
         )}
         {page && (
           <div className="space-y-5">
             <header className="space-y-1">
-              <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-primary"><ClipboardList aria-hidden="true" className="h-3.5 w-3.5" /> Zapisy</p>
+              <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-primary"><ClipboardList aria-hidden="true" className="h-3.5 w-3.5" />{" "}{t("tournamentSignup.zapisy")}</p>
               <h1 className="text-2xl font-bold break-words">{page.tournament.name}</h1>
               <p className="text-sm text-muted-foreground">{(STAGE_FORMAT_LABELS as Record<string, string>)[page.tournament.format] ?? page.tournament.format}</p>
             </header>
 
-            <section aria-label="Stan zapisów" className="rounded-xl border border-border bg-card p-4 space-y-2" data-state={state}>
+            <section aria-label={t("tournamentSignup.stan_zapisow")} className="rounded-xl border border-border bg-card p-4 space-y-2" data-state={state}>
               <p className="font-semibold" data-testid="signup-state">{REGISTRATION_STATE_TEXT[state!]}</p>
               {canSignUp && page.registration.remaining != null && (
-                <p className="text-sm text-muted-foreground">Wolne miejsca: <strong className="text-foreground">{page.registration.remaining}</strong> z {page.registration.limit}</p>
+                <p className="text-sm text-muted-foreground">{t("tournamentSignup.wolne_miejsca")}{" "}<strong className="text-foreground">{page.registration.remaining}</strong> z {page.registration.limit}</p>
               )}
               {canSignUp && (
                 <p className="text-sm text-muted-foreground">
                   {page.registration.approval === "auto"
-                    ? "Po wysłaniu formularza od razu trafisz na listę uczestników."
-                    : "Zgłoszenie sprawdzi organizator — na liście znajdziesz się po akceptacji."}
+                    ? t("tournamentSignup.po_wyslaniu_formularza_od_razu")
+                    : t("tournamentSignup.zgloszenie_sprawdzi_organizator_na_lisci")}
                 </p>
               )}
               {page.registration.note && <p className="whitespace-pre-line break-words text-sm">{page.registration.note}</p>}
@@ -131,34 +130,31 @@ export default function TournamentSignup() {
               <section role="status" className="rounded-xl border border-primary/40 bg-primary/5 p-5 space-y-3" data-testid="signup-done">
                 <p className="flex items-center gap-2 text-lg font-semibold">
                   {done.registration.status === "approved" ? <CheckCircle2 aria-hidden="true" className="h-5 w-5 text-primary" /> : <Clock aria-hidden="true" className="h-5 w-5 text-primary" />}
-                  {done.registration.status === "approved" ? "Zapis przyjęty" : "Zgłoszenie wysłane"}
+                  {done.registration.status === "approved" ? t("tournamentSignup.zapis_przyjety") : t("tournamentSignup.zgloszenie_wyslane")}
                 </p>
                 <p className="text-sm">{done.message}</p>
-                <p className="text-sm text-muted-foreground">Zgłoszony nick: <strong className="text-foreground break-words">{done.registration.name}</strong></p>
+                <p className="text-sm text-muted-foreground">{t("tournamentSignup.zgloszony_nick")}{" "}<strong className="text-foreground break-words">{done.registration.name}</strong></p>
                 <div className="flex flex-wrap gap-2">
-                  <Button asChild variant="outline" size="sm"><Link href={tournamentLink}>Przejdź do turnieju</Link></Button>
-                  {canSignUp && <Button variant="ghost" size="sm" onClick={another}>Zgłoś kolejną osobę</Button>}
+                  <Button asChild variant="outline" size="sm"><Link href={tournamentLink}>{t("tournamentSignup.przejdz_do_turnieju")}</Link></Button>
+                  {canSignUp && <Button variant="ghost" size="sm" onClick={another}>{t("tournamentSignup.zglos_kolejna_osobe")}</Button>}
                 </div>
               </section>
             ) : canSignUp ? (
               <form onSubmit={submit} className={`space-y-4 rounded-xl border border-border bg-card p-4 ${experimental ? "" : "stable-participant-fields"}`} noValidate>
                 <div className="grid gap-1.5">
-                  <Label htmlFor="signup-name">Nick / nazwa uczestnika <span className="text-destructive" aria-hidden="true">*</span></Label>
-                  <Input id="signup-name" value={name} maxLength={60} autoComplete="nickname" required onChange={(event) => setName(event.target.value)} placeholder="Tak będziesz widoczny w turnieju" />
+                  <Label htmlFor="signup-name">{t("tournamentSignup.nick_nazwa_uczestnika")}{" "}<span className="text-destructive" aria-hidden="true">*</span></Label>
+                  <Input id="signup-name" value={name} maxLength={60} autoComplete="nickname" required onChange={(event) => setName(event.target.value)} placeholder={t("tournamentSignup.tak_bedziesz_widoczny_w_turnieju")} />
                 </div>
                 <ParticipantFieldInputs fields={page.fields} values={answers} idPrefix="signup" onChange={(key, value) => setAnswers((current) => ({ ...current, [key]: value }))} disabled={sending} />
-                <p className="text-xs text-muted-foreground">
-                  Konto nie jest potrzebne. Publicznie widoczny jest tylko nick (i odpowiedzi, które organizator oznaczył jako publiczne);
-                  pola „prywatne” i „obsługa” widzi tylko organizator i jego pomocnicy. Bez e-maila nie da się potwierdzić, kto wysłał zgłoszenie.
-                </p>
+                <p className="text-xs text-muted-foreground">{t("tournamentSignup.konto_nie_jest_potrzebne_publicznie")}</p>
                 {error && <p role="alert" className="rounded-lg bg-destructive/10 px-3 py-2 text-sm text-destructive">{error}</p>}
                 <Button type="submit" className="w-full sm:w-auto" disabled={sending} aria-busy={sending}>
                   {sending ? <Loader2 aria-hidden="true" className="mr-2 h-4 w-4 animate-spin" /> : <UserPlus aria-hidden="true" className="mr-2 h-4 w-4" />}
-                  {sending ? "Wysyłanie…" : "Zapisz się"}
+                  {sending ? t("tournamentSignup.wysylanie") : t("tournamentSignup.zapisz_sie")}
                 </Button>
               </form>
             ) : (
-              <p><Link href={tournamentLink} className="text-sm text-primary underline">Przejdź do turnieju</Link></p>
+              <p><Link href={tournamentLink} className="text-sm text-primary underline">{t("tournamentSignup.przejdz_do_turnieju")}</Link></p>
             )}
           </div>
         )}

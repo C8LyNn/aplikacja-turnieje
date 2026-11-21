@@ -135,8 +135,12 @@ const LOGIC_FUNCTIONS = /^(fetch|navigate|setLocation|require|t|tr|tp|hasKey|Reg
 function deepLogic(node) {
   let p = node.parent;
   let child = node;
-  while (p && (ts.isParenthesizedExpression(p) || ts.isAsExpression(p) || ts.isSatisfiesExpression?.(p) || ts.isTypeAssertionExpression(p))) { child = p; p = p.parent; }
+  while (p && (ts.isParenthesizedExpression(p) || ts.isAsExpression(p) || ts.isSatisfiesExpression?.(p) || ts.isTypeAssertionExpression(p)
+    || (ts.isConditionalExpression(p) && p.condition !== child)
+    || (ts.isBinaryExpression(p) && [ts.SyntaxKind.BarBarToken, ts.SyntaxKind.QuestionQuestionToken].includes(p.operatorToken.kind))
+    || (ts.isBinaryExpression(p) && p.operatorToken.kind === ts.SyntaxKind.AmpersandAmpersandToken && p.right === child))) { child = p; p = p.parent; }
   if (!p) return true;
+  if (isClassList(node.text ?? "")) return true;
   if (ts.isImportDeclaration(p) || ts.isExportDeclaration(p) || ts.isExternalModuleReference(p) || ts.isLiteralTypeNode(p) || ts.isCaseClause(p) || ts.isElementAccessExpression(p)) return true;
   if (ts.isPropertyAssignment(p)) {
     if (p.name === child) return true;
@@ -155,6 +159,8 @@ function deepLogic(node) {
   return false;
 }
 const isPolishVocab = polishDetector(ROOT);
+/** "inline-flex gap-2 text-muted-foreground": a CSS class list, never text. */
+const isClassList = (text) => { const tokens = text.trim().split(/\s+/); return !/[A-ZĄĆĘŁŃÓŚŹŻąćęłńóśźż]/.test(text) && tokens.length >= 1 && tokens.filter((x) => /[-:\/\[]/.test(x)).length / tokens.length >= 0.5 && !/[{}]/.test(text); };
 const isPolishHuman = (text) => looksHuman(text) && (POLISH.test(text) || isPolishVocab(text));
 /** plural(n, "mecz", "mecze", "meczów"): every form is text, also the short lowercase ones looksHuman() would skip. */
 const isPluralFormArg = (node) => ts.isCallExpression(node.parent) && node.parent.arguments.includes(node) && /plural/i.test(node.parent.expression.getText()) && letters(node.text) >= 2;

@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { isDrawResult } from "@/lib/league-results";
 import { standingsHavePoints } from "@/lib/league-results";
 import { Bracket, Match, Standing } from "@workspace/api-client-react";
@@ -11,9 +12,7 @@ interface RoundRobinViewProps {
 export function RoundRobinView({ bracket, standings, hideStandings }: RoundRobinViewProps) {
   if (!bracket?.rounds?.length) {
     return (
-      <div className="flex items-center justify-center py-20 text-muted-foreground border border-dashed border-border rounded-lg bg-background/50">
-        Brak meczów. Wystartuj turniej, żeby zobaczyć terminarz.
-      </div>
+      <div className="flex items-center justify-center py-20 text-muted-foreground border border-dashed border-border rounded-lg bg-background/50">{t("roundRobinView.brak_meczow_wystartuj_turniej_zeby")}</div>
     );
   }
 
@@ -26,29 +25,22 @@ export function RoundRobinView({ bracket, standings, hideStandings }: RoundRobin
       {/* Header */}
       <div className="flex items-center justify-between px-1">
         <div className="flex items-center gap-3">
-          <span className="text-[9px] font-black uppercase tracking-widest text-primary border border-primary/50 rounded px-2 py-0.5 bg-primary/5">
-            LIGA
-          </span>
-          <span className="text-sm font-semibold text-foreground">
-            Każdy z każdym
-          </span>
+          <span className="text-[9px] font-black uppercase tracking-widest text-primary border border-primary/50 rounded px-2 py-0.5 bg-primary/5">{t("roundRobinView.liga")}</span>
+          <span className="text-sm font-semibold text-foreground">{t("roundRobinView.kazdy_z_kazdym")}</span>
         </div>
         <span className="text-xs text-muted-foreground font-mono tabular-nums">
-          {completed} / {total} ukończonych
-        </span>
+          {completed} / {total}{" "}{t("roundRobinView.ukonczonych")}</span>
       </div>
 
       {/* Main layout: matches + standings side by side on desktop */}
       <div className="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-4 items-start">
         {/* Matches grid */}
         <div>
-          <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3 px-1">
-            Terminarz
-          </div>
+          <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3 px-1">{t("roundRobinView.terminarz")}</div>
           <div className="space-y-4">
             {bracket.rounds.map((round) => (
               <section key={round.round}>
-                <div className="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Runda {round.round}</div>
+                <div className="mb-2 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{t("roundRobinView.runda")}{" "}{round.round}</div>
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2">
                   {round.matches.map((match) => <RRMatchCard key={match.id} match={match} />)}
                 </div>
@@ -60,23 +52,21 @@ export function RoundRobinView({ bracket, standings, hideStandings }: RoundRobin
         {/* Standings table */}
         {!hideStandings && (
           <div>
-            <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3 px-1">
-              Klasyfikacja
-            </div>
-            <div className="border border-border/60 rounded-xl overflow-x-auto bg-card/40" role="region" aria-label="Przewijana tabela klasyfikacji" tabIndex={0}>
+            <div className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mb-3 px-1">{t("roundRobinView.klasyfikacja")}</div>
+            <div className="border border-border/60 rounded-xl overflow-x-auto bg-card/40" role="region" aria-label={t("roundRobinView.przewijana_tabela_klasyfikacji")} tabIndex={0}>
               <table className="w-full min-w-[380px] text-xs">
-                <caption className="sr-only">Klasyfikacja graczy — każdy z każdym</caption>
+                <caption className="sr-only">{t("roundRobinView.klasyfikacja_graczy_kazdy_z_kazdym")}</caption>
                 <thead>
                   <tr className="border-b border-border/40 bg-muted/20 text-muted-foreground">
                     <th scope="col" className="py-2 px-2 text-left w-6">#</th>
-                    <th scope="col" className="py-2 px-2 text-left">Gracz</th>
-                    {standingsHavePoints(standings) && <th scope="col" aria-label="Punkty ligowe" className="py-2 px-2 text-center">Pkt</th>}
-                    <th scope="col" aria-label="Rozegrane mecze" className="py-2 px-2 text-center">M</th>
-                    <th scope="col" aria-label="Wygrane mecze" className="py-2 px-2 text-center">W</th>
-                    {standingsHavePoints(standings) && <th scope="col" aria-label="Remisy" className="py-2 px-2 text-center">R</th>}
-                    <th scope="col" aria-label="Przegrane mecze" className="py-2 px-2 text-center">P</th>
-                    <th scope="col" aria-label="Wygrane i przegrane gry" className="py-2 px-2 text-center">Gry</th>
-                    <th scope="col" aria-label="Bilans gier" className="py-2 px-2 text-center">+/−</th>
+                    <th scope="col" className="py-2 px-2 text-left">{t("roundRobinView.gracz")}</th>
+                    {standingsHavePoints(standings) && <th scope="col" aria-label={t("roundRobinView.punkty_ligowe")} className="py-2 px-2 text-center">{t("roundRobinView.pkt")}</th>}
+                    <th scope="col" aria-label={t("roundRobinView.rozegrane_mecze")} className="py-2 px-2 text-center">M</th>
+                    <th scope="col" aria-label={t("roundRobinView.wygrane_mecze")} className="py-2 px-2 text-center">W</th>
+                    {standingsHavePoints(standings) && <th scope="col" aria-label={t("roundRobinView.remisy")} className="py-2 px-2 text-center">R</th>}
+                    <th scope="col" aria-label={t("roundRobinView.przegrane_mecze")} className="py-2 px-2 text-center">P</th>
+                    <th scope="col" aria-label={t("roundRobinView.wygrane_i_przegrane_gry")} className="py-2 px-2 text-center">{t("roundRobinView.gry")}</th>
+                    <th scope="col" aria-label={t("roundRobinView.bilans_gier")} className="py-2 px-2 text-center">+/−</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -114,9 +104,7 @@ export function RoundRobinView({ bracket, standings, hideStandings }: RoundRobin
                     ))
                   ) : (
                     <tr>
-                      <td colSpan={standingsHavePoints(standings) ? 9 : 7} className="py-6 text-center text-muted-foreground">
-                        Brak danych
-                      </td>
+                      <td colSpan={standingsHavePoints(standings) ? 9 : 7} className="py-6 text-center text-muted-foreground">{t("roundRobinView.brak_danych")}</td>
                     </tr>
                   )}
                 </tbody>
@@ -145,15 +133,15 @@ function RRMatchCard({ match }: { match: Match }) {
       <div className="flex items-center justify-between px-2 py-0.5 bg-muted/20 border-b border-border/20">
         <span className="font-mono text-[9px] text-muted-foreground">M{match.matchNumber}</span>
         {isLive && (
-          <span className="text-[8px] font-bold text-yellow-400 animate-pulse tracking-wide">W TOKU</span>
+          <span className="text-[8px] font-bold text-yellow-400 animate-pulse tracking-wide">{t("roundRobinView.w_toku")}</span>
         )}
         {isDone && (
           <span className="text-[8px] text-green-400">
-            {match.resultType === "walkover" ? "walkower" : match.resultType === "no_contest" ? "bez rozstrzygnięcia" : isDrawResult(match) ? "remis" : <><span aria-hidden="true">✓</span><span className="sr-only">Mecz zakończony</span></>}
+            {match.resultType === "walkover" ? t("roundRobinView.walkower") : match.resultType === "no_contest" ? t("roundRobinView.bez_rozstrzygniecia") : isDrawResult(match) ? t("roundRobinView.remis") : <><span aria-hidden="true">✓</span><span className="sr-only">{t("roundRobinView.mecz_zakonczony")}</span></>}
           </span>
         )}
         {!isDone && !isLive && (
-          <span className="text-[8px] text-muted-foreground">oczekuje</span>
+          <span className="text-[8px] text-muted-foreground">{t("roundRobinView.oczekuje")}</span>
         )}
       </div>
 

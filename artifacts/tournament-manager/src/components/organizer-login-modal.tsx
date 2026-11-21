@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/context/auth-context";
 import {
@@ -56,7 +57,7 @@ export function OrganizerLoginModal({ open, onClose, tournamentId, tournamentNam
           setError(
             stateError instanceof Error
               ? stateError.message
-              : "Nie udało się sprawdzić sposobu logowania.",
+              : t("organizerLoginModal.nie_udalo_sie_sprawdzic_sposobu"),
           );
         }
       })
@@ -97,7 +98,7 @@ export function OrganizerLoginModal({ open, onClose, tournamentId, tournamentNam
       setHostCode("");
       onSuccess(token);
     } catch (err: any) {
-      setError(err.message ?? "Nieprawidłowe hasło");
+      setError(err.message ?? t("organizerLoginModal.nieprawidlowe_haslo"));
     } finally {
       submitLock.current = false;
       setLoading(false);
@@ -121,46 +122,33 @@ export function OrganizerLoginModal({ open, onClose, tournamentId, tournamentNam
               <UserCog className="w-5 h-5 text-primary" />
             </div>
             <div>
-              <h2 id="organizer-login-title" className="font-bold text-base">Logowanie organizatora</h2>
+              <h2 id="organizer-login-title" className="font-bold text-base">{t("organizerLoginModal.logowanie_organizatora")}</h2>
               <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{tournamentName}</p>
             </div>
           </div>
           {handleClose && (
-            <button type="button" onClick={handleClose} className="text-muted-foreground hover:text-foreground transition-colors mt-0.5 min-h-11 min-w-11 inline-flex items-center justify-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" aria-label="Zamknij">
+            <button type="button" onClick={handleClose} className="text-muted-foreground hover:text-foreground transition-colors mt-0.5 min-h-11 min-w-11 inline-flex items-center justify-center rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" aria-label={t("organizerLoginModal.zamknij")}>
               <X className="w-4 h-4" />
             </button>
           )}
         </div>
 
         {credentialScreen === "loading" ? (
-          <p className="text-sm text-muted-foreground">Sprawdzanie sposobu logowania…</p>
+          <p className="text-sm text-muted-foreground">{t("organizerLoginModal.sprawdzanie_sposobu_logowania")}</p>
         ) : credentialScreen === "admin_recovery" ? (
-          <p className="text-sm text-muted-foreground rounded-lg border p-3">
-            Ten historyczny turniej nie ma poświadczeń do samodzielnego
-            odzyskania. Skontaktuj się z administratorem. Brak poświadczeń nie
-            umożliwia publicznego przejęcia turnieju.
-          </p>
+          <p className="text-sm text-muted-foreground rounded-lg border p-3">{t("organizerLoginModal.ten_historyczny_turniej_nie_ma")}</p>
         ) : credentialScreen === "not_found" ? (
-          <p className="text-sm text-muted-foreground rounded-lg border p-3">
-            Nie można rozpocząć logowania dla tego identyfikatora turnieju.
-          </p>
+          <p className="text-sm text-muted-foreground rounded-lg border p-3">{t("organizerLoginModal.nie_mozna_rozpoczac_logowania_dla")}</p>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4">
             {credentialScreen !== "legacy_upgrade" && (
-              <p className="text-sm text-muted-foreground">
-                Podaj zachowane hasło organizatora tego turnieju. Możesz nim wrócić
-                po wylogowaniu lub utracie danych przeglądarki i wejść na drugim
-                urządzeniu. Logowanie nie wyloguje pozostałych sesji.
-              </p>
+              <p className="text-sm text-muted-foreground">{t("organizerLoginModal.podaj_zachowane_haslo_organizatora_tego")}</p>
             )}
             {credentialScreen === "legacy_upgrade" && (
               <>
-                <p className="text-xs text-muted-foreground">
-                  Ten historyczny turniej używa kodu prowadzącego. Podaj
-                  dokładny dotychczasowy kod i ustaw nowe hasło organizatora.
-                </p>
+                <p className="text-xs text-muted-foreground">{t("organizerLoginModal.ten_historyczny_turniej_uzywa_kodu")}</p>
                 <div className="space-y-1.5">
-                  <Label htmlFor="organizer-login-host-code">Kod prowadzącego</Label>
+                  <Label htmlFor="organizer-login-host-code">{t("organizerLoginModal.kod_prowadzacego")}</Label>
                   <Input
                     id="organizer-login-host-code"
                     type="password"
@@ -179,8 +167,8 @@ export function OrganizerLoginModal({ open, onClose, tournamentId, tournamentNam
               <Label htmlFor="organizer-login-password" className="flex items-center gap-1.5">
                 <Lock className="w-3.5 h-3.5" />
                 {credentialScreen === "legacy_upgrade"
-                  ? "Nowe hasło organizatora"
-                  : "Hasło organizatora"}
+                  ? t("organizerLoginModal.nowe_haslo_organizatora")
+                  : t("organizerLoginModal.haslo_organizatora")}
               </Label>
               <Input
                 id="organizer-login-password"
@@ -192,8 +180,8 @@ export function OrganizerLoginModal({ open, onClose, tournamentId, tournamentNam
                 onChange={(e) => { setPassword(e.target.value); setError(null); }}
                 placeholder={
                   credentialScreen === "legacy_upgrade"
-                    ? "Minimum 8 znaków"
-                    : "Zachowane hasło organizatora"
+                    ? t("organizerLoginModal.minimum_8_znakow")
+                    : t("organizerLoginModal.zachowane_haslo_organizatora")
                 }
                 minLength={
                   credentialScreen === "legacy_upgrade" ? 8 : undefined
@@ -209,9 +197,7 @@ export function OrganizerLoginModal({ open, onClose, tournamentId, tournamentNam
 
             <div className="flex gap-2">
               {handleClose && (
-                <Button type="button" variant="outline" className="flex-1" onClick={handleClose} disabled={loading}>
-                  Anuluj
-                </Button>
+                <Button type="button" variant="outline" className="flex-1" onClick={handleClose} disabled={loading}>{t("organizerLoginModal.anuluj")}</Button>
               )}
               <Button
                 type="submit"
@@ -224,10 +210,10 @@ export function OrganizerLoginModal({ open, onClose, tournamentId, tournamentNam
                 }
               >
                 {loading
-                  ? "Sprawdzanie…"
+                  ? t("organizerLoginModal.sprawdzanie")
                   : credentialScreen === "legacy_upgrade"
-                    ? "Ustaw hasło"
-                    : "Zaloguj"}
+                    ? t("organizerLoginModal.ustaw_haslo")
+                    : t("organizerLoginModal.zaloguj")}
               </Button>
             </div>
           </form>

@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import React, { type Ref } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { Input } from "@/components/ui/input";
@@ -51,7 +52,7 @@ export function PasswordField({
         />
         <button
           type="button"
-          aria-label={visible ? "Ukryj hasło" : "Pokaż hasło"}
+          aria-label={visible ? t("passwordField.ukryj_haslo") : t("passwordField.pokaz_haslo")}
           aria-controls={id}
           className="absolute right-1 top-1/2 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2 focus-visible:ring-offset-background"
           onClick={onToggle}

@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 /**
  * V5.4-006 · tables of a group / league / Swiss stage from GET /stages/:id/standings.
  * One component for the organiser's stage panel and the viewer page, so both always show the same
@@ -29,8 +30,8 @@ export function useStageLiveStandings(tournamentId: number, stageId: number | un
 function zoneLegend(data: LiveStageStandings): string | null {
   if (data.advancingPlaces == null) return null;
   const places = data.advancingPlaces;
-  const scope = data.format === "group_stage" ? `z każdej grupy ${places === 1 ? "pierwsze miejsce" : `${places} pierwsze miejsca`}` : `${places} pierwszych miejsc`;
-  return data.final ? `Awans: ${scope}.` : `Awans wywalczy ${scope} — zaznaczone miejsca to stan na teraz.`;
+  const scope = data.format === "group_stage" ? t("stageLiveTables.z_kazdej_grupy_v0", { v0: places === 1 ? t("stageLiveTables.pierwsze_miejsce") : t("stageLiveTables.places_pierwsze_miejsca", { places: places }) }) : t("stageLiveTables.places_pierwszych_miejsc", { places: places });
+  return data.final ? t("stageLiveTables.awans_scope", { scope: scope }) : t("stageLiveTables.awans_wywalczy_scope_zaznaczone_miejsca", { scope: scope });
 }
 
 export function LiveTable({
@@ -51,37 +52,36 @@ export function LiveTable({
   const sets = data.matchRules != null;
   const rows = rowLimit ? table.rows.slice(0, rowLimit) : table.rows;
   const adjustmentNotes = points
-    ? table.rows.filter((row) => row.pointAdjustment).map((row) => `${row.playerName}: w punktach korekta ${row.pointAdjustment! > 0 ? "+" : ""}${row.pointAdjustment} (bonus lub kara organizatora).`)
+    ? table.rows.filter((row) => row.pointAdjustment).map((row) => t("stageLiveTables.playername_w_punktach_korekta_v1", { playerName: row.playerName, v1: row.pointAdjustment! > 0 ? "+" : "", pointAdjustment: row.pointAdjustment }))
     : [];
   const notes = points
     ? table.rows.flatMap((row, index) => {
         if (index === 0 || !row.decidedBy || row.decidedBy === "points") return [];
         const above = table.rows[index - 1];
-        return [`${above.playerName} przed ${row.playerName}: ${(sets ? DECIDED_BY_SET_LABELS : DECIDED_BY_LABELS)[row.decidedBy] ?? row.decidedBy}.`];
+        return [t("stageLiveTables.playername_przed_playername2_v2", { playerName: above.playerName, playerName2: row.playerName, v2: (sets ? DECIDED_BY_SET_LABELS : DECIDED_BY_LABELS)[row.decidedBy] ?? row.decidedBy })];
       })
     : [];
   return (
     <section className="stage-live-table min-w-0 overflow-hidden rounded-lg border bg-card" aria-label={table.label} data-compact={compact ? "true" : undefined}>
       <header className="flex items-baseline justify-between gap-3 border-b px-4 py-2.5">
-        <h4 className="font-semibold">{/^etap \d+$/i.test(table.label) ? (swiss ? "Ranking" : "Tabela") : table.label}</h4>
+        <h4 className="font-semibold">{/^etap \d+$/i.test(table.label) ? (swiss ? t("stageLiveTables.ranking") : t("stageLiveTables.tabela")) : table.label}</h4>
         <span className="text-xs text-muted-foreground tabular-nums">
-          {table.matchesPlayed}/{table.matchesTotal} meczów
-        </span>
+          {table.matchesPlayed}/{table.matchesTotal}{" "}{t("stageLiveTables.meczow")}</span>
       </header>
       <div className="max-w-full overflow-x-auto">
-        <table className="w-full text-sm" aria-label={`Tabela: ${table.label}`}>
+        <table className="w-full text-sm" aria-label={t("stageLiveTables.tabela_label", { label: table.label })}>
           <thead className="bg-muted/40 text-xs text-muted-foreground">
             <tr>
               <th scope="col" className="w-9 px-1 py-2 text-center sm:w-10 sm:px-2">#</th>
-              <th scope="col" className="px-2 py-2 text-left">Uczestnik</th>
-              {!compact && <th scope="col" className="hidden w-10 px-1 py-2 text-center sm:table-cell" title="Mecze rozegrane">M</th>}
-              <th scope="col" className="w-8 px-1 py-2 text-center sm:w-10" title="Zwycięstwa">W</th>
-              {draws && <th scope="col" className="w-8 px-1 py-2 text-center sm:w-10" title="Remisy">R</th>}
-              <th scope="col" className="w-8 px-1 py-2 text-center sm:w-10" title="Porażki">P</th>
-              {!compact && <th scope="col" className="hidden w-16 px-1 py-2 text-center sm:table-cell" title={sets ? "Sety wygrane i przegrane" : "Wynik zdobyty i stracony"}>{sets ? "Sety" : "Bilans"}</th>}
-              {sets && !compact && <th scope="col" className="hidden w-20 px-1 py-2 text-center md:table-cell" title="Punkty zdobyte i stracone w setach (nie wpływają na kolejność)">Małe pkt</th>}
-              {swiss && !compact && <th scope="col" className="hidden w-14 px-1 py-2 text-center sm:table-cell" title="Buchholz — siła rywali">Bh</th>}
-              {points && <th scope="col" className="w-12 px-2 py-2 text-center font-semibold" title="Punkty">Pkt</th>}
+              <th scope="col" className="px-2 py-2 text-left">{t("stageLiveTables.uczestnik")}</th>
+              {!compact && <th scope="col" className="hidden w-10 px-1 py-2 text-center sm:table-cell" title={t("stageLiveTables.mecze_rozegrane")}>M</th>}
+              <th scope="col" className="w-8 px-1 py-2 text-center sm:w-10" title={t("stageLiveTables.zwyciestwa")}>W</th>
+              {draws && <th scope="col" className="w-8 px-1 py-2 text-center sm:w-10" title={t("stageLiveTables.remisy")}>R</th>}
+              <th scope="col" className="w-8 px-1 py-2 text-center sm:w-10" title={t("stageLiveTables.porazki")}>P</th>
+              {!compact && <th scope="col" className="hidden w-16 px-1 py-2 text-center sm:table-cell" title={sets ? t("stageLiveTables.sety_wygrane_i_przegrane") : t("stageLiveTables.wynik_zdobyty_i_stracony")}>{sets ? t("stageLiveTables.sety") : t("stageLiveTables.bilans")}</th>}
+              {sets && !compact && <th scope="col" className="hidden w-20 px-1 py-2 text-center md:table-cell" title={t("stageLiveTables.punkty_zdobyte_i_stracone_w")}>{t("stageLiveTables.male_pkt")}</th>}
+              {swiss && !compact && <th scope="col" className="hidden w-14 px-1 py-2 text-center sm:table-cell" title={t("stageLiveTables.buchholz_sila_rywali")}>{t("stageLiveTables.bh")}</th>}
+              {points && <th scope="col" className="w-12 px-2 py-2 text-center font-semibold" title={t("stageLiveTables.punkty")}>{t("stageLiveTables.pkt")}</th>}
             </tr>
           </thead>
           <tbody className="divide-y">
@@ -101,7 +101,7 @@ export function LiveTable({
                 {points && (
                   <td className="px-2 py-2 text-center font-bold tabular-nums">
                     {row.points ?? 0}
-                    {row.pointAdjustment ? <sup className="stage-live-adjustment" data-sign={row.pointAdjustment > 0 ? "plus" : "minus"} title={`W tym korekta ${row.pointAdjustment > 0 ? "+" : ""}${row.pointAdjustment} pkt`}>{row.pointAdjustment > 0 ? "+" : ""}{row.pointAdjustment}</sup> : null}
+                    {row.pointAdjustment ? <sup className="stage-live-adjustment" data-sign={row.pointAdjustment > 0 ? "plus" : "minus"} title={t("stageLiveTables.w_tym_korekta_v0_pointadjustment", { v0: row.pointAdjustment > 0 ? "+" : "", pointAdjustment: row.pointAdjustment })}>{row.pointAdjustment > 0 ? "+" : ""}{row.pointAdjustment}</sup> : null}
                   </td>
                 )}
               </tr>

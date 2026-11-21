@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 /**
  * DEBracketCanvas — professional double-elimination bracket layout.
  *
@@ -27,13 +28,13 @@ import { isExperimentalTournamentPath } from "@/features/experimental-tournament
  */
 export function deDisplayName(name: string, experimental: boolean): string {
   if (!experimental) return name;
-  if (name === "Grand Final Reset") return "Rewanż w wielkim finale";
-  if (name === "Grand Final") return "Wielki finał";
-  return name.replace(/^Upper R(\d+)/, "Wygrani R$1").replace(/^Lower R(\d+)/, "Przegrani R$1");
+  if (name === "Grand Final Reset") return t("deBracketCanvas.rewanz_w_wielkim_finale");
+  if (name === "Grand Final") return t("deBracketCanvas.wielki_final");
+  return name.replace(/^Upper R(\d+)/, (_, n: string) => t("deBracketCanvas.wygrani_r_n", { n })).replace(/^Lower R(\d+)/, (_, n: string) => t("deBracketCanvas.przegrani_r_n", { n }));
 }
 const DE_SECTION_LABELS = {
-  stable: { upper: "Upper Bracket", lower: "Lower Bracket", final: "Grand Final", drop: "Spada z Upper Bracket" },
-  experimental: { upper: "Drabinka wygranych", lower: "Drabinka przegranych", final: "Wielki finał", drop: "Spada z drabinki wygranych" },
+  stable: { upper: "Upper Bracket", lower: "Lower Bracket", final: "Grand Final", get drop() { return t("deBracketCanvas.spada_z_upper_bracket"); } },
+  experimental: { get upper() { return t("deBracketCanvas.drabinka_wygranych"); }, get lower() { return t("deBracketCanvas.drabinka_przegranych"); }, get final() { return t("deBracketCanvas.wielki_final"); }, get drop() { return t("deBracketCanvas.spada_z_drabinki_wygranych"); } },
 } as const;
 function useDeLabels() {
   const [location] = useLocation();
@@ -454,7 +455,7 @@ function DEMatchCard({
                   : "text-foreground"
               }`}
             >
-              {isPending ? "TBD" : participant ? `#${participant.seed} ${participant.name}` : "?"}
+              {isPending ? t("deBracketCanvas.tbd") : participant ? `#${participant.seed} ${participant.name}` : "?"}
             </span>
             {isDone && score != null && (
               <span
@@ -503,9 +504,7 @@ export function DEBracketCanvas({
 
   if (matches.length === 0) {
     return (
-      <div className="flex items-center justify-center py-20 text-muted-foreground border border-dashed border-border rounded-lg">
-        Brak meczów do wyświetlenia.
-      </div>
+      <div className="flex items-center justify-center py-20 text-muted-foreground border border-dashed border-border rounded-lg">{t("deBracketCanvas.brak_meczow_do_wyswietlenia")}</div>
     );
   }
 
@@ -525,7 +524,7 @@ export function DEBracketCanvas({
     <div
       className="overflow-x-auto overflow-y-auto select-none"
       style={{ minWidth: 0 }}
-      aria-label="Drabinka podwójnej eliminacji"
+      aria-label={t("deBracketCanvas.drabinka_podwojnej_eliminacji")}
     >
       {/* Single absolute container — all sections live here */}
       <div
@@ -677,9 +676,7 @@ export function DEBracketCanvas({
               key={match.matchKey}
               className="absolute border border-dashed border-border/30 rounded-md flex items-center justify-center text-[10px] text-muted-foreground/40"
               style={{ left: x, top: y, width: CARD_W, height: cardH }}
-            >
-              Reset nie jest wymagany
-            </div>
+            >{t("deBracketCanvas.reset_nie_jest_wymagany")}</div>
           ) : (
             <div
               key={match.matchKey}

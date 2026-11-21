@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { useCallback, useEffect, useState } from "react";
 import { Check, Copy, KeyRound, Loader2, Pencil, UserMinus, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -28,7 +29,7 @@ export function SupportMembersPanel({ tournamentId, orgToken }: { tournamentId: 
       setData(await apiListSupportMembers(tournamentId, orgToken));
       setLoadError(null);
     } catch (error) {
-      setLoadError(error instanceof Error ? error.message : "Nie udało się pobrać osób wspierających.");
+      setLoadError(error instanceof Error ? error.message : t("supportMembersPanel.nie_udalo_sie_pobrac_osob"));
     }
   }, [orgToken, tournamentId]);
   useEffect(() => { void refresh(); }, [refresh]);
@@ -41,18 +42,12 @@ export function SupportMembersPanel({ tournamentId, orgToken }: { tournamentId: 
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div>
           <h3 id="support-members-title" className="flex items-center gap-2 text-base font-semibold">
-            <KeyRound aria-hidden="true" className="h-4 w-4 text-primary" /> Osoby wspierające
-          </h3>
-          <p className="mt-1 max-w-prose text-xs text-muted-foreground">
-            Każda osoba dostaje własny kod i tylko te uprawnienia, które zaznaczysz. Zmiany działają od razu, także w otwartych
-            sesjach. Zamykanie etapów, bezpieczeństwo, udostępnianie, backup i ustawienia turnieju zostają przy Tobie.
-            Wspólne hasło wsparcia działa dalej jak dotąd.
-          </p>
+            <KeyRound aria-hidden="true" className="h-4 w-4 text-primary" />{" "}{t("supportMembersPanel.osoby_wspierajace")}</h3>
+          <p className="mt-1 max-w-prose text-xs text-muted-foreground">{t("supportMembersPanel.kazda_osoba_dostaje_wlasny_kod")}</p>
         </div>
         {!adding && (
           <Button size="sm" onClick={() => { setAdding(true); setIssued(null); setMessage(null); }} disabled={!data}>
-            <UserPlus aria-hidden="true" className="mr-1.5 h-3.5 w-3.5" /> Dodaj osobę
-          </Button>
+            <UserPlus aria-hidden="true" className="mr-1.5 h-3.5 w-3.5" />{" "}{t("supportMembersPanel.dodaj_osobe")}</Button>
         )}
       </div>
 
@@ -66,7 +61,7 @@ export function SupportMembersPanel({ tournamentId, orgToken }: { tournamentId: 
       {adding && data && (
         <MemberForm
           presets={data.presets}
-          submitLabel="Dodaj i pokaż kod"
+          submitLabel={t("supportMembersPanel.dodaj_i_pokaz_kod")}
           onCancel={() => setAdding(false)}
           onSubmit={async (name, permissions) => {
             const created = await apiCreateSupportMember(tournamentId, orgToken, { name, permissions });
@@ -78,9 +73,7 @@ export function SupportMembersPanel({ tournamentId, orgToken }: { tournamentId: 
       )}
 
       {data && active.length === 0 && !adding && (
-        <p className="rounded-lg border border-dashed border-border px-3 py-4 text-center text-sm text-muted-foreground">
-          Nie dodano jeszcze żadnej osoby z własnym kodem.
-        </p>
+        <p className="rounded-lg border border-dashed border-border px-3 py-4 text-center text-sm text-muted-foreground">{t("supportMembersPanel.nie_dodano_jeszcze_zadnej_osoby")}</p>
       )}
 
       <ul className="space-y-2">
@@ -91,12 +84,12 @@ export function SupportMembersPanel({ tournamentId, orgToken }: { tournamentId: 
                 presets={data.presets}
                 initialName={member.name}
                 initialPermissions={member.permissions}
-                submitLabel="Zapisz uprawnienia"
+                submitLabel={t("supportMembersPanel.zapisz_uprawnienia")}
                 onCancel={() => setEditingId(null)}
                 onSubmit={async (name, permissions) => {
                   await apiUpdateSupportMember(tournamentId, orgToken, member.id, { name, permissions });
                   setEditingId(null);
-                  setMessage(`Zapisano uprawnienia: ${name}. Działają od następnej akcji tej osoby.`);
+                  setMessage(t("supportMembersPanel.zapisano_uprawnienia_name_dzialaja_od", { name: name }));
                   await refresh();
                 }}
               />
@@ -105,19 +98,17 @@ export function SupportMembersPanel({ tournamentId, orgToken }: { tournamentId: 
                 <div className="min-w-0">
                   <p className="font-medium break-words">{member.name}</p>
                   <p className="mt-0.5 text-xs text-muted-foreground">
-                    {member.permissions.length ? describeSupportPermissions(member.permissions).join(" · ") : "Tylko podgląd"}
+                    {member.permissions.length ? describeSupportPermissions(member.permissions).join(" · ") : t("supportMembersPanel.tylko_podglad")}
                   </p>
                   <p className="mt-0.5 text-[11px] text-muted-foreground">
-                    {member.activeSessions ? `Zalogowana · ${member.activeSessions} ${member.activeSessions === 1 ? "sesja" : "sesje"}` : "Nie zalogowana"}
+                    {member.activeSessions ? t("supportMembersPanel.zalogowana_activesessions_v1", { activeSessions: member.activeSessions, v1: member.activeSessions === 1 ? t("supportMembersPanel.sesja") : t("supportMembersPanel.sesje") }) : t("supportMembersPanel.nie_zalogowana")}
                   </p>
                 </div>
                 <div className="flex shrink-0 gap-2">
                   <Button size="sm" variant="outline" onClick={() => { setEditingId(member.id); setMessage(null); }}>
-                    <Pencil aria-hidden="true" className="mr-1.5 h-3.5 w-3.5" /> Uprawnienia
-                  </Button>
+                    <Pencil aria-hidden="true" className="mr-1.5 h-3.5 w-3.5" />{" "}{t("supportMembersPanel.uprawnienia")}</Button>
                   <Button size="sm" variant="outline" className="border-destructive/50 text-destructive hover:bg-destructive/10" onClick={() => setRevoking(member)}>
-                    <UserMinus aria-hidden="true" className="mr-1.5 h-3.5 w-3.5" /> Odbierz dostęp
-                  </Button>
+                    <UserMinus aria-hidden="true" className="mr-1.5 h-3.5 w-3.5" />{" "}{t("supportMembersPanel.odbierz_dostep")}</Button>
                 </div>
               </div>
             )}
@@ -126,34 +117,28 @@ export function SupportMembersPanel({ tournamentId, orgToken }: { tournamentId: 
       </ul>
 
       {revoked.length > 0 && (
-        <p className="text-xs text-muted-foreground">
-          Dostęp odebrany: {revoked.map((member) => member.name).join(", ")}.
+        <p className="text-xs text-muted-foreground">{t("supportMembersPanel.dostep_odebrany")}{" "}{revoked.map((member) => member.name).join(", ")}.
         </p>
       )}
 
       <AlertDialog open={!!revoking} onOpenChange={(open) => { if (!open) setRevoking(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Odebrać dostęp: {revoking?.name}?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Kod tej osoby przestaje działać, a jej otwarte sesje kończą się od razu. Wpisane wyniki i historia zostają.
-              Aby przywrócić dostęp, dodaj osobę ponownie — dostanie nowy kod.
-            </AlertDialogDescription>
+            <AlertDialogTitle>{t("supportMembersPanel.odebrac_dostep")}{" "}{revoking?.name}?</AlertDialogTitle>
+            <AlertDialogDescription>{t("supportMembersPanel.kod_tej_osoby_przestaje_dzialac")}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Anuluj</AlertDialogCancel>
+            <AlertDialogCancel>{t("supportMembersPanel.anuluj")}</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
                 const member = revoking;
                 setRevoking(null);
                 if (!member) return;
                 void apiRevokeSupportMember(tournamentId, orgToken, member.id)
-                  .then(() => { setMessage(`Odebrano dostęp: ${member.name}.`); return refresh(); })
-                  .catch((error: unknown) => setMessage(error instanceof Error ? error.message : "Nie udało się odebrać dostępu."));
+                  .then(() => { setMessage(t("supportMembersPanel.odebrano_dostep_name", { name: member.name })); return refresh(); })
+                  .catch((error: unknown) => setMessage(error instanceof Error ? error.message : t("supportMembersPanel.nie_udalo_sie_odebrac_dostepu")));
               }}
-            >
-              Odbierz dostęp
-            </AlertDialogAction>
+            >{t("supportMembersPanel.odbierz_dostep")}</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
@@ -165,12 +150,9 @@ function IssuedCode({ name, code, onDone }: { name: string; code: string; onDone
   const [copied, setCopied] = useState(false);
   return (
     <div className="rounded-lg border border-primary/40 bg-primary/5 p-4 space-y-2" role="status" data-testid="support-member-code">
-      <p className="text-sm font-semibold">Kod dla: {name}</p>
+      <p className="text-sm font-semibold">{t("supportMembersPanel.kod_dla")}{" "}{name}</p>
       <p className="font-mono text-lg tracking-widest break-all select-all">{code}</p>
-      <p className="text-xs text-muted-foreground">
-        Przekaż go tej osobie. Pokazujemy go tylko teraz — nie da się go później odczytać. Osoba loguje się nim w polu
-        „Hasło wsparcia lub osobisty kod”.
-      </p>
+      <p className="text-xs text-muted-foreground">{t("supportMembersPanel.przekaz_go_tej_osobie_pokazujemy")}</p>
       <div className="flex flex-wrap gap-2">
         <Button
           size="sm"
@@ -180,29 +162,29 @@ function IssuedCode({ name, code, onDone }: { name: string; code: string; onDone
           }}
         >
           {copied ? <Check aria-hidden="true" className="mr-1.5 h-3.5 w-3.5" /> : <Copy aria-hidden="true" className="mr-1.5 h-3.5 w-3.5" />}
-          {copied ? "Skopiowano" : "Kopiuj kod"}
+          {copied ? t("supportMembersPanel.skopiowano") : t("supportMembersPanel.kopiuj_kod")}
         </Button>
-        <Button size="sm" onClick={onDone}>Gotowe</Button>
+        <Button size="sm" onClick={onDone}>{t("supportMembersPanel.gotowe")}</Button>
       </div>
     </div>
   );
 }
 
 const PERMISSION_GROUPS: { title: string; keys: SupportPermissionKey[] }[] = [
-  { title: "Mecze i wyniki", keys: ["matches.run", "results.write", "results.correct"] },
-  { title: "Turniej", keys: ["participants.manage", "stages.rounds", "visibility.publish"] },
-  { title: "Transmisja", keys: ["presentation.featured", "presentation.settings"] },
+  { get title() { return t("supportMembersPanel.mecze_i_wyniki"); }, keys: ["matches.run", "results.write", "results.correct"] },
+  { get title() { return t("supportMembersPanel.turniej"); }, keys: ["participants.manage", "stages.rounds", "visibility.publish"] },
+  { get title() { return t("supportMembersPanel.transmisja"); }, keys: ["presentation.featured", "presentation.settings"] },
 ];
 
 const PERMISSION_FORM_LABELS: Record<SupportPermissionKey, string> = {
-  "matches.run": "Prowadzenie meczów — rozpoczęcie, przełożenie, kolejka, termin, długość",
-  "results.write": "Wpisywanie wyników",
-  "results.correct": "Poprawa i cofanie wyników, anulowanie meczu, zamiana stron",
-  "participants.manage": "Uczestnicy i składy — dodawanie, edycja, usuwanie, import",
-  "stages.rounds": "Start turnieju i kolejne rundy (bez zamykania etapów)",
-  "visibility.publish": "Publikowanie i ukrywanie turnieju (przed startem)",
-  "presentation.featured": "Mecz na ekranie widzów",
-  "presentation.settings": "Wygląd transmisji i scoreboardu",
+  get "matches.run"() { return t("supportMembersPanel.prowadzenie_meczow_rozpoczecie_przelozen"); },
+  get "results.write"() { return t("supportMembersPanel.wpisywanie_wynikow"); },
+  get "results.correct"() { return t("supportMembersPanel.poprawa_i_cofanie_wynikow_anulowanie"); },
+  get "participants.manage"() { return t("supportMembersPanel.uczestnicy_i_sklady_dodawanie_edycja"); },
+  get "stages.rounds"() { return t("supportMembersPanel.start_turnieju_i_kolejne_rundy"); },
+  get "visibility.publish"() { return t("supportMembersPanel.publikowanie_i_ukrywanie_turnieju_przed"); },
+  get "presentation.featured"() { return t("supportMembersPanel.mecz_na_ekranie_widzow"); },
+  get "presentation.settings"() { return t("supportMembersPanel.wyglad_transmisji_i_scoreboardu"); },
 };
 
 function MemberForm({
@@ -242,19 +224,19 @@ function MemberForm({
       onSubmit={(event) => {
         event.preventDefault();
         const trimmed = name.trim();
-        if (!trimmed) { setError("Podaj imię lub nick osoby."); return; }
+        if (!trimmed) { setError(t("supportMembersPanel.podaj_imie_lub_nick_osoby")); return; }
         setPending(true); setError(null);
         onSubmit(trimmed, [...permissions])
-          .catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "Nie udało się zapisać."))
+          .catch((reason: unknown) => setError(reason instanceof Error ? reason.message : t("supportMembersPanel.nie_udalo_sie_zapisac")))
           .finally(() => setPending(false));
       }}
     >
       <div className="space-y-1">
-        <Label htmlFor={`${idBase}-name`} className="text-xs">Imię lub nick</Label>
-        <Input id={`${idBase}-name`} value={name} maxLength={60} onChange={(event) => setName(event.target.value)} placeholder="np. Ola — wyniki" />
+        <Label htmlFor={`${idBase}-name`} className="text-xs">{t("supportMembersPanel.imie_lub_nick")}</Label>
+        <Input id={`${idBase}-name`} value={name} maxLength={60} onChange={(event) => setName(event.target.value)} placeholder={t("supportMembersPanel.np_ola_wyniki")} />
       </div>
       <fieldset className="space-y-1.5">
-        <legend className="text-xs font-medium">Gotowy zestaw</legend>
+        <legend className="text-xs font-medium">{t("supportMembersPanel.gotowy_zestaw")}</legend>
         <div className="flex flex-wrap gap-1.5">
           {presets.map((preset) => (
             <button
@@ -280,14 +262,14 @@ function MemberForm({
           ))}
         </fieldset>
       ))}
-      {permissions.size === 0 && <p className="text-xs text-muted-foreground">Bez zaznaczeń osoba ma tylko podgląd panelu.</p>}
+      {permissions.size === 0 && <p className="text-xs text-muted-foreground">{t("supportMembersPanel.bez_zaznaczen_osoba_ma_tylko")}</p>}
       {error && <p role="alert" className="text-xs text-destructive">{error}</p>}
       <div className="flex flex-wrap gap-2">
         <Button type="submit" size="sm" disabled={pending} aria-busy={pending}>
           {pending && <Loader2 aria-hidden="true" className="mr-1.5 h-3.5 w-3.5 animate-spin" />}
           {submitLabel}
         </Button>
-        <Button type="button" size="sm" variant="ghost" onClick={onCancel} disabled={pending}>Anuluj</Button>
+        <Button type="button" size="sm" variant="ghost" onClick={onCancel} disabled={pending}>{t("supportMembersPanel.anuluj")}</Button>
       </div>
     </form>
   );

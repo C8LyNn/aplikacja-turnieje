@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { useState, useEffect, useRef, useId } from "react";
 import { Eye, EyeOff, Lock } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -42,7 +43,7 @@ export function ViewerLoginModal({ open, tournamentId, tournamentName, onSuccess
       const token = await apiViewerLogin(tournamentId, password);
       onSuccess(token);
     } catch (err: any) {
-      setError(err.message || "Błąd logowania");
+      setError(err.message || t("viewerLoginModal.blad_logowania"));
     } finally {
       setLoading(false);
     }
@@ -60,7 +61,7 @@ export function ViewerLoginModal({ open, tournamentId, tournamentName, onSuccess
           type="button"
           onClick={onClose}
           className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors"
-          aria-label="Zamknij"
+          aria-label={t("viewerLoginModal.zamknij")}
         >
           ✕
         </button>
@@ -70,25 +71,23 @@ export function ViewerLoginModal({ open, tournamentId, tournamentName, onSuccess
             <Eye className="w-5 h-5 text-blue-400" />
           </div>
           <div>
-            <h2 id={titleId} className="text-lg font-semibold">Hasło widza</h2>
+            <h2 id={titleId} className="text-lg font-semibold">{t("viewerLoginModal.haslo_widza")}</h2>
             <p className="text-xs text-muted-foreground truncate max-w-[200px]">{tournamentName}</p>
           </div>
         </div>
 
-        <p className="text-sm text-muted-foreground mb-4">
-          Ten turniej jest chroniony hasłem widza. Podaj hasło, aby zobaczyć jego zawartość.
-        </p>
+        <p className="text-sm text-muted-foreground mb-4">{t("viewerLoginModal.ten_turniej_jest_chroniony_haslem")}</p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
-            <Label htmlFor={passwordInputId}>Hasło widza</Label>
+            <Label htmlFor={passwordInputId}>{t("viewerLoginModal.haslo_widza")}</Label>
             <div className="relative">
               <Input
                 id={passwordInputId}
                 type={showPass ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="Hasło widza..."
+                placeholder={t("viewerLoginModal.haslo_widza_2")}
                 aria-invalid={!!error}
                 aria-describedby={error ? passwordErrorId : undefined}
                 className="pr-12"
@@ -96,7 +95,7 @@ export function ViewerLoginModal({ open, tournamentId, tournamentName, onSuccess
               />
               <button
                 type="button"
-                aria-label={showPass ? "Ukryj hasło widza" : "Pokaż hasło widza"}
+                aria-label={showPass ? t("viewerLoginModal.ukryj_haslo_widza") : t("viewerLoginModal.pokaz_haslo_widza")}
                 aria-controls={passwordInputId}
                 aria-pressed={showPass}
                 className="absolute right-1 top-1/2 -translate-y-1/2 inline-flex min-h-9 min-w-9 items-center justify-center rounded-md text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
@@ -115,11 +114,9 @@ export function ViewerLoginModal({ open, tournamentId, tournamentName, onSuccess
           )}
 
           <div className="flex gap-2 pt-1">
-            <Button type="button" variant="outline" className="flex-1" onClick={onClose}>
-              Anuluj
-            </Button>
+            <Button type="button" variant="outline" className="flex-1" onClick={onClose}>{t("viewerLoginModal.anuluj")}</Button>
             <Button type="submit" className="flex-1" disabled={loading || !password.trim()}>
-              {loading ? "Sprawdzanie…" : "Wejdź"}
+              {loading ? t("viewerLoginModal.sprawdzanie") : t("viewerLoginModal.wejdz")}
             </Button>
           </div>
         </form>

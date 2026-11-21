@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { ReadQueryState } from "@/components/read-query-state";
 import { useRoute } from "wouter";
 import {
@@ -183,7 +184,7 @@ export default function TournamentBracket() {
 
   if (!tournament) {
     return <div className="min-h-dvh bg-background text-foreground flex items-center justify-center p-4">
-      <ReadQueryState query={tournamentQuery} loadingMessage="Ładowanie turnieju…" errorMessage={(tournamentQuery.error as { status?: number } | null)?.status === 404 ? "Nie znaleziono turnieju. Sprawdź adres." : "Nie udało się pobrać turnieju."} />
+      <ReadQueryState query={tournamentQuery} loadingMessage={t("tournamentBracket.ladowanie_turnieju")} errorMessage={(tournamentQuery.error as { status?: number } | null)?.status === 404 ? t("tournamentBracket.nie_znaleziono_turnieju_sprawdz_adres") : t("tournamentBracket.nie_udalo_sie_pobrac_turnieju")} />
     </div>;
   }
 
@@ -197,9 +198,7 @@ export default function TournamentBracket() {
         <a
           href={tournamentHref(id, isExperimental)}
           className="inline-flex min-h-11 items-center bg-background border border-border px-3 py-2 shadow-sm pointer-events-auto rounded-md text-sm font-medium text-foreground hover:bg-muted transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
-        >
-          ← Wróć do turnieju
-        </a>
+        >{t("tournamentBracket.wroc_do_turnieju")}</a>
 
         <div className="flex flex-wrap items-center gap-2 pointer-events-auto">
           <LanguageSwitcher />
@@ -208,56 +207,55 @@ export default function TournamentBracket() {
             <button
               type="button"
               aria-pressed={showDropLines}
-              aria-label="Pokaż linie przejść Upper do Lower"
+              aria-label={t("tournamentBracket.pokaz_linie_przejsc_upper_do")}
               onClick={() => setShowDropLines(v => !v)}
               className={`min-h-11 px-3 py-2 rounded-lg border text-[11px] font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
                 showDropLines
                   ? "bg-background border-border text-muted-foreground hover:text-foreground"
                   : "bg-primary/10 border-primary/50 text-primary"
               }`}
-              title="Pokaż / ukryj linie przejść Upper → Lower"
-            >
-              UB→LB {showDropLines ? "●" : "○"}
+              title={t("tournamentBracket.pokaz_ukryj_linie_przejsc_upper")}
+            >{t("tournamentBracket.ub_lb")}{" "}{showDropLines ? "●" : "○"}
             </button>
           )}
           {/* Zoom controls — hidden for Swiss (responsive layout, no transform) */}
-          {!isSwiss && <div role="group" aria-label="Powiększenie drabinki" className="flex items-center gap-1 bg-background border border-border rounded-lg px-1 py-1 shadow-md">
+          {!isSwiss && <div role="group" aria-label={t("tournamentBracket.powiekszenie_drabinki")} className="flex items-center gap-1 bg-background border border-border rounded-lg px-1 py-1 shadow-md">
             <button
               type="button"
-              aria-label="Oddal drabinkę"
+              aria-label={t("tournamentBracket.oddal_drabinke")}
               className="min-w-11 min-h-11 flex items-center justify-center rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-40"
               onClick={() => setZoom((z) => clampZoom(z - ZOOM_STEP))}
               disabled={zoom <= ZOOM_MIN}
-              title="Oddalenie (-)"
+              title={t("tournamentBracket.oddalenie")}
             >
               <ZoomOut aria-hidden="true" className="w-4 h-4" />
             </button>
             <button
               type="button"
-              aria-label={`Dopasuj drabinkę do ekranu, aktualne powiększenie ${Math.round(zoom * 100)}%`}
+              aria-label={t("tournamentBracket.dopasuj_drabinke_do_ekranu_aktualne", { v0: Math.round(zoom * 100) })}
               className="min-h-11 min-w-11 text-center text-xs font-mono font-bold text-foreground hover:text-primary transition-colors px-1 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               onClick={fitZoom}
-              title="Dopasuj do ekranu"
+              title={t("tournamentBracket.dopasuj_do_ekranu")}
             >
               {Math.round(zoom * 100)}%
             </button>
             <button
               type="button"
-              aria-label="Przybliż drabinkę"
+              aria-label={t("tournamentBracket.przybliz_drabinke")}
               className="min-w-11 min-h-11 flex items-center justify-center rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary disabled:opacity-40"
               onClick={() => setZoom((z) => clampZoom(z + ZOOM_STEP))}
               disabled={zoom >= ZOOM_MAX}
-              title="Przybliżenie (+)"
+              title={t("tournamentBracket.przyblizenie")}
             >
               <ZoomIn aria-hidden="true" className="w-4 h-4" />
             </button>
             <div className="w-px h-4 bg-border mx-0.5" />
             <button
               type="button"
-              aria-label="Dopasuj drabinkę do ekranu"
+              aria-label={t("tournamentBracket.dopasuj_drabinke_do_ekranu")}
               className="min-w-11 min-h-11 flex items-center justify-center rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
               onClick={fitZoom}
-              title="Dopasuj do ekranu (Fit)"
+              title={t("tournamentBracket.dopasuj_do_ekranu_fit")}
             >
               <Minimize2 aria-hidden="true" className="w-3.5 h-3.5" />
             </button>
@@ -266,12 +264,12 @@ export default function TournamentBracket() {
             type="button"
             variant="outline"
             size="icon"
-            aria-label="Włącz tryb pełnoekranowy"
+            aria-label={t("tournamentBracket.wlacz_tryb_pelnoekranowy")}
             className="bg-background min-h-11 min-w-11 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary"
             onClick={() =>
               document.documentElement.requestFullscreen().catch(() => {})
             }
-            title="Pełny ekran"
+            title={t("tournamentBracket.pelny_ekran")}
           >
             <Maximize2 aria-hidden="true" className="w-4 h-4" />
           </Button>
@@ -290,10 +288,10 @@ export default function TournamentBracket() {
           ? "text-base text-muted-foreground mt-1 font-mono uppercase tracking-widest relative z-10"
           : "text-sm sm:text-base text-muted-foreground mt-1 text-center"}>
           {publicStageLabel(publicStage, true)} · {marvelStage
-            ? "Marvel — Eliminacyjne grupy"
+            ? t("tournamentBracket.marvel_eliminacyjne_grupy")
             : ((STAGE_FORMAT_LABELS as Record<string, string>)[publicStage?.format ?? ""] ?? publicStage?.format)}
           {publicStage?.currentRound && publicStage.totalRounds
-            ? ` · Runda ${publicStage.currentRound}/${publicStage.totalRounds}`
+            ? t("tournamentBracket.runda_currentround_totalrounds", { currentRound: publicStage.currentRound, totalRounds: publicStage.totalRounds })
             : ""}
         </p>
         <div className="relative z-10 mt-2">
@@ -312,14 +310,12 @@ export default function TournamentBracket() {
         } : undefined}
         onWheel={handleWheel}
       >
-        <ReadQueryState query={tournamentQuery} loadingMessage="Ładowanie turnieju…" errorMessage="Nie udało się pobrać turnieju." />
-        <ReadQueryState query={stagesQuery} loadingMessage="Ładowanie etapów…" errorMessage="Nie udało się pobrać etapów.">
+        <ReadQueryState query={tournamentQuery} loadingMessage={t("tournamentBracket.ladowanie_turnieju")} errorMessage={t("tournamentBracket.nie_udalo_sie_pobrac_turnieju")} />
+        <ReadQueryState query={stagesQuery} loadingMessage={t("tournamentBracket.ladowanie_etapow")} errorMessage={t("tournamentBracket.nie_udalo_sie_pobrac_etapow")}>
         {tournament.status === "draft" ? (
-          <div className="flex items-center justify-center h-full text-2xl text-muted-foreground font-mono">
-            Turniej jeszcze nie wystartował.
-          </div>
+          <div className="flex items-center justify-center h-full text-2xl text-muted-foreground font-mono">{t("tournamentBracket.turniej_jeszcze_nie_wystartowal")}</div>
         ) : !publicStage ? (
-          <div className="p-8 text-muted-foreground">{stages ? "Brak rozpoczętego etapu." : "Ładowanie etapów…"}</div>
+          <div className="p-8 text-muted-foreground">{stages ? t("tournamentBracket.brak_rozpoczetego_etapu") : t("tournamentBracket.ladowanie_etapow")}</div>
         ) : marvelStage ? (
           <div className="p-8">
             <MarvelEliminationStage
@@ -328,13 +324,13 @@ export default function TournamentBracket() {
             />
           </div>
         ) : doubleEliminationStage ? (
-          <ReadQueryState query={doubleEliminationQuery} loadingMessage="Ładowanie drabinki Double Elimination…" errorMessage="Nie udało się pobrać drabinki Double Elimination.">
+          <ReadQueryState query={doubleEliminationQuery} loadingMessage={t("tournamentBracket.ladowanie_drabinki_double_elimination")} errorMessage={t("tournamentBracket.nie_udalo_sie_pobrac_drabinki")}>
             {doubleEliminationQuery.data && <div className="p-8">
               <DoubleEliminationBracket tournamentId={id} stageId={doubleEliminationStage.id} state={doubleEliminationQuery.data} showDropLines={showDropLines} />
             </div>}
           </ReadQueryState>
         ) : (
-          <ReadQueryState query={bracketQuery} loadingMessage="Ładowanie drabinki…" errorMessage="Nie udało się pobrać drabinki.">
+          <ReadQueryState query={bracketQuery} loadingMessage={t("tournamentBracket.ladowanie_drabinki")} errorMessage={t("tournamentBracket.nie_udalo_sie_pobrac_drabinki_2")}>
           {bracket && (
           isSwiss ? (
             <div className="p-6 md:p-8 min-h-full">

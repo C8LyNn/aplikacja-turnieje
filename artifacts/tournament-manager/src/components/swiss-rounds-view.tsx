@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { useEffect, useMemo, useState } from "react";
 import { Bracket, Match, Standing } from "@workspace/api-client-react";
 import { resolveSwissRound } from "@/lib/swiss-round-selection";
@@ -79,9 +80,7 @@ export function SwissRoundsView({ bracket, currentRound, totalRounds, standings 
 
   if (!rounds.length) {
     return (
-      <div className="flex items-center justify-center py-20 text-muted-foreground border border-dashed border-border rounded-lg bg-background/50">
-        Brak rund. Wystartuj turniej, żeby zobaczyć rozgrywki.
-      </div>
+      <div className="flex items-center justify-center py-20 text-muted-foreground border border-dashed border-border rounded-lg bg-background/50">{t("swissRoundsView.brak_rund_wystartuj_turniej_zeby")}</div>
     );
   }
 
@@ -93,18 +92,15 @@ export function SwissRoundsView({ bracket, currentRound, totalRounds, standings 
       {/* Header bar */}
       <div className="flex flex-wrap items-center justify-between gap-3 mb-5 px-1">
         <div className="flex items-center gap-3">
-          <span className="text-[9px] font-black uppercase tracking-widest text-primary border border-primary/50 rounded px-2 py-0.5 bg-primary/5">
-            SWISS
-          </span>
-          <span className="text-sm font-semibold text-foreground">System szwajcarski</span>
+          <span className="text-[9px] font-black uppercase tracking-widest text-primary border border-primary/50 rounded px-2 py-0.5 bg-primary/5">{t("swissRoundsView.swiss")}</span>
+          <span className="text-sm font-semibold text-foreground">{t("swissRoundsView.system_szwajcarski")}</span>
           {currentRound != null && totalRounds != null && (
-            <span className="text-xs text-muted-foreground font-mono tabular-nums">
-              Runda {currentRound} / {totalRounds}
+            <span className="text-xs text-muted-foreground font-mono tabular-nums">{t("swissRoundsView.runda")}{" "}{currentRound} / {totalRounds}
             </span>
           )}
         </div>
         {/* Round selector pills */}
-        <div className="flex max-w-full items-center gap-1.5 overflow-x-auto py-1" role="group" aria-label="Wybór rundy">
+        <div className="flex max-w-full items-center gap-1.5 overflow-x-auto py-1" role="group" aria-label={t("swissRoundsView.wybor_rundy")}>
           {rounds.map((r) => {
             const isSel = r.round === visibleRound;
             const isCur = r.round === currentRound;
@@ -112,7 +108,7 @@ export function SwissRoundsView({ bracket, currentRound, totalRounds, standings 
               <button
                 type="button"
                 key={r.round}
-                aria-label={`Runda ${r.round}${isCur ? ", bieżąca" : ""}`}
+                aria-label={t("swissRoundsView.runda_round_v1", { round: r.round, v1: isCur ? t("swissRoundsView.biezaca") : "" })}
                 aria-pressed={isSel}
                 onClick={() => setSelectedRound(r.round)}
                 className={`relative min-h-11 min-w-11 shrink-0 rounded-full px-3 py-2 text-[11px] font-bold transition-colors border focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary ${
@@ -135,16 +131,14 @@ export function SwissRoundsView({ bracket, currentRound, totalRounds, standings 
       <div className={`grid gap-5 ${hasStandings ? "lg:grid-cols-[1fr_290px]" : ""}`}>
         {/* Matches column */}
         <div className="min-w-0">
-          {groups.length === 0 && <p role="status" className="rounded-lg border border-dashed p-5 text-sm text-muted-foreground">Brak meczów dla wybranej rundy.</p>}
+          {groups.length === 0 && <p role="status" className="rounded-lg border border-dashed p-5 text-sm text-muted-foreground">{t("swissRoundsView.brak_meczow_dla_wybranej_rundy")}</p>}
           {groups.map((group) => (
             <div key={group.label} className="mb-5">
               <div className="flex items-center gap-2 mb-2 px-1">
                 <span className="font-mono text-[11px] font-black text-primary/80 tabular-nums">
                   {group.label}
                 </span>
-                <span className="text-[9px] uppercase tracking-widest text-muted-foreground">
-                  bilans przed rundą
-                </span>
+                <span className="text-[9px] uppercase tracking-widest text-muted-foreground">{t("swissRoundsView.bilans_przed_runda")}</span>
                 <div className="flex-1 h-px bg-border/40" />
               </div>
               <div className="grid sm:grid-cols-2 gap-2">
@@ -160,17 +154,15 @@ export function SwissRoundsView({ bracket, currentRound, totalRounds, standings 
         {hasStandings && (
           <div className="lg:sticky lg:top-4 self-start rounded-xl border border-border/50 bg-card/40 overflow-hidden">
             <div className="px-3 py-2 border-b border-border/40 flex items-center justify-between">
-              <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                Klasyfikacja
-              </span>
+              <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t("swissRoundsView.klasyfikacja")}</span>
             </div>
             <table className="w-full text-[11px]">
               <thead>
                 <tr className="text-[9px] uppercase tracking-wider text-muted-foreground border-b border-border/30">
                   <th className="px-2 py-1.5 text-left w-7">#</th>
-                  <th className="px-1 py-1.5 text-left">Gracz</th>
-                  <th className="px-1 py-1.5 text-right w-11">W-L</th>
-                  {showBuchholz && <th className="px-2 py-1.5 text-right w-12">Buch.</th>}
+                  <th className="px-1 py-1.5 text-left">{t("swissRoundsView.gracz")}</th>
+                  <th className="px-1 py-1.5 text-right w-11">{t("swissRoundsView.w_l")}</th>
+                  {showBuchholz && <th className="px-2 py-1.5 text-right w-12">{t("swissRoundsView.buch")}</th>}
                 </tr>
               </thead>
               <tbody>
@@ -203,9 +195,7 @@ export function SwissRoundsView({ bracket, currentRound, totalRounds, standings 
               </tbody>
             </table>
             {showBuchholz && (
-              <div className="px-3 py-1.5 border-t border-border/30 text-[9px] text-muted-foreground">
-                Buchholz = suma pkt. przeciwników
-              </div>
+              <div className="px-3 py-1.5 border-t border-border/30 text-[9px] text-muted-foreground">{t("swissRoundsView.buchholz_suma_pkt_przeciwnikow")}</div>
             )}
           </div>
         )}
@@ -241,14 +231,14 @@ function SwissMatchCard({
       <div className="flex items-center justify-between px-2 py-0.5 bg-muted/20 border-b border-border/20">
         <span className="font-mono text-[9px] text-muted-foreground">M{match.matchNumber}</span>
         {isLive && (
-          <span className="text-[8px] font-bold text-yellow-400 animate-pulse tracking-wide">LIVE</span>
+          <span className="text-[8px] font-bold text-yellow-400 animate-pulse tracking-wide">{t("swissRoundsView.live")}</span>
         )}
         {isDone && !isBye && (
           <span className="text-[8px] text-green-400">
-            {match.resultType === "walkover" ? "walkower" : match.resultType === "no_contest" ? "no contest" : "✓"}
+            {match.resultType === "walkover" ? t("swissRoundsView.walkower") : match.resultType === "no_contest" ? t("swissRoundsView.no_contest") : "✓"}
           </span>
         )}
-        {isBye && <span className="text-[8px] text-muted-foreground uppercase tracking-wide">bye</span>}
+        {isBye && <span className="text-[8px] text-muted-foreground uppercase tracking-wide">{t("swissRoundsView.bye")}</span>}
       </div>
 
       <SwissPlayerRow
@@ -295,7 +285,7 @@ function SwissPlayerRow({
               : "text-foreground"
           }`}
         >
-          {isPending ? "TBD" : name || "?"}
+          {isPending ? t("swissRoundsView.tbd") : name || "?"}
         </span>
         {record && (
           <span className="font-mono text-[9px] text-muted-foreground tabular-nums shrink-0">

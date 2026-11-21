@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { useEffect, useRef, useState } from "react";
 import {
   setActiveOrganizerToken,
@@ -22,8 +23,8 @@ export function useOrganizerTokenCheck(tournamentId: number, orgToken: string | 
       removeOrgToken(tournamentId);
       setActiveOrganizerToken(null);
       toast({
-        title: "Sesja organizatora wygasła",
-        description: "Hasło organizatora mogło się zmienić. Zaloguj się ponownie, aby zarządzać turniejem.",
+        title: t("useTournamentAuth.sesja_organizatora_wygasla"),
+        description: t("useTournamentAuth.haslo_organizatora_moglo_sie_zmienic"),
         variant: "destructive",
       });
     });

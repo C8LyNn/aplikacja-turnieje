@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 /**
  * V5.4-006 · which views a viewer gets, decided by the real kind of the stage being shown
  * (never by the tournament's name or its compatibility `format` column).
@@ -13,8 +14,8 @@ export interface AudienceSectionDef {
 
 type StageLike = Pick<TournamentStage, "id" | "format" | "status" | "position" | "name">;
 
-const TABLE_LABELS: Record<string, string> = { group_stage: "Grupy", round_robin: "Tabela", swiss: "Ranking" };
-const MATCHES_LABELS: Record<string, string> = { group_stage: "Mecze grup", round_robin: "Terminarz", swiss: "Rundy" };
+const TABLE_LABELS: Record<string, string> = { get group_stage() { return t("audienceViews.grupy"); }, get round_robin() { return t("audienceViews.tabela"); }, swiss: "Ranking" };
+const MATCHES_LABELS: Record<string, string> = { get group_stage() { return t("audienceViews.mecze_grup"); }, get round_robin() { return t("audienceViews.terminarz"); }, get swiss() { return t("audienceViews.rundy"); } };
 const BRACKET_FORMATS = new Set(["single_elimination", "double_elimination"]);
 
 export function stageHasTable(format: string | undefined): boolean {
@@ -27,12 +28,12 @@ export function stageHasBracket(format: string | undefined): boolean {
 
 /** Tabs for the shown stage: its primary view first after "Na żywo", aggregate statistics last. */
 export function audienceSectionsFor(stage: Pick<StageLike, "format"> | undefined): AudienceSectionDef[] {
-  const sections: AudienceSectionDef[] = [{ id: "live", label: "Na żywo" }];
+  const sections: AudienceSectionDef[] = [{ id: "live", label: t("audienceViews.na_zywo") }];
   if (stage && stageHasTable(stage.format)) sections.push({ id: "table", label: TABLE_LABELS[stage.format] });
-  if (stage && stageHasBracket(stage.format)) sections.push({ id: "bracket", label: "Drabinka" });
-  sections.push({ id: "matches", label: (stage && MATCHES_LABELS[stage.format]) ?? "Mecze" });
-  sections.push({ id: "players", label: "Uczestnicy" });
-  sections.push({ id: "stats", label: "Statystyki" });
+  if (stage && stageHasBracket(stage.format)) sections.push({ id: "bracket", label: t("audienceViews.drabinka") });
+  sections.push({ id: "matches", label: (stage && MATCHES_LABELS[stage.format]) ?? t("audienceViews.mecze") });
+  sections.push({ id: "players", label: t("audienceViews.uczestnicy") });
+  sections.push({ id: "stats", label: t("audienceViews.statystyki") });
   return sections;
 }
 
@@ -75,12 +76,12 @@ export function chooseViewStage<T extends StageLike>(stages: readonly T[] | unde
 }
 
 export const STAGE_STATE_LABELS: Record<string, string> = {
-  planned: "Planowany",
-  active: "Trwa",
-  completed: "Zakończony",
+  get planned() { return t("audienceViews.planowany"); },
+  get active() { return t("audienceViews.trwa"); },
+  get completed() { return t("audienceViews.zakonczony"); },
 };
 
 /** Heading used for match groups: "Kolejka 3" in a league, "Runda 3" elsewhere. */
 export function roundHeading(format: string | undefined, round: number): string {
-  return format === "round_robin" ? `Kolejka ${round}` : `Runda ${round}`;
+  return format === "round_robin" ? t("audienceViews.kolejka_round", { round: round }) : t("audienceViews.runda_round", { round: round });
 }

@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 /**
  * QW-09 · "Nowy turniej z tymi ustawieniami" — client side. The server builds the copy from the stored tournament and
  * creates it through the normal create path; this file only asks for the summary and sends the organizer's choices.
@@ -37,9 +38,9 @@ export interface SettingsCopyForm {
 export const COPY_PARTICIPANTS = Object.freeze({ min: 2, max: 1024 });
 
 export const COPY_VISIBILITY_OPTIONS: { value: CopyVisibility; label: string }[] = [
-  { value: "public_online", label: "Publiczny" },
-  { value: "private_online", label: "Prywatny (z hasłem widza)" },
-  { value: "private_offline", label: "Ukryty" },
+  { value: "public_online", get label() { return t("settingsCopy.publiczny"); } },
+  { value: "private_online", get label() { return t("settingsCopy.prywatny_z_haslem_widza"); } },
+  { value: "private_offline", get label() { return t("settingsCopy.ukryty"); } },
 ];
 
 export function fetchSettingsCopy(tournamentId: number) {
@@ -65,18 +66,18 @@ export function initialCopyForm(summary: SettingsCopySummary): SettingsCopyForm 
 
 /** First problem with the form, in the order the fields appear; null when it can be sent. */
 export function copyFormError(form: SettingsCopyForm, summary: SettingsCopySummary): { field: keyof SettingsCopyForm; message: string } | null {
-  if (!form.name.trim()) return { field: "name", message: "Podaj nazwę nowego turnieju." };
+  if (!form.name.trim()) return { field: "name", message: t("settingsCopy.podaj_nazwe_nowego_turnieju") };
   if (summary.resizable && summary.mode === "plan") {
     const value = Number(form.participantCount);
     if (!/^\d+$/.test(form.participantCount.trim()) || value < COPY_PARTICIPANTS.min || value > COPY_PARTICIPANTS.max) {
-      return { field: "participantCount", message: `Liczba uczestników: ${COPY_PARTICIPANTS.min}–${COPY_PARTICIPANTS.max}.` };
+      return { field: "participantCount", message: t("settingsCopy.liczba_uczestnikow_min_max", { min: COPY_PARTICIPANTS.min, max: COPY_PARTICIPANTS.max }) };
     }
   }
   if (form.organizerPassword.length < ORGANIZER_PASSWORD_MIN_LENGTH) {
-    return { field: "organizerPassword", message: `Hasło organizatora musi mieć co najmniej ${ORGANIZER_PASSWORD_MIN_LENGTH} znaków.` };
+    return { field: "organizerPassword", message: t("settingsCopy.haslo_organizatora_musi_miec_co", { ORGANIZER_PASSWORD_MIN_LENGTH: ORGANIZER_PASSWORD_MIN_LENGTH }) };
   }
   if (form.visibility === "private_online" && !form.viewerPassword) {
-    return { field: "viewerPassword", message: "Turniej prywatny wymaga hasła widza." };
+    return { field: "viewerPassword", message: t("settingsCopy.turniej_prywatny_wymaga_hasla_widza") };
   }
   return null;
 }
@@ -99,13 +100,13 @@ export function copiedLines(summary: SettingsCopySummary): string[] {
   const formats = summary.stages.map((stage) => (STAGE_FORMAT_LABELS as Record<string, string>)[stage.format] ?? stage.format);
   return [
     summary.stages.length > 1
-      ? `Plan ${summary.stages.length} etapów: ${formats.join(" → ")}`
+      ? t("settingsCopy.plan_length_etapow_v1", { length: summary.stages.length, v1: formats.join(" → ") })
       : `Format: ${formats[0] ?? "—"}`,
-    "Zasady meczów, punktacja i rozstrzyganie remisów",
-    ...(summary.participantType === "teams" ? ["Drużyny i limity składu"] : []),
-    ...(summary.gameId ? ["Ustawienia gry"] : []),
-    ...(summary.participantFieldCount > 0 ? [`Pola uczestników (${summary.participantFieldCount})`] : []),
-    ...(summary.signups === "closed" ? ["Formularz zapisów — zamknięty, otworzysz go, gdy będziesz gotów"] : []),
-    "Wygląd i ustawienia prezentacji",
+    t("settingsCopy.zasady_meczow_punktacja_i_rozstrzyganie"),
+    ...(summary.participantType === "teams" ? [t("settingsCopy.druzyny_i_limity_skladu")] : []),
+    ...(summary.gameId ? [t("settingsCopy.ustawienia_gry")] : []),
+    ...(summary.participantFieldCount > 0 ? [t("settingsCopy.pola_uczestnikow_participantfieldcount", { participantFieldCount: summary.participantFieldCount })] : []),
+    ...(summary.signups === "closed" ? [t("settingsCopy.formularz_zapisow_zamkniety_otworzysz_go")] : []),
+    t("settingsCopy.wyglad_i_ustawienia_prezentacji"),
   ];
 }

@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { ReadQueryState } from "@/components/read-query-state";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { setActiveOrganizerToken } from "@workspace/api-client-react";
@@ -101,7 +102,7 @@ export function SecurityPanel({
       setNewPassword("");
       await refresh();
     } catch (err: any) {
-      setPwError(err.message ?? "Błąd zmiany hasła");
+      setPwError(err.message ?? t("securityPanel.blad_zmiany_hasla"));
     } finally {
       changePasswordLock.current = false;
       setChangingPw(false);
@@ -130,7 +131,7 @@ export function SecurityPanel({
       }
     } catch (error) {
       setOrganizerPasswordError(
-        error instanceof Error ? error.message : "Błąd ustawiania hasła organizatora",
+        error instanceof Error ? error.message : t("securityPanel.blad_ustawiania_hasla_organizatora"),
       );
     } finally {
       setOrganizerPasswordLock.current = false;
@@ -142,8 +143,8 @@ export function SecurityPanel({
     <div className="space-y-6">
       <div className="flex items-center gap-2">
         <Shield className="w-5 h-5 text-primary" />
-        <h3 className="font-bold text-lg">Panel bezpieczeństwa</h3>
-        <button type="button" onClick={refresh} aria-label="Odśwież sesje i logi" className="ml-auto inline-flex min-h-11 min-w-11 items-center justify-center rounded-md text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" title="Odśwież" disabled={loading}>
+        <h3 className="font-bold text-lg">{t("securityPanel.panel_bezpieczenstwa")}</h3>
+        <button type="button" onClick={refresh} aria-label={t("securityPanel.odswiez_sesje_i_logi")} className="ml-auto inline-flex min-h-11 min-w-11 items-center justify-center rounded-md text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" title={t("securityPanel.odswiez")} disabled={loading}>
           <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
         </button>
       </div>
@@ -152,27 +153,19 @@ export function SecurityPanel({
         <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-3">
           <div className="flex items-center gap-2">
             <Lock className="w-4 h-4 text-primary" />
-            <span className="text-sm font-semibold">Ustaw hasło organizatora</span>
+            <span className="text-sm font-semibold">{t("securityPanel.ustaw_haslo_organizatora")}</span>
           </div>
-          <p className="text-xs text-muted-foreground">
-            Zabezpiecz dostęp przed opuszczeniem tej przeglądarki. Hasło pozwoli Ci
-            ponownie zalogować się po utracie bieżącej sesji i na drugim urządzeniu.
-            Zachowaj je — aplikacja nie pokaże go ponownie i nie udostępnia resetu.
-            Ustawienie pierwszego hasła zastąpi dotychczasowy dostęp: inne otwarte
-            sesje tego turnieju będą wymagały zalogowania nowym hasłem.
-          </p>
+          <p className="text-xs text-muted-foreground">{t("securityPanel.zabezpiecz_dostep_przed_opuszczeniem_tej")}</p>
           <form onSubmit={handleSetOrganizerPassword} className="space-y-2">
             <div className="space-y-1">
-              <Label htmlFor="initial-organizer-password" className="text-xs">
-                Pierwsze hasło organizatora
-              </Label>
+              <Label htmlFor="initial-organizer-password" className="text-xs">{t("securityPanel.pierwsze_haslo_organizatora")}</Label>
               <div className="relative">
                 <Input
                   id="initial-organizer-password"
                   type={showOrganizerPassword ? "text" : "password"}
                   value={organizerPassword}
                   onChange={(event) => setOrganizerPassword(event.target.value)}
-                  placeholder="min. 8 znaków"
+                  placeholder={t("securityPanel.min_8_znakow")}
                   required
                   minLength={8}
                   className="pr-9"
@@ -181,7 +174,7 @@ export function SecurityPanel({
                   type="button"
                   onClick={() => setShowOrganizerPassword((value) => !value)}
                   className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-                  aria-label={showOrganizerPassword ? "Ukryj hasło" : "Pokaż hasło"}
+                  aria-label={showOrganizerPassword ? t("securityPanel.ukryj_haslo") : t("securityPanel.pokaz_haslo")}
                 >
                   {showOrganizerPassword
                     ? <EyeOff className="w-4 h-4" />
@@ -198,7 +191,7 @@ export function SecurityPanel({
               disabled={settingOrganizerPassword || organizerPassword.length < 8}
             >
               <Lock className="w-3.5 h-3.5 mr-1.5" />
-              {settingOrganizerPassword ? "Ustawianie…" : "Ustaw hasło organizatora"}
+              {settingOrganizerPassword ? t("securityPanel.ustawianie") : t("securityPanel.ustaw_haslo_organizatora")}
             </Button>
           </form>
         </div>
@@ -209,35 +202,33 @@ export function SecurityPanel({
           onClick={() => setTab("sessions")}
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${tab === "sessions" ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}
         >
-          <span className="flex items-center gap-1.5"><Users className="w-3.5 h-3.5" />Aktywne sesje wsparcia ({sessions?.length ?? "—"})</span>
+          <span className="flex items-center gap-1.5"><Users className="w-3.5 h-3.5" />{t("securityPanel.aktywne_sesje_wsparcia")}{sessions?.length ?? "—"})</span>
         </button>
         <button
           onClick={() => setTab("log")}
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${tab === "log" ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground"}`}
         >
-          <span className="flex items-center gap-1.5"><History className="w-3.5 h-3.5" />Logi działań ({auditLog?.length ?? "—"})</span>
+          <span className="flex items-center gap-1.5"><History className="w-3.5 h-3.5" />{t("securityPanel.logi_dzialan")}{auditLog?.length ?? "—"})</span>
         </button>
       </div>
 
       {tab === "sessions" && (
         <div className="space-y-4">
-          <ReadQueryState query={{ data: sessions, error: sessionsError, isFetching: loading, refetch: refresh }} loadingMessage="Ładowanie sesji wsparcia…" errorMessage="Nie udało się pobrać sesji wsparcia.">
+          <ReadQueryState query={{ data: sessions, error: sessionsError, isFetching: loading, refetch: refresh }} loadingMessage={t("securityPanel.ladowanie_sesji_wsparcia")} errorMessage={t("securityPanel.nie_udalo_sie_pobrac_sesji")}>
           {sessions?.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-6 text-center">Brak aktywnych sesji wsparcia.</p>
+            <p className="text-sm text-muted-foreground py-6 text-center">{t("securityPanel.brak_aktywnych_sesji_wsparcia")}</p>
           ) : (
             <div className="space-y-2">
               {sessions?.map((s) => (
                 <div key={s.id} className="flex items-center justify-between p-3 rounded-lg border border-border bg-card/50">
                   <div>
                     <span className="font-medium text-sm">{s.nick}</span>
-                    <div className="text-xs text-muted-foreground">
-                      Dołączył: {formatDistanceToNow(new Date(s.createdAt), { addSuffix: true, locale: pl })}
+                    <div className="text-xs text-muted-foreground">{t("securityPanel.dolaczyl")}{" "}{formatDistanceToNow(new Date(s.createdAt), { addSuffix: true, locale: pl })}
                     </div>
                   </div>
                   <div className="text-right">
-                    <span className="text-xs text-green-400 font-medium">aktywny</span>
-                    <div className="text-xs text-muted-foreground">
-                      ostatnio: {formatDistanceToNow(new Date(s.lastActiveAt), { addSuffix: true, locale: pl })}
+                    <span className="text-xs text-green-400 font-medium">{t("securityPanel.aktywny")}</span>
+                    <div className="text-xs text-muted-foreground">{t("securityPanel.ostatnio")}{" "}{formatDistanceToNow(new Date(s.lastActiveAt), { addSuffix: true, locale: pl })}
                     </div>
                   </div>
                 </div>
@@ -250,21 +241,19 @@ export function SecurityPanel({
           <div className="border border-border rounded-lg p-4 space-y-3 bg-destructive/5 border-destructive/20">
             <div className="flex items-center gap-2">
               <Lock className="w-4 h-4 text-destructive" />
-              <span className="text-sm font-semibold">Zmień hasło wsparcia</span>
+              <span className="text-sm font-semibold">{t("securityPanel.zmien_haslo_wsparcia")}</span>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Po zmianie hasła <strong>wszystkie aktywne sesje wsparcia zostaną unieważnione</strong>. Osoby ze wsparcia muszą zalogować się ponownie z nowym hasłem.
-            </p>
+            <p className="text-xs text-muted-foreground">{t("securityPanel.po_zmianie_hasla")}{" "}<strong>{t("securityPanel.wszystkie_aktywne_sesje_wsparcia_zostana")}</strong>{t("securityPanel.osoby_ze_wsparcia_musza_zalogowac")}</p>
             <form onSubmit={handleChangePassword} className="space-y-2">
               <div className="space-y-1">
-                <Label htmlFor="support-new-password" className="text-xs">Nowe hasło wsparcia</Label>
+                <Label htmlFor="support-new-password" className="text-xs">{t("securityPanel.nowe_haslo_wsparcia")}</Label>
                 <div className="relative">
                   <Input
                     id="support-new-password"
                     type={showNewPw ? "text" : "password"}
                     value={newPassword}
                     onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="min. 8 znaków"
+                    placeholder={t("securityPanel.min_8_znakow")}
                     required
                     minLength={8}
                     className="pr-9"
@@ -273,7 +262,7 @@ export function SecurityPanel({
                     type="button"
                     onClick={() => setShowNewPw((v) => !v)}
                     className="absolute right-2 top-1/2 -translate-y-1/2 inline-flex min-h-11 min-w-11 items-center justify-center text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
-                    aria-label={showNewPw ? "Ukryj hasło wsparcia" : "Pokaż hasło wsparcia"}
+                    aria-label={showNewPw ? t("securityPanel.ukryj_haslo_wsparcia") : t("securityPanel.pokaz_haslo_wsparcia")}
                     aria-controls="support-new-password"
                     aria-pressed={showNewPw}
                   >
@@ -282,10 +271,10 @@ export function SecurityPanel({
                 </div>
               </div>
               {pwError && <p role="alert" className="text-xs text-destructive">{pwError}</p>}
-              {pwSuccess && <p role="status" className="text-xs text-green-400">Hasło zmienione. Poprzednie sesje zostały unieważnione.</p>}
+              {pwSuccess && <p role="status" className="text-xs text-green-400">{t("securityPanel.haslo_zmienione_poprzednie_sesje_zostaly")}</p>}
               <Button type="submit" variant="destructive" size="sm" disabled={changingPw || newPassword.length < 8}>
                 <AlertTriangle className="w-3.5 h-3.5 mr-1.5" />
-                {changingPw ? "Zmienianie…" : "Zmień hasło i unieważnij sesje"}
+                {changingPw ? t("securityPanel.zmienianie") : t("securityPanel.zmien_haslo_i_uniewaznij_sesje")}
               </Button>
             </form>
           </div>
@@ -294,16 +283,16 @@ export function SecurityPanel({
 
       {tab === "log" && (
         <div className="space-y-1 max-h-96 overflow-y-auto">
-          <ReadQueryState query={{ data: auditLog, error: auditError, isFetching: loading, refetch: refresh }} loadingMessage="Ładowanie logów działań…" errorMessage="Nie udało się pobrać logów działań.">
+          <ReadQueryState query={{ data: auditLog, error: auditError, isFetching: loading, refetch: refresh }} loadingMessage={t("securityPanel.ladowanie_logow_dzialan")} errorMessage={t("securityPanel.nie_udalo_sie_pobrac_logow")}>
           {auditLog?.length === 0 ? (
-            <p className="text-sm text-muted-foreground py-6 text-center">Brak logów działań.</p>
+            <p className="text-sm text-muted-foreground py-6 text-center">{t("securityPanel.brak_logow_dzialan")}</p>
           ) : (
             auditLog?.map((l) => (
               <div key={l.id} className="flex items-start gap-3 py-2 px-3 rounded-lg hover:bg-muted/30 text-sm">
                 <span className={`shrink-0 text-xs font-bold px-1.5 py-0.5 rounded mt-0.5 ${
                   l.actorType === "organizer" ? "bg-primary/20 text-primary" : "bg-green-500/20 text-green-400"
                 }`}>
-                  {l.actorType === "organizer" ? "ORG" : "WS"}
+                  {l.actorType === "organizer" ? t("securityPanel.org") : t("securityPanel.ws")}
                 </span>
                 <div className="flex-1 min-w-0">
                   <span className="font-medium">{l.actorNick}</span>

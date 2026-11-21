@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/context/auth-context";
 import { apiSupportLogin } from "@/lib/auth";
@@ -46,7 +47,7 @@ export function SupportLoginModal({ open, onClose, tournamentId, tournamentName,
       setActiveOrganizerToken(null);
       onSuccess(sessionToken, confirmedNick);
     } catch (err: any) {
-      setError(err.message ?? "Nieprawidłowe hasło");
+      setError(err.message ?? t("supportLoginModal.nieprawidlowe_haslo"));
     } finally {
       setLoading(false);
     }
@@ -69,12 +70,12 @@ export function SupportLoginModal({ open, onClose, tournamentId, tournamentName,
               <Users aria-hidden="true" className="w-5 h-5 text-green-400" />
             </div>
             <div>
-              <h2 className="font-bold text-base">Logowanie wsparcia</h2>
+              <h2 className="font-bold text-base">{t("supportLoginModal.logowanie_wsparcia")}</h2>
               <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{tournamentName}</p>
             </div>
           </div>
           {handleClose && (
-            <button type="button" onClick={handleClose} className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-md text-muted-foreground hover:text-foreground transition-colors mt-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" aria-label="Zamknij">
+            <button type="button" onClick={handleClose} className="inline-flex min-h-10 min-w-10 items-center justify-center rounded-md text-muted-foreground hover:text-foreground transition-colors mt-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary" aria-label={t("supportLoginModal.zamknij")}>
               <X aria-hidden="true" className="w-4 h-4" />
             </button>
           )}
@@ -83,14 +84,12 @@ export function SupportLoginModal({ open, onClose, tournamentId, tournamentName,
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-1.5">
             <Label htmlFor="support-login-nick" className="flex items-center gap-1.5">
-              <User aria-hidden="true" className="w-3.5 h-3.5" />
-              Twój nick
-            </Label>
+              <User aria-hidden="true" className="w-3.5 h-3.5" />{t("supportLoginModal.twoj_nick")}</Label>
             <Input
               id="support-login-nick"
               value={nick}
               onChange={(e) => setNick(e.target.value)}
-              placeholder="np. Sędzia1"
+              placeholder={t("supportLoginModal.np_sedzia1")}
               autoComplete="nickname"
               required
               maxLength={40}
@@ -99,16 +98,14 @@ export function SupportLoginModal({ open, onClose, tournamentId, tournamentName,
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="support-login-password" className="flex items-center gap-1.5">
-              <Lock aria-hidden="true" className="w-3.5 h-3.5" />
-              Hasło wsparcia lub osobisty kod
-            </Label>
+              <Lock aria-hidden="true" className="w-3.5 h-3.5" />{t("supportLoginModal.haslo_wsparcia_lub_osobisty_kod")}</Label>
             <Input
               id="support-login-password"
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="Podane przez organizatora"
-              title="Z osobistym kodem zobaczysz się pod imieniem nadanym przez organizatora."
+              placeholder={t("supportLoginModal.podane_przez_organizatora")}
+              title={t("supportLoginModal.z_osobistym_kodem_zobaczysz_sie")}
               autoComplete="current-password"
               aria-describedby={error ? "support-login-error" : undefined}
               required
@@ -121,13 +118,11 @@ export function SupportLoginModal({ open, onClose, tournamentId, tournamentName,
 
           <div className="flex gap-2">
             {handleClose && (
-              <Button type="button" variant="outline" className="flex-1" onClick={handleClose} disabled={loading}>
-                Anuluj
-              </Button>
+              <Button type="button" variant="outline" className="flex-1" onClick={handleClose} disabled={loading}>{t("supportLoginModal.anuluj")}</Button>
             )}
             <Button type="submit" className="flex-1 bg-green-600 hover:bg-green-700 text-white" disabled={loading || !nick.trim() || !password}>
               <Users aria-hidden="true" className="w-4 h-4 mr-2" />
-              {loading ? "Logowanie…" : "Zaloguj"}
+              {loading ? t("supportLoginModal.logowanie") : t("supportLoginModal.zaloguj")}
             </Button>
           </div>
         </form>

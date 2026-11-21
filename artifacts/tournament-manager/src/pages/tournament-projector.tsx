@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { ReadQueryState } from "@/components/read-query-state";
 /**
  * /tournaments/:id/projector
@@ -218,13 +219,13 @@ export default function TournamentProjector() {
 
   if (!tournament) {
     return <div className="min-h-dvh text-foreground flex items-center justify-center p-4" style={transparent ? {} : { background: presetStyle.background as string }}>
-      <ReadQueryState query={tournamentQuery} loadingMessage="Ładowanie turnieju…" errorMessage={(tournamentQuery.error as { status?: number } | null)?.status === 404 ? "Nie znaleziono turnieju. Sprawdź adres." : "Nie udało się pobrać turnieju."} />
+      <ReadQueryState query={tournamentQuery} loadingMessage={t("tournamentProjector.ladowanie_turnieju")} errorMessage={(tournamentQuery.error as { status?: number } | null)?.status === 404 ? t("tournamentProjector.nie_znaleziono_turnieju_sprawdz_adres") : t("tournamentProjector.nie_udalo_sie_pobrac_turnieju")} />
     </div>;
   }
 
   return (
     <div className={isExperimental ? "experimental-projector-view" : undefined} data-exp-format={isExperimental ? publicStage?.format ?? "unknown" : undefined} data-exp-tournament-status={isExperimental ? tournament.status : undefined} data-exp-preset={isExperimental ? preset : undefined} style={containerStyle} data-theme={effectiveSettings.colorPreset ?? undefined}>
-      <ReadQueryState query={tournamentQuery} loadingMessage="Ładowanie turnieju…" errorMessage="Nie udało się pobrać turnieju." />
+      <ReadQueryState query={tournamentQuery} loadingMessage={t("tournamentProjector.ladowanie_turnieju")} errorMessage={t("tournamentProjector.nie_udalo_sie_pobrac_turnieju")} />
       {/* Optional tournament header */}
       {!hideHeader && (
         <div
@@ -243,7 +244,7 @@ export default function TournamentProjector() {
               style={{ fontSize: compact ? "0.6rem" : "0.7rem" }}
             >
               {publicStageLabel(publicStage, isExperimental)}
-              {publicStage.currentRound && publicStage.totalRounds ? ` · Runda ${publicStage.currentRound}/${publicStage.totalRounds}` : ""}
+              {publicStage.currentRound && publicStage.totalRounds ? t("tournamentProjector.runda_currentround_totalrounds", { currentRound: publicStage.currentRound, totalRounds: publicStage.totalRounds }) : ""}
             </p>
           )}
         </div>
@@ -258,13 +259,13 @@ export default function TournamentProjector() {
         }}
       >
         <ProjectorFit enabled={autoFit} fitRef={fitRef} scale={fitScale}>
-        <ReadQueryState query={stagesQuery} loadingMessage="Ładowanie etapów…" errorMessage="Nie udało się pobrać etapów.">
+        <ReadQueryState query={stagesQuery} loadingMessage={t("tournamentProjector.ladowanie_etapow")} errorMessage={t("tournamentProjector.nie_udalo_sie_pobrac_etapow")}>
         {!publicStage ? (
-          <p className="py-20 text-center text-muted-foreground">Brak rozpoczętego etapu.</p>
+          <p className="py-20 text-center text-muted-foreground">{t("tournamentProjector.brak_rozpoczetego_etapu")}</p>
         ) : marvelStage ? (
           <MarvelEliminationStage tournamentId={id} stageId={marvelStage.id} />
         ) : deStage ? (
-          <ReadQueryState query={deQuery} loadingMessage="Ładowanie drabinki Double Elimination…" errorMessage="Nie udało się pobrać drabinki Double Elimination.">
+          <ReadQueryState query={deQuery} loadingMessage={t("tournamentProjector.ladowanie_drabinki_double_elimination")} errorMessage={t("tournamentProjector.nie_udalo_sie_pobrac_drabinki")}>
             {deState && <DEBracketCanvas
               matches={deState.matches}
               participants={participants}
@@ -276,7 +277,7 @@ export default function TournamentProjector() {
             />}
           </ReadQueryState>
         ) : (
-          <ReadQueryState query={bracketQuery} loadingMessage="Ładowanie drabinki…" errorMessage="Nie udało się pobrać drabinki.">
+          <ReadQueryState query={bracketQuery} loadingMessage={t("tournamentProjector.ladowanie_drabinki")} errorMessage={t("tournamentProjector.nie_udalo_sie_pobrac_drabinki_2")}>
             {bracket && (publicStage.format === "round_robin" ? <RoundRobinView bracket={bracket} hideStandings />
               : publicStage.format === "swiss" ? <SwissRoundsView bracket={bracket} currentRound={publicStage.currentRound} totalRounds={publicStage.totalRounds} />
               : <BracketView bracket={bracket} format={publicStage.format} />)}

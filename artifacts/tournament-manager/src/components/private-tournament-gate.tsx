@@ -1,3 +1,4 @@
+import { t } from "@/i18n";
 import { useRef, useState } from "react";
 import { Lock } from "lucide-react";
 import { setActiveViewerToken } from "@workspace/api-client-react";
@@ -65,32 +66,32 @@ export function PrivateTournamentGate({
   const viewerMayLogin = allowViewerLogin && code === "VIEWER_PASSWORD_REQUIRED";
   const message = code === "VIEWER_PASSWORD_REQUIRED"
     ? allowViewerLogin
-      ? "Podaj hasło widza, aby otworzyć transmisję."
-      : "Ten turniej wymaga hasła widza. Projektor i nakładki pokazują tylko turnieje publiczne."
+      ? t("privateTournamentGate.podaj_haslo_widza_aby_otworzyc")
+      : t("privateTournamentGate.ten_turniej_wymaga_hasla_widza")
     : code === "PRIVATE_OFFLINE"
-      ? "Ten turniej nie jest dostępny dla widzów. Otworzy go tylko organizator lub wsparcie."
-      : "Nie masz dostępu do tego turnieju.";
+      ? t("privateTournamentGate.ten_turniej_nie_jest_dostepny")
+      : t("privateTournamentGate.nie_masz_dostepu_do_tego");
   return (
     <div
       role="region"
-      aria-label="Turniej prywatny"
+      aria-label={t("privateTournamentGate.turniej_prywatny")}
       data-access-denied={code}
       className={`${fullScreen ? "min-h-screen" : "py-16"} relative bg-background text-foreground flex flex-col items-center justify-center gap-4 px-4 text-center`}
     >
       {fullScreen && (
-        <RoleHomeLink fallbackHref="/fan" fallbackLabel="Wróć do turniejów" className="absolute left-4 top-4 text-muted-foreground hover:text-foreground" />
+        <RoleHomeLink fallbackHref="/fan" fallbackLabel={t("privateTournamentGate.wroc_do_turniejow")} className="absolute left-4 top-4 text-muted-foreground hover:text-foreground" />
       )}
       <Lock className="w-10 h-10 text-muted-foreground" aria-hidden="true" />
-      <h1 className="text-xl font-semibold">Turniej prywatny</h1>
+      <h1 className="text-xl font-semibold">{t("privateTournamentGate.turniej_prywatny")}</h1>
       <p className="text-sm text-muted-foreground max-w-sm">{message}</p>
-      {viewerMayLogin && <Button onClick={() => setOpen(true)}>Podaj hasło widza</Button>}
+      {viewerMayLogin && <Button onClick={() => setOpen(true)}>{t("privateTournamentGate.podaj_haslo_widza")}</Button>}
       {viewerMayLogin && (
         <ViewerLoginModal
           open={open}
           onClose={() => setOpen(false)}
           onCancel={() => setOpen(false)}
           tournamentId={tournamentId}
-          tournamentName={`Turniej #${tournamentId}`}
+          tournamentName={t("privateTournamentGate.turniej_tournamentid", { tournamentId: tournamentId })}
           onSuccess={(token) => {
             storeViewerToken(tournamentId, token);
             setActiveViewerToken(token);
