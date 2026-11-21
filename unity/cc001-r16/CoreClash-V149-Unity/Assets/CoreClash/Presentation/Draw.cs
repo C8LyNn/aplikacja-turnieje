@@ -34,6 +34,18 @@ namespace CoreClash.Presentation
             float shift=Mathf.Min(Theme.HardShadow,drop+1);
             Round(new Rect(r.x+shift*.6f,r.y+shift,r.width,r.height),new Color(Theme.Ink.r,Theme.Ink.g,Theme.Ink.b,Mathf.Clamp01(alpha*2.2f+.12f)));
         }
+        // W24: the console the match controls lie on - the same dark rail as the phone tray, with an
+        // ink outline and a light line along its top edge. Light cards and buttons stand out on it.
+        public static void Rail(Rect r)
+        {
+            Shadow(r,.28f);
+            Round(r,Theme.Ink);
+            var face=Inset(r,Theme.InkLine);
+            Round(face,Theme.RailBottom);
+            Round(new Rect(face.x,face.y,face.width,Mathf.Min(face.height,40)),Theme.RailTop);
+            if(face.height>48)VGradient(new Rect(face.x,face.y+16,face.width,face.height-32),Theme.RailTop,Theme.RailBottom);
+            Rect(new Rect(face.x+12,face.y+3,face.width-24,1.5f),new Color(1,1,1,.22f));
+        }
         // W24: a white card with a soft shadow.
         public static void Card(Rect r,Color? fill=null,Color? border=null,float shadowAlpha=.18f)
         {

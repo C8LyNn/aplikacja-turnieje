@@ -82,8 +82,9 @@ namespace CoreClash.Presentation
         void RenderSidePanel(int displayOwner,int visualOwner)
         {
             var state=Simulation.State;bool over=state.phase==MatchPhase.Over;
-            Color active=over?Theme.SelectInk:Theme.TeamDeep(state.turn);
-            Draw.Card(side);
+            // W24: the panel is a dark console, like the phone tray; text straight on it is light.
+            Color active=over?Theme.Select:Color.Lerp(Draw.Owner(state.turn),Color.white,.62f);
+            Draw.Rail(side);
             var inner=Draw.Inset(side,12);
             var rows=MatchPanelLayout.For(inner.width,inner.height,UiViewport.TargetSize,!layout.Portrait);
             if(rows.Scrolls)matchScroll=Draw.ScrollView(inner,matchScroll,new Rect(0,0,rows.Width,rows.ContentHeight));
@@ -118,8 +119,8 @@ namespace CoreClash.Presentation
             if(!rows.Tight)GuideLine(new Rect(textX,strip.y+46,textWidth,18),selected,Theme.FontSmall);
             string deckHeading=NetworkLink==null?Lang.T("Deck","Talia"):displayOwner<0?Lang.T("Deck unavailable","Talia niedostępna"):Lang.T("Your deck","Twoja talia");
             var heading=RectOf(rows.Heading);
-            Draw.Text(heading,deckHeading,10,Theme.Muted,TextAnchor.MiddleLeft,true);
-            if(!UiViewport.IsTouch&&heading.width>=330)Draw.Text(heading,Lang.T("Keys 1-9  ·  0 Standard","Klawisze 1-9  ·  0 Zwykła"),Theme.FontTiny,Theme.Disabled,TextAnchor.MiddleRight,true);
+            Draw.Text(heading,deckHeading,10,new Color(1,1,1,.82f),TextAnchor.MiddleLeft,true);
+            if(!UiViewport.IsTouch&&heading.width>=330)Draw.Text(heading,Lang.T("Keys 1-9  ·  0 Standard","Klawisze 1-9  ·  0 Zwykła"),Theme.FontTiny,new Color(1,1,1,.55f),TextAnchor.MiddleRight,true);
             var ids=LocalDeckContent.StockIds(state,displayOwner);
             for(int i=0;i<ids.Length&&i<rows.Cards.Length;i++)BallCard(RectOf(rows.Cards[i]),ids[i]);
             bool normalSelected=selected=="normal";var standard=RectOf(rows.Standard);
@@ -143,9 +144,9 @@ namespace CoreClash.Presentation
             else if(summary.Length>0){detail=summary;result=true;}
             else detail=state.bonusPending?Lang.T("Player 2 gets one extra spawn on the opening turn.","Gracz 2 dostaje jeden dodatkowy strzał w pierwszej turze."):Lang.T("A glowing home ball can Replay before you spawn.","Świecącą kulkę w twojej strefie możesz wystrzelić ponownie przed nowym strzałem.");
             var hintBox=RectOf(rows.Hint);
-            Draw.Round(hintBox,Theme.PanelLight);
+            Draw.Round(hintBox,new Color(.03f,.02f,.16f,.42f));
             Draw.Text(new Rect(hintBox.x+10,hintBox.y+3,hintBox.width-20,17),Soft(hint),13,active,TextAnchor.MiddleLeft,true);
-            Draw.Text(new Rect(hintBox.x+10,hintBox.y+20,hintBox.width-20,hintBox.height-22),detail??"",rows.Tight?10:11,result?Theme.Text:Theme.Muted,TextAnchor.UpperLeft,result);
+            Draw.Text(new Rect(hintBox.x+10,hintBox.y+20,hintBox.width-20,hintBox.height-22),detail??"",rows.Tight?10:11,result?Color.white:new Color(1,1,1,.74f),TextAnchor.UpperLeft,result);
             if(rows.Scrolls)GUI.EndScrollView();else GUI.EndGroup();
         }
         // A short pop of the selected orb right after a card is chosen.
@@ -163,7 +164,7 @@ namespace CoreClash.Presentation
         {
             var state=Simulation.State;
             int owner=state.turn;bool over=state.phase==MatchPhase.Over;
-            Draw.Card(side);
+            Draw.Rail(side);
             Rect hud=RectOf(layout.CompactHud),choice=RectOf(layout.CompactChoice);
             Rect cards=RectOf(layout.CompactCards),actions=RectOf(layout.CompactActions);
             Rect feedbackRow=RectOf(layout.CompactFeedback);
@@ -206,7 +207,7 @@ namespace CoreClash.Presentation
                     LocalTurnPresentation.ActionMessage(state,NetworkLink==null?-1:NetworkLink.LocalOwner,
                         NetworkLink!=null,NetworkLink==null||NetworkLink.IsConnected,gesture.Active,
                         gesture.AimX-gesture.OriginX,gesture.AimY-gesture.OriginY,Lang.T("SELECT A BALL AND DRAG TO AIM","WYBIERZ KULKĘ I PRZECIĄGNIJ"),notice);
-                Draw.Text(feedbackRow,Soft(message),12,over?Theme.SelectInk:Theme.TeamDeep(owner),TextAnchor.MiddleLeft,true);
+                Draw.Text(feedbackRow,Soft(message),12,over?Theme.Select:Color.Lerp(Draw.Owner(owner),Color.white,.62f),TextAnchor.MiddleLeft,true);
             }
         }
 
