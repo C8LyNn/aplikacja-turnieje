@@ -58,8 +58,8 @@ namespace CoreClash.Presentation
             foreach(var item in feedback.Items)if(item.kind=="BASE_DAMAGE"&&item.owner==owner)flash=Mathf.Max(flash,1-Mathf.Clamp01((Time.unscaledTime-item.born)/Theme.BaseFlash));
             Color fill=Color.Lerp(acting?team:Theme.Panel,Theme.Damage,flash*.55f);
             Draw.Shadow(cell,acting?.24f:.12f,7,3);
-            Draw.Round(cell,acting?deep:Color.Lerp(team,Color.white,.45f));
-            Draw.Round(new Rect(cell.x+2,cell.y+2,cell.width-4,cell.height-(acting?7:4)),fill);
+            Color rim=acting?deep:Color.Lerp(team,Color.white,.45f);
+            Draw.Plate(cell,fill,rim,rim,acting?3:0);
             Color ink=acting||flash>.4f?Theme.OnColor:deep;
             float top=cell.y+2,rowH=cell.height-(acting?7:4)-10;
             Draw.Ring(new Vector2(cell.x+16,top+rowH*.5f),6.5f,ink,2.4f,owner==1?Theme.P2RingSegments:0,Theme.P2RingFill);
@@ -71,9 +71,13 @@ namespace CoreClash.Presentation
             // The same picture as on the base wall: a heart by the number and one pip for each HP.
             float heart=numberSize*.62f,heartX=cell.xMax-12-Draw.TextWidth(hp.ToString(),numberSize,true)-heart-3;
             if(heartX>cell.x+28+60)Glyphs.Paint(new Rect(heartX,top+(rowH-heart)*.5f+1,heart,heart),BoardView.HeartGlyph,ink);
-            var bar=new Rect(cell.x+10,top+rowH,cell.width-20,7);float pipStep=bar.width/BoardView.BasePips;
-            for(int i=0;i<BoardView.BasePips;i++)
-                Draw.Rect(new Rect(bar.x+i*pipStep,bar.y,Mathf.Max(1.5f,pipStep-1.6f),bar.height),i<hp?(acting?Color.white:team):(acting?new Color(0,0,0,.25f):Theme.PanelRaised));
+            // W24 (owner direction: clean edges): every pip is the same whole number of screen pixels
+            // wide. Width that does not divide evenly becomes a slightly wider gap after every 5 HP.
+            var bar=new Rect(cell.x+10,top+rowH,cell.width-20,7);int pips=BoardView.BasePips;
+            float px=Draw.Pixel,gap=Mathf.Max(px,Draw.Snap(1.6f)),pipStep=Mathf.Max(2*px,Draw.SnapDown((bar.width+gap)/pips)),pipWidth=Mathf.Max(px,pipStep-gap);
+            float spare=bar.width-(pipStep*pips-gap),group=Mathf.Max(0,Draw.SnapDown(spare/3)),pipLeft=Draw.Snap(bar.x+Mathf.Max(0,spare-group*3)*.5f),pipTop=Draw.Snap(bar.y),pipHeight=Mathf.Max(px,Draw.Snap(bar.height));
+            for(int i=0;i<pips;i++)
+                Draw.Rect(new Rect(pipLeft+i*pipStep+(i/5)*group,pipTop,pipWidth,pipHeight),i<hp?(acting?Color.white:team):(acting?new Color(0,0,0,.25f):Theme.PanelRaised));
         }
 
         // W20: desktop/tablet side panel. Rows come from MatchPanelLayout, so everything a
@@ -88,12 +92,12 @@ namespace CoreClash.Presentation
             var inner=Draw.Inset(side,12);
             var rows=MatchPanelLayout.For(inner.width,inner.height,UiViewport.TargetSize,!layout.Portrait);
             if(rows.Scrolls)matchScroll=Draw.ScrollView(inner,matchScroll,new Rect(0,0,rows.Width,rows.ContentHeight));
-            else{matchScroll=Vector2.zero;GUI.BeginGroup(inner);}
+            else{matchScroll=Vector2.zero;Draw.BeginGroup(inner);}
             if(rows.Scoreboard)
             {
                 // Turn ribbon in the acting player's colour.
                 var turn=RectOf(rows.Turn);Color ribbon=over?Theme.Select:Draw.Owner(state.turn);
-                Draw.Round(turn,over?Theme.SelectInk:Theme.TeamDeep(state.turn));Draw.Round(new Rect(turn.x,turn.y,turn.width,turn.height-3),ribbon);
+                Draw.Plate(turn,ribbon,ribbon,over?Theme.SelectInk:Theme.TeamDeep(state.turn),3,0);
                 string status=Soft(TurnText());int cut=status.IndexOf("     ",StringComparison.Ordinal);
                 Color onRibbon=over?Theme.Ink:Theme.OnColor;
                 if(cut<0)Draw.Text(new Rect(turn.x+14,turn.y,turn.width-26,turn.height-3),status,status.Length>22?13:17,onRibbon,TextAnchor.MiddleLeft,true);
@@ -107,7 +111,7 @@ namespace CoreClash.Presentation
                 ScorePill(RectOf(rows.Hp1),0);ScorePill(RectOf(rows.Hp2),1);
             }
             var d=Catalog.Ball(selected);var strip=RectOf(rows.Selected);
-            Draw.Round(strip,Theme.Select);Draw.Round(Draw.Inset(strip,2),Color.Lerp(Theme.Panel,Theme.Select,.1f));
+            Draw.Plate(strip,Color.Lerp(Theme.Panel,Theme.Select,.1f),Theme.Select,Theme.Select,0);
             float orb=(strip.height-(rows.Tight?22:26))*SelectPulse();
             BallView.Preview(new Rect(strip.x+15+(strip.height-(rows.Tight?22:26)-orb)/2,strip.y+(strip.height-orb)/2,orb,orb),d,visualOwner,true);
             float textX=strip.x+(strip.height-(rows.Tight?22:26))+32,textWidth=strip.xMax-textX-10;
@@ -147,7 +151,7 @@ namespace CoreClash.Presentation
             Draw.Round(hintBox,new Color(.03f,.02f,.16f,.42f));
             Draw.Text(new Rect(hintBox.x+10,hintBox.y+3,hintBox.width-20,17),Soft(hint),13,active,TextAnchor.MiddleLeft,true);
             Draw.Text(new Rect(hintBox.x+10,hintBox.y+20,hintBox.width-20,hintBox.height-22),detail??"",rows.Tight?10:11,result?Color.white:new Color(1,1,1,.74f),TextAnchor.UpperLeft,result);
-            if(rows.Scrolls)GUI.EndScrollView();else GUI.EndGroup();
+            if(rows.Scrolls)GUI.EndScrollView();else Draw.EndGroup();
         }
         // A short pop of the selected orb right after a card is chosen.
         float SelectPulse()
@@ -267,7 +271,7 @@ namespace CoreClash.Presentation
         // Four large buttons above the tray. A tap anywhere else closes it.
         void RenderPhoneMenu()
         {
-            if(GUI.Button(new Rect(0,0,UiWidth,side.y),GUIContent.none,GUIStyle.none)){phoneMenu=false;return;}
+            if(Draw.Hit(new Rect(0,0,UiWidth,side.y))){phoneMenu=false;return;}
             Draw.Rect(new Rect(0,0,UiWidth,side.y),Theme.A(Theme.Scrim,.45f));
             float pad=12,gap=10,buttonH=64,w=UiWidth-pad*2,h=buttonH*2+gap+pad*2;
             var sheet=new Rect(pad,side.y-h-10,w,h);
@@ -314,16 +318,13 @@ namespace CoreClash.Presentation
             bool handReady=!standard&&LocalDeckContent.ActiveSource(Simulation,owner,id)==BallSelectionSource.Hand;
             bool available=standard||LocalDeckContent.VisibleAsAvailable(Simulation,owner,id);
             bool canClick=standard?CanChoose:LocalDeckContent.CanActivate(Simulation,owner,id,CanChoose),picked=canClick&&id==selected;
-            bool hover=canClick&&GUI.enabled&&r.Contains(Event.current.mousePosition);
+            bool hover=canClick&&GUI.enabled&&r.Contains(Draw.Mouse);
             // The card answers the finger: it sinks a little while it is held; the chosen one stays lifted.
-            bool held=canClick&&GUI.enabled&&r.Contains(Event.current.mousePosition)&&UnityEngine.Input.GetMouseButton(0);
+            bool held=canClick&&GUI.enabled&&r.Contains(Draw.Mouse)&&UnityEngine.Input.GetMouseButton(0);
             var face=held?new Rect(r.x,r.y+2,r.width,r.height-2):picked?new Rect(r.x,r.y-3,r.width,r.height):r;
-            Draw.Round(new Rect(face.x-1.5f,face.y-1.5f,face.width+3,face.height+3),Theme.Ink);
-            Draw.Round(new Rect(face.x,face.y+3,face.width,face.height-3),picked?Theme.SelectInk:Theme.EdgeStrong);
-            Draw.Round(new Rect(face.x,face.y,face.width,face.height-3),picked?Theme.Select:Theme.Edge);
-            Draw.Round(new Rect(face.x+2,face.y+2,face.width-4,face.height-7),picked?Color.Lerp(Theme.Panel,Theme.Select,.16f):hover?Theme.PanelLight:Theme.Panel);
+            Draw.Plate(face,picked?Color.Lerp(Theme.Panel,Theme.Select,.16f):hover?Theme.PanelLight:Theme.Panel,picked?Theme.Select:Theme.Edge,picked?Theme.SelectInk:Theme.EdgeStrong,3,2,1.5f);
             bool prior=GUI.enabled;GUI.enabled=prior&&canClick;
-            if(GUI.Button(r,GUIContent.none,GUIStyle.none))
+            if(Draw.Hit(r))
             {
                 int turnNumber=Simulation.State.turnNumber;
                 if(picked&&layout.PhonePortrait&&tappedId==id&&tappedTurn==turnNumber)ShowBallDetails(id);
@@ -340,10 +341,12 @@ namespace CoreClash.Presentation
                 string name=BallIcons.Name(d);int longest=0;foreach(string word in name.Split(' '))longest=Mathf.Max(longest,word.Length);
                 Draw.Text(new Rect(face.x+2,face.yMax-25,face.width-4,20),name,face.width-4>=longest*6.2f&&name.Length<=11?10:9,available?Theme.Text:Theme.Muted,TextAnchor.MiddleCenter,true);
             }
-            if(!available)Draw.Round(new Rect(face.x+2,face.y+2,face.width-4,face.height-7),new Color(1,1,1,.66f));
-            // Stock badge in the corner: how many are left, a loop for the unlimited Standard, H for a ball in hand.
-            var badge=new Rect(face.xMax-22,face.y+1,22,16);
-            Draw.Chip(badge,handReady?Theme.Select:available?Theme.Ink:Theme.Disabled);
+            var plate=Draw.PlateFill(face);float plateCorner=Draw.PlateCorner();
+            if(!available)Draw.Round(plate,new Color(1,1,1,.66f),plateCorner);
+            // Stock badge: how many are left, a loop for the unlimited Standard, H for a ball in hand.
+            // It is a tab that fills the card's top right corner exactly (the same corner as the card).
+            var badge=new Rect(plate.xMax-22,plate.y,22,16);
+            Draw.Corners(badge,handReady?Theme.Select:available?Theme.Ink:Theme.Disabled,0,plateCorner,0,7);
             if(standard)Glyphs.Paint(new Rect(badge.center.x-7,badge.center.y-7,14,14),IconEndless,Theme.OnColor);
             else Draw.Text(new Rect(badge.x,badge.y-1,badge.width,badge.height),handReady?"H":stock.ToString(),12,handReady?Theme.Ink:Theme.OnColor,TextAnchor.MiddleCenter,true);
         }
@@ -356,12 +359,10 @@ namespace CoreClash.Presentation
             var source=LocalDeckContent.ActiveSource(Simulation,owner,id);
             bool available=LocalDeckContent.VisibleAsAvailable(Simulation,owner,id),handReady=source==BallSelectionSource.Hand;
             bool canClick=LocalDeckContent.CanActivate(Simulation,owner,id,CanChoose),picked=canClick&&id==selected;
-            bool hover=canClick&&GUI.enabled&&r.Contains(Event.current.mousePosition);
+            bool hover=canClick&&GUI.enabled&&r.Contains(Draw.Mouse);
             if(picked)Draw.Shadow(r,.26f,8,5);
-            Draw.Round(new Rect(r.x,r.y+3,r.width,r.height-3),picked?Theme.SelectInk:Theme.EdgeStrong);
-            Draw.Round(new Rect(r.x,r.y,r.width,r.height-3),picked?Theme.Select:hover?Theme.EdgeStrong:Theme.Edge);
-            Draw.Round(new Rect(r.x+2,r.y+2,r.width-4,r.height-7),picked?Color.Lerp(Theme.Panel,Theme.Select,.14f):hover?Theme.PanelLight:Theme.Panel);
-            bool prior=GUI.enabled;GUI.enabled=prior&&canClick;if(GUI.Button(r,GUIContent.none,GUIStyle.none))SelectBall(id);GUI.enabled=prior;
+            Draw.Plate(r,picked?Color.Lerp(Theme.Panel,Theme.Select,.14f):hover?Theme.PanelLight:Theme.Panel,picked?Theme.Select:hover?Theme.EdgeStrong:Theme.Edge,picked?Theme.SelectInk:Theme.EdgeStrong);
+            bool prior=GUI.enabled;GUI.enabled=prior&&canClick;if(Draw.Hit(r))SelectBall(id);GUI.enabled=prior;
             string count=handReady?"H":available?"x"+stock:"0";Color countColor=handReady?Theme.SelectInk:available?Theme.Text:Theme.Muted;
             Color nameColor=available?Theme.Text:Theme.Muted;
             // Longest word decides the name size, so a name never breaks inside a word.
@@ -390,7 +391,7 @@ namespace CoreClash.Presentation
                 else if(cue&&available&&BallGuide.For(id)!=null)GuideTag(new Rect(r.x+5,r.yMax-24,r.width-10,16),id,Theme.FontTiny+1);
                 else if(cue)Draw.Text(new Rect(r.x+5,r.yMax-22,r.width-10,14),available?Cue(id):Lang.T("OUT OF STOCK","BRAK"),Theme.FontTiny,Theme.Muted,TextAnchor.MiddleCenter);
             }
-            if(!available)Draw.Round(new Rect(r.x+2,r.y+2,r.width-4,r.height-7),new Color(1,1,1,.62f));
+            if(!available)Draw.Round(Draw.PlateFill(r),new Color(1,1,1,.62f),Draw.PlateCorner());
         }
     }
 }

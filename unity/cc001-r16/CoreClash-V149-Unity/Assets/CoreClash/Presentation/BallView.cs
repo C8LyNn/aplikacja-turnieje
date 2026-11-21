@@ -134,6 +134,8 @@ namespace CoreClash.Presentation
             if (layout.HasShield)
             {
                 var shield = RectOf(layout.Shield); shield.x += shieldShift; if (!Theme.ShowHpNumber && layout.Chips.Length > 0) shield.x -= shield.width * .5f + 1;
+                // A chip sits on whole screen pixels, so its number is centred in it exactly.
+                shield = Draw.SnapOrigin(shield);
                 // W24 (owner direction: readability): a chip is filled with its state's colour and
                 // carries a white symbol and a white number, on an ink edge - a patch of colour that is
                 // read at a glance, not a white label with a thin coloured mark.
@@ -145,6 +147,7 @@ namespace CoreClash.Presentation
             foreach (var chip in layout.Chips)
             {
                 var box = RectOf(chip.Box); if (layout.HasShield && !Theme.ShowHpNumber) box.x += RectOf(layout.Shield).width * .5f + 1; else box.y += rowShift;
+                box = Draw.SnapOrigin(box);
                 Draw.Chip(box, Theme.StatusFill(chip.Kind), Theme.Ink);
                 float glyph = box.height - 4;
                 Glyphs.Paint(new Rect(box.x + (chip.Text.Length > 0 ? 2.5f : (box.width - glyph) * .5f), box.y + 2, glyph, glyph), chip.Kind, Color.white);
@@ -154,6 +157,7 @@ namespace CoreClash.Presentation
             if (layout.Hidden > 0)
             {
                 var more = RectOf(layout.Overflow); if (layout.HasShield && !Theme.ShowHpNumber) more.x += RectOf(layout.Shield).width * .5f + 1; else more.y += rowShift;
+                more = Draw.SnapOrigin(more);
                 Draw.Chip(more, Alpha(Theme.Scrim, .9f), Theme.Ink);
                 Draw.Text(new Rect(more.x, more.y - 1, more.width, more.height), "+" + layout.Hidden, font, Color.white, TextAnchor.MiddleCenter, true);
             }
@@ -262,8 +266,8 @@ namespace CoreClash.Presentation
             Draw.Circle(body, team);
             if (pip != 0) OwnerPip(center, radius + ink * .5f, pip, pipSize, team, dark);
             Color old = GUI.color;
-            GUI.color = ShadeTone; GUI.DrawTexture(body, shade);
-            GUI.color = Color.white; GUI.DrawTexture(body, shine);
+            GUI.color = ShadeTone; Draw.Tex(body, shade);
+            GUI.color = Color.white; Draw.Tex(body, shine);
             GUI.color = old;
             if (hp >= 0)
             {

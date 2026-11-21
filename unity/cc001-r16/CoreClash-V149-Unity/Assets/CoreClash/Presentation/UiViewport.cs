@@ -16,6 +16,9 @@ namespace CoreClash.Presentation
         public static DeviceProfile Profile=>Current.Profile;
         public static DeviceProfile RequestedProfile=>requested;
         public static bool IsTouch {get;private set;}
+        // Test hook ("--cc-ui-density <n>"): draw as a display with this many pixels per point would,
+        // so a scaled display (4K at 150%) can be checked on any monitor. 0 = follow the display.
+        public static float DensityOverride;
         public static float TargetSize=>IsTouch||Profile==DeviceProfile.Phone||Profile==DeviceProfile.Tablet?44:36;
         public static Matrix4x4 GuiMatrix=>Matrix4x4.TRS(new Vector3(Current.SafeArea.x,Current.SafeArea.y,0),Quaternion.identity,new Vector3(Scale,Scale,1));
 #if UNITY_WEBGL && !UNITY_EDITOR
@@ -43,6 +46,7 @@ namespace CoreClash.Presentation
                 density=Mathf.Min(density,Mathf.Max(1,Mathf.Min(width/960,height/600)));
             }
 #endif
+            if(DensityOverride>0)density=DensityOverride;
             var next=DeviceViewport.Create(width,height,area,density,touch,requested);var old=Current;
             bool changed=old.RawWidth!=next.RawWidth||old.RawHeight!=next.RawHeight||old.Scale!=next.Scale||old.Profile!=next.Profile||old.SafeArea.x!=next.SafeArea.x||old.SafeArea.y!=next.SafeArea.y||old.SafeArea.width!=next.SafeArea.width||old.SafeArea.height!=next.SafeArea.height||IsTouch!=touch;
             Current=next;IsTouch=touch;return changed;

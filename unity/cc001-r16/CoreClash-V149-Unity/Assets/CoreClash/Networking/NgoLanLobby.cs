@@ -245,7 +245,7 @@ namespace CoreClash.Networking
         string Field(Rect rect,string text,int maxLength)
         {
             if(fieldStyle==null){fieldStyle=new GUIStyle(GUI.skin.textField){fontSize=15,padding=new RectOffset(10,10,10,8)};fieldStyle.normal.textColor=Theme.Text;fieldStyle.focused.textColor=Theme.Text;}
-            Draw.Surface(rect,Draw.Background,Draw.Edge);return GUI.TextField(Draw.Inset(rect,2),text,maxLength,fieldStyle);
+            Draw.Surface(rect,Draw.Background,Draw.Edge);return Draw.TextField(Draw.Inset(rect,2),text,maxLength,fieldStyle);
         }
         void CreateGame()
         {

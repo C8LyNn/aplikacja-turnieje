@@ -42,7 +42,9 @@ namespace CoreClash.Presentation
             Draw.Card(r);
             // Team block on the left: the same colour and ring pattern as that player's balls.
             float block=Math.Min(58,r.height);
-            Draw.Round(new Rect(r.x,r.y,block,r.height),color);Draw.Rect(new Rect(r.x+block-12,r.y,12,r.height),color);
+            // It is the left end of the card's own face, inside the same ink outline.
+            var strip=Draw.CardFace(r);float stripCorner=Draw.CardCorner;
+            Draw.Corners(new Rect(strip.x,strip.y,block-(strip.x-r.x),strip.height),color,stripCorner,0,0,stripCorner);
             // Player 2 can be the computer: tap the team block to switch.
             bool computer=owner==1&&VersusAi;
             if(computer)Glyphs.Paint(new Rect(r.x+block/2-12,r.y+r.height*.36f-13,24,24),IconRobot,Theme.OnColor);
@@ -51,13 +53,13 @@ namespace CoreClash.Presentation
             if(owner==1)
             {
                 Glyphs.Paint(new Rect(r.x+block/2-7,r.yMax-15,14,14),IconSwitch,Theme.A(Theme.OnColor,.85f));
-                if(GUI.Button(new Rect(r.x,r.y,block,r.height),GUIContent.none,GUIStyle.none))SetVersusAi(!VersusAi);
+                if(Draw.Hit(new Rect(r.x,r.y,block,r.height)))SetVersusAi(!VersusAi);
             }
             float x=r.x+block+12,actionW=98,actionH=UiViewport.TargetSize;
             Draw.Text(new Rect(x,r.y+8,r.xMax-x-actionW-18,22),DeckName(deck),r.width<420?14:16,Theme.Text,TextAnchor.MiddleLeft,true);
             float step=Math.Min(24,(r.xMax-x-actionW-22)/9);
             for(int i=0;i<9&&i<deck.balls.Length;i++)BallView.Preview(new Rect(x+2+i*step,r.y+(r.height>70?41:36),r.height>70?18:15,r.height>70?18:15),Catalog.Ball(deck.balls[i]),owner);
-            if(GUI.Button(new Rect(x-4,r.y+4,r.xMax-x-actionW-14,r.height-8),GUIContent.none,GUIStyle.none))OpenDeckGuide(deck,owner);
+            if(Draw.Hit(new Rect(x-4,r.y+4,r.xMax-x-actionW-14,r.height-8)))OpenDeckGuide(deck,owner);
             if(Draw.Button(new Rect(r.xMax-actionW-10,r.y+(r.height-actionH)/2,actionW,actionH),Lang.T("Edit","Zmień"),color,size:12))OpenBuilder(owner);
         }
         void FeaturedCard(DeckDefinition deck,int index,Rect r)
@@ -66,7 +68,10 @@ namespace CoreClash.Presentation
             Draw.Card(r);
             // Coloured header with the deck's name.
             float band=r.height<190?38:44;
-            Draw.Round(new Rect(r.x,r.y,r.width,band+12),accent);Draw.Rect(new Rect(r.x+2,r.y+band,r.width-4,14),Theme.Panel);
+            // The band lies inside the card's ink outline and follows its round top; the white body
+            // cuts it off in a straight line.
+            var face=Draw.CardFace(r);float faceCorner=Draw.CardCorner;
+            Draw.Corners(new Rect(face.x,face.y,face.width,band-(face.y-r.y)),accent,faceCorner,faceCorner,0,0);
             Draw.Text(new Rect(r.x+16,r.y+1,r.width-110,band),DeckName(deck),r.width>430?20:17,new Color(0,0,0,.22f),TextAnchor.MiddleLeft,true);
             Draw.Text(new Rect(r.x+16,r.y,r.width-110,band),DeckName(deck),r.width>430?20:17,Theme.OnColor,TextAnchor.MiddleLeft,true);
             if(frozen)Draw.Text(new Rect(r.xMax-96,r.y,84,band),"FROZEN",10,new Color(1,1,1,.85f),TextAnchor.MiddleRight,true);
@@ -76,14 +81,14 @@ namespace CoreClash.Presentation
                 var info=new Rect(r.xMax-band-2,r.y+4,band-8,band-8);
                 Draw.Circle(new Rect(info.x-2,info.y-2,info.width+4,info.height+4),Theme.Ink);Draw.Circle(info,Theme.Panel);
                 Glyphs.Paint(new Rect(info.center.x-8,info.center.y-8,16,16),IconInfo,Color.Lerp(accent,Theme.Ink,.45f));
-                if(GUI.Button(new Rect(r.xMax-band-10,r.y,band+10,band),GUIContent.none,GUIStyle.none))OpenDeckGuide(deck);
+                if(Draw.Hit(new Rect(r.xMax-band-10,r.y,band+10,band)))OpenDeckGuide(deck);
             }
             bool compact=r.height<190;
             Draw.Text(new Rect(r.x+16,r.y+band+(compact?4:8),r.width-32,compact?28:34),Identity(deck),compact?11:12,Theme.Muted);
             float actionH=UiViewport.TargetSize>=44?46:36;
             float orb=Math.Min(compact?30:38,(r.width-40)/9.6f),step=(r.width-32-orb)/8,orbY=r.yMax-actionH-18-orb-(compact?4:8);
             for(int i=0;i<9;i++)BallView.Preview(new Rect(r.x+16+i*step,orbY,orb,orb),Catalog.Ball(deck.balls[i]),0);
-            if(GUI.Button(new Rect(r.x+8,orbY-6,r.width-16,orb+12),GUIContent.none,GUIStyle.none))OpenDeckGuide(deck);
+            if(Draw.Hit(new Rect(r.x+8,orbY-6,r.width-16,orb+12)))OpenDeckGuide(deck);
             float buttonW=(r.width-44)/2;
             if(Draw.Button(new Rect(r.x+16,r.yMax-actionH-12,buttonW,actionH),Lang.T("Player 1","Gracz 1"),Draw.Cyan,chosen[0].id==deck.id,size:13))SelectDeck(0,deck.id);
             if(Draw.Button(new Rect(r.x+28+buttonW,r.yMax-actionH-12,buttonW,actionH),Lang.T("Player 2","Gracz 2"),Draw.Pink,chosen[1].id==deck.id,size:13))SelectDeck(1,deck.id);
@@ -138,7 +143,7 @@ namespace CoreClash.Presentation
                 var r=new Rect(left+i*(slot+slotGap),slotY,slot,slot);
                 if(i>=custom.Count){Draw.Ring(r.center,slot*.36f,Theme.A(Theme.OnColor,.8f),2.4f,8,.55f);continue;}
                 BallView.Preview(new Rect(r.x+slot*.14f,r.y+slot*.17f,slot*.72f,slot*.72f),Catalog.Ball(custom[i]),builderOwner);
-                if(GUI.Button(r,GUIContent.none,GUIStyle.none)){custom.RemoveAt(i);break;}
+                if(Draw.Hit(r)){custom.RemoveAt(i);break;}
             }
             var roster=RosterReadiness.Visible(Catalog,"",RosterReadinessFilter.All,activeOnly);
             const int columns=3;const float gap=8,nameH=48;
@@ -149,20 +154,17 @@ namespace CoreClash.Presentation
             {
                 var d=roster[i];bool picked=custom.Contains(d.id),full=custom.Count>=9&&!picked;
                 var r=new Rect((i%columns)*(tileW+gap)+1.5f,(i/columns)*(tileH+gap)+2,tileW-3,tileH-4);
-                Draw.Round(new Rect(r.x-1.5f,r.y-1.5f,r.width+3,r.height+3),Theme.Ink);
-                Draw.Round(new Rect(r.x,r.y+3,r.width,r.height-3),picked?Theme.TeamDeep(builderOwner):Theme.EdgeStrong);
-                Draw.Round(new Rect(r.x,r.y,r.width,r.height-3),picked?team:Theme.Edge);
-                Draw.Round(new Rect(r.x+3,r.y+3,r.width-6,r.height-9),picked?Color.Lerp(Theme.Panel,team,.22f):Theme.Panel);
+                Draw.Plate(r,picked?Color.Lerp(Theme.Panel,team,.22f):Theme.Panel,picked?team:Theme.Edge,picked?Theme.TeamDeep(builderOwner):Theme.EdgeStrong,3,3,1.5f);
                 var ballZone=new Rect(r.x,r.y,r.width,r.height-3-nameH);
-                if(GUI.Button(ballZone,GUIContent.none,GUIStyle.none)){if(picked)custom.Remove(d.id);else if(custom.Count<9)custom.Add(d.id);}
+                if(Draw.Hit(ballZone)){if(picked)custom.Remove(d.id);else if(custom.Count<9)custom.Add(d.id);}
                 float orb=Mathf.Min(ballZone.width-34,ballZone.height-18);
                 BallView.Preview(new Rect(ballZone.center.x-orb/2,ballZone.y+10+(ballZone.height-12-orb)/2,orb,orb),d,builderOwner,picked);
                 var nameZone=new Rect(r.x+3,ballZone.yMax,r.width-6,nameH-3);
-                if(GUI.Button(nameZone,GUIContent.none,GUIStyle.none))ShowBallDetails(d.id);
+                if(Draw.Hit(nameZone))ShowBallDetails(d.id);
                 string shown=BallIcons.Name(d);
                 Draw.Text(new Rect(nameZone.x+1,nameZone.y-4,nameZone.width-2,22),shown,shown.Length>13?11:12,Theme.Text,TextAnchor.MiddleCenter,true);
                 GuideTag(new Rect(nameZone.x+2,nameZone.y+17,nameZone.width-4,18),d.id,10);
-                if(full)Draw.Round(new Rect(r.x+3,r.y+3,r.width-6,r.height-9),new Color(1,1,1,.26f));
+                if(full)Draw.Round(Draw.PlateFill(r,3,3),new Color(1,1,1,.26f),Draw.PlateCorner(3));
                 if(picked)
                 {
                     var tick=new Rect(r.xMax-29,r.y+5,24,24);
@@ -188,7 +190,7 @@ namespace CoreClash.Presentation
             if(activeOnly){rosterFilter=RosterReadinessFilter.All;rosterY=filterY;}
             if(!shortView)Draw.Text(new Rect(left,helperY,width,helperH),helper,13,OnBackdropSoft,TextAnchor.UpperLeft,true);
             float searchW=shortView?width*.62f:width;
-            search=GUI.TextField(new Rect(left,searchY,searchW,UiViewport.TargetSize),search);
+            search=Draw.TextField(new Rect(left,searchY,searchW,UiViewport.TargetSize),search);
             // W19-01 (#289): optional readiness filter (ALL by default); it only changes visible tiles.
             var roster=RosterReadiness.Visible(Catalog,search,rosterFilter,activeOnly);
             int hiddenPicked=custom.Count(id=>!roster.Any(b=>b.id==id));
@@ -201,8 +203,8 @@ namespace CoreClash.Presentation
             rosterScroll=Draw.ScrollView(new Rect(left,rosterY,width,Math.Max(32,UiHeight-rosterY-(shortView?68:80))),rosterScroll,new Rect(0,0,width-22,Math.Max(content,40)));
             if(roster.Length==0)Draw.Text(new Rect(4,8,width-30,24),Lang.T("No balls match this search and filter.","Żadna kulka nie pasuje do wyszukiwania i filtra."),13,OnBackdropSoft,TextAnchor.UpperLeft,true);
             for(int i=0;i<roster.Length;i++){
-                var d=roster[i];bool picked=custom.Contains(d.id);var r=new Rect((i%columns)*(cardW+10),(i/columns)*(cardH+10),cardW,cardH);Draw.Round(r,picked?team:Theme.Panel);Draw.Round(Draw.Inset(r,picked?3:0),picked?Color.Lerp(Theme.Panel,team,.1f):Theme.Panel);
-                if(GUI.Button(new Rect(r.x,r.y,r.width-62,r.height),GUIContent.none,GUIStyle.none)){if(picked)custom.Remove(d.id);else if(custom.Count<9)custom.Add(d.id);}
+                var d=roster[i];bool picked=custom.Contains(d.id);var r=new Rect((i%columns)*(cardW+10),(i/columns)*(cardH+10),cardW,cardH);Draw.Plate(r,picked?Color.Lerp(Theme.Panel,team,.1f):Theme.Panel,team,team,0,picked?3:0);
+                if(Draw.Hit(new Rect(r.x,r.y,r.width-62,r.height))){if(picked)custom.Remove(d.id);else if(custom.Count<9)custom.Add(d.id);}
                 var cl=RosterReadinessLayout.Card(new UiBox(r.x,r.y,r.width,r.height),shortView);
                 BallView.Preview(RectOf(cl.Preview),d,builderOwner,picked);Draw.Text(RectOf(cl.Name),BallIcons.Name(d),14,Theme.Text,TextAnchor.MiddleLeft,true);Draw.Text(RectOf(cl.Stats),d.hp+" HP  ·  "+d.stockCopies+Lang.T(" in a deck"," w talii")+(Catalog.IsActive(d.id)?"":"  /  FROZEN"),11,Catalog.IsActive(d.id)?Draw.Muted:Draw.Gold);
                 if(activeOnly&&BallGuide.For(d.id)!=null)GuideLine(new Rect(cl.Badge.x,cl.Badge.y-2,cl.Name.width,cl.Badge.height+4),d.id,11);

@@ -56,23 +56,27 @@ namespace CoreClash.Presentation
             rect = new Rect(rect.x + shake.x, rect.y + shake.y, rect.width, rect.height);
             float trayPad = Mathf.Max(3, 6 * rect.width / 540f);
             var tray = new Rect(rect.x - trayPad, rect.y - trayPad, rect.width + trayPad * 2, rect.height + trayPad * 2);
+            // The board on it has square corners, so the tray's own corner is only a little rounder
+            // than its margin: with the large card corner the board's corners nearly cut through it.
+            tray = Draw.SnapRect(tray);
+            float trayCorner = trayPad + 2, trayLip = Draw.Line(trayPad * .5f);
             Draw.Shadow(tray, .34f, 16, 8);
-            Draw.Round(tray, Theme.BoardLip);
-            Draw.Round(new Rect(tray.x, tray.y + trayPad * .5f, tray.width, tray.height - trayPad * .5f), Theme.BoardOuter);
-            GUI.BeginGroup(rect);
+            Draw.Round(tray, Theme.BoardLip, trayCorner);
+            Draw.Round(new Rect(tray.x, tray.y + trayLip, tray.width, tray.height - trayLip), Theme.BoardOuter, trayCorner);
+            Draw.BeginGroup(rect);
             var board = new Rect(0, 0, rect.width, rect.height);
             RenderArena(board);
 
             // Clip gameplay glows and effects to the actual field, as in the V148 canvas.
             Rect field = Box(board, Left, Top, Right - Left, Bottom - Top);
             var clippedBoard = new Rect(-field.x, -field.y, board.width, board.height);
-            GUI.BeginGroup(field);
+            Draw.BeginGroup(field);
             RenderMarkings(clippedBoard);
-            GUI.EndGroup();
+            Draw.EndGroup();
             // W24: the base walls go down before anything that lies on the field: the launch dish is
             // built into the base's plate and sits on top of it (see RenderBaseBar, RenderLauncher).
             for (int owner = 0; owner < 2; owner++) RenderBaseBar(board, state, feedback, owner, board.width / 540);
-            GUI.BeginGroup(field);
+            Draw.BeginGroup(field);
             var visible = BoardOverlayPlanner.Field(viewOwner, clippedBoard.x, clippedBoard.y, clippedBoard.width);
             for (int owner = 0; owner < 2; owner++) RenderLauncher(clippedBoard, state, owner, aim, selected);
             RenderZones(clippedBoard, state);
@@ -107,11 +111,11 @@ namespace CoreClash.Presentation
             RenderReplayCounter(clippedBoard,simulation,aim,keepOut);
             RenderTurnCue(clippedBoard,state,feedback,dragging,keepOut);
             if (state.phase == MatchPhase.Aiming && dragging) RenderAim(clippedBoard, state, aim,selected,simulation.Catalog);
-            GUI.EndGroup();
+            Draw.EndGroup();
 
             RenderWalls(board);
             RenderMarginNotes(board);
-            GUI.EndGroup();
+            Draw.EndGroup();
             viewOwner=previousViewOwner;
         }
 
@@ -130,11 +134,11 @@ namespace CoreClash.Presentation
             try
             {
                 if(Event.current.type==EventType.Repaint)Fx.Observe(simulation,now);
-                GUI.BeginGroup(rect);
+                Draw.BeginGroup(rect);
                 var board=new Rect(-Left*scale,-worldTop*scale,540*scale,900*scale);
                 RenderArena(board);
                 Rect field=Box(board,Left,Top,Right-Left,Bottom-Top);
-                GUI.BeginGroup(field);
+                Draw.BeginGroup(field);
                 var clippedBoard=new Rect(board.x-field.x,board.y-field.y,board.width,board.height);
                 var visible=BoardOverlayPlanner.Field(viewOwner,clippedBoard.x,clippedBoard.y,clippedBoard.width);
                 RenderMarkings(clippedBoard);
@@ -158,9 +162,9 @@ namespace CoreClash.Presentation
                 foreach(var item in drawn)BallView.RenderBadges(clippedBoard,item.ball,false,item.x,item.y,viewOwner,visible);
                 Fx.RenderOver(clippedBoard,viewOwner,now);
                 RenderEvents(clippedBoard,feedback,false);
-                GUI.EndGroup();
+                Draw.EndGroup();
                 RenderFrame(board,state,feedback);
-                GUI.EndGroup();
+                Draw.EndGroup();
             }
             finally
             {
@@ -305,15 +309,14 @@ namespace CoreClash.Presentation
             // the colour of the base's plate stands out of the wall; the dish in it runs down into
             // the plate, between the heart and the HP number (RenderBaseBar). Only the part of the
             // dome that is clear of the wall is drawn, so dome and plate are one shape.
-            Draw.Glow(new Vector2(center.x, center.y + 4 * scale), 52 * scale, new Color(.07f, .1f, .3f, .28f));
             const float reach = DomeRadius + 5;
             var dome = owner == 0 ? Box(board, 270 - reach, y - reach, reach * 2, 900 - BaseThick - (y - reach)) : Box(board, 270 - reach, BaseThick, reach * 2, y + reach - BaseThick);
-            GUI.BeginGroup(dome);
+            Draw.BeginGroup(dome);
             var local = new Vector2(center.x - dome.x, center.y - dome.y);
             float outline = (DomeRadius + 2.5f) * scale, body = DomeRadius * scale;
             Draw.Circle(new Rect(local.x - outline, local.y - outline, outline * 2, outline * 2), Theme.Ink);
             Draw.Circle(new Rect(local.x - body, local.y - body, body * 2, body * 2), BaseColor(state, owner));
-            GUI.EndGroup();
+            Draw.EndGroup();
             Draw.Circle(Box(board, 270 - 31, y - 31, 62, 62), Color.Lerp(Color.white, team, active ? .1f : .38f));
             Draw.Ring(center, 34.5f * scale, Theme.A(Theme.TeamDeep(owner), active ? .95f : .6f), Mathf.Max(1.5f, 2.4f * scale), owner == 1 ? Theme.P2RingSegments : 0, Theme.P2RingFill);
             bool up = !BoardOverlayPlanner.AtViewTop(owner, viewOwner);
@@ -534,7 +537,7 @@ namespace CoreClash.Presentation
                 if(placed[i].width<=0)continue;
                 var item=labelItems[i];
                 float fade=Mathf.Clamp01((FeedbackTimeline.Life-item.age)/.4f)*Mathf.Clamp01(item.age/.08f+.3f)*veil;
-                Color tint=EffectColor(item.kind);var rect=RectOf(placed[i]);
+                Color tint=EffectColor(item.kind);var rect=Draw.SnapOrigin(RectOf(placed[i]));
                 if(FeedbackStyle.IsNumber(item.kind))
                 {
                     // Damage and healing: a filled plate with the authoritative amount.
@@ -583,23 +586,31 @@ namespace CoreClash.Presentation
                 if(!preview.Valid)return;
                 // Strokes start outside the origin ring, so the ball being launched stays readable.
                 float clear=(fromLauncher?37:(replay?.radius??17)+12)*scale;
-                for(int i=1;i<path.Length;i++){
-                    var from=Point(board,path[i-1].x,path[i-1].y);var to=Point(board,path[i].x,path[i].y);
-                    if(i==1){float reach=(to-from).magnitude;if(reach<=clear+2)continue;from+=(to-from)/reach*clear;}
-                    float bead=Mathf.Max(5,(i==1?9.5f:7f)*scale),step=Mathf.Max(8,(i==1?17f:15f)*scale);
-                    Beads(from,to,Theme.Ink,bead+Mathf.Max(2.5f,3.6f*scale),step);
-                    Beads(from,to,i==1?vector:Color.Lerp(vector,Color.white,.45f),bead,step);
-                    if(i==1&&path.Length>2)Draw.Ring(to,6*scale,Alpha(vector,.9f),Mathf.Max(1,1.4f*scale));
-                }
+                // W24 (owner direction: clean edges): the trajectory is one smooth arrow - a shaft with
+                // round joints and a solid head, on an ink edge. The part after a bounce is paler and
+                // thinner. Its points and its length are the same as before; only the stroke changed.
+                float edge=Mathf.Max(1.5f,2.3f*scale),headLength=Mathf.Max(11,17*scale),headHalf=Mathf.Max(6.5f,10*scale),corner=Mathf.Max(1.2f,1.8f*scale);
                 Vector2 tip=Point(board,path[path.Length-1].x,path[path.Length-1].y),last=Point(board,path[path.Length-2].x,path[path.Length-2].y);Vector2 direction=(tip-last).normalized;
-                Vector2 wing = new Vector2(-direction.y, direction.x);
-                AimStroke(tip-direction*20*scale+wing*12*scale,tip,Theme.Ink,Mathf.Max(6,10*scale));
-                AimStroke(tip-direction*20*scale-wing*12*scale,tip,Theme.Ink,Mathf.Max(6,10*scale));
-                AimStroke(tip-direction*20*scale+wing*12*scale,tip,vector,Mathf.Max(3,5.5f*scale));
-                AimStroke(tip-direction*20*scale-wing*12*scale,tip,vector,Mathf.Max(3,5.5f*scale));
+                Vector2 wing = new Vector2(-direction.y, direction.x),back=tip-direction*headLength;
+                Color ink=preview.Ready?Theme.Ink:Color.Lerp(Theme.Ink,vector,.4f),after=Color.Lerp(vector,Color.white,.45f);
+                for(int pass=0;pass<2;pass++)
+                {
+                    for(int i=1;i<path.Length;i++){
+                        var from=Point(board,path[i-1].x,path[i-1].y);var to=Point(board,path[i].x,path[i].y);
+                        if(i==1){float reach=(to-from).magnitude;if(reach<=clear+2)continue;from+=(to-from)/reach*clear;}
+                        // The shaft stops inside the head.
+                        if(i==path.Length-1){float run=(to-from).magnitude;if(run<=1)continue;to-=(to-from)/run*Mathf.Min(headLength*.75f,run-1);}
+                        float width=Mathf.Max(3.2f,(i==1?6.4f:4.6f)*scale);
+                        Draw.Stroke(from,to,pass==0?ink:i==1?vector:after,pass==0?width+edge*2:width);
+                    }
+                    Draw.Triangle(tip-direction*corner,back+wing*headHalf,back-wing*headHalf,pass==0?corner+edge:corner,pass==0?ink:path.Length>2?after:vector);
+                }
+                for(int i=1;i<path.Length-1;i++)Draw.Ring(Point(board,path[i].x,path[i].y),6*scale,Alpha(vector,.9f),Mathf.Max(1,1.4f*scale));
                 float pull=(finger-origin).magnitude;
-                if(pull>clear+4)AimStroke(origin+(finger-origin)/pull*clear,finger,Alpha(team,Theme.AimPull),Mathf.Max(1,1.4f*scale),4*scale,5*scale);
-                if(preview.Ready&&ShowStopEstimate)RenderStopEstimate(board,state,aim,selected,replay,catalog,vector,scale);
+                if(pull>clear+4)Draw.Stroke(origin+(finger-origin)/pull*clear,finger,Alpha(team,Theme.AimPull),Mathf.Max(1.2f,1.6f*scale),Mathf.Max(3,4*scale),Mathf.Max(4,6*scale));
+                // The estimate is drawn from the end of the arrow on, not over it.
+                float arrow=0;for(int i=1;i<path.Length;i++)arrow+=(Point(board,path[i].x,path[i].y)-Point(board,path[i-1].x,path[i-1].y)).magnitude;
+                if(preview.Ready&&ShowStopEstimate)RenderStopEstimate(board,state,aim,selected,replay,catalog,vector,scale,arrow+edge+Mathf.Max(4,6*scale));
             }
             Draw.Ring(finger, 11 * scale, under, Mathf.Max(2.5f, 3.8f * scale));
             Draw.Ring(finger, 10 * scale, Alpha(team, .9f), Mathf.Max(1.2f, 1.8f * scale));
@@ -674,7 +685,7 @@ namespace CoreClash.Presentation
         // label says the estimate only holds if the path is clear. Never a hit claim.
         static StopEstimate stopCache;
         static string stopCacheKey;
-        static void RenderStopEstimate(Rect board,GameState state,LaunchGesture aim,BallDefinition selected,BallRuntime replay,Catalog catalog,Color vector,float scale)
+        static void RenderStopEstimate(Rect board,GameState state,LaunchGesture aim,BallDefinition selected,BallRuntime replay,Catalog catalog,Color vector,float scale,float skip=0)
         {
             float dx=aim.AimX-aim.OriginX,dy=aim.AimY-aim.OriginY;
             if(!StopPredictor.GesturePower(dx,dy,out float power))return;
@@ -690,20 +701,22 @@ namespace CoreClash.Presentation
             // W24 (owner direction: readability): the estimated path is a row of light dashes on a dark
             // edge, and the stop mark a pale ghost of the ball, so both read on the floor and on either
             // home zone. An estimate that something is in the way of stays fainter.
-            float see=e.Obstructed?.5f:1f,dash=Mathf.Max(3.5f,5*scale),gap=Mathf.Max(5f,7*scale),core=Mathf.Max(2f,2.8f*scale);
+            float see=e.Obstructed?.5f:1f,dash=Mathf.Max(4.5f,6*scale),gap=Mathf.Max(7f,9.5f*scale),core=Mathf.Max(2f,2.8f*scale);
             Color pathEdge=Alpha(Theme.Ink,.5f*see),pathCore=Alpha(Color.Lerp(vector,Color.white,.6f),.95f*see);
             for(int i=1;i<e.Path.Count;i++)
             {
                 Vector2 from=Point(board,e.Path[i-1].x,e.Path[i-1].y),to=Point(board,e.Path[i].x,e.Path[i].y);
-                AimStroke(from,to,pathEdge,core+Mathf.Max(1.6f,2.2f*scale),dash,gap);
-                AimStroke(from,to,pathCore,core,dash,gap);
+                float run=(to-from).magnitude;
+                if(skip>0){if(run<=skip){skip-=run;continue;}from+=(to-from)/run*skip;skip=0;}
+                Draw.Stroke(from,to,pathEdge,core+Mathf.Max(1.6f,2.2f*scale),dash,gap);
+                Draw.Stroke(from,to,pathCore,core,dash,gap);
             }
             Vector2 stop=Point(board,e.StopX,e.StopY);float r=(e.Start.Radius+Theme.BallGrow)*scale;
             Draw.Circle(new Rect(stop.x-r,stop.y-r,r*2,r*2),Alpha(Color.Lerp(vector,Color.white,.7f),e.Obstructed?.2f:.42f));
             Draw.Ring(stop,r+scale,Alpha(Theme.Ink,.6f*see),Mathf.Max(2.5f,3.8f*scale));
             Draw.Ring(stop,r,Alpha(Color.Lerp(vector,Color.white,.35f),see),Mathf.Max(1.2f,2f*scale),12,.6f);
-            AimStroke(stop-new Vector2(r*.45f,0),stop+new Vector2(r*.45f,0),Alpha(Theme.Ink,.55f*see),Mathf.Max(1.2f,1.6f*scale));
-            AimStroke(stop-new Vector2(0,r*.45f),stop+new Vector2(0,r*.45f),Alpha(Theme.Ink,.55f*see),Mathf.Max(1.2f,1.6f*scale));
+            Draw.Stroke(stop-new Vector2(r*.45f,0),stop+new Vector2(r*.45f,0),Alpha(Theme.Ink,.55f*see),Mathf.Max(1.2f,1.6f*scale));
+            Draw.Stroke(stop-new Vector2(0,r*.45f),stop+new Vector2(0,r*.45f),Alpha(Theme.Ink,.55f*see),Mathf.Max(1.2f,1.6f*scale));
             // W24: a ball whose power works where it stands (on STOP, or every turn) also shows how far
             // that power reaches from the estimated stop. Same estimate, same on/off switch as the mark.
             var reachGuide=BallGuide.For(replay!=null?replay.type:selected.id);
@@ -733,12 +746,19 @@ namespace CoreClash.Presentation
             for (int owner = 0; owner < 2; owner++) RenderBaseBar(board, state, feedback, owner, unit);
             RenderWalls(board);
         }
+        // W24 (owner direction: layers must fit): the two side walls are posts that run the whole
+        // height of the board, and the base bars lie between them, so wall and bar meet in a clean
+        // joint (the walls used to stop half-way up the bars). A wall is a light rim with an ink edge
+        // of the same whole number of pixels on each side, centred on the edge of the field.
         static void RenderWalls(Rect board)
         {
-            Line(board, Left, Top, Left, Bottom, Theme.Ink, 7f);
-            Line(board, Right, Top, Right, Bottom, Theme.Ink, 7f);
-            Line(board, Left, Top, Left, Bottom, Theme.Rim, 3f);
-            Line(board, Right, Top, Right, Bottom, Theme.Rim, 3f);
+            float unit = board.width / 540, rim = Draw.Line(3 * unit), edge = Draw.Line(2 * unit);
+            for (int side = 0; side < 2; side++)
+            {
+                float x = Draw.Snap(board.x + (side == 0 ? Left : Right) * unit - rim * .5f);
+                Draw.Rect(new Rect(x - edge, board.y, rim + edge * 2, board.height), Theme.Ink);
+                Draw.Rect(new Rect(x, board.y, rim, board.height), Theme.Rim);
+            }
         }
 
         // W24 (owner direction): the base is one thing, not a gauge and a launcher put side by side.
@@ -759,14 +779,22 @@ namespace CoreClash.Presentation
             int hp = Mathf.Clamp(state.players[owner].hp, 0, BasePips);
             bool low = hp <= 5;
             float top = owner == 0 ? 900 - BaseThick : 0, flash = BaseLoss(feedback, owner, out int lost);
-            var bar = Box(board, Left, top, Right - Left, BaseThick);
-            Draw.Rect(new Rect(bar.x, bar.y - ink * unit, bar.width, bar.height + 2 * ink * unit), Theme.Ink);
+            var bar = Draw.SnapRect(Box(board, Left, top, Right - Left, BaseThick));
+            float inkLine = Draw.Line(ink * unit);
+            Draw.Rect(new Rect(bar.x, bar.y - inkLine, bar.width, bar.height + 2 * inkLine), Theme.Ink);
             Draw.Rect(bar, Color.Lerp(Theme.Ink, deep, .38f));
             // Plate: heart, launch dish, number. The dish itself is drawn by RenderLauncher, on top.
-            var plate = new Rect(bar.center.x - PlateWidth * .5f * unit, bar.y, PlateWidth * unit, bar.height);
-            Draw.Rect(new Rect(plate.x - ink * unit, bar.y, plate.width + 2 * ink * unit, bar.height), Theme.Ink);
+            // W24 (owner direction: clean edges): every pip is the same whole number of screen pixels
+            // wide, with the same gap; the plate between them takes whatever is left over.
+            const int side = BasePips / 2;
+            float px = Draw.Pixel, gap = Mathf.Max(px, Draw.Snap(gapWidth * unit)), frame = inkLine + Draw.Line(pad * unit);
+            float outerLeft = Draw.Snap(bar.x + pad * unit), outerRight = Draw.Snap(bar.xMax - pad * unit);
+            float step = Mathf.Max(2 * px, Draw.SnapDown((bar.center.x - PlateWidth * .5f * unit - frame - outerLeft) / side)), width = Mathf.Max(px, step - gap);
+            float leftEnd = outerLeft + side * step, rightStart = outerRight - side * step;
+            var plate = new Rect(leftEnd + frame, bar.y, rightStart - leftEnd - 2 * frame, bar.height);
+            Draw.Rect(new Rect(plate.x - inkLine, bar.y, plate.width + 2 * inkLine, bar.height), Theme.Ink);
             Draw.Rect(plate, BaseColor(state, owner));
-            float wing = (PlateWidth * .5f - DomeRadius) * unit;
+            float wing = bar.center.x - DomeRadius * unit - plate.x;
             // The heart beats once when the base is hit.
             float icon = bar.height * .62f * (1 + .28f * flash * flash);
             var heart = new Rect(plate.x + wing * .5f - icon * .5f, plate.center.y - icon * .5f + unit, icon, icon);
@@ -774,19 +802,18 @@ namespace CoreClash.Presentation
             Glyphs.Paint(heart, HeartGlyph, Color.white);
             Draw.Inked(new Rect(plate.xMax - wing, plate.y - 1, wing, plate.height), hp.ToString(), Mathf.Max(11, Mathf.RoundToInt(21 * unit)), Color.white, TextAnchor.MiddleCenter, Mathf.Max(1.2f, 1.8f * unit));
             // Pips: ten to each side, counted from the plate outwards, so the wall goes from its ends.
-            const int side = BasePips / 2;
-            float leftEnd = plate.x - (ink + pad) * unit, rightStart = plate.xMax + (ink + pad) * unit;
-            float step = (leftEnd - (bar.x + pad * unit)) / side, width = step - gapWidth * unit, height = bar.height - 2 * pad * unit;
+            float pipTop = Draw.Snap(bar.y + pad * unit), height = Mathf.Max(px, Draw.Snap(bar.height - 2 * pad * unit));
             Color lit = low ? Color.Lerp(team, Theme.Damage, .6f) : team;
             for (int i = 0; i < BasePips; i++)
             {
                 int rank = i / 2;
-                float x = i % 2 == 0 ? leftEnd - (rank + 1) * step + gapWidth * unit * .5f : rightStart + rank * step + gapWidth * unit * .5f;
-                var pip = new Rect(x, bar.y + pad * unit, width, height);
+                float x = i % 2 == 0 ? leftEnd - (rank + 1) * step : rightStart + rank * step + gap;
+                var pip = new Rect(x, pipTop, width, height);
                 if (i < hp)
                 {
                     Draw.Chip(pip, lit);
-                    Draw.Rect(new Rect(pip.x + 1, pip.y + 1, pip.width - 2, Mathf.Max(1, pip.height * .36f)), new Color(1, 1, 1, .34f));
+                    float rim = Mathf.Max(px, Draw.Snap(1));
+                    Draw.Rect(new Rect(pip.x + rim, pip.y + rim, pip.width - 2 * rim, Mathf.Max(px, Draw.Snap(pip.height * .36f))), new Color(1, 1, 1, .34f));
                 }
                 else
                 {
@@ -827,19 +854,6 @@ namespace CoreClash.Presentation
 
         static void Line(Rect board, float x1, float y1, float x2, float y2, Color color, float width)
             => Draw.Line(Point(board, x1, y1), Point(board, x2, y2), color, Mathf.Max(.65f, width * board.width / 540));
-
-        // W24: evenly spaced round beads along a segment (the trajectory).
-        static void Beads(Vector2 start,Vector2 end,Color color,float size,float step)
-        {
-            foreach(var p in AimGuide.StrokeStamps(new AimPoint(start.x,start.y),new AimPoint(end.x,end.y),size,0,0,step))
-                Draw.Circle(new Rect(p.x-size*.5f,p.y-size*.5f,size,size),color);
-        }
-        // Aim-only stroke: field-local coordinates, no GUI.matrix rotation.
-        static void AimStroke(Vector2 start,Vector2 end,Color color,float width,float dash=0,float gap=0)
-        {
-            foreach(var p in AimGuide.StrokeStamps(new AimPoint(start.x,start.y),new AimPoint(end.x,end.y),width,dash,gap))
-                Draw.Circle(new Rect(p.x-width*.5f,p.y-width*.5f,width,width),color);
-        }
 
         static Color Alpha(Color color, float alpha) => new Color(color.r, color.g, color.b, alpha);
         // W19-04: the clipped play field in board-view space (labels stay inside it).

@@ -103,6 +103,7 @@ namespace CoreClash.Presentation
         // W24: draw at the refresh rate of the screen the window is on. A fixed 60 on a 100 or 144 Hz
         // screen shows every frame for an uneven number of refreshes, which reads as stutter.
         float displayRateCheckedAt=-9;int displayRateFrame;
+        readonly System.Collections.Generic.List<DisplayInfo> displayLayout=new System.Collections.Generic.List<DisplayInfo>();
         void FollowDisplayRate()
         {
 #if UNITY_STANDALONE
@@ -114,7 +115,14 @@ namespace CoreClash.Presentation
             // to the display, so it is set to a multiple of the refresh rate (at least 240): every
             // refresh then shows a frame that is at most a few milliseconds old, instead of sometimes
             // showing one frame twice.
-            if(QualitySettings.vSyncCount>0&&span<5&&frames/span>rate*1.3f)QualitySettings.vSyncCount=0;
+            // On a desk with monitors of different refresh rates the compositor times a window's
+            // frames by the fastest monitor, so a game on the 60 Hz one may run at 240 with v-sync on.
+            // That is still locked to the display and smooth: v-sync counts as ignored only when the
+            // game runs faster than any monitor could ask for. (Dropping it too eagerly left an
+            // unlocked frame cap, and the balls then seemed to twitch back and forth in motion.)
+            float fastest=rate;Screen.GetDisplayLayout(displayLayout);
+            foreach(var display in displayLayout)fastest=Mathf.Max(fastest,(float)display.refreshRate.value);
+            if(QualitySettings.vSyncCount>0&&span<5&&frames/span>fastest*1.3f)QualitySettings.vSyncCount=0;
             int wanted=QualitySettings.vSyncCount>0?rate:rate*Mathf.Max(2,Mathf.CeilToInt(240f/rate));
             if(Application.targetFrameRate!=wanted)Application.targetFrameRate=wanted;
 #endif
@@ -223,14 +231,20 @@ namespace CoreClash.Presentation
         void OnGUI()
         {
             if(UiViewport.Refresh()){CancelPointer();Layout();}
-            var previousMatrix=GUI.matrix;GUI.matrix=UiViewport.GuiMatrix;
-            try{RenderUi();}finally{GUI.matrix=previousMatrix;}
+            // W24: no GUI.matrix. The views work in logical units and Draw turns them into screen
+            // pixels (see Draw.Px), so text and edges are made for the pixels they land on. The one
+            // group puts the origin at the corner of the safe area.
+            var safe=UiViewport.Current.SafeArea;
+            GUI.BeginGroup(new Rect(safe.x,safe.y,safe.width,safe.height));
+            try{RenderUi();}finally{GUI.EndGroup();}
         }
         // The arena look: "--cc-arena <id>" on the command line, else the saved choice, else the first one.
         void LoadArena()
         {
             var args=Environment.GetCommandLineArgs();int at=Array.IndexOf(args,"--cc-arena");
             Theme.SetArena(at>=0&&at+1<args.Length?args[at+1]:PlayerPrefs.GetString("cc.arena",Theme.Arenas[0].Id));
+            at=Array.IndexOf(args,"--cc-ui-density");
+            if(at>=0&&at+1<args.Length&&float.TryParse(args[at+1],System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out float density))UiViewport.DensityOverride=density;
         }
         void RenderUi()
         {

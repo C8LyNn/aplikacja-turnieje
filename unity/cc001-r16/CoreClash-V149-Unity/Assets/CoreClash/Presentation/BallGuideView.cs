@@ -131,7 +131,7 @@ namespace CoreClash.Presentation
                 if(Draw.Button(new Rect(x+pad+124,fy,inner-124,50),Lang.T("Got it","Rozumiem"),Go,true,true,phone?15:16))CloseBallDetails();
             }
             // A tap outside the card closes it as well.
-            var e=Event.current;if(e.type==EventType.MouseDown&&!card.Contains(e.mousePosition)){CloseBallDetails();e.Use();}
+            var e=Event.current;if(e.type==EventType.MouseDown&&!card.Contains(Draw.Mouse)){CloseBallDetails();e.Use();}
         }
 
         float GuideContent(BallDefinition d,BallGuideEntry guide,BallInspection current,int owner,float width,bool draw)
@@ -144,7 +144,7 @@ namespace CoreClash.Presentation
             Color tone=WhenColor(guide.When);const float bannerH=48;
             if(draw)
             {
-                Draw.Round(new Rect(0,y,width,bannerH),Theme.Ink);Draw.Round(new Rect(2,y+2,width-4,bannerH-6),tone);
+                Draw.Plate(new Rect(0,y,width,bannerH),tone,Theme.Ink,Theme.Ink,2,2);
                 Glyphs.Paint(new Rect(14,y+9,26,26),WhenGlyph(guide.When),Theme.OnColor);
                 Draw.Text(new Rect(52,y,width-60,bannerH-4),BallGuide.WhenText(guide.When),phone?17:19,Theme.OnColor,TextAnchor.MiddleLeft,true);
             }
@@ -259,21 +259,21 @@ namespace CoreClash.Presentation
             float content=(float)Math.Ceiling(balls.Length/(float)columns)*rowH,h=Math.Min(UiHeight-(low?20:phone?36:72),head+content+foot+8),x=(UiWidth-w)/2,y=(UiHeight-h)/2;
             var card=new Rect(x,y,w,h);Draw.Card(card,null,null,.4f);
             Color accent=DeckAccent(deckGuide);
-            Draw.Round(new Rect(x+3,y+3,w-6,head-8),accent);
+            var deckFace=Draw.CardFace(card);Draw.Round(new Rect(deckFace.x,deckFace.y,deckFace.width,head-8),accent,Draw.CardCorner);
             Draw.Text(new Rect(x+pad+2,y+3,inner-(low?232:0),head-8),DeckName(deckGuide),phone?18:21,Theme.OnColor,TextAnchor.MiddleLeft,true);
             deckGuideScroll=Draw.ScrollView(new Rect(x+pad,y+head,inner+8,h-head-foot-(low?8:0)),deckGuideScroll,new Rect(0,0,inner,content));
             for(int i=0;i<balls.Length;i++)
             {
                 var d=Catalog.Ball(balls[i]);if(d==null)continue;var guide=BallGuide.For(d.id);
                 var row=new Rect((i%columns)*(colW+8),(i/columns)*rowH,colW,rowH-6);
-                bool hover=GUI.enabled&&row.Contains(Event.current.mousePosition);
+                bool hover=GUI.enabled&&row.Contains(Draw.Mouse);
                 Draw.Round(row,hover?Theme.PanelRaised:Theme.PanelLight);
                 BallView.Preview(new Rect(row.x+8,row.y+(row.height-36)/2,36,36),d,deckGuideOwner);
                 Draw.Text(new Rect(row.x+54,row.y+3,row.width-90,22),BallIcons.Name(d),phone?15:16,Theme.Text,TextAnchor.MiddleLeft,true);
                 if(guide!=null)GuideLine(new Rect(row.x+54,row.y+24,row.width-92,20),d.id,12);
                 var more=new Rect(row.xMax-34,row.y+(row.height-24)/2,24,24);
                 Draw.Circle(more,Theme.Info);Glyphs.Paint(new Rect(more.x+6,more.y+6,12,12),IconInfo,Theme.OnColor);
-                if(GUI.Button(row,GUIContent.none,GUIStyle.none))ShowBallDetails(d.id);
+                if(Draw.Hit(row))ShowBallDetails(d.id);
             }
             GUI.EndScrollView();
             if(low)
@@ -287,7 +287,7 @@ namespace CoreClash.Presentation
                 LanguageSwitch(new Rect(x+pad,fy,112,50));
                 if(Draw.Button(new Rect(x+pad+124,fy,inner-124,50),Lang.T("Close","Zamknij"),Go,true,true,phone?15:16))deckGuide=null;
             }
-            var e=Event.current;if(GUI.enabled&&e.type==EventType.MouseDown&&!card.Contains(e.mousePosition)){deckGuide=null;e.Use();}
+            var e=Event.current;if(GUI.enabled&&e.type==EventType.MouseDown&&!card.Contains(Draw.Mouse)){deckGuide=null;e.Use();}
         }
 
         // What is on this particular ball right now (opened from the board).

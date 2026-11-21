@@ -50,7 +50,7 @@ namespace CoreClash.Presentation
             var card=new Rect(area.center.x-w/2,area.center.y-h/2+(1-ease)*46,w,h);
             Draw.Rect(new Rect(area.x,area.y,area.width,area.height),Theme.A(Theme.Scrim,.28f*ease));
             Draw.Shadow(card,.4f,18,10);
-            Draw.Round(card,Theme.EdgeStrong);Draw.Round(new Rect(card.x,card.y,card.width,card.height-5),Theme.Panel);
+            Draw.Plate(card,Theme.Panel,Theme.Panel,Theme.EdgeStrong,5,0);
             // Three stars for a win, popping in one after another.
             if(!draw)for(int i=0;i<3;i++)
             {
@@ -62,7 +62,7 @@ namespace CoreClash.Presentation
             }
             var ribbon=new Rect(card.x-8,card.y+30,card.width+16,52);
             Draw.Shadow(ribbon,.22f,6,4);
-            Draw.Round(ribbon,deep);Draw.Round(new Rect(ribbon.x,ribbon.y,ribbon.width,ribbon.height-5),tint);
+            Draw.Plate(ribbon,tint,tint,deep,5,0);
             bool you=!local&&!draw&&NetworkLink.LocalOwner==state.winner;
             string title=draw?Lang.T("DRAW","REMIS"):aiMatch?(state.winner==0?Lang.T("YOU WIN!","WYGRYWASZ!"):Lang.T("AI WINS","WYGRYWA AI")):local?Lang.T("PLAYER ","GRACZ ")+(state.winner+1)+Lang.T(" WINS!"," WYGRYWA!"):you?Lang.T("YOU WIN!","WYGRYWASZ!"):Lang.T("PLAYER ","GRACZ ")+(state.winner+1)+Lang.T(" WINS"," WYGRYWA");
             Draw.Text(new Rect(ribbon.x,ribbon.y+1,ribbon.width,ribbon.height-5),title,w<280?20:24,new Color(0,0,0,.22f),TextAnchor.MiddleCenter,true);
@@ -75,8 +75,11 @@ namespace CoreClash.Presentation
                 var cell=new Rect(card.x+12+owner*(cellW+12),cellY,cellW,30);
                 Draw.Round(cell,Color.Lerp(Theme.Panel,Draw.Owner(owner),.16f));
                 Draw.Ring(new Vector2(cell.x+15,cell.center.y),6,Theme.TeamDeep(owner),2.2f,owner==1?Theme.P2RingSegments:0,Theme.P2RingFill);
-                Draw.Text(new Rect(cell.x+28,cell.y,cell.width-36,cell.height),Lang.T("P","G")+(owner+1)+Lang.T(" BASE"," BAZA"),10,Theme.TeamDeep(owner),TextAnchor.MiddleLeft,true);
-                Draw.Text(new Rect(cell.x+28,cell.y,cell.width-36,cell.height),state.players[owner].hp+" / 20",14,Theme.Text,TextAnchor.MiddleRight,true);
+                // The word "BASE" is dropped when it would run into the number.
+                string seat=Lang.T("P","G")+(owner+1),label=seat+Lang.T(" BASE"," BAZA"),left=state.players[owner].hp+" / 20";
+                if(Draw.TextWidth(label,10,true)+Draw.TextWidth(left,14,true)+8>cell.width-36)label=seat;
+                Draw.Text(new Rect(cell.x+28,cell.y,cell.width-36,cell.height),label,10,Theme.TeamDeep(owner),TextAnchor.MiddleLeft,true);
+                Draw.Text(new Rect(cell.x+28,cell.y,cell.width-36,cell.height),left,14,Theme.Text,TextAnchor.MiddleRight,true);
             }
             float buttonY=card.yMax-5-44-10,buttonW=local?(card.width-36)/2:card.width-24;
             if(local&&Draw.Button(new Rect(card.x+12,buttonY,buttonW,44),Lang.T("Play again","Zagraj ponownie"),tint,true,true,14))StartLocalMatch();

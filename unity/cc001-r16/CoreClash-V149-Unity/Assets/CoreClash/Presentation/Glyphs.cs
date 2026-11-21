@@ -11,7 +11,7 @@ namespace CoreClash.Presentation
     // '+' adds a shape, '-' cuts it out.
     public static class Glyphs
     {
-        const int Size=64;
+        const int Size=96;
         static readonly Dictionary<StatusKind,Texture2D> Cache=new Dictionary<StatusKind,Texture2D>();
         const string ShieldShape="+P -.72 -.8 .72 -.8 .72 .1 0 .92 -.72 .1";
 
@@ -45,7 +45,7 @@ namespace CoreClash.Presentation
         public static void Paint(Rect rect,StatusKind kind,Color color)
         {
             if(!Cache.TryGetValue(kind,out var texture)||texture==null){texture=Build(Spec(kind));Cache[kind]=texture;}
-            var old=GUI.color;GUI.color=color;GUI.DrawTexture(rect,texture);GUI.color=old;
+            var old=GUI.color;GUI.color=color;Draw.Tex(rect,texture);GUI.color=old;
         }
 
         // W21: ball icons use the same shape language; the shape list is the cache key.
@@ -54,7 +54,7 @@ namespace CoreClash.Presentation
         {
             if(string.IsNullOrEmpty(spec))return;
             if(!SpecCache.TryGetValue(spec,out var texture)||texture==null){texture=Build(spec);SpecCache[spec]=texture;}
-            var old=GUI.color;GUI.color=color;GUI.DrawTexture(rect,texture);GUI.color=old;
+            var old=GUI.color;GUI.color=color;Draw.Tex(rect,texture);GUI.color=old;
         }
 
         // W24: a true ink outline for an icon. The icon's own mask is grown evenly on every side
@@ -66,7 +66,7 @@ namespace CoreClash.Presentation
             if(string.IsNullOrEmpty(spec))return;
             if(!OutlineCache.TryGetValue(spec,out var texture)||texture==null){texture=BuildOutline(spec);OutlineCache[spec]=texture;}
             float w=rect.width*OutlinePad,h=rect.height*OutlinePad;
-            var old=GUI.color;GUI.color=color;GUI.DrawTexture(new Rect(rect.center.x-w/2,rect.center.y-h/2,w,h),texture);GUI.color=old;
+            var old=GUI.color;GUI.color=color;Draw.Tex(new Rect(rect.center.x-w/2,rect.center.y-h/2,w,h),texture);GUI.color=old;
         }
         static Texture2D BuildOutline(string spec)
         {
