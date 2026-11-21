@@ -134,26 +134,28 @@ namespace CoreClash.Presentation
             if (layout.HasShield)
             {
                 var shield = RectOf(layout.Shield); shield.x += shieldShift; if (!Theme.ShowHpNumber && layout.Chips.Length > 0) shield.x -= shield.width * .5f + 1;
-                Draw.Chip(shield, Alpha(Theme.Plate, Theme.PlateAlpha), Theme.Shield);
-                float glyph = shield.height - 3;
-                Glyphs.Paint(new Rect(shield.x + 2, shield.y + 1.5f, glyph, glyph), StatusKind.Shield, Theme.Shield);
-                Draw.Text(new Rect(shield.x + glyph + 2, shield.y - 1, shield.width - glyph - 3, shield.height), ball.shield.ToString(), font, Theme.PlateText, TextAnchor.MiddleCenter, true);
+                // W24 (owner direction: readability): a chip is filled with its state's colour and
+                // carries a white symbol and a white number, on an ink edge - a patch of colour that is
+                // read at a glance, not a white label with a thin coloured mark.
+                Draw.Chip(shield, Theme.StatusFill(StatusKind.Shield), Theme.Ink);
+                float glyph = shield.height - 4;
+                Glyphs.Paint(new Rect(shield.x + 2.5f, shield.y + 2, glyph, glyph), StatusKind.Shield, Color.white);
+                Draw.Text(new Rect(shield.x + glyph + 3, shield.y - 1, shield.width - glyph - 4, shield.height), ball.shield.ToString(), font, Color.white, TextAnchor.MiddleCenter, true);
             }
             foreach (var chip in layout.Chips)
             {
                 var box = RectOf(chip.Box); if (layout.HasShield && !Theme.ShowHpNumber) box.x += RectOf(layout.Shield).width * .5f + 1; else box.y += rowShift;
-                Color tint = Theme.Status(chip.Kind);
-                Draw.Chip(box, Alpha(Theme.Plate, Theme.PlateAlpha), Alpha(tint, .95f));
-                float glyph = box.height - 3;
-                Glyphs.Paint(new Rect(box.x + 1.5f, box.y + 1.5f, glyph, glyph), chip.Kind, tint);
+                Draw.Chip(box, Theme.StatusFill(chip.Kind), Theme.Ink);
+                float glyph = box.height - 4;
+                Glyphs.Paint(new Rect(box.x + (chip.Text.Length > 0 ? 2.5f : (box.width - glyph) * .5f), box.y + 2, glyph, glyph), chip.Kind, Color.white);
                 if (chip.Text.Length > 0)
-                    Draw.Text(new Rect(box.x + glyph + 2, box.y - 1, box.width - glyph - 3, box.height), chip.Text, font, Theme.PlateText, TextAnchor.MiddleCenter, true);
+                    Draw.Text(new Rect(box.x + glyph + 3, box.y - 1, box.width - glyph - 4, box.height), chip.Text, font, Color.white, TextAnchor.MiddleCenter, true);
             }
             if (layout.Hidden > 0)
             {
                 var more = RectOf(layout.Overflow); if (layout.HasShield && !Theme.ShowHpNumber) more.x += RectOf(layout.Shield).width * .5f + 1; else more.y += rowShift;
-                Draw.Chip(more, Alpha(Theme.Plate, Theme.PlateAlpha), Alpha(Theme.PlateSoft, .7f));
-                Draw.Text(new Rect(more.x, more.y - 1, more.width, more.height), "+" + layout.Hidden, font, Theme.PlateSoft, TextAnchor.MiddleCenter, true);
+                Draw.Chip(more, Alpha(Theme.Scrim, .9f), Theme.Ink);
+                Draw.Text(new Rect(more.x, more.y - 1, more.width, more.height), "+" + layout.Hidden, font, Color.white, TextAnchor.MiddleCenter, true);
             }
             if (layout.HasThreat)
             {

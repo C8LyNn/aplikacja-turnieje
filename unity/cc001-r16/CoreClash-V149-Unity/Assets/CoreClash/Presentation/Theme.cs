@@ -131,6 +131,17 @@ namespace CoreClash.Presentation
             }
         }
 
+        // The same status colour, deep enough to carry a white symbol and a white number: the fill of
+        // the chips under the balls.
+        public static Color StatusFill(StatusKind kind)
+        {
+            Color.RGBToHSV(Status(kind),out float hue,out float saturation,out float value);
+            saturation=Mathf.Max(saturation,.62f);
+            var color=Color.HSVToRGB(hue,saturation,value);
+            for(int i=0;i<10&&color.r*.299f+color.g*.587f+color.b*.114f>.5f;i++){value*=.93f;color=Color.HSVToRGB(hue,saturation,value);}
+            return color;
+        }
+
         // Effects. Strength scales every effect's opacity; set to 0 to silence them.
         public const float EffectStrength=1f;
         public const float NumberRise=34f,ImpactFlash=.18f,ImpactRadius=30f;

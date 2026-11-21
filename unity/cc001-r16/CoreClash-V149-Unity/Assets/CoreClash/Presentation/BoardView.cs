@@ -192,9 +192,14 @@ namespace CoreClash.Presentation
             Line(board, Left, CentreY, CentreX - CentreRadius, CentreY, mark, 3f);
             Line(board, CentreX + CentreRadius, CentreY, Right, CentreY, mark, 3f);
             Draw.Circle(Box(board, CentreX - CentreRadius, CentreY - CentreRadius, CentreRadius * 2, CentreRadius * 2), Theme.A(Color.white, look.CentreFill));
+            // On a light floor white paint is weak: the circle gets a darker edge of the floor's own
+            // colour, and the turn number is painted in that darker tone instead of white.
+            bool lightFloor = look.Floor.r * .299f + look.Floor.g * .587f + look.Floor.b * .114f > .6f;
+            Color floorDeep = Theme.Shade(look.Floor, 1.3f, .68f);
+            if (lightFloor) Draw.Ring(centre, (CentreRadius + 2f) * scale, Theme.A(floorDeep, .8f), Mathf.Max(3.6f, 8.5f * scale));
             Draw.Ring(centre, CentreRadius * scale, look.Ring, Mathf.Max(2.2f, 4.5f * scale));
             // The turn number, painted on the floor like a court marking.
-            if (turnShown > 0) Draw.Text(new Rect(centre.x - 100 * scale, centre.y - 60 * scale, 200 * scale, 120 * scale), turnShown.ToString(), Mathf.Max(20, Mathf.RoundToInt(78 * scale)), Theme.A(look.Ring, .5f), TextAnchor.MiddleCenter, true);
+            if (turnShown > 0) Draw.Text(new Rect(centre.x - 100 * scale, centre.y - 60 * scale, 200 * scale, 120 * scale), turnShown.ToString(), Mathf.Max(20, Mathf.RoundToInt(78 * scale)), lightFloor ? Theme.A(floorDeep, .85f) : Theme.A(look.Ring, .5f), TextAnchor.MiddleCenter, true);
             int font = Mathf.Max(8, Mathf.RoundToInt(10 * scale));
             if (Theme.CentreLabel > 0) Draw.Text(new Rect(centre.x - 100 * scale, centre.y + (CentreRadius + 5) * scale, 200 * scale, font + 8), Lang.T("CENTRE","CENTRUM"), font,
                 Theme.A(look.Ring, Theme.CentreLabel), TextAnchor.MiddleCenter, true);
@@ -682,13 +687,23 @@ namespace CoreClash.Presentation
             }
             var e=stopCache;if(e==null||!e.Valid)return;
             Color mark=Alpha(vector,e.Obstructed?.45f:.8f);
-            for(int i=1;i<e.Path.Count;i++)AimStroke(Point(board,e.Path[i-1].x,e.Path[i-1].y),Point(board,e.Path[i].x,e.Path[i].y),Alpha(vector,.4f),Mathf.Max(1.2f,1.6f*scale),3*scale,6*scale);
+            // W24 (owner direction: readability): the estimated path is a row of light dashes on a dark
+            // edge, and the stop mark a pale ghost of the ball, so both read on the floor and on either
+            // home zone. An estimate that something is in the way of stays fainter.
+            float see=e.Obstructed?.5f:1f,dash=Mathf.Max(3.5f,5*scale),gap=Mathf.Max(5f,7*scale),core=Mathf.Max(2f,2.8f*scale);
+            Color pathEdge=Alpha(Theme.Ink,.5f*see),pathCore=Alpha(Color.Lerp(vector,Color.white,.6f),.95f*see);
+            for(int i=1;i<e.Path.Count;i++)
+            {
+                Vector2 from=Point(board,e.Path[i-1].x,e.Path[i-1].y),to=Point(board,e.Path[i].x,e.Path[i].y);
+                AimStroke(from,to,pathEdge,core+Mathf.Max(1.6f,2.2f*scale),dash,gap);
+                AimStroke(from,to,pathCore,core,dash,gap);
+            }
             Vector2 stop=Point(board,e.StopX,e.StopY);float r=(e.Start.Radius+Theme.BallGrow)*scale;
-            Draw.Circle(new Rect(stop.x-r,stop.y-r,r*2,r*2),Alpha(vector,e.Obstructed?.12f:.22f));
-            Draw.Ring(stop,r+scale,Alpha(Theme.Ink,.55f),Mathf.Max(2.5f,3.8f*scale));
-            Draw.Ring(stop,r,mark,Mathf.Max(1,1.6f*scale),12,.6f);
-            AimStroke(stop-new Vector2(r*.45f,0),stop+new Vector2(r*.45f,0),mark,Mathf.Max(1,1.2f*scale));
-            AimStroke(stop-new Vector2(0,r*.45f),stop+new Vector2(0,r*.45f),mark,Mathf.Max(1,1.2f*scale));
+            Draw.Circle(new Rect(stop.x-r,stop.y-r,r*2,r*2),Alpha(Color.Lerp(vector,Color.white,.7f),e.Obstructed?.2f:.42f));
+            Draw.Ring(stop,r+scale,Alpha(Theme.Ink,.6f*see),Mathf.Max(2.5f,3.8f*scale));
+            Draw.Ring(stop,r,Alpha(Color.Lerp(vector,Color.white,.35f),see),Mathf.Max(1.2f,2f*scale),12,.6f);
+            AimStroke(stop-new Vector2(r*.45f,0),stop+new Vector2(r*.45f,0),Alpha(Theme.Ink,.55f*see),Mathf.Max(1.2f,1.6f*scale));
+            AimStroke(stop-new Vector2(0,r*.45f),stop+new Vector2(0,r*.45f),Alpha(Theme.Ink,.55f*see),Mathf.Max(1.2f,1.6f*scale));
             // W24: a ball whose power works where it stands (on STOP, or every turn) also shows how far
             // that power reaches from the estimated stop. Same estimate, same on/off switch as the mark.
             var reachGuide=BallGuide.For(replay!=null?replay.type:selected.id);
