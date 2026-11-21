@@ -34,7 +34,8 @@ namespace CoreClash.Presentation
         public static void Render(Rect board, BallRuntime ball, BallDefinition definition, bool replay,float x,float y,int localOwner=0,bool selected=false)
         {
             float scale = board.width / 540f, now = Time.unscaledTime;
-            float radius = ball.radius * scale;
+            // Drawn radius: the rules radius plus BallGrow (the HP gauge now lies inside the ball).
+            float radius = (ball.radius + Theme.BallGrow) * scale, edge = radius + (Theme.TeamRim + Theme.BallInk) * scale;
             var point = ViewPoint(board,x,y,localOwner);
             var body = new Rect(point.x - radius, point.y - radius, radius * 2, radius * 2);
             Color team = Draw.Owner(ball.owner);
@@ -44,14 +45,14 @@ namespace CoreClash.Presentation
             if (replay)
             {
                 // W18-02 (#287): Replay uses its own gold pulse, not the team colour.
-                float pulse = (5 + Mathf.Sin(now * 4 + ball.id) * 1.2f) * scale;
-                Draw.Glow(point, radius + pulse + 14 * scale, Alpha(ReplayColor, .5f));
-                Draw.Ring(point, radius + pulse, Alpha(ReplayColor, .85f), Mathf.Max(1.5f, 2.6f * scale));
-                Draw.Ring(point, radius + pulse + 4 * scale, Alpha(ReplayColor, .3f), Mathf.Max(1, scale));
+                float pulse = (3 + Mathf.Sin(now * 4 + ball.id) * 1.2f) * scale;
+                Draw.Glow(point, edge + pulse + 12 * scale, Alpha(ReplayColor, .5f));
+                Draw.Ring(point, edge + pulse, Alpha(ReplayColor, .85f), Mathf.Max(1.5f, 2.6f * scale));
+                Draw.Ring(point, edge + pulse + 4 * scale, Alpha(ReplayColor, .3f), Mathf.Max(1, scale));
             }
             if (selected)
             {
-                float reach = radius + Theme.SelectionRing * scale;
+                float reach = edge + (Theme.SelectionRing - 4) * scale;
                 Draw.Ring(point, reach + scale, Alpha(Theme.Ink, .5f), Mathf.Max(2.5f, 4 * scale), 4, .7f);
                 Draw.Ring(point, reach, Color.white, Mathf.Max(1.5f, 2.2f * scale), 4, .7f);
             }
@@ -63,7 +64,7 @@ namespace CoreClash.Presentation
             int segments = BallBadges.HpSegments(ball.maxHp), lit = BallBadges.HpLit(ball.hp, ball.maxHp), lostLit = 0; float lostFade = 0;
             if (Fx.LostHp(ball.id, now, out int hpBefore, out float fade)) { lostLit = BallBadges.HpLit(hpBefore, ball.maxHp); lostFade = fade; }
             DrawOrb(body, definition, ball.owner, scale, 1, segments, lit, BallBadges.PipSide(ball.owner, localOwner), BallBadges.PipSize(scale), lostLit, lostFade);
-            DrawIdentity(body, definition, color, radius, false);
+            DrawIdentity(body, definition, color, radius - (Theme.HpInset + Theme.HpRing) * scale, false);
             DrawState(body, point, ball, radius, scale, now);
         }
 
@@ -128,7 +129,7 @@ namespace CoreClash.Presentation
             {
                 // Bubble: a clear shell with one bright edge.
                 Color bubble = ball.divineShield ? Theme.Status(StatusKind.Divine) : Theme.Shield;
-                float reach = radius + (Theme.OwnerGap + Theme.HpRing + 3.5f) * scale, breathe = Fx.ReducedMotion ? 0 : Mathf.Sin(now * 2.4f + ball.id) * .6f * scale;
+                float reach = radius + (Theme.TeamRim + Theme.BallInk + 2.5f) * scale, breathe = Fx.ReducedMotion ? 0 : Mathf.Sin(now * 2.4f + ball.id) * .6f * scale;
                 Draw.Circle(new Rect(point.x - reach, point.y - reach, reach * 2, reach * 2), Alpha(bubble, .16f));
                 Draw.Ring(point, reach + breathe, Alpha(bubble, .9f), Mathf.Max(1.5f, 2.6f * scale));
                 Draw.Ring(point, reach + breathe - 2.2f * scale, Alpha(Color.white, .55f), Mathf.Max(1, 1.2f * scale), 3, .22f);
@@ -243,10 +244,11 @@ namespace CoreClash.Presentation
                 Draw.Glow(body.center, body.width * .5f + 13 * unit, Alpha(Theme.Select, .55f));
             }
             // A catalog orb is at full health: the ring shows how many 5 HP segments the type starts with.
-            int segments = body.width >= 24 && definition != null ? BallBadges.HpSegments(definition.hp) : 1;
+            bool gauge = body.width >= 24 && definition != null;
+            int segments = gauge ? BallBadges.HpSegments(definition.hp) : 0;
             DrawOrb(body, definition, owner, unit, selected ? 1 : .92f, segments, segments, body.width >= 24 ? -1 : 0, Mathf.Max(5, 7.5f * unit), 0, 0);
             if (definition != null && (body.width >= 24 || body.width >= 12 && BallIcons.Has(definition.id)))
-                DrawIdentity(body, definition, Draw.Hex(definition.color), body.width * .5f, true);
+                DrawIdentity(body, definition, Draw.Hex(definition.color), body.width * .5f - (gauge ? (Theme.HpInset + Theme.HpRing) * unit : 0), true);
         }
 
         // Ground shadow, navy backing, HP ring in the owner's colour (pale track + lit 5 HP segments,
@@ -255,17 +257,21 @@ namespace CoreClash.Presentation
         {
             Color team = Draw.Owner(owner);
             var center = body.center;
-            float radius = body.width * .5f, ring = Mathf.Max(2, Theme.HpRing * scale), gap = Mathf.Max(1, Theme.OwnerGap * scale);
-            float outer = radius + gap + ring;
-            float rim = gap + ring + Mathf.Max(1.8f, 2.6f * scale);
+            float radius = body.width * .5f, band = Mathf.Max(1.5f, Theme.TeamRim * scale), ink = Mathf.Max(1.3f, Theme.BallInk * scale);
+            float outer = radius + band, rim = band + ink;
             Draw.Circle(new Rect(body.x - rim + 2 * scale, body.y - rim + 5 * scale, body.width + rim * 2, body.height + rim * 2), Alpha(Theme.Ink, Theme.ShadowAlpha));
             Draw.Circle(Expand(body, rim), Theme.Ink);
-            Draw.Circle(Expand(body, gap + ring + Mathf.Max(1, 1.6f * scale)), Color.white);
+            Draw.Circle(Expand(body, band), Alpha(team, ringAlpha));
             if (pip != 0) OwnerPip(center, outer, pip, pipSize, Alpha(team, ringAlpha));
-            Draw.Segments(center, outer, Alpha(new Color(.8f, .83f, .92f), Theme.HpTrack * ringAlpha), ring, segments, segments);
-            if (lostLit > lit && lostFade > 0) Draw.Segments(center, outer, Alpha(Theme.Damage, lostFade), ring, segments, lostLit);
-            Draw.Segments(center, outer, Alpha(team, ringAlpha), ring, segments, lit);
             DrawBody(body, definition);
+            if (segments <= 0) return;
+            // The HP gauge, inside the ball along its edge: a dark bed, every slot faintly visible, the
+            // HP that is left in bright segments, and a thin ink line towards the icon.
+            float ring = Mathf.Max(2.2f, Theme.HpRing * scale), inset = Mathf.Max(.6f, Theme.HpInset * scale), hpOuter = radius - inset;
+            Draw.Ring(center, radius, Alpha(Theme.HpBed, .86f), ring + inset + Mathf.Max(.8f, scale));
+            Draw.Segments(center, hpOuter, Alpha(Color.white, .15f), ring, segments, segments);
+            if (lostLit > lit && lostFade > 0) Draw.Segments(center, hpOuter, Alpha(Color.Lerp(Theme.Damage, Color.white, .3f), lostFade), ring, segments, lostLit);
+            Draw.Segments(center, hpOuter, Color.Lerp(team, Color.white, .8f), ring, segments, lit);
         }
 
         // Owner pip: a triangle sitting on the ring. side -1 = on top pointing up (the viewer's
@@ -348,7 +354,7 @@ namespace CoreClash.Presentation
         {
             var velocity = localOwner==1?new Vector2(ball.vx,-ball.vy):new Vector2(ball.vx,ball.vy);
             if (!ball.moving || velocity.sqrMagnitude < 8100) return;
-            float speed = velocity.magnitude, radius = ball.radius * scale;
+            float speed = velocity.magnitude, radius = (ball.radius + Theme.BallGrow) * scale;
             float length = Mathf.Min(Theme.WakeLength, speed * .13f) * scale;
             Vector2 direction = velocity / speed;
             int steps = Fx.ReducedMotion ? 2 : Theme.WakeSteps;

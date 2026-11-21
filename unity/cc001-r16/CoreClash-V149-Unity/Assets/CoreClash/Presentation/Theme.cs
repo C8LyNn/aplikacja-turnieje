@@ -45,7 +45,13 @@ namespace CoreClash.Presentation
         public const float WakeLength=64f,WakeAlpha=.3f;
         public const int WakeSteps=5;
         // W21: HP ring around the body, one segment per 5 HP (lost segments stay as a dim track).
-        public const float HpRing=4.4f,HpTrack=.55f,IconSize=1.42f;
+        public const float HpRing=4.6f,HpTrack=.55f,IconSize=1.42f;
+        // W24 (owner decision): the HP gauge is INSIDE the ball, along its edge, and the ball is drawn
+        // larger than its rules radius by BallGrow. Presentation only: the simulation keeps its radius.
+        // From the centre outwards: body with the icon, HP gauge on a dark bed (a lost segment is a
+        // dark gap), a rim in the team colour (a badly hurt ball still shows whose it is), ink outline.
+        public const float BallGrow=4.6f,HpInset=1f,TeamRim=3f,BallInk=1.6f;
+        public static readonly Color HpBed=C("#1f1a3a");
         public static readonly Color HpGood=C("#ffffff"),HpHurt=C("#ffe07a"),HpCritical=C("#ffd0d6");
         // W24 (owner decision): a ball's HP is read from its ring only; no number under the ball.
         // The exact value stays in the ball details. Set to true to bring the number plate back.

@@ -169,9 +169,25 @@ namespace CoreClash.Presentation
             // Light floor: brightest across the middle, a touch deeper toward both base walls.
             Draw.VGradient(new Rect(field.x, field.y, field.width, field.height * .5f + .5f), Theme.FloorEdge, Theme.FloorCentre);
             Draw.VGradient(new Rect(field.x, field.y + field.height * .5f, field.width, field.height * .5f), Theme.FloorCentre, Theme.FloorEdge);
-            // W24: no grid or dots on the floor: a plain warm surface keeps the balls the stars.
+            // W24: no grid or dots on the floor. Two wide bands of light lie across it like on a
+            // polished table, and the side walls cast a soft shadow, so the arena has depth.
+            var old = GUI.color; GUI.color = new Color(1, 1, 1, .5f); GUI.DrawTexture(field, Sheen()); GUI.color = old;
+            for (int i = 0; i < 5; i++)
+            {
+                float step = 3 * scale, shade = .11f * (1 - i / 5f);
+                Draw.Rect(new Rect(field.x + i * step, field.y, step, field.height), Theme.A(Theme.Ink, shade));
+                Draw.Rect(new Rect(field.xMax - (i + 1) * step, field.y, step, field.height), Theme.A(Theme.Ink, shade));
+            }
             RenderHomeZone(board, 1, Top, ZoneP2Bottom);
             RenderHomeZone(board, 0, ZoneP1Top, Bottom);
+            // Half-way line: short dashes from each wall to the centre ring.
+            for (int side = -1; side <= 1; side += 2)
+                for (int i = 0; i < 7; i++)
+                {
+                    float from = CentreX + side * (CentreRadius + 14 + i * 18), to = from + side * 9;
+                    if (side < 0 ? to < Left + 4 : to > Right - 4) break;
+                    Line(board, from, CentreY, to, CentreY, Theme.A(Theme.Centre, .5f), 3f);
+                }
 
             // Centre: neutral (never a team colour). The ring is the rules' centre radius.
             Vector2 centre = Point(board, CentreX, CentreY);
@@ -182,6 +198,7 @@ namespace CoreClash.Presentation
             Draw.Ring(centre, (CentreRadius + 1.5f) * scale, Theme.Ink, Mathf.Max(4f, 7.5f * scale));
             Draw.Ring(centre, CentreRadius * scale, Color.Lerp(neutral, Color.white, .2f), Mathf.Max(2.2f, 4.5f * scale));
             Draw.Glow(centre, CentreRadius * 1.25f * scale, Theme.A(neutral, .18f));
+            Draw.Ring(centre, (CentreRadius + 11) * scale, Theme.A(neutral, .5f), Mathf.Max(1.2f, 2.2f * scale), 40, .5f);
             // The turn number, painted on the floor like a court marking.
             if (turnShown > 0) Draw.Text(new Rect(centre.x - 100 * scale, centre.y - 60 * scale, 200 * scale, 120 * scale), turnShown.ToString(), Mathf.Max(20, Mathf.RoundToInt(78 * scale)), Theme.A(neutral, .42f), TextAnchor.MiddleCenter, true);
             int font = Mathf.Max(8, Mathf.RoundToInt(10 * scale));
@@ -212,6 +229,21 @@ namespace CoreClash.Presentation
             }
             Draw.VGradient(zone, baseAtViewTop ? near : far, baseAtViewTop ? far : near);
             Draw.Tile(zone, Pattern(owner == 0), Mathf.Max(20, 30 * scale), Theme.A(team, Theme.ZonePattern));
+            // A runway of chevrons pointing at the opponent; it moves while that player is aiming.
+            {
+                bool towardsViewTop = !baseAtViewTop;
+                float drift = acting && !Fx.ReducedMotion ? Mathf.Repeat(Time.unscaledTime * .7f, 1) : .5f, size = 26 * scale;
+                for (int row = 0; row < 2; row++)
+                    for (int i = 0; i < 6; i++)
+                    {
+                        float x = Left + (Right - Left) * (i + .5f) / 6f;
+                        if (Mathf.Abs(x - 270) < 60) continue;
+                        float depth = 46 + row * 44 + drift * 14, y = owner == 0 ? top + depth : bottom - depth;
+                        var p = Point(board, x, y);
+                        float alpha = (acting ? .34f : .16f) * (row == 0 ? 1 : .6f);
+                        Glyphs.Paint(new Rect(p.x - size / 2, p.y - size / 2, size, size), towardsViewTop ? Fx.Chevron : "+L -.7 -.45 0 .45 .34;+L 0 .45 .7 -.45 .34", Theme.A(Color.Lerp(team, Color.white, .25f), alpha));
+                    }
+            }
             float edge = owner == 0 ? top : bottom, inner = owner == 0 ? 6 : -6;
             Line(board, Left, edge, Right, edge, Theme.Ink, acting ? 9f : 6f);
             Line(board, Left, edge, Right, edge, acting ? Color.Lerp(team, Color.white, .25f) : Color.Lerp(team, Color.white, .45f), acting ? 5.5f : 3f);
@@ -221,6 +253,25 @@ namespace CoreClash.Presentation
             float height = font + 6;
             var label = new Rect(corner.x + 7 * scale, baseAtViewTop ? corner.y - 3 * scale - height : corner.y + 3 * scale, Mathf.Max(96, 150 * scale), height);
             if (Theme.ZonePattern > 0) Draw.Text(label, Lang.T("P","G") + (owner + 1) + Lang.T(" HOME ZONE"," STREFA DOMOWA"), font, Theme.A(Theme.TeamDeep(owner), Theme.ZoneLabel), TextAnchor.MiddleLeft, true);
+        }
+
+        // Two soft diagonal bands of light across the floor (one small texture, stretched).
+        static Texture2D sheen;
+        static Texture2D Sheen()
+        {
+            if (sheen != null) return sheen;
+            const int size = 64;
+            sheen = new Texture2D(size, size, TextureFormat.RGBA32, false) { name = "Core Clash floor sheen", filterMode = FilterMode.Bilinear, wrapMode = TextureWrapMode.Clamp, hideFlags = HideFlags.HideAndDontSave };
+            var pixels = new Color[size * size];
+            for (int y = 0; y < size; y++)
+                for (int x = 0; x < size; x++)
+                {
+                    float d = (x + y) / (2f * size);
+                    float a = Mathf.Clamp01(1 - Mathf.Abs(d - .34f) / .09f), b = Mathf.Clamp01(1 - Mathf.Abs(d - .52f) / .035f);
+                    pixels[y * size + x] = new Color(1, 1, 1, Mathf.Max(a * a * .55f, b * b * .4f));
+                }
+            sheen.SetPixels(pixels); sheen.Apply(false, true);
+            return sheen;
         }
 
         static Texture2D Pattern(bool diagonal)
@@ -276,7 +327,7 @@ namespace CoreClash.Presentation
                 bool aimingHere = aim == null || !aim.Active || (Mathf.Abs(aim.OriginX - 270) < .1f && Mathf.Abs(aim.OriginY - y) < .1f);
                 if (selected != null && aimingHere)
                 {
-                    float radius = Mathf.Max(9, selected.radius);
+                    float radius = Mathf.Max(9, selected.radius) + Theme.BallGrow;
                     BallView.Preview(Box(board, 270 - radius, y - radius, radius * 2, radius * 2), selected, owner, true);
                 }
             }
@@ -355,7 +406,7 @@ namespace CoreClash.Presentation
             float scale = board.width / 540;
             var center = Point(board, x, y);
             float beat = .5f + .5f * Mathf.Sin(Time.unscaledTime * (ball.mineArmed ? 5 : 3) + ball.id);
-            float reach = (ball.radius + (ball.mineArmed ? 13 + beat * 3 : 13)) * scale;
+            float reach = (ball.radius + Theme.BallGrow + (ball.mineArmed ? 12 + beat * 3 : 12)) * scale;
             Draw.Circle(new Rect(center.x - reach, center.y - reach, reach * 2, reach * 2), Theme.A(Theme.Threat, .16f + beat * .1f));
             if (ball.mineArmed) Draw.Ring(center, reach, Theme.A(Theme.Threat, .6f + beat * .35f), Mathf.Max(1.5f, 2.4f * scale), 12, .5f);
             else Draw.Ring(center, reach, Theme.A(Theme.Threat, .55f + beat * .3f), Mathf.Max(1.5f, 2 * scale));
@@ -634,7 +685,7 @@ namespace CoreClash.Presentation
             var e=stopCache;if(e==null||!e.Valid)return;
             Color mark=Alpha(vector,e.Obstructed?.45f:.8f);
             for(int i=1;i<e.Path.Count;i++)AimStroke(Point(board,e.Path[i-1].x,e.Path[i-1].y),Point(board,e.Path[i].x,e.Path[i].y),Alpha(vector,.4f),Mathf.Max(1.2f,1.6f*scale),3*scale,6*scale);
-            Vector2 stop=Point(board,e.StopX,e.StopY);float r=e.Start.Radius*scale;
+            Vector2 stop=Point(board,e.StopX,e.StopY);float r=(e.Start.Radius+Theme.BallGrow)*scale;
             Draw.Circle(new Rect(stop.x-r,stop.y-r,r*2,r*2),Alpha(vector,e.Obstructed?.12f:.22f));
             Draw.Ring(stop,r+scale,Alpha(Theme.Ink,.55f),Mathf.Max(2.5f,3.8f*scale));
             Draw.Ring(stop,r,mark,Mathf.Max(1,1.6f*scale),12,.6f);
@@ -670,27 +721,75 @@ namespace CoreClash.Presentation
             Line(board, Left, Top, Left, Bottom, Theme.Rim, 3f);
             Line(board, Right, Top, Right, Bottom, Theme.Rim, 3f);
             float unit = board.width / 540;
-            for (int owner = 0; owner < 2; owner++)
+            for (int owner = 0; owner < 2; owner++) RenderBaseBar(board, state, feedback, owner, unit);
+        }
+
+        // W24: the base is its wall, and the wall is a health gauge. A badge with a heart and the
+        // number, then twenty chunky pips, one for each HP. A lost pip goes dark; the pips just lost
+        // flash on the real BASE_DAMAGE event. At 5 HP or less the badge and the pips turn to the
+        // warning colour (steady, no blinking).
+        const string HeartGlyph = "+C -.36 -.28 .42;+C .36 -.28 .42;+P -.74 -.08 .74 -.08 0 .88";
+        public const int BasePips = 20;
+        static void RenderBaseBar(Rect board, GameState state, FeedbackTimeline feedback, int owner, float unit)
+        {
+            const float thick = 30, badgeWidth = 84, pad = 4.5f, gapWidth = 2.6f;
+            Color team = Draw.Owner(owner), deep = Theme.TeamDeep(owner);
+            int hp = Mathf.Clamp(state.players[owner].hp, 0, BasePips);
+            bool low = hp <= 5;
+            float top = owner == 0 ? 900 - thick : 0, flash = BaseLoss(feedback, owner, out int lost);
+            var bar = Box(board, Left, top, Right - Left, thick);
+            Draw.Rect(new Rect(bar.x, bar.y - 2.5f * unit, bar.width, bar.height + 5 * unit), Theme.Ink);
+            Draw.Rect(bar, Color.Lerp(Theme.Ink, deep, .38f));
+            // Badge: heart and number.
+            var badge = new Rect(bar.x, bar.y, badgeWidth * unit, bar.height);
+            Draw.Rect(badge, low ? Theme.Damage : team);
+            Draw.Rect(new Rect(badge.x, badge.y, badge.width, badge.height * .42f), new Color(1, 1, 1, .2f));
+            // The heart beats once when the base is hit.
+            float icon = bar.height * .62f * (1 + .28f * flash * flash);
+            var heart = new Rect(badge.x + 8 * unit + (bar.height * .62f - icon) * .5f, badge.center.y - icon * .5f + unit, icon, icon);
+            Glyphs.Paint(new Rect(heart.x - 1.5f, heart.y - 1.5f, heart.width + 3, heart.height + 3), HeartGlyph, Theme.Ink);
+            Glyphs.Paint(heart, HeartGlyph, Color.white);
+            Draw.Inked(new Rect(heart.xMax + 2 * unit, badge.y - 1, badge.xMax - heart.xMax - 6 * unit, badge.height), hp.ToString(), Mathf.Max(11, Mathf.RoundToInt(21 * unit)), Color.white, TextAnchor.MiddleCenter, Mathf.Max(1.2f, 1.8f * unit));
+            Draw.Rect(new Rect(badge.xMax, bar.y, 2.5f * unit, bar.height), Theme.Ink);
+            // Pips.
+            float x0 = badge.xMax + (2.5f + pad) * unit, room = bar.xMax - pad * unit - x0, step = room / BasePips;
+            float width = step - gapWidth * unit, height = bar.height - 2 * pad * unit;
+            Color lit = low ? Color.Lerp(team, Theme.Damage, .6f) : team;
+            // Every few seconds a glint runs along the pips that are left.
+            float glint = Fx.ReducedMotion ? -9 : Mathf.Repeat(Time.unscaledTime / 5f + owner * .5f, 1) * 4.2f - .3f;
+            for (int i = 0; i < BasePips; i++)
             {
-                // W24: the base is its wall. A thick bar across the whole wall shows the 20 HP, with the
-                // number in the middle; it flashes red on a real BASE_DAMAGE event.
-                Color team = Draw.Owner(owner);
-                const float thick = 26;
-                float top = owner == 0 ? 900 - thick : 0, flash = BaseFlash(feedback, owner);
-                float hp = Mathf.Clamp01(state.players[owner].hp / 20f);
-                var bar = Box(board, Left, top, Right - Left, thick);
-                Draw.Rect(new Rect(bar.x, bar.y - 2.5f * unit, bar.width, bar.height + 5 * unit), Theme.Ink);
-                Draw.Rect(bar, Color.Lerp(Color.white, team, .22f));
-                if (hp > 0)
+                var pip = new Rect(x0 + i * step, bar.y + pad * unit, width, height);
+                if (i < hp)
                 {
-                    var fill = new Rect(bar.x, bar.y, bar.width * hp, bar.height);
-                    Draw.Rect(fill, team);
-                    Draw.Rect(new Rect(fill.x, fill.y, fill.width, fill.height * .34f), new Color(1, 1, 1, .28f));
-                    Draw.Rect(new Rect(fill.xMax - 2 * unit, fill.y, 2 * unit, fill.height), Theme.Ink);
+                    Draw.Chip(pip, lit);
+                    Draw.Rect(new Rect(pip.x + 1, pip.y + 1, pip.width - 2, Mathf.Max(1, pip.height * .36f)), new Color(1, 1, 1, .34f));
+                    float near = Mathf.Abs((i + .5f) / BasePips - glint);
+                    if (near < .11f) Draw.Chip(pip, new Color(1, 1, 1, .55f * (1 - near / .11f)));
                 }
-                if (flash > 0) Draw.Rect(bar, Alpha(Theme.Damage, flash * .8f));
-                Draw.Inked(new Rect(bar.x, bar.y - 1, bar.width, bar.height), state.players[owner].hp.ToString(), Mathf.Max(11, Mathf.RoundToInt(21 * unit)), Color.white, TextAnchor.MiddleCenter, Mathf.Max(1.2f, 1.8f * unit));
+                else
+                {
+                    Draw.Chip(pip, new Color(1, 1, 1, .09f));
+                    if (flash > 0 && i < hp + lost) Draw.Chip(pip, Color.Lerp(Alpha(Theme.Damage, flash), Alpha(Color.white, flash), Mathf.Clamp01(flash * 2 - 1)));
+                }
             }
+        }
+        // How strongly a base that was just hit should flash (0..1) and how many HP it lost in that moment.
+        static float BaseLoss(FeedbackTimeline feedback, int owner, out int amount)
+        {
+            amount = 0;
+            if (feedback == null) return 0;
+            float best = 0, now = Time.unscaledTime;
+            foreach (var item in feedback.Items)
+            {
+                if (item.kind != "BASE_DAMAGE" || item.owner != owner) continue;
+                float age = now - item.born;
+                if (age < 0 || age >= FeedbackTimeline.Life) continue;
+                best = Mathf.Max(best, (1 - age / FeedbackTimeline.Life) * Theme.EffectStrength);
+                int dash = item.text == null ? -1 : item.text.LastIndexOf('-');
+                if (dash >= 0 && int.TryParse(item.text.Substring(dash + 1), out int value)) amount += value;
+            }
+            return best;
         }
         static float BaseFlash(FeedbackTimeline feedback, int owner)
         {

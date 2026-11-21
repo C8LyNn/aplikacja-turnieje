@@ -134,7 +134,7 @@ namespace CoreClash.Presentation
             // Second line, most relevant first: result, inspection help, a rejected shot,
             // the last action's result from real events, then the standing tip.
             string summary=ActionSummary.For(state);bool result=false;string detail;
-            if(over)detail=state.resultReason;
+            if(over)detail=ResultReason(state.resultReason);
             else if(boardInspection)detail=Lang.T("Inspect either player's ball. Cancel to resume aiming.","Obejrzyj kulkę dowolnego gracza. Anuluj, żeby wrócić do celowania.");
             else if(notice.Length>0&&CanChoose)detail=notice;
             else if(summary.Length>0){detail=summary;result=true;}
@@ -174,7 +174,7 @@ namespace CoreClash.Presentation
             float textX=over?choice.x+10:choice.x+46;
             string name=over?TurnText():BallIcons.Name(d);
             Draw.Text(new Rect(textX,choice.y+2,choice.xMax-textX-136,22),name,14,Theme.Text,TextAnchor.MiddleLeft,true);
-            string hint=over?state.resultReason:
+            string hint=over?ResultReason(state.resultReason):
                 boardInspection?Lang.T("TAP BALL TO INSPECT","DOTKNIJ KULKI"):
                 LocalTurnPresentation.ActionMessage(state,NetworkLink==null?-1:NetworkLink.LocalOwner,
                     NetworkLink!=null,NetworkLink==null||NetworkLink.IsConnected,gesture.Active,
@@ -184,7 +184,7 @@ namespace CoreClash.Presentation
 
             if(over){
                 Draw.Round(cards,Color.Lerp(Theme.Panel,Theme.Select,.25f));
-                Draw.Text(Draw.Inset(cards,6),state.resultReason.Length>0?state.resultReason:TurnText(),12,Theme.SelectInk,TextAnchor.MiddleCenter,true);
+                Draw.Text(Draw.Inset(cards,6),ResultReason(state.resultReason).Length>0?ResultReason(state.resultReason):TurnText(),12,Theme.SelectInk,TextAnchor.MiddleCenter,true);
             }else{
                 // Nine icon cards in one row: no arrows, no scrolling.
                 var ids=LocalDeckContent.StockIds(state,displayOwner);

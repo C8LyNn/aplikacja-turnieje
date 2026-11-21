@@ -41,6 +41,8 @@ namespace CoreClash.Testing
         void Start()
         {
             started = Time.realtimeSinceStartup;
+            // The window may open on another monitor without focus: keep running anyway.
+            Application.runInBackground = true;
             app = GetComponent<CoreClashApp>();
             string[] args = Environment.GetCommandLineArgs();
             int index = Array.IndexOf(args, "--cc-output");
@@ -80,6 +82,8 @@ namespace CoreClash.Testing
             Require(app != null && app.Catalog != null && app.Simulation != null && app.IsSetup, "the app did not open on deck selection");
             Require(app.Catalog.Roster != null && app.Catalog.Roster.Decks.Length >= 4, "the active roster decks are missing");
             app.SetDeveloperOverlay(false);
+            // Both seats are driven by the pointer here; the player's saved "versus AI" choice is not touched.
+            app.SetVersusAi(false, false);
             int shortSide = Mathf.Min(Screen.width, Screen.height);
             profile = shortSide <= 480 ? "Phone" : (Screen.width == 1024 && Screen.height == 768) || (Screen.width == 768 && Screen.height == 1024) ? "Tablet" : "Desktop";
             if (profile != "Desktop") { app.SetDeviceProfile(profile); yield return null; yield return null; }

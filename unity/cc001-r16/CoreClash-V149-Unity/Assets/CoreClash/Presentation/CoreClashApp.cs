@@ -42,7 +42,8 @@ namespace CoreClash.Presentation
         // W24: optional computer opponent in the Player 2 seat of a local match.
         readonly AiOpponent ai=new AiOpponent();bool aiMatch;
         public bool VersusAi{get;private set;}
-        public void SetVersusAi(bool value){VersusAi=value;PlayerPrefs.SetInt("cc.versusAi",value?1:0);}
+        // remember=false changes it for this run only (test drivers), leaving the player's saved choice alone.
+        public void SetVersusAi(bool value,bool remember=true){VersusAi=value;if(remember)PlayerPrefs.SetInt("cc.versusAi",value?1:0);}
         bool AiTurn=>aiMatch&&NetworkLink==null&&Simulation.State.turn==1;
         int? LocalSeat=>NetworkLink!=null?NetworkLink.LocalOwner:aiMatch?0:(int?)null;
         FeedbackTimeline feedback=new FeedbackTimeline();
