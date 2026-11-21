@@ -65,6 +65,7 @@ import { audiencePollMs, buildAudienceNow, matchCode, matchTitle, roundText, upd
 import { LiveTablesLegend, StageLiveTables, useStageLiveStandings } from "@/components/stage-live-tables";
 import { ParticipantFieldChips, useParticipantFields } from "@/features/experimental-tournaments/experimental-participant-fields";
 
+import { LanguageSwitcher } from "@/i18n/react";
 const FORMAT_LABELS: Record<string, string> = {
   single_elimination: "Drabinka eliminacyjna",
   swiss: "System szwajcarski",
@@ -356,6 +357,8 @@ export default function TournamentAudience() {
       <header className="flex-none flex flex-wrap items-center justify-between gap-x-4 gap-y-2 min-w-0 px-4 sm:px-6 py-3 border-b border-white/8 bg-background/80 backdrop-blur-sm z-10">
         <div className="flex flex-1 basis-80 items-center gap-2.5 min-w-0">
           <AppLogoLink fallbackHref="/fan" className="text-cyan-400 text-xs uppercase tracking-widest shrink-0" />
+          {/* #323-E: each viewer picks their own language */}
+          <LanguageSwitcher className="order-last sm:order-none" />
           <span className="text-white/20 hidden sm:block">·</span>
           <h1 className={isExperimental ? "min-w-0 flex-1 break-words font-bold text-sm sm:text-base" : "min-w-0 flex-1 font-bold text-sm sm:text-base truncate"} title={tournament?.name}>{tournament?.name ?? "Ładowanie…"}</h1>
           <ForcedHeroBadge gameConfig={tournament?.gameConfig} compact />

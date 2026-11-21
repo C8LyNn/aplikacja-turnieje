@@ -31,6 +31,7 @@ import { PrivateTournamentGate, pollUnlessDenied, useLatchedAccessDenied } from 
 import { useTournamentReadAuth } from "@/hooks/use-tournament-read-auth";
 
 
+import { LanguageSwitcher } from "@/i18n/react";
 const ZOOM_MIN = 0.2;
 const ZOOM_MAX = 2.0;
 const ZOOM_STEP = 0.1;
@@ -201,6 +202,7 @@ export default function TournamentBracket() {
         </a>
 
         <div className="flex flex-wrap items-center gap-2 pointer-events-auto">
+          <LanguageSwitcher />
           {/* UB→LB drop toggle — visible only when DE bracket is active */}
           {!!doubleEliminationStage && (
             <button

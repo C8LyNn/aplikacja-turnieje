@@ -11,6 +11,7 @@ import { AppLogoLink, RoleSelectionLink } from "@/components/app-navigation";
 import { isExperimentalTournamentPath, tournamentHref } from "@/features/experimental-tournaments/experimental-tournament-routing";
 import { STAGE_FORMAT_LABELS } from "@/lib/tournament-stages-ui";
 
+import { LanguageSwitcher } from "@/i18n/react";
 const FORMAT_LABELS: Record<string, string> = {
   single_elimination: "Drabinka eliminacyjna",
   swiss: "System szwajcarski",
@@ -66,6 +67,7 @@ export default function SupportEntry() {
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <AppLogoLink fallbackHref={isExperimental ? "/experimental/tournaments/support" : "/support"} className="text-xl" />
+            <LanguageSwitcher />
             {isExperimental && (
               <span className="experimental-mode-badge">
                 <FlaskConical className="h-3.5 w-3.5" aria-hidden="true" />

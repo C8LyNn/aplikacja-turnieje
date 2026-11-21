@@ -4,6 +4,7 @@ import { useAuth } from "@/context/auth-context";
 import type { Role } from "@/lib/auth";
 import { isExperimentalTournamentPath, tournamentRoleHomeHref } from "@/features/experimental-tournaments/experimental-tournament-routing";
 
+import { LanguageSwitcher } from "@/i18n/react";
 const TOURNAMENT_ROLES: {
   id: Role;
   label: string;
@@ -59,6 +60,7 @@ export default function TournamentsHome() {
   return (
     <div className={`min-h-screen bg-background px-4 py-8 sm:py-12 text-foreground dark ${isExperimental ? "experimental-tournament-entry experimental-role-home" : ""}`}>
       <div className={`mx-auto max-w-4xl ${isExperimental ? "experimental-entry-inner" : ""}`}>
+        <div className="mb-2 flex justify-end"><LanguageSwitcher /></div>
         <button
           type="button"
           onClick={() => navigate("/")}

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { LanguageSwitcher } from "@/i18n/react";
 import { Link, useLocation } from "wouter";
 import { PlusCircle, HelpCircle, FlaskConical, Menu, X } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
@@ -116,6 +117,8 @@ export function Layout({ children, deadlockTheme, colorPreset }: { children: Rea
             >
               Portfolio
             </a>
+            {/* #323-E: language, per browser (other people keep theirs) */}
+            <LanguageSwitcher />
 </nav>
         </div>
       </header>

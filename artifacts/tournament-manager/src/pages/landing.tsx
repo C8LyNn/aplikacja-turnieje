@@ -12,6 +12,7 @@ import {
 import { Link } from "wouter";
 import { SfCard } from "@/components/sf/sf-views";
 
+import { LanguageSwitcher } from "@/i18n/react";
 const MODULES: {
   title: string;
   description: string;
@@ -35,7 +36,7 @@ const MODULES: {
 export default function Landing() {
   return (
     <div className="grid min-h-[100dvh] grid-rows-[1fr_auto_1fr] bg-background px-4 py-8 text-foreground dark sm:py-4">
-        <div aria-hidden="true" />
+        <div className="flex items-start justify-end"><LanguageSwitcher /></div>
 
         <div data-testid="landing-project-grid" className="mx-auto grid w-full max-w-6xl grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {MODULES.map(({ title, description, href, icon: Icon, text, gradient, stripe, borderHover }) => {

@@ -1,4 +1,5 @@
 import type { LucideIcon } from "lucide-react";
+import { LanguageSwitcher } from "@/i18n/react";
 import { Plus } from "lucide-react";
 import { Link } from "wouter";
 import { ModuleBackLink } from "@/components/module-back-link";
@@ -110,7 +111,10 @@ export function ModuleHeader({
 
   return (
     <div className="mb-6 space-y-4">
-      <ModuleBackLink href={backHref} label={backLabel} />
+      <div className="flex items-center justify-between gap-3">
+        <ModuleBackLink href={backHref} label={backLabel} />
+        <LanguageSwitcher />
+      </div>
       <section className="relative overflow-hidden rounded-2xl border border-border bg-card/70 p-5 sm:p-6">
         <div className={`pointer-events-none absolute inset-0 bg-gradient-to-br ${style.gradient}`} />
         <div className={`absolute left-5 top-0 h-1.5 w-20 rounded-b-lg ${style.stripe}`} />
