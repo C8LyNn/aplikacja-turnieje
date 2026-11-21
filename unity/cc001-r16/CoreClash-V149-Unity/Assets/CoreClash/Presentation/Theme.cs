@@ -17,27 +17,39 @@ namespace CoreClash.Presentation
         // Teams. Colour is never the only cue. On a ball the cue is the owner pip (W21): a small
         // triangle on the ring that points the way the ball's side attacks. Launchers, zones
         // and structures keep the W20 ring pattern: P1 solid, P2 segmented.
-        public static readonly Color P1=C("#2f7bff"),P2=C("#ff4f7a");
+        public static readonly Color P1=C("#1f7dff"),P2=C("#ff3b6b");
         public static Color Team(int owner)=>owner==0?P1:P2;
         // Darker team shade: button lips, text on white.
-        public static Color TeamDeep(int owner)=>owner==0?C("#1c56c9"):C("#d42c5a");
+        public static Color TeamDeep(int owner)=>owner==0?C("#124dc4"):C("#d61c50");
+        // W24 (owner decision): a cartoon look with vivid colours. Colours that come from data (ball
+        // bodies, deck accents) are pushed the same way at draw time: more saturation, a touch more
+        // light. Near-greys stay grey. The data itself is not changed.
+        public static Color Vivid(Color color)
+        {
+            Color.RGBToHSV(color,out float hue,out float saturation,out float value);
+            if(saturation<.16f)return color;
+            var vivid=Color.HSVToRGB(hue,Mathf.Clamp01(saturation*1.28f+.12f),Mathf.Clamp01(value*1.02f+.02f));
+            vivid.a=color.a;return vivid;
+        }
         public const int P2RingSegments=8;
         public const float P2RingFill=.62f;
 
         // Surfaces and text (HUD). Panel = white card, PanelLight = a cell inside a card.
-        public static readonly Color Background=C("#5d93ff"),BackdropTop=C("#55b9ff"),BackdropBottom=C("#9a6cf5"),Header=C("#3550c8"),
-            Panel=C("#ffffff"),PanelLight=C("#eef3ff"),PanelRaised=C("#dfe8ff"),
-            Edge=C("#d3dcf5"),EdgeStrong=C("#9eb0e6"),Plate=C("#ffffff"),Scrim=C("#141c44");
+        public static readonly Color Background=C("#3f8cff"),BackdropTop=C("#22b4ff"),BackdropBottom=C("#7a45ff"),Header=C("#2a47d6"),
+            Panel=C("#ffffff"),PanelLight=C("#e8f2ff"),PanelRaised=C("#d2e4ff"),
+            Edge=C("#c4d6fa"),EdgeStrong=C("#86a2f2"),Plate=C("#ffffff"),Scrim=C("#141c44");
         public static readonly Color Text=C("#1b2550"),TextSoft=C("#3a4678"),Muted=C("#6c78a6"),Disabled=C("#a9b2d0"),Ink=C("#1a1530"),
             OnColor=C("#ffffff"),PlateText=C("#1b2550"),PlateSoft=C("#6c78a6");
         public const int FontTitle=17,FontBody=13,FontSmall=11,FontTiny=9;
 
         // Meaning. Select is the bright amber for rings and fills; SelectInk is its text shade on white.
-        public static readonly Color Select=C("#ffb81f"),SelectInk=C("#a86400"),Threat=C("#ff8a1f"),Damage=C("#ef3b54"),Heal=C("#1fb872"),Shield=C("#35a7ff"),Info=C("#8a63ff");
+        public static readonly Color Select=C("#ffc400"),SelectInk=C("#b36a00"),Threat=C("#ff7a00"),Damage=C("#ff2d55"),Heal=C("#00c46c"),Shield=C("#1ea7ff"),Info=C("#7c4dff");
 
         // Arena: a deep tray, a light floor, white rim.
-        public static readonly Color BoardOuter=C("#5a44b8"),BoardLip=C("#7c66dd"),FloorEdge=C("#ffeccb"),FloorCentre=C("#fff9ec"),Rim=C("#ffffff"),Centre=C("#e3a13a");
-        public const float ZoneFillNear=.42f,ZoneFillFar=.12f,ZonePattern=0f,ZoneEdge=.9f,ZoneLabel=.75f;
+        public static readonly Color BoardOuter=C("#4326c9"),BoardLip=C("#6f52ff"),FloorEdge=C("#ffdb78"),FloorCentre=C("#fff1b8"),Rim=C("#ffffff"),Centre=C("#ff9500");
+        public const float ZoneFillNear=.7f,ZoneFillFar=.42f,ZonePattern=0f,ZoneEdge=.9f,ZoneLabel=.75f;
+        // How much white is laid under a home zone before its team colour (less = more saturated).
+        public const float ZoneWash=.36f;
         public const float CentreRing=.7f,CentreFill=.75f,CentreLabel=0f,MidLine=0f,RimAlpha=1f;
 
         // Balls.

@@ -169,25 +169,9 @@ namespace CoreClash.Presentation
             // Light floor: brightest across the middle, a touch deeper toward both base walls.
             Draw.VGradient(new Rect(field.x, field.y, field.width, field.height * .5f + .5f), Theme.FloorEdge, Theme.FloorCentre);
             Draw.VGradient(new Rect(field.x, field.y + field.height * .5f, field.width, field.height * .5f), Theme.FloorCentre, Theme.FloorEdge);
-            // W24: no grid or dots on the floor. Two wide bands of light lie across it like on a
-            // polished table, and the side walls cast a soft shadow, so the arena has depth.
-            var old = GUI.color; GUI.color = new Color(1, 1, 1, .5f); GUI.DrawTexture(field, Sheen()); GUI.color = old;
-            for (int i = 0; i < 5; i++)
-            {
-                float step = 3 * scale, shade = .11f * (1 - i / 5f);
-                Draw.Rect(new Rect(field.x + i * step, field.y, step, field.height), Theme.A(Theme.Ink, shade));
-                Draw.Rect(new Rect(field.xMax - (i + 1) * step, field.y, step, field.height), Theme.A(Theme.Ink, shade));
-            }
+            // W24: no grid or dots on the floor: one flat, bright surface keeps the balls the stars.
             RenderHomeZone(board, 1, Top, ZoneP2Bottom);
             RenderHomeZone(board, 0, ZoneP1Top, Bottom);
-            // Half-way line: short dashes from each wall to the centre ring.
-            for (int side = -1; side <= 1; side += 2)
-                for (int i = 0; i < 7; i++)
-                {
-                    float from = CentreX + side * (CentreRadius + 14 + i * 18), to = from + side * 9;
-                    if (side < 0 ? to < Left + 4 : to > Right - 4) break;
-                    Line(board, from, CentreY, to, CentreY, Theme.A(Theme.Centre, .5f), 3f);
-                }
 
             // Centre: neutral (never a team colour). The ring is the rules' centre radius.
             Vector2 centre = Point(board, CentreX, CentreY);
@@ -198,21 +182,9 @@ namespace CoreClash.Presentation
             Draw.Ring(centre, (CentreRadius + 1.5f) * scale, Theme.Ink, Mathf.Max(4f, 7.5f * scale));
             Draw.Ring(centre, CentreRadius * scale, Color.Lerp(neutral, Color.white, .2f), Mathf.Max(2.2f, 4.5f * scale));
             Draw.Glow(centre, CentreRadius * 1.25f * scale, Theme.A(neutral, .18f));
-            Draw.Ring(centre, (CentreRadius + 11) * scale, Theme.A(neutral, .5f), Mathf.Max(1.2f, 2.2f * scale), 40, .5f);
-            // Two wide, faint rings on the floor and eight lights that travel round the centre.
-            Draw.Ring(centre, 186 * scale, Theme.A(neutral, .16f), Mathf.Max(1.2f, 2.4f * scale));
-            Draw.Ring(centre, 262 * scale, Theme.A(neutral, .1f), Mathf.Max(1.2f, 2.4f * scale));
-            for (int i = 0; i < 8; i++)
-            {
-                float angle = i * Mathf.PI / 4 + (Fx.ReducedMotion ? .2f : Time.unscaledTime * .3f), dot = Mathf.Max(2.2f, 3.8f * scale);
-                var p = centre + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * (CentreRadius + 11) * scale;
-                Draw.Circle(new Rect(p.x - dot - 1.2f, p.y - dot - 1.2f, (dot + 1.2f) * 2, (dot + 1.2f) * 2), Theme.A(Theme.Ink, .75f));
-                Draw.Circle(new Rect(p.x - dot, p.y - dot, dot * 2, dot * 2), Color.Lerp(neutral, Color.white, .55f));
-            }
             // The turn number, painted on the floor like a court marking.
             if (turnShown > 0) Draw.Text(new Rect(centre.x - 100 * scale, centre.y - 60 * scale, 200 * scale, 120 * scale), turnShown.ToString(), Mathf.Max(20, Mathf.RoundToInt(78 * scale)), Theme.A(neutral, .42f), TextAnchor.MiddleCenter, true);
             int font = Mathf.Max(8, Mathf.RoundToInt(10 * scale));
-            RenderWallLamps(board);
             if (Theme.CentreLabel > 0) Draw.Text(new Rect(centre.x - 100 * scale, centre.y + (CentreRadius + 5) * scale, 200 * scale, font + 8), Lang.T("CENTRE","CENTRUM"), font,
                 Theme.A(neutral, Theme.CentreLabel), TextAnchor.MiddleCenter, true);
         }
@@ -227,7 +199,7 @@ namespace CoreClash.Presentation
             bool baseAtViewTop = BoardOverlayPlanner.AtViewTop(owner, viewOwner);
             Color near = Theme.A(team, Theme.ZoneFillNear), far = Theme.A(team, Theme.ZoneFillFar);
             // A white wash first, so the team tint stays a clean pastel on the warm floor.
-            Draw.Rect(zone, new Color(1, 1, 1, .7f));
+            Draw.Rect(zone, new Color(1, 1, 1, Theme.ZoneWash));
             // W24: "your turn" without words. The acting player's zone lights up (a quick flash when the
             // turn starts, then a calm breathing glow) and its boundary becomes a bright bar.
             bool acting = actingOwner == owner;
@@ -240,21 +212,6 @@ namespace CoreClash.Presentation
             }
             Draw.VGradient(zone, baseAtViewTop ? near : far, baseAtViewTop ? far : near);
             Draw.Tile(zone, Pattern(owner == 0), Mathf.Max(20, 30 * scale), Theme.A(team, Theme.ZonePattern));
-            // A runway of chevrons pointing at the opponent; it moves while that player is aiming.
-            {
-                bool towardsViewTop = !baseAtViewTop;
-                float drift = acting && !Fx.ReducedMotion ? Mathf.Repeat(Time.unscaledTime * .7f, 1) : .5f, size = 26 * scale;
-                for (int row = 0; row < 2; row++)
-                    for (int i = 0; i < 6; i++)
-                    {
-                        float x = Left + (Right - Left) * (i + .5f) / 6f;
-                        if (Mathf.Abs(x - 270) < 60) continue;
-                        float depth = 46 + row * 44 + drift * 14, y = owner == 0 ? top + depth : bottom - depth;
-                        var p = Point(board, x, y);
-                        float alpha = (acting ? .34f : .16f) * (row == 0 ? 1 : .6f);
-                        Glyphs.Paint(new Rect(p.x - size / 2, p.y - size / 2, size, size), towardsViewTop ? Fx.Chevron : "+L -.7 -.45 0 .45 .34;+L 0 .45 .7 -.45 .34", Theme.A(Color.Lerp(team, Color.white, .25f), alpha));
-                    }
-            }
             float edge = owner == 0 ? top : bottom, inner = owner == 0 ? 6 : -6;
             Line(board, Left, edge, Right, edge, Theme.Ink, acting ? 9f : 6f);
             Line(board, Left, edge, Right, edge, acting ? Color.Lerp(team, Color.white, .25f) : Color.Lerp(team, Color.white, .45f), acting ? 5.5f : 3f);
@@ -264,52 +221,6 @@ namespace CoreClash.Presentation
             float height = font + 6;
             var label = new Rect(corner.x + 7 * scale, baseAtViewTop ? corner.y - 3 * scale - height : corner.y + 3 * scale, Mathf.Max(96, 150 * scale), height);
             if (Theme.ZonePattern > 0) Draw.Text(label, Lang.T("P","G") + (owner + 1) + Lang.T(" HOME ZONE"," STREFA DOMOWA"), font, Theme.A(Theme.TeamDeep(owner), Theme.ZoneLabel), TextAnchor.MiddleLeft, true);
-        }
-
-        // W24: lamps set into the floor along both side walls, under the balls. While a player is
-        // aiming, lit lamps run towards the opponent in that player's colour; otherwise they rest.
-        // Still with calm effects.
-        static void RenderWallLamps(Rect board)
-        {
-            const int count = 17;
-            float unit = board.width / 540;
-            bool aiming = actingOwner == 0 || actingOwner == 1;
-            Color tone = aiming ? Draw.Owner(actingOwner) : Theme.Centre;
-            float lamp = Mathf.Max(2.4f, 4.4f * unit), run = Fx.ReducedMotion ? 0 : Time.unscaledTime * 5.5f;
-            for (int i = 0; i < count; i++)
-            {
-                float y = ZoneP2Bottom + 26 + (ZoneP1Top - ZoneP2Bottom - 52) * i / (count - 1f);
-                // Player 1 shoots towards the top of the board (small y), player 2 towards the bottom.
-                int order = actingOwner == 1 ? i : count - 1 - i;
-                bool lit = aiming && Mathf.Repeat(order - run, 6) < 1.5f;
-                Color fill = lit ? Color.Lerp(tone, Color.white, .35f) : Color.Lerp(Color.white, tone, aiming ? .35f : .2f);
-                for (int side = 0; side < 2; side++)
-                {
-                    var p = Point(board, side == 0 ? Left + 11 : Right - 11, y);
-                    if (lit) Draw.Glow(p, lamp * 3.2f, Theme.A(tone, .6f));
-                    Draw.Circle(new Rect(p.x - lamp - 1.4f, p.y - lamp - 1.4f, (lamp + 1.4f) * 2, (lamp + 1.4f) * 2), Theme.A(Theme.Ink, .8f));
-                    Draw.Circle(new Rect(p.x - lamp, p.y - lamp, lamp * 2, lamp * 2), fill);
-                }
-            }
-        }
-
-        // Two soft diagonal bands of light across the floor (one small texture, stretched).
-        static Texture2D sheen;
-        static Texture2D Sheen()
-        {
-            if (sheen != null) return sheen;
-            const int size = 64;
-            sheen = new Texture2D(size, size, TextureFormat.RGBA32, false) { name = "Core Clash floor sheen", filterMode = FilterMode.Bilinear, wrapMode = TextureWrapMode.Clamp, hideFlags = HideFlags.HideAndDontSave };
-            var pixels = new Color[size * size];
-            for (int y = 0; y < size; y++)
-                for (int x = 0; x < size; x++)
-                {
-                    float d = (x + y) / (2f * size);
-                    float a = Mathf.Clamp01(1 - Mathf.Abs(d - .34f) / .09f), b = Mathf.Clamp01(1 - Mathf.Abs(d - .52f) / .035f);
-                    pixels[y * size + x] = new Color(1, 1, 1, Mathf.Max(a * a * .55f, b * b * .4f));
-                }
-            sheen.SetPixels(pixels); sheen.Apply(false, true);
-            return sheen;
         }
 
         static Texture2D Pattern(bool diagonal)
@@ -356,14 +267,6 @@ namespace CoreClash.Presentation
                 float pulse = Fx.ReducedMotion ? 46 : 46 + Mathf.Sin(Time.unscaledTime * 3) * 3f;
                 Draw.Ring(center, pulse * scale, Theme.A(team, .55f), Mathf.Max(1.5f, 2.6f * scale));
                 Draw.Ring(center, (pulse + 7) * scale, Theme.A(team, .22f), Mathf.Max(1, 1.6f * scale));
-                // Six lights circle the pad of the player who is aiming.
-                for (int i = 0; i < 6; i++)
-                {
-                    float angle = i * Mathf.PI / 3 - (Fx.ReducedMotion ? 0 : Time.unscaledTime * 1.5f), dot = Mathf.Max(2, 3.4f * scale);
-                    var p = center + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * 55 * scale;
-                    Draw.Circle(new Rect(p.x - dot - 1.2f, p.y - dot - 1.2f, (dot + 1.2f) * 2, (dot + 1.2f) * 2), Theme.Ink);
-                    Draw.Circle(new Rect(p.x - dot, p.y - dot, dot * 2, dot * 2), Color.Lerp(team, Color.white, .45f));
-                }
                 for (int i = 0; i < 2; i++)
                 {
                     float travel = Fx.ReducedMotion ? 0 : Mathf.Repeat(Time.unscaledTime * 1.6f + i * .5f, 1);
@@ -801,8 +704,6 @@ namespace CoreClash.Presentation
             float x0 = badge.xMax + (2.5f + pad) * unit, room = bar.xMax - pad * unit - x0, step = room / BasePips;
             float width = step - gapWidth * unit, height = bar.height - 2 * pad * unit;
             Color lit = low ? Color.Lerp(team, Theme.Damage, .6f) : team;
-            // Every few seconds a glint runs along the pips that are left.
-            float glint = Fx.ReducedMotion ? -9 : Mathf.Repeat(Time.unscaledTime / 5f + owner * .5f, 1) * 4.2f - .3f;
             for (int i = 0; i < BasePips; i++)
             {
                 var pip = new Rect(x0 + i * step, bar.y + pad * unit, width, height);
@@ -810,8 +711,6 @@ namespace CoreClash.Presentation
                 {
                     Draw.Chip(pip, lit);
                     Draw.Rect(new Rect(pip.x + 1, pip.y + 1, pip.width - 2, Mathf.Max(1, pip.height * .36f)), new Color(1, 1, 1, .34f));
-                    float near = Mathf.Abs((i + .5f) / BasePips - glint);
-                    if (near < .11f) Draw.Chip(pip, new Color(1, 1, 1, .55f * (1 - near / .11f)));
                 }
                 else
                 {

@@ -312,7 +312,9 @@ namespace CoreClash.Presentation
             bool available=standard||LocalDeckContent.VisibleAsAvailable(Simulation,owner,id);
             bool canClick=standard?CanChoose:LocalDeckContent.CanActivate(Simulation,owner,id,CanChoose),picked=canClick&&id==selected;
             bool hover=canClick&&GUI.enabled&&r.Contains(Event.current.mousePosition);
-            var face=picked?new Rect(r.x,r.y-3,r.width,r.height):r;
+            // The card answers the finger: it sinks a little while it is held; the chosen one stays lifted.
+            bool held=canClick&&GUI.enabled&&r.Contains(Event.current.mousePosition)&&UnityEngine.Input.GetMouseButton(0);
+            var face=held?new Rect(r.x,r.y+2,r.width,r.height-2):picked?new Rect(r.x,r.y-3,r.width,r.height):r;
             Draw.Round(new Rect(face.x-1.5f,face.y-1.5f,face.width+3,face.height+3),Theme.Ink);
             Draw.Round(new Rect(face.x,face.y+3,face.width,face.height-3),picked?Theme.SelectInk:Theme.EdgeStrong);
             Draw.Round(new Rect(face.x,face.y,face.width,face.height-3),picked?Theme.Select:Theme.Edge);

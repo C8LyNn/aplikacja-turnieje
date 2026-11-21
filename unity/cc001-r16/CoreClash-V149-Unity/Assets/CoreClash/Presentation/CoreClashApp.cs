@@ -230,20 +230,8 @@ namespace CoreClash.Presentation
             if(!stripInBar)
             {
                 bool small=UiWidth<500;float x=small?14:24;int size=UiWidth<360?17:small?23:27;
-                // The logo lives: every few seconds the two discs pull apart and clash with a spark.
-                float beat=Fx.ReducedMotion?.5f:Mathf.Repeat(Time.unscaledTime/5f,1),apart=0,spark=0;
-                if(beat<.14f)apart=Mathf.Sin(beat/.14f*Mathf.PI*.5f)*6;
-                else if(beat<.2f)apart=6*(1-(beat-.14f)/.06f);
-                else if(beat<.34f)spark=1-(beat-.2f)/.14f;
-                float ax=apart*.8f,ay=apart*.45f;
-                Draw.Circle(new Rect(x-ax,17-ay,22,22),Theme.Ink);Draw.Circle(new Rect(x+2-ax,19-ay,18,18),Theme.P1);
-                Draw.Circle(new Rect(x+14+ax,21+ay,22,22),Theme.Ink);Draw.Circle(new Rect(x+16+ax,23+ay,18,18),Theme.P2);
-                if(spark>0)
-                {
-                    float flare=10+22*(1-spark);
-                    Glyphs.Paint(new Rect(x+18-flare/2-1.5f,30-flare/2-1.5f,flare+3,flare+3),Fx.Star,Theme.A(Theme.Ink,spark));
-                    Glyphs.Paint(new Rect(x+18-flare/2,30-flare/2,flare,flare),Fx.Star,Theme.A(Color.Lerp(Theme.Select,Color.white,.5f),spark));
-                }
+                Draw.Circle(new Rect(x,17,22,22),Theme.Ink);Draw.Circle(new Rect(x+2,19,18,18),Theme.P1);
+                Draw.Circle(new Rect(x+14,21,22,22),Theme.Ink);Draw.Circle(new Rect(x+16,23,18,18),Theme.P2);
                 Draw.Inked(new Rect(x+44,11,UiWidth<360?130:small?190:330,30),"CORE CLASH",size,Theme.Select,TextAnchor.MiddleLeft,2f);
             }
             if(fatal.Length>0){Draw.Text(new Rect(30,100,UiWidth-60,200),fatal,18,Theme.OnColor);return;}if(Catalog==null)return;
@@ -266,7 +254,7 @@ namespace CoreClash.Presentation
         string AbilityText(string id)=>AbilitySupport.Status(id)=="DATA_ONLY"?"Launches and collides normally. Its special power is unavailable in this class demo.":Copy(id)?.ability??Catalog.Ball(id).description;
         string Identity(DeckDefinition deck)=>Lang.Polish&&DeckText.IdentityPl(deck.id)!=null?DeckText.IdentityPl(deck.id):deckCopy.TryGetValue(deck.id,out var text)?text.identity:Lang.T("Nine special balls. Find your setup, then create the payoff.","Dziewięć kulek specjalnych. Przygotuj zagranie, a potem je wykorzystaj.");
         string DeckName(DeckDefinition deck)=>deck==null?"":Lang.Polish&&DeckText.NamePl(deck.id)!=null?DeckText.NamePl(deck.id):deck.name;
-        Color DeckAccent(DeckDefinition deck)=>deckCopy.TryGetValue(deck.id,out var text)?Draw.Hex(text.accent):Draw.Gold;
+        Color DeckAccent(DeckDefinition deck)=>deckCopy.TryGetValue(deck.id,out var text)?Theme.Vivid(Draw.Hex(text.accent)):Draw.Gold;
     }
     [Serializable] public sealed class PresentationCopy { public BallCopy[] balls;public DeckCopy[] decks; }
     [Serializable] public sealed class BallCopy {public string id,cue,quick,ability,condition,role;}
