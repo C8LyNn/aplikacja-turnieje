@@ -12,6 +12,12 @@ if (!process.env.DATABASE_URL) {
 }
 
 export const pool = new Pool({ connectionString: resolveDatabaseConnectionString(process.env) });
+// An idle connection the server closes (restart, failover, Neon suspending an idle compute — code 57P01) is reported
+// on the pool. Without a listener Node treats it as an unhandled 'error' event and the whole API process exits; with
+// one the pool drops that client and the next query opens a new connection. Only the code is logged, never the URL.
+pool.on("error", (error: Error & { code?: string }) => {
+  console.warn(JSON.stringify({ level: "warn", msg: "database idle connection closed", code: error.code ?? error.name }));
+});
 export const db = drizzle(pool, { schema });
 
 export * from "./schema";
