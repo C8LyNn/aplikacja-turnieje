@@ -35,6 +35,7 @@ namespace CoreClash.Testing
         IEnumerator Start()
         {
             Directory.CreateDirectory(output);
+            Application.runInBackground = true;
             float begun = Time.realtimeSinceStartup;
             while (!UnityEngine.Rendering.SplashScreen.isFinished || Time.realtimeSinceStartup - begun < 3) yield return null;
             if (Mathf.Min(Screen.width, Screen.height) <= 480) { app.SetDeviceProfile("Phone"); yield return null; yield return null; }

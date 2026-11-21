@@ -43,6 +43,13 @@ namespace CoreClash.Presentation
         }
         // W24: soft round glow / contact shadow (smooth falloff).
         static Texture2D glow;
+        // The same soft falloff stretched into an ellipse (a shadow lying on the floor).
+        public static void Glow(Rect area,Color color)
+        {
+            if(area.width<=0||area.height<=0||color.a<=0)return;
+            if(glow==null)Glow(new Vector2(-9999,-9999),1,new Color(0,0,0,.001f));
+            var old=GUI.color;GUI.color=color;GUI.DrawTexture(area,glow);GUI.color=old;
+        }
         public static void Glow(Vector2 center,float radius,Color color)
         {
             if(radius<=0||color.a<=0)return;
@@ -117,6 +124,89 @@ namespace CoreClash.Presentation
         // W21: HP ring. `segments` equal arcs starting at the top, clockwise; the first `lit`
         // are drawn (pass lit=segments for the whole track). One cached sprite per shape.
         static readonly Dictionary<long,Texture2D> arcs=new Dictionary<long,Texture2D>();
+        // W24: a smooth arc for round gauges. It starts at the top and runs clockwise for `fraction`
+        // of the circle, with round ends. `radius` is the outer edge, `width` goes inwards.
+        // One cached sprite per thickness and per 1/48 of the circle.
+        const int ArcSteps=48;
+        static readonly Dictionary<long,Texture2D> smoothArcs=new Dictionary<long,Texture2D>();
+        public static void Arc(Vector2 center,float radius,Color color,float width,float fraction)
+        {
+            if(radius<=0||width<=0||fraction<=0)return;
+            if(fraction>=1){Ring(center,radius,color,width);return;}
+            int step=Mathf.Clamp(Mathf.RoundToInt(fraction*ArcSteps),1,ArcSteps-1),thickness=Mathf.Clamp(Mathf.RoundToInt(width/radius*64),1,64);
+            var sprite=ArcSprite(thickness,step);
+            var old=GUI.color;GUI.color=color;GUI.DrawTexture(new Rect(center.x-radius,center.y-radius,radius*2,radius*2),sprite);GUI.color=old;
+            // Round ends.
+            float middle=radius-width*.5f,end=step/(float)ArcSteps*2*Mathf.PI,cap=width*.5f;
+            Circle(new Rect(center.x-cap,center.y-middle-cap,width,width),color);
+            Circle(new Rect(center.x+Mathf.Sin(end)*middle-cap,center.y-Mathf.Cos(end)*middle-cap,width,width),color);
+        }
+        // Builds every arc sprite for one ring proportion now, so none has to be built in the middle
+        // of a shot (building one takes a few milliseconds, which shows as a hitch in the motion).
+        public static void WarmArcs(float widthOverRadius)
+        {
+            int thickness=Mathf.Clamp(Mathf.RoundToInt(widthOverRadius*64),1,64);
+            for(int step=1;step<ArcSteps;step++)ArcSprite(thickness,step);
+        }
+        static Texture2D ArcSprite(int thickness,int step)
+        {
+            long key=thickness+((long)step<<8);
+            if(!smoothArcs.TryGetValue(key,out var sprite)||sprite==null)
+            {
+                const int size=128;
+                sprite=new Texture2D(size,size,TextureFormat.RGBA32,true){name="Core Clash arc",filterMode=FilterMode.Trilinear,wrapMode=TextureWrapMode.Clamp,hideFlags=HideFlags.HideAndDontSave};
+                float inner=size*.5f-Mathf.Max(1.5f,thickness/64f*size*.5f),share=step/(float)ArcSteps;
+                var pixels=new Color[size*size];
+                for(int y=0;y<size;y++)
+                for(int x=0;x<size;x++)
+                {
+                    // Texture rows start at the bottom, so +dy is up on screen.
+                    float dx=x+.5f-size*.5f,dy=y+.5f-size*.5f,distance=Mathf.Sqrt(dx*dx+dy*dy);
+                    float alpha=Mathf.Clamp01(size*.5f-distance)*Mathf.Clamp01(distance-inner+1);
+                    if(alpha>0)
+                    {
+                        float turn=Mathf.Atan2(dx,dy)/(2*Mathf.PI);if(turn<0)turn+=1;
+                        // Soft edge at both ends of the arc (in pixels along the circle).
+                        float along=distance*2*Mathf.PI;
+                        alpha*=Mathf.Clamp01(Mathf.Min(turn,share-turn)*along+.5f);
+                    }
+                    pixels[y*size+x]=new Color(1,1,1,alpha);
+                }
+                sprite.SetPixels(pixels);sprite.Apply(true,true);smoothArcs[key]=sprite;
+            }
+            return sprite;
+        }
+        // W24: thin marks across a ring, one at every boundary between `segments` equal parts
+        // (the first at the top). Drawn over an Arc they split it into countable parts.
+        static readonly Dictionary<long,Texture2D> tickRings=new Dictionary<long,Texture2D>();
+        public static void Ticks(Vector2 center,float radius,Color color,float width,int segments,float gap=2.2f)
+        {
+            if(radius<=0||width<=0||segments<=1)return;
+            int thickness=Mathf.Clamp(Mathf.RoundToInt(width/radius*64),1,64),gapKey=Mathf.Clamp(Mathf.RoundToInt(gap/radius*256),1,255);
+            long key=thickness+((long)segments<<8)+((long)gapKey<<20);
+            if(!tickRings.TryGetValue(key,out var sprite)||sprite==null)
+            {
+                const int size=128;
+                sprite=new Texture2D(size,size,TextureFormat.RGBA32,true){name="Core Clash ring ticks",filterMode=FilterMode.Trilinear,wrapMode=TextureWrapMode.Clamp,hideFlags=HideFlags.HideAndDontSave};
+                float inner=size*.5f-Mathf.Max(1.5f,thickness/64f*size*.5f),half=gapKey/256f*size*.25f;
+                var pixels=new Color[size*size];
+                for(int y=0;y<size;y++)
+                for(int x=0;x<size;x++)
+                {
+                    float dx=x+.5f-size*.5f,dy=y+.5f-size*.5f,distance=Mathf.Sqrt(dx*dx+dy*dy);
+                    float alpha=Mathf.Clamp01(size*.5f-distance)*Mathf.Clamp01(distance-inner+1);
+                    if(alpha>0)
+                    {
+                        float turn=Mathf.Atan2(dx,dy)/(2*Mathf.PI);if(turn<0)turn+=1;
+                        float at=turn*segments,nearest=Mathf.Abs(at-Mathf.Round(at))/segments*distance*2*Mathf.PI;
+                        alpha*=Mathf.Clamp01(half-nearest+.5f);
+                    }
+                    pixels[y*size+x]=new Color(1,1,1,alpha);
+                }
+                sprite.SetPixels(pixels);sprite.Apply(true,true);tickRings[key]=sprite;
+            }
+            var old=GUI.color;GUI.color=color;GUI.DrawTexture(new Rect(center.x-radius,center.y-radius,radius*2,radius*2),sprite);GUI.color=old;
+        }
         public static void Segments(Vector2 center,float radius,Color color,float width,int segments,int lit,float fill=.82f)
         {
             if(radius<=0||width<=0||segments<=0||lit<=0)return;

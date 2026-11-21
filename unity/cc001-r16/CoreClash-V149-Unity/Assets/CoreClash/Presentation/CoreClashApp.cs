@@ -69,7 +69,7 @@ namespace CoreClash.Presentation
         void Awake(){Initialize();}
         public void Initialize()
         {
-            if(initialized)return;initialized=true;VersusAi=PlayerPrefs.GetInt("cc.versusAi",0)==1;LoadLanguage();Application.targetFrameRate=60;QualitySettings.vSyncCount=1;
+            if(initialized)return;initialized=true;VersusAi=PlayerPrefs.GetInt("cc.versusAi",0)==1;LoadLanguage();BallView.Warm();Application.targetFrameRate=60;QualitySettings.vSyncCount=1;
             try{
                 var source=Resources.Load<TextAsset>("Data/catalog");var featured=Resources.Load<TextAsset>("Data/featured-decks");
                 if(source==null||featured==null)throw new Exception("Game data could not be loaded.");
@@ -109,10 +109,14 @@ namespace CoreClash.Presentation
             float span=Time.unscaledTime-displayRateCheckedAt;if(span<1)return;
             int frames=Time.frameCount-displayRateFrame;displayRateCheckedAt=Time.unscaledTime;displayRateFrame=Time.frameCount;
             int rate=(int)Math.Round(Screen.mainWindowDisplayInfo.refreshRate.value);if(rate<30)return;
-            if(Application.targetFrameRate!=rate)Application.targetFrameRate=rate;
             // Some windowed setups ignore v-sync and the game then runs flat out with uneven frames.
-            // When that is measured, fall back to the frame cap, which always holds.
+            // When that is measured, fall back to a frame cap, which always holds. A cap is not locked
+            // to the display, so it is set to a multiple of the refresh rate (at least 240): every
+            // refresh then shows a frame that is at most a few milliseconds old, instead of sometimes
+            // showing one frame twice.
             if(QualitySettings.vSyncCount>0&&span<5&&frames/span>rate*1.3f)QualitySettings.vSyncCount=0;
+            int wanted=QualitySettings.vSyncCount>0?rate:rate*Mathf.Max(2,Mathf.CeilToInt(240f/rate));
+            if(Application.targetFrameRate!=wanted)Application.targetFrameRate=wanted;
 #endif
         }
         void Update()

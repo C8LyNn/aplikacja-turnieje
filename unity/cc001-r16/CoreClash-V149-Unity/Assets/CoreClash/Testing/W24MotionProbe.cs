@@ -28,6 +28,7 @@ namespace CoreClash.Testing
             if (target == null) return;
             var probe = target.gameObject.AddComponent<W24MotionProbe>();
             probe.app = target; probe.path = args[index + 1];
+            Application.runInBackground = true;
         }
 
         void OnGUI() { if (Event.current.type == EventType.Repaint) repaints++; }

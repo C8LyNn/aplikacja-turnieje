@@ -206,7 +206,7 @@ namespace CoreClash.Presentation
                 cx = ball.x - dvx / length * ball.radius; cy = ball.y - dvy / length * ball.radius;
             }
             Push(Shape.Flash, cx, cy, cx, cy, now, .16f + .08f * strength, 13 + 24 * strength, Spark, ball.id);
-            if (strength > .12f) Push(Shape.Ripple, cx, cy, cx, cy, now, .3f + .15f * strength, 16 + 30 * strength, Theme.Select, ball.id);
+            if (strength > .4f) Push(Shape.Ripple, cx, cy, cx, cy, now, .3f + .1f * strength, 16 + 26 * strength, Color.white, ball.id);
             if (ReducedMotion) return;
             int count = 2 + Mathf.RoundToInt(9 * strength);
             for (int i = 0; i < count; i++)
@@ -263,7 +263,6 @@ namespace CoreClash.Presentation
                     Color colour = e.kind == "RETURN" ? Theme.Select : BallColor(simulation, ball);
                     float radius = ball?.radius ?? 17;
                     if (track != null) track.bornAt = now;
-                    if (e.kind == "RETURN") Push(Shape.Column, x, y, x, y, now, .6f, radius + 8, Theme.A(Color.Lerp(colour, Color.white, .5f), .9f), e.id);
                     Push(Shape.Converge, x, y, x, y, now, .5f, radius + 40, colour, e.id);
                     Burst(x, y, e.kind == "RETURN" ? 10 : 6, Color.Lerp(colour, Color.white, .3f), Star, 40, 130, .6f, 6);
                     break;
@@ -273,9 +272,8 @@ namespace CoreClash.Presentation
                     Color colour = e.kind == "SOULBURST" ? new Color(.69f, .45f, 1f) : e.kind == "VIRULENCE_BURST" ? Theme.Status(StatusKind.Toxin) : e.kind == "FIRE_BURST" ? Theme.Status(StatusKind.Fire) : Theme.Threat;
                     float size = e.kind == "EXPLOSION" ? Theme.ExplosionRadius : 84;
                     Push(Shape.Flash, x, y, x, y, now, .3f, size * .7f, Color.Lerp(colour, Spark, .6f), e.id);
-                    Push(Shape.Shock, x, y, x, y, now, .62f, size, colour, e.id);
-                    Push(Shape.Shock, x, y, x, y, now + .07f, .6f, size * .72f, Color.Lerp(colour, Color.white, .55f), e.id + 1);
-                    Shake(now, .28f, e.kind == "EXPLOSION" ? 5 : 2.5f);
+                    Push(Shape.Shock, x, y, x, y, now, .55f, size, colour, e.id);
+                    Shake(now, .22f, e.kind == "EXPLOSION" ? 3.5f : 2f);
                     if (ReducedMotion) break;
                     for (int i = 0; i < 22; i++)
                     {
@@ -321,7 +319,6 @@ namespace CoreClash.Presentation
                 case "ARMED": case "FUSE":
                     // Warning: two quick hazard rings, the standing threat ring stays on the ball.
                     Push(Shape.Shock, x, y, x, y, now, .35f, (ball?.radius ?? 17) + 26, Theme.Threat, e.id);
-                    Push(Shape.Shock, x, y, x, y, now + .16f, .35f, (ball?.radius ?? 17) + 26, Theme.Threat, e.id + 1);
                     break;
                 case "DISARM":
                     Push(Shape.Converge, x, y, x, y, now, .4f, (ball?.radius ?? 17) + 26, Theme.Muted, e.id);
@@ -337,8 +334,6 @@ namespace CoreClash.Presentation
                     if (ball == null || other == null) break;
                     Push(Shape.Streak, other.x, other.y, ball.x, ball.y, now, .5f, ball.radius, Theme.Team(ball.owner), e.id);
                     Push(Shape.Streak, ball.x, ball.y, other.x, other.y, now, .5f, other.radius, Theme.Team(other.owner), e.id + 7);
-                    Push(Shape.Swirl, ball.x, ball.y, ball.x, ball.y, now, .55f, ball.radius + 16, Theme.Info, e.id);
-                    Push(Shape.Swirl, other.x, other.y, other.x, other.y, now, .55f, other.radius + 16, Theme.Info, e.id + 3);
                     if (tracks.TryGetValue(ball.id, out var a)) a.bornAt = now;
                     if (tracks.TryGetValue(other.id, out var b)) b.bornAt = now;
                     break;
@@ -350,11 +345,10 @@ namespace CoreClash.Presentation
                     float radius = ball?.radius ?? 17;
                     if (track != null && ball != null && (track.x - ball.x) * (track.x - ball.x) + (track.y - ball.y) * (track.y - ball.y) > 30 * 30)
                     {
-                        Push(Shape.Swirl, track.x, track.y, track.x, track.y, now, .5f, radius + 18, colour, e.id);
+                        Push(Shape.Ripple, track.x, track.y, track.x, track.y, now, .4f, radius + 22, colour, e.id);
                         Push(Shape.Streak, track.x, track.y, ball.x, ball.y, now, .42f, radius, colour, e.id);
                     }
-                    Push(Shape.Swirl, x, y, x, y, now + .08f, .5f, radius + 18, colour, e.id + 5);
-                    Push(Shape.Ripple, x, y, x, y, now + .1f, .4f, radius + 26, Color.white, e.id);
+                    Push(Shape.Ripple, x, y, x, y, now + .08f, .4f, radius + 22, colour, e.id + 5);
                     if (track != null) track.bornAt = now + .05f;
                     break;
                 }
@@ -363,8 +357,7 @@ namespace CoreClash.Presentation
                     // Rewind: a ghost trail back to the saved place and rings turning backwards.
                     float radius = ball?.radius ?? 17;
                     if (track != null && ball != null) Push(Shape.Streak, track.x, track.y, ball.x, ball.y, now, .6f, radius, Theme.Select, e.id);
-                    Push(Shape.Converge, x, y, x, y, now, .6f, radius + 44, Theme.Select, e.id);
-                    Push(Shape.Converge, x, y, x, y, now + .14f, .6f, radius + 44, Theme.A(Theme.Select, .7f), e.id + 2);
+                    Push(Shape.Converge, x, y, x, y, now, .5f, radius + 36, Theme.Select, e.id);
                     Rise(x, y, radius, 6, Theme.Select, Star, 6);
                     if (track != null) track.bornAt = now;
                     break;
@@ -387,7 +380,7 @@ namespace CoreClash.Presentation
                     Burst(x, y, 8, Theme.Select, Star, 80, 220, .4f, 6);
                     break;
                 case "COPY": case "TRANSFORM": case "IDENTITY": case "OWNERSHIP": case "UPGRADE": case "VETERAN": case "ECHO": case "SIGNATURE":
-                    Push(Shape.Swirl, x, y, x, y, now, .55f, (ball?.radius ?? 17) + 18, Theme.Info, e.id);
+                    Push(Shape.Ripple, x, y, x, y, now, .45f, (ball?.radius ?? 17) + 22, Theme.Info, e.id);
                     if (track != null) track.bornAt = now;
                     break;
                 case "BASE_DAMAGE":
@@ -407,9 +400,12 @@ namespace CoreClash.Presentation
         }
 
         // ---------------------------------------------------------------- spawners
+        // W24 (owner direction: few effects, minimal and clean): nothing is scattered over the arena.
+        // An event is answered by one plain shape - a ring, a flash or a streak. Only the result
+        // screen keeps its confetti, which is drawn in screen space.
         static void Add(float x, float y, float vx, float vy, float life, float size, Color color, string spec, float gravity, float drag, float grow, bool screen = false)
         {
-            if (ReducedMotion) return;
+            if (ReducedMotion || !screen) return;
             int slot = particleCount < MaxParticles ? particleCount++ : (int)(Rand() * MaxParticles) % MaxParticles;
             particles[slot] = new Particle { x = x, y = y, vx = vx, vy = vy, born = Time.unscaledTime, life = life, size = size, grow = grow, gravity = gravity, drag = drag, color = color, spec = spec, screen = screen };
         }

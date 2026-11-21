@@ -57,13 +57,21 @@ namespace CoreClash.Presentation
         public const float WakeLength=64f,WakeAlpha=.3f;
         public const int WakeSteps=5;
         // W21: HP ring around the body, one segment per 5 HP (lost segments stay as a dim track).
-        public const float HpRing=4.6f,HpTrack=.55f,IconSize=1.5f;
-        // W24 (owner direction): a ball is a simple flat token, drawn larger than its rules radius by
-        // BallGrow (presentation only; the simulation keeps its radius). From the edge inwards:
-        // one ink outline, a thick ring in the owner's colour that is also the HP gauge (a share of
-        // the radius; bright segment = HP left, dark segment = HP lost), a thin ink line, and a flat
-        // disc in the ball's own colour with its icon. No shading, no shadow, no glint.
-        public const float BallGrow=5.6f,BallInk=2.4f,HpRingShare=.25f,HpLineShare=.055f,HpSegmentFill=.86f;
+        public const float HpRing=4.6f,HpTrack=.55f,IconSize=1.56f;
+        // W24 (owner direction): a ball looks like a real ball. A sphere in the owner's colour, lit from
+        // the upper left, with a soft shadow on the floor; in its middle a round label in the ball's
+        // own colour with a large white symbol; round the label the HP as a smooth white arc.
+        // Outlines are a darker tone of the colour they surround, never black. The Standard ball is
+        // plain: no label and no symbol. The ball is drawn larger than its rules radius by BallGrow
+        // (presentation only). Shares are parts of the drawn radius.
+        public const float BallGrow=5.6f,BallInk=1.5f,LabelShare=.64f,HpOuterShare=.84f,HpWidthShare=.17f;
+        // Same hue, different saturation and brightness: used for the coloured outlines.
+        public static Color Shade(Color color,float saturation,float value)
+        {
+            Color.RGBToHSV(color,out float hue,out float s,out float v);
+            var shade=Color.HSVToRGB(hue,Mathf.Clamp01(s*saturation),Mathf.Clamp01(v*value));
+            shade.a=color.a;return shade;
+        }
         public static readonly Color HpGood=C("#ffffff"),HpHurt=C("#ffe07a"),HpCritical=C("#ffd0d6");
         // W24 (owner decision): a ball's HP is read from its ring only; no number under the ball.
         // The exact value stays in the ball details. Set to true to bring the number plate back.

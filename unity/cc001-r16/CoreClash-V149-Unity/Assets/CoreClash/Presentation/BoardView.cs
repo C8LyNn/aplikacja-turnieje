@@ -354,11 +354,10 @@ namespace CoreClash.Presentation
             if (!ball.mineArmed && !ball.timeBombArmed) return;
             float scale = board.width / 540;
             var center = Point(board, x, y);
-            float beat = .5f + .5f * Mathf.Sin(Time.unscaledTime * (ball.mineArmed ? 5 : 3) + ball.id);
-            float reach = (ball.radius + Theme.BallGrow + (ball.mineArmed ? 12 + beat * 3 : 12)) * scale;
-            Draw.Circle(new Rect(center.x - reach, center.y - reach, reach * 2, reach * 2), Theme.A(Theme.Threat, .16f + beat * .1f));
-            if (ball.mineArmed) Draw.Ring(center, reach, Theme.A(Theme.Threat, .6f + beat * .35f), Mathf.Max(1.5f, 2.4f * scale), 12, .5f);
-            else Draw.Ring(center, reach, Theme.A(Theme.Threat, .55f + beat * .3f), Mathf.Max(1.5f, 2 * scale));
+            // W24 (minimal): one thin still ring - broken for an armed Mine, whole for a ticking Time Bomb.
+            float reach = (ball.radius + Theme.BallGrow + 11) * scale;
+            if (ball.mineArmed) Draw.Ring(center, reach, Theme.A(Theme.Threat, .95f), Mathf.Max(1.5f, 2.2f * scale), 12, .5f);
+            else Draw.Ring(center, reach, Theme.A(Theme.Threat, .9f), Mathf.Max(1.5f, 2 * scale));
         }
 
         // Turn change, from the real TURN event: a sweep line from the new player's zone edge

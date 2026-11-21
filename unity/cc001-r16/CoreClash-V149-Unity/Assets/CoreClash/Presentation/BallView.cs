@@ -54,10 +54,11 @@ namespace CoreClash.Presentation
                 Draw.Ring(point, reach + scale, Alpha(Theme.Ink, .5f), Mathf.Max(2.5f, 4 * scale), 4, .7f);
                 Draw.Ring(point, reach, Color.white, Mathf.Max(1.5f, 2.2f * scale), 4, .7f);
             }
-            int segments = BallBadges.HpSegments(ball.maxHp), lit = BallBadges.HpLit(ball.hp, ball.maxHp), lostLit = 0; float lostFade = 0;
-            if (Fx.LostHp(ball.id, now, out int hpBefore, out float fade)) { lostLit = BallBadges.HpLit(hpBefore, ball.maxHp); lostFade = fade; }
-            DrawOrb(body, definition, ball.owner, scale, 1, segments, lit, BallBadges.PipSide(ball.owner, localOwner), BallBadges.PipSize(scale), lostLit, lostFade);
-            DrawIdentity(body, definition, color, InnerRadius(radius), false);
+            // HP as a share of the ball's maximum: the arc follows the real HP, not 5 HP steps.
+            float share = Mathf.Clamp01(ball.hp / (float)Mathf.Max(1, ball.maxHp)), shareBefore = 0, lostFade = 0;
+            if (Fx.LostHp(ball.id, now, out int hpBefore, out float fade)) { shareBefore = Mathf.Clamp01(hpBefore / (float)Mathf.Max(1, ball.maxHp)); lostFade = fade; }
+            DrawOrb(body, definition, ball.owner, scale, 1, share, BallBadges.PipSide(ball.owner, localOwner), BallBadges.PipSize(scale), shareBefore, lostFade, BallBadges.HpSegments(ball.maxHp));
+            DrawIdentity(body, definition, color, InnerRadius(radius), false, ball.owner);
             DrawState(body, point, ball, radius, scale, now);
         }
 
@@ -65,92 +66,40 @@ namespace CoreClash.Presentation
         // plus the short flashes for a hit, a heal and an absorbed hit.
         static void DrawState(Rect body, Vector2 point, BallRuntime ball, float radius, float scale, float now)
         {
-            if (ball.frozen > 0)
-            {
-                // Ice shell: a pale cap over the body and three crystals on its rim.
-                Color ice = Theme.Status(StatusKind.Frozen);
-                Draw.Circle(Expand(body, 1.5f * scale), Alpha(ice, .5f));
-                Draw.Ring(point, radius + 2 * scale, Alpha(Color.white, .9f), Mathf.Max(1.5f, 2.4f * scale));
-                for (int i = 0; i < 3; i++)
-                {
-                    float angle = -2.2f + i * 2.1f + ball.id, size = radius * (.62f - .1f * i);
-                    var p = point + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * radius * .98f;
-                    Glyphs.Paint(new Rect(p.x - size / 2, p.y - size / 2, size, size), Fx.Shard, Alpha(Theme.Ink, .35f));
-                    Glyphs.Paint(new Rect(p.x - size / 2 + 1, p.y - size / 2 - 1, size - 2, size - 2), Fx.Shard, Color.Lerp(ice, Color.white, .55f));
-                }
-            }
-            else if (ball.iceStacks > 0)
-            {
-                // Chilled: frost marks on the rim, one per stack.
-                for (int i = 0; i < Mathf.Min(3, ball.iceStacks); i++)
-                {
-                    float angle = -1.0f + i * 1.15f, size = Mathf.Max(6, radius * .62f);
-                    var p = point + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * (radius + 1.5f * scale);
-                    Glyphs.Paint(new Rect(p.x - size / 2 - 1, p.y - size / 2 - 1, size + 2, size + 2), Fx.Snow, Alpha(Theme.Ink, .8f));
-                    Glyphs.Paint(new Rect(p.x - size / 2, p.y - size / 2, size, size), Fx.Snow, Color.Lerp(Theme.Status(StatusKind.Ice), Color.white, .7f));
-                }
-            }
-            if (ball.fireStacks > 0)
-            {
-                // Flames lick over the top of the ball: more stacks, more flames.
-                int flames = Mathf.Min(5, 2 + ball.fireStacks);
-                for (int i = 0; i < flames; i++)
-                {
-                    float spread = flames == 1 ? 0 : (i / (float)(flames - 1) - .5f) * 2f;
-                    float flicker = Fx.ReducedMotion ? .5f : .5f + .5f * Mathf.Sin(now * (9 + i * 1.7f) + ball.id * 1.3f + i * 2.1f);
-                    float size = radius * (.78f + .3f * flicker) * (1 - Mathf.Abs(spread) * .28f);
-                    var p = new Vector2(point.x + spread * radius * .82f, point.y - radius * (.78f - Mathf.Abs(spread) * .3f) - size * .22f * flicker);
-                    Glyphs.Paint(new Rect(p.x - size / 2 - 1, p.y - size / 2 - 1, size + 2, size + 2), Fx.Flame, Alpha(new Color(.75f, .16f, .05f), .75f));
-                    Glyphs.Paint(new Rect(p.x - size / 2, p.y - size / 2, size, size), Fx.Flame, Theme.Status(StatusKind.Fire));
-                    Glyphs.Paint(new Rect(p.x - size * .28f, p.y - size * .1f, size * .56f, size * .56f), Fx.Flame, new Color(1, .9f, .38f));
-                }
-            }
-            if (ball.toxinTurns > 0)
-            {
-                // Poisoned: two bubbles on the lower rim.
-                Color toxin = Theme.Status(StatusKind.Toxin);
-                for (int i = 0; i < 2; i++)
-                {
-                    float angle = 2.2f + i * .75f, size = Mathf.Max(6, radius * (.56f - .14f * i));
-                    var p = point + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * (radius + 2 * scale);
-                    Draw.Circle(new Rect(p.x - size / 2 - 1, p.y - size / 2 - 1, size + 2, size + 2), Theme.Ink);
-                    Draw.Circle(new Rect(p.x - size / 2, p.y - size / 2, size, size), toxin);
-                    Draw.Circle(new Rect(p.x - size * .28f, p.y - size * .3f, size * .3f, size * .3f), new Color(1, 1, 1, .8f));
-                }
-            }
+            // W24 (owner direction): states are kept minimal. What a ball carries is told by its small
+            // chip under it (symbol and number); on the ball itself only two things show, each as one
+            // plain shape: a frozen ball is washed in ice, a shielded one has a thin ring round it.
+            if (ball.frozen > 0) Draw.Circle(body, Alpha(Theme.Status(StatusKind.Frozen), .58f));
             if (ball.shield > 0 || ball.divineShield)
-            {
-                // Bubble: a clear shell with one bright edge.
-                Color bubble = ball.divineShield ? Theme.Status(StatusKind.Divine) : Theme.Shield;
-                float reach = radius + (Theme.BallInk + 2.5f) * scale, breathe = Fx.ReducedMotion ? 0 : Mathf.Sin(now * 2.4f + ball.id) * .6f * scale;
-                Draw.Circle(new Rect(point.x - reach, point.y - reach, reach * 2, reach * 2), Alpha(bubble, .16f));
-                Draw.Ring(point, reach + breathe, Alpha(bubble, .9f), Mathf.Max(1.5f, 2.6f * scale));
-                Draw.Ring(point, reach + breathe - 2.2f * scale, Alpha(Color.white, .55f), Mathf.Max(1, 1.2f * scale), 3, .22f);
-            }
+                Draw.Ring(point, radius + (Theme.BallInk + 3.2f) * scale, ball.divineShield ? Theme.Status(StatusKind.Divine) : Theme.Shield, Mathf.Max(1.5f, 2.2f * scale));
             float flash = Fx.HitFlash(ball.id, now);
             if (flash > 0) Draw.Circle(body, Alpha(Color.white, .6f * flash));
             float heal = Fx.HealGlow(ball.id, now);
-            if (heal > 0) { Draw.Circle(body, Alpha(Theme.Heal, .35f * heal)); Draw.Ring(point, radius + (10 - 6 * heal) * scale, Alpha(Theme.Heal, heal), Mathf.Max(1.5f, 2.4f * scale)); }
+            if (heal > 0) Draw.Circle(body, Alpha(Theme.Heal, .4f * heal));
             float absorb = Fx.AbsorbGlow(ball.id, now);
             if (absorb > 0) Draw.Circle(Expand(body, 5 * scale), Alpha(Theme.Shield, .4f * absorb));
         }
 
         // Icon when the ball has one, otherwise the W20 letter mark.
-        static void DrawIdentity(Rect body, BallDefinition definition, Color bodyColor, float radius, bool preview)
+        static void DrawIdentity(Rect body, BallDefinition definition, Color bodyColor, float radius, bool preview, int owner = 0)
         {
+            // W24 (owner decision): the Standard ball is plain - an empty ball with no symbol.
+            if (Plain(definition)) { DrawShine(body); return; }
             string spec = definition == null ? null : BallIcons.Spec(definition.id);
             if (spec != null)
             {
-                // One look for every ball: a white symbol with an even ink outline.
+                // One look for every ball: a white symbol with a soft edge in a dark tone of the body colour.
                 float half = radius * Theme.IconSize * .5f;
                 var box = new Rect(body.center.x - half, body.center.y - half, half * 2, half * 2);
-                Glyphs.PaintOutline(box, spec, Theme.Ink);
+                Glyphs.PaintOutline(box, spec, Alpha(Label(definition).IconEdge, .8f));
                 Glyphs.Paint(box, spec, Color.white);
+                DrawShine(body);
                 return;
             }
             string mark = Mark(definition);
             int size = preview ? Mathf.Clamp(Mathf.RoundToInt(body.width * (mark.Length > 2 ? .3f : .36f)), 7, 22) : Mathf.Max(7, Mathf.RoundToInt(radius * (mark.Length > 2 ? .6f : .72f)));
             MarkLabel(body, mark, size, bodyColor);
+            DrawShine(body);
         }
 
         // Second pass: HP, shield, states, threat and Replay chip around the ball.
@@ -208,8 +157,6 @@ namespace CoreClash.Presentation
                 // Armed Mine: hazard badge. Time Bomb: the remaining own turns as a number.
                 var threat = BallBadges.Threat(ball);
                 var box = RectOf(layout.Threat);
-                float beat = .5f + .5f * Mathf.Sin(Time.unscaledTime * (threat.Short == "1" ? 11 : 6) + ball.id);
-                Draw.Circle(Expand(box, (1.5f + beat * 2) * scale), Alpha(Theme.Threat, .35f));
                 Draw.Circle(Expand(box, 1), Theme.Ink);
                 Draw.Circle(box, Theme.Threat);
                 if (threat.Kind == StatusKind.Fuse)
@@ -235,53 +182,126 @@ namespace CoreClash.Presentation
                 Draw.Glow(body.center, body.width * .5f + 13 * unit, Alpha(Theme.Select, .55f));
             }
             // A catalog orb is at full health: the ring shows how many 5 HP segments the type starts with.
+            // A catalog orb is at full health; a tiny one has a plain ring and no gauge.
             bool gauge = body.width >= 24 && definition != null;
-            int segments = gauge ? BallBadges.HpSegments(definition.hp) : 0;
-            DrawOrb(body, definition, owner, unit, 1, segments, segments, body.width >= 24 ? -1 : 0, Mathf.Max(5, 7.5f * unit), 0, 0);
+            DrawOrb(body, definition, owner, unit, 1, gauge ? 1 : -1, body.width >= 24 ? -1 : 0, Mathf.Max(5, 7.5f * unit), 0, 0, gauge ? BallBadges.HpSegments(definition.hp) : 0);
             if (definition != null && (body.width >= 24 || body.width >= 12 && BallIcons.Has(definition.id)))
-                DrawIdentity(body, definition, Draw.Hex(definition.color), InnerRadius(body.width * .5f), true);
+                DrawIdentity(body, definition, Draw.Hex(definition.color), InnerRadius(body.width * .5f), true, owner);
+            else DrawShine(body);
         }
 
-        // The token (W24, owner direction: simple and flat). One ink outline; a thick ring in the
-        // owner's colour that is also the HP gauge - bright segments are the HP that is left, dark
-        // ones the HP that is lost, one per 5 HP, and the segments lost a moment ago flash; a thin
-        // ink line; a flat disc in the ball's own colour. A small orb has a thin plain ring instead.
-        static float RingWidth(float radius) => radius < 12 ? Mathf.Max(1.4f, radius * .16f) : Mathf.Max(2.4f, radius * Theme.HpRingShare);
-        static float RingLine(float radius) => radius < 12 ? Mathf.Max(.8f, radius * .06f) : Mathf.Max(1.2f, radius * Theme.HpLineShare);
-        // Radius of the flat disc that carries the icon.
-        static float InnerRadius(float radius) => radius - RingWidth(radius) - RingLine(radius);
-        static readonly Dictionary<string, Color> BodyColors = new Dictionary<string, Color>();
-        static Color BodyColor(BallDefinition definition)
+        // The ball (W24). A sphere in the owner's colour with a soft shadow on the floor; in its middle
+        // a round label in the ball's own colour; round the label the HP gauge (a dark track with a
+        // smooth white arc for the HP that is left, a thin mark every 5 HP; what was lost a moment
+        // ago flashes red). One shared pair of sprites lights every ball from the upper left and
+        // gives it its shine, so every ball reads as the same kind of object.
+        // A small orb has no gauge. The Standard ball has no label.
+        static bool Plain(BallDefinition definition) => definition != null && definition.id == "normal";
+        // Radius of the label that carries the icon.
+        static float InnerRadius(float radius) => radius * (radius < 12 ? .7f : Theme.LabelShare);
+        sealed class Material { public Color Label, Outline, IconEdge; }
+        static readonly Dictionary<string, Material> Materials = new Dictionary<string, Material>();
+        static Material Label(BallDefinition definition)
         {
             string key = definition == null || string.IsNullOrEmpty(definition.color) ? "#d8e7f5" : definition.color;
-            if (!BodyColors.TryGetValue(key, out var color)) { color = Theme.Vivid(Draw.Hex(key)); BodyColors[key] = color; }
-            return color;
-        }
-        static void DrawOrb(Rect body, BallDefinition definition, int owner, float scale, float ringAlpha, int segments, int lit, int pip, float pipSize, int lostLit, float lostFade)
-        {
-            Color team = Draw.Owner(owner), lost = Color.Lerp(team, Theme.Ink, .64f);
-            var center = body.center;
-            float radius = body.width * .5f, ink = Mathf.Max(1.4f, Theme.BallInk * scale), ring = RingWidth(radius), line = RingLine(radius);
-            Draw.Circle(Expand(body, ink), Theme.Ink);
-            Draw.Circle(body, segments > 0 ? lost : team);
-            if (pip != 0) OwnerPip(center, radius + ink * .5f, pip, pipSize, team);
-            if (segments > 0)
+            if (Materials.TryGetValue(key, out var material)) return material;
+            Color color = Theme.Vivid(Draw.Hex(key));
+            // A white symbol has to show on every label: a pale colour is brought down until it does.
+            Color.RGBToHSV(color, out float hue, out float saturation, out float value);
+            if (saturation < .16f) { saturation = .2f; value = Mathf.Min(value, .7f); }
+            for (int i = 0; i < 12; i++)
             {
-                if (lostLit > lit && lostFade > 0) Draw.Segments(center, radius, Alpha(Color.Lerp(Theme.Damage, Color.white, .4f), lostFade), ring, segments, lostLit, Theme.HpSegmentFill);
-                Draw.Segments(center, radius, team, ring, segments, lit, Theme.HpSegmentFill);
+                color = Color.HSVToRGB(hue, saturation, value);
+                if (color.r * .299f + color.g * .587f + color.b * .114f <= .6f) break;
+                value *= .95f; saturation = Mathf.Min(1, saturation * 1.03f);
             }
-            Draw.Circle(Expand(body, -ring), Theme.Ink);
-            Draw.Circle(Expand(body, -ring - line), BodyColor(definition));
+            material = new Material { Label = color, Outline = Theme.Shade(color, 1.15f, .55f), IconEdge = Theme.Shade(color, 1.2f, .4f) };
+            Materials[key] = material;
+            return material;
+        }
+        // Light and shine of a sphere, shared by every ball: `shade` is laid over the ball in a dark
+        // colour (the side away from the light, and the rim), `shine` in white (a broad sheen, one
+        // bright highlight and a little light bounced back on the far edge).
+        const int LightSize = 128;
+        static Texture2D shade, shine;
+        static void BuildLight()
+        {
+            shade = new Texture2D(LightSize, LightSize, TextureFormat.RGBA32, true) { name = "Core Clash ball shade", filterMode = FilterMode.Trilinear, wrapMode = TextureWrapMode.Clamp, hideFlags = HideFlags.HideAndDontSave };
+            shine = new Texture2D(LightSize, LightSize, TextureFormat.RGBA32, true) { name = "Core Clash ball shine", filterMode = FilterMode.Trilinear, wrapMode = TextureWrapMode.Clamp, hideFlags = HideFlags.HideAndDontSave };
+            var dark = new Color[LightSize * LightSize]; var bright = new Color[LightSize * LightSize];
+            // Light from the upper left, a little towards the viewer. Texture rows start at the bottom: +ny is up.
+            var light = new Vector3(-.52f, .62f, .59f).normalized; var half = (light + Vector3.forward).normalized;
+            for (int y = 0; y < LightSize; y++)
+            for (int x = 0; x < LightSize; x++)
+            {
+                float nx = (x + .5f - LightSize * .5f) / (LightSize * .5f - 1), ny = (y + .5f - LightSize * .5f) / (LightSize * .5f - 1);
+                float distance = Mathf.Sqrt(nx * nx + ny * ny), edge = Mathf.Clamp01((1 - distance) * LightSize * .5f);
+                if (distance > 1.02f) continue;
+                float nz = Mathf.Sqrt(Mathf.Max(0, 1 - distance * distance));
+                float lit = nx * light.x + ny * light.y + nz * light.z;
+                float shadow = Mathf.SmoothStep(.12f, 1f, 1 - lit) * .42f + Mathf.Pow(1 - nz, 2.4f) * .2f;
+                dark[y * LightSize + x] = new Color(1, 1, 1, Mathf.Clamp01(shadow) * edge);
+                float highlight = Mathf.Pow(Mathf.Max(0, nx * half.x + ny * half.y + nz * half.z), 52f);
+                float sheen = Mathf.SmoothStep(.62f, 1f, lit) * .22f;
+                float bounce = Mathf.Max(0, -(nx * light.x + ny * light.y)) * Mathf.Pow(1 - nz, 2f) * .3f;
+                bright[y * LightSize + x] = new Color(1, 1, 1, Mathf.Clamp01(Mathf.Max(highlight * .95f, sheen) + bounce) * edge);
+            }
+            shade.SetPixels(dark); shade.Apply(true, true); shine.SetPixels(bright); shine.Apply(true, true);
+        }
+        // Called once at start: everything a ball needs is built before the first shot, so nothing
+        // is built in the middle of one.
+        public static void Warm()
+        {
+            if (shade == null) BuildLight();
+            Draw.WarmArcs(Theme.HpWidthShare / Theme.HpOuterShare);
+        }
+        static readonly Color FloorShadow = new Color(.1f, .08f, .31f), ShadeTone = new Color(.07f, .04f, .24f);
+        static void DrawOrb(Rect body, BallDefinition definition, int owner, float scale, float ringAlpha, float hp, int pip, float pipSize, float hpBefore, float lostFade, int parts = 0)
+        {
+            if (shade == null) BuildLight();
+            Color team = Draw.Owner(owner), edge = Theme.Shade(team, 1.05f, .46f);
+            var center = body.center;
+            float radius = body.width * .5f, ink = Mathf.Max(1f, Theme.BallInk * scale), label = InnerRadius(radius);
+            // Shadow on the floor, away from the light.
+            Draw.Glow(new Rect(center.x - radius * .92f, center.y + radius * .12f, radius * 2.2f, radius * 1.34f), Alpha(FloorShadow, .34f));
+            Draw.Circle(Expand(body, ink), edge);
+            Draw.Circle(body, team);
+            if (pip != 0) OwnerPip(center, radius + ink * .5f, pip, pipSize, team, edge);
+            Color old = GUI.color;
+            GUI.color = Alpha(ShadeTone, .85f); GUI.DrawTexture(body, shade); GUI.color = old;
+            if (hp >= 0)
+            {
+                float outer = radius * Theme.HpOuterShare, width = radius * Theme.HpWidthShare;
+                Draw.Ring(center, outer, Theme.Shade(team, 1.05f, .34f), width);
+                if (hpBefore > hp && lostFade > 0) Draw.Arc(center, outer, Alpha(Theme.Damage, lostFade), width, hpBefore);
+                Draw.Arc(center, outer, Color.white, width, hp);
+                // A thin mark at every 5 HP, so the HP can still be counted.
+                Draw.Ticks(center, outer, Theme.Shade(team, 1.05f, .34f), width, parts, Mathf.Max(1f, radius * .07f));
+            }
+            if (!Plain(definition))
+            {
+                var material = Label(definition);
+                var disc = new Rect(center.x - label, center.y - label, label * 2, label * 2);
+                Draw.Circle(Expand(disc, Mathf.Max(.8f, radius * .045f)), material.Outline);
+                Draw.Circle(disc, material.Label);
+            }
+            GUI.color = Alpha(ShadeTone, .22f); GUI.DrawTexture(body, shade); GUI.color = old;
+        }
+        // The highlight goes on last, over the symbol's edge as well, like light on glass.
+        static void DrawShine(Rect body)
+        {
+            if (shine == null) BuildLight();
+            Color old = GUI.color; GUI.color = Color.white; GUI.DrawTexture(body, shine); GUI.color = old;
         }
 
         // Owner pip: a triangle sitting on the ring. side -1 = on top pointing up (the viewer's
         // own balls), 1 = underneath pointing down (the opponent's).
         const string PipUp = "+P 0 -1 1 .7 -1 .7", PipDown = "+P 0 1 1 -.7 -1 -.7";
-        static void OwnerPip(Vector2 center, float outer, int side, float size, Color team)
+        static void OwnerPip(Vector2 center, float outer, int side, float size, Color team, Color edge)
         {
             float tip = outer + size * .62f;
             var box = new Rect(center.x - size * .5f, side < 0 ? center.y - tip : center.y + tip - size, size, size);
-            Glyphs.Paint(Expand(box, 1.5f), side < 0 ? PipUp : PipDown, Theme.Ink);
+            Glyphs.Paint(Expand(box, 1.5f), side < 0 ? PipUp : PipDown, edge);
             Glyphs.Paint(box, side < 0 ? PipUp : PipDown, team);
         }
 
@@ -299,7 +319,7 @@ namespace CoreClash.Presentation
                 float t = i / (float)steps;
                 Vector2 p = point - direction * (radius * .6f + length * t);
                 float r = radius * (1 - t * .55f);
-                Draw.Circle(new Rect(p.x - r, p.y - r, r * 2, r * 2), Alpha(Color.Lerp(color, Color.white, .25f), Theme.WakeAlpha * (1 - t * .8f)));
+                Draw.Circle(new Rect(p.x - r, p.y - r, r * 2, r * 2), Alpha(Color.white, Theme.WakeAlpha * .8f * (1 - t * .8f)));
             }
         }
 
