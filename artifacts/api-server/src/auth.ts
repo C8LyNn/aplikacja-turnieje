@@ -121,8 +121,20 @@ export function verifyOrganizerToken(
   return payload.ver === organizerCredentialFingerprint(tournamentId, organizerPasswordHash ?? null);
 }
 
+/** Bytes of randomness in a support session token (256 bits). */
+export const SESSION_TOKEN_BYTES = 32;
+
 export function generateSessionToken(): string {
-  return crypto.randomBytes(32).toString("hex");
+  return crypto.randomBytes(SESSION_TOKEN_BYTES).toString("hex");
+}
+
+/**
+ * RC-4: the only form of a support session token kept in the database. A token has 256 random bits, so a plain
+ * SHA-256 (no salt, no key) cannot be reversed or guessed; the same function is used by migration 0051
+ * (`encode(sha256(convert_to(token, 'UTF8')), 'hex')`). Short secrets (passwords, personal codes) keep scrypt.
+ */
+export function hashSessionToken(token: string): string {
+  return crypto.createHash("sha256").update(token, "utf8").digest("hex");
 }
 
 export function signViewerToken(tournamentId: number, passwordVersion = 1): string {

@@ -1,4 +1,11 @@
-# V5 schema migrations (0041–0050): procedure and recovery
+# V5 schema migrations (0041–0051): procedure and recovery
+
+> **RC-4 (next combined release)** adds `0051_support_session_token_hash.sql`: support session tokens (32 random bytes)
+> are stored only as their SHA-256 (`support_sessions.session_token_hash`, hex, unique). Every existing session is converted
+> in place (row count unchanged), so logged-in support people keep working without logging in again; `session_token` becomes
+> nullable and is only written by an older API after a rollback (the RC-4 API accepts such a row once and converts it).
+> The token becomes `apply-0041-0051`; the marker is `v512_support_session_token_hash_0051`. A #324-L05 database
+> (0001–0050) has exactly one pending migration: 0051. Passwords and #331 personal codes keep scrypt (short secrets).
 
 > **#324-L05 (next combined release)** adds `0050_discord_webhooks.sql`: the tables `tournament_discord_integrations`
 > (one row per connected tournament; the webhook address only as AES-256-GCM ciphertext `v1:…`, a masked hint, the chosen
@@ -76,7 +83,7 @@ violate a new CHECK constraint, missing `players(tournament_id, id)` key.
 
 ## 3. Apply (one transaction, all or nothing)
 ```
-DATABASE_URL=... DATABASE_SCHEMA=public V5_MIGRATION_CONFIRM=apply-0041-0050 \
+DATABASE_URL=... DATABASE_SCHEMA=public V5_MIGRATION_CONFIRM=apply-0041-0051 \
   APP_COMMIT=<sha> DEPLOYMENT_ENVIRONMENT=<env> pnpm --filter @workspace/db migrate:v5
 ```
 Advisory lock, `lock_timeout 10s`, preflight inside the transaction, migration SQL, catalog
@@ -91,6 +98,13 @@ Run the preflight again: `"status": "applied"`. Start the API: the log line
 * **Apply failed** – nothing was changed (single transaction). Fix the reported blocker and rerun.
 * **API refuses to start** (`SchemaIncompatibleError`) – the schema lacks a migration; run steps 2–3,
   or roll the API back to the previous build (old builds ignore the new columns/tables).
+* **Need to undo RC-4 only (0051)** – roll the code back first. An older API (d37ab7a0, V5.11) starts on the 0051 schema but
+  does not find hashed sessions: support people log in again once (fail closed, nothing leaks). To remove 0051 (converted
+  sessions end — a hash cannot be turned back into a token):
+  `DELETE FROM support_sessions WHERE session_token IS NULL; ALTER TABLE support_sessions DROP CONSTRAINT IF EXISTS support_sessions_token_stored;`
+  `ALTER TABLE support_sessions DROP CONSTRAINT IF EXISTS support_sessions_token_hash_shape; DROP INDEX IF EXISTS support_sessions_token_hash_unique;`
+  `ALTER TABLE support_sessions DROP COLUMN IF EXISTS session_token_hash; ALTER TABLE support_sessions ALTER COLUMN session_token SET NOT NULL;`
+  `DELETE FROM app_schema_migrations WHERE migration_key = 'v512_support_session_token_hash_0051';` (Undo 0051 before 0050.)
 * **Need to undo #324-L05 only (0050)** – roll the code back first (the #329 API ignores the new tables). Discord settings
   and the notification history are lost: `DROP TABLE IF EXISTS tournament_discord_outbox; DROP TABLE IF EXISTS tournament_discord_integrations;`
   `DELETE FROM app_schema_migrations WHERE migration_key = 'v512_discord_webhooks_0050';` (Undo 0050 before 0049.)

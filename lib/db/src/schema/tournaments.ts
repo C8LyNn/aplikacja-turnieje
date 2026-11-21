@@ -1160,7 +1160,13 @@ export const supportSessionsTable = pgTable("support_sessions", {
     .notNull()
     .references(() => tournamentsTable.id, { onDelete: "cascade" }),
   nick: text("nick").notNull(),
-  sessionToken: text("session_token").notNull(),
+  /**
+   * RC-4 (0051): legacy clear token. The API no longer writes it; only an older API (rollback) does, and such a row is
+   * converted to a hash on its first use. NULL for every session the current API creates.
+   */
+  sessionToken: text("session_token"),
+  /** RC-4 (0051): lower-case hex SHA-256 of the 256-bit session token; the token itself is never stored. */
+  sessionTokenHash: text("session_token_hash"),
   passwordVersion: integer("password_version").notNull().default(1),
   /** #331: set for a personal-code session; NULL = the shared support password (former rights). */
   memberId: integer("member_id").references(() => tournamentSupportMembersTable.id, { onDelete: "cascade" }),

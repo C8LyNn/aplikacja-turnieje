@@ -137,6 +137,9 @@ const REGISTRATIONS_MIGRATION_URL = new URL(
 const DISCORD_MIGRATION_URL = new URL(
   "../../../lib/db/migrations/0050_discord_webhooks.sql", import.meta.url,
 );
+const SUPPORT_TOKEN_HASH_MIGRATION_URL = new URL(
+  "../../../lib/db/migrations/0051_support_session_token_hash.sql", import.meta.url,
+);
 const ROUND_ROBIN_LEGS_MIGRATION_URL = new URL(
   "../../../lib/db/migrations/0041_round_robin_legs.sql", import.meta.url,
 );
@@ -495,6 +498,12 @@ export async function resetTestSchema(pool: TestPool, schema: string): Promise<v
       );
       await pool.query(discordSql);
       await pool.query(discordSql);
+      // RC-4: support session tokens stored only as SHA-256 (idempotent like the others).
+      const tokenHashSql = renderSeriesV1MigrationForTestSchema(
+        await readFile(SUPPORT_TOKEN_HASH_MIGRATION_URL, "utf8"), schema,
+      );
+      await pool.query(tokenHashSql);
+      await pool.query(tokenHashSql);
       await pool.query("COMMIT");
     } catch (error) {
       await pool.query("ROLLBACK");

@@ -1484,14 +1484,14 @@ describe("security and tournament integrity regressions", () => {
     const sessionToken = support["x-support-token"];
     const oldActivity = new Date(Date.now() - 2 * 60 * 60 * 1000);
     await database.pool.query(
-      "UPDATE support_sessions SET last_active_at = $1 WHERE session_token = $2",
+      "UPDATE support_sessions SET last_active_at = $1 WHERE session_token_hash = encode(sha256(convert_to($2, 'UTF8')), 'hex')",
       [oldActivity, sessionToken],
     );
     const before = await database.pool.query<{
       created_at: Date;
       last_active_at: Date;
     }>(
-      "SELECT created_at, last_active_at FROM support_sessions WHERE session_token = $1",
+      "SELECT created_at, last_active_at FROM support_sessions WHERE session_token_hash = encode(sha256(convert_to($1, 'UTF8')), 'hex')",
       [sessionToken],
     );
     await request(app)
@@ -1503,7 +1503,7 @@ describe("security and tournament integrity regressions", () => {
       created_at: Date;
       last_active_at: Date;
     }>(
-      "SELECT created_at, last_active_at FROM support_sessions WHERE session_token = $1",
+      "SELECT created_at, last_active_at FROM support_sessions WHERE session_token_hash = encode(sha256(convert_to($1, 'UTF8')), 'hex')",
       [sessionToken],
     );
     assert.equal(
@@ -1516,7 +1516,7 @@ describe("security and tournament integrity regressions", () => {
     );
 
     await database.pool.query(
-      "UPDATE support_sessions SET last_active_at = $1 WHERE session_token = $2",
+      "UPDATE support_sessions SET last_active_at = $1 WHERE session_token_hash = encode(sha256(convert_to($2, 'UTF8')), 'hex')",
       [oldActivity, sessionToken],
     );
     await request(app)
@@ -1539,7 +1539,7 @@ describe("security and tournament integrity regressions", () => {
       .set({ "x-viewer-token": signViewerToken(tournament.id, 1) })
       .expect(200);
     const afterOthers = await database.pool.query<{ last_active_at: Date }>(
-      "SELECT last_active_at FROM support_sessions WHERE session_token = $1",
+      "SELECT last_active_at FROM support_sessions WHERE session_token_hash = encode(sha256(convert_to($1, 'UTF8')), 'hex')",
       [sessionToken],
     );
     assert.equal(
@@ -1928,6 +1928,7 @@ describe("security and tournament integrity regressions", () => {
       "supportPasswordHash",
       "hostCode",
       "sessionToken",
+      "session_token",
       SESSION_SECRET,
     ]) {
       assert.equal(serialized.includes(forbidden), false, forbidden);

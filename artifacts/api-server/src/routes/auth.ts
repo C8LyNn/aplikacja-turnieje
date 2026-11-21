@@ -2,7 +2,7 @@ import { Router, type IRouter, type Request, type Response } from "express";
 import { eq, and, desc } from "drizzle-orm";
 import { db, tournamentsTable, supportSessionsTable, authAuditLogTable, tournamentSupportMembersTable } from "@workspace/db";
 import { isNull } from "drizzle-orm";
-import { hashPassword, verifyPassword, signVersionedOrganizerToken, verifyOrganizerToken, generateSessionToken, signViewerToken, verifyViewerToken } from "../auth";
+import { hashPassword, verifyPassword, signVersionedOrganizerToken, verifyOrganizerToken, generateSessionToken, hashSessionToken, signViewerToken, verifyViewerToken } from "../auth";
 import {
   requireOrganizer as requireOrganizerAccess,
   requireTournamentPermission,
@@ -325,7 +325,8 @@ router.post("/tournaments/:id/auth/support-login", async (req, res) => {
         await tx.insert(supportSessionsTable).values({
           tournamentId: id,
           nick: sessionNick,
-          sessionToken,
+          // RC-4: only the hash is stored; the token goes to the browser once, in this response.
+          sessionTokenHash: hashSessionToken(sessionToken),
           passwordVersion: tournament.supportPasswordVersion,
           memberId: member?.id ?? null,
           lastActiveAt: new Date(),

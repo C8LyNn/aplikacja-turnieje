@@ -1,7 +1,7 @@
 import type { Request, Response } from "express";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, isNull, or, sql } from "drizzle-orm";
 import { db, supportSessionsTable, tournamentSupportMembersTable, tournamentsTable } from "@workspace/db";
-import { organizerCredentialFingerprint, verifyOrganizerToken, verifyViewerToken } from "./auth";
+import { hashSessionToken, organizerCredentialFingerprint, verifyOrganizerToken, verifyViewerToken } from "./auth";
 import { logger } from "./lib/logger";
 import { isSupportPermission, LEGACY_SUPPORT_PERMISSIONS, SUPPORT_PERMISSION_LABELS, type SupportPermission } from "./application/auth/support-permissions";
 
@@ -162,6 +162,18 @@ async function touchSupportSession(
   }
 }
 
+/** RC-4: replaces a legacy clear token (written by an older API) with its hash. Never logs the token. */
+async function convertLegacySupportSession(sessionId: number, tokenHash: string): Promise<void> {
+  try {
+    await db
+      .update(supportSessionsTable)
+      .set({ sessionTokenHash: tokenHash, sessionToken: null })
+      .where(and(eq(supportSessionsTable.id, sessionId), isNull(supportSessionsTable.sessionTokenHash)));
+  } catch (error) {
+    logger.warn({ supportSessionId: sessionId, code: (error as { code?: string }).code }, "Could not convert a legacy support session token");
+  }
+}
+
 async function resolveActor(
   req: Request,
   tournament: typeof tournamentsTable.$inferSelect,
@@ -179,12 +191,16 @@ async function resolveActor(
 
   const supportToken = header(req, "x-support-token");
   if (supportToken) {
+    // RC-4: sessions are found by the SHA-256 of the token; the token itself is not in the database. A row with a
+    // clear token can only come from an older API (rollback) and is accepted once, then converted to a hash.
+    const tokenHash = hashSessionToken(supportToken);
     const [session] = await db
       .select({
         id: supportSessionsTable.id,
         nick: supportSessionsTable.nick,
         passwordVersion: supportSessionsTable.passwordVersion,
         memberId: supportSessionsTable.memberId,
+        storedHash: supportSessionsTable.sessionTokenHash,
         memberName: tournamentSupportMembersTable.name,
         memberPermissions: tournamentSupportMembersTable.permissions,
         memberRevokedAt: tournamentSupportMembersTable.revokedAt,
@@ -197,9 +213,14 @@ async function resolveActor(
       .where(
         and(
           eq(supportSessionsTable.tournamentId, tournament.id),
-          eq(supportSessionsTable.sessionToken, supportToken),
+          or(
+            eq(supportSessionsTable.sessionTokenHash, tokenHash),
+            and(isNull(supportSessionsTable.sessionTokenHash), eq(supportSessionsTable.sessionToken, supportToken)),
+          ),
         ),
-      );
+      )
+      .limit(1);
+    if (session && session.storedHash == null) await convertLegacySupportSession(session.id, tokenHash);
 
     if (session && session.memberId == null && session.passwordVersion === tournament.supportPasswordVersion) {
       return { type: "support", nick: session.nick, sessionId: session.id, memberId: null, permissions: LEGACY_SUPPORT_PERMISSIONS };
