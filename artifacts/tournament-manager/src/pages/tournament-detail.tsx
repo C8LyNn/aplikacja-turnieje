@@ -1995,9 +1995,9 @@ export default function TournamentDetail() {
             </TabsContent>
           )}
 
-          {isExperimental && capabilities.canAccessConducting && (
+          {capabilities.canAccessConducting && (
             <TabsContent value="broadcast" className="pt-6">
-              <ExperimentalBroadcastPanel tournament={tournament} matches={matches ?? []} stages={stages ?? []} canFeature={capabilities.canFeatureMatch && (!!orgToken || !!supSession)} />
+              <ExperimentalBroadcastPanel tournament={tournament} matches={matches ?? []} stages={stages ?? []} canFeature={capabilities.canFeatureMatch && (!!orgToken || !!supSession)} experimental={isExperimental} />
             </TabsContent>
           )}
 

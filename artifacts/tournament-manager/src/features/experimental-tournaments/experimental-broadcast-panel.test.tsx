@@ -59,8 +59,9 @@ test("the address follows the choices; the preview shows the same address and sc
   const user = userEvent.setup();
   renderPanel({ featuredMatchId: 11 });
   await user.click(screen.getByRole("radio", { name: /Sport/ }));
-  await user.click(screen.getByRole("radio", { name: /Zapowiedź/ }));
-  assert.match(address(), /t=5&widok=zapowiedz&styl=sport$/);
+  // #324-L04: the gallery card "Następny mecz" is the upcoming board with the next ready match
+  await user.click(screen.getByRole("radio", { name: /^Następny mecz Plansza/ }));
+  assert.match(address(), /t=5&widok=zapowiedz&mecz=nastepny&styl=sport$/);
   await user.click(screen.getByRole("radio", { name: /Zawsze ten sam mecz/ }));
   await user.selectOptions(screen.getByRole("combobox", { name: "Mecz" }), "12");
   assert.match(address(), /mecz=12/);
@@ -129,13 +130,13 @@ test("choices are kept when the organizer leaves the panel and comes back; 'Przy
   assert.equal(address(), before, "the same overlay after coming back");
   await user.click(screen.getByText(/Ustawienia zaawansowane/));
   await user.click(screen.getByRole("button", { name: /Przywróć domyślne/ }));
-  assert.match(address(), /\?t=5&styl=futuristic$/, "look settings reset, the chosen set stays");
+  assert.match(address(), /\?t=5&styl=futuristic&ruch=0$/, "look settings reset; the chosen set and the animation choice (step 2) stay");
 });
 
 test("structure: current stage by default, a group can be chosen from the engine's tables, a bracket round for a cup", async () => {
   const user = userEvent.setup();
   renderPanel();
-  await user.click(screen.getByRole("radio", { name: /Tabela i drabinka/ }));
+  await user.click(screen.getByRole("radio", { name: /Tabela \/ drabinka/ }));
   assert.match(address(), /widok=struktura$/);
   assert.ok(screen.getByRole("option", { name: "Bieżący etap (Faza grupowa)" }));
   const scope = await screen.findByRole("combobox", { name: "Zakres" });
@@ -153,12 +154,12 @@ test("a 127.0.0.1 / localhost address is explained as working on this computer o
   assert.equal(!!screen.queryByTestId("broadcast-local-note"), local);
 });
 
-test("navigation: 'Transmisja' is an optional Experimental area under 'Więcej'; Stable keeps its menu", () => {
+test("navigation: 'Transmisja' is an optional area under 'Więcej' in both views (#324-L04); viewers never get it", () => {
   const organizer = deriveOrganizerCapabilities({ role: "organizer", tournament: { hasHostCode: false, hasOrganizerPassword: true }, hasOrganizerToken: true, hasSupportSession: false });
   assert.ok(organizerMoreItems(5, organizer, { broadcast: true }).some((item) => item.area === "broadcast" && item.label === "Transmisja"));
-  assert.ok(!organizerMoreItems(5, organizer).some((item) => item.area === "broadcast"), "Stable menu unchanged");
+  assert.ok(!organizerMoreItems(5, organizer).some((item) => item.area === "broadcast"), "only when the caller offers it");
   assert.equal(organizerDetailTab("?tab=broadcast", organizer, { experimental: true }), "broadcast");
-  assert.equal(organizerDetailTab("?tab=broadcast", organizer), "stages", "Stable falls back to its default tab");
+  assert.equal(organizerDetailTab("?tab=broadcast", organizer), "broadcast", "Classic opens the same panel");
   const viewer = deriveOrganizerCapabilities({ role: null, tournament: { hasHostCode: false, hasOrganizerPassword: true }, hasOrganizerToken: false, hasSupportSession: false });
   assert.notEqual(organizerDetailTab("?tab=broadcast", viewer, { experimental: true }), "broadcast");
 });

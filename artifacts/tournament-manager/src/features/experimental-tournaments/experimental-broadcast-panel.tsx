@@ -12,6 +12,41 @@ import {
   type OverlayConfig,
 } from "@/lib/broadcast-overlay";
 import { tournamentHref } from "./experimental-tournament-routing";
+import { CopyLinkButton } from "@/components/copy-link-button";
+import { streamElementsOverlayWidget } from "@/lib/stream-elements-overlay";
+
+/**
+ * #324-L04 · the overlay gallery: each card is one ready presentation (overlay kind + which match). The live preview
+ * below shows the real page; finer choices stay in the steps and in "Ustawienia zaawansowane".
+ */
+type GalleryId = "wynik" | "teraz" | "nastepny" | "ostatni" | "zwyciezca" | "struktura";
+const GALLERY: { id: GalleryId; label: string; description: string; apply: Pick<OverlayConfig, "kind"> & Partial<Pick<OverlayConfig, "match">> }[] = [
+  { id: "wynik", label: "Wynik meczu", description: "Pasek z wynikiem meczu „Na ekranie”.", apply: { kind: "wynik", match: "ekran" } },
+  { id: "teraz", label: "Teraz grają", description: "Sam wybiera mecz: na ekranie, na żywo, najbliższy, ostatni.", apply: { kind: "wynik", match: "auto" } },
+  { id: "nastepny", label: "Następny mecz", description: "Plansza z najbliższym gotowym meczem.", apply: { kind: "zapowiedz", match: "nastepny" } },
+  { id: "ostatni", label: "Ostatni wynik", description: "Ostatni zapisany wynik.", apply: { kind: "wynik", match: "ostatni" } },
+  { id: "zwyciezca", label: "Zwycięzca", description: "Zwycięzca turnieju, a wcześniej ostatniego meczu.", apply: { kind: "zwyciezca" } },
+  { id: "struktura", label: "Tabela / drabinka", description: "Tabela, grupy albo mini-drabinka etapu.", apply: { kind: "struktura" } },
+];
+function galleryOf(config: OverlayConfig): GalleryId {
+  if (config.kind === "zwyciezca" || config.kind === "struktura") return config.kind;
+  if (config.kind === "zapowiedz") return "nastepny";
+  return config.match === "auto" ? "teraz" : config.match === "ostatni" ? "ostatni" : "wynik";
+}
+/** A small drawing of each presentation (no data, no requests) next to the live preview. */
+function GalleryThumb({ id }: { id: GalleryId }) {
+  const bar = <><rect x="8" y="40" width="64" height="12" rx="2" className="fill-current opacity-60" /><rect x="34" y="38" width="12" height="16" rx="2" className="fill-current" /></>;
+  return (
+    <svg viewBox="0 0 80 60" className="h-12 w-16 shrink-0 rounded border bg-muted/40 text-primary" aria-hidden="true">
+      {id === "wynik" && bar}
+      {id === "teraz" && <>{bar}<circle cx="14" cy="14" r="4" className="fill-current" /></>}
+      {id === "ostatni" && <>{bar}<path d="M10 14h14M10 20h9" className="stroke-current" strokeWidth="3" /></>}
+      {id === "nastepny" && <><rect x="12" y="14" width="56" height="32" rx="3" className="fill-current opacity-40" /><path d="M28 30h24" className="stroke-current" strokeWidth="4" /></>}
+      {id === "zwyciezca" && <><path d="M30 16h20v8a10 10 0 0 1-20 0z" className="fill-current" /><rect x="36" y="34" width="8" height="8" className="fill-current" /><rect x="28" y="42" width="24" height="5" className="fill-current opacity-60" /></>}
+      {id === "struktura" && <><path d="M10 14h14v10H10zM10 36h14v10H10zM40 25h14v10H40z" className="fill-current opacity-60" /><path d="M24 19h8v22h-8M32 30h8" className="stroke-current" fill="none" strokeWidth="2" /></>}
+    </svg>
+  );
+}
 
 interface BroadcastTournament {
   id: number;
@@ -66,12 +101,15 @@ export function ExperimentalBroadcastPanel({
   matches,
   stages,
   canFeature,
+  experimental = true,
 }: {
   tournament: BroadcastTournament;
   matches: readonly Match[];
   stages: readonly TournamentStage[];
   /** The organizer (or support) may change which match is "Na ekranie". */
   canFeature: boolean;
+  /** #324-L04: the same panel in Classic; links stay in the view the organizer uses. */
+  experimental?: boolean;
 }) {
   const queryClient = useQueryClient();
   const isPublic = (tournament.visibility ?? "public_online") === "public_online";
@@ -126,10 +164,12 @@ export function ExperimentalBroadcastPanel({
   const kind = OVERLAY_KINDS.find((k) => k.id === config.kind)!;
   const preset = OVERLAY_PRESETS.find((p) => p.id === config.preset)!;
   const looksDefault = config.layout === OVERLAY_DEFAULTS.layout && config.scoreSize === OVERLAY_DEFAULTS.scoreSize && config.textScale === OVERLAY_DEFAULTS.textScale
-    && config.motion === OVERLAY_DEFAULTS.motion && config.background === OVERLAY_DEFAULTS.background && config.position === OVERLAY_DEFAULTS.position
+    && config.background === OVERLAY_DEFAULTS.background && config.position === OVERLAY_DEFAULTS.position
     && config.showTitle === OVERLAY_DEFAULTS.showTitle && config.showQueue === OVERLAY_DEFAULTS.showQueue;
   const resetLook = () => setConfig((current) => ({ ...current, layout: OVERLAY_DEFAULTS.layout, scoreSize: OVERLAY_DEFAULTS.scoreSize, textScale: OVERLAY_DEFAULTS.textScale,
-    motion: OVERLAY_DEFAULTS.motion, background: OVERLAY_DEFAULTS.background, position: OVERLAY_DEFAULTS.position, showTitle: OVERLAY_DEFAULTS.showTitle, showQueue: OVERLAY_DEFAULTS.showQueue }));
+    background: OVERLAY_DEFAULTS.background, position: OVERLAY_DEFAULTS.position, showTitle: OVERLAY_DEFAULTS.showTitle, showQueue: OVERLAY_DEFAULTS.showQueue }));
+  const gallery = galleryOf(config);
+  const widget = streamElementsOverlayWidget(url, { width: res.width, height: res.height });
 
   const copy = async () => {
     try {
@@ -142,7 +182,7 @@ export function ExperimentalBroadcastPanel({
     }
   };
 
-  const showsMatch = config.kind !== "struktura";
+  const showsMatch = config.kind !== "struktura" && config.kind !== "zwyciezca";
   const noMatchOnScreen = showsMatch && config.match === "ekran" && !featured;
   const step = (n: number, title: string) => <legend className="experimental-broadcast-step text-sm font-semibold"><span className="mr-2 inline-flex h-6 w-6 items-center justify-center rounded-full border text-xs" aria-hidden>{n}</span>{title}</legend>;
 
@@ -156,7 +196,7 @@ export function ExperimentalBroadcastPanel({
           </p>
         </div>
         <Button variant="outline" asChild className="min-h-11">
-          <Link href={tournamentHref(tournament.id, true, "/host")}><ArrowLeft className="mr-1 h-4 w-4" aria-hidden /> Wróć do prowadzenia</Link>
+          <Link href={tournamentHref(tournament.id, experimental, "/host")}><ArrowLeft className="mr-1 h-4 w-4" aria-hidden /> Wróć do prowadzenia</Link>
         </Button>
       </header>
 
@@ -166,7 +206,7 @@ export function ExperimentalBroadcastPanel({
           <span>
             Ten turniej nie jest publiczny, więc nakładka pokaże tylko komunikat „Nakładki działają tylko dla turniejów
             publicznych”. Nakładka nigdy nie używa hasła ani tokenu organizatora. Widoczność zmienisz w{" "}
-            <Link className="underline" href={tournamentHref(tournament.id, true, "?tab=sharing")}>Udostępnianiu</Link>.
+            <Link className="underline" href={tournamentHref(tournament.id, experimental, "?tab=sharing")}>Udostępnianiu</Link>.
           </span>
         </div>
       )}
@@ -210,12 +250,15 @@ export function ExperimentalBroadcastPanel({
 
       <fieldset className="space-y-2">
         {step(1, "Nakładka")}
-        <div className="grid gap-2 sm:grid-cols-3" role="radiogroup" aria-label="Rodzaj nakładki">
-          {OVERLAY_KINDS.map((option) => (
-            <label key={option.id} className="experimental-broadcast-choice flex min-h-11 cursor-pointer items-start gap-3 rounded-lg border p-3" data-selected={config.kind === option.id || undefined}>
-              <input type="radio" name="overlay-kind" className="mt-1" checked={config.kind === option.id} onChange={() => set("kind", option.id)} />
+        {/* #324-L04: a gallery of ready presentations; the live preview (step 4) shows the chosen one on real data */}
+        <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3" role="radiogroup" aria-label="Rodzaj nakładki" data-testid="broadcast-gallery">
+          {GALLERY.map((option) => (
+            <label key={option.id} className="experimental-broadcast-choice flex min-h-11 cursor-pointer items-start gap-3 rounded-lg border p-3" data-selected={gallery === option.id || undefined} data-gallery={option.id}>
+              <input type="radio" name="overlay-kind" className="mt-1" checked={gallery === option.id}
+                onChange={() => { setCopied(null); setConfig((current) => ({ ...current, ...option.apply })); }} />
+              <GalleryThumb id={option.id} />
               <span className="min-w-0">
-                <span className="flex items-center gap-1 font-medium">{option.label}{config.kind === option.id && <Check className="h-4 w-4 text-primary" aria-label="wybrana" />}</span>
+                <span className="flex items-center gap-1 font-medium">{option.label}{gallery === option.id && <Check className="h-4 w-4 text-primary" aria-label="wybrana" />}</span>
                 <span className="block text-xs text-muted-foreground">{option.description}</span>
               </span>
             </label>
@@ -234,11 +277,24 @@ export function ExperimentalBroadcastPanel({
           ))}
         </div>
         <p className="text-xs text-muted-foreground">{preset.label}: {preset.description}</p>
+        <div className="flex flex-wrap items-end gap-3 pt-1" data-testid="broadcast-motion">
+          <Choice label="Animacje" value={String(config.motion)} options={[["0", "Bez ruchu"], ["1", "Łagodne"], ["2", "Wyraźniejsze"]]} onChange={(v) => set("motion", Number(v) as OverlayConfig["motion"])} />
+          <label className="flex min-h-11 items-center gap-2 text-sm">
+            <input type="checkbox" checked={config.alerts && config.kind !== "struktura"} disabled={config.kind === "struktura"} onChange={(event) => set("alerts", event.target.checked)} />
+            <span>Alerty na wizji <span className="text-muted-foreground">(koniec meczu, awans, nowy etap, zwycięzca)</span></span>
+          </label>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          Alerty są domyślnie wyłączone i dotyczą tylko tej nakładki. Pokazują wyłącznie zapisane zmiany; po odświeżeniu nie powtarzają starych.
+          Przy „Bez ruchu” i u widzów z ograniczonym ruchem pojawiają się bez animacji.
+        </p>
       </fieldset>
 
       <fieldset className="space-y-3">
-        {step(3, showsMatch ? "Mecz" : "Etap")}
-        {showsMatch ? (
+        {step(3, showsMatch ? "Mecz" : config.kind === "zwyciezca" ? "Zwycięzca" : "Etap")}
+        {config.kind === "zwyciezca" ? (
+          <p className="text-sm text-muted-foreground">Po zakończeniu turnieju nakładka pokaże jego zwycięzcę (wg silnika turnieju). Wcześniej — zwycięzcę ostatniego rozstrzygniętego meczu. Nic nie jest zgadywane.</p>
+        ) : showsMatch ? (
           <div className="space-y-2">
             <label className="flex min-h-11 items-start gap-3">
               <input type="radio" name="overlay-match" className="mt-1" checked={config.match === "ekran"} onChange={() => set("match", "ekran")} />
@@ -249,6 +305,16 @@ export function ExperimentalBroadcastPanel({
               <input type="radio" name="overlay-match" className="mt-1" checked={config.match === "auto"} onChange={() => set("match", "auto")} />
               <span><span className="block font-medium">Aktualny mecz (automatycznie)</span>
                 <span className="block text-sm text-muted-foreground">Mecz „Na ekranie”, a gdy go nie ma: mecz na żywo, potem najbliższy gotowy, potem ostatni wynik.</span></span>
+            </label>
+            <label className="flex min-h-11 items-start gap-3">
+              <input type="radio" name="overlay-match" className="mt-1" checked={config.match === "nastepny"} onChange={() => set("match", "nastepny")} />
+              <span><span className="block font-medium">Następny mecz</span>
+                <span className="block text-sm text-muted-foreground">Najbliższy gotowy mecz bieżącego etapu (nigdy ten, który trwa).</span></span>
+            </label>
+            <label className="flex min-h-11 items-start gap-3">
+              <input type="radio" name="overlay-match" className="mt-1" checked={config.match === "ostatni"} onChange={() => set("match", "ostatni")} />
+              <span><span className="block font-medium">Ostatni wynik</span>
+                <span className="block text-sm text-muted-foreground">Ostatni zapisany mecz.</span></span>
             </label>
             <label className="flex min-h-11 items-start gap-3">
               <input type="radio" name="overlay-match" className="mt-1" checked={typeof config.match === "number"} onChange={() => set("match", featured?.id ?? selectable[0]?.id ?? "ekran")} disabled={!selectable.length} />
@@ -349,21 +415,51 @@ export function ExperimentalBroadcastPanel({
         </details>
       </fieldset>
 
+      {/* #324-L04 · StreamElements: the same page as a Custom Widget (a real SE test needs an SE account) */}
+      <details className="rounded-lg border p-3" data-testid="broadcast-streamelements">
+        <summary className="min-h-11 cursor-pointer content-center font-medium">StreamElements (Custom Widget)</summary>
+        <div className="mt-2 space-y-3 text-sm">
+          <p className="text-muted-foreground">
+            Widget pokazuje tę samą nakładkę co OBS (ten sam adres i te same dane publiczne). StreamElements nie ma zdarzeń turnieju — widget
+            nie łączy się z czatem ani alertami follow/sub/raid.
+          </p>
+          {widget.problems.length > 0 && (
+            <ul className="list-disc space-y-1 pl-5 text-amber-500" data-testid="broadcast-se-problems">{widget.problems.map((problem) => <li key={problem}>{problem}</li>)}</ul>
+          )}
+          <ol className="list-decimal space-y-1 pl-5">
+            <li>StreamElements → <strong>Overlays</strong> → nowa nakładka {res.width}×{res.height} → <strong>Add widget</strong> → <strong>Static / Custom</strong> → <strong>Custom widget</strong>.</li>
+            <li><strong>Open editor</strong>: wklej kolejno HTML, CSS i JS poniżej (Fields zostaw <code>{"{}"}</code>), zapisz.</li>
+            <li>Rozciągnij widget na całą nakładkę. Adres nakładki StreamElements dodaj do OBS jako źródło „Przeglądarka”.</li>
+          </ol>
+          {([["HTML", widget.html], ["CSS", widget.css], ["JS", widget.js]] as const).map(([label, code]) => (
+            <div key={label} className="space-y-1">
+              <div className="flex flex-wrap items-center gap-2"><span className="font-medium">{label}</span><CopyLinkButton text={code} label={`Kopiuj ${label}`} showLabel /></div>
+              <pre className="max-h-40 overflow-auto rounded-md border bg-muted/40 p-2 text-xs"><code>{code}</code></pre>
+            </div>
+          ))}
+        </div>
+      </details>
+
       <details className="rounded-lg border p-3" data-testid="broadcast-advanced">
         <summary className="min-h-11 cursor-pointer content-center font-medium">Ustawienia zaawansowane{!looksDefault && <span className="ml-2 text-xs font-normal text-muted-foreground">(zmienione)</span>}</summary>
         <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
           <Choice label="Wariant" value={config.layout} options={[["pelny", "Rozbudowany"], ["kompakt", "Kompaktowy"]]} onChange={(v) => set("layout", v as OverlayConfig["layout"])} />
           <Choice label="Rozmiar wyniku" value={config.scoreSize} options={[["s", "Mały"], ["m", "Średni"], ["l", "Duży"]]} onChange={(v) => set("scoreSize", v as OverlayConfig["scoreSize"])} />
           <Choice label="Tekst" value={String(config.textScale)} options={[["1", "100%"], ["1.25", "125%"], ["1.5", "150%"]]} onChange={(v) => set("textScale", Number(v) as OverlayConfig["textScale"])} />
-          <Choice label="Animacje" value={String(config.motion)} options={[["0", "Bez ruchu"], ["1", "Łagodne"], ["2", "Wyraźniejsze"]]} onChange={(v) => set("motion", Number(v) as OverlayConfig["motion"])} />
           <Choice label="Tło" value={config.background} options={[["przezroczyste", "Przezroczyste (na obraz gry)"], ["pelne", "Pełne (osobna scena)"]]} onChange={(v) => set("background", v as OverlayConfig["background"])} />
           <Choice label="Położenie paska" value={config.position} options={[["dol", "Na dole"], ["gora", "Na górze"]]} onChange={(v) => set("position", v as OverlayConfig["position"])} />
           <Choice label="Tytuł turnieju" value={config.showTitle ? "1" : "0"} options={[["1", "Pokaż"], ["0", "Ukryj"]]} onChange={(v) => set("showTitle", v === "1")} />
           {config.kind === "zapowiedz" && <Choice label="Kolejne mecze" value={config.showQueue ? "1" : "0"} options={[["0", "Ukryj"], ["1", "Pokaż 3 następne"]]} onChange={(v) => set("showQueue", v === "1")} />}
         </div>
         <Button type="button" variant="outline" className="mt-3 min-h-11" disabled={looksDefault} onClick={resetLook}><RotateCcw className="mr-1 h-4 w-4" aria-hidden />Przywróć domyślne</Button>
-        <p className="mt-1 text-xs text-muted-foreground">Rodzaj nakładki, zestaw wyglądu i mecz zostają; wracają tylko powyższe ustawienia. Wybrana nakładka: {kind.label}.</p>
+        <p className="mt-1 text-xs text-muted-foreground">Rodzaj nakładki, zestaw wyglądu, animacje i mecz zostają; wracają tylko powyższe ustawienia. Wybrana nakładka: {kind.label}.</p>
       </details>
+
+      <p className="rounded-lg border border-dashed p-3 text-xs text-muted-foreground" data-testid="broadcast-experiments">
+        <strong className="text-foreground">Eksperymenty</strong> (poza turniejem, bez gwarancji): kamerka z czatem i edytor efektów animowanych są w{" "}
+        <Link className="underline" href="/stream">OBS / Stream</Link>. Nie korzystają z wyników turnieju; podgląd kamerki z czatem pokazuje
+        przykładowe wiadomości (prawdziwy czat tylko przez eksport do StreamElements, nieprzetestowany), alertów follow/sub/raid nie ma.
+      </p>
     </section>
   );
 }

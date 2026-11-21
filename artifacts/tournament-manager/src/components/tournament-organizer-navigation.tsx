@@ -62,8 +62,8 @@ export function organizerDetailTab(
   if (requested === "sharing" && capabilities.canManageSharing) return requested;
   if (requested === "backup" && capabilities.canManageBackup) return requested;
   if (requested === "security" && capabilities.canManageOrganizerSettings) return requested;
-  // V5.9 · optional broadcast overlays (Experimental only; Stable stays the fallback interface without them).
-  if (requested === "broadcast" && options.experimental && capabilities.canAccessConducting) return requested;
+  // V5.9 · optional broadcast overlays. #324-L04: in both views (one shared panel; Classic got only a single link before).
+  if (requested === "broadcast" && capabilities.canAccessConducting) return requested;
   return capabilities.canViewOrganizerNavigation ? "stages" : "overview";
 }
 
@@ -219,7 +219,7 @@ export function TournamentOrganizerNavigation({
         : isExperimental && item.area === "bracket" ? bracketAreaLabel(stages) : item.label,
       href: tournamentModeHref(item.href, isExperimental),
     }));
-  const more = organizerMoreItems(tournamentId, capabilities, { broadcast: isExperimental }).map((item) => ({
+  const more = organizerMoreItems(tournamentId, capabilities, { broadcast: true }).map((item) => ({
     ...item,
     href: tournamentModeHref(item.href, isExperimental),
   }));
