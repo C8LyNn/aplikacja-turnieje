@@ -23,6 +23,11 @@ namespace CoreClash.Editor
             PlayerSettings.defaultScreenWidth=1280;PlayerSettings.defaultScreenHeight=900;PlayerSettings.runInBackground=true;PlayerSettings.resizableWindow=true;
             PlayerSettings.fullScreenMode=FullScreenMode.Windowed;PlayerSettings.defaultInterfaceOrientation=UIOrientation.AutoRotation;
             PlayerSettings.SplashScreen.show=false;
+            // W24: Direct3D 11 first on Windows. Measured on a desktop with a 240 Hz and a 60 Hz monitor:
+            // with Direct3D 12 the windowed game ignored v-sync, so the picture juddered against the
+            // display's refresh although every frame took the same time; with Direct3D 11 v-sync holds.
+            PlayerSettings.SetUseDefaultGraphicsAPIs(BuildTarget.StandaloneWindows64,false);
+            PlayerSettings.SetGraphicsAPIs(BuildTarget.StandaloneWindows64,new[]{UnityEngine.Rendering.GraphicsDeviceType.Direct3D11,UnityEngine.Rendering.GraphicsDeviceType.Direct3D12});
             PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android,"com.coreclash.classdemo");
             PlayerSettings.Android.targetArchitectures=AndroidArchitecture.ARM64;PlayerSettings.Android.minSdkVersion=AndroidSdkVersions.AndroidApiLevel26;
             PlayerSettings.Android.forceInternetPermission=true;

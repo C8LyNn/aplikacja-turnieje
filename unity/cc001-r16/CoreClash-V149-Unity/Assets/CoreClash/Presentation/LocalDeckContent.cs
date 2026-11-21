@@ -61,7 +61,7 @@ namespace CoreClash.Presentation
         {
             int remaining=Remaining(simulation,owner,id);
             if(remaining>0)return "x"+remaining;
-            return ActiveSource(simulation,owner,id)==BallSelectionSource.Hand?"HAND READY":"EMPTY";
+            return ActiveSource(simulation,owner,id)==BallSelectionSource.Hand?Lang.T("HAND READY","W RĘCE"):Lang.T("EMPTY","BRAK");
         }
     }
 

@@ -27,9 +27,13 @@ namespace CoreClash.Presentation
         // Very small boards (phone landscape): smaller plates and symbol-only chips, so the
         // plates of one ball do not bury its neighbours.
         public static bool Compact(float scale)=>scale<.45f;
-        public static float RowHeight(float scale)=>Compact(scale)?10f:Math.Max(12f,14f*scale);
-        public static int Font(float scale)=>Compact(scale)?8:Math.Max(9,(int)Math.Round(11*scale));
-        public static float RingOut(float scale)=>Math.Max(3f,5f*scale);
+        // W24 (owner direction: readability): a chip's number has to be read on a phone, so the row is
+        // never lower than 15 px and its type never smaller than 11 px.
+        public static float RowHeight(float scale)=>Compact(scale)?10f:Math.Max(15f,17f*scale);
+        public static int Font(float scale)=>Compact(scale)?8:Math.Max(11,(int)Math.Round(13*scale));
+        // W24: the ball is drawn larger than its rules radius (gauge inside, rim and outline outside),
+        // so everything placed around it starts further out.
+        public static float RingOut(float scale)=>Math.Max(4f,8.5f*scale);
         // W21 owner pip: a triangle on the ring, at the top of the viewer's own balls and at the
         // bottom of the opponent's. PipSize is its box, PipOut how far it sticks out of the ring.
         public static float PipSize(float scale)=>Compact(scale)?5f:Math.Max(6f,7.5f*scale);

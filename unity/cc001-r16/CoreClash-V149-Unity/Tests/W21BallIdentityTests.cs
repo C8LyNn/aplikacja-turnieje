@@ -114,7 +114,8 @@ public static partial class Program
             string Code(string f)=>Regex.Replace(File.ReadAllText(Path.Combine(dir,f)),@"//[^\n]*","");
             string ball=Code("BallView.cs"),match=Code("MatchView.cs"),details=Code("DetailsView.cs"),setup=Code("SetupView.cs"),board=Code("BoardView.cs");
             True(ball.Contains("BallIcons.Spec(")&&ball.Contains("Glyphs.Paint(box, spec"),"ball body does not draw the icon");
-            True(ball.Contains("Draw.Segments(")&&ball.Contains("BallBadges.HpSegments(ball.maxHp)")&&ball.Contains("BallBadges.HpLit(ball.hp, ball.maxHp)"),"HP ring is not driven by current HP");
+            // W24: the gauge is a smooth arc from the real HP share, marked every 5 HP (was: lit 5 HP segments).
+            True(ball.Contains("Draw.Arc(")&&ball.Contains("BallBadges.HpSegments(ball.maxHp)")&&ball.Contains("ball.hp / (float)Mathf.Max(1, ball.maxHp)"),"HP ring is not driven by current HP");
             True(ball.Contains("OwnerPip(")&&ball.Contains("BallBadges.PipSide(ball.owner, localOwner)"),"ownership has no non-colour cue");
             True(ball.Contains("ball.hp.ToString()"),"exact HP number is gone");
             True(!Regex.IsMatch(match+details,@"\bd\.name\b|Ball\((selected|id)\)\.name"),"a card or the details view still shows the raw catalog name");

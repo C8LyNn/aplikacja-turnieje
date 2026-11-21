@@ -104,18 +104,18 @@ namespace CoreClash.Presentation
         }
 
         public static string KindLabel(BaseDamageKind kind)=>kind switch{
-            BaseDamageKind.BackWall=>"BACK WALL",BaseDamageKind.BallsInZone=>"BALLS IN ZONE",BaseDamageKind.CentreLead=>"CENTRE LEAD",
-            BaseDamageKind.TurnEndPressure=>"TURN-END PRESSURE (ZONE OR CENTRE)",BaseDamageKind.HorizonRelay=>"HORIZON RELAY",_=>"UNRECORDED SOURCE"};
+            BaseDamageKind.BackWall=>Lang.T("BACK WALL","TYLNA ŚCIANA"),BaseDamageKind.BallsInZone=>Lang.T("BALLS IN ZONE","KULKI W STREFIE"),BaseDamageKind.CentreLead=>Lang.T("CENTRE LEAD","PRZEWAGA W CENTRUM"),
+            BaseDamageKind.TurnEndPressure=>Lang.T("TURN-END PRESSURE (ZONE OR CENTRE)","NACISK NA KONIEC TURY (STREFA LUB CENTRUM)"),BaseDamageKind.HorizonRelay=>"HORIZON RELAY",_=>Lang.T("UNRECORDED SOURCE","NIEZNANE ŹRÓDŁO")};
 
         // Two short lines for one damaged base; empty when that base lost nothing.
         public static string[] Lines(BaseDamageReport report,int baseOwner,Func<string,string> ballName=null)
         {
             if(report==null)return Array.Empty<string>();
             int total=report.Total(baseOwner);
-            if(total<=0)return report.Incomplete?new[]{"P"+(baseOwner+1)+" BASE · TURN "+report.Turn,"SOME EVENTS MISSING · NO SOURCE SHOWN"}:Array.Empty<string>();
+            if(total<=0)return report.Incomplete?new[]{Lang.T("P","G")+(baseOwner+1)+Lang.T(" BASE · TURN "," BAZA · TURA ")+report.Turn,Lang.T("SOME EVENTS MISSING · NO SOURCE SHOWN","BRAK CZĘŚCI ZDARZEŃ · ŹRÓDŁO NIEZNANE")}:Array.Empty<string>();
             var parts=report.Entries.Where(e=>e.Base==baseOwner).GroupBy(e=>(e.Kind,e.Detail))
                 .Select(g=>KindLabel(g.Key.Kind)+(g.Key.Kind==BaseDamageKind.BackWall&&g.Key.Detail.Length>0?" ("+(ballName?.Invoke(g.Key.Detail)??g.Key.Detail)+")":"")+" -"+g.Sum(e=>e.Amount));
-            return new[]{"P"+(baseOwner+1)+" BASE -"+total+" · TURN "+report.Turn,string.Join(" · ",parts)+(report.Incomplete?" · SOME EVENTS MISSING":"")};
+            return new[]{Lang.T("P","G")+(baseOwner+1)+Lang.T(" BASE -"," BAZA -")+total+Lang.T(" · TURN "," · TURA ")+report.Turn,string.Join(" · ",parts)+(report.Incomplete?Lang.T(" · SOME EVENTS MISSING"," · BRAK CZĘŚCI ZDARZEŃ"):"")};
         }
     }
 }

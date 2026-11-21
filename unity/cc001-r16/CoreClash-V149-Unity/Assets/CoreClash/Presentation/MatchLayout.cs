@@ -27,6 +27,12 @@ namespace CoreClash.Presentation
         // same geometry that the managed presentation tests can inspect.
         public bool CompactLandscape;
         public UiBox CompactHud,CompactChoice,CompactCards,CompactActions,CompactFeedback;
+        // W24 phone portrait: no top bar. The playing field runs from the left edge of the screen to
+        // the right edge (the tray frame of the arena is off-screen) and from the very top; base HP
+        // is a bar on each wall. The card tray keeps at least PhoneTray units at the bottom.
+        public bool PhonePortrait;
+        public UiBox PhoneStrip;
+        public const float PhoneTray=128f,PhoneMenu=52f,FieldShare=491.4f/540f;
         public static MatchLayout For(float width,float height)=>For(width,height,DeviceProfile.Desktop);
         public static MatchLayout For(float width,float height,DeviceProfile profile)
         {
@@ -50,6 +56,17 @@ namespace CoreClash.Presentation
                 layout.CompactCards=new UiBox(x,y,w,cards);y+=cards+2f;
                 layout.CompactActions=new UiBox(x,y,w,44f);y+=48f;
                 layout.CompactFeedback=new UiBox(x,y,w,Math.Max(0,layout.Panel.Bottom-4f-y));
+                return layout;
+            }
+            // Upright tablets use the same screen: arena on top, large-cell tray below.
+            if(layout.Portrait&&(profile==DeviceProfile.Phone||profile==DeviceProfile.Tablet)){
+                float tray=profile==DeviceProfile.Tablet?Math.Max(240f,height*.21f):PhoneTray;
+                float w=width/FieldShare,h=w/.6f;
+                if(h>height-tray){h=Math.Max(120f,height-tray);w=h*.6f;}
+                layout.PhonePortrait=true;
+                layout.PhoneStrip=new UiBox(0f,0f,0f,0f);
+                layout.Board=new UiBox((width-w)/2,0f,w,h);
+                layout.Panel=new UiBox(0f,h,width,height-h);
                 return layout;
             }
             if(layout.Portrait){
