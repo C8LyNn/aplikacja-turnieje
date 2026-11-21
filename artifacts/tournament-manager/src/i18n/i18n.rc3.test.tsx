@@ -15,8 +15,9 @@ import { matchFormatText } from "@/lib/broadcast-overlay";
 afterEach(() => { resetLangForTests("pl"); try { localStorage.clear(); } catch { /* */ } });
 
 const PROPER_NAMES = new Set(["Deadlock", "Arena", "Aura", "Neon", "Sport", "Arcade", "Cyberpunk", "Minimal pro"]);
-const englishTexts = new Set(Object.values(en).filter((v): v is string => typeof v === "string"));
-const polishTexts = new Set(Object.values(pl).filter((v): v is string => typeof v === "string" && !englishTexts.has(v)));
+const strings = (catalog: Record<string, unknown>): string[] => Object.values(catalog).filter((v): v is string => typeof v === "string");
+const englishTexts = new Set<string>(strings(en));
+const polishTexts = new Set<string>(strings(pl).filter((v) => !englishTexts.has(v)));
 const optionLists = () => Object.entries(appearance)
   .filter(([, value]) => Array.isArray(value))
   .flatMap(([name, list]) => (list as Array<{ label?: unknown; hint?: unknown }>).map((item) => ({ name, label: item.label, hint: item.hint })));
