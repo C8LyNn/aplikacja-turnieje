@@ -56,15 +56,60 @@ namespace CoreClash.Presentation
             if(glow==null){const int n=64;glow=new Texture2D(n,n,TextureFormat.RGBA32,false){filterMode=FilterMode.Bilinear,wrapMode=TextureWrapMode.Clamp,hideFlags=HideFlags.HideAndDontSave};for(int y=0;y<n;y++)for(int x=0;x<n;x++){float d=Vector2.Distance(new Vector2(x+.5f,y+.5f),new Vector2(n*.5f,n*.5f))/(n*.5f);float a=Mathf.Clamp01(1-d);glow.SetPixel(x,y,new Color(1,1,1,a*a*(3-2*a)));}glow.Apply();}
             var old=GUI.color;GUI.color=color;GUI.DrawTexture(new Rect(center.x-radius,center.y-radius,radius*2,radius*2),glow);GUI.color=old;
         }
-        // W24: full-screen backdrop, sky blue to violet, with a few large soft lights.
+        // W24: full-screen backdrop, blue to violet. A light behind the top of the screen with a fan
+        // of faint rays (a still picture, nothing moves), and darker corners, so whatever lies on it
+        // stands out.
+        static Texture2D rays;
         public static void Backdrop(Rect r)
         {
             VGradient(r,Theme.BackdropTop,Theme.BackdropBottom);
             if(Event.current.type!=EventType.Repaint)return;
             float unit=Mathf.Max(r.width,r.height);
-            Glow(new Vector2(r.x+r.width*.12f,r.y+r.height*.1f),unit*.42f,new Color(1,1,1,.14f));
-            Glow(new Vector2(r.x+r.width*.95f,r.y+r.height*.8f),unit*.5f,new Color(1,.55f,.85f,.16f));
-            Glow(new Vector2(r.x+r.width*.75f,r.y+r.height*.05f),unit*.3f,new Color(.45f,1,.95f,.12f));
+            if(rays==null)
+            {
+                const int n=256;rays=new Texture2D(n,n,TextureFormat.RGBA32,true){name="Core Clash backdrop rays",filterMode=FilterMode.Trilinear,wrapMode=TextureWrapMode.Clamp,hideFlags=HideFlags.HideAndDontSave};
+                var pixels=new Color[n*n];
+                for(int y=0;y<n;y++)
+                for(int x=0;x<n;x++)
+                {
+                    float dx=(x+.5f-n*.5f)/(n*.5f),dy=(y+.5f-n*.5f)/(n*.5f),distance=Mathf.Sqrt(dx*dx+dy*dy);
+                    if(distance>=1)continue;
+                    // Fourteen rays; the edge of a ray stays about one texel soft at any distance.
+                    float turn=(Mathf.Atan2(dy,dx)/(2*Mathf.PI)+1)*14;turn-=Mathf.Floor(turn);
+                    float ray=Mathf.Clamp01((.25f-Mathf.Abs(turn-.5f))*distance*n*.5f*2*Mathf.PI/14+.5f);
+                    pixels[y*n+x]=new Color(1,1,1,ray*Mathf.Pow(1-distance,1.3f)*Mathf.Clamp01(distance*6));
+                }
+                rays.SetPixels(pixels);rays.Apply(true,true);
+            }
+            var light=new Vector2(r.x+r.width*.5f,r.y+r.height*.12f);
+            var old=GUI.color;GUI.color=new Color(1,1,1,.085f);GUI.DrawTexture(new Rect(light.x-unit*.95f,light.y-unit*.95f,unit*1.9f,unit*1.9f),rays);GUI.color=old;
+            Glow(light,unit*.62f,new Color(1,1,1,.2f));
+            Glow(new Vector2(r.x+r.width*.95f,r.y+r.height*.85f),unit*.5f,new Color(1,.5f,.85f,.14f));
+            var corner=new Color(.06f,.03f,.26f,.34f);
+            EdgeShade(new Rect(r.x,r.y,r.width*.22f,r.height),corner,0);EdgeShade(new Rect(r.xMax-r.width*.22f,r.y,r.width*.22f,r.height),corner,1);
+            EdgeShade(new Rect(r.x,r.yMax-r.height*.2f,r.width,r.height*.2f),corner,3);
+        }
+        // W24: a soft shade that is strongest along one edge of the rectangle and fades out across
+        // it (0 left, 1 right, 2 top, 3 bottom): the shadow a wall throws on the floor.
+        static Texture2D fadeAcross,fadeDown;
+        public static void EdgeShade(Rect r,Color color,int side)
+        {
+            if(Event.current.type!=EventType.Repaint||r.width<=0||r.height<=0)return;
+            if(fadeAcross==null)
+            {
+                const int n=32;
+                fadeAcross=new Texture2D(n,1,TextureFormat.RGBA32,false){name="Core Clash fade across",filterMode=FilterMode.Bilinear,wrapMode=TextureWrapMode.Clamp,hideFlags=HideFlags.HideAndDontSave};
+                fadeDown=new Texture2D(1,n,TextureFormat.RGBA32,false){name="Core Clash fade down",filterMode=FilterMode.Bilinear,wrapMode=TextureWrapMode.Clamp,hideFlags=HideFlags.HideAndDontSave};
+                for(int i=0;i<n;i++){float alpha=Mathf.Pow(1-i/(n-1f),1.7f);fadeAcross.SetPixel(i,0,new Color(1,1,1,alpha));fadeDown.SetPixel(0,i,new Color(1,1,1,alpha));}
+                fadeAcross.Apply();fadeDown.Apply();
+            }
+            var old=GUI.color;GUI.color=color;
+            // fadeAcross is strongest on its left; fadeDown on its first row, which is drawn at the bottom.
+            if(side==0)GUI.DrawTextureWithTexCoords(r,fadeAcross,new Rect(0,0,1,1));
+            else if(side==1)GUI.DrawTextureWithTexCoords(r,fadeAcross,new Rect(1,0,-1,1));
+            else if(side==3)GUI.DrawTextureWithTexCoords(r,fadeDown,new Rect(0,0,1,1));
+            else GUI.DrawTextureWithTexCoords(r,fadeDown,new Rect(0,1,1,-1));
+            GUI.color=old;
         }
         // W20: small rounded plate for HP, status chips and board labels (9-slice, crisp from 10 px up).
         static GUIStyle chip;

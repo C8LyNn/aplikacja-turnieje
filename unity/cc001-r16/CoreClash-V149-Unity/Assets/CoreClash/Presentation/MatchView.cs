@@ -219,8 +219,10 @@ namespace CoreClash.Presentation
         void RenderPhoneTray()
         {
             var state=Simulation.State;
+            // W24: the cards lie on a dark rail, like the hand in other games, so they stand out.
             Draw.Rect(new Rect(side.x,side.y-3,side.width,3),Theme.Ink);
-            Draw.Rect(side,Theme.Panel);
+            Draw.VGradient(side,Theme.RailTop,Theme.RailBottom);
+            Draw.Rect(new Rect(side.x,side.y+5,side.width,1.5f),new Color(1,1,1,.22f));
             int owner=LocalDeckContent.DisplayOwner(state.turn,LocalSeat);
             int tintOwner=owner>=0?owner:state.turn;
             // The tray carries the acting player's colour along its top edge.

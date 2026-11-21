@@ -35,7 +35,7 @@ namespace CoreClash.Presentation
         public const float P2RingFill=.62f;
 
         // Surfaces and text (HUD). Panel = white card, PanelLight = a cell inside a card.
-        public static readonly Color Background=C("#3f8cff"),BackdropTop=C("#22b4ff"),BackdropBottom=C("#7a45ff"),Header=C("#2a47d6"),
+        public static readonly Color Background=C("#3f8cff"),BackdropTop=C("#1f9dff"),BackdropBottom=C("#5a2fe0"),Header=C("#2a47d6"),
             Panel=C("#ffffff"),PanelLight=C("#e8f2ff"),PanelRaised=C("#d2e4ff"),
             Edge=C("#c4d6fa"),EdgeStrong=C("#86a2f2"),Plate=C("#ffffff"),Scrim=C("#141c44");
         public static readonly Color Text=C("#1b2550"),TextSoft=C("#3a4678"),Muted=C("#6c78a6"),Disabled=C("#a9b2d0"),Ink=C("#1a1530"),
@@ -48,6 +48,25 @@ namespace CoreClash.Presentation
         // Arena: a deep tray, a light floor, white rim.
         public static readonly Color BoardOuter=C("#4326c9"),BoardLip=C("#6f52ff"),FloorEdge=C("#ffdb78"),FloorCentre=C("#fff1b8"),Rim=C("#ffffff"),Centre=C("#ff9500");
         public const float ZoneFillNear=.7f,ZoneFillFar=.42f,ZonePattern=0f,ZoneEdge=.9f,ZoneLabel=.75f;
+        // W24 (owner direction: look at how similar games look): the board is a place made of
+        // something - a pitch with mown stripes, painted end zones, white markings, light in the
+        // middle and the shadow of its walls - not a flat sheet. An ArenaLook is one such place:
+        // Floor is its surface, Line its painted markings, Ring the centre circle; Zone is how much
+        // of a home zone is the team's colour, Stripe the strength of the mown bands, Light the glow
+        // in the middle, Shade the shadow of the walls, CentreFill the lighter disc in the centre.
+        // F6 switches between them; the choice is kept in PlayerPrefs "cc.arena".
+        public sealed class ArenaLook{public string Id;public Color Floor,Line,Ring;public float Zone,Stripe,Light,Shade,CentreFill;}
+        public static readonly ArenaLook[] Arenas=
+        {
+            new ArenaLook{Id="court",Floor=C("#f8d78d"),Line=Color.white,Ring=Color.white,Zone=.88f,Stripe=.035f,Light=.16f,Shade=.3f,CentreFill=.2f},
+            new ArenaLook{Id="night",Floor=C("#3b2fb5"),Line=C("#c4d0ff"),Ring=C("#ffd21e"),Zone=.8f,Stripe=.045f,Light=.2f,Shade=.42f,CentreFill=.08f},
+            new ArenaLook{Id="turf",Floor=C("#35c463"),Line=Color.white,Ring=Color.white,Zone=.9f,Stripe=.055f,Light=.14f,Shade=.34f,CentreFill=.12f},
+        };
+        public static ArenaLook Arena=Arenas[0];
+        public static void SetArena(string id){foreach(var look in Arenas)if(look.Id==id)Arena=look;}
+        public static string NextArena()=>Arenas[(System.Array.IndexOf(Arenas,Arena)+1)%Arenas.Length].Id;
+        // The rail the phone tray's cards lie on.
+        public static readonly Color RailTop=C("#3d2fc4"),RailBottom=C("#231a78");
         // How much white is laid under a home zone before its team colour (less = more saturated).
         public const float ZoneWash=.36f;
         public const float CentreRing=.7f,CentreFill=.75f,CentreLabel=0f,MidLine=0f,RimAlpha=1f;

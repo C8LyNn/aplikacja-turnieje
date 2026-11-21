@@ -68,6 +68,7 @@ namespace CoreClash.Presentation
             GUI.BeginGroup(field);
             var clippedBoard = new Rect(-field.x, -field.y, board.width, board.height);
             var visible = BoardOverlayPlanner.Field(viewOwner, clippedBoard.x, clippedBoard.y, clippedBoard.width);
+            RenderMarkings(clippedBoard);
             for (int owner = 0; owner < 2; owner++) RenderLauncher(clippedBoard, state, owner, aim, selected);
             RenderZones(clippedBoard, state);
             RenderTurnSweep(clippedBoard, state, feedback, dragging);
@@ -131,6 +132,7 @@ namespace CoreClash.Presentation
                 GUI.BeginGroup(field);
                 var clippedBoard=new Rect(board.x-field.x,board.y-field.y,board.width,board.height);
                 var visible=BoardOverlayPlanner.Field(viewOwner,clippedBoard.x,clippedBoard.y,clippedBoard.width);
+                RenderMarkings(clippedBoard);
                 RenderZones(clippedBoard,state);
                 RenderStructures(clippedBoard,state);
                 Fx.RenderUnder(clippedBoard,viewOwner,now);
@@ -162,60 +164,94 @@ namespace CoreClash.Presentation
             }
         }
 
+        // W24 (owner direction: look at how similar games look): the floor is a pitch. From the bottom
+        // up: its surface, the two painted end zones, mown stripes across all of it, light in the
+        // middle, the painted centre circle with the turn number, and the shadow of the walls.
+        const int Bands = 10;
         static void RenderArena(Rect board)
         {
+            var look = Theme.Arena;
             Rect field = Box(board, Left, Top, Right - Left, Bottom - Top);
             float scale = board.width / 540;
-            // Light floor: brightest across the middle, a touch deeper toward both base walls.
-            Draw.VGradient(new Rect(field.x, field.y, field.width, field.height * .5f + .5f), Theme.FloorEdge, Theme.FloorCentre);
-            Draw.VGradient(new Rect(field.x, field.y + field.height * .5f, field.width, field.height * .5f), Theme.FloorCentre, Theme.FloorEdge);
-            // W24: no grid or dots on the floor: one flat, bright surface keeps the balls the stars.
+            Draw.Rect(field, look.Floor);
             RenderHomeZone(board, 1, Top, ZoneP2Bottom);
             RenderHomeZone(board, 0, ZoneP1Top, Bottom);
+            float band = (Bottom - Top) / Bands;
+            for (int i = 0; i < Bands; i++)
+                Draw.Rect(Box(board, Left, Top + i * band, Right - Left, band), i % 2 == 0 ? new Color(1, 1, 1, look.Stripe) : new Color(0, 0, 0, look.Stripe));
+            Draw.Glow(new Rect(field.x, field.y + field.height * .1f, field.width, field.height * .8f), new Color(1, 1, 1, look.Light));
 
             // Centre: neutral (never a team colour). The ring is the rules' centre radius.
             Vector2 centre = Point(board, CentreX, CentreY);
-            Color neutral = Theme.Centre;
-            Line(board, Left, CentreY, CentreX - CentreRadius, CentreY, Theme.A(neutral, Theme.MidLine), 2f);
-            Line(board, CentreX + CentreRadius, CentreY, Right, CentreY, Theme.A(neutral, Theme.MidLine), 2f);
-            Draw.Circle(Box(board, CentreX - CentreRadius, CentreY - CentreRadius, CentreRadius * 2, CentreRadius * 2), Theme.A(Color.white, Theme.CentreFill));
-            Draw.Ring(centre, (CentreRadius + 1.5f) * scale, Theme.Ink, Mathf.Max(4f, 7.5f * scale));
-            Draw.Ring(centre, CentreRadius * scale, Color.Lerp(neutral, Color.white, .2f), Mathf.Max(2.2f, 4.5f * scale));
-            Draw.Glow(centre, CentreRadius * 1.25f * scale, Theme.A(neutral, .18f));
+            Color mark = Theme.A(look.Line, .55f);
+            Line(board, Left, CentreY, CentreX - CentreRadius, CentreY, mark, 3f);
+            Line(board, CentreX + CentreRadius, CentreY, Right, CentreY, mark, 3f);
+            Draw.Circle(Box(board, CentreX - CentreRadius, CentreY - CentreRadius, CentreRadius * 2, CentreRadius * 2), Theme.A(Color.white, look.CentreFill));
+            Draw.Ring(centre, CentreRadius * scale, look.Ring, Mathf.Max(2.2f, 4.5f * scale));
             // The turn number, painted on the floor like a court marking.
-            if (turnShown > 0) Draw.Text(new Rect(centre.x - 100 * scale, centre.y - 60 * scale, 200 * scale, 120 * scale), turnShown.ToString(), Mathf.Max(20, Mathf.RoundToInt(78 * scale)), Theme.A(neutral, .42f), TextAnchor.MiddleCenter, true);
+            if (turnShown > 0) Draw.Text(new Rect(centre.x - 100 * scale, centre.y - 60 * scale, 200 * scale, 120 * scale), turnShown.ToString(), Mathf.Max(20, Mathf.RoundToInt(78 * scale)), Theme.A(look.Ring, .5f), TextAnchor.MiddleCenter, true);
             int font = Mathf.Max(8, Mathf.RoundToInt(10 * scale));
             if (Theme.CentreLabel > 0) Draw.Text(new Rect(centre.x - 100 * scale, centre.y + (CentreRadius + 5) * scale, 200 * scale, font + 8), Lang.T("CENTRE","CENTRUM"), font,
-                Theme.A(neutral, Theme.CentreLabel), TextAnchor.MiddleCenter, true);
+                Theme.A(look.Ring, Theme.CentreLabel), TextAnchor.MiddleCenter, true);
+
+            // The walls throw a shadow on the floor: a broad soft one and a short darker one.
+            float reach = Mathf.Max(8, 26 * scale), wide = Mathf.Max(24, 86 * scale);
+            Color near = new Color(.07f, .04f, .23f, look.Shade), far = new Color(.07f, .04f, .23f, look.Shade * .45f);
+            Draw.EdgeShade(new Rect(field.x, field.y, wide, field.height), far, 0);
+            Draw.EdgeShade(new Rect(field.xMax - wide, field.y, wide, field.height), far, 1);
+            Draw.EdgeShade(new Rect(field.x, field.y, field.width, wide), far, 2);
+            Draw.EdgeShade(new Rect(field.x, field.yMax - wide, field.width, wide), far, 3);
+            Draw.EdgeShade(new Rect(field.x, field.y, reach, field.height), near, 0);
+            Draw.EdgeShade(new Rect(field.xMax - reach, field.y, reach, field.height), near, 1);
+            Draw.EdgeShade(new Rect(field.x, field.y, field.width, reach), near, 2);
+            Draw.EdgeShade(new Rect(field.x, field.yMax - reach, field.width, reach), near, 3);
         }
 
-        // Home zone: team tint that is strongest at the base wall, a pattern that differs
-        // per player (P1 stripes, P2 dots), a firm boundary line and a small name.
+        // Painted markings that the walls cut: an arc round each base and one in each corner.
+        // Drawn inside the field's clip group.
+        static void RenderMarkings(Rect board)
+        {
+            var look = Theme.Arena;
+            float scale = board.width / 540, width = Mathf.Max(1.6f, 3f * scale);
+            Color line = Theme.A(look.Line, .8f);
+            for (int owner = 0; owner < 2; owner++)
+            {
+                float y = owner == 0 ? 853 : 47;
+                Draw.Circle(Box(board, 270 - 150, y - 150, 300, 300), new Color(1, 1, 1, .07f));
+                Draw.Ring(Point(board, 270, y), 150 * scale, line, width);
+            }
+            Draw.Ring(Point(board, Left, Top), 34 * scale, line, width);
+            Draw.Ring(Point(board, Right, Top), 34 * scale, line, width);
+            Draw.Ring(Point(board, Left, Bottom), 34 * scale, line, width);
+            Draw.Ring(Point(board, Right, Bottom), 34 * scale, line, width);
+        }
+
+        // Home zone: the floor painted in the team's colour, deeper towards the base wall, with a
+        // painted boundary line. The acting player's zone is lit.
         static void RenderHomeZone(Rect board, int owner, float top, float bottom)
         {
             Color team = Draw.Owner(owner);
+            var look = Theme.Arena;
             float scale = board.width / 540;
             Rect zone = Box(board, Left, top, Right - Left, bottom - top);
             bool baseAtViewTop = BoardOverlayPlanner.AtViewTop(owner, viewOwner);
-            Color near = Theme.A(team, Theme.ZoneFillNear), far = Theme.A(team, Theme.ZoneFillFar);
-            // A white wash first, so the team tint stays a clean pastel on the warm floor.
-            Draw.Rect(zone, new Color(1, 1, 1, Theme.ZoneWash));
+            Draw.Rect(zone, Color.Lerp(look.Floor, team, look.Zone));
+            Color deep = Theme.A(Theme.TeamDeep(owner), .42f), none = Theme.A(Theme.TeamDeep(owner), 0f);
+            Draw.VGradient(zone, baseAtViewTop ? deep : none, baseAtViewTop ? none : deep);
             // W24: "your turn" without words. The acting player's zone lights up (a quick flash when the
-            // turn starts, then a calm breathing glow) and its boundary becomes a bright bar.
+            // turn starts, then a calm breathing glow) and its boundary becomes a bright bar; the
+            // waiting player's zone sits a little darker.
             bool acting = actingOwner == owner;
             if (acting)
             {
                 float since = Time.unscaledTime - turnSince, flashIn = Fx.ReducedMotion ? 0 : Mathf.Clamp01(1 - since / .5f);
                 float breathe = Fx.ReducedMotion ? .5f : .5f + .5f * Mathf.Sin(Time.unscaledTime * 3.2f);
-                Draw.Rect(zone, Theme.A(team, .26f + .12f * breathe + .3f * flashIn));
-                if (flashIn > 0) Draw.Rect(zone, new Color(1, 1, 1, .5f * flashIn));
+                Draw.Rect(zone, new Color(1, 1, 1, .1f + .07f * breathe + .4f * flashIn));
             }
-            Draw.VGradient(zone, baseAtViewTop ? near : far, baseAtViewTop ? far : near);
+            else if (actingOwner >= 0) Draw.Rect(zone, new Color(.06f, .03f, .22f, .16f));
             Draw.Tile(zone, Pattern(owner == 0), Mathf.Max(20, 30 * scale), Theme.A(team, Theme.ZonePattern));
-            float edge = owner == 0 ? top : bottom, inner = owner == 0 ? 6 : -6;
-            Line(board, Left, edge, Right, edge, Theme.Ink, acting ? 9f : 6f);
-            Line(board, Left, edge, Right, edge, acting ? Color.Lerp(team, Color.white, .25f) : Color.Lerp(team, Color.white, .45f), acting ? 5.5f : 3f);
-            // (W24: one soft boundary line is enough)
+            float edge = owner == 0 ? top : bottom;
+            Line(board, Left, edge, Right, edge, Theme.A(look.Line, acting ? 1f : .85f), acting ? 7f : 4.5f);
             Vector2 corner = Point(board, Left, edge);
             int font = Mathf.Max(8, Mathf.RoundToInt(9 * scale));
             float height = font + 6;

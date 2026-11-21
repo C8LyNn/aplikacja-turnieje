@@ -69,7 +69,7 @@ namespace CoreClash.Presentation
         void Awake(){Initialize();}
         public void Initialize()
         {
-            if(initialized)return;initialized=true;VersusAi=PlayerPrefs.GetInt("cc.versusAi",0)==1;LoadLanguage();BallView.Warm();Application.targetFrameRate=60;QualitySettings.vSyncCount=1;
+            if(initialized)return;initialized=true;VersusAi=PlayerPrefs.GetInt("cc.versusAi",0)==1;LoadLanguage();LoadArena();BallView.Warm();Application.targetFrameRate=60;QualitySettings.vSyncCount=1;
             try{
                 var source=Resources.Load<TextAsset>("Data/catalog");var featured=Resources.Load<TextAsset>("Data/featured-decks");
                 if(source==null||featured==null)throw new Exception("Game data could not be loaded.");
@@ -124,6 +124,8 @@ namespace CoreClash.Presentation
             if(Catalog==null)return;if(UiViewport.Refresh()){CancelPointer();Layout();}
             FollowDisplayRate();
             if(UnityEngine.Input.GetKeyDown(KeyCode.F1))SetDeveloperOverlay(!DeveloperOverlay);
+            // F6: the next arena look (court, night, turf). Presentation only.
+            if(UnityEngine.Input.GetKeyDown(KeyCode.F6)){Theme.SetArena(Theme.NextArena());PlayerPrefs.SetString("cc.arena",Theme.Arena.Id);PlayerPrefs.Save();Debug.Log("CORE_CLASH_ARENA "+Theme.Arena.Id);}
             if(UnityEngine.Input.GetKeyDown(KeyCode.F2)&&setup)SetDeveloperRoster(!DeveloperRoster);
             if(exitGuard.Open&&!externalModal&&(UnityEngine.Input.GetKeyDown(KeyCode.Return)||UnityEngine.Input.GetKeyDown(KeyCode.KeypadEnter)||UnityEngine.Input.GetKeyDown(KeyCode.JoystickButton0)))ConfirmLeaveMatch();
             else if(exitGuard.Open&&!externalModal&&(UnityEngine.Input.GetKeyDown(KeyCode.Escape)||UnityEngine.Input.GetKeyDown(KeyCode.JoystickButton1)))CancelLeaveMatch();
@@ -223,6 +225,12 @@ namespace CoreClash.Presentation
             if(UiViewport.Refresh()){CancelPointer();Layout();}
             var previousMatrix=GUI.matrix;GUI.matrix=UiViewport.GuiMatrix;
             try{RenderUi();}finally{GUI.matrix=previousMatrix;}
+        }
+        // The arena look: "--cc-arena <id>" on the command line, else the saved choice, else the first one.
+        void LoadArena()
+        {
+            var args=Environment.GetCommandLineArgs();int at=Array.IndexOf(args,"--cc-arena");
+            Theme.SetArena(at>=0&&at+1<args.Length?args[at+1]:PlayerPrefs.GetString("cc.arena",Theme.Arenas[0].Id));
         }
         void RenderUi()
         {
