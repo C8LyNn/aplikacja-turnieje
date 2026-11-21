@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using CoreClash.Core;
 using CoreClash.Data;
 using UnityEngine;
@@ -9,17 +8,16 @@ namespace CoreClash.Presentation
     // neighbour: Render() paints the body (shadow, ownership ring, sphere, type mark),
     // RenderBadges() then paints everything around it (HP plate, shield, status chips,
     // threat badge, Replay chip) from the shared BallBadges layout.
-    //   type      = body colour + icon inside the ball (W21: BallIcons; a ball without an
-    //               icon yet keeps its letter mark)
-    //   HP        = W21: ring around the body, one segment per 5 HP, lost segments dimmed,
-    //               plus the exact number on a plate outside the ball
-    //   owner     = ring colour + owner pip: a triangle on the ring, on top of the viewer's own
-    //               balls and under the opponent's (colour is never the only cue); no P1/P2 text.
-    //               W24: the HP plate is filled with the owner's colour as well.
-    // CC-001 W24: candy material (glossy sphere, soft ground shadow, navy backing ring) and
-    // state shown on the ball itself: flames on a burning ball, an ice shell on a frozen one,
-    // a bubble around a shielded one. Hit pop, white hit flash and the lost-HP flash on the
-    // ring come from Fx, which only reads real simulation changes.
+    //   type      = the icon inside the ball (W21: BallIcons; a ball without an icon yet keeps
+    //               its letter mark). W24: the type no longer colours the ball.
+    //   HP        = W24: an arc along the ball's edge that follows the real HP; no number.
+    //   owner     = W24: the colour of the whole ball + owner pip: a triangle on the edge, on top
+    //               of the viewer's own balls and under the opponent's (colour is never the only
+    //               cue); no P1/P2 text.
+    // CC-001 W24 (owner direction: readable first): a ball has one colour - its owner's - one large
+    // white symbol for its type, and its HP as a white arc along its edge. See DrawOrb.
+    // Hit pop, white hit flash and the lost-HP flash on the gauge come from Fx, which only reads
+    // real simulation changes.
     public static class BallView
     {
         static BallIdentity identity;
@@ -58,18 +56,19 @@ namespace CoreClash.Presentation
             float share = Mathf.Clamp01(ball.hp / (float)Mathf.Max(1, ball.maxHp)), shareBefore = 0, lostFade = 0;
             if (Fx.LostHp(ball.id, now, out int hpBefore, out float fade)) { shareBefore = Mathf.Clamp01(hpBefore / (float)Mathf.Max(1, ball.maxHp)); lostFade = fade; }
             DrawOrb(body, definition, ball.owner, scale, 1, share, BallBadges.PipSide(ball.owner, localOwner), BallBadges.PipSize(scale), shareBefore, lostFade, BallBadges.HpSegments(ball.maxHp));
-            DrawIdentity(body, definition, color, InnerRadius(radius), false, ball.owner);
+            // A frozen ball is washed in ice; its symbol stays white on top of the ice.
+            if (ball.frozen > 0) Draw.Circle(body, Alpha(Theme.Status(StatusKind.Frozen), .62f));
+            DrawIdentity(body, definition, InnerRadius(radius), false, ball.owner);
             DrawState(body, point, ball, radius, scale, now);
         }
 
-        // What the ball is going through right now, drawn on the ball: flames, ice shell, shield bubble,
-        // plus the short flashes for a hit, a heal and an absorbed hit.
+        // What the ball is going through right now. W24 (owner direction): states are kept minimal.
+        // What a ball carries is told by its small chip under it (symbol and number); on the ball
+        // itself only two things show, each as one plain shape: a frozen ball is washed in ice (see
+        // Render), a shielded one has a thin ring round it. Plus the short flashes for a hit, a heal
+        // and an absorbed hit.
         static void DrawState(Rect body, Vector2 point, BallRuntime ball, float radius, float scale, float now)
         {
-            // W24 (owner direction): states are kept minimal. What a ball carries is told by its small
-            // chip under it (symbol and number); on the ball itself only two things show, each as one
-            // plain shape: a frozen ball is washed in ice, a shielded one has a thin ring round it.
-            if (ball.frozen > 0) Draw.Circle(body, Alpha(Theme.Status(StatusKind.Frozen), .58f));
             if (ball.shield > 0 || ball.divineShield)
                 Draw.Ring(point, radius + (Theme.BallInk + 3.2f) * scale, ball.divineShield ? Theme.Status(StatusKind.Divine) : Theme.Shield, Mathf.Max(1.5f, 2.2f * scale));
             float flash = Fx.HitFlash(ball.id, now);
@@ -81,25 +80,24 @@ namespace CoreClash.Presentation
         }
 
         // Icon when the ball has one, otherwise the W20 letter mark.
-        static void DrawIdentity(Rect body, BallDefinition definition, Color bodyColor, float radius, bool preview, int owner = 0)
+        static void DrawIdentity(Rect body, BallDefinition definition, float radius, bool preview, int owner = 0)
         {
             // W24 (owner decision): the Standard ball is plain - an empty ball with no symbol.
-            if (Plain(definition)) { DrawShine(body); return; }
+            if (Plain(definition)) return;
             string spec = definition == null ? null : BallIcons.Spec(definition.id);
             if (spec != null)
             {
-                // One look for every ball: a white symbol with a soft edge in a dark tone of the body colour.
+                // One look for every ball: a large white symbol straight on the sphere, with an edge
+                // in a dark tone of the owner's colour so it stays sharp on the lit and the shaded side.
                 float half = radius * Theme.IconSize * .5f;
                 var box = new Rect(body.center.x - half, body.center.y - half, half * 2, half * 2);
-                Glyphs.PaintOutline(box, spec, Alpha(Label(definition).IconEdge, .8f));
+                Glyphs.PaintOutline(box, spec, Alpha(Theme.Shade(Draw.Owner(owner), 1.05f, .3f), .9f));
                 Glyphs.Paint(box, spec, Color.white);
-                DrawShine(body);
                 return;
             }
             string mark = Mark(definition);
             int size = preview ? Mathf.Clamp(Mathf.RoundToInt(body.width * (mark.Length > 2 ? .3f : .36f)), 7, 22) : Mathf.Max(7, Mathf.RoundToInt(radius * (mark.Length > 2 ? .6f : .72f)));
-            MarkLabel(body, mark, size, bodyColor);
-            DrawShine(body);
+            MarkLabel(body, mark, size, Draw.Owner(owner));
         }
 
         // Second pass: HP, shield, states, threat and Replay chip around the ball.
@@ -186,42 +184,26 @@ namespace CoreClash.Presentation
             bool gauge = body.width >= 24 && definition != null;
             DrawOrb(body, definition, owner, unit, 1, gauge ? 1 : -1, body.width >= 24 ? -1 : 0, Mathf.Max(5, 7.5f * unit), 0, 0, gauge ? BallBadges.HpSegments(definition.hp) : 0);
             if (definition != null && (body.width >= 24 || body.width >= 12 && BallIcons.Has(definition.id)))
-                DrawIdentity(body, definition, Draw.Hex(definition.color), InnerRadius(body.width * .5f), true, owner);
-            else DrawShine(body);
+                DrawIdentity(body, definition, InnerRadius(body.width * .5f), true, owner);
         }
 
-        // The ball (W24). A sphere in the owner's colour with a soft shadow on the floor; in its middle
-        // a round label in the ball's own colour; round the label the HP gauge (a dark track with a
-        // smooth white arc for the HP that is left, a thin mark every 5 HP; what was lost a moment
-        // ago flashes red). One shared pair of sprites lights every ball from the upper left and
-        // gives it its shine, so every ball reads as the same kind of object.
-        // A small orb has no gauge. The Standard ball has no label.
+        // The ball (W24). A sphere in the owner's colour with a soft shadow on the floor. Along its edge
+        // the HP gauge: a dark track with a smooth white arc for the HP that is left; what was lost a
+        // moment ago flashes red. In the middle one white symbol (DrawIdentity). One shared pair of
+        // sprites lights every ball from the upper left and gives it its shine, so every ball reads
+        // as the same kind of object. The gauge and the symbol are drawn over the light, flat and
+        // sharp - the highlight never lies on them.
+        // A small orb has no gauge. The Standard ball has no symbol.
         static bool Plain(BallDefinition definition) => definition != null && definition.id == "normal";
-        // Radius of the label that carries the icon.
-        static float InnerRadius(float radius) => radius * (radius < 12 ? .7f : Theme.LabelShare);
-        sealed class Material { public Color Label, Outline, IconEdge; }
-        static readonly Dictionary<string, Material> Materials = new Dictionary<string, Material>();
-        static Material Label(BallDefinition definition)
-        {
-            string key = definition == null || string.IsNullOrEmpty(definition.color) ? "#d8e7f5" : definition.color;
-            if (Materials.TryGetValue(key, out var material)) return material;
-            Color color = Theme.Vivid(Draw.Hex(key));
-            // A white symbol has to show on every label: a pale colour is brought down until it does.
-            Color.RGBToHSV(color, out float hue, out float saturation, out float value);
-            if (saturation < .16f) { saturation = .2f; value = Mathf.Min(value, .7f); }
-            for (int i = 0; i < 12; i++)
-            {
-                color = Color.HSVToRGB(hue, saturation, value);
-                if (color.r * .299f + color.g * .587f + color.b * .114f <= .6f) break;
-                value *= .95f; saturation = Mathf.Min(1, saturation * 1.03f);
-            }
-            material = new Material { Label = color, Outline = Theme.Shade(color, 1.15f, .55f), IconEdge = Theme.Shade(color, 1.2f, .4f) };
-            Materials[key] = material;
-            return material;
-        }
+        // Radius of the clear face inside the gauge; the symbol is sized from it.
+        static float InnerRadius(float radius) => radius * (radius < 12 ? .82f : Theme.LabelShare);
+        // A mark at every 5 HP is drawn only on a ball large enough for it to be a clean line;
+        // on a small ball the arc stays whole.
+        const float TickFrom = 30f;
         // Light and shine of a sphere, shared by every ball: `shade` is laid over the ball in a dark
-        // colour (the side away from the light, and the rim), `shine` in white (a broad sheen, one
-        // bright highlight and a little light bounced back on the far edge).
+        // colour (the side away from the light, and the rim), `shine` in white (a broad soft sheen,
+        // one small highlight on the upper left shoulder - between the symbol and the gauge - and a
+        // little light bounced back on the far edge).
         const int LightSize = 128;
         static Texture2D shade, shine;
         static void BuildLight()
@@ -230,7 +212,7 @@ namespace CoreClash.Presentation
             shine = new Texture2D(LightSize, LightSize, TextureFormat.RGBA32, true) { name = "Core Clash ball shine", filterMode = FilterMode.Trilinear, wrapMode = TextureWrapMode.Clamp, hideFlags = HideFlags.HideAndDontSave };
             var dark = new Color[LightSize * LightSize]; var bright = new Color[LightSize * LightSize];
             // Light from the upper left, a little towards the viewer. Texture rows start at the bottom: +ny is up.
-            var light = new Vector3(-.52f, .62f, .59f).normalized; var half = (light + Vector3.forward).normalized;
+            var light = new Vector3(-.52f, .62f, .59f).normalized;
             for (int y = 0; y < LightSize; y++)
             for (int x = 0; x < LightSize; x++)
             {
@@ -241,10 +223,12 @@ namespace CoreClash.Presentation
                 float lit = nx * light.x + ny * light.y + nz * light.z;
                 float shadow = Mathf.SmoothStep(.12f, 1f, 1 - lit) * .42f + Mathf.Pow(1 - nz, 2.4f) * .2f;
                 dark[y * LightSize + x] = new Color(1, 1, 1, Mathf.Clamp01(shadow) * edge);
-                float highlight = Mathf.Pow(Mathf.Max(0, nx * half.x + ny * half.y + nz * half.z), 52f);
-                float sheen = Mathf.SmoothStep(.62f, 1f, lit) * .22f;
+                // The highlight: a small soft oval lying along the edge, at (-.40, .48).
+                float gx = nx + .40f, gy = ny - .48f, along = (gx * .768f + gy * .64f) / .2f, across = (-gx * .64f + gy * .768f) / .1f;
+                float highlight = Mathf.SmoothStep(0f, .55f, 1 - Mathf.Sqrt(along * along + across * across)) * .85f;
+                float sheen = Mathf.SmoothStep(.55f, 1f, lit) * .3f;
                 float bounce = Mathf.Max(0, -(nx * light.x + ny * light.y)) * Mathf.Pow(1 - nz, 2f) * .3f;
-                bright[y * LightSize + x] = new Color(1, 1, 1, Mathf.Clamp01(Mathf.Max(highlight * .95f, sheen) + bounce) * edge);
+                bright[y * LightSize + x] = new Color(1, 1, 1, Mathf.Clamp01(Mathf.Max(highlight, sheen) + bounce) * edge);
             }
             shade.SetPixels(dark); shade.Apply(true, true); shine.SetPixels(bright); shine.Apply(true, true);
         }
@@ -259,39 +243,28 @@ namespace CoreClash.Presentation
         static void DrawOrb(Rect body, BallDefinition definition, int owner, float scale, float ringAlpha, float hp, int pip, float pipSize, float hpBefore, float lostFade, int parts = 0)
         {
             if (shade == null) BuildLight();
-            Color team = Draw.Owner(owner), edge = Theme.Shade(team, 1.05f, .46f);
+            Color team = Draw.Owner(owner), edge = Theme.Shade(team, 1.05f, .36f);
             var center = body.center;
-            float radius = body.width * .5f, ink = Mathf.Max(1f, Theme.BallInk * scale), label = InnerRadius(radius);
+            float radius = body.width * .5f, ink = Mathf.Max(1f, Theme.BallInk * scale);
             // Shadow on the floor, away from the light.
             Draw.Glow(new Rect(center.x - radius * .92f, center.y + radius * .12f, radius * 2.2f, radius * 1.34f), Alpha(FloorShadow, .34f));
             Draw.Circle(Expand(body, ink), edge);
             Draw.Circle(body, team);
             if (pip != 0) OwnerPip(center, radius + ink * .5f, pip, pipSize, team, edge);
             Color old = GUI.color;
-            GUI.color = Alpha(ShadeTone, .85f); GUI.DrawTexture(body, shade); GUI.color = old;
+            GUI.color = Alpha(ShadeTone, .95f); GUI.DrawTexture(body, shade);
+            GUI.color = Color.white; GUI.DrawTexture(body, shine);
+            GUI.color = old;
             if (hp >= 0)
             {
                 float outer = radius * Theme.HpOuterShare, width = radius * Theme.HpWidthShare;
-                Draw.Ring(center, outer, Theme.Shade(team, 1.05f, .34f), width);
+                Color track = Theme.Shade(team, 1.05f, .24f);
+                Draw.Ring(center, outer, track, width);
                 if (hpBefore > hp && lostFade > 0) Draw.Arc(center, outer, Alpha(Theme.Damage, lostFade), width, hpBefore);
                 Draw.Arc(center, outer, Color.white, width, hp);
-                // A thin mark at every 5 HP, so the HP can still be counted.
-                Draw.Ticks(center, outer, Theme.Shade(team, 1.05f, .34f), width, parts, Mathf.Max(1f, radius * .07f));
+                // A thin mark at every 5 HP, so the HP can be counted on a ball that is large enough.
+                if (radius >= TickFrom) Draw.Ticks(center, outer, track, width, parts, Mathf.Max(1f, radius * .07f));
             }
-            if (!Plain(definition))
-            {
-                var material = Label(definition);
-                var disc = new Rect(center.x - label, center.y - label, label * 2, label * 2);
-                Draw.Circle(Expand(disc, Mathf.Max(.8f, radius * .045f)), material.Outline);
-                Draw.Circle(disc, material.Label);
-            }
-            GUI.color = Alpha(ShadeTone, .22f); GUI.DrawTexture(body, shade); GUI.color = old;
-        }
-        // The highlight goes on last, over the symbol's edge as well, like light on glass.
-        static void DrawShine(Rect body)
-        {
-            if (shine == null) BuildLight();
-            Color old = GUI.color; GUI.color = Color.white; GUI.DrawTexture(body, shine); GUI.color = old;
         }
 
         // Owner pip: a triangle sitting on the ring. side -1 = on top pointing up (the viewer's

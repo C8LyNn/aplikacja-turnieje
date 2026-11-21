@@ -57,14 +57,16 @@ namespace CoreClash.Presentation
         public const float WakeLength=64f,WakeAlpha=.3f;
         public const int WakeSteps=5;
         // W21: HP ring around the body, one segment per 5 HP (lost segments stay as a dim track).
-        public const float HpRing=4.6f,HpTrack=.55f,IconSize=1.56f;
-        // W24 (owner direction): a ball looks like a real ball. A sphere in the owner's colour, lit from
-        // the upper left, with a soft shadow on the floor; in its middle a round label in the ball's
-        // own colour with a large white symbol; round the label the HP as a smooth white arc.
-        // Outlines are a darker tone of the colour they surround, never black. The Standard ball is
-        // plain: no label and no symbol. The ball is drawn larger than its rules radius by BallGrow
-        // (presentation only). Shares are parts of the drawn radius.
-        public const float BallGrow=5.6f,BallInk=1.5f,LabelShare=.64f,HpOuterShare=.84f,HpWidthShare=.17f;
+        public const float HpRing=4.6f,HpTrack=.55f,IconSize=1.58f;
+        // W24 (owner direction): a ball looks like a real ball and is read at a glance. One colour
+        // per ball - the owner's: a sphere lit from the upper left, with a soft shadow on the floor.
+        // One large white symbol in its middle says what the ball is. The HP runs along its edge:
+        // a white arc on a dark track. Nothing else is drawn on a ball.
+        // Outlines are a darker tone of the owner's colour, never black. The Standard ball is
+        // plain: no symbol. The ball is drawn larger than its rules radius by BallGrow
+        // (presentation only). Shares are parts of the drawn radius; LabelShare is the clear face
+        // inside the gauge, which the symbol is sized from.
+        public const float BallGrow=5.6f,BallInk=1.9f,LabelShare=.76f,HpOuterShare=.96f,HpWidthShare=.16f;
         // Same hue, different saturation and brightness: used for the coloured outlines.
         public static Color Shade(Color color,float saturation,float value)
         {
