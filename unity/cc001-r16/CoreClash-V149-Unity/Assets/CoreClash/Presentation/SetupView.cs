@@ -12,6 +12,35 @@ namespace CoreClash.Presentation
             Draw.Inked(r,text,size,Theme.OnColor,align,size>=20?2f:1.5f);
         }
         static readonly Color OnBackdropSoft=new Color(1,1,1,.88f);
+        // A band of light that crosses a button every few seconds, drawn inside the button's face.
+        // The group is opened on every event so control ids stay the same; nothing moves with calm effects.
+        static void Shine(Rect r,bool on=true,float period=3.4f)
+        {
+            GUI.BeginGroup(new Rect(r.x+3,r.y+2,Mathf.Max(1,r.width-6),Mathf.Max(1,r.height-9)));
+            float phase=Fx.ReducedMotion||!on?1:Mathf.Repeat(Time.unscaledTime/period,1);
+            if(phase<.3f&&Event.current.type==EventType.Repaint)
+            {
+                float band=r.height*2.2f,x=Mathf.Lerp(-band,r.width,phase/.3f);
+                var old=GUI.color;GUI.color=new Color(1,1,1,.5f);GUI.DrawTexture(new Rect(x,0,band,r.height),ShineBand());GUI.color=old;
+            }
+            GUI.EndGroup();
+        }
+        static Texture2D shineBand;
+        static Texture2D ShineBand()
+        {
+            if(shineBand!=null)return shineBand;
+            const int w=64,h=32;
+            shineBand=new Texture2D(w,h,TextureFormat.RGBA32,false){name="Core Clash button shine",filterMode=FilterMode.Bilinear,wrapMode=TextureWrapMode.Clamp,hideFlags=HideFlags.HideAndDontSave};
+            var pixels=new Color[w*h];
+            for(int y=0;y<h;y++)for(int x=0;x<w;x++)
+            {
+                // A soft band leaning to the right, with a thin second line after it.
+                float d=(x+(y-h*.5f)*.55f)/w,a=Mathf.Clamp01(1-Mathf.Abs(d-.42f)/.2f),b=Mathf.Clamp01(1-Mathf.Abs(d-.74f)/.06f);
+                pixels[y*w+x]=new Color(1,1,1,Mathf.Max(a*a*.8f,b*b*.55f));
+            }
+            shineBand.SetPixels(pixels);shineBand.Apply(false,true);
+            return shineBand;
+        }
         static readonly Color Go=new Color(.12f,.76f,.45f);
         void RenderSetup()
         {
@@ -29,7 +58,9 @@ namespace CoreClash.Presentation
             GUI.EndScrollView();
             // Footer: play, all decks, and the effects setting (full or reduced motion).
             float foot=UiHeight-68,fxW=wide?168:52,primary=wide?Math.Min(440,width*.44f):(width-fxW-16)*.56f,rest=width-primary-fxW-16;
-            if(Draw.Button(new Rect(left,foot,primary,52),Lang.T("Play!","Graj!"),Go,true,size:wide?17:14))StartLocalMatch();
+            var play=new Rect(left,foot,primary,52);
+            if(Draw.Button(play,Lang.T("Play!","Graj!"),Go,true,size:wide?17:14))StartLocalMatch();
+            Shine(play);
             if(Draw.Button(new Rect(left+primary+8,foot,rest,52),wide?Lang.T("All decks & builder","Wszystkie talie i kreator"):Lang.T("All decks","Wszystkie talie"),size:wide?14:12)){library=true;presetScroll=Vector2.zero;}
             var fx=new Rect(left+width-fxW,foot,fxW,52);
             if(wide?Draw.Button(fx,Fx.ReducedMotion?Lang.T("Effects: calm","Efekty: spokojne"):Lang.T("Effects: full","Efekty: pełne"),Theme.Info,!Fx.ReducedMotion,true,12):Draw.IconButton(fx,Fx.Star,Theme.Info,!Fx.ReducedMotion))Fx.SetReducedMotion(!Fx.ReducedMotion);
@@ -82,7 +113,8 @@ namespace CoreClash.Presentation
             Draw.Text(new Rect(r.x+16,r.y+band+(compact?4:8),r.width-32,compact?28:34),Identity(deck),compact?11:12,Theme.Muted);
             float actionH=UiViewport.TargetSize>=44?46:36;
             float orb=Math.Min(compact?28:34,(r.width-48)/10.5f),step=(r.width-32-orb)/8,orbY=r.yMax-actionH-18-orb-(compact?4:8);
-            for(int i=0;i<9;i++)BallView.Preview(new Rect(r.x+16+i*step,orbY,orb,orb),Catalog.Ball(deck.balls[i]),0);
+            // The nine balls ride a slow wave (still with calm effects).
+            for(int i=0;i<9;i++)BallView.Preview(new Rect(r.x+16+i*step,orbY+(Fx.ReducedMotion?0:Mathf.Sin(Time.unscaledTime*2.1f-i*.6f+index*1.3f)*2.4f),orb,orb),Catalog.Ball(deck.balls[i]),0);
             if(GUI.Button(new Rect(r.x+8,orbY-6,r.width-16,orb+12),GUIContent.none,GUIStyle.none))OpenDeckGuide(deck);
             float buttonW=(r.width-44)/2;
             if(Draw.Button(new Rect(r.x+16,r.yMax-actionH-12,buttonW,actionH),Lang.T("Player 1","Gracz 1"),Draw.Cyan,chosen[0].id==deck.id,size:13))SelectDeck(0,deck.id);
@@ -111,6 +143,7 @@ namespace CoreClash.Presentation
                 if(Draw.Button(SetupRect(row.Player2,y),"P2",Draw.Pink,chosen[1].id==deck.id))SelectDeck(1,deck.id);
                 y+=row.Height+8;
             }GUI.EndScrollView();if(Draw.Button(new Rect(left,UiHeight-68,width,52),Lang.T("Play!","Graj!"),Go,true,size:16))StartLocalMatch();
+            Shine(new Rect(left,UiHeight-68,width,52));
         }
         static Rect SetupRect(UiBox box,float y)=>new Rect(box.x,box.y+y,box.width,box.height);
         static readonly RosterReadinessFilter[] RosterFilters={RosterReadinessFilter.All,RosterReadinessFilter.ReadyOnly,RosterReadinessFilter.ReadyOrPartial};
@@ -171,6 +204,7 @@ namespace CoreClash.Presentation
             }
             GUI.EndScrollView();
             if(Draw.Button(new Rect(left,UiHeight-68,width,56),custom.Count==9?Lang.T("Use this deck","Użyj tej talii"):custom.Count+" / 9",Go,true,custom.Count==9,16)){chosen[builderOwner]=new DeckDefinition{id="custom_"+builderOwner,name=Lang.T("Custom Deck / Player ","Własna talia / Gracz ")+(builderOwner+1),balls=custom.ToArray(),description=Lang.T("A deck you created.","Talia, którą stworzyłeś.")};builder=false;}
+            Shine(new Rect(left,UiHeight-68,width,56),custom.Count==9);
         }
         void RenderBuilder()
         {

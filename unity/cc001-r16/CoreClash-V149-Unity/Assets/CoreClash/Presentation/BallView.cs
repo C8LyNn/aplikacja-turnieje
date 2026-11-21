@@ -65,6 +65,17 @@ namespace CoreClash.Presentation
             if (Fx.LostHp(ball.id, now, out int hpBefore, out float fade)) { lostLit = BallBadges.HpLit(hpBefore, ball.maxHp); lostFade = fade; }
             DrawOrb(body, definition, ball.owner, scale, 1, segments, lit, BallBadges.PipSide(ball.owner, localOwner), BallBadges.PipSize(scale), lostLit, lostFade);
             DrawIdentity(body, definition, color, radius - (Theme.HpInset + Theme.HpRing) * scale, false);
+            // A small glint crosses each ball once in a while (never the gauge; off with calm effects).
+            if (!Fx.ReducedMotion)
+            {
+                float cycle = Mathf.Repeat(now * .16f + ball.id * .371f, 1);
+                if (cycle < .05f)
+                {
+                    float glow = Mathf.Sin(cycle / .05f * Mathf.PI), size = radius * .62f * glow;
+                    var at = point + new Vector2(-radius * .34f, -radius * .36f);
+                    Glyphs.Paint(new Rect(at.x - size / 2, at.y - size / 2, size, size), Fx.Star, Alpha(Color.white, .95f * glow));
+                }
+            }
             DrawState(body, point, ball, radius, scale, now);
         }
 

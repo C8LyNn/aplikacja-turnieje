@@ -47,6 +47,9 @@ namespace CoreClash.Testing
             var decks = app.Catalog.Roster.Decks;
             app.SelectDeck(0, decks[0].id); app.SelectDeck(1, decks[1].id);
             yield return Shot("00-home");
+            // --cc-motion-frames N: N frames of the home screen and of a match, for a look at what moves.
+            int motion = int.TryParse(Arg("--cc-motion-frames") ?? "", out int motionWanted) ? Mathf.Clamp(motionWanted, 0, 60) : 0;
+            for (int frame = 1; frame <= motion; frame++) { yield return Wait(.1f); yield return Shot("home-" + frame.ToString("00")); }
             app.ShowDeckGuide(decks[0].id);
             yield return Shot("02-deck-guide");
             app.CloseDeckGuide();
@@ -83,6 +86,7 @@ namespace CoreClash.Testing
             yield return Wait(.6f);
             app.TapTrayBall(sim.State.players[0].stock[1].id);
             yield return Shot("90-match-tray");
+            for (int frame = 1; frame <= motion; frame++) { yield return Wait(.1f); yield return Shot("match-" + frame.ToString("00")); }
             // Aiming a Bomb: the estimated stop and the reach of the blast from there.
             app.SelectBall("bomb");
             yield return null;

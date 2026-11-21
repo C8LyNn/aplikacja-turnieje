@@ -58,6 +58,22 @@ namespace CoreClash.Presentation
             Glow(new Vector2(r.x+r.width*.12f,r.y+r.height*.1f),unit*.42f,new Color(1,1,1,.14f));
             Glow(new Vector2(r.x+r.width*.95f,r.y+r.height*.8f),unit*.5f,new Color(1,.55f,.85f,.16f));
             Glow(new Vector2(r.x+r.width*.75f,r.y+r.height*.05f),unit*.3f,new Color(.45f,1,.95f,.12f));
+            // W24: slow rising lights and a few twinkling stars, so no screen is a still picture.
+            // With calm effects they stay where they are.
+            float time=Fx.ReducedMotion?0:Time.unscaledTime;
+            for(int i=0;i<7;i++)
+            {
+                float fx=Mathf.Repeat(.13f+i*.37f+Mathf.Sin(time*.06f*(1+i*.3f)+i)*.07f,1);
+                float fy=1.1f-Mathf.Repeat(time*.014f*(1+i*.22f)+i*.19f,1.2f);
+                Glow(new Vector2(r.x+r.width*fx,r.y+r.height*fy),unit*(.05f+.03f*(i%3)),new Color(1,1,1,.11f+.03f*(i%2)));
+            }
+            for(int i=0;i<12;i++)
+            {
+                float fx=Mathf.Repeat(.07f+i*.283f,1),fy=Mathf.Repeat(.11f+i*.419f,1);
+                float twinkle=Fx.ReducedMotion?.5f:.5f+.5f*Mathf.Sin(time*(1.1f+i*.17f)+i*2.1f);
+                float size=(6+3*(i%3))*(.55f+.45f*twinkle);
+                Glyphs.Paint(new Rect(r.x+r.width*fx-size/2,r.y+r.height*fy-size/2,size,size),Fx.Star,new Color(1,1,1,.16f+.42f*twinkle*twinkle));
+            }
         }
         // W20: small rounded plate for HP, status chips and board labels (9-slice, crisp from 10 px up).
         static GUIStyle chip;

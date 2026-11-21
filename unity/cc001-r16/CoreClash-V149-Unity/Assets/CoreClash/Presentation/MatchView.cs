@@ -66,11 +66,14 @@ namespace CoreClash.Presentation
             bool you=NetworkLink!=null&&NetworkLink.LocalOwner==owner;
             string name=cell.width<150?Lang.T("P","G")+(owner+1)+(you?Lang.T(" YOU"," TY"):""):Lang.T("PLAYER ","GRACZ ")+(owner+1)+(you?Lang.T(" · YOU"," · TY"):"");
             Draw.Text(new Rect(cell.x+28,top,cell.width-28-50,rowH),name,cell.width<150?11:12,ink,TextAnchor.MiddleLeft,true);
-            Draw.Text(new Rect(cell.xMax-58,top-1,48,rowH+2),hp.ToString(),cell.height>=44?21:17,ink,TextAnchor.MiddleRight,true);
-            var bar=new Rect(cell.x+10,top+rowH+1,cell.width-20,6);
-            Draw.Rect(bar,acting?new Color(0,0,0,.22f):Theme.PanelRaised);
-            if(hp>0)Draw.Rect(new Rect(bar.x,bar.y,bar.width*Mathf.Clamp01(hp/20f),bar.height),acting?Color.white:team);
-            for(int i=1;i<4;i++)Draw.Rect(new Rect(bar.x+bar.width*i/4-.75f,bar.y,1.5f,bar.height),fill);
+            int numberSize=cell.height>=44?21:17;
+            Draw.Text(new Rect(cell.xMax-58,top-1,48,rowH+2),hp.ToString(),numberSize,ink,TextAnchor.MiddleRight,true);
+            // The same picture as on the base wall: a heart by the number and one pip for each HP.
+            float heart=numberSize*.62f,heartX=cell.xMax-12-Draw.TextWidth(hp.ToString(),numberSize,true)-heart-3;
+            if(heartX>cell.x+28+60)Glyphs.Paint(new Rect(heartX,top+(rowH-heart)*.5f+1,heart,heart),BoardView.HeartGlyph,ink);
+            var bar=new Rect(cell.x+10,top+rowH,cell.width-20,7);float pipStep=bar.width/BoardView.BasePips;
+            for(int i=0;i<BoardView.BasePips;i++)
+                Draw.Rect(new Rect(bar.x+i*pipStep,bar.y,Mathf.Max(1.5f,pipStep-1.6f),bar.height),i<hp?(acting?Color.white:team):(acting?new Color(0,0,0,.25f):Theme.PanelRaised));
         }
 
         // W20: desktop/tablet side panel. Rows come from MatchPanelLayout, so everything a
