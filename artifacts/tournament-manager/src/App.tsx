@@ -32,6 +32,7 @@ const CoreClashPrototypePage = lazy(() => import("@/pages/core-clash-prototype")
 const CoreClashShowcasePage = lazy(() => import("@/pages/core-clash-v1495-showcase"));
 const CoreClashUnityDemoPage = lazy(() => import("@/pages/core-clash-unity-demo"));
 const RandomizersPage = lazy(() => import("@/pages/randomizers"));
+const LaboratoryPage = lazy(() => import("@/pages/laboratory"));
 const RandomizerProperPage = lazy(() => import("@/pages/randomizer-proper"));
 const WheelPrototypePage = lazy(() => import("@/pages/randomizer-prototype-wheel"));
 const PinballPrototypePage = lazy(() => import("@/pages/randomizer-prototype-pinball"));
@@ -80,6 +81,7 @@ function Router() {
       <Route path="/minigames/core-clash-unity" component={CoreClashUnityDemoPage} />
 
       <Route path="/randomizers" component={RandomizersPage} />
+      <Route path="/laboratorium" component={LaboratoryPage} />
 
       <Route path="/randomizers/cards" component={RandomizerProperPage} />
 

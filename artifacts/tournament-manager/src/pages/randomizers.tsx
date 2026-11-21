@@ -1,4 +1,4 @@
-import { CircleDot, Dices, Layers3, Workflow } from "lucide-react";
+import { CircleDot, Dices, FlaskConical, Layers3, Workflow } from "lucide-react";
 import {
   EmptyProjectCard,
   ModuleHeader,
@@ -39,6 +39,15 @@ export default function RandomizersPage() {
               icon={Dices}
               accent="primary"
               status="aktywne"
+            />
+            <ProjectCard
+              code="LAB"
+              title="Laboratorium"
+              description="Porównaj prezentacje losowań na danych demonstracyjnych."
+              href="/laboratorium"
+              icon={FlaskConical}
+              accent="primary"
+              status="eksperymenty"
             />
           </div>
         </section>
