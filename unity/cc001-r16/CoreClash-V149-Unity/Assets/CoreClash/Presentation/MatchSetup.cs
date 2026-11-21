@@ -32,6 +32,8 @@ namespace CoreClash.Presentation
             Map = PlayerPrefs.GetString("cc.rule.map", RandomMap);
             if (Map != RandomMap && MapById(Map) == null) Map = RandomMap;
             DamageNumbers = PlayerPrefs.GetInt("cc.show.damageNumbers", 0) == 1;
+            Theme.ShowHpNumber = PlayerPrefs.GetInt("cc.show.hpNumbers", 0) == 1;
+            BoardView.ShowStopEstimate = PlayerPrefs.GetInt("cc.show.stopMark", 1) == 1;
             // Test hooks: "--cc-ball-scale <n>", "--cc-map <id>", "--cc-double-turn <0|1>".
             var args = Environment.GetCommandLineArgs();
             int at = Array.IndexOf(args, "--cc-ball-scale");
@@ -47,6 +49,8 @@ namespace CoreClash.Presentation
             PlayerPrefs.SetInt("cc.rule.doubleTurn", DoubleTurn ? 1 : 0);
             PlayerPrefs.SetString("cc.rule.map", Map);
             PlayerPrefs.SetInt("cc.show.damageNumbers", DamageNumbers ? 1 : 0);
+            PlayerPrefs.SetInt("cc.show.hpNumbers", Theme.ShowHpNumber ? 1 : 0);
+            PlayerPrefs.SetInt("cc.show.stopMark", BoardView.ShowStopEstimate ? 1 : 0);
             PlayerPrefs.Save();
         }
 

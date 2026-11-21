@@ -67,6 +67,8 @@ namespace CoreClash.Presentation
         }
         static Dictionary<int, Track> tracks = new Dictionary<int, Track>();
         static readonly List<int> stale = new List<int>();
+        // Where a ball last hit the wall of a base it hurts: the shards of that base fly from there.
+        static float lastScoreX, lastScoreAt = -1;
         static GameState seen;
         static int cursor = -1, stamp;
         static float lastTick = -1, stepTime, shakeUntil, shakeStrength, emberClock;
@@ -383,6 +385,18 @@ namespace CoreClash.Presentation
                     Push(Shape.Ripple, x, y, x, y, now, .45f, (ball?.radius ?? 17) + 22, Theme.Info, e.id);
                     if (track != null) track.bornAt = now;
                     break;
+                case "WALL_HIT": case "WALL_TOUCH":
+                {
+                    // W24 (owner direction: show bounces): a ring spreads from the point of the wall the
+                    // ball met - red on the wall of the base it has just hurt, white on any other.
+                    if (ball == null) break;
+                    float wx = x, wy = y; string side = e.text;
+                    if (side == "left") wx = CoreClash.Physics.ZoneResolver.Left; else if (side == "right") wx = CoreClash.Physics.ZoneResolver.Right; else if (side == "top") wy = 16; else if (side == "bottom") wy = 884;
+                    bool hard = e.kind == "WALL_HIT", scores = (side == "top" && ball.owner == 0) || (side == "bottom" && ball.owner == 1);
+                    Push(Shape.Shock, wx, wy, wx, wy, now, hard ? .34f : .24f, hard ? ball.radius + 26 : ball.radius + 10, scores ? Theme.Damage : Color.white, e.id);
+                    if (scores) { lastScoreX = wx; lastScoreAt = now; }
+                    break;
+                }
                 case "BASE_DAMAGE":
                 {
                     int owner = e.text != null && e.text.StartsWith("P1") ? 0 : 1;
@@ -390,7 +404,7 @@ namespace CoreClash.Presentation
                     Shake(now, .22f, 3.5f);
                     if (ReducedMotion) break;
                     for (int i = 0; i < 18; i++)
-                        Add(Rand(40, 500), wall, Rand(-60, 60), (owner == 0 ? -1 : 1) * Rand(60, 220), Rand(.4f, .8f), Rand(4, 8), i % 3 == 0 ? Color.white : Theme.Damage, i % 2 == 0 ? Shard : null, 0, 2.2f, -.6f);
+                        Add(lastScoreAt == now ? Mathf.Clamp(lastScoreX + Rand(-70, 70), 30, 510) : Rand(40, 500), wall, Rand(-60, 60), (owner == 0 ? -1 : 1) * Rand(60, 220), Rand(.4f, .8f), Rand(4, 8), i % 3 == 0 ? Color.white : Theme.Damage, i % 2 == 0 ? Shard : null, 0, 2.2f, -.6f);
                     break;
                 }
                 case "STRUCTURE_HIT": case "STRUCTURE_BREAK":

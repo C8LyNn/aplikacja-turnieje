@@ -15,7 +15,7 @@ namespace CoreClash.Presentation
         public GameSimulation Simulation {get;private set;}
         public IUnityNetworkLink NetworkLink {get;private set;}
         public bool IsSetup=>setup;
-        public bool IsModalOpen=>inspect.Length>0||builder||exitGuard.Open||deckGuide!=null;
+        public bool IsModalOpen=>inspect.Length>0||builder||exitGuard.Open||deckGuide!=null||settingsOpen;
         public bool IsExitConfirmOpen=>exitGuard.Open;
         public bool DeveloperOverlay {get;private set;}
         // W22: normal play offers only the active roster. The developer roster (F2, or the button
@@ -248,6 +248,8 @@ namespace CoreClash.Presentation
         {
             var args=Environment.GetCommandLineArgs();int at=Array.IndexOf(args,"--cc-arena");
             Theme.SetArena(at>=0&&at+1<args.Length?args[at+1]:PlayerPrefs.GetString("cc.arena",Theme.Arenas[0].Id));
+            // Test hook: start with the rules-and-options sheet open, for screenshots.
+            if(Array.IndexOf(args,"--cc-open-settings")>=0)settingsOpen=true;
             at=Array.IndexOf(args,"--cc-ui-density");
             if(at>=0&&at+1<args.Length&&float.TryParse(args[at+1],System.Globalization.NumberStyles.Float,System.Globalization.CultureInfo.InvariantCulture,out float density))UiViewport.DensityOverride=density;
         }
@@ -269,12 +271,13 @@ namespace CoreClash.Presentation
             int screen=setup?(builder?1:library?2:0):3;
             if(screen!=screenShown){screenShown=screen;screenAt=Time.unscaledTime;}
             bool prior=GUI.enabled;GUI.enabled=!externalModal&&inspect.Length==0&&!DeveloperOverlay&&deckGuide==null;
-            GUI.enabled=GUI.enabled&&!exitGuard.Open;
+            GUI.enabled=GUI.enabled&&!exitGuard.Open&&!settingsOpen;
             if(setup){if(builder)RenderBuilder();else if(library)RenderLibrary();else RenderSetup();}else RenderMatch();GUI.enabled=prior;
             // Screen change: the new screen fades in from the backdrop. Input is never held back.
             float fade=Fx.ReducedMotion?0:1-Mathf.Clamp01((Time.unscaledTime-screenAt)/Theme.ScreenFade);
             if(fade>0&&Event.current.type==EventType.Repaint)Draw.Rect(new Rect(0,60,UiWidth,UiHeight-60),Theme.A(Color.Lerp(Theme.BackdropTop,Theme.BackdropBottom,.5f),fade*fade));
             if(exitGuard.Open&&!setup)RenderExitConfirm();
+            if(settingsOpen)RenderSettings();
             if(deckGuide!=null){bool enabled=GUI.enabled;GUI.enabled=enabled&&inspect.Length==0;RenderDeckGuide();GUI.enabled=enabled;}
             if(inspect.Length>0)RenderInfo();if(DeveloperOverlay)RenderDeveloper();
             GetComponent<NgoLanLobby>()?.Render();

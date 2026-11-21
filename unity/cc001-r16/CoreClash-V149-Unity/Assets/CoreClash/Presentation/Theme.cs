@@ -104,7 +104,9 @@ namespace CoreClash.Presentation
         public static readonly Color HpGood=C("#ffffff"),HpHurt=C("#ffe07a"),HpCritical=C("#ffd0d6");
         // W24 (owner decision): a ball's HP is read from its ring only; no number under the ball.
         // The exact value stays in the ball details. Set to true to bring the number plate back.
-        public static readonly bool ShowHpNumber=false;
+        // The exact HP as a number on the ball, under its symbol. Off unless the player turns it on
+        // (Rules and options); the ring tells the HP at a glance.
+        public static bool ShowHpNumber=false;
         // W24 (owner decision): the arena speaks in pictures. The acting player's zone lights up, the
         // turn number is painted in the centre, base HP is a bar on each wall; word labels on the
         // arena (turn pill, base report, Replay counter, STOP caption, state words) are off.

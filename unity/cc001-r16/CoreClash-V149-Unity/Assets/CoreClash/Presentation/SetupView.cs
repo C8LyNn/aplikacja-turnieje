@@ -27,13 +27,14 @@ namespace CoreClash.Presentation
             float cardW=(width-18-gap*(columns-1))/columns;
             for(int i=0;i<setupDecks.Length;i++)FeaturedCard(setupDecks[i],i,new Rect((i%columns)*(cardW+gap),4+(i/columns)*(cardH+gap),cardW,cardH));
             GUI.EndScrollView();
-            // Footer: play, all decks, and the effects setting (full or reduced motion).
-            float foot=UiHeight-68,fxW=wide?168:52,primary=wide?Math.Min(440,width*.44f):(width-fxW-16)*.56f,rest=width-primary-fxW-16;
+            // Footer: play, all decks, and the rules and options of the match.
+            float foot=UiHeight-68,fxW=wide?188:52,primary=wide?Math.Min(440,width*.44f):(width-fxW-16)*.56f,rest=width-primary-fxW-16;
             if(Draw.Button(new Rect(left,foot,primary,52),Lang.T("Play!","Graj!"),Go,true,size:wide?17:14))StartLocalMatch();
             if(Draw.Button(new Rect(left+primary+8,foot,rest,52),wide?Lang.T("All decks & builder","Wszystkie talie i kreator"):Lang.T("All decks","Wszystkie talie"),size:wide?14:12)){library=true;presetScroll=Vector2.zero;}
             var fx=new Rect(left+width-fxW,foot,fxW,52);
-            if(wide?Draw.Button(fx,Fx.ReducedMotion?Lang.T("Effects: calm","Efekty: spokojne"):Lang.T("Effects: full","Efekty: pełne"),Theme.Info,!Fx.ReducedMotion,true,12):Draw.IconButton(fx,Fx.Star,Theme.Info,!Fx.ReducedMotion))Fx.SetReducedMotion(!Fx.ReducedMotion);
+            if(wide?Draw.Button(fx,Lang.T("Rules and options","Zasady i opcje"),Theme.Info,true,true,13):Draw.IconButton(fx,IconGear,Theme.Info,true))OpenSettings();
         }
+        const string IconGear="+C 0 0 .62;+L -.95 0 .95 0 .3;+L 0 -.95 0 .95 .3;+L -.67 -.67 .67 .67 .3;+L .67 -.67 -.67 .67 .3;-C 0 0 .26";
         const string IconRobot="+P -.74 -.5 .74 -.5 .74 .74 -.74 .74;-C -.32 .02 .18;-C .32 .02 .18;-L -.26 .46 .26 .46 .12;+L 0 -.5 0 -.82 .18;+C 0 -.86 .16";
         const string IconSwitch="+L -.6 -.36 .3 -.36 .26;+P .96 -.36 .3 -.8 .3 .08;+L .6 .36 -.3 .36 .26;+P -.96 .36 -.3 -.08 -.3 .8";
         void PlayerChoice(int owner,Rect r)

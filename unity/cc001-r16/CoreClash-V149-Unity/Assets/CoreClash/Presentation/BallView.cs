@@ -40,6 +40,13 @@ namespace CoreClash.Presentation
             Color color = definition == null ? Color.white : Draw.Hex(definition.color);
 
             DrawWake(point, ball, color, scale,localOwner);
+            // W24 (owner direction: show which zone a ball is in): a ball that counts for a zone is
+            // lit from below - red where it threatens the enemy's base, gold where it holds the centre
+            // (the rules' own tests; a soft light on the floor, under every ball).
+            {
+                bool threat = CoreClash.Physics.ZoneResolver.TouchesEnemyZone(ball), centre = !threat && CoreClash.Physics.ZoneResolver.TouchesCenter(ball);
+                if (threat || centre) Draw.Glow(point, edge * 1.42f, Alpha(threat ? Theme.Damage : Theme.Select, threat ? .7f : .6f));
+            }
             if (replay)
             {
                 // W18-02 (#287): Replay uses its own gold pulse, not the team colour.
@@ -114,52 +121,45 @@ namespace CoreClash.Presentation
             int font = layout.Font;
             Color team = Draw.Owner(ball.owner);
 
-            // HP plate filled with the owner's colour: the exact number. How much is missing is the
-            // ring's job (W21), so the plate has no bar; a hurt ball's number turns pale amber, and a
-            // critical one gets a red edge.
-            var hp = RectOf(layout.Hp);
-            float fraction = ball.maxHp > 0 ? Mathf.Clamp01((float)ball.hp / ball.maxHp) : 1;
-            bool critical = fraction < Theme.HpCriticalBelow;
-            Color health = critical ? Theme.HpCritical : fraction < Theme.HpHurtBelow ? Theme.HpHurt : Theme.HpGood;
-            if (Theme.ShowHpNumber)
+            // W24 (owner direction: "states belong on the ball, not in a separate square"): what a ball
+            // carries is a round mark on the ball itself, in the same make as the mine and Replay marks
+            // on its upper half: a disc in the state's colour with its symbol in white, set on the
+            // lower rim - the first state at the lower left, the second at the lower right. A number
+            // (stacks, turns, shield points) stands at the mark's outer corner. More than two states:
+            // the second mark tells how many more there are (all of them are in the ball's card).
             {
-                Draw.Chip(hp, team, critical ? Theme.Damage : Color.white);
-                Draw.Text(new Rect(hp.x, hp.y + 1, hp.width, hp.height), ball.hp.ToString(), font, new Color(0, 0, 0, .3f), TextAnchor.MiddleCenter, true);
-                Draw.Text(hp, ball.hp.ToString(), font, health, TextAnchor.MiddleCenter, true);
-            }
-            // Without the number, the shield plate is centred and the status row moves up into the free row.
-            float rowShift = Theme.ShowHpNumber ? 0 : (layout.RowHeight + Mathf.Max(1f, 1.5f * scale)) * (layout.Above ? 1 : -1);
-            float shieldShift = Theme.ShowHpNumber ? 0 : -(hp.width + Mathf.Max(1f, 1.5f * scale)) * .5f;
-
-            if (layout.HasShield)
-            {
-                var shield = RectOf(layout.Shield); shield.x += shieldShift; if (!Theme.ShowHpNumber && layout.Chips.Length > 0) shield.x -= shield.width * .5f + 1;
-                // A chip sits on whole screen pixels, so its number is centred in it exactly.
-                shield = Draw.SnapOrigin(shield);
-                // W24 (owner direction: readability): a chip is filled with its state's colour and
-                // carries a white symbol and a white number, on an ink edge - a patch of colour that is
-                // read at a glance, not a white label with a thin coloured mark.
-                Draw.Chip(shield, Theme.StatusFill(StatusKind.Shield), Theme.Ink);
-                float glyph = shield.height - 4;
-                Glyphs.Paint(new Rect(shield.x + 2.5f, shield.y + 2, glyph, glyph), StatusKind.Shield, Color.white);
-                Draw.Text(new Rect(shield.x + glyph + 3, shield.y - 1, shield.width - glyph - 4, shield.height), ball.shield.ToString(), font, Color.white, TextAnchor.MiddleCenter, true);
-            }
-            foreach (var chip in layout.Chips)
-            {
-                var box = RectOf(chip.Box); if (layout.HasShield && !Theme.ShowHpNumber) box.x += RectOf(layout.Shield).width * .5f + 1; else box.y += rowShift;
-                box = Draw.SnapOrigin(box);
-                Draw.Chip(box, Theme.StatusFill(chip.Kind), Theme.Ink);
-                float glyph = box.height - 4;
-                Glyphs.Paint(new Rect(box.x + (chip.Text.Length > 0 ? 2.5f : (box.width - glyph) * .5f), box.y + 2, glyph, glyph), chip.Kind, Color.white);
-                if (chip.Text.Length > 0)
-                    Draw.Text(new Rect(box.x + glyph + 3, box.y - 1, box.width - glyph - 4, box.height), chip.Text, font, Color.white, TextAnchor.MiddleCenter, true);
-            }
-            if (layout.Hidden > 0)
-            {
-                var more = RectOf(layout.Overflow); if (layout.HasShield && !Theme.ShowHpNumber) more.x += RectOf(layout.Shield).width * .5f + 1; else more.y += rowShift;
-                more = Draw.SnapOrigin(more);
-                Draw.Chip(more, Alpha(Theme.Scrim, .9f), Theme.Ink);
-                Draw.Text(new Rect(more.x, more.y - 1, more.width, more.height), "+" + layout.Hidden, font, Color.white, TextAnchor.MiddleCenter, true);
+                float rim = ball.radius * scale, mark = Mathf.Clamp(rim * .3f, 6.5f, 13f), edge = Mathf.Max(1f, 1.4f * scale);
+                int type = Mathf.Clamp(Mathf.RoundToInt(mark * 1.3f), 10, 16);
+                if (Theme.ShowHpNumber)
+                    Draw.Inked(new Rect(point.x - rim, point.y + rim * .18f, rim * 2, rim * .62f), ball.hp.ToString(), Mathf.Clamp(Mathf.RoundToInt(rim * .46f), 9, 22), Color.white, TextAnchor.MiddleCenter, Mathf.Max(1f, 1.4f * scale));
+                var states = BallBadges.Chips(ball);
+                int total = states.Length + (ball.shield > 0 ? 1 : 0), slot = 0;
+                for (int i = 0; i < total && slot < 2; i++, slot++)
+                {
+                    bool left = slot == 0;
+                    // 135 and 45 degrees below the horizon; y grows downwards on screen.
+                    var at = point + new Vector2(left ? -.7071f : .7071f, .7071f) * (rim - mark * .5f);
+                    var disc = new Rect(at.x - mark, at.y - mark, mark * 2, mark * 2);
+                    bool more = slot == 1 && total > 2;
+                    bool shield = ball.shield > 0 && i == 0;
+                    var state = shield || more ? null : states[i - (ball.shield > 0 ? 1 : 0)];
+                    StatusKind kind = shield ? StatusKind.Shield : more ? StatusKind.Token : state.Kind;
+                    Draw.Circle(Expand(disc, edge), Theme.Ink);
+                    Draw.Circle(disc, more ? Alpha(Theme.Scrim, 1f) : Theme.StatusFill(kind));
+                    string text = more ? "+" + (total - 1) : shield ? ball.shield.ToString() : state.Short ?? "";
+                    if (more) Draw.Text(new Rect(disc.x - 4, disc.y - 1, disc.width + 8, disc.height), text, type, Color.white, TextAnchor.MiddleCenter, true);
+                    else
+                    {
+                        float glyph = mark * 1.36f;
+                        Glyphs.Paint(new Rect(at.x - glyph * .5f, at.y - glyph * .5f, glyph, glyph), kind, Color.white);
+                        if (text.Length > 0)
+                        {
+                            float width = type * .62f * text.Length + 6, middle = left ? disc.x + mark * .3f : disc.xMax - mark * .3f;
+                            var corner = new Rect(middle - width * .5f, disc.yMax - type * .8f, width, type + 4);
+                            Draw.Inked(corner, text, type, Color.white, TextAnchor.MiddleCenter, Mathf.Max(1f, 1.3f * scale));
+                        }
+                    }
+                }
             }
             if (layout.HasThreat)
             {

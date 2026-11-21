@@ -133,7 +133,8 @@ namespace CoreClash.Presentation
             bool touch=UiViewport.TargetSize>=44;int actionFont=rows.Width<380?10:touch?12:11;
             if(Draw.Button(RectOf(rows.Actions[0]),Lang.T("Details","Opis"),size:actionFont))ShowBallDetails(selected);
             if(Draw.Button(RectOf(rows.Actions[1]),boardInspection?Lang.T("Cancel","Anuluj"):Lang.T("Inspect","Podgląd"),Theme.Info,boardInspection,true,actionFont))SetBoardInspection(!boardInspection);
-            if(Draw.Button(RectOf(rows.Actions[2]),BoardView.ShowStopEstimate?Lang.T("Stop mark: on","Znacznik stopu: wł."):Lang.T("Stop mark: off","Znacznik stopu: wył."),Theme.Select,BoardView.ShowStopEstimate,true,actionFont))ToggleStopEstimate();
+            // W24: the stop mark, damage numbers, effects and the rest are on one sheet.
+            if(Draw.Button(RectOf(rows.Actions[2]),Lang.T("Options","Opcje"),Theme.Select,true,true,actionFont))OpenSettings();
             if(Draw.Button(RectOf(rows.Actions[3]),Lang.T("Leave","Wyjdź"),size:actionFont))RequestLeaveMatch();
             string hint=boardInspection?Lang.T("TAP A BALL TO INSPECT","DOTKNIJ KULKI, ŻEBY JĄ OBEJRZEĆ"):over?(state.winner<0?Lang.T("DRAW","REMIS"):(Lang.T("PLAYER ","GRACZ ")+(state.winner+1)+Lang.T(" WINS"," WYGRYWA"))):
                 LocalTurnPresentation.ActionHint(state,NetworkLink==null?-1:NetworkLink.LocalOwner,
@@ -203,7 +204,7 @@ namespace CoreClash.Presentation
             float actionW=(actions.width-12)/4;
             if(Draw.Button(new Rect(actions.x,actions.y,actionW,44),Lang.T("Details","Opis"),size:12))ShowBallDetails(selected);
             if(Draw.Button(new Rect(actions.x+actionW+4,actions.y,actionW,44),boardInspection?Lang.T("Cancel","Anuluj"):Lang.T("Inspect","Podgląd"),Theme.Info,boardInspection,true,12))SetBoardInspection(!boardInspection);
-            if(Draw.Button(new Rect(actions.x+2*(actionW+4),actions.y,actionW,44),BoardView.ShowStopEstimate?Lang.T("Stop: on","Stop: wł."):Lang.T("Stop: off","Stop: wył."),Theme.Select,BoardView.ShowStopEstimate,true,12))ToggleStopEstimate();
+            if(Draw.Button(new Rect(actions.x+2*(actionW+4),actions.y,actionW,44),Lang.T("Options","Opcje"),Theme.Select,true,true,12))OpenSettings();
             if(Draw.Button(new Rect(actions.x+3*(actionW+4),actions.y,actionW,44),Lang.T("Leave","Wyjdź"),size:12))RequestLeaveMatch();
             if(feedbackRow.height>=20){
                 string message=over?TurnText():
@@ -280,7 +281,7 @@ namespace CoreClash.Presentation
             Rect Slot(int i)=>new Rect(sheet.x+pad+(i%2)*(cell+gap),sheet.y+pad+(i/2)*(buttonH+gap),cell,buttonH);
             if(MenuButton(Slot(0),IconInspect,boardInspection?Lang.T("Stop inspecting","Koniec podglądu"):Lang.T("Inspect a ball","Obejrzyj kulkę"),Theme.Info,boardInspection)){SetBoardInspection(!boardInspection);phoneMenu=false;}
             if(MenuButton(Slot(1),IconStop,BoardView.ShowStopEstimate?Lang.T("Stop mark: on","Znacznik stopu: wł."):Lang.T("Stop mark: off","Znacznik stopu: wył."),Theme.Select,BoardView.ShowStopEstimate))ToggleStopEstimate();
-            if(MenuButton(Slot(2),Fx.Star,Fx.ReducedMotion?Lang.T("Effects: calm","Efekty: spokojne"):Lang.T("Effects: full","Efekty: pełne"),Theme.Heal,!Fx.ReducedMotion))Fx.SetReducedMotion(!Fx.ReducedMotion);
+            if(MenuButton(Slot(2),Fx.Star,Lang.T("Rules and options","Zasady i opcje"),Theme.Heal,true)){phoneMenu=false;OpenSettings();}
             if(MenuButton(Slot(3),IconLeave,Lang.T("Leave match","Wyjdź z meczu"),Theme.Damage,false)){phoneMenu=false;RequestLeaveMatch();}
         }
         static bool MenuButton(Rect r,string icon,string label,Color accent,bool on)

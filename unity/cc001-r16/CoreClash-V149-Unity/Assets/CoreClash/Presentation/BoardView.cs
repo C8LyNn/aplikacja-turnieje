@@ -83,6 +83,12 @@ namespace CoreClash.Presentation
             var board = new Rect(0, 0, rect.width, rect.height);
             // inner: where the world of the rules is drawn (see FieldBoard). The frame uses `board`.
             var inner = FieldBoard(board);
+            // Who holds the centre by two balls or more (that costs the other base HP when a turn ends).
+            {
+                int lead = 0;
+                foreach (var ball in state.balls) if (!ball.dead && !ball.banished && CoreClash.Physics.ZoneResolver.TouchesCenter(ball)) lead += ball.owner == 0 ? 1 : -1;
+                centreHolder = lead >= 2 ? 0 : lead <= -2 ? 1 : -1;
+            }
             RenderArena(inner);
 
             // Clip gameplay glows and effects to the actual field, as in the V148 canvas.
@@ -129,6 +135,7 @@ namespace CoreClash.Presentation
             Draw.EndGroup();
 
             RenderWalls(board, field);
+            RenderPressureMarks(board, field, state, board.width / 540);
             RenderMarginNotes(board);
             Draw.EndGroup();
             viewOwner=previousViewOwner;
@@ -144,7 +151,7 @@ namespace CoreClash.Presentation
             if(simulation==null||effects==null||rect.width<=0||rect.height<=0)return;
             int previousViewOwner=viewOwner,previousActing=actingOwner,previousTurn=turnShown;float previousSince=turnSince;
             var state=simulation.State;float now=Time.unscaledTime,scale=rect.width/(Right-Left);
-            viewOwner=0;actingOwner=-1;turnShown=state.turnNumber;
+            viewOwner=0;actingOwner=-1;turnShown=state.turnNumber;centreHolder=-1;
             effects.Swap();
             try
             {
@@ -191,6 +198,8 @@ namespace CoreClash.Presentation
         // up: its surface, the two painted end zones, mown stripes across all of it, light in the
         // middle, the painted centre circle with the turn number, and the shadow of the walls.
         const int Bands = 10;
+        // The player who holds the centre (-1: nobody). Set by Render; a demo stage shows none.
+        static int centreHolder = -1;
         static void RenderArena(Rect board)
         {
             var look = Theme.Arena;
@@ -215,7 +224,8 @@ namespace CoreClash.Presentation
             bool lightFloor = look.Floor.r * .299f + look.Floor.g * .587f + look.Floor.b * .114f > .6f;
             Color floorDeep = Theme.Shade(look.Floor, 1.3f, .68f);
             if (lightFloor) Draw.Ring(centre, (CentreRadius + 2f) * scale, Theme.A(floorDeep, .8f), Mathf.Max(3.6f, 8.5f * scale));
-            Draw.Ring(centre, CentreRadius * scale, look.Ring, Mathf.Max(2.2f, 4.5f * scale));
+            // The ring takes the colour of the player who holds the centre by two balls or more.
+            Draw.Ring(centre, CentreRadius * scale, centreHolder < 0 ? look.Ring : Draw.Owner(centreHolder), Mathf.Max(2.2f, (centreHolder < 0 ? 4.5f : 7f) * scale));
             // The turn number, painted on the floor like a court marking.
             if (turnShown > 0) Draw.Text(new Rect(centre.x - 100 * scale, centre.y - 60 * scale, 200 * scale, 120 * scale), turnShown.ToString(), Mathf.Max(20, Mathf.RoundToInt(78 * scale)), lightFloor ? Theme.A(floorDeep, .85f) : Theme.A(look.Ring, .5f), TextAnchor.MiddleCenter, true);
             int font = Mathf.Max(8, Mathf.RoundToInt(10 * scale));
@@ -346,8 +356,27 @@ namespace CoreClash.Presentation
                     : zone.kind == "blackHole" ? new Color(.45f, .2f, .8f) : new Color(.42f, .56f, .8f);
                 bool dense = zone.kind == "portal" || zone.kind == "blackHole";
                 var center = Point(board, zone.x, zone.y);
+                if (fire || ice || toxin)
+                {
+                    // W24 (owner direction: "an ice field is to be icy, poison poison, fire fire"): an
+                    // element's field is a patch of that element - its own colours, a solid edge, and
+                    // its symbol strewn over it (a still pattern, the same every frame).
+                    float reach = zone.radius * scale;
+                    var patch = new Rect(center.x - reach, center.y - reach, reach * 2, reach * 2);
+                    StatusKind kind = fire ? StatusKind.Fire : ice ? StatusKind.Ice : StatusKind.Toxin;
+                    Color pale = fire ? new Color(1f, .86f, .25f) : ice ? new Color(.92f, .98f, 1f) : new Color(.78f, 1f, .45f);
+                    Color deep = Color.Lerp(color, Theme.Ink, fire ? .1f : ice ? .2f : .3f);
+                    Draw.Circle(patch, Theme.A(color, ice ? .46f : .4f));
+                    Draw.Circle(Draw.Grow(patch, -reach * .32f), Theme.A(pale, ice ? .3f : .22f));
+                    Draw.Ring(center, reach, Theme.A(deep, .92f), Mathf.Max(2f, 3.4f * scale));
+                    Draw.Ring(center, reach - Mathf.Max(2f, 3.4f * scale), Theme.A(pale, .55f), Mathf.Max(1f, 1.6f * scale));
+                    Strew(board, zone, scale, kind, Theme.A(ice ? Color.white : fire ? Color.Lerp(pale, color, .35f) : deep, ice ? .85f : .7f));
+                }
+                else
+                {
                 Draw.Circle(Box(board, zone.x - zone.radius, zone.y - zone.radius, zone.radius * 2, zone.radius * 2), Theme.A(color, dense ? .6f : .26f));
                 Draw.Ring(center, zone.radius * scale, Theme.A(Color.Lerp(color, Theme.Ink, .15f), dense ? .95f : .8f), Mathf.Max(1.5f, 2.4f * scale), dense ? 0 : 24, .62f);
+                }
                 if (dense && !Fx.ReducedMotion) Draw.Ring(center, zone.radius * scale * (.55f + .2f * Mathf.Sin(Time.unscaledTime * 3 + zone.id)), Theme.A(Color.white, .5f), Mathf.Max(1, 1.6f * scale), 6, .45f);
                 if (dense)
                     Draw.Circle(Box(board, zone.x - zone.radius * .68f, zone.y - zone.radius * .68f, zone.radius * 1.36f, zone.radius * 1.36f), new Color(.14f, .08f, .32f));
@@ -359,12 +388,23 @@ namespace CoreClash.Presentation
                     float glyph=Mathf.Max(10,15*scale);
                     Draw.Circle(new Rect(center.x-glyph*.8f,center.y-glyph*.8f,glyph*1.6f,glyph*1.6f),Theme.Ink);Glyphs.Paint(new Rect(center.x-glyph/2,center.y-glyph/2,glyph,glyph),fire?StatusKind.Fire:ice?StatusKind.Ice:StatusKind.Toxin,color);
                 }
-                else if(fire||ice||toxin)
-                {
-                    // Element field: the same symbol its status uses on a ball.
-                    float glyph=Mathf.Max(11,18*scale);
-                    Glyphs.Paint(new Rect(center.x-glyph/2,center.y-glyph/2,glyph,glyph),fire?StatusKind.Fire:ice?StatusKind.Ice:StatusKind.Toxin,Theme.A(Color.Lerp(color,Theme.Ink,.25f),.8f));
-                }
+            }
+        }
+        // The element's symbol strewn over its field: a still pattern made from the field's id.
+        static void Strew(Rect board, ZoneRuntime zone, float scale, StatusKind kind, Color tint)
+        {
+            uint seed = (uint)zone.id * 2654435761u | 1u;
+            int count = Mathf.Clamp(Mathf.RoundToInt(zone.radius * zone.radius / 1500f), 4, 10);
+            for (int i = 0; i < count; i++)
+            {
+                seed ^= seed << 13; seed ^= seed >> 17; seed ^= seed << 5;
+                float angle = (seed & 1023) / 1023f * Mathf.PI * 2 + i * 2.39996f;
+                seed ^= seed << 13; seed ^= seed >> 17; seed ^= seed << 5;
+                // The first one stands in the middle; the rest fill the field evenly out to its edge.
+                float away = i == 0 ? 0 : Mathf.Sqrt((i + .35f) / count) * .8f * zone.radius;
+                float size = Mathf.Max(9, (14 + (seed & 7)) * scale) * (i == 0 ? 1.35f : 1);
+                var at = Point(board, zone.x + Mathf.Cos(angle) * away, zone.y + Mathf.Sin(angle) * away);
+                Glyphs.Paint(new Rect(at.x - size * .5f, at.y - size * .5f, size, size), kind, tint);
             }
         }
 
@@ -526,6 +566,10 @@ namespace CoreClash.Presentation
                 if(text.Length==0)continue;
                 bool number=FeedbackStyle.IsNumber(kind);
                 if(!number&&!Theme.BoardCaptions)continue;
+                // W24 (owner direction): numbers over the balls take the eye off the collision itself.
+                // They are off unless the player turns them on; the flash on a ball's HP ring already
+                // shows what it lost. A base's own number stays.
+                if(number&&kind!=FeedbackClass.BaseDamage&&!MatchSetup.DamageNumbers)continue;
                 int font=number?Mathf.Max(12,Mathf.RoundToInt((FeedbackStyle.Amount(effect.text)>=10?20:17)*scale)):Mathf.Max(9,Mathf.RoundToInt(11*scale));
                 float height=font+7,icon=EffectGlyph(kind,out _)?height-2:0;
                 float width=Mathf.Min(field.width-4,text.Length*font*(number?.7f:.64f)+14+icon);
@@ -759,6 +803,24 @@ namespace CoreClash.Presentation
         // them, so wall and bar meet in a clean joint. A wall is a light rim with an ink edge of the
         // same whole number of pixels on each side. It stands wholly outside the field: its inner
         // edge is the wall of the rules, so a ball that touches it is drawn touching it.
+        // W24 (owner direction: show better which zone a ball is in): what the zones do, shown where
+        // it will happen. A ball that touches the enemy's zone costs that base 1 HP when its owner's
+        // turn ends: a small red wedge stands on that base's bar under the ball. (The centre is told
+        // by its ring: see RenderArena.) Read from the rules' own tests; nothing is decided here.
+        static void RenderPressureMarks(Rect board, Rect field, GameState state, float unit)
+        {
+            float size = Mathf.Max(6, 9 * unit);
+            foreach (var ball in state.balls)
+            {
+                if (ball.dead || ball.banished || !CoreClash.Physics.ZoneResolver.TouchesEnemyZone(ball)) continue;
+                bool atTop = Box(board, 0, ball.owner == 0 ? 0 : 900 - BaseThick, 540, BaseThick).center.y < board.center.y;
+                float x = Mathf.Clamp(Point(FieldBoard(board), ball.x, ball.y).x, field.x + size, field.xMax - size), y = atTop ? field.y : field.yMax;
+                var tip = new Vector2(x, atTop ? y - size * .2f : y + size * .2f);
+                float back = atTop ? y + size : y - size;
+                Draw.Triangle(tip, new Vector2(x - size * .7f, back), new Vector2(x + size * .7f, back), Draw.Line(1.2f * unit) + 1, Theme.Ink);
+                Draw.Triangle(tip, new Vector2(x - size * .7f, back), new Vector2(x + size * .7f, back), 1, Theme.Damage);
+            }
+        }
         static void RenderWalls(Rect board, Rect field)
         {
             float unit = board.width / 540, rim = Draw.Line(3 * unit), edge = Draw.Line(2 * unit), thick = WallThick(unit);
@@ -801,6 +863,8 @@ namespace CoreClash.Presentation
             Draw.Rect(strip, Theme.Ink);
             var bar = new Rect(strip.x, strip.y + inkLine, strip.width, Mathf.Max(inkLine, strip.height - 2 * inkLine));
             Draw.Rect(bar, Color.Lerp(Theme.Ink, deep, .38f));
+            // A base that is hit lights up along its whole length for a moment (real BASE_DAMAGE event).
+            if (flash > 0) Draw.Rect(bar, Alpha(Color.Lerp(Theme.Damage, Color.white, Mathf.Clamp01(flash * 2 - 1)), .7f * flash * flash));
             // Plate: heart, launch dish, number. The dish itself is drawn by RenderLauncher, on top.
             // W24 (owner direction: clean edges): every pip is the same whole number of screen pixels
             // wide, with the same gap; the plate between them takes whatever is left over.
