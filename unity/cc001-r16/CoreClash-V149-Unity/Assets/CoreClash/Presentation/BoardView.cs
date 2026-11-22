@@ -344,6 +344,8 @@ namespace CoreClash.Presentation
             }
         }
 
+        const string ArrowUp = "+L -.7 .45 0 -.45 .36;+L 0 -.45 .7 .45 .36", ArrowDown = "+L -.7 -.45 0 .45 .36;+L 0 .45 .7 -.45 .36";
+        const string ArrowLeft = "+L .45 -.7 -.45 0 .36;+L -.45 0 .45 .7 .36", ArrowRight = "+L -.45 -.7 .45 0 .36;+L .45 0 -.45 .7 .36";
         static void RenderZones(Rect board, GameState state)
         {
             float scale = board.width / 540;
@@ -357,6 +359,7 @@ namespace CoreClash.Presentation
                     : zone.kind == "consecrated" ? new Color(1, .76f, .1f)
                     : zone.kind == "web" ? new Color(.28f, .72f, .2f)
                     : zone.kind == "shocktrap" ? new Color(1f, .84f, .1f)
+                    : zone.kind == "gravitymine" ? new Color(.36f, .42f, .96f)
                     : zone.kind == "portal" ? new Color(.6f, .4f, 1)
                     : zone.kind == "blackHole" ? new Color(.45f, .2f, .8f) : new Color(.42f, .56f, .8f);
                 bool dense = zone.kind == "portal" || zone.kind == "blackHole";
@@ -371,8 +374,9 @@ namespace CoreClash.Presentation
                     StatusKind kind = fire ? StatusKind.Fire : ice ? StatusKind.Ice : StatusKind.Toxin;
                     Color pale = fire ? new Color(1f, .86f, .25f) : ice ? new Color(.92f, .98f, 1f) : new Color(.9f, .72f, 1f);
                     Color deep = Color.Lerp(color, Theme.Ink, fire ? .1f : ice ? .2f : .3f);
-                    Draw.Circle(patch, Theme.A(color, ice ? .46f : .4f));
-                    Draw.Circle(Draw.Grow(patch, -reach * .32f), Theme.A(pale, ice ? .3f : .22f));
+                    // The fill is light: a field must not hide the board, the balls or another field under it.
+                    Draw.Circle(patch, Theme.A(color, ice ? .34f : .3f));
+                    Draw.Circle(Draw.Grow(patch, -reach * .32f), Theme.A(pale, ice ? .2f : .15f));
                     Draw.Ring(center, reach, Theme.A(deep, .92f), Mathf.Max(2f, 3.4f * scale));
                     Draw.Ring(center, reach - Mathf.Max(2f, 3.4f * scale), Theme.A(pale, .55f), Mathf.Max(1f, 1.6f * scale));
                     Strew(board, zone, scale, kind, Theme.A(ice ? Color.white : fire ? Color.Lerp(pale, color, .35f) : deep, ice ? .85f : .7f));
@@ -381,6 +385,15 @@ namespace CoreClash.Presentation
                 {
                 Draw.Circle(Box(board, zone.x - zone.radius, zone.y - zone.radius, zone.radius * 2, zone.radius * 2), Theme.A(color, dense ? .6f : .26f));
                 Draw.Ring(center, zone.radius * scale, Theme.A(Color.Lerp(color, Theme.Ink, .15f), dense ? .95f : .8f), Mathf.Max(1.5f, 2.4f * scale), dense ? 0 : 24, .62f);
+                }
+                if (zone.kind == "gravitymine")
+                {
+                    // The magnet mine's field: four arrowheads on its rim point at the mine.
+                    float mark = Mathf.Max(11, 17 * scale), rim = zone.radius * scale * .74f; Color tint = Theme.A(Color.Lerp(color, Theme.Ink, .25f), .85f);
+                    Glyphs.Paint(new Rect(center.x - mark / 2, center.y - rim - mark / 2, mark, mark), ArrowDown, tint);
+                    Glyphs.Paint(new Rect(center.x - mark / 2, center.y + rim - mark / 2, mark, mark), ArrowUp, tint);
+                    Glyphs.Paint(new Rect(center.x - rim - mark / 2, center.y - mark / 2, mark, mark), ArrowRight, tint);
+                    Glyphs.Paint(new Rect(center.x + rim - mark / 2, center.y - mark / 2, mark, mark), ArrowLeft, tint);
                 }
                 if (dense && !Fx.ReducedMotion) Draw.Ring(center, zone.radius * scale * (.55f + .2f * Mathf.Sin(Time.unscaledTime * 3 + zone.id)), Theme.A(Color.white, .5f), Mathf.Max(1, 1.6f * scale), 6, .45f);
                 if (dense)

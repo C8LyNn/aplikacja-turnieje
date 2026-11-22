@@ -243,6 +243,11 @@ namespace CoreClash.Testing
             sim.State.turn = 1; sim.Abilities.OnTurnStart(1);
             if (clips) { yield return Frames(clip, sim, 30); EndClip(); } else { yield return Seconds(.14f); yield return Capture("14-storm"); }
             yield return Seconds(.8f);
+            // Three more powers at once: a Volcano erupts, a Mushroom dies, a magnet mine lays its field.
+            var volcano = Place(sim, 0, "firebrand", 110, 600); var mushroom = Place(sim, 1, "plagueburst", 430, 560); var magnetMine = Place(sim, 0, "gravitymine", 300, 770);
+            yield return Seconds(.3f);
+            sim.Abilities.OnStop(magnetMine); sim.Abilities.OnStop(volcano); sim.Kill(mushroom);
+            yield return Seconds(.12f);
             yield return Capture("15-zones-and-portals");
 
             // 9. Result screen: the real end of a match (base HP reaches zero through the simulation).

@@ -44,7 +44,7 @@ namespace CoreClash.Core
         void SpatialStop(BallRuntime b)
         {
             switch(b.type){
-                case "anchor":b.anchorStacks=3;b.vx=b.vy=0;break;
+                case "anchor":b.anchorStacks=3;b.vx=b.vy=0;if(S.plainPowers)sim.Emit("ANCHOR",b,"Anchored");break;
                 case "vinehook":if(b.lastAbilityTurn!=S.turnNumber){var target=Near(b,165,false).FirstOrDefault(x=>x.anchorStacks<3);if(target!=null){b.lastAbilityTurn=S.turnNumber;Impulse(target,b.x,b.y,300);sim.Emit("PULL",target,"Vinehook");}}break;
                 case "harpoon":var far=Near(b,230,false).LastOrDefault();if(far!=null){Impulse(far,b.x,b.y,690);sim.Emit("PULL",far,"Harpoon");}break;
                 case "vortexmedic":var enemies=Near(b,165,false);foreach(var e in enemies)Impulse(e,b.x,b.y,390);var hurt=Living().Where(x=>x.owner==b.owner&&Dist(b,x)<=165&&x.hp<x.maxHp).OrderBy(x=>(float)x.hp/x.maxHp).FirstOrDefault();if(enemies.Length>0&&hurt!=null)sim.Heal(hurt,Math.Min(10,enemies.Length*5));break;
@@ -58,7 +58,9 @@ namespace CoreClash.Core
                     // Plain powers: the Magnet gathers balls - each one rolls right up to it and stops
                     // there (the reference pull throws them into the Magnet hard enough to kill it).
                     if(S.plainPowers&&b.type=="magnet"){float gap=Dist(b,t)-b.radius-t.radius-4;if(gap>0)Impulse(t,b.x,b.y,(gap+14)/1.175f);continue;}
-                    float fall=.45f+.55f*(1-Dist(b,t)/165);Impulse(t,b.type=="magnet"?b.x:2*t.x-b.x,b.type=="magnet"?b.y:2*t.y-b.y,(b.type=="magnet"?520:500)*fall);}break;
+                    float fall=.45f+.55f*(1-Dist(b,t)/165);Impulse(t,b.type=="magnet"?b.x:2*t.x-b.x,b.type=="magnet"?b.y:2*t.y-b.y,(b.type=="magnet"?520:500)*fall);}
+                    // Nothing in the rules changes here: the event only lets the screen show the pull or the push.
+                    if(S.plainPowers)sim.Emit(b.type=="magnet"?"MAGNET":"PULSE",b,b.type=="magnet"?"Pull":"Push");break;
             }
         }
         void CreatePortals(BallRuntime b)

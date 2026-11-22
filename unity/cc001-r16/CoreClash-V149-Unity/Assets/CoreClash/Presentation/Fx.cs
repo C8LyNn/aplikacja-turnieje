@@ -37,7 +37,7 @@ namespace CoreClash.Presentation
         public const string Flame = "+C 0 .34 .5;+P -.1 -.98 .46 .2 -.48 .24";
         public const string Snow = "+L -.85 0 .85 0 .24;+L -.43 -.74 .43 .74 .24;+L .43 -.74 -.43 .74 .24";
         public const string Chevron = "+L -.7 .45 0 -.45 .34;+L 0 -.45 .7 .45 .34";
-        static readonly Color Spark = new Color(1, .86f, .28f), Volt = new Color(1f, .9f, .2f);
+        static readonly Color Spark = new Color(1, .86f, .28f), Volt = new Color(1f, .9f, .2f), Magnetic = new Color(.24f, .3f, .92f);
         public const string Confetti = "+P -.9 -.4 .9 -.4 .9 .4 -.9 .4";
 
         struct Particle
@@ -51,7 +51,7 @@ namespace CoreClash.Presentation
         static Particle[] particles = new Particle[MaxParticles];
         static int particleCount;
 
-        enum Shape { Shock, Flash, Streak, Converge, Swirl, Column, Ripple, Bolt }
+        enum Shape { Shock, Flash, Streak, Converge, Swirl, Column, Ripple, Bolt, Burst }
         struct Effect
         {
             public Shape shape; public float x, y, x2, y2, born, life, radius; public Color color; public int seed;
@@ -275,6 +275,8 @@ namespace CoreClash.Presentation
                     float size = e.kind == "EXPLOSION" ? Theme.ExplosionRadius : 84;
                     Push(Shape.Flash, x, y, x, y, now, .3f, size * .7f, Color.Lerp(colour, Spark, .6f), e.id);
                     Push(Shape.Shock, x, y, x, y, now, .55f, size, colour, e.id);
+                    // A blast opens with a starburst: the one shape that says "explosion" at a glance.
+                    if (e.kind == "EXPLOSION") Push(Shape.Burst, x, y, x, y, now, .3f, size * .56f, Color.Lerp(colour, Spark, .75f), e.id);
                     Shake(now, .22f, e.kind == "EXPLOSION" ? 3.5f : 2f);
                     if (ReducedMotion) break;
                     for (int i = 0; i < 22; i++)
@@ -286,7 +288,14 @@ namespace CoreClash.Presentation
                     for (int i = 0; i < 6; i++) Add(x + Rand(-22, 22), y + Rand(-22, 22), Rand(-26, 26), Rand(-50, -12), Rand(.7f, 1.15f), Rand(18, 30), new Color(.3f, .32f, .5f, .4f), null, 0, 1.2f, .8f);
                     break;
                 }
-                case "FIRE": case "BONFIRE": case "FIREBRAND": case "ASHCORE":
+                case "FIREBRAND":
+                    // The Volcano: a ring of fire as wide as its reach, flames thrown up from it.
+                    Push(Shape.Flash, x, y, x, y, now, .26f, (ball?.radius ?? 17) * 2.2f, Color.Lerp(Theme.Status(StatusKind.Fire), Spark, .5f), e.id);
+                    Push(Shape.Shock, x, y, x, y, now, .55f, 100, Theme.Status(StatusKind.Fire), e.id);
+                    Burst(x, y, 14, Theme.Status(StatusKind.Fire), Flame, 90, 260, .6f, 9, -120);
+                    Shake(now, .16f, 1.6f);
+                    break;
+                case "FIRE": case "BONFIRE": case "ASHCORE":
                     Burst(x, y - (ball?.radius ?? 17) * .4f, 7, Theme.Status(StatusKind.Fire), Flame, 30, 110, .55f, 8, -90);
                     Push(Shape.Ripple, x, y, x, y, now, .4f, (ball?.radius ?? 17) + 20, Theme.Status(StatusKind.Fire), e.id);
                     break;
@@ -359,11 +368,37 @@ namespace CoreClash.Presentation
                     Push(Shape.Shock, x, y, x, y, now, .3f, (ball?.radius ?? 17) + 22, Theme.Info, e.id);
                     if (other != null) Push(Shape.Streak, x, y, other.x, other.y, now, .45f, -(ball?.radius ?? 17), Theme.Info, e.id + 3);
                     break;
-                case "TRAP_TRIGGER":
-                    Push(Shape.Flash, x, y, x, y, now, .2f, 30, Spark, e.id);
-                    Push(Shape.Shock, x, y, x, y, now, .4f, 46, Theme.Threat, e.id);
-                    Burst(x, y, 8, Theme.Threat, Star, 60, 170, .45f, 6);
+                case "MAGNET":
+                    // Two rings close in on the Magnet from the edge of its reach.
+                    Push(Shape.Converge, x, y, x, y, now, .5f, 165, Magnetic, e.id);
+                    Push(Shape.Converge, x, y, x, y, now + .14f, .5f, 165, Magnetic, e.id + 1);
                     break;
+                case "PULSE":
+                    // One ring runs out from the Pulse to the edge of its reach.
+                    Push(Shape.Flash, x, y, x, y, now, .2f, (ball?.radius ?? 17) * 1.8f, Magnetic, e.id);
+                    Push(Shape.Shock, x, y, x, y, now, .5f, 165, Magnetic, e.id);
+                    break;
+                case "ANCHOR":
+                    Push(Shape.Shock, x, y, x, y, now, .3f, (ball?.radius ?? 17) + 20, Theme.Ink, e.id);
+                    Shake(now, .12f, 1.2f);
+                    break;
+                case "SPORES":
+                    Push(Shape.Shock, x, y, x, y, now, .6f, 100, Theme.Status(StatusKind.Toxin), e.id);
+                    Burst(x, y, 16, Theme.Status(StatusKind.Toxin), Bubble, 50, 190, .8f, 8, -30);
+                    break;
+                case "BLOOM":
+                    Push(Shape.Ripple, x, y, x, y, now, .6f, AbilityResolver.BloomRange, Theme.Heal, e.id);
+                    break;
+                case "TRAP_TRIGGER":
+                {
+                    // The trap goes off in the colour of what it holds.
+                    string trap = e.text ?? "";
+                    Color tone = trap.StartsWith("ember") ? Theme.Status(StatusKind.Fire) : trap.StartsWith("frost") ? Theme.Status(StatusKind.Ice) : trap.StartsWith("spore") ? Theme.Status(StatusKind.Toxin) : trap.StartsWith("shock") ? Volt : Theme.Threat;
+                    Push(Shape.Flash, x, y, x, y, now, .2f, 30, Color.Lerp(tone, Color.white, .4f), e.id);
+                    Push(Shape.Shock, x, y, x, y, now, .4f, 46, tone, e.id);
+                    Burst(x, y, 8, tone, Star, 60, 170, .45f, 6);
+                    break;
+                }
                 case "SWAP":
                 {
                     // Both balls already stand on each other's place: one arc each way, in the two team colours.
@@ -603,7 +638,7 @@ namespace CoreClash.Presentation
                         break;
                     }
                     // Lightning is drawn above the balls (RenderOver), so the bolt is seen from its sender.
-                    case Shape.Bolt: break;
+                    case Shape.Bolt: case Shape.Burst: break;
                     case Shape.Swirl:
                     {
                         // Dots spiralling inward: the shared sign for portals, swaps and identity changes.
@@ -643,6 +678,28 @@ namespace CoreClash.Presentation
                 }
             }
         }
+        // The opening of an explosion: a spiked star that jumps out and fades - ink outline, hot body,
+        // white core. Its spikes are fixed by the event, so it does not flicker.
+        static void DrawBurst(Effect e, Rect board, int viewOwner, float t, float scale, float strength)
+        {
+            var at = View(board, viewOwner, e.x, e.y);
+            float grow = 1 - (1 - t) * (1 - t) * (1 - t), fade = Mathf.Clamp01((1 - t) * 2.4f) * strength;
+            float outer = e.radius * (.4f + .6f * grow) * scale, inner = outer * .56f, turn = (e.seed % 9) * .35f;
+            const int spikes = 11;
+            for (int pass = 0; pass < 3; pass++)
+            {
+                float reach = pass == 0 ? outer + 4.5f * scale : pass == 1 ? outer : outer * .6f, waist = pass == 0 ? inner + 3.5f * scale : pass == 1 ? inner : inner * .6f;
+                Color tint = pass == 0 ? Theme.A(Theme.Ink, fade) : pass == 1 ? Theme.A(e.color, fade) : Theme.A(Color.white, fade);
+                for (int k = 0; k < spikes; k++)
+                {
+                    float angle = turn + k * Mathf.PI * 2 / spikes, half = Mathf.PI / spikes * 1.08f, length = reach * (k % 2 == 0 ? 1f : .8f);
+                    Vector2 tip = at + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * length;
+                    Vector2 left = at + new Vector2(Mathf.Cos(angle - half), Mathf.Sin(angle - half)) * waist, right = at + new Vector2(Mathf.Cos(angle + half), Mathf.Sin(angle + half)) * waist;
+                    Draw.Triangle(left, right, tip, .6f, tint);
+                }
+                Draw.Circle(new Rect(at.x - waist * 1.03f, at.y - waist * 1.03f, waist * 2.06f, waist * 2.06f), tint);
+            }
+        }
         // Flashes and particles above the balls.
         public static void RenderOver(Rect board, int viewOwner, float now)
         {
@@ -652,6 +709,7 @@ namespace CoreClash.Presentation
             {
                 var e = effects[i]; float age = now - e.born;
                 if (e.shape == Shape.Bolt && age >= 0 && age < e.life) { DrawBolt(e, board, viewOwner, age / e.life, scale, strength); continue; }
+                if (e.shape == Shape.Burst && age >= 0 && age < e.life) { DrawBurst(e, board, viewOwner, age / e.life, scale, strength); continue; }
                 if (e.shape != Shape.Flash || age < 0 || age >= e.life) continue;
                 float t = age / e.life; var at = View(board, viewOwner, e.x, e.y);
                 float radius = e.radius * (.55f + .6f * t) * scale;

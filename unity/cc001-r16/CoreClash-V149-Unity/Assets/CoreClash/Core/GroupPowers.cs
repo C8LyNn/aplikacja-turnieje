@@ -104,7 +104,9 @@ namespace CoreClash.Core
                     if(b.charge<ChargeMax){b.charge++;sim.Emit("CHARGE",b,b.charge+"/"+ChargeMax);}
                     break;
                 case "elderbloom":
-                    foreach(var ally in Living().Where(x=>x.owner==b.owner&&Dist(b,x)<=BloomRange&&x.hp<x.maxHp))sim.Heal(ally,BloomHeal);
+                    var hurt=Living().Where(x=>x.owner==b.owner&&Dist(b,x)<=BloomRange&&x.hp<x.maxHp).ToArray();
+                    if(hurt.Length>0)sim.Emit("BLOOM",b,"Heals x"+hurt.Length);
+                    foreach(var ally in hurt)sim.Heal(ally,BloomHeal);
                     break;
                 case "cultivator":
                     if(b.growthStage>=GrowthMax)break;

@@ -226,11 +226,10 @@ namespace CoreClash.Presentation
                 .PassTurn(1.8f);
 
             // Magnetism.
-            // Magnet and Pulse have no event of their own: the proof is the balls they set in motion.
-            Show("magnet").Shows("START")
+            Show("magnet").Shows("MAGNET")
                 .Put(1,"normal",170,400).Put(1,"normal",375,420).Put(0,"normal",190,560)
                 .Launch(0,"magnet",270,480,Up(480),1.8f);
-            Show("pulse").Shows("START")
+            Show("pulse").Shows("PULSE")
                 .Put(1,"normal",205,420).Put(1,"normal",335,430).Put(0,"normal",190,540)
                 .Launch(0,"pulse",270,480,Up(480),1.8f);
             // The Compass stops short on the left and then goes for the enemy on the right by itself.

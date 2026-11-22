@@ -48,7 +48,7 @@ namespace CoreClash.Core
                 case "deathpulse":foreach(var t in Near(b,100))Impulse(t,2*t.x-b.x,2*t.y-b.y,300);break;
                 case "frostgrave":CreateZone(b,"ice",104,3);break;
                 case "martyr":S.players[b.owner].hp=Math.Min(20,S.players[b.owner].hp+3);break;
-                case "plagueburst":foreach(var t in Near(b,100,false))ApplyToxin(t,b.owner);break;
+                case "plagueburst":foreach(var t in Near(b,100,false))ApplyToxin(t,b.owner);if(S.plainPowers)sim.Emit("SPORES",b,"Spore cloud");break;
                 case "eggsac":SpawnEggSacBroodlings(b);break;
                 case "swarmcore":SpawnSwarmShards(b);break;
                 case "conscriptor":ConscriptorDeath(b);break;
