@@ -67,7 +67,10 @@ namespace CoreClash.Presentation
             string title=draw?Lang.T("DRAW","REMIS"):aiMatch?(state.winner==0?Lang.T("YOU WIN!","WYGRYWASZ!"):Lang.T("AI WINS","WYGRYWA AI")):local?Lang.T("PLAYER ","GRACZ ")+(state.winner+1)+Lang.T(" WINS!"," WYGRYWA!"):you?Lang.T("YOU WIN!","WYGRYWASZ!"):Lang.T("PLAYER ","GRACZ ")+(state.winner+1)+Lang.T(" WINS"," WYGRYWA");
             Draw.Text(new Rect(ribbon.x,ribbon.y+1,ribbon.width,ribbon.height-5),title,w<280?20:24,new Color(0,0,0,.22f),TextAnchor.MiddleCenter,true);
             Draw.Text(new Rect(ribbon.x,ribbon.y-1,ribbon.width,ribbon.height-5),title,w<280?20:24,draw?Theme.Ink:Theme.OnColor,TextAnchor.MiddleCenter,true);
-            Draw.Text(new Rect(card.x+12,ribbon.yMax+6,card.width-24,20),ResultReason(state.resultReason),13,Theme.Text,TextAnchor.MiddleCenter,true);
+            // A match against the computer says on which level it was played, when that fits beside the reason.
+            string reason=ResultReason(state.resultReason),versus=aiMatch?Lang.T("Computer: ","Komputer: ")+MatchSetup.AiLevelName(aiLevel).ToLowerInvariant():"";
+            if(versus.Length>0)reason=reason.Length==0?versus:Draw.TextWidth(reason+"  ·  "+versus,13,true)<=card.width-24?reason+"  ·  "+versus:reason;
+            Draw.Text(new Rect(card.x+12,ribbon.yMax+6,card.width-24,20),reason,13,Theme.Text,TextAnchor.MiddleCenter,true);
             // Both bases, in their colours, with what is left of the 20 HP.
             float cellW=(card.width-36)/2,cellY=ribbon.yMax+30;
             for(int owner=0;owner<2;owner++)

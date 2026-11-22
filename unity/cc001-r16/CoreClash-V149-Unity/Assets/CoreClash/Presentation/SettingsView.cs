@@ -19,7 +19,7 @@ namespace CoreClash.Presentation
             Draw.Rect(new Rect(0,0,UiWidth,UiHeight),Theme.A(Theme.Scrim,.62f));
             bool narrow=UiWidth<560;
             float w=Mathf.Min(620,UiWidth-(narrow?16:48)),pad=narrow?12:18,rowH=narrow?78:54,head=50,foot=64;
-            int rows=VersusAi?12:11;float content=rows*rowH+3*30+8;
+            int rows=VersusAi?13:12;float content=rows*rowH+3*30+8;
             float h=Mathf.Min(UiHeight-(narrow?16:48),head+content+foot),x=(UiWidth-w)/2,y=(UiHeight-h)/2;
             var card=new Rect(x,y,w,h);Draw.Card(card,null,null,.4f);
             var face=Draw.CardFace(card);
@@ -29,6 +29,10 @@ namespace CoreClash.Presentation
             settingsScroll=Draw.ScrollView(view,settingsScroll,new Rect(0,0,inner,content));
             float at=0;
             Section(ref at,inner,Lang.T("Rules of the match","Zasady meczu"),Lang.T("from the next match","od następnego meczu"));
+            // W24: who plays the second side. (The home screen has the same choice on Player 2's block,
+            // but a phone held sideways has no room for that block.)
+            int rival=Choice(ref at,inner,rowH,narrow,Lang.T("Opponent","Przeciwnik"),new[]{Lang.T("Player 2","Gracz 2"),Lang.T("Computer","Komputer")},VersusAi?1:0);
+            if((rival==1)!=VersusAi)SetVersusAi(rival==1);
             int scale=Array.IndexOf(MatchSetup.BallScales,MatchSetup.BallScale);if(scale<0)scale=MatchSetup.BallScales.Length-1;
             int pick=Choice(ref at,inner,rowH,narrow,Lang.T("Ball size","Rozmiar kulek"),new[]{"×1","×1,5","×2"},scale);
             if(pick!=scale)MatchSetup.BallScale=MatchSetup.BallScales[pick];

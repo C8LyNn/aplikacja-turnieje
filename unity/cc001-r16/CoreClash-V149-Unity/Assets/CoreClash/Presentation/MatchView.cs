@@ -118,7 +118,8 @@ namespace CoreClash.Presentation
             Draw.Text(new Rect(textX,strip.y+(rows.Tight?5:7),textWidth,22),BallIcons.Name(d),rows.Tight?16:19,Theme.Text,TextAnchor.MiddleLeft,true);
             string stockText=selected=="normal"?Lang.T("unlimited","bez limitu"):LocalDeckContent.StockLabel(Simulation,displayOwner,selected);
             var chosenGuide=BallGuide.For(selected);
-            string facts=(rows.Tight&&chosenGuide!=null?chosenGuide.Tag+"  ·  ":"")+d.hp+" HP  ·  "+stockText;
+            // Every ball has the same HP, so it is not printed: what the ball does, and how many are left.
+            string facts=(rows.Tight&&chosenGuide!=null?chosenGuide.Tag+"  ·  ":"")+stockText;
             Draw.Text(new Rect(textX,strip.y+(rows.Tight?27:30),textWidth,16),facts,Theme.FontSmall,Theme.SelectInk,TextAnchor.MiddleLeft,true);
             if(!rows.Tight)GuideLine(new Rect(textX,strip.y+46,textWidth,18),selected,Theme.FontSmall);
             string deckHeading=NetworkLink==null?Lang.T("Deck","Talia"):displayOwner<0?Lang.T("Deck unavailable","Talia niedostępna"):Lang.T("Your deck","Twoja talia");
@@ -206,7 +207,18 @@ namespace CoreClash.Presentation
             if(Draw.Button(new Rect(actions.x+actionW+4,actions.y,actionW,44),boardInspection?Lang.T("Cancel","Anuluj"):Lang.T("Inspect","Podgląd"),Theme.Info,boardInspection,true,12))SetBoardInspection(!boardInspection);
             if(Draw.Button(new Rect(actions.x+2*(actionW+4),actions.y,actionW,44),Lang.T("Options","Opcje"),Theme.Select,true,true,12))OpenSettings();
             if(Draw.Button(new Rect(actions.x+3*(actionW+4),actions.y,actionW,44),Lang.T("Leave","Wyjdź"),size:12))RequestLeaveMatch();
-            if(feedbackRow.height>=20){
+            // W24: with room to spare, that space says what the chosen ball does - WHEN its power works,
+            // then the sentence from its card - so nobody has to open the card to recall it. A refused
+            // shot, an inspection and the end of the match still speak first.
+            var chosenGuide=BallGuide.For(selected);
+            if(feedbackRow.height>=58&&!over&&!boardInspection&&notice.Length==0&&chosenGuide!=null){
+                Draw.Round(feedbackRow,new Color(.03f,.02f,.16f,.42f));
+                GuideLine(new Rect(feedbackRow.x+10,feedbackRow.y+5,feedbackRow.width-20,18),selected,12);
+                float doesW=feedbackRow.width-20,doesH=feedbackRow.height-28;
+                int doesSize=Draw.TextHeight(chosenGuide.Does,doesW,12,true)<=doesH?12:Draw.TextHeight(chosenGuide.Does,doesW,11,true)<=doesH?11:10;
+                Draw.Text(new Rect(feedbackRow.x+10,feedbackRow.y+25,doesW,doesH),chosenGuide.Does,doesSize,new Color(1,1,1,.9f),TextAnchor.UpperLeft,true);
+            }
+            else if(feedbackRow.height>=20){
                 string message=over?TurnText():
                     boardInspection?Lang.T("CANCEL INSPECT TO AIM","ANULUJ PODGLĄD, ŻEBY CELOWAĆ"):
                     LocalTurnPresentation.ActionMessage(state,NetworkLink==null?-1:NetworkLink.LocalOwner,
@@ -399,7 +411,9 @@ namespace CoreClash.Presentation
                 // Under the name: what the ball does (every ball has the same HP, so it is not printed).
                 var sideGuide=BallGuide.For(id);
                 string under=handReady?LocalDeckContent.StockLabel(Simulation,owner,id):!available?Lang.T("OUT","BRAK"):sideGuide!=null?sideGuide.Short:"";
-                Draw.Text(new Rect(textX,r.yMax-22,textWidth-30,15),under,Theme.FontTiny,handReady?Theme.SelectInk:Theme.Muted,TextAnchor.MiddleLeft,true);
+                // One line beside the count, or nothing: a label that does not fit is left out, never cut in half.
+                float countWidth=Draw.TextWidth(count,12,true)+6,underRoom=textWidth-countWidth;
+                if(under.Length>0&&Draw.TextWidth(under,Theme.FontTiny,true)<=underRoom)Draw.Text(new Rect(textX,r.yMax-22,underRoom,15),under,Theme.FontTiny,handReady?Theme.SelectInk:Theme.Muted,TextAnchor.MiddleLeft,true);
                 Draw.Text(new Rect(r.xMax-36,r.yMax-24,30,17),count,12,countColor,TextAnchor.MiddleRight,true);
             }
             else

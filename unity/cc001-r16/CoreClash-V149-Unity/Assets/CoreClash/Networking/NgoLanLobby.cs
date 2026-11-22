@@ -95,6 +95,7 @@ namespace CoreClash.Networking
             discovery?.Dispose();StopHostServices();
 #endif
         }
+        static string DefaultRoomName=>Lang.T("My Core Clash Game","Moja gra Core Clash");
         public void OpenCreate(){open=true;joinTab=false;advanced=false;scroll=Vector2.zero;}
         public void OpenJoin(){open=true;joinTab=true;advanced=false;scroll=Vector2.zero;}
         public void Close(){open=false;if(app!=null)app.SetExternalModal(false);}
@@ -108,6 +109,11 @@ namespace CoreClash.Networking
             bool compact=!app.IsSetup&&(UiViewport.Profile==DeviceProfile.Phone||UiViewport.Profile==DeviceProfile.Tablet)&&sw<sh;
             // There is no top bar there at all, so the entry is offered from the deck screen only.
             if(compact&&!open)return;
+            // W24: a local match has nothing to do with the network - the entry would only be a button
+            // to hit by mistake. It is back on the deck screen, and stays during a network game.
+            if(!app.IsSetup&&app.NetworkLink==null&&!open)return;
+            // The room's ready-made name follows the language (only while it is still the ready-made one).
+            if(roomName==Lang.T("Moja gra Core Clash","My Core Clash Game"))roomName=DefaultRoomName;
             if(compact?Draw.IconButton(new Rect(sw-52,8,44,44),"+C -.4 -.38 .3;+C .4 -.38 .3;+C -.4 .56 .42;+C .4 .56 .42",Draw.Cyan,open):Draw.Button(new Rect(sw-168,8,150,44),Lang.T("MULTIPLAYER","GRA W SIECI"),Draw.Cyan,open)){open=!open;app.SetExternalModal(open);}
             if(!open)return;
             Draw.Backdrop(new Rect(0,0,sw,sh));
@@ -152,7 +158,7 @@ namespace CoreClash.Networking
             Draw.Text(new Rect(0,51,width,65),internetMode?Lang.T("You play as Player 1. Choose both decks in Match Setup, then share the game code with Player 2.","Grasz jako Gracz 1. Wybierz obie talie na ekranie głównym, potem podaj kod gry Graczowi 2."):Lang.T("Your game appears on the same Wi-Fi / LAN. Choose both decks in Match Setup; you play as Player 1.","Twoja gra pojawi się w tej samej sieci Wi-Fi / LAN. Wybierz obie talie na ekranie głównym; grasz jako Gracz 1."),13,Draw.Muted);
             Draw.Text(new Rect(0,125,width,25),Lang.T("ROOM NAME  ·  OPTIONAL","NAZWA GRY  ·  NIEOBOWIĄZKOWA"),11,Draw.Cyan,TextAnchor.MiddleLeft,true);
             roomName=Field(new Rect(0,156,width,44),roomName,LanDiscoveryProtocol.MaxNameLength);
-            bool valid=LanDiscoveryProtocol.ValidName(string.IsNullOrWhiteSpace(roomName)?"My Core Clash Game":roomName.Trim());
+            bool valid=LanDiscoveryProtocol.ValidName(string.IsNullOrWhiteSpace(roomName)?DefaultRoomName:roomName.Trim());
             if(Draw.Button(new Rect(0,216,width,46),Lang.T("CREATE GAME","STWÓRZ GRĘ"),Draw.Cyan,false,app.IsSetup&&link.CanStart&&valid,15))CreateGame();
             Draw.Text(new Rect(0,276,width,105),notice.Length>0?notice:app.IsSetup?(internetMode?Lang.T("Internet play uses a private game code. Player 2 can join from Windows, Android or a browser.","Gra przez Internet używa prywatnego kodu. Gracz 2 może dołączyć z Windows, Androida albo przeglądarki."):Lang.T("Player 2 can join from Available Games or open your browser invitation.","Gracz 2 może dołączyć z listy dostępnych gier albo otworzyć twoje zaproszenie w przeglądarce.")):Lang.T("Return to Match Setup to create a new game.","Wróć na ekran główny, żeby założyć nową grę."),13,notice.Length>0?Draw.Gold:Draw.Muted);
             RenderAdvanced(width,388);
@@ -250,7 +256,7 @@ namespace CoreClash.Networking
         }
         void CreateGame()
         {
-            roomName=string.IsNullOrWhiteSpace(roomName)?"My Core Clash Game":roomName.Trim();notice="";
+            roomName=string.IsNullOrWhiteSpace(roomName)?DefaultRoomName:roomName.Trim();notice="";
             bool started=internetMode?link.Internet!=null&&link.Internet.Create(roomName):link.Host("127.0.0.1",DefaultGamePort);
             if(started){open=true;scroll=Vector2.zero;}else notice=Lang.T("The game could not be created. Return to Match Setup and try again.","Nie udało się założyć gry. Wróć na ekran główny i spróbuj ponownie.");
         }

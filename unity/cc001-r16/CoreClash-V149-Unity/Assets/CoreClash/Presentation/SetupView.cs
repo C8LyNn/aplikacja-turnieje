@@ -316,11 +316,71 @@ namespace CoreClash.Presentation
             GUI.EndScrollView();
             if(Draw.Button(new Rect(left,UiHeight-66,width,50),custom.Count==9?Lang.T("Use this deck","Użyj tej talii"):custom.Count+" / 9",Go,true,custom.Count==9,15)){chosen[builderOwner]=new DeckDefinition{id="custom_"+builderOwner,name=Lang.T("Custom Deck / Player ","Własna talia / Gracz ")+(builderOwner+1),balls=custom.ToArray(),description=Lang.T("A deck you created.","Talia, którą stworzyłeś.")};builder=false;}
         }
+        // The column layout needs every ball of the roster to be in a group (it has no place for others).
+        bool ShortBuilderFits()=>RosterReadiness.Visible(Catalog,"",RosterReadinessFilter.All,true).All(b=>BallGroups.Of(b.id)!=null);
+        // W24: the deck builder on a phone held sideways. No scrolling: the nine slots of the deck in
+        // the title row, and under them a column for each group with its five balls. A tap on a
+        // ball takes it or puts it back; the small "i" opens its card.
+        void RenderShortBuilder()
+        {
+            float left=14,width=UiWidth-28,top=64;Color team=Draw.Owner(builderOwner);
+            string title=Lang.T("P","G")+(builderOwner+1)+Lang.T(": PICK 9",": WYBIERZ 9");
+            float titleW=Draw.TextWidth(title,18,true)+12,backW=88;
+            Heading(new Rect(left,top,titleW,38),title,18);
+            if(Draw.Button(new Rect(UiWidth-left-backW,top-1,backW,40),Lang.T("Back","Wróć"),size:13))builder=false;
+            const float slotGap=5;float slot=Mathf.Clamp((UiWidth-left-backW-14-(left+titleW+14))/9-slotGap,24,34),slotsW=9*slot+8*slotGap,slotX=left+titleW+14,slotY=top+(38-slot)/2;
+            Draw.Round(new Rect(slotX-6,slotY-4,slotsW+12,slot+8),Theme.A(Theme.Ink,.22f));
+            for(int i=0;i<9;i++)
+            {
+                var r=new Rect(slotX+i*(slot+slotGap),slotY,slot,slot);
+                if(i>=custom.Count){Draw.Ring(r.center,slot*.36f,Theme.A(Theme.OnColor,.8f),2f,8,.55f);continue;}
+                BallView.Preview(new Rect(r.x+slot*.08f,r.y+slot*.1f,slot*.84f,slot*.84f),Catalog.Ball(custom[i]),builderOwner);
+                if(Draw.Hit(r)){custom.RemoveAt(i);break;}
+            }
+            var roster=RosterReadiness.Visible(Catalog,"",RosterReadinessFilter.All,true);
+            var groups=BallGroups.All;const float gap=6,headH=21;
+            float colTop=top+46,colBottom=UiHeight-64,colW=(width-gap*(groups.Length-1))/groups.Length;
+            for(int g=0;g<groups.Length;g++)
+            {
+                var members=roster.Where(b=>BallGroups.Of(b.id)==groups[g]).OrderBy(b=>BallGroups.Order(b.id)).ToArray();
+                var panel=new Rect(left+g*(colW+gap),colTop,colW,colBottom-colTop-2);
+                Draw.Card(panel);
+                var face=Draw.CardFace(panel);float corner=Draw.CardCorner;
+                Draw.Corners(new Rect(face.x,face.y,face.width,headH-(face.y-panel.y)),BallGuideView_GroupColor(groups[g].Id),corner,corner,0,0);
+                string name=groups[g].Name.ToUpperInvariant();
+                Draw.Text(new Rect(face.x,panel.y+1,face.width,headH-1),name,Draw.TextWidth(name,11,true)<=face.width-6?11:9,Theme.OnColor,TextAnchor.MiddleCenter,true);
+                float rowH=(face.yMax-(panel.y+headH)-3)/Mathf.Max(5,members.Length);
+                for(int i=0;i<members.Length;i++)
+                {
+                    var d=members[i];bool picked=custom.Contains(d.id),full=custom.Count>=9&&!picked;
+                    var row=new Rect(face.x+2,panel.y+headH+2+i*rowH,face.width-4,rowH-2);
+                    if(picked)Draw.Round(row,Color.Lerp(Theme.Panel,team,.26f),7);
+                    const float info=26;
+                    if(Draw.Hit(new Rect(row.x,row.y,row.width-info,row.height))){if(picked)custom.Remove(d.id);else if(custom.Count<9)custom.Add(d.id);}
+                    float size=Mathf.Min(row.height-4,30);var orb=new Rect(row.x+3,row.y+(row.height-size)/2,size,size);
+                    BallView.Preview(orb,d,builderOwner,picked);
+                    if(picked)
+                    {
+                        var tick=new Rect(orb.xMax-11,orb.y-2,13,13);
+                        Draw.Circle(new Rect(tick.x-1.5f,tick.y-1.5f,16,16),Theme.Ink);Draw.Circle(tick,Go);Glyphs.Paint(new Rect(tick.x+2.5f,tick.y+2.5f,8,8),IconCheck,Theme.OnColor);
+                    }
+                    // The name: as large as its longest word allows, on two lines when it has two words.
+                    string shown=BallIcons.Name(d);float nameX=orb.xMax+5,nameW=row.xMax-info-nameX-3;
+                    float widest=0;foreach(string word in shown.Split(' '))widest=Mathf.Max(widest,Draw.TextWidth(word,11,true));
+                    int font=widest<=nameW?11:widest*10/11f<=nameW?10:9;
+                    Draw.Text(new Rect(nameX,row.y,nameW,row.height),shown,font,full?Theme.Muted:Theme.Text,TextAnchor.MiddleLeft,true);
+                    if(Draw.Button(new Rect(row.xMax-info+1,row.y+(row.height-Mathf.Min(row.height-2,30))/2,info-3,Mathf.Min(row.height-2,30)),"i",size:12))ShowBallDetails(d.id);
+                }
+            }
+            if(Draw.Button(new Rect(left,UiHeight-58,width,46),custom.Count==9?Lang.T("Use this deck","Użyj tej talii"):custom.Count+" / 9",Go,true,custom.Count==9,15)){chosen[builderOwner]=new DeckDefinition{id="custom_"+builderOwner,name=Lang.T("Custom Deck / Player ","Własna talia / Gracz ")+(builderOwner+1),balls=custom.ToArray(),description=Lang.T("A deck you created.","Talia, którą stworzyłeś.")};builder=false;}
+        }
         void RenderBuilder()
         {
             if(UiWidth<=600&&UiHeight>=440){if(ActiveRosterOnly)custom.RemoveAll(id=>!Catalog.IsActive(id));RenderPhoneBuilder(ActiveRosterOnly);return;}
             // W24: in normal play a wide screen shows the whole roster at once, a panel for each group.
             if(ActiveRosterOnly&&UiHeight>=440){custom.RemoveAll(id=>!Catalog.IsActive(id));RenderPanelBuilder();return;}
+            // W24: a phone held sideways shows the whole roster on one screen, a column for each group.
+            if(ActiveRosterOnly&&UiHeight<440&&UiWidth>=640&&ShortBuilderFits()){custom.RemoveAll(id=>!Catalog.IsActive(id));RenderShortBuilder();return;}
             bool shortView=UiHeight<440;float left=24,width=UiWidth-48;Color team=Draw.Owner(builderOwner);string title=Lang.T("PLAYER ","GRACZ ")+(builderOwner+1)+Lang.T(" / DECK BUILDER"," / KREATOR TALII");int titleSize=width<500?16:24;
             float titleH=Math.Max(32,Draw.TextHeight(title,width-120,titleSize,true));Heading(new Rect(left,77,width-120,titleH),title,titleSize);
             if(Draw.Button(new Rect(UiWidth-120,76,96,UiViewport.TargetSize),Lang.T("Back","Wróć")))builder=false;
@@ -354,7 +414,7 @@ namespace CoreClash.Presentation
                 var family=activeOnly?BallGroups.Of(d.id):null;
                 if(family!=null)Draw.Corners(new Rect(r.x,r.y,7,r.height),BallGuideView_GroupColor(family.Id),Draw.Corner,0,0,Draw.Corner);
                 var cl=RosterReadinessLayout.Card(new UiBox(r.x,r.y,r.width,r.height),shortView);
-                BallView.Preview(RectOf(cl.Preview),d,builderOwner,picked);Draw.Text(RectOf(cl.Name),BallIcons.Name(d),14,Theme.Text,TextAnchor.MiddleLeft,true);Draw.Text(RectOf(cl.Stats),d.hp+" HP  ·  "+d.stockCopies+Lang.T(" in a deck"," w talii")+(Catalog.IsActive(d.id)?"":"  /  FROZEN"),11,Catalog.IsActive(d.id)?Draw.Muted:Draw.Gold);
+                BallView.Preview(RectOf(cl.Preview),d,builderOwner,picked);Draw.Text(RectOf(cl.Name),BallIcons.Name(d),14,Theme.Text,TextAnchor.MiddleLeft,true);Draw.Text(RectOf(cl.Stats),(activeOnly?"":d.hp+" HP  ·  ")+d.stockCopies+Lang.T(" in a deck"," w talii")+(Catalog.IsActive(d.id)?"":"  /  FROZEN"),11,Catalog.IsActive(d.id)?Draw.Muted:Draw.Gold);
                 if(activeOnly&&BallGuide.For(d.id)!=null)GuideLine(new Rect(cl.Badge.x,cl.Badge.y-2,cl.Name.width,cl.Badge.height+4),d.id,11);
                 else ReadinessChip(RectOf(cl.Badge),RosterReadiness.Badge(Catalog,d.id));
                 if(Draw.Button(RectOf(cl.Info),"i",size:15))ShowBallDetails(d.id);
