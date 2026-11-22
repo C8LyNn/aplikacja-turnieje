@@ -494,6 +494,7 @@ export const enGenerated: Record<keyof typeof plGenerated, string> = {
   "deBracketCanvas.spada_z_upper_bracket": "Drops from the Upper Bracket",
   "deBracketCanvas.tbd": "TBD",
   "deBracketCanvas.wielki_final": "Grand Final",
+  "deBracketCanvas.wolny_los": "bye",
   "deBracketCanvas.wygrani_r_n": "Upper R{n}",
   "dialog.zamknij": "Close",
   "discordIntegration.awans": "Advancement",

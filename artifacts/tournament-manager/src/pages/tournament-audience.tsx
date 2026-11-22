@@ -854,6 +854,7 @@ export default function TournamentAudience() {
             <AudienceSectionShell
               title={t("tournamentAudience.drabinka")}
               description={publicStageLabel(publicStage, true)}
+              wide
             >
               <ReadQueryState query={doubleEliminationQuery} loadingMessage={t("tournamentAudience.ladowanie_drabinki_double_elimination")} errorMessage={t("tournamentAudience.nie_udalo_sie_pobrac_drabinki")}>
                 {doubleEliminationQuery.data && <div className="rounded-xl border border-white/8 bg-card p-4 text-foreground">
@@ -891,14 +892,17 @@ export default function TournamentAudience() {
 function AudienceSectionShell({
   title,
   description,
+  wide = false,
   children,
 }: {
   title: string;
   description: string;
+  /** Wide brackets (double elimination) may use the whole screen instead of the reading column. */
+  wide?: boolean;
   children: React.ReactNode;
 }) {
   return (
-    <section className="experimental-audience-section-shell w-full max-w-5xl" aria-label={title}>
+    <section className={`experimental-audience-section-shell w-full ${wide ? "max-w-[1800px]" : "max-w-5xl"}`} aria-label={title}>
       <div className="mb-5">
         <h2 className="text-2xl font-bold text-white">{title}</h2>
         <p className="mt-1 text-sm text-white/45">{description}</p>

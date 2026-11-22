@@ -17,7 +17,7 @@ import { t } from "@/i18n";
  *   round, and use a local 0-based index for Y positioning.
  */
 
-import { useMemo } from "react";
+import { useId, useMemo } from "react";
 import { Trophy, ArrowDownRight } from "lucide-react";
 import { useLocation } from "wouter";
 import { isExperimentalTournamentPath } from "@/features/experimental-tournaments/experimental-tournament-routing";
@@ -55,7 +55,41 @@ const UNIT = CARD_H + SMALL_GAP; // 84 — base vertical rhythm
 const COL_GAP = 56;
 const COL_STEP = CARD_W + COL_GAP; // 276 — column stride
 const SECTION_LABEL_H = 24;
-const SECTION_GAP = 48; // vertical gap between UB area bottom and LB label
+const SECTION_GAP = 96; // vertical gap between UB area bottom and LB label
+// The whole LB section sits half a column to the right of the UB section, so the
+// dashed loser-drop lines run in their own lanes instead of stacking on one vertical.
+const LB_SHIFT_X = COL_STEP / 2; // 138
+const DROP_LANE_GAP = 24; // max horizontal distance between neighbouring drop lanes
+const LANE_PAD = 12; // keep drop lanes this far inside the card column they run behind
+const CHANNEL_TOP = 20; // first horizontal drop channel below the Upper section
+const CHANNEL_GAP = 10; // distance between horizontal drop channels
+const CHANNEL_BOTTOM = 30; // space between the last channel and the Lower label
+const CARD_HEADER_H = 16; // must match DEMatchCard's header
+const STRIP_LANE = 10; // lane spacing in the drop strip left of an Upper column
+const STRIP_PAD = 8; // strip padding on each side
+const EXIT_DROP = 8; // a drop leaves the card bottom, goes this far down, then turns into its strip lane
+
+/** Y of a slot row's centre inside a card of height `h` (slot 0 = first participant row). */
+export function slotRowY(h: number, slot: 0 | 1): number {
+  const rowH = (h - CARD_HEADER_H) / 2;
+  return CARD_HEADER_H + rowH * slot + rowH / 2;
+}
+
+/** SVG path through orthogonal points with rounded corners. */
+export function roundedPath(points: Array<[number, number]>, radius = 6): string {
+  const pts = points.filter((pt, i) => i === 0 || pt[0] !== points[i - 1][0] || pt[1] !== points[i - 1][1]);
+  if (pts.length === 0) return "";
+  let d = `M ${pts[0][0]} ${pts[0][1]}`;
+  for (let i = 1; i < pts.length - 1; i++) {
+    const [px, py] = pts[i - 1], [cx, cy] = pts[i], [nx, ny] = pts[i + 1];
+    const r = Math.min(radius, Math.hypot(cx - px, cy - py) / 2, Math.hypot(nx - cx, ny - cy) / 2);
+    const ax = cx - Math.sign(cx - px) * r, ay = cy - Math.sign(cy - py) * r;
+    const bx = cx + Math.sign(nx - cx) * r, by = cy + Math.sign(ny - cy) * r;
+    d += ` L ${ax} ${ay} Q ${cx} ${cy} ${bx} ${by}`;
+  }
+  const last = pts[pts.length - 1];
+  return `${d} L ${last[0]} ${last[1]}`;
+}
 const GF_LABEL_H = 20;
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -88,9 +122,20 @@ interface WinnerLine {
   y2b?: number; // second source y for pair connector
 }
 
-interface LoserDropLine {
-  x1: number; y1: number; // bottom-center of source UB card
-  x2: number; y2: number; // top-center of target LB card
+/**
+ * A loser-drop connector (Upper loser → Lower slot), routed orthogonally:
+ * bottom edge of the Upper card at `exitX` → (optional horizontal channel in the gap between the
+ * sections) → vertical lane `laneX` → left edge of the Lower card at the row the loser fills.
+ * Y values that depend on the rendered card height are finished in the renderer.
+ */
+export interface LoserDropLine {
+  key: string;
+  exitX: number; srcY: number;
+  /** Lane in the strip left of the Upper column (later rounds); null = falls straight down (round 1). */
+  stripX: number | null;
+  channelY: number | null;
+  laneX: number;
+  tgtX: number; tgtY: number; slot: 0 | 1;
 }
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -129,7 +174,27 @@ function useDELayout(
   _participants: ReadonlyMap<string, DoubleEliminationParticipant>,
   _finalsPosition: "upper" | "between",
 ) {
-  return useMemo(() => {
+  return useMemo(() => computeDELayout(matches), [matches]);
+}
+
+/** Card geometry of the canvas, for tests and callers that need the same numbers. */
+export const DE_CARD = { width: CARD_W, height: CARD_H } as const;
+
+/** Orthogonal points of a drop line for cards of height `cardH` (shared by the renderer and the tests). */
+export function dropLinePoints(c: LoserDropLine, cardH: number): Array<[number, number]> {
+  const startY = c.srcY + cardH;
+  const entryY = c.tgtY + slotRowY(cardH, c.slot);
+  if (c.channelY == null) return [[c.exitX, startY], [c.laneX, entryY], [c.tgtX - 2, entryY]];
+  if (c.stripX == null) {
+    return [[c.exitX, startY], [c.exitX, c.channelY], [c.laneX, c.channelY], [c.laneX, entryY], [c.tgtX - 2, entryY]];
+  }
+  return [[c.exitX, startY], [c.exitX, startY + EXIT_DROP], [c.stripX, startY + EXIT_DROP], [c.stripX, c.channelY],
+    [c.laneX, c.channelY], [c.laneX, entryY], [c.tgtX - 2, entryY]];
+}
+
+/** Pure layout of a double-elimination canvas (positions, winner connectors, loser-drop routes). */
+export function computeDELayout(matches: DoubleEliminationMatch[]) {
+  {
     const ubMatches = matches.filter(m => m.bracket === "upper");
     const lbMatches = matches.filter(m => m.bracket === "lower");
     const gfMatches = matches.filter(m => m.bracket === "grand_final");
@@ -144,15 +209,44 @@ function useDELayout(
     const ubR1Count = ubByRound.get(ubRoundNums[0])?.length ?? 1;
     const lbR1Count = lbByRound.get(lbRoundNums[0])?.length ?? 1;
 
+    const lbX = (ri: number) => LB_SHIFT_X + ri * COL_STEP;
+    const ubCountAt = (ri: number) => ubByRound.get(ubRoundNums[ri])?.length ?? 0;
+    const lbCountAt = (ri: number) => lbByRound.get(lbRoundNums[ri])?.length ?? 0;
+
+    // ── Loser-drop plan (decides how tall the gap between the sections is) ───
+    // Engine routing (double-elimination-format-engine.ts): Upper R1 matches 2m−1, 2m → Lower R1
+    // match m (slots 1, 2); Upper round k ≥ 2 → Lower round 2k−2 (index 2·ubRi − 1), slot 2, in
+    // reverse order. Those later drops leave the bottom of the Upper card, run right in their own
+    // channel between the sections, and come down in the gap just before the target column — never
+    // behind another card, so a line can only be read as reaching the card its arrow points at.
+    interface DropRound { ubRi: number; lbRi: number; n: number }
+    const dropRounds: DropRound[] = [];
+    for (let ubRi = 1; ubRi < ubRoundNums.length; ubRi++) {
+      const lbRi = 2 * ubRi - 1;
+      if (lbRi >= lbRoundNums.length) continue;
+      const n = ubCountAt(ubRi);
+      if (n === 0 || lbCountAt(lbRi) !== n) continue; // unknown shape: no line rather than a wrong one
+      dropRounds.push({ ubRi, lbRi, n });
+    }
+    // Each Upper column that drops losers (round ≥ 2) gets a narrow strip on its left for the drop lanes,
+    // so a line never runs down behind the cards of its own column.
+    const stripW = ubRoundNums.map((_, ri) => {
+      const r = dropRounds.find(d => d.ubRi === ri);
+      return r ? 2 * STRIP_PAD + (r.n - 1) * STRIP_LANE : 0;
+    });
+    const ubX = (ri: number) => ri * COL_STEP + stripW.slice(0, ri + 1).reduce((a, b) => a + b, 0);
+    const channelCount = dropRounds.reduce((sum, r) => sum + r.n, 0);
+    const sectionGap = Math.max(SECTION_GAP, CHANNEL_TOP + Math.max(0, channelCount - 1) * CHANNEL_GAP + CHANNEL_BOTTOM);
+
     // ── Section Y offsets (absolute canvas coords) ────────────────────────────
     const UB_LABEL_Y = 0;
     const UB_Y = SECTION_LABEL_H;
     const ubHeight = ubR1Count * UNIT - SMALL_GAP;
 
-    const LB_LABEL_Y = UB_Y + ubHeight + SECTION_GAP;
+    const LB_LABEL_Y = UB_Y + ubHeight + sectionGap;
     const LB_Y = LB_LABEL_Y + SECTION_LABEL_H;
     const lbHeight = lbR1Count > 0 ? lbR1Count * UNIT - SMALL_GAP : CARD_H;
-    const totalHeight = LB_Y + lbHeight;
+    const totalHeight = lbRoundNums.length > 0 ? LB_Y + lbHeight : UB_Y + ubHeight;
 
     // ── UB card positions ─────────────────────────────────────────────────────
     const ubPositions: MatchPos[] = [];
@@ -160,13 +254,7 @@ function useDELayout(
       const roundMatches = ubByRound.get(roundNum)!;
       const N = roundMatches.length;
       for (const [localIdx, m] of roundMatches.entries()) {
-        ubPositions.push({
-          match: m,
-          x: ri * COL_STEP,
-          y: UB_Y + cardY(localIdx, N, ubR1Count),
-          ri,
-          i: localIdx,
-        });
+        ubPositions.push({ match: m, x: ubX(ri), y: UB_Y + cardY(localIdx, N, ubR1Count), ri, i: localIdx });
       }
     }
 
@@ -176,33 +264,34 @@ function useDELayout(
       const roundMatches = lbByRound.get(roundNum)!;
       const N = roundMatches.length;
       for (const [localIdx, m] of roundMatches.entries()) {
-        lbPositions.push({
-          match: m,
-          x: lbRi * COL_STEP,
-          y: LB_Y + cardY(localIdx, N, lbR1Count),
-          ri: lbRi,
-          i: localIdx,
-        });
+        lbPositions.push({ match: m, x: lbX(lbRi), y: LB_Y + cardY(localIdx, N, lbR1Count), ri: lbRi, i: localIdx });
       }
     }
 
-    // ── GF positions — rightmost column of the whole canvas ──────────────────
-    // Place GF to the right of whichever bracket is wider so both UB Final
-    // and LB Final connectors travel left-to-right.
-    const gfBaseX = Math.max(ubRoundNums.length, lbRoundNums.length) * COL_STEP;
-    const gfCenterY = UB_Y + (ubHeight - CARD_H) / 2; // vertically centred in UB area
+    // ── Grand Final — own column right of both brackets, halfway between the two finals ──
+    // The Upper final feeds its first row and the Lower final its second, so each path ends at the
+    // row its winner takes. The reset (if any) sits next to it on the same line.
+    const gfBaseX = Math.max(
+      ubRoundNums.length > 0 ? ubX(ubRoundNums.length - 1) + COL_STEP : 0,
+      lbRoundNums.length > 0 ? LB_SHIFT_X + lbRoundNums.length * COL_STEP : 0,
+    );
+    const ubFinalPos = ubPositions.filter(p => p.ri === ubRoundNums.length - 1)[0];
+    const lbFinalPos = lbPositions.filter(p => p.ri === lbRoundNums.length - 1)[0];
+    const gfY = ubFinalPos && lbFinalPos
+      ? (ubFinalPos.y + lbFinalPos.y) / 2
+      : ubFinalPos?.y ?? UB_Y + (ubHeight - CARD_H) / 2;
 
     const gfPositions: MatchPos[] = gfMatches.map((m, idx) => ({
       match: m,
       x: gfBaseX + idx * COL_STEP,
-      y: gfCenterY,
+      y: gfY,
       ri: idx,
       i: 0,
     }));
     const gfrPositions: MatchPos[] = gfrMatches.map((m, idx) => ({
       match: m,
       x: gfBaseX + (gfMatches.length + idx) * COL_STEP,
-      y: gfCenterY,
+      y: gfY,
       ri: idx,
       i: 0,
     }));
@@ -212,8 +301,8 @@ function useDELayout(
     const rightEdge = gfRoundsCount > 0
       ? gfBaseX + (gfRoundsCount - 1) * COL_STEP + CARD_W
       : Math.max(
-          ubRoundNums.length > 0 ? (ubRoundNums.length - 1) * COL_STEP + CARD_W : 0,
-          lbRoundNums.length > 0 ? (lbRoundNums.length - 1) * COL_STEP + CARD_W : 0,
+          ubRoundNums.length > 0 ? ubX(ubRoundNums.length - 1) + CARD_W : 0,
+          lbRoundNums.length > 0 ? LB_SHIFT_X + (lbRoundNums.length - 1) * COL_STEP + CARD_W : 0,
         );
     const totalWidth = rightEdge + 2; // +2 for sub-pixel border safety
 
@@ -238,13 +327,13 @@ function useDELayout(
       }
     }
 
-    // UB Final → GF
-    const ubFinal = ubPositions.filter(p => p.ri === ubRoundNums.length - 1)[0];
+    // UB Final → GF (first row); the vertical runs just left of the GF column
+    const ubFinal = ubFinalPos;
     if (ubFinal && gfPositions[0]) {
       winnerLines.push({
         x1: ubFinal.x + CARD_W, y1: ubFinal.y + CARD_H / 2,
-        x2: gfPositions[0].x,  y2: gfPositions[0].y + CARD_H / 2,
-        midX: ubFinal.x + CARD_W + (gfPositions[0].x - ubFinal.x - CARD_W) / 2,
+        x2: gfPositions[0].x,  y2: gfPositions[0].y + slotRowY(CARD_H, 0),
+        midX: gfPositions[0].x - COL_GAP / 2,
       });
     }
 
@@ -281,15 +370,13 @@ function useDELayout(
       }
     }
 
-    // LB Final → GF
-    const lbFinal = lbPositions.filter(p => p.ri === lbRoundNums.length - 1)[0];
+    // LB Final → GF (second row)
+    const lbFinal = lbFinalPos;
     if (lbFinal && gfPositions[0]) {
-      // GF is to the right of LB, so connector goes right then up
-      const midX = lbFinal.x + CARD_W + (gfPositions[0].x - lbFinal.x - CARD_W) / 2;
       winnerLines.push({
         x1: lbFinal.x + CARD_W, y1: lbFinal.y + CARD_H / 2,
-        x2: gfPositions[0].x,   y2: gfPositions[0].y + CARD_H / 2,
-        midX,
+        x2: gfPositions[0].x,   y2: gfPositions[0].y + slotRowY(CARD_H, 1),
+        midX: gfPositions[0].x - COL_GAP / 2,
       });
     }
 
@@ -302,46 +389,64 @@ function useDELayout(
       });
     }
 
-    // ── Loser-drop connectors (structural, UB→LB diagonal lines) ─────────────
-    //
-    // Mapping: UB ubRi=k drops losers into LB lbRi=2k (the "minor" LB rounds
-    // that do NOT receive winners from the previous LB round — confirmed by
-    // checking match counts: LB lbRi=0,2,4,6 each have the same count as the
-    // corresponding UB round, and the other slot is the UB drop).
-    //
-    // Lines go from bottom-centre of UB card to top-centre of LB card,
-    // passing through the SECTION_GAP. For the same column (ubRi=0→lbRi=0)
-    // they are vertical; for later rounds they are diagonals from left to right
-    // (UB cols 0-4 dropping into LB cols 0,2,4,6 which are further right).
+    // ── Loser-drop connectors ─────────────────────────────────────────────────
+    // No two drop lines share a segment or cross: within a round the line to the topmost target takes
+    // the rightmost lane (it turns first), and channels are stacked so later rounds run above earlier
+    // ones. Lines pass *behind* cards (masked in the renderer). A BYE has no loser, so no line.
     const loserDropLines: LoserDropLine[] = [];
-    for (let ubRi = 0; ubRi < ubRoundNums.length - 1; ubRi++) {
-      const targetLbRi = 2 * ubRi;
-      if (targetLbRi >= lbRoundNums.length) continue;
-      const ubRound = ubPositions.filter(p => p.ri === ubRi).sort((a, b) => a.i - b.i);
-      const lbRound = lbPositions.filter(p => p.ri === targetLbRi).sort((a, b) => a.i - b.i);
-      const count = Math.min(ubRound.length, lbRound.length);
-      for (let j = 0; j < count; j++) {
-        const src = ubRound[j];
-        const tgt = lbRound[j];
+    const isByeMatch = (m: DoubleEliminationMatch) => m.status === "bye";
+    const ubR1 = ubPositions.filter(p => p.ri === 0).sort((a, b) => a.i - b.i);
+    const lbR1 = lbPositions.filter(p => p.ri === 0).sort((a, b) => a.i - b.i);
+    if (ubR1.length > 1 && lbR1.length > 0) {
+      const laneGap = Math.min(DROP_LANE_GAP, (LB_SHIFT_X - 10) / ubR1.length);
+      for (const [j, src] of ubR1.entries()) {
+        const tgt = lbR1[Math.floor(j / 2)];
+        if (!tgt || isByeMatch(src.match)) continue;
+        const laneX = LB_SHIFT_X - 10 - j * laneGap;
         loserDropLines.push({
-          x1: src.x + CARD_W / 2, y1: src.y + CARD_H,
-          x2: tgt.x + CARD_W / 2, y2: tgt.y,
+          key: `${src.match.matchKey}>${tgt.match.matchKey}`,
+          exitX: laneX, srcY: src.y, stripX: null, channelY: null, laneX,
+          tgtX: tgt.x, tgtY: tgt.y, slot: (j % 2) as 0 | 1,
+        });
+      }
+    }
+    let channelIdx = 0;
+    const channelY0 = UB_Y + ubHeight + CHANNEL_TOP;
+    // Ordering that keeps the orange lines free of crossings:
+    //   • within a round the topmost target gets the rightmost lane (it turns off first), the highest
+    //     channel and the rightmost exit;
+    //   • later rounds take higher channels, so their verticals never cut an earlier round's channel.
+    // A drop still crosses the solid winner lines in that gap (unavoidable: they sit between the
+    // channel and the target row); the renderer draws those crossings as a bridge.
+    for (const round of [...dropRounds].sort((a, b) => b.ubRi - a.ubRi)) {
+      const srcs = ubPositions.filter(p => p.ri === round.ubRi).sort((a, b) => a.i - b.i);
+      const tgts = lbPositions.filter(p => p.ri === round.lbRi).sort((a, b) => a.i - b.i);
+      const tX = lbX(round.lbRi);
+      const laneGap = round.n > 1 ? Math.min(DROP_LANE_GAP, (COL_GAP - 20) / (round.n - 1)) : 0;
+      const stripLeft = ubX(round.ubRi) - stripW[round.ubRi];
+      for (let k = 0; k < round.n; k++) { // k = target index, top to bottom
+        const tgt = tgts[k];
+        const j = round.n - 1 - k; // source index (reverse order in the engine)
+        const src = srcs[j];
+        if (!src || !tgt) continue;
+        const channelY = channelY0 + channelIdx++ * CHANNEL_GAP;
+        if (isByeMatch(src.match)) continue;
+        loserDropLines.push({
+          key: `${src.match.matchKey}>${tgt.match.matchKey}`,
+          exitX: src.x + LANE_PAD, srcY: src.y,
+          stripX: stripLeft + STRIP_PAD + j * STRIP_LANE, // top source = leftmost lane (outermost)
+          channelY,
+          laneX: tX - 10 - k * laneGap,
+          tgtX: tgt.x, tgtY: tgt.y, slot: 1,
         });
       }
     }
 
     // ── UB-drop slot detection (for amber left-border in LB cards) ───────────
-    const loserOf = new Map<string, DoubleEliminationMatch>();
-    for (const m of ubMatches) {
-      if (m.loserParticipantKey) loserOf.set(m.loserParticipantKey, m);
-    }
+    // Only the slots the engine routes Upper losers into are marked. (Earlier a data rule also marked any
+    // player who had once lost in the Upper bracket, so a Lower-round winner advancing to the next Lower
+    // round showed a drop arrow it did not take.)
     const ubDropSlots = new Set<string>();
-    // Data-driven: participant confirmed to have come from UB loss
-    for (const m of lbMatches) {
-      for (const [slotIdx, pk] of m.slots.entries()) {
-        if (pk && loserOf.has(pk)) ubDropSlots.add(`${m.matchKey}-${slotIdx}`);
-      }
-    }
     // Structural: all LB R1 slots (both players are UB losers, or a UB loser + bye)
     if (lbRoundNums.length > 0) {
       for (const m of lbMatches.filter(m => m.round === lbRoundNums[0])) {
@@ -349,9 +454,9 @@ function useDELayout(
         ubDropSlots.add(`${m.matchKey}-1`);
       }
     }
-    // Structural: second slot of 1:1 LB rounds (lbRi=2,4,6…) receives UB drop
-    for (let ubRi = 1; ubRi < ubRoundNums.length - 1; ubRi++) {
-      const targetLbRi = 2 * ubRi;
+    // Structural: the second slot of LB rounds 2, 4, 6… (index 1, 3, 5…) receives the UB drop
+    for (let ubRi = 1; ubRi < ubRoundNums.length; ubRi++) {
+      const targetLbRi = 2 * ubRi - 1;
       if (targetLbRi >= lbRoundNums.length) continue;
       for (const m of lbMatches.filter(m => m.round === lbRoundNums[targetLbRi])) {
         ubDropSlots.add(`${m.matchKey}-1`);
@@ -365,7 +470,7 @@ function useDELayout(
       winnerLines, loserDropLines,
       ubDropSlots,
     };
-  }, [matches]);
+  }
 }
 
 // ─── Match card ───────────────────────────────────────────────────────────────
@@ -423,9 +528,12 @@ function DEMatchCard({
       {match.slots.map((participantKey, slotIdx) => {
         const participant = participantKey ? participants.get(participantKey) : undefined;
         const isWinner = participantKey != null && match.winnerParticipantKey === participantKey;
-        const isUbDrop = match.bracket === "lower" && ubDropSlots.has(`${match.matchKey}-${slotIdx}`);
         const score = slotIdx === 0 ? match.score1 : match.score2;
         const isPending = !participantKey;
+        // An empty slot of a decided match (BYE, skipped, or completed without an opponent) will never be
+        // filled: say "wolny los" instead of "TBD" and do not mark it as an incoming Upper drop.
+        const isEmptyBye = isPending && (isBye || isDone);
+        const isUbDrop = !isEmptyBye && match.bracket === "lower" && ubDropSlots.has(`${match.matchKey}-${slotIdx}`);
 
         return (
           <div
@@ -455,7 +563,7 @@ function DEMatchCard({
                   : "text-foreground"
               }`}
             >
-              {isPending ? t("deBracketCanvas.tbd") : participant ? `#${participant.seed} ${participant.name}` : "?"}
+              {isEmptyBye ? t("deBracketCanvas.wolny_los") : isPending ? t("deBracketCanvas.tbd") : participant ? `#${participant.seed} ${participant.name}` : "?"}
             </span>
             {isDone && score != null && (
               <span
@@ -487,6 +595,9 @@ export function DEBracketCanvas({
   showDropLines = true,
 }: DEBracketCanvasProps) {
   const de = useDeLabels();
+  const domId = useId().replace(/:/g, "");
+  const dropMaskId = `de-drop-mask-${domId}`;
+  const dropArrowId = `de-drop-arrow-${domId}`;
   const {
     ubPositions,
     lbPositions,
@@ -564,27 +675,39 @@ export function DEBracketCanvas({
             );
           })}
 
-          {/* Loser-drop connectors (UB→LB diagonal bezier lines) */}
-          {showDropLines && loserDropLines.map((c, idx) => {
-            // Cubic bezier: departs downward from UB card bottom,
-            // arrives upward at LB card top. The horizontal shift
-            // (x2-x1) is handled by the control-point spread.
-            const dy = c.y2 - c.y1;
-            const ctrlOffset = Math.min(60, dy * 0.45);
-            return (
-              <path
-                key={`ld${idx}`}
-                d={`M ${c.x1} ${c.y1}
-                    C ${c.x1} ${c.y1 + ctrlOffset},
-                      ${c.x2} ${c.y2 - ctrlOffset},
-                      ${c.x2} ${c.y2}`}
-                stroke={dropStroke}
-                strokeWidth={lineW}
-                strokeDasharray="5 3"
-                fill="none"
-              />
-            );
-          })}
+          {/* Loser-drop connectors (UB→LB dashed lines). Masked out under every card and the Lower
+              label, so a line that passes a card looks like it runs behind it instead of across its text. */}
+          {showDropLines && loserDropLines.length > 0 && (
+            <>
+              <defs>
+                <marker id={dropArrowId} viewBox="0 0 6 6" refX="6" refY="3" markerWidth="6" markerHeight="6" orient="auto">
+                  <path d="M0,0 L6,3 L0,6 z" fill={dropStroke} />
+                </marker>
+              </defs>
+              <mask id={dropMaskId} maskUnits="userSpaceOnUse" x={-20} y={-20} width={totalWidth + 40} height={totalHeight + 40}>
+                <rect x={-20} y={-20} width={totalWidth + 40} height={totalHeight + 40} fill="white" />
+                {[...ubPositions, ...lbPositions, ...gfPositions, ...gfrPositions].map(p => (
+                  <rect key={`m-${p.match.matchKey}`} x={p.x - 1} y={p.y - 1} width={CARD_W + 2} height={cardH + 2} rx={6} fill="black" />
+                ))}
+                {lbPositions.length > 0 && <rect x={LB_SHIFT_X - 2} y={LB_LABEL_Y} width={CARD_W + 4} height={SECTION_LABEL_H} fill="black" />}
+              </mask>
+              <g mask={`url(#${dropMaskId})`} fill="none" data-de-drop-lines="">
+                {loserDropLines.map((c) => {
+                  const d = roundedPath(dropLinePoints(c, cardH));
+                  return (
+                    <g key={`ld-${c.key}`} data-drop={c.key}>
+                      {/* halo: where a drop passes a solid winner line, the winner line visibly breaks (a bridge) */}
+                      <path d={d} stroke="hsl(var(--card))" strokeWidth={lineW + 5} />
+                      <path d={d} stroke={dropStroke} strokeWidth={lineW} strokeDasharray="5 3" markerEnd={`url(#${dropArrowId})`} />
+                    </g>
+                  );
+                })}
+              </g>
+              {loserDropLines.map((c) => (
+                <circle key={`ldo-${c.key}`} cx={c.exitX} cy={c.srcY + cardH + 2.5} r={2.5} fill={dropStroke} />
+              ))}
+            </>
+          )}
         </svg>
 
         {/* ── Section labels ─────────────────────────────────────────────── */}
@@ -599,7 +722,7 @@ export function DEBracketCanvas({
         {lbPositions.length > 0 && (
           <div
             className="absolute text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60"
-            style={{ top: LB_LABEL_Y, left: 0, height: SECTION_LABEL_H, lineHeight: `${SECTION_LABEL_H}px` }}
+            style={{ top: LB_LABEL_Y, left: LB_SHIFT_X, height: SECTION_LABEL_H, lineHeight: `${SECTION_LABEL_H}px` }}
           >
             {de.labels.lower}
           </div>

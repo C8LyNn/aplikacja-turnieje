@@ -226,3 +226,57 @@ describe("Double Elimination V2", () => {
     ));
   });
 });
+
+describe("Double Elimination V2 structure", () => {
+  // Standard double elimination for a bracket of size S: S−1 Upper matches, S−2 Lower matches in
+  // pairs of equal rounds (S/4, S/4, S/8, S/8, …, 1, 1), a Grand Final and a conditional reset.
+  for (const [count, upper, lowerRounds] of [
+    [2, 1, []],
+    [4, 3, [1, 1]],
+    [8, 7, [2, 2, 1, 1]],
+    [16, 15, [4, 4, 2, 2, 1, 1]],
+    [32, 31, [8, 8, 4, 4, 2, 2, 1, 1]],
+    [6, 7, [2, 2, 1, 1]],
+    [12, 15, [4, 4, 2, 2, 1, 1]],
+  ] as const) {
+    test(`${count} participants: ${upper} Upper, ${lowerRounds.reduce((a, b) => a + b, 0)} Lower, Grand Final + reset`, () => {
+      const compiled = plan(count);
+      const names = compiled.logicalMatches.map((match) => match.name ?? "");
+      assert.equal(names.filter((name) => name.startsWith("Upper")).length, upper);
+      const lowerPerRound = lowerRounds.map((_, index) =>
+        names.filter((name) => name.startsWith(`Lower R${index + 1} `)).length);
+      assert.deepEqual(lowerPerRound, [...lowerRounds]);
+      assert.equal(names.filter((name) => name.startsWith("Lower")).length, lowerRounds.reduce((a, b) => a + b, 0));
+      assert.equal(names.filter((name) => name === "Grand Final").length, 1);
+      assert.equal(names.filter((name) => name === "Grand Final Reset").length, 1);
+    });
+  }
+
+  for (const count of [4, 6, 8, 16, 32]) {
+    test(`${count} participants: every Lower match is fed by exactly two routes (no empty TBD matches)`, () => {
+      const compiled = plan(count);
+      const incoming = new Map<string, number>();
+      for (const route of compiled.routes) {
+        if (route.target.type === "match_slot") {
+          incoming.set(route.target.matchKey, (incoming.get(route.target.matchKey) ?? 0) + 1);
+        }
+      }
+      for (const match of compiled.logicalMatches.filter((m) => (m.name ?? "").startsWith("Lower"))) {
+        assert.equal(incoming.get(match.matchKey), 2, `${match.name} must receive two entrants`);
+      }
+    });
+  }
+
+  test("a full 8-participant run never leaves a Lower match skipped for lack of entrants", () => {
+    const compiled = plan(8);
+    const completed = playReady(
+      compiled,
+      createRoutingExecutionV2(compiled, "playoff", participants(8)),
+      (match) => match.slots[1]!,
+    );
+    assert.equal(completed.completed, true);
+    const lower = completed.matches.filter((match) => (match.name ?? "").startsWith("Lower"));
+    assert.equal(lower.length, 6);
+    assert.ok(lower.every((match) => match.status === "completed"), lower.map((m) => `${m.name}:${m.status}`).join(", "));
+  });
+});

@@ -79,9 +79,12 @@ export function buildDoubleEliminationStructureV2(
     }
   }
 
+  // Lower rounds come in pairs that share a size: round 1 (Upper R1 losers meet each other) and round 2
+  // (its winners meet the Upper R2 losers) both have bracketSize/4 matches, rounds 3–4 bracketSize/8, …
+  // so 8 entrants give 2 + 2 + 1 + 1 = 6 Lower matches. The previous formula (bracketSize / 2^⌊(r+2)/2⌋)
+  // doubled every odd round: matches no route ever fed, left as "TBD" until skipped (9 instead of 6 for 8).
   for (let round = 1; round <= lowerRoundCount; round += 1) {
-    const pairedUpperRound = Math.floor((round + 2) / 2);
-    const count = bracketSize / 2 ** pairedUpperRound;
+    const count = bracketSize / 2 ** (Math.floor((round + 1) / 2) + 1);
     for (let matchNumber = 1; matchNumber <= count; matchNumber += 1) {
       matches.push({
         localKey: lowerKey(round, matchNumber),

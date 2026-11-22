@@ -493,6 +493,7 @@ export const plGenerated = {
   "deBracketCanvas.spada_z_upper_bracket": "Spada z Upper Bracket",
   "deBracketCanvas.tbd": "TBD",
   "deBracketCanvas.wielki_final": "Wielki finał",
+  "deBracketCanvas.wolny_los": "wolny los",
   "deBracketCanvas.wygrani_r_n": "Wygrani R{n}",
   "dialog.zamknij": "Zamknij",
   "discordIntegration.awans": "Awans",
