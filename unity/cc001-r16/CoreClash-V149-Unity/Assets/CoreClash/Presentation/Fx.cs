@@ -37,6 +37,7 @@ namespace CoreClash.Presentation
         public const string Flame = "+C 0 .34 .5;+P -.1 -.98 .46 .2 -.48 .24";
         public const string Snow = "+L -.85 0 .85 0 .24;+L -.43 -.74 .43 .74 .24;+L .43 -.74 -.43 .74 .24";
         public const string Chevron = "+L -.7 .45 0 -.45 .34;+L 0 -.45 .7 .45 .34";
+        static int blastBall = -1; static float blastAt = -9;
         static readonly Color Spark = new Color(1, .86f, .28f), Volt = new Color(1f, .9f, .2f), Magnetic = new Color(.24f, .3f, .92f);
         public const string Confetti = "+P -.9 -.4 .9 -.4 .9 .4 -.9 .4";
 
@@ -183,8 +184,8 @@ namespace CoreClash.Presentation
 
         static Color BallColor(GameSimulation simulation, BallRuntime ball)
         {
-            var definition = ball == null ? null : simulation.Catalog.Ball(ball.type);
-            return definition == null || string.IsNullOrEmpty(definition.color) ? Color.white : Draw.Hex(definition.color);
+            // W24: a ball on the board is its team's colour, so that is the colour it breaks up in.
+            return ball == null ? Color.white : Draw.Owner(ball.owner);
         }
 
         // A sharp velocity change: sparks at the touching point, sized by how hard it was.
@@ -244,6 +245,9 @@ namespace CoreClash.Presentation
                 case "DEATH":
                 {
                     // Break-up in the ball's own colour, plus a pale ghost ring where it stood.
+                    // A ball that has just blown up is not shown dying as well: the blast is its end
+                    // (its flash in the team colour used to lie over the starburst).
+                    if (e.ballId == blastBall && now - blastAt < .15f) break;
                     Color colour = BallColor(simulation, ball);
                     float radius = ball?.radius ?? 17;
                     Push(Shape.Shock, x, y, x, y, now, .5f, radius + 34, Theme.A(colour, .9f), e.id);
@@ -276,6 +280,7 @@ namespace CoreClash.Presentation
                     Push(Shape.Flash, x, y, x, y, now, .3f, size * .7f, Color.Lerp(colour, Spark, .6f), e.id);
                     Push(Shape.Shock, x, y, x, y, now, .55f, size, colour, e.id);
                     // A blast opens with a starburst: the one shape that says "explosion" at a glance.
+                    if (e.kind == "EXPLOSION") { blastBall = e.ballId; blastAt = now; }
                     if (e.kind == "EXPLOSION") Push(Shape.Burst, x, y, x, y, now, .3f, size * .56f, Color.Lerp(colour, Spark, .75f), e.id);
                     Shake(now, .22f, e.kind == "EXPLOSION" ? 3.5f : 2f);
                     if (ReducedMotion) break;
@@ -338,8 +343,8 @@ namespace CoreClash.Presentation
                 case "ZAP":
                 {
                     float reach = ball?.radius ?? 17;
-                    if (other != null) Push(Shape.Bolt, other.x, other.y, x, y, now, .6f, reach, Volt, e.id);
-                    else Push(Shape.Bolt, x + 26, y - 96, x, y, now, .6f, reach, Volt, e.id);
+                    if (other != null) Push(Shape.Bolt, other.x, other.y, x, y, now, .34f, reach, Volt, e.id);
+                    else Push(Shape.Bolt, x + 26, y - 96, x, y, now, .34f, reach, Volt, e.id);
                     Push(Shape.Flash, x, y, x, y, now, .2f, reach * 1.9f, Volt, e.id);
                     Burst(x, y, 6, Volt, Star, 60, 180, .34f, 5);
                     break;
@@ -436,7 +441,7 @@ namespace CoreClash.Presentation
                 case "SAVE":
                     Push(Shape.Ripple, x, y, x, y, now, .5f, (ball?.radius ?? 17) + 22, Theme.Select, e.id);
                     break;
-                case "PULL":
+                case "PULL": case "PUSH":
                 {
                     // Pull: chevrons run ahead of the pulled ball along its real new velocity.
                     if (ball == null) break;
@@ -663,7 +668,9 @@ namespace CoreClash.Presentation
             var at = View(board, viewOwner, e.x, e.y);
             var to = View(board, viewOwner, e.x2, e.y2); Vector2 along = to - at; float length = along.magnitude;
             if (length < 2) return;
-            var across = new Vector2(-along.y, along.x) / length; int pieces = Mathf.Clamp(Mathf.RoundToInt(length / (26 * scale)), 3, 9);
+            // A real zigzag: each kink goes to the other side, by about a third of a piece.
+            var across = new Vector2(-along.y, along.x) / length; int pieces = Mathf.Clamp(Mathf.RoundToInt(length / (17 * scale)), 4, 12);
+            float swing = Mathf.Min(length / pieces * .46f, 15f * scale);
             float fade = Mathf.Clamp01((1 - t) * 2.2f) * strength, width = Mathf.Max(2.5f, 5.5f * scale);
             for (int pass = 0; pass < 3; pass++)
             {
@@ -671,7 +678,7 @@ namespace CoreClash.Presentation
                 for (int k = 1; k <= pieces; k++)
                 {
                     uint h = (uint)(e.seed * 7919 + k * 104729); h ^= h >> 13; h *= 0x5bd1e995; h ^= h >> 15;
-                    float side = k == pieces ? 0 : ((h % 1000) / 500f - 1) * 12f * scale;
+                    float side = k == pieces ? 0 : (k % 2 == 0 ? 1 : -1) * swing * (.55f + .45f * (h % 1000) / 1000f);
                     Vector2 next = at + along * (k / (float)pieces) + across * side;
                     Draw.Stroke(from, next, pass == 0 ? Theme.A(Theme.Ink, fade) : pass == 1 ? Theme.A(e.color, fade) : Theme.A(Color.white, fade), pass == 0 ? width + 4f * scale : pass == 1 ? width : width * .38f);
                     from = next;

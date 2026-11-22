@@ -103,8 +103,9 @@ namespace CoreClash.Presentation
             for (int owner = 0; owner < 2; owner++) RenderBaseBar(board, field, state, feedback, owner, board.width / 540);
             Draw.BeginGroup(field);
             var visible = BoardOverlayPlanner.Field(viewOwner, clippedBoard.x, clippedBoard.y, clippedBoard.width);
-            for (int owner = 0; owner < 2; owner++) RenderLauncher(clippedBoard, state, owner, aim, selected);
+            // Fields go down before the launch dishes: no ball can stay in a dish, so a field is not shown on it.
             RenderZones(clippedBoard, state);
+            for (int owner = 0; owner < 2; owner++) RenderLauncher(clippedBoard, state, owner, aim, selected);
             RenderTurnSweep(clippedBoard, state, feedback, dragging);
             RenderStructures(clippedBoard, state);
             Fx.RenderUnder(clippedBoard, viewOwner, now);
@@ -354,6 +355,7 @@ namespace CoreClash.Presentation
         // one by one, as before).
         static readonly List<ZoneRuntime> fieldList = new List<ZoneRuntime>();
         static readonly List<Vector2> fieldArc = new List<Vector2>(320);
+        static readonly List<float> fieldAngles = new List<float>(320);
         static Color FieldTone(string element)
             => element == "fire" ? Theme.Status(StatusKind.Fire) : element == "ice" ? Theme.Status(StatusKind.Ice) : element == "toxin" ? Theme.Status(StatusKind.Toxin)
              : element == "magnet" ? new Color(.36f, .42f, .96f) : new Color(1, .76f, .1f);
@@ -369,7 +371,7 @@ namespace CoreClash.Presentation
             {
                 foreach (var zone in fieldList)
                 {
-                    signature = signature * 31 + zone.id; signature = signature * 31 + zone.kind.GetHashCode();
+                    signature = signature * 31 + zone.id; signature = signature * 31 + zone.kind.GetHashCode(); signature = signature * 31 + zone.owner;
                     signature = signature * 31 + Mathf.RoundToInt(zone.x * 16); signature = signature * 31 + Mathf.RoundToInt(zone.y * 16); signature = signature * 31 + Mathf.RoundToInt(zone.radius * 16);
                 }
                 signature = signature * 31 + Mathf.RoundToInt(board.x * 64); signature = signature * 31 + Mathf.RoundToInt(board.y * 64); signature = signature * 31 + Mathf.RoundToInt(board.width * 64);
@@ -401,8 +403,8 @@ namespace CoreClash.Presentation
         {
             int count = Mathf.Clamp(Mathf.CeilToInt(zone.radius * scale * .45f), 48, 220); float step = Mathf.PI * 2 / count;
             bool first = FieldBorder(state, zone, 0), previous = first;
-            fieldArc.Clear();
-            if (previous) fieldArc.Add(FieldRim(board, zone, 0));
+            fieldArc.Clear(); fieldAngles.Clear();
+            if (previous) FieldRimAdd(board, zone, 0);
             for (int i = 1; i <= count; i++)
             {
                 float angle = i * step; bool here = i == count ? first : FieldBorder(state, zone, angle);
@@ -411,19 +413,30 @@ namespace CoreClash.Presentation
                     // Where the border starts or ends, to a fraction of a pixel.
                     float low = angle - step, high = angle;
                     for (int k = 0; k < 9; k++) { float middle = (low + high) * .5f; if (FieldBorder(state, zone, middle) == previous) low = middle; else high = middle; }
-                    var cut = FieldRim(board, zone, (low + high) * .5f);
-                    if (previous) { fieldArc.Add(cut); FieldArcOut(color, width); }
-                    else { fieldArc.Clear(); fieldArc.Add(cut); }
+                    float cut = (low + high) * .5f;
+                    if (previous) { FieldRimAdd(board, zone, cut); FieldArcOut(board, zone, scale, color, width); }
+                    else { fieldArc.Clear(); fieldAngles.Clear(); FieldRimAdd(board, zone, cut); }
                 }
-                if (here) fieldArc.Add(FieldRim(board, zone, angle));
+                if (here) FieldRimAdd(board, zone, angle);
                 previous = here;
             }
-            if (previous) FieldArcOut(color, width);
+            if (previous) FieldArcOut(board, zone, scale, color, width);
         }
-        static void FieldArcOut(Color color, float width)
+        static void FieldRimAdd(Rect board, ZoneRuntime zone, float angle) { fieldArc.Add(FieldRim(board, zone, angle)); fieldAngles.Add(angle); }
+        static void FieldArcOut(Rect board, ZoneRuntime zone, float scale, Color color, float width)
         {
             for (int i = 0; i + 1 < fieldArc.Count; i++) Draw.LayerStroke(fieldArc[i], fieldArc[i + 1], color, width);
-            fieldArc.Clear();
+            // Whose field it is: a line in its owner's colour just inside the edge - unbroken for the
+            // first player, broken for the second (the same sign as on that player's traps and balls).
+            float own = Mathf.Max(1.6f, 2.4f * scale), inner = zone.radius - (width * .5f + own * .5f + .6f) / scale;
+            Color team = Theme.A(Draw.Owner(zone.owner), .95f);
+            for (int i = 0; i + 1 < fieldAngles.Count; i++)
+            {
+                if (zone.owner == 1 && i % 2 == 1) continue;
+                float from = fieldAngles[i], to = fieldAngles[i + 1];
+                Draw.LayerStroke(Point(board, zone.x + Mathf.Cos(from) * inner, zone.y + Mathf.Sin(from) * inner), Point(board, zone.x + Mathf.Cos(to) * inner, zone.y + Mathf.Sin(to) * inner), team, own);
+            }
+            fieldArc.Clear(); fieldAngles.Clear();
         }
         static void RenderZones(Rect board, GameState state)
         {

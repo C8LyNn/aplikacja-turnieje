@@ -57,8 +57,8 @@ namespace CoreClash.Core
                 case "magnet":case "pulse":foreach(var t in Near(b,165)){
                     // Plain powers: the Magnet gathers balls - each one rolls right up to it and stops
                     // there (the reference pull throws them into the Magnet hard enough to kill it).
-                    if(S.plainPowers&&b.type=="magnet"){float gap=Dist(b,t)-b.radius-t.radius-4;if(gap>0)Impulse(t,b.x,b.y,(gap+14)/1.175f);continue;}
-                    float fall=.45f+.55f*(1-Dist(b,t)/165);Impulse(t,b.type=="magnet"?b.x:2*t.x-b.x,b.type=="magnet"?b.y:2*t.y-b.y,(b.type=="magnet"?520:500)*fall);}
+                    if(S.plainPowers&&b.type=="magnet"){float gap=Dist(b,t)-b.radius-t.radius-4;if(gap>0){Impulse(t,b.x,b.y,(gap+14)/1.175f);sim.Emit("PULL",t,"Magnet",b.id);}continue;}
+                    float fall=.45f+.55f*(1-Dist(b,t)/165);Impulse(t,b.type=="magnet"?b.x:2*t.x-b.x,b.type=="magnet"?b.y:2*t.y-b.y,(b.type=="magnet"?520:500)*fall);if(S.plainPowers&&b.type=="pulse")sim.Emit("PUSH",t,"Pulse",b.id);}
                     // Nothing in the rules changes here: the event only lets the screen show the pull or the push.
                     if(S.plainPowers)sim.Emit(b.type=="magnet"?"MAGNET":"PULSE",b,b.type=="magnet"?"Pull":"Push");break;
             }
