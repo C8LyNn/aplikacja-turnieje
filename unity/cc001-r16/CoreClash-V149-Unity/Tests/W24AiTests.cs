@@ -96,6 +96,13 @@ public static partial class Program
             True(match.Launched.Values.Sum()>=match.Turns-1);
             True(match.Samples.Count>0);True(match.Samples.All(s=>s.F.Length==AiWeights.Count&&(s.Result==0||s.Result==1||s.Result==.5f)));
             True(match.EdgeCount.Count>0);True(match.EdgeCount.Keys.All(id=>id!="normal"&&decks[0].balls.Concat(decks[3].balls).Contains(id)));
+            // The ball-by-ball measurement: every ball has a deck built on its group, and that deck can play without it.
+            foreach(var group in CoreClash.Presentation.BallGroups.All)foreach(string id in group.Balls){
+                var homeDeck=AiLab.HomeDeck(c,id);True(homeDeck!=null,id);True(group.Balls.All(homeDeck.balls.Contains),id);
+            }
+            // "Without a ball": the deck still holds nine, the player just has no copies of that one.
+            string dropped=decks[0].balls[0];var shorter=AiLab.Play(c,decks[0],decks[0],easy,easy,12,false,false,true,new[]{dropped,dropped});
+            True(shorter.Finished);True(!shorter.Launched.ContainsKey(dropped));True(shorter.Launched.Count>1);
             var again=AiLab.Play(c,decks[0],decks[3],easy,easy,11);
             Eq(match.Winner,again.Winner);Eq(match.Turns,again.Turns);Eq(match.Actions,again.Actions);Eq(match.BaseA,again.BaseA);Eq(match.BaseB,again.BaseB);Eq(match.Map,again.Map);
         });

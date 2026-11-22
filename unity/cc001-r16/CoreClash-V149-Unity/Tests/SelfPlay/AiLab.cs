@@ -18,7 +18,12 @@ namespace CoreClash.SelfPlay
     // game's own rules and the game's own computer player (Core/AiBrain.cs), to do these things:
     //   balance   every ready deck plays every other; the report says who wins, how much the first
     //             move is worth, and how much better each ball's best shot is than the Standard ball's.
-    //             "--no-bonus" plays the same matches without the second player's extra opening ball;
+    //             "--opening none|standard-bonus|standard-first" plays the same matches with another
+    //             rule for the opening (the reference rule gives the second player an extra ball):
+    //             no extra ball; the extra ball must be a Standard one; no extra ball and the first
+    //             player's first ball must be a Standard one;
+    //   balls     what each ball is worth to its deck over a whole match: the deck built on the
+    //             ball's group plays itself without that ball, from both seats;
     //   levels    checks that Hard beats Normal and Normal beats Easy, and by how much;
     //   tune      teaches the computer by play: two copies of it, one with each weight of its
     //             judgement (AiWeights) pushed a little up or down at random and one pushed the
@@ -65,23 +70,29 @@ namespace CoreClash.SelfPlay
 
         // One whole match between two computer players. `trace` collects what the balance report needs,
         // `samples` what the training needs.
-        public static LabMatch Play(Catalog catalog, DeckDefinition a, DeckDefinition b, AiAgent first, AiAgent second, ulong seed, bool trace = false, bool samples = false, bool openingBonus = true)
+        public static LabMatch Play(Catalog catalog, DeckDefinition a, DeckDefinition b, AiAgent first, AiAgent second, ulong seed, bool trace = false, bool samples = false, bool openingBonus = true, string[] drop = null, string opening = null)
         {
             var record = new LabMatch { DeckA = a.id, DeckB = b.id, Samples = samples ? new List<LabSample>() : null };
             var sim = NewMatch(catalog, a, b, seed, out record.Map, openingBonus);
+            // drop[seat]: that player has no copies of this ball (a deck must hold nine, so the ball stays in it, empty).
+            for (int seat = 0; drop != null && seat < 2; seat++)
+                foreach (var entry in sim.State.players[seat].stock) if (entry.id == drop[seat]) entry.remaining = 0;
             var sandbox = new GameSimulation(catalog, a, b) { ActiveRosterOnly = true };
             var agents = new[] { first, second };
             var random = new[] { new Random(unchecked((int)SelfPlayRng.Mix(seed, 1))), new Random(unchecked((int)SelfPlayRng.Mix(seed, 2))) };
             int guard = 0;
             while (sim.State.phase != MatchPhase.Over && guard++ < 600)
             {
-                int owner = sim.State.turn; var agent = agents[owner];
+                int owner = sim.State.turn; var agent = agents[owner]; var level = agent.Level;
+                // Experiments with the opening: this one shot may only be a Standard ball.
+                if ((opening == "standard-bonus" && owner == 1 && sim.State.bonusPending && sim.State.turnNumber == 2) || (opening == "standard-first" && owner == 0 && sim.State.turnNumber == 1))
+                    level = new AiLevelSettings { Level = level.Level, Specials = 0, Powers = level.Powers, Angles = level.Angles, AimNoise = level.AimNoise, ScoreNoise = level.ScoreNoise, Replays = false, ReplayPowers = level.ReplayPowers, ReplayAngles = level.ReplayAngles, MinThink = level.MinThink, MaxThink = level.MaxThink };
                 // One private copy of the position per candidate, without the event history (the rules do not read it).
                 var events = sim.State.events; sim.State.events = new List<GameEvent>();
                 string snapshot = JsonSerializer.Serialize(sim.State, Json);
                 sim.State.events = events;
                 var seen = trace ? new AiTrace() : null;
-                var command = AiBrain.Decide(sim, sandbox, agent.Level, agent.Weights, random[owner], () => JsonSerializer.Deserialize<GameState>(snapshot, Json), seen);
+                var command = AiBrain.Decide(sim, sandbox, level, agent.Weights, random[owner], () => JsonSerializer.Deserialize<GameState>(snapshot, Json), seen);
                 if (!sim.TryCommand(command, out _) && !sim.TryCommand(AiBrain.Fallback(sim.State), out _)) break;
                 record.Actions++;
                 if (command.kind == CommandKind.Spawn) { record.Launched.TryGetValue(command.ballType, out int n); record.Launched[command.ballType] = n + 1; }
@@ -163,7 +174,8 @@ namespace CoreClash.SelfPlay
                 case "balance": return Balance(catalog, root, args, threads, output);
                 case "levels": return Levels(catalog, root, args, threads, output);
                 case "tune": return Tune(catalog, root, args, threads, output);
-                default: Console.WriteLine("ailab: balance | levels | tune | train | bench"); return 2;
+                case "balls": return Balls(catalog, root, args, threads, output);
+                default: Console.WriteLine("ailab: balance | balls | levels | tune | train | bench"); return 2;
             }
         }
 
@@ -392,7 +404,8 @@ namespace CoreClash.SelfPlay
         static int Balance(Catalog catalog, string root, string[] args, int threads, string output)
         {
             int perPair = Int(args, "--per-pair", 12); var weights = LoadWeights(root); var decks = catalog.Roster.Decks;
-            bool bonus = Array.IndexOf(args, "--no-bonus") < 0;
+            string opening = Array.IndexOf(args, "--no-bonus") >= 0 ? "none" : Arg(args, "--opening", "bonus");
+            bool bonus = opening == "bonus" || opening == "standard-bonus";
             var agent = GameAgent(AiLevel.Normal, weights);
             var jobs = new List<(int a, int b, int k)>();
             for (int a = 0; a < decks.Length; a++) for (int b = 0; b < decks.Length; b++) for (int k = 0; k < perPair; k++) jobs.Add((a, b, k));
@@ -400,25 +413,78 @@ namespace CoreClash.SelfPlay
             Parallel.For(0, jobs.Count, new ParallelOptions { MaxDegreeOfParallelism = threads }, i =>
             {
                 var job = jobs[i];
-                results[i] = Play(catalog, decks[job.a], decks[job.b], agent, agent, SelfPlayRng.Mix(31337, (ulong)i), true, false, bonus);
+                results[i] = Play(catalog, decks[job.a], decks[job.b], agent, agent, SelfPlayRng.Mix(31337, (ulong)i), true, false, bonus, null, opening);
                 int now = Interlocked.Increment(ref done);
                 if (now % 100 == 0) Console.WriteLine("AILAB balance " + now + "/" + jobs.Count + " [" + watch.Elapsed.TotalSeconds.ToString("0") + " s]");
             });
-            string path = Path.Combine(output, bonus ? "balans.md" : "balans-bez-bonusu.md");
-            File.WriteAllText(path, BalanceReport(catalog, results, perPair, watch.Elapsed.TotalSeconds, weights, bonus), new UTF8Encoding(false));
+            string path = Path.Combine(output, opening == "bonus" ? "balans.md" : opening == "none" ? "balans-bez-bonusu.md" : "balans-" + opening + ".md");
+            File.WriteAllText(path, BalanceReport(catalog, results, perPair, watch.Elapsed.TotalSeconds, weights, opening), new UTF8Encoding(false));
             Console.WriteLine("AILAB balance report " + path);
+            return 0;
+        }
+
+        // ---------------------------------------------------------------- balls
+        // The balance table of single shots cannot see what pays later (a trap, a field, a Sprout that
+        // grows). This can: the deck built on the ball's group plays that same deck without the ball -
+        // no copies of it, so eight special balls instead of nine - from both seats, on the same maps
+        // and seeds. 50% = the deck loses nothing without it; well above = the ball carries the deck.
+        public static DeckDefinition HomeDeck(Catalog catalog, string ball)
+        {
+            var group = BallGroups.Of(ball); var decks = catalog.Roster.Decks;
+            return decks.FirstOrDefault(deck => group != null && group.Balls.All(deck.balls.Contains)) ?? decks.FirstOrDefault(deck => deck.balls.Contains(ball));
+        }
+        static int Balls(Catalog catalog, string root, string[] args, int threads, string output)
+        {
+            int games = Int(args, "--games", 80); var weights = LoadWeights(root); var agent = GameAgent(AiLevel.Normal, weights);
+            var balls = BallGroups.All.SelectMany(group => group.Balls).Where(id => HomeDeck(catalog, id) != null).ToArray();
+            var wins = new int[balls.Length]; var losses = new int[balls.Length]; var watch = Stopwatch.StartNew(); int done = 0, total = balls.Length * games;
+            Parallel.For(0, total, new ParallelOptions { MaxDegreeOfParallelism = threads }, i =>
+            {
+                int ball = i / games, k = i % games, pair = k >> 1; bool swap = (k & 1) == 1;
+                var deck = HomeDeck(catalog, balls[ball]);
+                var match = Play(catalog, deck, deck, agent, agent, SelfPlayRng.Mix(4711, (ulong)(ball * 1000 + pair)), false, false, true, swap ? new[] { balls[ball], null } : new[] { null, balls[ball] });
+                if (match.Finished && match.Winner >= 0) { if ((match.Winner == 0) != swap) Interlocked.Increment(ref wins[ball]); else Interlocked.Increment(ref losses[ball]); }
+                int now = Interlocked.Increment(ref done);
+                if (now % 200 == 0) Console.WriteLine("AILAB balls " + now + "/" + total + " [" + watch.Elapsed.TotalSeconds.ToString("0") + " s]");
+            });
+            var text = new StringBuilder();
+            text.AppendLine("# Core Clash - ile kulka daje swojej talii");
+            text.AppendLine();
+            text.AppendLine("- Dla każdej kulki: talia oparta na jej grupie gra **z tą samą talią bez tej kulki** (8 kulek specjalnych zamiast 9), " + games + " meczów, po połowie z każdego miejsca, te same mapy i losy dla obu stron.");
+            text.AppendLine("- **Wygrane z kulką**: 50% = bez tej kulki talia gra tak samo; wyraźnie więcej = kulka niesie talię; wyraźnie mniej = talia gra lepiej bez niej (komputer sięga po nią, a ona mu szkodzi).");
+            text.AppendLine("- Przy " + games + " meczach przypadek to około ±" + (100 / Math.Sqrt(games)).ToString("0") + " punktów procentowych; dopiero większe odchylenie od 50% coś znaczy.");
+            text.AppendLine("- Mecze komputera z komputerem (poziom średni), czas liczenia " + watch.Elapsed.TotalSeconds.ToString("0") + " s.");
+            text.AppendLine();
+            text.AppendLine("| Kulka | Grupa | Talia | Wygrane z kulką | Mecze |");
+            text.AppendLine("|---|---|---|---|---|");
+            foreach (int ball in Enumerable.Range(0, balls.Length).OrderByDescending(b => Share(wins[b], losses[b])))
+                text.AppendLine("| " + BallName(catalog, balls[ball]) + " | " + (BallGroups.Of(balls[ball])?.NamePl ?? "-") + " | " + (DeckText.NamePl(HomeDeck(catalog, balls[ball]).id) ?? HomeDeck(catalog, balls[ball]).name) + " | **" + Share(wins[ball], losses[ball]).ToString("0") + "%** | " + (wins[ball] + losses[ball]) + " |");
+            text.AppendLine();
+            text.AppendLine("| Grupa | Średnio wygranych z kulką |");
+            text.AppendLine("|---|---|");
+            foreach (var group in BallGroups.All)
+            {
+                var own = Enumerable.Range(0, balls.Length).Where(b => group.Balls.Contains(balls[b])).ToList(); if (own.Count == 0) continue;
+                text.AppendLine("| " + group.NamePl + " | " + own.Average(b => Share(wins[b], losses[b])).ToString("0") + "% |");
+            }
+            string path = Path.Combine(output, "balans-kulki.md");
+            File.WriteAllText(path, text.ToString(), new UTF8Encoding(false));
+            Console.WriteLine("AILAB balls report " + path);
             return 0;
         }
 
         static string BallName(Catalog catalog, string id) => BallGuide.NamePl(id) ?? catalog.Ball(id)?.name ?? id;
         static string Percent(int part, int all) => all > 0 ? (part * 100.0 / all).ToString("0") + "%" : "-";
-        static string BalanceReport(Catalog catalog, LabMatch[] matches, int perPair, double seconds, AiWeights weights, bool bonus)
+        static string BalanceReport(Catalog catalog, LabMatch[] matches, int perPair, double seconds, AiWeights weights, string opening)
         {
+            string experiment = opening == "none" ? "gracz 2 NIE dostaje dodatkowego strzału w pierwszej turze"
+                : opening == "standard-bonus" ? "dodatkowy strzał gracza 2 w pierwszej turze może być tylko Zwykłą kulką"
+                : opening == "standard-first" ? "gracz 2 NIE dostaje dodatkowego strzału, a pierwszy strzał gracza 1 może być tylko Zwykłą kulką" : null;
             var decks = catalog.Roster.Decks; var text = new StringBuilder();
             var decided = matches.Where(m => m.Finished && m.Winner >= 0).ToList();
-            text.AppendLine("# Core Clash - raport balansu z symulacji" + (bonus ? "" : " (wariant: bez dodatkowej kulki gracza 2 na otwarcie)"));
+            text.AppendLine("# Core Clash - raport balansu z symulacji" + (experiment == null ? "" : " (wariant otwarcia: " + opening + ")"));
             text.AppendLine();
-            if (!bonus) text.AppendLine("- **Eksperyment:** w tych meczach gracz 2 NIE dostaje dodatkowego strzału w pierwszej turze. Reszta zasad bez zmian.");
+            if (experiment != null) text.AppendLine("- **Eksperyment:** w tych meczach " + experiment + ". Reszta zasad bez zmian.");
             text.AppendLine("- Mecze: **" + matches.Length + "** (" + perPair + " na każdą parę talii w każdej kolejności), rozstrzygnięte: " + decided.Count + ", remisy: " + matches.Count(m => m.Finished && m.Winner < 0) + ", czas liczenia: " + seconds.ToString("0") + " s.");
             text.AppendLine("- Obie strony gra ten sam komputer (poziom średni), na zasadach gry: kulki ×1,5, podwójna tura poniżej 10 HP bazy, losowa mapa, każda kulka 30 HP, proste moce, jedno pole w jednym miejscu.");
             text.AppendLine("- To są mecze komputera z komputerem. Mówią, co jest mocne **w rękach tego komputera**; człowiek może grać kulką lepiej albo gorzej.");
