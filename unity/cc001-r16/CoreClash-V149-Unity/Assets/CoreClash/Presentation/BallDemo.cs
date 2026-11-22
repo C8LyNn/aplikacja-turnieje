@@ -46,6 +46,7 @@ namespace CoreClash.Presentation
     public sealed class BallDemoPlayer
     {
         public const float StepSeconds=1f/120;
+        public const float DemoBallScale=1.5f;
         public readonly BallDemoScript Script;
         public readonly GameSimulation Simulation;
         // Every event kind the rules produced during the show (the event list itself is bounded).
@@ -76,6 +77,8 @@ namespace CoreClash.Presentation
             state.bonusUsed=true;
             // A show plays by the rule the game itself plays by: a ball has only its card's power.
             state.plainPowers=true;state.exclusiveFields=true;
+            // ...and with balls of the size the game shows (match rule ballScale; the app's default).
+            state.ballScale=DemoBallScale;
             foreach(var piece in script.Pieces)
             {
                 var ball=Simulation.Spawn(piece.Owner,piece.Type,piece.X,piece.Y);

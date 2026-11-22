@@ -25,6 +25,9 @@ public static partial class Program
         Test("W24 shows: every active ball has one, it ends in reasonable time and its power really happens",()=>{
             var c=W22Catalog(out var data);
             True(new HashSet<string>(BallDemos.Ids).SetEquals(data.active),"shows are not exactly the active roster");
+            // A show plays with balls of the size the game shows (the app's ball-size rule), not the reference size.
+            var sized=new BallDemoPlayer(c,BallDemos.For("fire"));Eq(1.5f,BallDemoPlayer.DemoBallScale);Eq(1.5f,sized.Simulation.State.ballScale);
+            True(sized.Simulation.State.balls.All(b=>Math.Abs(b.radius-c.Ball(b.type).radius*1.5f)<.01f));
             foreach(string id in data.active)
             {
                 var script=BallDemos.For(id);
