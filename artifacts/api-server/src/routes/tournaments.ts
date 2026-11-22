@@ -37,6 +37,7 @@ import {
 } from "../auth";
 import { logAuditAction } from "./auth";
 import { ceremonyForViewer, stageForViewer } from "../application/stages/seeding-ceremony";
+import { validationErrorText } from "../http/body-guards";
 
 /** #324-L01-A: organizer and support see a prepared draw in full; everyone else only what has been revealed. */
 const isTournamentStaff = (access: { actor: { type: string } }) => access.actor.type === "organizer" || access.actor.type === "support";
@@ -900,7 +901,7 @@ async function createTournamentFromBody(
   const rawGameConfig = ownValue(requestBody, "gameConfig");
   const parsed = CreateTournamentBody.safeParse(requestBody);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
+    res.status(400).json({ error: validationErrorText(parsed.error) });
     return;
   }
   if (parsed.data.visibility === "private_online" && !parsed.data.viewerPassword) {
@@ -1590,7 +1591,7 @@ router.patch("/tournaments/:id", async (req, res): Promise<void> => {
   const hasPresentationSettings = Object.prototype.hasOwnProperty.call(req.body ?? {}, "presentationSettings");
   const parsed = UpdateTournamentBody.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
+    res.status(400).json({ error: validationErrorText(parsed.error) });
     return;
   }
   if (parsed.data.defaultBestOf != null && (!Number.isInteger(parsed.data.defaultBestOf) || parsed.data.defaultBestOf % 2 === 0)) {
@@ -2538,7 +2539,7 @@ router.post("/tournaments/:id/players", async (req, res): Promise<void> => {
   }
   const parsed = AddPlayerBody.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
+    res.status(400).json({ error: validationErrorText(parsed.error) });
     return;
   }
   const access = await requireTournamentPermission(req, res, params.data.id, "participants.manage");
@@ -2572,7 +2573,7 @@ router.post("/tournaments/:id/players/import", async (req, res): Promise<void> =
   }
   const parsed = ImportPlayersBody.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
+    res.status(400).json({ error: validationErrorText(parsed.error) });
     return;
   }
 
@@ -2605,7 +2606,7 @@ router.patch("/players/:id", async (req, res): Promise<void> => {
   }
   const parsed = UpdatePlayerBody.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
+    res.status(400).json({ error: validationErrorText(parsed.error) });
     return;
   }
   const [existing] = await db.select().from(playersTable).where(eq(playersTable.id, params.data.id));
@@ -3058,7 +3059,7 @@ router.patch("/matches/:id", async (req, res): Promise<void> => {
 
   const parsed = UpdateMatchBody.safeParse(req.body);
   if (!parsed.success) {
-    res.status(400).json({ error: parsed.error.message });
+    res.status(400).json({ error: validationErrorText(parsed.error) });
     return;
   }
   const { expectedRevision, ...changes } = parsed.data;
@@ -3211,7 +3212,7 @@ router.post("/matches/:id/complete", async (req, res): Promise<void> => {
   }
   const parsed = CompleteMatchBody.safeParse(req.body);
   if (!parsed.success) {
-    res.status(422).json({ error: parsed.error.message, code: "INVALID_MATCH_RESULT" });
+    res.status(422).json({ error: validationErrorText(parsed.error), code: "INVALID_MATCH_RESULT" });
     return;
   }
 
@@ -3319,7 +3320,7 @@ router.post("/matches/:id/cancel", async (req, res): Promise<void> => {
     return;
   }
   const parsed = CancelMatchBody.safeParse(req.body ?? {});
-  if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+  if (!parsed.success) { res.status(400).json({ error: validationErrorText(parsed.error) }); return; }
   const [match] = await db.select().from(matchesTable).where(eq(matchesTable.id, params.data.id));
   if (!match) { res.status(404).json({ error: "Match not found" }); return; }
   if (await isTwoLeggedTie(db, match.id)) {
@@ -3560,7 +3561,7 @@ router.post("/tournaments/:id/reorder-matches", async (req, res): Promise<void> 
   const params = ReorderMatchesParams.safeParse(req.params);
   if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
   const parsed = ReorderMatchesBody.safeParse(req.body);
-  if (!parsed.success) { res.status(400).json({ error: parsed.error.message }); return; }
+  if (!parsed.success) { res.status(400).json({ error: validationErrorText(parsed.error) }); return; }
   const access = await requireTournamentPermission(req, res, params.data.id, "matches.run");
   if (!access) return;
   const mutationActor = getTournamentMutationActor(access);

@@ -62,6 +62,9 @@ export default defineConfig({
     allowedHosts: true,
     fs: {
       strict: true,
+      // RC-6 (security): the dev server is reachable on the public DEV URL; never serve backups, agent notes or
+      // archives from the workspace (Vite defaults kept first).
+      deny: [".env", ".env.*", "*.{crt,pem}", "**/.git/**", "**/.local/**", "**/.agents/**", "*.dump", "*.bundle", "*.tar"],
     },
   },
   preview: {

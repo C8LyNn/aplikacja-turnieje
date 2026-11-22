@@ -52,6 +52,7 @@ import {
 import { serializeTournamentStage } from "../application/stages/stage-queries";
 import { enrichMatches } from "./tournaments";
 import { isTwoLeggedTie } from "../application/matches/two-leg-ties";
+import { validationErrorText } from "../http/body-guards";
 
 const router: IRouter = Router();
 
@@ -88,7 +89,7 @@ router.put("/tournaments/:id/stages/:stageId/league-rules", async (req, res): Pr
   const params = UpdateStageLeagueRulesParams.safeParse(req.params);
   const body = UpdateStageLeagueRulesBody.safeParse(req.body);
   if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
-  if (!body.success) { res.status(422).json({ error: body.error.message, code: "INVALID_LEAGUE_RULES" }); return; }
+  if (!body.success) { res.status(422).json({ error: validationErrorText(body.error), code: "INVALID_LEAGUE_RULES" }); return; }
   const access = await requireOrganizer(req, res, params.data.id);
   if (!access) return;
   try {
@@ -308,7 +309,7 @@ router.post("/tournaments/:id/stages/:stageId/schedule/generate", async (req, re
   const params = GenerateStageScheduleParams.safeParse(req.params);
   const body = GenerateStageScheduleBody.safeParse(req.body);
   if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
-  if (!body.success) { res.status(422).json({ error: body.error.message, code: "INVALID_SCHEDULE_INPUT" }); return; }
+  if (!body.success) { res.status(422).json({ error: validationErrorText(body.error), code: "INVALID_SCHEDULE_INPUT" }); return; }
   const access = await requireOrganizer(req, res, params.data.id);
   if (!access) return;
   const input = body.data;
@@ -386,7 +387,7 @@ router.put("/matches/:id/schedule", async (req, res): Promise<void> => {
   const params = UpdateMatchScheduleParams.safeParse(req.params);
   const body = UpdateMatchScheduleBody.safeParse(req.body);
   if (!params.success) { res.status(400).json({ error: "Invalid id" }); return; }
-  if (!body.success) { res.status(422).json({ error: body.error.message, code: "INVALID_SCHEDULE_INPUT" }); return; }
+  if (!body.success) { res.status(422).json({ error: validationErrorText(body.error), code: "INVALID_SCHEDULE_INPUT" }); return; }
   const [reference] = await db.select({ tournamentId: matchesTable.tournamentId }).from(matchesTable)
     .where(eq(matchesTable.id, params.data.id));
   if (!reference) { res.status(404).json({ error: "Mecz nie istnieje.", code: "MATCH_NOT_FOUND" }); return; }

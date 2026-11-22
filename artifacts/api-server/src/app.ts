@@ -9,6 +9,13 @@ import router from "./routes";
 import { logger } from "./lib/logger";
 import { TournamentMutationAuthorizationError } from "./access-policy";
 import { configureTrustProxy } from "./http/request-source";
+import { rejectOversizedJsonArrays } from "./http/body-guards";
+
+/** Body-parser client errors answered with their own status instead of a 500 (RC-6). */
+const BODY_PARSER_REJECTIONS: Record<string, { status: number; code: string; error: string }> = {
+  "encoding.unsupported": { status: 415, code: "UNSUPPORTED_CONTENT_ENCODING", error: "Skompresowana treść żądania nie jest obsługiwana." },
+  "entity.too.large": { status: 413, code: "REQUEST_TOO_LARGE", error: "Treść żądania jest zbyt duża." },
+};
 
 export function createApp(env: NodeJS.ProcessEnv = process.env): Express {
   const app: Express = express();
@@ -34,8 +41,10 @@ export function createApp(env: NodeJS.ProcessEnv = process.env): Express {
     }),
   );
   app.use(cors());
-  app.use(express.json({ limit: "4mb" }));
-  app.use(express.urlencoded({ extended: true }));
+  // RC-6 (security): no client sends compressed request bodies, so decompression stays off (GHSA-27r3-jxmh-p828).
+  app.use(express.json({ limit: "4mb", inflate: false }));
+  app.use(express.urlencoded({ extended: true, inflate: false }));
+  app.use(rejectOversizedJsonArrays);
 
   app.use("/api", router);
   // A missing endpoint is not an exception and must never reach an HTML fallback.
@@ -65,6 +74,18 @@ export function createApp(env: NodeJS.ProcessEnv = process.env): Express {
       res.status(400).type("application/json").json({
         error: "Treść żądania nie jest prawidłowym JSON-em.",
         code: "INVALID_JSON",
+        requestId,
+      });
+      return;
+    }
+    const rejection =
+      error != null && typeof error === "object" && "type" in error && "status" in error
+        ? BODY_PARSER_REJECTIONS[String(error.type)]
+        : undefined;
+    if (rejection && error.status === rejection.status) {
+      res.status(rejection.status).type("application/json").json({
+        error: rejection.error,
+        code: rejection.code,
         requestId,
       });
       return;
