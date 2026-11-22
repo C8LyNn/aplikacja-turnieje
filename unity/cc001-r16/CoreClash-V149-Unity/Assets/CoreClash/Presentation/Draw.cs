@@ -52,14 +52,23 @@ namespace CoreClash.Presentation
         public static void EndGroup(){GUI.EndGroup();}
         // An invisible button: true when the rectangle is clicked.
         public static bool Hit(Rect r)=>GUI.Button(Px(r),GUIContent.none,GUIStyle.none);
+        // A text field in screen pixels. The engine's field is given a copy of the style made for
+        // the current scale (type size and padding in pixels) - a copy kept per style, not the
+        // style itself changed and changed back around the call: done that way the field showed
+        // no text at all at any scale but 100% (found 2026-11-22 on a 128% capture).
+        static readonly Dictionary<GUIStyle,GUIStyle> fieldStyles=new Dictionary<GUIStyle,GUIStyle>();
+        static readonly Dictionary<GUIStyle,float> fieldScales=new Dictionary<GUIStyle,float>();
         public static string TextField(Rect r,string text,int maxLength=-1,GUIStyle style=null)
         {
             style=style??GUI.skin.textField;float s=UiViewport.Scale;
             if(s==1)return maxLength>=0?GUI.TextField(r,text,maxLength,style):GUI.TextField(r,text,style);
-            int size=style.fontSize;var padding=style.padding;
-            style.fontSize=FontPx(size);style.padding=new RectOffset(Mathf.RoundToInt(padding.left*s),Mathf.RoundToInt(padding.right*s),Mathf.RoundToInt(padding.top*s),Mathf.RoundToInt(padding.bottom*s));
-            try{return maxLength>=0?GUI.TextField(Px(r),text,maxLength,style):GUI.TextField(Px(r),text,style);}
-            finally{style.fontSize=size;style.padding=padding;}
+            if(!fieldStyles.TryGetValue(style,out var scaled)||scaled==null||!fieldScales.TryGetValue(style,out float made)||made!=s)
+            {
+                var padding=style.padding;int size=style.fontSize>0?style.fontSize:14;
+                scaled=new GUIStyle(style){fontSize=FontPx(size),padding=new RectOffset(Mathf.RoundToInt(padding.left*s),Mathf.RoundToInt(padding.right*s),Mathf.RoundToInt(padding.top*s),Mathf.RoundToInt(padding.bottom*s))};
+                fieldStyles[style]=scaled;fieldScales[style]=s;
+            }
+            return maxLength>=0?GUI.TextField(Px(r),text,maxLength,scaled):GUI.TextField(Px(r),text,scaled);
         }
         // A type size in screen pixels. Rounded down unless it is almost the next size, so a line
         // never grows wider than the box it was measured for.

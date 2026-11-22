@@ -53,6 +53,14 @@ namespace CoreClash.Testing
             app.ShowDeckGuide(decks[0].id);
             yield return Shot("02-deck-guide");
             app.CloseDeckGuide();
+            // The multiplayer panel, both tabs (nothing is connected: only the words and the layout are looked at).
+            var lobby = app.GetComponent<CoreClash.Networking.NgoLanLobby>();
+            if (lobby != null)
+            {
+                lobby.OpenCreate(); yield return Wait(.2f); yield return Shot("03-lobby-create");
+                lobby.OpenJoin(); yield return Wait(.2f); yield return Shot("04-lobby-join");
+                lobby.Close(); yield return null;
+            }
             app.OpenDeckBuilder(0);
             yield return Wait(.5f);
             yield return Shot("01-builder");

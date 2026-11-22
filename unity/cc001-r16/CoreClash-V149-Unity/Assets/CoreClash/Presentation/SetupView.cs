@@ -20,7 +20,7 @@ namespace CoreClash.Presentation
             float playersY=68,playersH=wide?76:140,titleY=playersY+playersH+12,listY=titleY+(wide?56:50);
             if(shortView){titleY=66;listY=118;}else{PlayerChoice(0,new Rect(left,playersY,wide?(width-16)/2:width,wide?76:64));PlayerChoice(1,new Rect(wide?left+(width+16)/2:left,wide?playersY:playersY+76,wide?(width-16)/2:width,wide?76:64));}
             Heading(new Rect(left,titleY,width-124,28),Lang.T("Pick your decks","Wybierz talie"),wide?24:19);
-            Draw.Text(new Rect(left,titleY+(wide?31:27),width-124,22),DeveloperRoster?"DEVELOPER ROSTER (F2): frozen balls and legacy decks are available for testing.":Lang.T(wide?"Four ways to bend the rules. One deck for each player.":"One deck for each player.",wide?"Cztery sposoby na nagięcie zasad. Jedna talia dla każdego gracza.":"Jedna talia dla każdego gracza."),wide?13:12,DeveloperRoster?Theme.Select:OnBackdropSoft,TextAnchor.UpperLeft,true);
+            Draw.Text(new Rect(left,titleY+(wide?31:27),width-124,22),DeveloperRoster?"DEVELOPER ROSTER (F2): frozen balls and legacy decks are available for testing.":Lang.T(wide?"Six ready-made decks, each built on one group. One deck for each player.":"One deck for each player.",wide?"Sześć gotowych talii, każda oparta na jednej grupie. Jedna talia dla każdego gracza.":"Jedna talia dla każdego gracza."),wide?13:12,DeveloperRoster?Theme.Select:OnBackdropSoft,TextAnchor.UpperLeft,true);
             LanguageSwitch(new Rect(left+width-112,titleY+(shortView?-2:0),112,46));
             var setupDecks=SetupDecks;
             float listH=Math.Max(32,UiHeight-listY-80),rows=(float)Math.Ceiling(setupDecks.Length/(float)columns);
@@ -90,6 +90,14 @@ namespace CoreClash.Presentation
             float actionH=UiViewport.TargetSize>=44?46:36;
             float orb=Math.Min(compact?30:38,(r.width-40)/9.6f),step=(r.width-32-orb)/8,orbY=r.yMax-actionH-18-orb-(compact?4:8);
             for(int i=0;i<9;i++)BallView.Preview(new Rect(r.x+16+i*step,orbY,orb,orb),Catalog.Ball(deck.balls[i]),0);
+            // Which groups the deck is made of: a bar in the group's colour under its balls.
+            for(int i=0;i<9;)
+            {
+                var family=BallGroups.Of(deck.balls[i]);int last=i;
+                while(last+1<9&&BallGroups.Of(deck.balls[last+1])==family)last++;
+                if(family!=null)Draw.Rect(new Rect(r.x+16+i*step+2,orbY+orb+3,(last-i)*step+orb-4,4),BallGuideView_GroupColor(family.Id));
+                i=last+1;
+            }
             if(Draw.Hit(new Rect(r.x+8,orbY-6,r.width-16,orb+12)))OpenDeckGuide(deck);
             float buttonW=(r.width-44)/2;
             if(Draw.Button(new Rect(r.x+16,r.yMax-actionH-12,buttonW,actionH),Lang.T("Player 1","Gracz 1"),Draw.Cyan,chosen[0].id==deck.id,size:13))SelectDeck(0,deck.id);

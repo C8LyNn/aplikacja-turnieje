@@ -116,6 +116,7 @@ namespace CoreClash.Presentation
             Draw.Text(new Rect(r.x+icon+5,r.y,room+2,r.height),line,type,Color.Lerp(tone,Theme.Ink,.35f),TextAnchor.MiddleLeft,true);
         }
 
+        bool infoNoShow;
         void RenderInfo()
         {
             var current=inspectBallId>0?BallInspection.Read(Simulation.State,inspectBallId):null;
@@ -126,7 +127,12 @@ namespace CoreClash.Presentation
             // "low" = a landscape phone: a wide card, with the buttons in the header instead of a footer.
             bool phone=UiWidth<500,low=UiHeight<500;
             float w=Math.Min(low?720:560,UiWidth-(phone?20:32)),pad=phone?16:26,inner=w-pad*2,head=low?66:phone?88:104,foot=low?4:68;
+            infoNoShow=false;
             float content=GuideContent(d,guide,current,owner,inner,false);
+            // A card opened from the board also lists what the ball is going through right now. When
+            // that makes it taller than the screen, the show is left out: what the player asked
+            // about is the ball in front of them, and nothing has to be scrolled.
+            if(inspectBallId>0&&head+content+foot+8>UiHeight-(low?20:phone?36:72)){infoNoShow=true;content=GuideContent(d,guide,current,owner,inner,false);}
             float h=Math.Min(UiHeight-(low?20:phone?36:72),head+content+foot+8),x=(UiWidth-w)/2,y=(UiHeight-h)/2;
             var card=new Rect(x,y,w,h);
             Draw.Card(card,null,null,.4f);
@@ -174,7 +180,7 @@ namespace CoreClash.Presentation
             y+=bannerH+12;
 
             // The show: on a wide card it stands to the right of the text, on a phone under the sentence.
-            var script=BallDemos.For(guide.Id);
+            var script=infoNoShow?null:BallDemos.For(guide.Id);
             bool side=script!=null&&width>=470;
             float stageW=script==null?0:side?Mathf.Min(300,width*.46f):width,stageH=script==null?0:BoardView.StageHeight(stageW-6,script.Top,script.Bottom)+6;
             float column=side?width-stageW-18:width,top=y;
@@ -294,6 +300,8 @@ namespace CoreClash.Presentation
                 var row=new Rect((i%columns)*(colW+8),(i/columns)*rowH,colW,rowH-6);
                 bool hover=GUI.enabled&&row.Contains(Draw.Mouse);
                 Draw.Round(row,hover?Theme.PanelRaised:Theme.PanelLight);
+                var family=BallGroups.Of(d.id);
+                if(family!=null)Draw.Corners(new Rect(row.x,row.y,6,row.height),GroupColor(family.Id),Draw.Corner,0,0,Draw.Corner);
                 BallView.Preview(new Rect(row.x+8,row.y+(row.height-36)/2,36,36),d,deckGuideOwner);
                 Draw.Text(new Rect(row.x+54,row.y+3,row.width-90,22),BallIcons.Name(d),phone?15:16,Theme.Text,TextAnchor.MiddleLeft,true);
                 if(guide!=null)GuideLine(new Rect(row.x+54,row.y+24,row.width-92,20),d.id,12);
@@ -322,12 +330,24 @@ namespace CoreClash.Presentation
             string title=Lang.T("ON THE BOARD NOW","TERAZ NA PLANSZY");
             if(draw)Draw.Text(new Rect(0,y,width,16),title,11,Draw.Cyan,TextAnchor.MiddleLeft,true);
             y+=22;
+            // W24 six groups: what a ball carries that is not a state of the old kind - a Battery's
+            // charges, how far a Sprout has grown, an Anchor that has dug in.
+            BallRuntime live=null;
+            if(current!=null&&current.OnBoard)foreach(var ball in Simulation.State.balls)if(ball.id==inspectBallId&&!ball.dead){live=ball;break;}
+            string charge=live!=null&&live.type=="capacitor"?Lang.T("Charges: "+live.charge+" of 3","Ładunki: "+live.charge+" z 3"):null;
+            string grown=live!=null&&live.type=="cultivator"&&live.growthStage>0?Lang.T("Grown "+live.growthStage+" of 3 times","Urósł "+live.growthStage+" z 3 razy"):null;
+            string dug=live!=null&&live.anchorStacks>=3?Lang.T("Dug in: hard to push","Okopana: trudno ją przesunąć"):null;
             if(current==null||!current.OnBoard)y=StateLine(null,StatusKind.Counter,Lang.T("This ball is no longer on the board.","Tej kulki nie ma już na planszy."),width,draw,y);
-            else if(current.States.Length==0)y=StateLine(null,StatusKind.Counter,Lang.T("Nothing is affecting it right now.","Nic na nią teraz nie działa."),width,draw,y);
-            else foreach(var state in current.States)y=StateLine(state,state.Kind,StateText(state),width,draw,y);
+            else if(current.States.Length==0&&charge==null&&grown==null&&dug==null)y=StateLine(null,StatusKind.Counter,Lang.T("Nothing is affecting it right now.","Nic na nią teraz nie działa."),width,draw,y);
+            else
+            {
+                foreach(var state in current.States)y=StateLine(state,state.Kind,StateText(state),width,draw,y);
+                foreach(string extra in new[]{charge,grown,dug})if(extra!=null)y=StateLine(ExtraState,StatusKind.Counter,extra,width,draw,y);
+            }
             if(draw)Draw.Rect(new Rect(0,y+4,width,2),Theme.Edge);
             return y+18;
         }
+        static readonly BallStateLabel ExtraState=new BallStateLabel("W24","");
         float StateLine(BallStateLabel state,StatusKind kind,string text,float width,bool draw,float y)
         {
             float indent=state==null?0:28,height=Draw.TextHeight(text,width-indent,15);
@@ -344,7 +364,9 @@ namespace CoreClash.Presentation
                 case StatusKind.Ice:return Lang.T("Chilled "+n+" of 3 (3 = frozen)","Mróz "+n+" z 3 (3 = zamrożenie)");
                 case StatusKind.Toxin:return Lang.T("Poisoned: loses 5 HP each turn ("+n+(n==1?" more turn)":" more turns)"),"Zatruta: traci 5 HP co turę (jeszcze "+n+(n==1?" tura)":n<5?" tury)":" tur)"));
                 case StatusKind.Frozen:return Lang.T("Frozen: cannot move","Zamrożona: nie może się ruszyć");
-                case StatusKind.Rooted:return Lang.T("Stuck in a web until its turn ends","Uwięziona w sieci do końca swojej tury");
+                case StatusKind.Rooted:return Lang.T("Tangled in a vine until its turn ends","Opleciona przez pnącze do końca swojej tury");
+                case StatusKind.Jammed:return Lang.T("Switched off: no power until the end of its next turn","Wyłączona: bez mocy do końca swojej następnej tury");
+                case StatusKind.Frostguard:return Lang.T("Dug in: chills whoever hits it","Okopany: mrozi każdego, kto w niego uderzy");
                 case StatusKind.Shield:return Lang.T("Shield: "+n,"Tarcza: "+n);
                 case StatusKind.Divine:return Lang.T("Will block the next collision","Zablokuje najbliższe zderzenie");
                 case StatusKind.Armed:return Lang.T("Armed: explodes when an enemy touches it","Uzbrojona: wybuchnie, gdy dotknie jej wróg");
