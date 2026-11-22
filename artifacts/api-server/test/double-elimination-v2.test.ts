@@ -238,7 +238,7 @@ describe("Double Elimination V2 structure", () => {
     [32, 31, [8, 8, 4, 4, 2, 2, 1, 1]],
     [6, 7, [2, 2, 1, 1]],
     [12, 15, [4, 4, 2, 2, 1, 1]],
-  ] as const) {
+  ] as Array<[count: number, upper: number, lowerRounds: number[]]>) {
     test(`${count} participants: ${upper} Upper, ${lowerRounds.reduce((a, b) => a + b, 0)} Lower, Grand Final + reset`, () => {
       const compiled = plan(count);
       const names = compiled.logicalMatches.map((match) => match.name ?? "");
