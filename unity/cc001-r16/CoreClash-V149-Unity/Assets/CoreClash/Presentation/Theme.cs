@@ -17,10 +17,29 @@ namespace CoreClash.Presentation
         // Teams. Colour is never the only cue. On a ball the cue is the owner pip (W21): a small
         // triangle on the ring that points the way the ball's side attacks. Launchers, zones
         // and structures keep the W20 ring pattern: P1 solid, P2 segmented.
-        public static readonly Color P1=C("#1f7dff"),P2=C("#ff3b6b");
+        // W24 (owner decision, 2026-11-22: "a player plays one colour, the opponent another; the
+        // player picks his own, the computer's is drawn, in a two-player game each picks"): the two
+        // players' colours are picked from PlayerColors. A ball's body is its group's colour; whose
+        // it is, is told by the colour of its HP gauge.
+        public static Color P1=C("#1f7dff"),P2=C("#ff3b6b");
+        static Color deep1=C("#124dc4"),deep2=C("#d61c50");
+        public static readonly Color[] PlayerColors={C("#1f7dff"),C("#f5334f"),C("#17a84b"),C("#e6a100"),C("#f26a0c"),C("#9b4dff"),C("#ec4899"),C("#0ea5a8")};
+        public static readonly string[] PlayerColorEn={"Blue","Red","Green","Yellow","Orange","Purple","Pink","Teal"};
+        public static readonly string[] PlayerColorPl={"Niebieski","Czerwony","Zielony","Żółty","Pomarańczowy","Fioletowy","Różowy","Turkusowy"};
+        public static int PlayerColor1=0,PlayerColor2=1;
+        // The two players never share a colour: the second one moves on when they would.
+        public static void SetPlayerColors(int first,int second)
+        {
+            int count=PlayerColors.Length;first=((first%count)+count)%count;second=((second%count)+count)%count;
+            if(second==first)second=(first+1)%count;
+            PlayerColor1=first;PlayerColor2=second;P1=PlayerColors[first];P2=PlayerColors[second];
+            deep1=Shade(P1,1.08f,.74f);deep2=Shade(P2,1.08f,.74f);
+            Draw.Cyan=P1;Draw.Pink=P2;
+        }
+        public static string PlayerColorName(int index)=>Lang.T(PlayerColorEn[index],PlayerColorPl[index]);
         public static Color Team(int owner)=>owner==0?P1:P2;
         // Darker team shade: button lips, text on white.
-        public static Color TeamDeep(int owner)=>owner==0?C("#124dc4"):C("#d61c50");
+        public static Color TeamDeep(int owner)=>owner==0?deep1:deep2;
         // W24 (owner decision): a cartoon look with vivid colours. Colours that come from data (ball
         // bodies, deck accents) are pushed the same way at draw time: more saturation, a touch more
         // light. Near-greys stay grey. The data itself is not changed.

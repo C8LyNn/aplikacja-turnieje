@@ -39,7 +39,7 @@ namespace CoreClash.Presentation
                 case "fire":return Draw.Hex("#f0711a");
                 case "poison":return Draw.Hex("#a03fd0");
                 case "magnet":return Draw.Hex("#4a5ae8");
-                case "electric":return Draw.Hex("#d9a400");
+                case "electric":return Draw.Hex("#e3aa00");
                 case "plant":return Draw.Hex("#3f9d1f");
                 default:return Draw.Hex("#5b6aa0");
             }
@@ -143,7 +143,7 @@ namespace CoreClash.Presentation
             Draw.Text(new Rect(tx,y+(low?6:phone?14:18),tw,low?30:phone?34:40),name,low?21:phone?(name.Length>12?21:25):31,Theme.Text,TextAnchor.MiddleLeft,true);
             string sub=current!=null?Lang.T("Player ","Gracz ")+(current.Owner+1)+"  ·  "+current.Hp+" / "+current.MaxHp+" HP"
                 :inspectBallId>0?Lang.T("No longer on the board","Nie ma jej już na planszy")
-                :d.hp+" HP  ·  "+(d.stockCopies<0?Lang.T("no limit","bez limitu"):d.stockCopies+Lang.T(" in a deck"," w talii"))+(d.size=="large"?Lang.T("  ·  big","  ·  duża"):"");
+                :(d.stockCopies<0?Lang.T("no limit","bez limitu"):d.stockCopies+Lang.T(" in a deck"," w talii"))+(d.size=="large"?Lang.T("  ·  big","  ·  duża"):"");
             Draw.Text(new Rect(tx,y+(low?35:phone?48:58),tw,24),sub,phone||low?13:15,Draw.Gold,TextAnchor.MiddleLeft,true);
             infoScroll=Draw.ScrollView(new Rect(x+pad,y+head,inner+8,h-head-foot-(low?8:0)),infoScroll,new Rect(0,0,inner,content));
             GuideContent(d,guide,current,owner,inner,true);

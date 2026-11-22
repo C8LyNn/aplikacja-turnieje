@@ -192,7 +192,12 @@ namespace CoreClash.Presentation
             }
         }
         public void SelectDeck(int owner,string id){if(owner<0||owner>1)return;var deck=Catalog.Deck(id);if(deck!=null)chosen[owner]=deck;}
-        public void StartLocalMatch(){NetworkLink?.Disconnect();GetComponent<NgoGameSession>()?.Disconnect();StartMatchState();aiMatch=VersusAi;}
+        public void StartLocalMatch()
+        {
+            NetworkLink?.Disconnect();GetComponent<NgoGameSession>()?.Disconnect();StartMatchState();aiMatch=VersusAi;
+            // W24: the computer's colour is drawn for every match; two players keep the colours they chose.
+            if(VersusAi)MatchSetup.DrawComputerColor();else MatchSetup.UseChosenColors();
+        }
         void StartMatchState(){deckGuide=null;hintShown=false;aiMatch=false;ai.Reset();remoteBallSmoother.Reset();remoteLastEventId=remoteLastRevision=0;NetworkLink=null;Simulation=new GameSimulation(Catalog,chosen[0],chosen[1]);
             // W24: the rules the player set for the match (ball size, double turn, map).
             MatchSetup.Apply(Simulation);
@@ -225,7 +230,7 @@ namespace CoreClash.Presentation
         public void ConfirmLeaveMatch(){if(exitGuard.Confirm()){Debug.Log("CORE_CLASH_LEAVE_CONFIRMED");ReturnToSetup();}}
         public void CancelLeaveMatch(){if(exitGuard.Open){exitGuard.Cancel();CancelPointer();Debug.Log("CORE_CLASH_LEAVE_CANCELED");}}
         public void ReturnToSetup(){deckGuide=null;hintShown=false;exitGuard.Reset();remoteBallSmoother.Reset();NetworkLink?.Disconnect();GetComponent<NgoGameSession>()?.Disconnect();NetworkLink=null;setup=true;builder=library=boardInspection=false;CancelPointer();CloseBallDetails();DeveloperOverlay=false;}
-        public void BeginNetworkGame(IUnityNetworkLink link){StartMatchState();NetworkLink=link;networkNotice=link.Status;}
+        public void BeginNetworkGame(IUnityNetworkLink link){StartMatchState();NetworkLink=link;networkNotice=link.Status;MatchSetup.UseColorsFor(link.LocalOwner);}
         public void ReceiveNetworkState(GameState state,int snapshotRevision)
         {
             if(NetworkLink!=null&&!NetworkLink.IsAuthority&&state!=null){
@@ -272,8 +277,8 @@ namespace CoreClash.Presentation
             if(!stripInBar)
             {
                 bool small=UiWidth<500;float x=small?14:24;int size=UiWidth<360?17:small?23:27;
-                Draw.Circle(new Rect(x,17,22,22),Theme.Ink);Draw.Circle(new Rect(x+2,19,18,18),Theme.P1);
-                Draw.Circle(new Rect(x+14,21,22,22),Theme.Ink);Draw.Circle(new Rect(x+16,23,18,18),Theme.P2);
+                Draw.Circle(new Rect(x,17,22,22),Theme.Ink);Draw.Circle(new Rect(x+2,19,18,18),Theme.PlayerColors[0]);
+                Draw.Circle(new Rect(x+14,21,22,22),Theme.Ink);Draw.Circle(new Rect(x+16,23,18,18),Theme.PlayerColors[1]);
                 Draw.Inked(new Rect(x+44,11,UiWidth<360?130:small?190:330,30),"CORE CLASH",size,Theme.Select,TextAnchor.MiddleLeft,2f);
             }
             if(fatal.Length>0){Draw.Text(new Rect(30,100,UiWidth-60,200),fatal,18,Theme.OnColor);return;}if(Catalog==null)return;

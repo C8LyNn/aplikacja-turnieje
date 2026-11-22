@@ -16,7 +16,7 @@ namespace CoreClash.Core
     //   compass    when it stops in its owner's turn, it shoots once more, straight at the nearest enemy
     //   cactus     an enemy that touches it takes 5 damage (once a turn for each enemy)
     //   flower     every turn of its owner: heals the owner's balls next to it (and itself)
-    //   sprout     every turn of its owner: grows (more HP, bigger), three times at most
+    //   sprout     every turn of its owner: grows (bigger, heavier, 5 HP back), three times at most
     public sealed partial class AbilityResolver
     {
         public const int ZapDamage=5,ChargeMax=3,GrowthMax=3,ThornDamage=5,BloomHeal=5;
@@ -110,8 +110,10 @@ namespace CoreClash.Core
                     break;
                 case "cultivator":
                     if(b.growthStage>=GrowthMax)break;
-                    b.growthStage++;b.maxHp+=5;b.hp=Math.Min(b.maxHp,b.hp+5);b.radius*=GrowthStep;b.mass*=GrowthStep;
-                    sim.Emit("GROW",b,"+5 HP");
+                    // Every ball has the same HP: the Sprout grows in body and gets 5 HP back, its gauge stays as it is.
+                    b.growthStage++;b.radius*=GrowthStep;b.mass*=GrowthStep;
+                    sim.Emit("GROW",b,"Bigger");
+                    sim.Heal(b,5);
                     break;
             }
         }

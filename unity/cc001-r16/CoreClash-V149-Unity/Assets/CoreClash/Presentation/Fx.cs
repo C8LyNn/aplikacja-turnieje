@@ -65,6 +65,8 @@ namespace CoreClash.Presentation
         {
             public float x, y, vx, vy, hitAt = -9, healAt = -9, lostAt = -9, bornAt = -9, absorbAt = -9, hitStrength;
             public int hp, lostFrom, stamp; public bool moving;
+            // Where the red run-down of lost HP starts (HP; see LostHp).
+            public float trailFrom;
         }
         static Dictionary<int, Track> tracks = new Dictionary<int, Track>();
         static readonly List<int> stale = new List<int>();
@@ -133,7 +135,8 @@ namespace CoreClash.Presentation
                     float jump = (ball.x - track.x) * (ball.x - track.x) + (ball.y - track.y) * (ball.y - track.y);
                     // A real contact changes velocity sharply without moving the ball far in one frame.
                     if (change > 110 && jump < 60 * 60 && (ball.moving || track.moving)) Contact(state, ball, dvx, dvy, change, now);
-                    if (ball.hp < track.hp) { track.lostFrom = track.hp; track.lostAt = now; }
+                    // A second loss while the first is still running down starts from where the red is now.
+                    if (ball.hp < track.hp) { track.trailFrom = Mathf.Max(track.hp, Trail(track, now, out _, out float top, out _) ? top : 0); track.lostFrom = track.hp; track.lostAt = now; }
                     else if (ball.hp > track.hp) track.healAt = now;
                 }
                 track.stamp = stamp;
@@ -184,8 +187,8 @@ namespace CoreClash.Presentation
 
         static Color BallColor(GameSimulation simulation, BallRuntime ball)
         {
-            // W24: a ball on the board is its team's colour, so that is the colour it breaks up in.
-            return ball == null ? Color.white : Draw.Owner(ball.owner);
+            // W24: a ball breaks up in the colour of its body - its group's colour.
+            return ball == null ? Color.white : BallView.BodyColor(simulation.Catalog.Ball(ball.type));
         }
 
         // A sharp velocity change: sparks at the touching point, sized by how hard it was.
@@ -571,13 +574,48 @@ namespace CoreClash.Presentation
             return age >= 0 && age < .4f ? 1 - age / .4f : 0;
         }
         // HP the ball had before its latest loss, while the lost ring segments are still flashing.
-        public static bool LostHp(int ballId, float now, out int from, out float fade)
+        // W24 (owner direction, 2026-11-22: "the HP bar reacts to damage with a delay: the damage
+        // does not leave the pool at once - it changes colour for a moment and then goes, one by
+        // one but smoothly"). The HP a ball has just lost stays on its gauge in white for LostHold,
+        // then leaves piece by piece from the top - a piece is the 5 HP between two cuts of the
+        // gauge - each one fading out before the next starts. Downwards only, nothing pulses. With
+        // calm effects a piece does not fade, it is simply gone when its time comes.
+        public const float LostHold = .3f;
+        static float PieceEnd(float from, int hp, int pieces)
         {
-            from = 0; fade = 0;
-            if (!tracks.TryGetValue(ballId, out var track)) return false;
+            float end = from;
+            for (int i = 0; i < pieces && end > hp; i++) end = Mathf.Max(hp, (Mathf.Ceil(end / 5f - .001f) - 1) * 5f);
+            return end;
+        }
+        static int PieceCount(float from, int hp)
+        {
+            int count = 0;
+            for (float end = from; end > hp && count < 40; count++) end = Mathf.Max(hp, (Mathf.Ceil(end / 5f - .001f) - 1) * 5f);
+            return count;
+        }
+        // solid = the gauge is white up to this HP; fading = the piece above it is going, at alpha.
+        static bool Trail(Track track, float now, out float solid, out float fading, out float alpha)
+        {
+            solid = fading = alpha = 0;
+            if (track.trailFrom <= track.hp) return false;
             float age = now - track.lostAt;
-            if (age < 0 || age >= .18f) return false;
-            from = track.lostFrom; fade = 1 - age / .18f; return true;
+            if (age < 0) return false;
+            int count = PieceCount(track.trailFrom, track.hp);
+            if (count == 0) return false;
+            if (age < LostHold) { solid = fading = track.trailFrom; return true; }
+            // A big loss does not take for ever: the pieces go faster when there are many.
+            float each = Mathf.Clamp(.9f / count, .11f, .24f), run = (age - LostHold) / each;
+            int gone = Mathf.FloorToInt(run);
+            if (gone >= count) return false;
+            float part = run - gone;
+            fading = PieceEnd(track.trailFrom, track.hp, gone); solid = PieceEnd(track.trailFrom, track.hp, gone + 1);
+            alpha = ReducedMotion ? 1 : 1 - part * part * (3 - 2 * part);
+            return true;
+        }
+        public static bool LostHp(int ballId, float now, out float solid, out float fading, out float alpha)
+        {
+            solid = fading = alpha = 0;
+            return tracks.TryGetValue(ballId, out var track) && Trail(track, now, out solid, out fading, out alpha);
         }
 
         // ---------------------------------------------------------------- drawing

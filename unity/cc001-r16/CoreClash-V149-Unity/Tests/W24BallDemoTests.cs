@@ -76,7 +76,7 @@ public static partial class Program
             // --- Magnetism. Magnet: every other ball ends closer to where the Magnet stopped.
             var magnet=W24RunShow(c,"magnet");
             foreach(var ball in magnet.Simulation.State.balls.Where(b=>b.type=="normal"))True(Far(ball,270,480)<75&&ball.hp==30,"Magnet did not gather a ball: "+Far(ball,270,480).ToString("0")+" hp "+ball.hp);
-            Eq(25,W24Ball(magnet,0,"magnet").hp);
+            Eq(30,W24Ball(magnet,0,"magnet").hp);
             // Pulse: every other ball ends far from where it stood, nobody is hurt.
             var pulse=W24RunShow(c,"pulse");True(pulse.Simulation.State.balls.Where(b=>b.type=="normal").All(b=>b.hp==30));
             True(pulse.Simulation.State.balls.Where(b=>b.type=="normal").All(b=>Math.Abs(b.y-480)>120||Math.Abs(b.x-270)>120),"Pulse pushed nothing away");
@@ -103,10 +103,10 @@ public static partial class Program
             var cactus=W24RunShow(c,"thornback");True(W24Ball(cactus,1,"normal").hp<=25);
             // Flower: both hurt balls next to it got 5 HP back.
             var flower=W24RunShow(c,"elderbloom");True(flower.Simulation.State.balls.Any(b=>b.type=="normal"&&b.hp==15)&&flower.Simulation.State.balls.Any(b=>b.type=="normal"&&b.hp==20),"Flower: "+string.Join(",",flower.Simulation.State.balls.Select(b=>b.type+b.hp)));
-            // Sprout: grew twice in its two turns: 40 HP and a bigger body.
-            var sprout=W24Ball(W24RunShow(c,"cultivator"),0,"cultivator");Eq(2,sprout.growthStage);Eq(40,sprout.hp);Eq(40,sprout.maxHp);True(sprout.radius>c.Ball("cultivator").radius*1.2f);
+            // Sprout: grew twice in its two turns: a bigger body, the same HP gauge as every ball.
+            var sprout=W24Ball(W24RunShow(c,"cultivator"),0,"cultivator");Eq(2,sprout.growthStage);Eq(30,sprout.hp);Eq(30,sprout.maxHp);True(sprout.radius>c.Ball("cultivator").radius*1.2f);
             // Acorn: the first one is dead and a 10 HP one stands in its place.
-            var acorn=W24RunShow(c,"cascade");True(W24Ball(acorn,0,"cascade",false)!=null);Eq(10,W24Ball(acorn,0,"cascade").hp);
+            var acorn=W24RunShow(c,"cascade");True(W24Ball(acorn,0,"cascade",false)!=null);Eq(10,W24Ball(acorn,0,"cascade").hp);Eq(30,W24Ball(acorn,0,"cascade").maxHp);
         });
         Test("W24 shows: the same show always plays the same way and never touches another simulation",()=>{
             var c=W22Catalog(out var data);

@@ -328,7 +328,10 @@ namespace CoreClash.Presentation
             Draw.Circle(new Rect(center.x - body, center.y - body, body * 2, body * 2), Theme.Ink);
             Draw.Circle(new Rect(center.x - body + outline, center.y - body + outline, (body - outline) * 2, (body - outline) * 2), team);
             Draw.Circle(new Rect(center.x - dish, center.y - dish, dish * 2, dish * 2), Color.Lerp(Color.white, team, active ? .14f : .5f));
-            Draw.Ring(center, dish, Theme.A(deep, active ? .95f : .7f), Mathf.Max(1.5f, 2.4f * scale), owner == 1 ? Theme.P2RingSegments : 0, Theme.P2RingFill);
+            // W24 (owner direction: "this is to be a circle too, like the blue one, only red"): the
+            // dish has the same unbroken ring for both players; the second player's broken ring is
+            // kept for marks on the field, not for the launcher.
+            Draw.Ring(center, dish, Theme.A(deep, active ? .95f : .7f), Mathf.Max(1.5f, 2.4f * scale));
             if (!active) return;
             bool up = !BoardOverlayPlanner.AtViewTop(owner, viewOwner);
             for (int i = 0; i < 2; i++)

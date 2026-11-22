@@ -1,5 +1,6 @@
 {
- "version": "W24-6x5",
+ "version": "W24-6x5-hp30",
+ "hp": 30,
  "active": [
   "normal",
   "ice",

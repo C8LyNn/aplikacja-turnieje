@@ -23,6 +23,35 @@ namespace CoreClash.Presentation
         // Damage numbers over the balls take the eye off the collision itself: off unless asked for.
         public static bool DamageNumbers = false;
 
+        // ---- players' colours (W24, owner decision): each player's own choice; the computer's is drawn.
+        public static int Color1 = 0, Color2 = 1;
+        // The next colour for that player that the other one has not taken.
+        public static int NextColor(int owner, int step)
+        {
+            int count = Theme.PlayerColors.Length, mine = owner == 0 ? Color1 : Color2, other = owner == 0 ? Color2 : Color1, pick = mine;
+            do pick = ((pick + step) % count + count) % count; while (pick == other);
+            return pick;
+        }
+        public static void SetColor(int owner, int index)
+        {
+            if (owner == 0) Color1 = index; else Color2 = index;
+            if (Color1 == Color2) { if (owner == 0) Color2 = NextColor(1, 1); else Color1 = NextColor(0, 1); }
+            UseChosenColors();
+        }
+        public static void UseChosenColors() => Theme.SetPlayerColors(Color1, Color2);
+        // A match against the computer: its colour is drawn from the ones the player did not take.
+        public static void DrawComputerColor()
+        {
+            int count = Theme.PlayerColors.Length, pick = forcedComputer >= 0 ? forcedComputer : UnityEngine.Random.Range(0, count);
+            if (pick == Color1) pick = (pick + 1 + UnityEngine.Random.Range(0, count - 1)) % count;
+            if (pick == Color1) pick = (pick + 1) % count;
+            Theme.SetPlayerColors(Color1, pick);
+        }
+        // A game over the network: the colour I chose is mine whichever seat I sit in. (The other
+        // player's choice is not sent yet: I see them in my own second colour.)
+        public static void UseColorsFor(int localOwner) { if (localOwner == 1) Theme.SetPlayerColors(Color2, Color1); else UseChosenColors(); }
+        static int forcedComputer = -1;
+
         public static MapDefinition MapById(string id) => MatchMaps.ById(id);
         public static string MapName(string id) => id == RandomMap ? Lang.T("Random", "Losowa") : (MapById(id) is MapDefinition named ? Lang.T(named.NameEn, named.NamePl) : Lang.T("Open", "Otwarta"));
 
@@ -35,8 +64,19 @@ namespace CoreClash.Presentation
             DamageNumbers = PlayerPrefs.GetInt("cc.show.damageNumbers", 0) == 1;
             Theme.ShowHpNumber = PlayerPrefs.GetInt("cc.show.hpNumbers", 0) == 1;
             BoardView.ShowStopEstimate = PlayerPrefs.GetInt("cc.show.stopMark", 1) == 1;
-            // Test hooks: "--cc-ball-scale <n>", "--cc-map <id>", "--cc-double-turn <0|1>".
+            Color1 = Mathf.Clamp(PlayerPrefs.GetInt("cc.color.p1", 0), 0, Theme.PlayerColors.Length - 1);
+            Color2 = Mathf.Clamp(PlayerPrefs.GetInt("cc.color.p2", 1), 0, Theme.PlayerColors.Length - 1);
+            if (Color2 == Color1) Color2 = NextColor(1, 1);
+            // Test hooks: "--cc-ball-scale <n>", "--cc-map <id>", "--cc-double-turn <0|1>",
+            // "--cc-colors <first>,<second>" (indices into Theme.PlayerColors; also the computer's).
             var args = Environment.GetCommandLineArgs();
+            int colors = Array.IndexOf(args, "--cc-colors");
+            if (colors >= 0 && colors + 1 < args.Length)
+            {
+                var parts = args[colors + 1].Split(',');
+                if (parts.Length == 2 && int.TryParse(parts[0], out int a) && int.TryParse(parts[1], out int b)) { Color1 = Mathf.Clamp(a, 0, Theme.PlayerColors.Length - 1); Color2 = Mathf.Clamp(b, 0, Theme.PlayerColors.Length - 1); forcedComputer = Color2; }
+            }
+            UseChosenColors();
             int at = Array.IndexOf(args, "--cc-ball-scale");
             if (at >= 0 && at + 1 < args.Length && float.TryParse(args[at + 1], NumberStyles.Float, CultureInfo.InvariantCulture, out float scale)) BallScale = Mathf.Clamp(scale, .5f, 3f);
             at = Array.IndexOf(args, "--cc-map");
@@ -52,6 +92,8 @@ namespace CoreClash.Presentation
             PlayerPrefs.SetInt("cc.show.damageNumbers", DamageNumbers ? 1 : 0);
             PlayerPrefs.SetInt("cc.show.hpNumbers", Theme.ShowHpNumber ? 1 : 0);
             PlayerPrefs.SetInt("cc.show.stopMark", BoardView.ShowStopEstimate ? 1 : 0);
+            PlayerPrefs.SetInt("cc.color.p1", Color1);
+            PlayerPrefs.SetInt("cc.color.p2", Color2);
             PlayerPrefs.Save();
         }
 

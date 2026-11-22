@@ -181,8 +181,10 @@ namespace CoreClash.Core
         }
         BallRuntime CascadeReturn(BallRuntime parent)
         {
-            int next=parent.maxHp>=20?10:parent.maxHp>=10?5:0;if(next==0)return null;
-            var child=Generate(parent,"cascade",next,next);if(child==null)return null;child.lineageId=parent.lineageId;child.life=parent.life+1;child.generated=false;EmitReturn(parent,child);return child;
+            // Plain powers: every ball has the same HP gauge, so the one that grows back keeps the full
+            // gauge and comes back hurt (10 HP, then 5); which return it is, is counted by its life.
+            int next=S.plainPowers?(parent.life<=1?10:parent.life==2?5:0):parent.maxHp>=20?10:parent.maxHp>=10?5:0;if(next==0)return null;
+            var child=Generate(parent,"cascade",next,S.plainPowers?Math.Max(next,sim.Catalog.Ball("cascade").hp):next);if(child==null)return null;child.lineageId=parent.lineageId;child.life=parent.life+1;child.generated=false;EmitReturn(parent,child);return child;
         }
         BallRuntime Generate(BallRuntime parent,string type,int hp,int maxHp,float offset=0)
         {

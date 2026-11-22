@@ -396,10 +396,9 @@ namespace CoreClash.Presentation
                 float textX=r.x+Mathf.Min(r.height-25,34)+22,textWidth=r.xMax-textX-6;
                 int nameFont=textWidth>=longest*7.2f?12:textWidth>=longest*6.6f?11:textWidth>=longest*6f?10:9;
                 Draw.Text(new Rect(textX,r.y+4,textWidth,r.height-27),BallIcons.Name(d),nameFont,nameColor,TextAnchor.MiddleLeft,true);
-                string under=handReady?LocalDeckContent.StockLabel(Simulation,owner,id):available?d.hp+" HP":Lang.T("OUT","BRAK");
-                // What the ball does, after its HP, when the card is wide enough for both.
+                // Under the name: what the ball does (every ball has the same HP, so it is not printed).
                 var sideGuide=BallGuide.For(id);
-                if(sideGuide!=null&&available&&!handReady&&Draw.TextWidth(under+"  ·  "+sideGuide.Short,Theme.FontTiny,true)<=textWidth-30)under+="  ·  "+sideGuide.Short;
+                string under=handReady?LocalDeckContent.StockLabel(Simulation,owner,id):!available?Lang.T("OUT","BRAK"):sideGuide!=null?sideGuide.Short:"";
                 Draw.Text(new Rect(textX,r.yMax-22,textWidth-30,15),under,Theme.FontTiny,handReady?Theme.SelectInk:Theme.Muted,TextAnchor.MiddleLeft,true);
                 Draw.Text(new Rect(r.xMax-36,r.yMax-24,30,17),count,12,countColor,TextAnchor.MiddleRight,true);
             }
@@ -407,7 +406,6 @@ namespace CoreClash.Presentation
             {
                 float baseOrb=Mathf.Min(46,r.height-52),orb=baseOrb*(picked?SelectPulse():1);bool cue=r.height>=100,slim=r.width<124;
                 BallView.Preview(new Rect(r.center.x-orb/2,r.y+12+(baseOrb-orb)/2,orb,orb),d,owner,picked);
-                Draw.Text(new Rect(r.x+(slim?6:8),r.y+6,slim?r.center.x-baseOrb/2-r.x-9:46,16),d.hp+" HP",slim?8:10,Theme.Muted,TextAnchor.MiddleLeft,true);
                 Draw.Text(new Rect(r.xMax-(slim?30:40),r.y+5,slim?24:32,18),count,slim?12:13,countColor,TextAnchor.MiddleRight,true);
                 float nameWidth=r.width-10;
                 int nameFont=nameWidth>=longest*7.6f?13:nameWidth>=longest*7f?12:nameWidth>=longest*6.4f?11:10;

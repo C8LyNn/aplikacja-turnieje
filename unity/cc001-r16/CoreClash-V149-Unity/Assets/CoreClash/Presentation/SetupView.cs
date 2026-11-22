@@ -40,7 +40,8 @@ namespace CoreClash.Presentation
         const string IconSwitch="+L -.6 -.36 .3 -.36 .26;+P .96 -.36 .3 -.8 .3 .08;+L .6 .36 -.3 .36 .26;+P -.96 .36 -.3 -.08 -.3 .8";
         void PlayerChoice(int owner,Rect r)
         {
-            var deck=chosen[owner];var color=Draw.Owner(owner);
+            // The computer has no colour yet: it is drawn when the match starts.
+            var deck=chosen[owner];var color=owner==1&&VersusAi?Theme.Muted:Draw.Owner(owner);
             Draw.Card(r);
             // Team block on the left: the same colour and ring pattern as that player's balls.
             float block=Math.Min(58,r.height);
@@ -56,6 +57,12 @@ namespace CoreClash.Presentation
             {
                 Glyphs.Paint(new Rect(r.x+block/2-7,r.yMax-15,14,14),IconSwitch,Theme.A(Theme.OnColor,.85f));
                 if(Draw.Hit(new Rect(r.x,r.y,block,r.height)))SetVersusAi(!VersusAi);
+            }
+            else
+            {
+                // Player 1's block: a tap takes the next colour (three dots = "more colours").
+                for(int dot=0;dot<3;dot++)Draw.Circle(new Rect(r.x+block/2-11+dot*8,r.yMax-13,6,6),Theme.A(Theme.OnColor,.85f));
+                if(Draw.Hit(new Rect(r.x,r.y,block,r.height))){MatchSetup.SetColor(0,MatchSetup.NextColor(0,1));MatchSetup.Save();}
             }
             float x=r.x+block+12,actionW=98,actionH=UiViewport.TargetSize;
             Draw.Text(new Rect(x,r.y+8,r.xMax-x-actionW-18,22),DeckName(deck),r.width<420?14:16,Theme.Text,TextAnchor.MiddleLeft,true);

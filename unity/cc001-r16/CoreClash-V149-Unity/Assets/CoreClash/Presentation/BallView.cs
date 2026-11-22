@@ -37,7 +37,7 @@ namespace CoreClash.Presentation
             var point = ViewPoint(board,x,y,localOwner);
             var body = new Rect(point.x - radius, point.y - radius, radius * 2, radius * 2);
             Color team = Draw.Owner(ball.owner);
-            Color color = definition == null ? Color.white : Draw.Hex(definition.color);
+            Color color = BodyColor(definition);
 
             DrawWake(point, ball, color, scale,localOwner);
             // W24 (owner direction: show which zone a ball is in): a ball that counts for a zone is
@@ -61,8 +61,12 @@ namespace CoreClash.Presentation
                 Draw.Ring(point, reach, Color.white, Mathf.Max(1.5f, 2.2f * scale), 4, .7f);
             }
             // HP as a share of the ball's maximum: the arc follows the real HP, not 5 HP steps.
-            float share = Mathf.Clamp01(ball.hp / (float)Mathf.Max(1, ball.maxHp)), shareBefore = 0, lostFade = 0;
-            if (Fx.LostHp(ball.id, now, out int hpBefore, out float fade)) { shareBefore = Mathf.Clamp01(hpBefore / (float)Mathf.Max(1, ball.maxHp)); lostFade = fade; }
+            float share = Mathf.Clamp01(ball.hp / (float)Mathf.Max(1, ball.maxHp)), shareSolid = 0, shareFading = 0, fadeAlpha = 0;
+            if (Fx.LostHp(ball.id, now, out float solid, out float fading, out float alpha))
+            {
+                float full = Mathf.Max(1, ball.maxHp);
+                shareSolid = Mathf.Clamp01(solid / full); shareFading = Mathf.Clamp01(fading / full); fadeAlpha = alpha;
+            }
             // W24 (owner direction: "not an extra icon - the ball itself is to change: burn when it is
             // set alight, be frozen, carry the poison"): a state is the look of the ball.
             //   fire    flames stand over the ball (more and taller with a second fire) and it glows hot
@@ -76,7 +80,7 @@ namespace CoreClash.Presentation
             if (ball.anchorStacks >= 3 || ball.frostguardAnchored) Seat(point, edge, scale);
             if (burning) Flames(point, edge, now, ball.id, ball.fireStacks);
             if (frozen) IceShards(point, edge, scale);
-            DrawOrb(body, definition, ball.owner, scale, 1, share, BallBadges.PipSide(ball.owner, localOwner), BallBadges.PipSize(scale), shareBefore, lostFade, BallBadges.HpSegments(ball.maxHp));
+            DrawOrb(body, definition, ball.owner, scale, 1, share, BallBadges.PipSide(ball.owner, localOwner), BallBadges.PipSize(scale), shareSolid, fadeAlpha, BallBadges.HpSegments(ball.maxHp), shareFading);
             if (burning) Draw.Circle(body, Alpha(FireHot, ball.fireStacks > 1 ? .36f : .26f));
             if (poisoned) Draw.Circle(body, Alpha(Theme.Status(StatusKind.Toxin), .34f));
             if (chilled) Draw.Circle(body, Alpha(IcePale, Mathf.Min(.5f, .24f * ball.iceStacks)));
@@ -342,7 +346,7 @@ namespace CoreClash.Presentation
         static float InnerRadius(float radius, bool gauge) => radius * (gauge ? Theme.LabelShare : .86f);
         // A mark at every 5 HP is drawn only on a ball large enough for it to be a clean line;
         // on a small ball the arc stays whole.
-        const float TickFrom = 30f;
+        const float TickFrom = 13f;
         // Light and gloss of a sphere, shared by every ball: `shade` is laid over the ball in a dark
         // colour (deep on the side away from the light, and along the rim), `shine` in white (a
         // broad light spot on the upper left, one crisp crescent of gloss between the symbol and
@@ -386,17 +390,34 @@ namespace CoreClash.Presentation
             Draw.WarmArcs(Theme.HpWidthShare / Theme.HpOuterShare);
         }
         static readonly Color FloorShadow = new Color(.1f, .08f, .31f), ShadeTone = new Color(.07f, .04f, .24f);
-        static void DrawOrb(Rect body, BallDefinition definition, int owner, float scale, float ringAlpha, float hp, int pip, float pipSize, float hpBefore, float lostFade, int parts = 0)
+        // W24 (owner decision, 2026-11-22: "every group of balls has its own colour; whose a ball is,
+        // is told by its HP bar - by its colour"). The body of a ball is its group's colour. The
+        // Standard ball, which is of no group, is plain silver.
+        static readonly Color Silver = new Color(.80f, .84f, .93f);
+        public static Color BodyColor(BallDefinition definition)
+        {
+            if (definition == null) return Silver;
+            var group = BallGroups.Of(definition.id);
+            if (group != null) return CoreClashApp.GroupColor(group.Id);
+            return definition.id == "normal" || string.IsNullOrEmpty(definition.color) ? Silver : Draw.Hex(definition.color);
+        }
+        // The ball: a glossy sphere in its group's colour with a dark outline. Along its edge the HP
+        // gauge in the OWNER's colour, cut into one piece for every 5 HP (every ball has the same HP,
+        // so every ball has the same pieces): bright where HP is left, the same colour dark where
+        // it is gone, so the ring says whose ball it is at any HP. HP just lost turns white for a
+        // moment and then goes piece by piece (hpSolid = white up to there, hpFading = the piece
+        // that is going, at fadeAlpha).
+        static void DrawOrb(Rect body, BallDefinition definition, int owner, float scale, float ringAlpha, float hp, int pip, float pipSize, float hpSolid, float fadeAlpha, int parts = 0, float hpFading = 0)
         {
             if (shade == null) BuildLight();
-            Color team = Draw.Owner(owner), dark = Theme.Shade(team, 1.1f, .26f);
+            Color team = Draw.Owner(owner), skin = BodyColor(definition), dark = Theme.Shade(skin, 1.1f, .26f);
             var center = body.center;
             float radius = body.width * .5f, ink = Mathf.Max(1.2f, Theme.BallInk * scale);
             // Shadow on the floor, away from the light.
             Draw.Glow(new Rect(center.x - radius * .94f, center.y + radius * .14f, radius * 2.24f, radius * 1.32f), Alpha(FloorShadow, .42f));
             Draw.Circle(Expand(body, ink), dark);
-            Draw.Circle(body, team);
-            if (pip != 0) OwnerPip(center, radius + ink * .5f, pip, pipSize, team, dark);
+            Draw.Circle(body, skin);
+            if (pip != 0) OwnerPip(center, radius + ink * .5f, pip, pipSize, team, Theme.Ink);
             Color old = GUI.color;
             GUI.color = ShadeTone; Draw.Tex(body, shade);
             GUI.color = Color.white; Draw.Tex(body, shine);
@@ -404,13 +425,13 @@ namespace CoreClash.Presentation
             if (hp >= 0)
             {
                 float outer = radius * Theme.HpOuterShare, width = radius * Theme.HpWidthShare, bezel = Mathf.Max(.8f, radius * .035f);
-                Color track = Theme.Shade(team, 1.1f, .18f);
-                Draw.Ring(center, outer + bezel, dark, width + bezel * 2);
-                Draw.Ring(center, outer, track, width);
-                if (hpBefore > hp && lostFade > 0) Draw.Arc(center, outer, Alpha(Theme.Damage, lostFade), width, hpBefore);
-                Draw.Arc(center, outer, Theme.Gauge(hp), width, hp);
-                // A thin mark at every 5 HP, so the HP can be counted on a ball that is large enough.
-                if (radius >= TickFrom) Draw.Ticks(center, outer, track, width, parts, Mathf.Max(1f, radius * .07f));
+                Draw.Ring(center, outer + bezel, Theme.Ink, width + bezel * 2);
+                Draw.Ring(center, outer, Theme.Shade(team, 1f, .36f), width);
+                if (hpFading > hp && fadeAlpha > 0) Draw.Arc(center, outer, Alpha(Color.white, fadeAlpha), width, hpFading);
+                if (hpSolid > hp) Draw.Arc(center, outer, Color.white, width, hpSolid);
+                Draw.Arc(center, outer, team, width, hp);
+                // The cuts between the pieces, on every ball that is large enough to show them.
+                if (radius >= TickFrom) Draw.Ticks(center, outer, Theme.Ink, width, parts, Mathf.Max(1f, radius * .09f));
             }
         }
 

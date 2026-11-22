@@ -17,7 +17,11 @@ public static partial class Program
         Test("W24 six groups: plain powers is a match rule that is off by default; the roster sets how many copies a deck holds",()=>{
             False(Sim().State.plainPowers);
             var c=W22Catalog(out var data);
-            Eq("W24-6x5",data.version);
+            Eq("W24-6x5-hp30",data.version);
+            // Every active ball has the same HP; the catalog itself, without the roster, keeps each ball's own.
+            Eq(30,data.hp);foreach(string id in data.active){Eq(30,c.Ball(id).hp);Eq(30,c.Ball(id).typeHp);}
+            Eq(35,catalog.Ball("fire").hp);Eq(20,catalog.Ball("plagueburst").hp);Eq(35,catalog.Ball("anchor").hp);
+            var uneven=new RosterData{version="t",hp=32,active=data.active,rework=data.rework,decks=data.decks};Throws(()=>c.UseRoster(uneven));
             Eq(5,c.Ball("tesla").stockCopies);Eq(2,c.Ball("chainshock").stockCopies);Eq(4,c.Ball("staticfield").stockCopies);Eq(3,c.Ball("anchor").stockCopies);
             // The catalog itself, without the roster, is untouched.
             Eq(1,catalog.Ball("tesla").stockCopies);Eq(7,catalog.Ball("anchor").stockCopies);
@@ -103,9 +107,14 @@ public static partial class Program
             f.Abilities.OnTurnStart(0);Eq(25,flower.hp);Eq(15,hurt.hp);Eq(10,far.hp);Eq(10,foe.hp);
 
             var g=W24Plain();var sprout=g.Spawn(0,"cultivator",270,450);float radius=sprout.radius;sprout.hp=20;
-            g.Abilities.OnTurnStart(0);Eq(1,sprout.growthStage);Eq(35,sprout.maxHp);Eq(25,sprout.hp);
+            g.Abilities.OnTurnStart(0);Eq(1,sprout.growthStage);Eq(30,sprout.maxHp);Eq(25,sprout.hp);
             for(int i=0;i<4;i++)g.Abilities.OnTurnStart(0);
-            Eq(3,sprout.growthStage);Eq(45,sprout.maxHp);Eq(35,sprout.hp);True(Math.Abs(sprout.radius-radius*1.12f*1.12f*1.12f)<.01f);
+            Eq(3,sprout.growthStage);Eq(30,sprout.maxHp);Eq(30,sprout.hp);True(Math.Abs(sprout.radius-radius*1.12f*1.12f*1.12f)<.01f);
+            // The Acorn under plain powers: it grows back hurt on the same gauge - 10 HP, then 5, then no more.
+            var a=W24Plain();var acorn=a.Spawn(0,"cascade",270,450);int full=acorn.maxHp;
+            a.Kill(acorn);var second=a.State.balls.Single(b=>b.type=="cascade"&&!b.dead);Eq(10,second.hp);Eq(full,second.maxHp);
+            a.Kill(second);var third=a.State.balls.Single(b=>b.type=="cascade"&&!b.dead);Eq(5,third.hp);Eq(full,third.maxHp);
+            a.Kill(third);Eq(0,a.State.balls.Count(b=>b.type=="cascade"&&!b.dead));
         });
         Test("W24 plain powers: the hidden passives of the old archetypes do not run; under the reference rules they still do",()=>{
             // Vegetation growth (more HP, healing, an extra web when it stops).

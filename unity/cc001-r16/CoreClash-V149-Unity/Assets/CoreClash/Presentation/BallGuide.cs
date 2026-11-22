@@ -252,8 +252,8 @@ namespace CoreClash.Presentation
             Add("plagueburst","Grzyb",GuideWhen.Death,GuideWho.Enemies,100,"Spore cloud","Zarodniki",
                 "Bursts into a cloud of spores: every enemy nearby is poisoned.",
                 "Pęka i rozsiewa zarodniki: każdy wróg w pobliżu zostaje zatruty.",
-                "Weak on purpose: 20 HP. Leave it where enemies will have to hit it.",
-                "Celowo słaby: 20 HP. Zostaw go tam, gdzie wróg będzie musiał w niego uderzyć.",
+                "Leave it where enemies will have to hit it.",
+                "Zostaw go tam, gdzie wróg będzie musiał w niego uderzyć.",
                 Poisoned);
             Add("plagueleech","Pijawka",GuideWhen.Touch,GuideWho.Enemies,0,"Drain","Wysysa",
                 "The first enemy it touches is poisoned and tied to the Leech. In each turn of yours, the Leech sucks 5 HP out of it and heals itself.",
@@ -288,8 +288,8 @@ namespace CoreClash.Presentation
             Add("anchor","Kotwica",GuideWhen.Stop,GuideWho.Self,0,"Holds ground","Trzyma miejsce",
                 "Drops anchor where it stops: collisions, magnets and blasts barely move it.",
                 "Rzuca kotwicę tam, gdzie stanie: zderzenia, magnesy i wybuchy ledwo ją przesuwają.",
-                "Big, heavy, 35 HP. Park it in the centre or in the enemy's zone.",
-                "Duża, ciężka, 35 HP. Postaw ją na środku albo w strefie wroga.");
+                "Big and heavy. Park it in the centre or in the enemy's zone.",
+                "Duża i ciężka. Postaw ją na środku albo w strefie wroga.");
 
             // Electricity.
             Add("tesla","Piorun",GuideWhen.Touch,GuideWho.Enemies,100,"Shock","Razi",
@@ -343,17 +343,17 @@ namespace CoreClash.Presentation
                 "Trzymaj przy nim ranne kulki.",
                 Heal("+5 HP a turn","+5 HP co turę"));
             Add("cultivator","Kiełek",GuideWhen.Turn,GuideWho.Self,0,"Grows","Rośnie",
-                "At the start of each turn of yours, it grows: 5 more HP and a bigger, heavier body. Three times at most.",
-                "Na początku każdej twojej tury rośnie: +5 HP, jest większy i cięższy. Najwyżej 3 razy.",
-                "Fully grown it has 45 HP. Play it early.",
-                "W pełni wyrośnięty ma 45 HP. Zagraj go wcześnie.",
+                "At the start of each turn of yours it grows - bigger and heavier - and gets 5 HP back. Three times at most.",
+                "Na początku każdej twojej tury rośnie — jest większy i cięższy — i odzyskuje 5 HP. Najwyżej 3 razy.",
+                "A grown Sprout is hard to push away. Play it early.",
+                "Wyrośniętego Kiełka trudno odepchnąć. Zagraj go wcześnie.",
                 Heal("+5 HP a turn","+5 HP co turę"),Count("Grows 3 times","Rośnie 3 razy"));
             Add("cascade","Żołądź",GuideWhen.Death,GuideWho.Self,0,"Regrows","Odrasta",
                 "Grows back on the same spot with 10 HP. When that one dies, it grows back once more with 5 HP.",
                 "Odrasta w tym samym miejscu z 10 HP. Gdy zginie znowu, odrasta jeszcze raz — z 5 HP.",
                 "The third death is final.",
                 "Trzecia śmierć jest ostatnia.",
-                Heal("25 → 10 → 5 HP","25 → 10 → 5 HP"));
+                Heal("30 → 10 → 5 HP","30 → 10 → 5 HP"));
 
             // Tray labels for the tags that are too long for a card.
             Short("frosttrap","Trap","Pułapka");
