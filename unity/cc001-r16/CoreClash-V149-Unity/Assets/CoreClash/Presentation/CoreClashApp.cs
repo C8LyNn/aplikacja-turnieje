@@ -93,8 +93,10 @@ namespace CoreClash.Presentation
         void Layout(){UiViewport.Refresh();layout=MatchLayout.For(UiWidth,UiHeight,UiViewport.Profile);board=RectOf(layout.Board);side=RectOf(layout.Panel);}
         void CancelPointer(){gesture.Active=false;TouchInput.Reset();pointerReadyFrame=Time.frameCount+1;}
         public void CancelPresentationInput(){CancelPointer();}
-        void OnApplicationFocus(bool focused){if(!focused)CancelPointer();}
-        void OnApplicationPause(bool paused){if(paused)CancelPointer();}
+        // A drag in progress is dropped when the game loses the focus. A capture or probe run drives
+        // itself and must keep going when the owner clicks into another window (IgnoreDeviceInput).
+        void OnApplicationFocus(bool focused){if(!focused&&!IgnoreDeviceInput)CancelPointer();}
+        void OnApplicationPause(bool paused){if(paused&&!IgnoreDeviceInput)CancelPointer();}
         public void SetDeviceProfile(string value)
         {
             if(!Enum.TryParse<DeviceProfile>(value,true,out var profile))profile=DeviceProfile.Auto;
@@ -132,13 +134,13 @@ namespace CoreClash.Presentation
         {
             if(Catalog==null)return;if(UiViewport.Refresh()){CancelPointer();Layout();}
             FollowDisplayRate();
-            if(UnityEngine.Input.GetKeyDown(KeyCode.F1))SetDeveloperOverlay(!DeveloperOverlay);
+            if(GetKeyDown(KeyCode.F1))SetDeveloperOverlay(!DeveloperOverlay);
             // F6: the next arena look (court, night, turf). Presentation only.
-            if(UnityEngine.Input.GetKeyDown(KeyCode.F6)){Theme.SetArena(Theme.NextArena());PlayerPrefs.SetString("cc.arena",Theme.Arena.Id);PlayerPrefs.Save();Debug.Log("CORE_CLASH_ARENA "+Theme.Arena.Id);}
-            if(UnityEngine.Input.GetKeyDown(KeyCode.F2)&&setup)SetDeveloperRoster(!DeveloperRoster);
-            if(exitGuard.Open&&!externalModal&&(UnityEngine.Input.GetKeyDown(KeyCode.Return)||UnityEngine.Input.GetKeyDown(KeyCode.KeypadEnter)||UnityEngine.Input.GetKeyDown(KeyCode.JoystickButton0)))ConfirmLeaveMatch();
-            else if(exitGuard.Open&&!externalModal&&(UnityEngine.Input.GetKeyDown(KeyCode.Escape)||UnityEngine.Input.GetKeyDown(KeyCode.JoystickButton1)))CancelLeaveMatch();
-            else if(UnityEngine.Input.GetKeyDown(KeyCode.Escape)&&!externalModal){if(inspect.Length>0)CloseBallDetails();else if(deckGuide!=null)deckGuide=null;else if(DeveloperOverlay)SetDeveloperOverlay(false);else if(phoneMenu)phoneMenu=false;else if(boardInspection)SetBoardInspection(false);else if(builder)builder=false;else if(library)library=false;else if(!setup)RequestLeaveMatch();}
+            if(GetKeyDown(KeyCode.F6)){Theme.SetArena(Theme.NextArena());PlayerPrefs.SetString("cc.arena",Theme.Arena.Id);PlayerPrefs.Save();Debug.Log("CORE_CLASH_ARENA "+Theme.Arena.Id);}
+            if(GetKeyDown(KeyCode.F2)&&setup)SetDeveloperRoster(!DeveloperRoster);
+            if(exitGuard.Open&&!externalModal&&(GetKeyDown(KeyCode.Return)||GetKeyDown(KeyCode.KeypadEnter)||GetKeyDown(KeyCode.JoystickButton0)))ConfirmLeaveMatch();
+            else if(exitGuard.Open&&!externalModal&&(GetKeyDown(KeyCode.Escape)||GetKeyDown(KeyCode.JoystickButton1)))CancelLeaveMatch();
+            else if(GetKeyDown(KeyCode.Escape)&&!externalModal){if(inspect.Length>0)CloseBallDetails();else if(deckGuide!=null)deckGuide=null;else if(DeveloperOverlay)SetDeveloperOverlay(false);else if(phoneMenu)phoneMenu=false;else if(boardInspection)SetBoardInspection(false);else if(builder)builder=false;else if(library)library=false;else if(!setup)RequestLeaveMatch();}
             if(setup)return;
             BoardView.VisualLead=0;
             if(MatchExitGuard.PausesSimulation(exitGuard.Open,NetworkLink!=null))accumulator=0;
@@ -152,14 +154,20 @@ namespace CoreClash.Presentation
             if(Simulation.State.phase==MatchPhase.Aiming)selected=BallSelection.ForTurn(Simulation,selected);
             if(inspect.Length>0||DeveloperOverlay||externalModal||exitGuard.Open||phoneMenu){gesture.Active=false;return;}
             if(CanChoose){
-                if(UnityEngine.Input.GetKeyDown(KeyCode.Alpha0)||UnityEngine.Input.GetKeyDown(KeyCode.Keypad0))SelectBall("normal");
-                for(int i=0;i<Simulation.State.players[Simulation.State.turn].stock.Count&&i<9;i++)if(UnityEngine.Input.GetKeyDown((KeyCode)((int)KeyCode.Alpha1+i))||UnityEngine.Input.GetKeyDown((KeyCode)((int)KeyCode.Keypad1+i)))SelectBall(Simulation.State.players[Simulation.State.turn].stock[i].id);
+                if(GetKeyDown(KeyCode.Alpha0)||GetKeyDown(KeyCode.Keypad0))SelectBall("normal");
+                for(int i=0;i<Simulation.State.players[Simulation.State.turn].stock.Count&&i<9;i++)if(GetKeyDown((KeyCode)((int)KeyCode.Alpha1+i))||GetKeyDown((KeyCode)((int)KeyCode.Keypad1+i)))SelectBall(Simulation.State.players[Simulation.State.turn].stock[i].id);
             }
-            if(UnityEngine.Input.GetKeyDown(KeyCode.I))SetBoardInspection(!boardInspection);
-            if(UnityEngine.Input.GetKeyDown(KeyCode.E))ToggleStopEstimate();
+            if(GetKeyDown(KeyCode.I))SetBoardInspection(!boardInspection);
+            if(GetKeyDown(KeyCode.E))ToggleStopEstimate();
+            if(IgnoreDeviceInput)return;
             if(UnityEngine.Input.touchCount==0&&UnityEngine.Input.GetMouseButtonDown(1)&&InspectAt(UnityEngine.Input.mousePosition))return;
             if(TouchInput.Read(out var pointer)||DesktopInput.Read(out pointer))HandlePointer(pointer);
         }
+        // A capture or probe run drives the game itself. The owner's own mouse and keyboard must not
+        // reach it, and it must not drop its drag when its window loses the focus: about one run in
+        // fifteen failed because the owner clicked into another window while it ran.
+        public static bool IgnoreDeviceInput;
+        static bool GetKeyDown(KeyCode key)=>!IgnoreDeviceInput&&UnityEngine.Input.GetKeyDown(key);
         public void PresentationPointer(PointerSample pointer){if(!setup&&!IsModalOpen&&!DeveloperOverlay&&!externalModal&&!phoneMenu)HandlePointer(pointer);}
         void HandlePointer(PointerSample p)
         {
@@ -248,6 +256,7 @@ namespace CoreClash.Presentation
         {
             var args=Environment.GetCommandLineArgs();int at=Array.IndexOf(args,"--cc-arena");
             Theme.SetArena(at>=0&&at+1<args.Length?args[at+1]:PlayerPrefs.GetString("cc.arena",Theme.Arenas[0].Id));
+            foreach(string probe in new[]{"--cc-w24-showcase","--cc-ai-probe","--cc-guide-probe"})if(Array.IndexOf(args,probe)>=0)IgnoreDeviceInput=true;
             // Test hook: start with the rules-and-options sheet open, for screenshots.
             if(Array.IndexOf(args,"--cc-open-settings")>=0)settingsOpen=true;
             at=Array.IndexOf(args,"--cc-ui-density");

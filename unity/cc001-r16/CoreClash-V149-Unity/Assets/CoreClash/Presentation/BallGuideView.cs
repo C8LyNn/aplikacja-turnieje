@@ -29,6 +29,24 @@ namespace CoreClash.Presentation
         public void SetLanguage(bool polish){Lang.Polish=polish;PlayerPrefs.SetString("cc.lang",polish?"pl":"en");PlayerPrefs.Save();Debug.Log("CORE_CLASH_LANGUAGE "+(polish?"pl":"en"));}
         void LoadLanguage(){string saved=PlayerPrefs.GetString("cc.lang","");Lang.Polish=saved.Length>0?saved=="pl":Application.systemLanguage==SystemLanguage.Polish;}
 
+        // Three balls of one group.
+        const string GlyphGroup="+C 0 -.5 .4;+C -.5 .38 .4;+C .5 .38 .4";
+        public static Color GroupColor(string id)
+        {
+            switch(id)
+            {
+                case "fire":return Draw.Hex("#f0711a");
+                case "ice":return Draw.Hex("#1ea4d8");
+                case "poison":return Draw.Hex("#3f9d1f");
+                case "blast":return Draw.Hex("#e02f4f");
+                case "pull":return Draw.Hex("#7a52f0");
+                case "push":return Draw.Hex("#2f6fe4");
+                case "space":return Draw.Hex("#a03fd0");
+                case "death":return Draw.Hex("#3b2f63");
+                case "guard":return Draw.Hex("#c98a00");
+                default:return Draw.Hex("#149a8a");
+            }
+        }
         static string WhenGlyph(GuideWhen when)=>when==GuideWhen.Touch?GlyphTouch:when==GuideWhen.Stop?GlyphStop:when==GuideWhen.Death?GlyphDeath:when==GuideWhen.Turn?GlyphTurn:GlyphAlways;
         // One colour per trigger, used on the banner, the reach picture and the tile label.
         static readonly Color WhenTouch=Draw.Hex("#f0711a"),WhenStop=Draw.Hex("#7a52f0"),WhenDeath=Draw.Hex("#3b2f63"),WhenTurn=Draw.Hex("#149a5e"),WhenAlways=Draw.Hex("#5b6aa0");
@@ -170,6 +188,9 @@ namespace CoreClash.Presentation
             y+=FactRow(0,y,column,null,BallGuide.WhoText(guide.Who),tone,draw,guide.Who,owner);
             foreach(var fact in guide.Facts)y+=FactRow(0,y,column,FactGlyph(fact.Kind),fact.Text,FactColor(fact.Kind),draw);
             if(guide.Range>0)y+=FactRow(0,y,column,GlyphRange,BallGuide.RangeText(guide.Range),tone,draw);
+            // The group the ball belongs to; what the group does together is said in the tip box below.
+            var group=BallGroups.Of(guide.Id);
+            if(group!=null)y+=FactRow(0,y,column,GlyphGroup,Lang.T("Group: ","Grupa: ")+group.Name,GroupColor(group.Id),draw);
             if(side)
             {
                 if(draw)DemoStage(new Rect(width-stageW+3,top+3,stageW-6,stageH-6),script);

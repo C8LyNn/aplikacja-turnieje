@@ -44,6 +44,10 @@ namespace CoreClash.Presentation
     public sealed class BallGuideEntry
     {
         public string Id,NamePl,TagEn,TagPl,DoesEn,DoesPl,TipEn,TipPl;
+        // What the ball does in one or two words, short enough to stand under its picture on a
+        // card in the phone tray. The tag itself when that is short enough.
+        public string ShortEn,ShortPl;
+        public string Short=>Lang.T(ShortEn??TagEn,ShortPl??TagPl);
         public GuideWhen When;public GuideWho Who;
         // Reach of the power in simulation units (the board is 540 wide). 0 = contact or self.
         public float Range;
@@ -53,10 +57,70 @@ namespace CoreClash.Presentation
         public string Tip=>Lang.T(TipEn,TipPl);
     }
 
+    // CC-001 W24 (owner decisions, 2026-11-22: "split the 30 balls into groups, every group the
+    // same size" and "they are to have synergy with each other"): ten groups of three. A group is
+    // one idea a player can say in a word - fire, ice, pull - and its three balls work better
+    // together than apart; Plan says how, from what the rules really do. A deck of nine is three
+    // groups. Standard belongs to no group: every deck has it.
+    public sealed class BallGroup
+    {
+        public string Id,NameEn,NamePl,PlanEn,PlanPl;
+        public string[] Balls;
+        public string Name=>Lang.T(NameEn,NamePl);
+        public string Plan=>Lang.T(PlanEn,PlanPl);
+    }
+    public static class BallGroups
+    {
+        public const int Size=3;
+        public static readonly BallGroup[] All=
+        {
+            new BallGroup{Id="fire",NameEn="Fire",NamePl="Ogień",Balls=new[]{"fire","furnace","bonfire"},
+                PlanEn="Set them alight, then add more: a second fire on the same ball burns twice as hard.",
+                PlanPl="Podpal, potem dokładaj: drugi ogień na tej samej kulce pali dwa razy mocniej."},
+            new BallGroup{Id="ice",NameEn="Ice",NamePl="Lód",Balls=new[]{"ice","frosttrap","shatterer"},
+                PlanEn="Chill a ball three times to freeze it, then shatter the ice for extra damage.",
+                PlanPl="Zmroź kulkę trzy razy, żeby ją zamrozić, potem skrusz lód dla dodatkowych obrażeń."},
+            new BallGroup{Id="poison",NameEn="Poison",NamePl="Trucizna",Balls=new[]{"venom","blightpool","plagueleech"},
+                PlanEn="Poison first: Venom bites poisoned enemies harder and the Leech feeds on them.",
+                PlanPl="Najpierw zatruj: Jad mocniej kąsa zatrutych, a Pijawka się nimi żywi."},
+            new BallGroup{Id="blast",NameEn="Blasts",NamePl="Wybuchy",Balls=new[]{"bomb","mine","timebomb"},
+                PlanEn="A blast throws balls about: throw enemies onto your mines.",
+                PlanPl="Wybuch rozrzuca kulki: rzucaj wrogów na swoje miny."},
+            new BallGroup{Id="pull",NameEn="Pull",NamePl="Przyciąganie",Balls=new[]{"harpoon","gravitymine","vortexmedic"},
+                PlanEn="Drag enemies where you want them: into the gravity mine, next to your healer.",
+                PlanPl="Ściągaj wrogów tam, gdzie chcesz: w grawiminę albo pod swój wir."},
+            new BallGroup{Id="push",NameEn="Push",NamePl="Odrzut",Balls=new[]{"pulse","slingshot","pinballer"},
+                PlanEn="Send balls flying: shove enemies away, fling yours forward, speed them up off the bumper.",
+                PlanPl="Wprawiaj kulki w ruch: odpychaj wrogów, wyrzucaj swoje, przyspieszaj je na zderzaku."},
+            new BallGroup{Id="space",NameEn="Space",NamePl="Przestrzeń",Balls=new[]{"timeshift","gatekeeper","chronomancer"},
+                PlanEn="Be somewhere else: swap places with an enemy, go through the portals, jump back.",
+                PlanPl="Bądź gdzie indziej: zamień się z wrogiem miejscami, przejdź portalem, wróć w zapisane miejsce."},
+            new BallGroup{Id="death",NameEn="Death",NamePl="Śmierć",Balls=new[]{"cascade","singularity","agony"},
+                PlanEn="Dying is the plan: Deathcast sets off a death power and the ball stays alive.",
+                PlanPl="Śmierć to plan: Zew śmierci odpala moc śmierci, a kulka zostaje przy życiu."},
+            new BallGroup{Id="guard",NameEn="Guard",NamePl="Ochrona",Balls=new[]{"ward","halo","reclaimer"},
+                PlanEn="Keep your balls on the board: shield them, block a hit, bring a fallen one back.",
+                PlanPl="Trzymaj kulki na planszy: osłoń je, zablokuj cios, przywróć poległą."},
+            new BallGroup{Id="trick",NameEn="Tricks",NamePl="Podstęp",Balls=new[]{"web","echo","traitor"},
+                PlanEn="Turn their strength against them: tie them down, repeat your webs, steal their best ball.",
+                PlanPl="Obróć ich siłę przeciw nim: unieruchom, powtórz swoje sieci, przejmij ich najlepszą kulkę."},
+        };
+        public static BallGroup Of(string ballId){foreach(var group in All)foreach(string id in group.Balls)if(id==ballId)return group;return null;}
+        // Place of a ball in the groups' order (group after group); a ball of no group comes last.
+        public static int Order(string ballId)
+        {
+            for(int g=0;g<All.Length;g++)for(int i=0;i<All[g].Balls.Length;i++)if(All[g].Balls[i]==ballId)return g*Size+i;
+            return int.MaxValue;
+        }
+    }
+
     public static class BallGuide
     {
         // Tile labels must fit a phone tile on one line.
         public const int MaxTag=14;
+        // Labels under the pictures in the phone tray: one line of small type on a card 58 px wide.
+        public const int MaxShort=10;
+        static void Short(string id,string english,string polish){var entry=Entries[id];if(english!=null)entry.ShortEn=english;if(polish!=null)entry.ShortPl=polish;}
         static readonly Dictionary<string,BallGuideEntry> Entries=new Dictionary<string,BallGuideEntry>(StringComparer.Ordinal);
         public static IEnumerable<string> Ids=>Entries.Keys;
         public static BallGuideEntry For(string id)=>id!=null&&Entries.TryGetValue(id,out var entry)?entry:null;
@@ -302,6 +366,22 @@ namespace CoreClash.Presentation
                 "Każda kulka w zasięgu powtarza swoją moc „gdy się zatrzyma” — kulki wroga też.",
                 "Stop it next to your balls and far from theirs. Echo does not repeat another Echo.",
                 "Zatrzymaj je obok swoich kulek, z dala od wrogich. Echo nie powtarza innego Echa.");
+
+            // Tray labels for the tags that are too long for a card.
+            Short("mine","Trap",null);
+            Short("timebomb","Timer","Zegar");
+            Short("bonfire","Burn+heal","Pali+leczy");
+            Short("shatterer","Ice break",null);
+            Short("frosttrap","Ice snare","Sidła lodu");
+            Short("blightpool","Pool","Kałuża");
+            Short("gravitymine","Pull+blast","Wir+wybuch");
+            Short("timeshift","Swap","Zamiana");
+            Short("slingshot","Fling","Wyrzuca");
+            Short("vortexmedic","Pull+heal","Wir+leczy");
+            Short("halo","Block hit","Blok ciosu");
+            Short("cascade","Returns ×2","Wraca ×2");
+            Short("singularity","Swallows","Pożera");
+            Short("chronomancer","Rewind","Cofa się");
         }
     }
 }

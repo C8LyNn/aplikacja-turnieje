@@ -63,13 +63,107 @@ namespace CoreClash.Presentation
             // HP as a share of the ball's maximum: the arc follows the real HP, not 5 HP steps.
             float share = Mathf.Clamp01(ball.hp / (float)Mathf.Max(1, ball.maxHp)), shareBefore = 0, lostFade = 0;
             if (Fx.LostHp(ball.id, now, out int hpBefore, out float fade)) { shareBefore = Mathf.Clamp01(hpBefore / (float)Mathf.Max(1, ball.maxHp)); lostFade = fade; }
+            // W24 (owner direction: "not an extra icon - the ball itself is to change: burn when it is
+            // set alight, be frozen, carry the poison"): a state is the look of the ball.
+            //   fire    flames stand over the ball (more and taller with a second fire) and it glows hot
+            //   chill   the ball pales with frost, and ice crystals settle on it - one for each chill
+            //   frozen  the ball is cased in ice: shards round it, a pale shell over it
+            //   poison  the ball turns sickly green and bubbles rise from it
+            //   stuck   a web lies over the ball
+            // Exact numbers are in the ball's own card (tap the ball).
+            bool burning = ball.fireStacks > 0, frozen = ball.frozen > 0, chilled = ball.iceStacks > 0 && !frozen, poisoned = ball.toxinTurns > 0;
+            if (burning) Flames(point, edge, now, ball.id, ball.fireStacks);
+            if (frozen) IceShards(point, edge, scale);
             DrawOrb(body, definition, ball.owner, scale, 1, share, BallBadges.PipSide(ball.owner, localOwner), BallBadges.PipSize(scale), shareBefore, lostFade, BallBadges.HpSegments(ball.maxHp));
+            if (burning) Draw.Circle(body, Alpha(FireHot, ball.fireStacks > 1 ? .36f : .26f));
+            if (poisoned) Draw.Circle(body, Alpha(Theme.Status(StatusKind.Toxin), .34f));
+            if (chilled) Draw.Circle(body, Alpha(IcePale, Mathf.Min(.5f, .24f * ball.iceStacks)));
             // A frozen ball is washed in ice; its symbol stays white on top of the ice.
-            if (ball.frozen > 0) Draw.Circle(body, Alpha(Theme.Status(StatusKind.Frozen), .62f));
+            if (frozen)
+            {
+                Draw.Circle(body, Alpha(Theme.Status(StatusKind.Frozen), .62f));
+                Draw.Ring(point, edge, IcePale, Mathf.Max(2f, radius * .14f));
+            }
             DrawIdentity(body, definition, InnerRadius(radius, true), false, ball.owner);
+            if (chilled) Frost(point, radius, scale, ball.iceStacks);
+            if (poisoned) Bubbles(point, edge, now, ball.id);
+            if (ball.rooted) Web(point, radius, scale);
             DrawState(body, point, ball, radius, scale, now);
         }
 
+        static readonly Color FireHot = new Color(1f, .5f, .08f), FlameCore = new Color(1f, .88f, .3f), IcePale = new Color(.84f, .96f, 1f);
+        // A flame: a drop with its point up.
+        const string FlameSpec = "+C 0 .38 .58;+P -.56 .26 0 -.98 .56 .26";
+        // Flames behind the ball, standing over its upper edge. They flicker in size (not when the
+        // player asked for calm effects): the ball is burning now.
+        static void Flames(Vector2 point, float edge, float now, int id, int stacks)
+        {
+            int count = stacks > 1 ? 5 : 3; float spread = stacks > 1 ? 62f : 42f, tall = stacks > 1 ? .86f : .68f;
+            Color dark = Theme.Shade(FireHot, 1.1f, .34f);
+            for (int i = 0; i < count; i++)
+            {
+                float angle = (count == 1 ? 0 : Mathf.Lerp(-spread, spread, i / (count - 1f))) * Mathf.Deg2Rad;
+                float flicker = Fx.ReducedMotion ? 1 : 1 + .11f * Mathf.Sin(now * 9f + i * 2.1f + id);
+                // The middle flames are the tallest.
+                float size = edge * tall * flicker * (1 - .22f * Mathf.Abs(i - (count - 1) * .5f) / Mathf.Max(1, (count - 1) * .5f));
+                var foot = point + new Vector2(Mathf.Sin(angle), -Mathf.Cos(angle)) * edge * .78f;
+                var box = new Rect(foot.x - size * .5f, foot.y - size * .82f, size, size);
+                Glyphs.PaintOutline(box, FlameSpec, dark);
+                Glyphs.Paint(box, FlameSpec, FireHot);
+                float core = size * .52f;
+                Glyphs.Paint(new Rect(foot.x - core * .5f, foot.y - core * .62f, core, core), FlameSpec, FlameCore);
+            }
+        }
+        // Shards of ice standing out round a frozen ball, behind it.
+        static void IceShards(Vector2 point, float edge, float scale)
+        {
+            Color dark = Theme.Shade(Theme.Status(StatusKind.Frozen), 1.1f, .34f);
+            float line = Mathf.Max(1f, 1.4f * scale);
+            for (int i = 0; i < 6; i++)
+            {
+                float angle = (i * 60f + 30f) * Mathf.Deg2Rad; var out_ = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)); var across = new Vector2(-out_.y, out_.x);
+                float reach = edge * (i % 2 == 0 ? 1.3f : 1.2f);
+                Vector2 tip = point + out_ * reach, a = point + out_ * edge * .78f + across * edge * .22f, b = point + out_ * edge * .78f - across * edge * .22f;
+                Draw.Triangle(tip, a, b, .6f + line, dark);
+                Draw.Triangle(tip, a, b, .6f, IcePale);
+            }
+        }
+        // Frost on a chilled ball: one crystal for each chill, on its lower half.
+        static void Frost(Vector2 point, float radius, float scale, int stacks)
+        {
+            float size = Mathf.Max(9f, radius * .56f); string spec = Glyphs.Shape(StatusKind.Ice);
+            for (int i = 0; i < Mathf.Min(2, stacks); i++)
+            {
+                var at = point + new Vector2(i == 0 ? .62f : -.62f, .62f) * radius * .92f;
+                Draw.InkedGlyph(new Rect(at.x - size * .5f, at.y - size * .5f, size, size), spec, Color.white, Mathf.Max(1f, 1.2f * scale));
+            }
+        }
+        // Bubbles rising from a poisoned ball.
+        static void Bubbles(Vector2 point, float edge, float now, int id)
+        {
+            Color fill = Color.Lerp(Theme.Status(StatusKind.Toxin), Color.white, .25f), dark = Theme.Shade(Theme.Status(StatusKind.Toxin), 1.1f, .32f);
+            for (int i = 0; i < 3; i++)
+            {
+                float bob = Fx.ReducedMotion ? 0 : Mathf.Sin(now * 2.2f + i * 2.4f + id) * edge * .05f;
+                float size = edge * (i == 0 ? .21f : i == 1 ? .16f : .12f);
+                var at = point + new Vector2(i == 0 ? -.56f : i == 1 ? .5f : .86f, i == 0 ? -.66f : i == 1 ? -.76f : -.22f) * edge + new Vector2(0, bob);
+                Draw.Circle(new Rect(at.x - size - 1.2f, at.y - size - 1.2f, size * 2 + 2.4f, size * 2 + 2.4f), dark);
+                Draw.Circle(new Rect(at.x - size, at.y - size, size * 2, size * 2), fill);
+                Draw.Circle(new Rect(at.x - size * .55f, at.y - size * .6f, size * .6f, size * .6f), new Color(1, 1, 1, .7f));
+            }
+        }
+        // A web over a ball that is stuck in one.
+        static void Web(Vector2 point, float radius, float scale)
+        {
+            Color strand = new Color(1, 1, 1, .88f); float line = Mathf.Max(1.2f, 1.7f * scale);
+            for (int i = 0; i < 3; i++)
+            {
+                float angle = (20f + i * 60f) * Mathf.Deg2Rad; var along = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * radius * .96f;
+                Draw.Stroke(point - along, point + along, strand, line);
+            }
+            Draw.Ring(point, radius * .52f, strand, line);
+            Draw.Ring(point, radius * .9f, strand, line);
+        }
         // What the ball is going through right now. W24 (owner direction): states are kept minimal.
         // What a ball carries is told by its small chip under it (symbol and number); on the ball
         // itself only two things show, each as one plain shape: a frozen ball is washed in ice (see
@@ -121,44 +215,24 @@ namespace CoreClash.Presentation
             int font = layout.Font;
             Color team = Draw.Owner(ball.owner);
 
-            // W24 (owner direction: "states belong on the ball, not in a separate square"): what a ball
-            // carries is a round mark on the ball itself, in the same make as the mine and Replay marks
-            // on its upper half: a disc in the state's colour with its symbol in white, set on the
-            // lower rim - the first state at the lower left, the second at the lower right. A number
-            // (stacks, turns, shield points) stands at the mark's outer corner. More than two states:
-            // the second mark tells how many more there are (all of them are in the ball's card).
+            // W24 (owner direction): fire, chill, frost, poison, a web and a shield are the look of the
+            // ball itself (see Render). A round mark on the lower rim is left only for the few states
+            // that have no look of their own (a summoned ball, a veteran...), so they are not lost.
             {
                 float rim = ball.radius * scale, mark = Mathf.Clamp(rim * .3f, 6.5f, 13f), edge = Mathf.Max(1f, 1.4f * scale);
-                int type = Mathf.Clamp(Mathf.RoundToInt(mark * 1.3f), 10, 16);
                 if (Theme.ShowHpNumber)
                     Draw.Inked(new Rect(point.x - rim, point.y + rim * .18f, rim * 2, rim * .62f), ball.hp.ToString(), Mathf.Clamp(Mathf.RoundToInt(rim * .46f), 9, 22), Color.white, TextAnchor.MiddleCenter, Mathf.Max(1f, 1.4f * scale));
-                var states = BallBadges.Chips(ball);
-                int total = states.Length + (ball.shield > 0 ? 1 : 0), slot = 0;
-                for (int i = 0; i < total && slot < 2; i++, slot++)
+                int slot = 0;
+                foreach (var state in BallBadges.Chips(ball))
                 {
-                    bool left = slot == 0;
-                    // 135 and 45 degrees below the horizon; y grows downwards on screen.
-                    var at = point + new Vector2(left ? -.7071f : .7071f, .7071f) * (rim - mark * .5f);
+                    if (state.Kind == StatusKind.Fire || state.Kind == StatusKind.Ice || state.Kind == StatusKind.Toxin || state.Kind == StatusKind.Frozen || state.Kind == StatusKind.Rooted) continue;
+                    if (slot >= 2) break;
+                    var at = point + new Vector2(slot == 0 ? -.7071f : .7071f, .7071f) * (rim - mark * .5f); slot++;
                     var disc = new Rect(at.x - mark, at.y - mark, mark * 2, mark * 2);
-                    bool more = slot == 1 && total > 2;
-                    bool shield = ball.shield > 0 && i == 0;
-                    var state = shield || more ? null : states[i - (ball.shield > 0 ? 1 : 0)];
-                    StatusKind kind = shield ? StatusKind.Shield : more ? StatusKind.Token : state.Kind;
                     Draw.Circle(Expand(disc, edge), Theme.Ink);
-                    Draw.Circle(disc, more ? Alpha(Theme.Scrim, 1f) : Theme.StatusFill(kind));
-                    string text = more ? "+" + (total - 1) : shield ? ball.shield.ToString() : state.Short ?? "";
-                    if (more) Draw.Text(new Rect(disc.x - 4, disc.y - 1, disc.width + 8, disc.height), text, type, Color.white, TextAnchor.MiddleCenter, true);
-                    else
-                    {
-                        float glyph = mark * 1.36f;
-                        Glyphs.Paint(new Rect(at.x - glyph * .5f, at.y - glyph * .5f, glyph, glyph), kind, Color.white);
-                        if (text.Length > 0)
-                        {
-                            float width = type * .62f * text.Length + 6, middle = left ? disc.x + mark * .3f : disc.xMax - mark * .3f;
-                            var corner = new Rect(middle - width * .5f, disc.yMax - type * .8f, width, type + 4);
-                            Draw.Inked(corner, text, type, Color.white, TextAnchor.MiddleCenter, Mathf.Max(1f, 1.3f * scale));
-                        }
-                    }
+                    Draw.Circle(disc, Theme.StatusFill(state.Kind));
+                    float glyph = mark * 1.36f;
+                    Glyphs.Paint(new Rect(at.x - glyph * .5f, at.y - glyph * .5f, glyph, glyph), state.Kind, Color.white);
                 }
             }
             if (layout.HasThreat)

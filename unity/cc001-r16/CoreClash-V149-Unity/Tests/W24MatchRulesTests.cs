@@ -103,6 +103,37 @@ public static partial class Program
             var ball=blocked.State.balls[0];
             True(Math.Abs(ball.x-hit.StopX)<2&&Math.Abs(ball.y-hit.StopY)<2,"estimate "+hit.StopX+","+hit.StopY+" but the ball stopped at "+ball.x+","+ball.y);
         });
+        Test("W24 balls: every ball has a label short enough for a tray card, in both languages",()=>{
+            int count=0;
+            foreach(string id in CoreClash.Presentation.BallGuide.Ids)
+            {
+                var g=CoreClash.Presentation.BallGuide.For(id);count++;
+                foreach(bool polish in new[]{false,true})
+                {
+                    CoreClash.Presentation.Lang.Polish=polish;
+                    True(g.Short.Length>0&&g.Short.Length<=CoreClash.Presentation.BallGuide.MaxShort,id+": tray label "+g.Short+" is longer than "+CoreClash.Presentation.BallGuide.MaxShort);
+                }
+            }
+            CoreClash.Presentation.Lang.Polish=false;True(count>=31);
+        });
+        Test("W24 balls: the 30 special balls stand in ten groups of three, each ball in one group",()=>{
+            Eq(10,CoreClash.Presentation.BallGroups.All.Length);
+            var seen=new System.Collections.Generic.HashSet<string>();
+            foreach(var group in CoreClash.Presentation.BallGroups.All)
+            {
+                Eq(CoreClash.Presentation.BallGroups.Size,group.Balls.Length);
+                True(group.NameEn.Length>0&&group.NamePl.Length>0&&group.PlanEn.Length>0&&group.PlanPl.Length>0,group.Id+": name and plan in both languages");
+                foreach(string id in group.Balls)
+                {
+                    True(catalog.Ball(id)!=null&&CoreClash.Presentation.BallGuide.For(id)!=null,group.Id+": unknown ball "+id);
+                    True(seen.Add(id),id+" stands in two groups");
+                    Eq(group,CoreClash.Presentation.BallGroups.Of(id));
+                }
+            }
+            Eq(30,seen.Count);False(seen.Contains("normal"));
+            foreach(string id in CoreClash.Presentation.BallGuide.Ids)True(id=="normal"||seen.Contains(id),id+" has a guide but no group");
+            True(CoreClash.Presentation.BallGroups.Order("fire")<CoreClash.Presentation.BallGroups.Order("ice"));Eq(int.MaxValue,CoreClash.Presentation.BallGroups.Order("normal"));
+        });
         Test("W24 rules: a map obstacle cannot be damaged, does not use up the structure limit, and stops a ball",()=>{
             var s=Sim();var rock=s.Structures.AddObstacle(270,450,30);
             Eq(StructureSystem.Obstacle,rock.kind);Eq(-1,rock.owner);Eq(0,s.Structures.ActiveCount);

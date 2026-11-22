@@ -131,6 +131,7 @@ namespace CoreClash.Presentation
         // Phone deck builder (W24): nine slots on top, then a grid of large ball tiles. Tap a ball to
         // put it in or take it out; tap its name to read what it does. No search box, no filter row.
         const string IconCheck="+L -.6 .02 -.18 .46 .34;+L -.18 .46 .62 -.42 .34";
+        static Color BallGuideView_GroupColor(string id)=>GroupColor(id);
         void RenderPhoneBuilder(bool activeOnly)
         {
             float left=12,width=UiWidth-24;Color team=Draw.Owner(builderOwner);
@@ -147,14 +148,40 @@ namespace CoreClash.Presentation
                 if(Draw.Hit(r)){custom.RemoveAt(i);break;}
             }
             var roster=RosterReadiness.Visible(Catalog,"",RosterReadinessFilter.All,activeOnly);
-            const int columns=3;const float gap=8,nameH=48;
+            // W24 (owner decision): the balls stand group after group, three to a row, so a row is a
+            // group; its name and what its three balls do together are written above it.
+            Array.Sort(roster,(x,y)=>{int a=BallGroups.Order(x.id),b=BallGroups.Order(y.id);return a!=b?a.CompareTo(b):string.CompareOrdinal(x.id,y.id);});
+            const int columns=3;const float gap=8,nameH=48,groupH=38;
             float top=slotY+slot+14,bottom=UiHeight-76,tileW=(width-gap*(columns-1))/columns,tileH=tileW+22;
-            float content=(float)Math.Ceiling(roster.Length/(float)columns)*(tileH+gap);
+            // A row gets a heading when its three balls are one whole group.
+            int rowCount=(roster.Length+columns-1)/columns;var heads=new BallGroup[rowCount];float content=0;
+            for(int row=0;row<rowCount;row++)
+            {
+                var first=row*columns+columns-1<roster.Length?BallGroups.Of(roster[row*columns].id):null;
+                if(first!=null)for(int k=1;k<columns;k++)if(BallGroups.Of(roster[row*columns+k].id)!=first)first=null;
+                heads[row]=first;content+=tileH+gap+(first!=null?groupH:0);
+            }
             rosterScroll=Draw.ScrollView(new Rect(left,top,width,bottom-top),rosterScroll,new Rect(0,0,width,Math.Max(content,40)));
+            float rowY=0;
             for(int i=0;i<roster.Length;i++)
             {
+                int row=i/columns;
+                if(i%columns==0)
+                {
+                    if(row>0)rowY+=tileH+gap;
+                    if(heads[row]!=null)
+                    {
+                        var head=heads[row];Color tone=BallGuideView_GroupColor(head.Id);
+                        float nameW=Draw.TextWidth(head.Name.ToUpperInvariant(),11,true)+16;
+                        var pill=new Rect(1.5f,rowY+2,nameW,18);
+                        Draw.Chip(pill,tone,Theme.Ink);
+                        Draw.Text(new Rect(pill.x,pill.y-1,pill.width,pill.height),head.Name.ToUpperInvariant(),11,Theme.OnColor,TextAnchor.MiddleCenter,true);
+                        Draw.Text(new Rect(pill.xMax+7,rowY-3,width-pill.xMax-9,groupH-4),head.Plan,10,OnBackdropSoft,TextAnchor.MiddleLeft,true);
+                        rowY+=groupH;
+                    }
+                }
                 var d=roster[i];bool picked=custom.Contains(d.id),full=custom.Count>=9&&!picked;
-                var r=new Rect((i%columns)*(tileW+gap)+1.5f,(i/columns)*(tileH+gap)+2,tileW-3,tileH-4);
+                var r=new Rect((i%columns)*(tileW+gap)+1.5f,rowY+2,tileW-3,tileH-4);
                 Draw.Plate(r,picked?Color.Lerp(Theme.Panel,team,.22f):Theme.Panel,picked?team:Theme.Edge,picked?Theme.TeamDeep(builderOwner):Theme.EdgeStrong,3,3,1.5f);
                 var ballZone=new Rect(r.x,r.y,r.width,r.height-3-nameH);
                 if(Draw.Hit(ballZone)){if(picked)custom.Remove(d.id);else if(custom.Count<9)custom.Add(d.id);}

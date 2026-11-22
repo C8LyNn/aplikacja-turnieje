@@ -15,7 +15,8 @@ namespace CoreClash.Presentation
         public static readonly float[] BallScales = { 1f, 1.5f, 2f };
 
         // ---- rules of the match
-        public static float BallScale = 2f;
+        // Owner decisions: twice the reference size (2026-11-21), then a quarter smaller (2026-11-22).
+        public static float BallScale = 1.5f;
         public static bool DoubleTurn = true;
         public static string Map = RandomMap;
         // ---- how the match is shown
@@ -27,7 +28,7 @@ namespace CoreClash.Presentation
 
         public static void Load()
         {
-            BallScale = Mathf.Clamp(PlayerPrefs.GetFloat("cc.rule.ballScale", 2f), .5f, 3f);
+            BallScale = Mathf.Clamp(PlayerPrefs.GetFloat("cc.rule.ballSize", 1.5f), .5f, 3f);
             DoubleTurn = PlayerPrefs.GetInt("cc.rule.doubleTurn", 1) == 1;
             Map = PlayerPrefs.GetString("cc.rule.map", RandomMap);
             if (Map != RandomMap && MapById(Map) == null) Map = RandomMap;
@@ -45,7 +46,7 @@ namespace CoreClash.Presentation
         }
         public static void Save()
         {
-            PlayerPrefs.SetFloat("cc.rule.ballScale", BallScale);
+            PlayerPrefs.SetFloat("cc.rule.ballSize", BallScale);
             PlayerPrefs.SetInt("cc.rule.doubleTurn", DoubleTurn ? 1 : 0);
             PlayerPrefs.SetString("cc.rule.map", Map);
             PlayerPrefs.SetInt("cc.show.damageNumbers", DamageNumbers ? 1 : 0);

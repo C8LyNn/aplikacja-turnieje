@@ -332,15 +332,28 @@ namespace CoreClash.Presentation
                 else{SelectBall(id);if(selected==id){tappedId=id;tappedTurn=turnNumber;selectedAt=Time.unscaledTime;}}
             }
             GUI.enabled=prior;
-            bool named=face.height>=72;
-            float room=face.height-3-(named?22:8),orb=Mathf.Clamp(Mathf.Min(face.width-12,room-7),16,54);
+            // W24 (owner direction: every ball has to be easy to understand): a card is a picture and
+            // what the ball does in a word or two under it; a tall card also has the ball's name. The
+            // tab in its top left corner says WHEN the power works - the same sign and colour as the
+            // banner on the ball's own card.
+            var guide=BallGuide.For(id);
+            bool named=face.height>=72,labelled=guide!=null,both=named&&labelled&&face.height>=90;
+            float text=both?36:named?22:labelled?15:8;
+            float room=face.height-3-text,orb=Mathf.Clamp(Mathf.Min(face.width-12,room-5),16,54);
             if(picked)orb*=SelectPulse();
-            var body=new Rect(face.center.x-orb/2,face.y+4+(room-orb)/2,orb,orb);
+            var body=new Rect(face.center.x-orb/2,face.y+3+(room-orb)/2,orb,orb);
             BallView.Preview(body,d,owner>=0?owner:0,picked);
+            float line=face.yMax-3-text;
             if(named)
             {
                 string name=BallIcons.Name(d);int longest=0;foreach(string word in name.Split(' '))longest=Mathf.Max(longest,word.Length);
-                Draw.Text(new Rect(face.x+2,face.yMax-25,face.width-4,20),name,face.width-4>=longest*6.2f&&name.Length<=11?10:9,available?Theme.Text:Theme.Muted,TextAnchor.MiddleCenter,true);
+                Draw.Text(new Rect(face.x+2,line,face.width-4,20),name,face.width-4>=longest*6.2f&&name.Length<=11?10:9,available?Theme.Text:Theme.Muted,TextAnchor.MiddleCenter,true);
+                line+=20;
+            }
+            if(labelled&&(both||!named))
+            {
+                string label=guide.Short;int size=Draw.TextWidth(label,10,true)<=face.width-6?10:9;
+                Draw.Text(new Rect(face.x+1,line-1,face.width-2,14),label,size,available?Color.Lerp(WhenColor(guide.When),Theme.Ink,.55f):Theme.Muted,TextAnchor.MiddleCenter,true);
             }
             var plate=Draw.PlateFill(face);float plateCorner=Draw.PlateCorner();
             if(!available)Draw.Round(plate,new Color(1,1,1,.66f),plateCorner);
@@ -350,6 +363,13 @@ namespace CoreClash.Presentation
             Draw.Corners(badge,handReady?Theme.Select:available?Theme.Ink:Theme.Disabled,0,plateCorner,0,7);
             if(standard)Glyphs.Paint(new Rect(badge.center.x-7,badge.center.y-7,14,14),IconEndless,Theme.OnColor);
             else Draw.Text(new Rect(badge.x,badge.y-1,badge.width,badge.height),handReady?"H":stock.ToString(),12,handReady?Theme.Ink:Theme.OnColor,TextAnchor.MiddleCenter,true);
+            // WHEN tab, in the opposite corner. Standard has no power, so it has no tab.
+            if(guide!=null&&!standard)
+            {
+                var when=new Rect(plate.x,plate.y,18,16);
+                Draw.Corners(when,available?WhenColor(guide.When):Theme.Disabled,plateCorner,0,7,0);
+                Glyphs.Paint(new Rect(when.center.x-6,when.center.y-6,12,12),WhenGlyph(guide.When),Theme.OnColor);
+            }
         }
 
         // Deck card. Tall cards stack orb / name / cue; short ones put the orb on the left
@@ -376,7 +396,11 @@ namespace CoreClash.Presentation
                 float textX=r.x+Mathf.Min(r.height-25,34)+22,textWidth=r.xMax-textX-6;
                 int nameFont=textWidth>=longest*7.2f?12:textWidth>=longest*6.6f?11:textWidth>=longest*6f?10:9;
                 Draw.Text(new Rect(textX,r.y+4,textWidth,r.height-27),BallIcons.Name(d),nameFont,nameColor,TextAnchor.MiddleLeft,true);
-                Draw.Text(new Rect(textX,r.yMax-22,textWidth-30,15),handReady?LocalDeckContent.StockLabel(Simulation,owner,id):available?d.hp+" HP":Lang.T("OUT","BRAK"),Theme.FontTiny,handReady?Theme.SelectInk:Theme.Muted,TextAnchor.MiddleLeft,true);
+                string under=handReady?LocalDeckContent.StockLabel(Simulation,owner,id):available?d.hp+" HP":Lang.T("OUT","BRAK");
+                // What the ball does, after its HP, when the card is wide enough for both.
+                var sideGuide=BallGuide.For(id);
+                if(sideGuide!=null&&available&&!handReady&&Draw.TextWidth(under+"  ·  "+sideGuide.Short,Theme.FontTiny,true)<=textWidth-30)under+="  ·  "+sideGuide.Short;
+                Draw.Text(new Rect(textX,r.yMax-22,textWidth-30,15),under,Theme.FontTiny,handReady?Theme.SelectInk:Theme.Muted,TextAnchor.MiddleLeft,true);
                 Draw.Text(new Rect(r.xMax-36,r.yMax-24,30,17),count,12,countColor,TextAnchor.MiddleRight,true);
             }
             else
