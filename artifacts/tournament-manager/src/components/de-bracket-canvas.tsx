@@ -625,9 +625,10 @@ export function DEBracketCanvas({
 
   const cardH = compact ? 64 : CARD_H;
 
+  // The engine resolves an unneeded reset as "bye" (the Upper winner took the Grand Final) or "skipped".
   const skippedReset =
     gfrPositions.length > 0 &&
-    gfrPositions.every(p => p.match.status === "skipped");
+    gfrPositions.every(p => p.match.status === "skipped" || p.match.status === "bye");
 
   const allGfPos = [...gfPositions, ...gfrPositions];
 
