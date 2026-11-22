@@ -37,7 +37,7 @@ namespace CoreClash.Presentation
         public const string Flame = "+C 0 .34 .5;+P -.1 -.98 .46 .2 -.48 .24";
         public const string Snow = "+L -.85 0 .85 0 .24;+L -.43 -.74 .43 .74 .24;+L .43 -.74 -.43 .74 .24";
         public const string Chevron = "+L -.7 .45 0 -.45 .34;+L 0 -.45 .7 .45 .34";
-        static readonly Color Spark = new Color(1, .86f, .28f);
+        static readonly Color Spark = new Color(1, .86f, .28f), Volt = new Color(1f, .9f, .2f);
         public const string Confetti = "+P -.9 -.4 .9 -.4 .9 .4 -.9 .4";
 
         struct Particle
@@ -51,7 +51,7 @@ namespace CoreClash.Presentation
         static Particle[] particles = new Particle[MaxParticles];
         static int particleCount;
 
-        enum Shape { Shock, Flash, Streak, Converge, Swirl, Column, Ripple }
+        enum Shape { Shock, Flash, Streak, Converge, Swirl, Column, Ripple, Bolt }
         struct Effect
         {
             public Shape shape; public float x, y, x2, y2, born, life, radius; public Color color; public int seed;
@@ -325,6 +325,40 @@ namespace CoreClash.Presentation
                 case "DISARM":
                     Push(Shape.Converge, x, y, x, y, now, .4f, (ball?.radius ?? 17) + 26, Theme.Muted, e.id);
                     break;
+                // W24 six groups. A bolt runs from the ball that sent it (from above for a trap) into the target.
+                case "ZAP":
+                {
+                    float reach = ball?.radius ?? 17;
+                    if (other != null) Push(Shape.Bolt, other.x, other.y, x, y, now, .6f, reach, Volt, e.id);
+                    else Push(Shape.Bolt, x + 26, y - 96, x, y, now, .6f, reach, Volt, e.id);
+                    Push(Shape.Flash, x, y, x, y, now, .2f, reach * 1.9f, Volt, e.id);
+                    Burst(x, y, 6, Volt, Star, 60, 180, .34f, 5);
+                    break;
+                }
+                case "DISCHARGE":
+                    Push(Shape.Shock, x, y, x, y, now, .45f, AbilityResolver.DischargeRange, Volt, e.id);
+                    break;
+                case "CHARGE":
+                    Push(Shape.Converge, x, y, x, y, now, .45f, (ball?.radius ?? 17) + 24, Volt, e.id);
+                    break;
+                case "JAM":
+                    Push(Shape.Converge, x, y, x, y, now, .45f, (ball?.radius ?? 17) + 26, Theme.Muted, e.id);
+                    Burst(x, y, 5, Volt, Star, 40, 120, .4f, 5);
+                    break;
+                case "JAM_EXPIRED":
+                    Push(Shape.Ripple, x, y, x, y, now, .45f, (ball?.radius ?? 17) + 22, Volt, e.id);
+                    break;
+                case "GROW":
+                    Push(Shape.Ripple, x, y, x, y, now, .5f, (ball?.radius ?? 17) + 26, Theme.Heal, e.id);
+                    Rise(x, y, ball?.radius ?? 17, 5, Theme.Heal, Plus, 7);
+                    break;
+                case "THORNS":
+                    Burst(x, y, 7, Theme.Heal, Shard, 70, 190, .36f, 6);
+                    break;
+                case "DASH":
+                    Push(Shape.Shock, x, y, x, y, now, .3f, (ball?.radius ?? 17) + 22, Theme.Info, e.id);
+                    if (other != null) Push(Shape.Streak, x, y, other.x, other.y, now, .45f, -(ball?.radius ?? 17), Theme.Info, e.id + 3);
+                    break;
                 case "TRAP_TRIGGER":
                     Push(Shape.Flash, x, y, x, y, now, .2f, 30, Spark, e.id);
                     Push(Shape.Shock, x, y, x, y, now, .4f, 46, Theme.Threat, e.id);
@@ -565,6 +599,28 @@ namespace CoreClash.Presentation
                             Color tint = Theme.A(e.color, (1 - t) * (.35f + .6f * along) * strength);
                             if (e.radius < 0) Glyphs.Paint(new Rect(p.x - size / 2, p.y - size / 2, size, size), to.y < at.y ? Chevron : "+L -.7 -.45 0 .45 .34;+L 0 .45 .7 -.45 .34", tint);
                             else Draw.Circle(new Rect(p.x - size / 2, p.y - size / 2, size, size), tint);
+                        }
+                        break;
+                    }
+                    case Shape.Bolt:
+                    {
+                        // A jagged line from the sender into the target: ink outline, yellow body, white
+                        // core. Its kinks are fixed by the event (no flicker), it only fades.
+                        var to = View(board, viewOwner, e.x2, e.y2); Vector2 along = to - at; float length = along.magnitude;
+                        if (length < 2) break;
+                        var across = new Vector2(-along.y, along.x) / length; int pieces = Mathf.Clamp(Mathf.RoundToInt(length / (26 * scale)), 3, 9);
+                        float fade = Mathf.Clamp01((1 - t) * 2.2f) * strength, width = Mathf.Max(2.5f, 5.5f * scale);
+                        for (int pass = 0; pass < 3; pass++)
+                        {
+                            Vector2 from = at;
+                            for (int k = 1; k <= pieces; k++)
+                            {
+                                uint h = (uint)(e.seed * 7919 + k * 104729); h ^= h >> 13; h *= 0x5bd1e995; h ^= h >> 15;
+                                float side = k == pieces ? 0 : ((h % 1000) / 500f - 1) * 12f * scale;
+                                Vector2 next = at + along * (k / (float)pieces) + across * side;
+                                Draw.Stroke(from, next, pass == 0 ? Theme.A(Theme.Ink, fade) : pass == 1 ? Theme.A(e.color, fade) : Theme.A(Color.white, fade), pass == 0 ? width + 4f * scale : pass == 1 ? width : width * .38f);
+                                from = next;
+                            }
                         }
                         break;
                     }

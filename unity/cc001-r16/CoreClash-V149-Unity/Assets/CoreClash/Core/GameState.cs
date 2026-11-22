@@ -45,6 +45,10 @@ namespace CoreClash.Core
         //   centreRadius  the radius of the centre a player holds; a map that blocks part of the
         //                 centre makes it larger (owner's terrain rule)
         public float ballScale=1,centreRadius=112;
+        // W24 match rule (off = the reference rules): every ball has only the power written on
+        // its card - the hidden passives of the old archetypes do not run, and a switched-off
+        // power stays off for a time instead of for one use.
+        public bool plainPowers;
         public bool comebackRule,comebackActive;
         public string mapId="";
         public string actionKind,resultReason;
@@ -70,6 +74,8 @@ namespace CoreClash.Core
         public float x,y,vx,vy,radius,mass,restitution,wallRestitution,maxSpeed,stopHold,frozen,spawnGrace,angle=-1.5707963f,motionPeak,portalCooldown,sticky,phoenixEntryTimer;
         public bool dead,moving,phased,mineArmed,exploded,splitDone,abilityUsed,resurrected,generated,hitUsed,wallUsed,launchImmune,rooted,ancestral,divineShield,banished,identityUsed;
         public int banishedUntilTurn,jammed;
+        // W24 six groups: battery charge; the owner turn in which a switched-off power comes back.
+        public int charge,jamExpiresOwnerTurn=-1;
         // Per-instance, serialized once-per-turn DEATH observer gate.
         public int lastDenMotherTurn=-1;
         public int lastRamAction=-1;

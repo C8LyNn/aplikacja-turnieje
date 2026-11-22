@@ -21,16 +21,16 @@ public static partial class Program
             Eq("DATA ONLY",RosterReadiness.Badge(catalog,"bounce").Label);Eq("DATA_ONLY",RosterReadiness.Badge(catalog,"bounce").Code);
             True(RosterReadiness.Badge(catalog,"bounce").Explanation.Length>0);
         });
-        Test("W19-01 every visible special has exactly the registry status (224 = 41 READY + 51 PARTIAL + 132 DATA_ONLY)",()=>{
+        Test("W19-01 every visible special has exactly the registry status (224 = 50 READY + 51 PARTIAL + 123 DATA_ONLY)",()=>{
             var specials=catalog.Data.balls.Where(b=>!b.hidden&&b.id!="normal").ToArray();
             Eq(224,specials.Length);
             foreach(var b in specials){
                 string expected=AbilitySupport.Status(b.id);
                 Eq(expected,RosterReadiness.Badge(catalog,b.id).Code);
             }
-            Eq(41,specials.Count(b=>RosterReadiness.Badge(catalog,b.id).Level==ReadinessLevel.Ready));
+            Eq(50,specials.Count(b=>RosterReadiness.Badge(catalog,b.id).Level==ReadinessLevel.Ready));
             Eq(51,specials.Count(b=>RosterReadiness.Badge(catalog,b.id).Level==ReadinessLevel.Partial));
-            Eq(132,specials.Count(b=>RosterReadiness.Badge(catalog,b.id).Level==ReadinessLevel.DataOnly));
+            Eq(123,specials.Count(b=>RosterReadiness.Badge(catalog,b.id).Level==ReadinessLevel.DataOnly));
         });
         Test("W19-01 ALL filter is the unchanged pre-W19 builder roster for any search",()=>{
             Eq(RosterReadinessFilter.All,default(RosterReadinessFilter));
@@ -53,8 +53,8 @@ public static partial class Program
                 var counts=RosterReadiness.Counts(catalog,search);
                 Eq(all.Length,counts[RosterReadinessFilter.All]);Eq(ready.Length,counts[RosterReadinessFilter.ReadyOnly]);Eq(playable.Length,counts[RosterReadinessFilter.ReadyOrPartial]);
             }
-            Eq(41,RosterReadiness.Counts(catalog,"")[RosterReadinessFilter.ReadyOnly]);
-            Eq(92,RosterReadiness.Counts(catalog,"")[RosterReadinessFilter.ReadyOrPartial]);
+            Eq(50,RosterReadiness.Counts(catalog,"")[RosterReadinessFilter.ReadyOnly]);
+            Eq(101,RosterReadiness.Counts(catalog,"")[RosterReadinessFilter.ReadyOrPartial]);
             Eq("READY + PARTIAL  92",RosterReadiness.FilterLabel(RosterReadinessFilter.ReadyOrPartial,92));
         });
         Test("W19-01 filtering never changes a deck, the catalog or deck legality",()=>{

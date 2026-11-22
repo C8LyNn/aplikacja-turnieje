@@ -139,7 +139,7 @@ namespace CoreClash.Testing
             // 5. Reduced HP: the same types at full, three quarters, half and critical health.
             app.StartLocalMatch();
             sim = app.Simulation;
-            string[] hpTypes = { "normal", "fire", "ice", "bomb", "ward", "singularity" };
+            string[] hpTypes = { "normal", "fire", "ice", "bomb", "magnet", "tesla" };
             for (int row = 0; row < 4; row++)
             for (int column = 0; column < hpTypes.Length; column++)
             {
@@ -158,11 +158,12 @@ namespace CoreClash.Testing
             var chilled = Place(sim, 1, "normal", 220, 270); sim.Abilities.ApplyIce(chilled, 0);
             var frozen = Place(sim, 1, "normal", 330, 270); sim.Abilities.ApplyIce(frozen, 0); sim.Abilities.ApplyIce(frozen, 0); sim.Abilities.ApplyIce(frozen, 0);
             var poisoned = Place(sim, 1, "normal", 440, 270); sim.Abilities.ApplyToxin(poisoned, 0);
-            var shielded = Place(sim, 0, "ward", 110, 420); sim.Shield(shielded, 10);
+            var shielded = Place(sim, 0, "frostguard", 110, 420); sim.Abilities.OnStop(shielded);
             var rooted = Place(sim, 0, "normal", 220, 420); sim.Abilities.Root(rooted);
             var many = Place(sim, 0, "normal", 330, 420); sim.Abilities.ApplyFire(many, 1); sim.Abilities.ApplyToxin(many, 1); sim.Shield(many, 5); sim.Damage(many, 10, true);
-            var mine = Place(sim, 0, "mine", 440, 420); sim.Abilities.OnStop(mine);
-            var fuse = Place(sim, 1, "timebomb", 110, 570); sim.Abilities.OnStop(fuse);
+            // W24 six groups: a switched-off Bomb and a Battery holding three charges.
+            var off = Place(sim, 0, "bomb", 440, 420); sim.Abilities.Jam(off);
+            var battery = Place(sim, 1, "capacitor", 110, 570); battery.charge = 3;
             var furnace = Place(sim, 0, "furnace", 220, 590); sim.Abilities.OnStop(furnace);
             var frostTrap = Place(sim, 1, "frosttrap", 345, 590); sim.Abilities.OnStop(frostTrap);
             var pool = Place(sim, 0, "blightpool", 455, 590); sim.Abilities.OnStop(pool);
@@ -180,7 +181,7 @@ namespace CoreClash.Testing
             app.StartLocalMatch();
             sim = app.Simulation;
             Place(sim, 1, "normal", 270, 520); Place(sim, 1, "ice", 232, 470); Place(sim, 1, "fire", 308, 470);
-            Place(sim, 1, "ward", 270, 420); Place(sim, 0, "normal", 150, 640); Place(sim, 0, "halo", 400, 650);
+            Place(sim, 1, "thornback", 270, 420); Place(sim, 0, "normal", 150, 640); Place(sim, 0, "anchor", 400, 650);
             Still(sim);
             app.SelectBall("normal");
             yield return Seconds(1.3f);
@@ -217,27 +218,29 @@ namespace CoreClash.Testing
             }
             if (perf) yield return Measure("after-explosion", 90);
 
-            // 8. Portals, pull, position swap, rewind and a return to play, through the balls' own ability hooks.
+            // 8. W24 six groups, through the balls' own ability hooks: lightning that jumps, a Magnet that
+            // gathers, a Compass that goes for an enemy, a Sprout that grew, a shock trap and a snare.
             app.StartLocalMatch();
             sim = app.Simulation;
-            var swapper = Place(sim, 0, "timeshift", 150, 560); Place(sim, 1, "normal", 215, 520);
-            var hook = Place(sim, 0, "harpoon", 400, 620); Place(sim, 1, "normal", 430, 440);
-            var clock = Place(sim, 0, "chronomancer", 270, 690);
-            var gate = Place(sim, 1, "gatekeeper", 270, 300);
+            var bolt = Place(sim, 0, "tesla", 150, 560); var struck = Place(sim, 1, "normal", 215, 520); Place(sim, 1, "normal", 290, 500);
+            var magnetBall = Place(sim, 0, "magnet", 400, 620); Place(sim, 1, "normal", 430, 470); Place(sim, 1, "normal", 300, 660);
+            var sprout = Place(sim, 0, "cultivator", 120, 720);
+            var trapper = Place(sim, 1, "staticfield", 270, 300); var planter = Place(sim, 1, "web", 420, 300);
+            var stormBall = Place(sim, 1, "chainshock", 130, 330); Place(sim, 0, "normal", 190, 410);
             Still(sim);
             yield return Seconds(1.2f);
-            sim.Abilities.OnStop(gate); sim.Abilities.OnStop(clock);
+            sim.Abilities.OnStop(trapper); sim.Abilities.OnStop(planter);
+            for (int i = 0; i < 3; i++) { sim.State.turn = 0; sim.Abilities.OnTurnStart(0); }
             yield return Seconds(.5f);
             if (clips) { clip = BeginClip("clip-reality"); yield return Frames(clip, sim, 6); }
-            sim.Abilities.OnStop(swapper);
-            if (clips) yield return Frames(clip, sim, 22); else { yield return Seconds(.14f); yield return Capture("12-swap"); yield return Seconds(.5f); }
-            sim.Abilities.OnStop(hook);
-            if (clips) yield return Frames(clip, sim, 26); else { yield return Seconds(.14f); yield return Capture("13-pull"); yield return Seconds(.6f); }
+            sim.Abilities.OnPairContact(bolt, struck, false, true, 10);
+            if (clips) yield return Frames(clip, sim, 22); else { yield return Seconds(.14f); yield return Capture("12-lightning"); yield return Seconds(.5f); }
+            sim.State.phase = MatchPhase.Moving; sim.State.actionTime = 0; sim.State.settledTime = 0;
+            sim.Abilities.OnStop(magnetBall);
+            if (clips) yield return Frames(clip, sim, 26); else { yield return Seconds(.14f); yield return Capture("13-pull"); yield return Seconds(.9f); }
             Still(sim);
-            sim.Damage(clock, 10, true); clock.x = 170; clock.y = 760;
-            yield return null;
-            sim.Abilities.OnStop(clock);
-            if (clips) { yield return Frames(clip, sim, 30); EndClip(); } else { yield return Seconds(.14f); yield return Capture("14-rewind"); }
+            sim.State.turn = 1; sim.Abilities.OnTurnStart(1);
+            if (clips) { yield return Frames(clip, sim, 30); EndClip(); } else { yield return Seconds(.14f); yield return Capture("14-storm"); }
             yield return Seconds(.8f);
             yield return Capture("15-zones-and-portals");
 

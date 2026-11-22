@@ -124,7 +124,8 @@ namespace CoreClash.Presentation
                 case StatusKind.Ice:return C("#22c3f0");
                 case StatusKind.Frozen:return C("#8fe2ff");
                 case StatusKind.Frostguard:return C("#4fc4ee");
-                case StatusKind.Toxin:return C("#6fcf22");
+                // W24 six groups: poison is violet, so it is never taken for a plant (green).
+                case StatusKind.Toxin:return C("#a94fe0");
                 case StatusKind.Rooted:return C("#c98a45");
                 case StatusKind.Shield:return Shield;
                 case StatusKind.Divine:return C("#ffd45a");

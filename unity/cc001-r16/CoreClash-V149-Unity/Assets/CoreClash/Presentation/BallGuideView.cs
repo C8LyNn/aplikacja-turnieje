@@ -29,22 +29,19 @@ namespace CoreClash.Presentation
         public void SetLanguage(bool polish){Lang.Polish=polish;PlayerPrefs.SetString("cc.lang",polish?"pl":"en");PlayerPrefs.Save();Debug.Log("CORE_CLASH_LANGUAGE "+(polish?"pl":"en"));}
         void LoadLanguage(){string saved=PlayerPrefs.GetString("cc.lang","");Lang.Polish=saved.Length>0?saved=="pl":Application.systemLanguage==SystemLanguage.Polish;}
 
-        // Three balls of one group.
+        // Balls of one group.
         const string GlyphGroup="+C 0 -.5 .4;+C -.5 .38 .4;+C .5 .38 .4";
         public static Color GroupColor(string id)
         {
             switch(id)
             {
-                case "fire":return Draw.Hex("#f0711a");
                 case "ice":return Draw.Hex("#1ea4d8");
-                case "poison":return Draw.Hex("#3f9d1f");
-                case "blast":return Draw.Hex("#e02f4f");
-                case "pull":return Draw.Hex("#7a52f0");
-                case "push":return Draw.Hex("#2f6fe4");
-                case "space":return Draw.Hex("#a03fd0");
-                case "death":return Draw.Hex("#3b2f63");
-                case "guard":return Draw.Hex("#c98a00");
-                default:return Draw.Hex("#149a8a");
+                case "fire":return Draw.Hex("#f0711a");
+                case "poison":return Draw.Hex("#a03fd0");
+                case "magnet":return Draw.Hex("#4a5ae8");
+                case "electric":return Draw.Hex("#d9a400");
+                case "plant":return Draw.Hex("#3f9d1f");
+                default:return Draw.Hex("#5b6aa0");
             }
         }
         static string WhenGlyph(GuideWhen when)=>when==GuideWhen.Touch?GlyphTouch:when==GuideWhen.Stop?GlyphStop:when==GuideWhen.Death?GlyphDeath:when==GuideWhen.Turn?GlyphTurn:GlyphAlways;
@@ -108,7 +105,12 @@ namespace CoreClash.Presentation
             var guide=BallGuide.For(id);if(guide==null){Draw.Text(r,Cue(id),size,Theme.Muted,TextAnchor.MiddleLeft);return;}
             Color tone=WhenColor(guide.When);float icon=size+3;
             Glyphs.Paint(new Rect(r.x,r.y+(r.height-icon)/2,icon,icon),WhenGlyph(guide.When),tone);
-            Draw.Text(new Rect(r.x+icon+5,r.y,r.width-icon-5,r.height),BallGuide.WhenText(guide.When)+": "+guide.Tag.ToLowerInvariant(),size,Color.Lerp(tone,Theme.Ink,.35f),TextAnchor.MiddleLeft,true);
+            // One line, always: the whole sentence when it fits, in smaller type when that is enough,
+            // and only what the ball does when it is not (the sign in front already says WHEN).
+            float room=r.width-icon-5;string line=BallGuide.WhenText(guide.When)+": "+guide.Tag.ToLowerInvariant();int type=size;
+            if(Draw.TextWidth(line,type,true)>room&&Draw.TextWidth(line,type-1,true)<=room)type--;
+            if(Draw.TextWidth(line,type,true)>room){line=guide.Tag;type=size;}
+            Draw.Text(new Rect(r.x+icon+5,r.y,room,r.height),line,type,Color.Lerp(tone,Theme.Ink,.35f),TextAnchor.MiddleLeft,true);
         }
 
         void RenderInfo()

@@ -49,7 +49,7 @@ public static partial class Program
             {
                 var names=data.active.Select(id=>BallIcons.Name(c.Ball(id))).ToArray();
                 Eq(names.Length,names.Distinct(StringComparer.OrdinalIgnoreCase).Count());
-                Eq("Bomba",BallIcons.Name(c.Ball("bomb")));Eq("Czarna dziura",BallIcons.Name(c.Ball("singularity")));
+                Eq("Bomba",BallIcons.Name(c.Ball("bomb")));Eq("Ognisko",BallIcons.Name(c.Ball("furnace")));Eq("Mina magnesowa",BallIcons.Name(c.Ball("gravitymine")));
                 foreach(string name in names)True(name.Length<=14&&name.Split(' ').All(word=>word.Length<=10),"Polish name too long for a tile: "+name);
                 Eq(c.Ball("ram").name,BallIcons.Name(c.Ball("ram")));
                 Eq("Gdy się zatrzyma",BallGuide.WhenText(GuideWhen.Stop));Eq("Tylko wrogowie",BallGuide.WhoText(GuideWho.Enemies));
@@ -64,17 +64,15 @@ public static partial class Program
             Eq(15,Blast("bomb",43,(s,b,t)=>s.Abilities.OnStop(b)));Eq(10,Blast("bomb",160,(s,b,t)=>s.Abilities.OnStop(b)));Eq(0,Blast("bomb",170,(s,b,t)=>s.Abilities.OnStop(b)));
             Eq(15,Blast("bomb",43,(s,b,t)=>s.Kill(b)));Eq(10,Blast("bomb",160,(s,b,t)=>s.Kill(b)));
             True(W24Fact("bomb",0).StartsWith("10–15"));Eq(165f,BallGuide.For("bomb").Range);
-            // Mine: always 10, reach 100.
+            // Mine and Time Bomb are outside the roster; their rules are still the reference ones.
             Eq(10,Blast("mine",43,(s,b,t)=>{s.Abilities.OnStop(b);s.Abilities.OnPairContact(b,t,false,false,30);}));
-            Eq("10 damage",W24Fact("mine",0));Eq(100f,BallGuide.For("mine").Range);
-            // Time Bomb: the second own turn after the stop, always 10.
             Eq(0,Blast("timebomb",43,(s,b,t)=>{s.Abilities.OnStop(b);ExplosiveOwnTurn(s,0);}));
             Eq(10,Blast("timebomb",43,(s,b,t)=>{s.Abilities.OnStop(b);ExplosiveOwnTurn(s,0);ExplosiveOwnTurn(s,0);}));
-            Eq(10,Blast("timebomb",160,(s,b,t)=>{s.Abilities.OnStop(b);ExplosiveOwnTurn(s,0);ExplosiveOwnTurn(s,0);}));
-            Eq("10 damage",W24Fact("timebomb",1));
-            // Gravity Mine: no field with another ball close by; with room it explodes for 10 when an enemy enters.
+            // Magnet Mine, reference rules: no field with another ball close by; with room it explodes for 10 when an enemy enters.
             {var s=Sim();var g=s.Spawn(0,"gravitymine",270,450);s.Spawn(1,"normal",330,450);s.Abilities.OnStop(g);False(s.State.zones.Any(z=>!z.dead&&z.kind=="gravitymine"));}
             {var s=Sim();var g=s.Spawn(0,"gravitymine",270,450);var e=s.Spawn(1,"normal",470,450);s.Abilities.OnStop(g);True(s.State.zones.Any(z=>!z.dead&&z.kind=="gravitymine"));e.x=360;s.Abilities.OnStep(1f/120);Eq(20,e.hp);True(g.dead);}
+            // Plain powers (the rule the game plays by): the field always appears, as the card says.
+            {var s=Sim();s.State.plainPowers=true;var g=s.Spawn(0,"gravitymine",270,450);s.Spawn(0,"normal",330,450);s.Abilities.OnStop(g);True(s.State.zones.Any(z=>!z.dead&&z.kind=="gravitymine"));}
             Eq("10 damage",W24Fact("gravitymine",0));
         });
         Test("W24 guide: fire, poison, ice and the support numbers on the cards are what the rules produce",()=>{

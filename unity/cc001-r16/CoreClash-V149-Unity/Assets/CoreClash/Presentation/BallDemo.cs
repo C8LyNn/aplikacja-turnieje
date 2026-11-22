@@ -74,6 +74,8 @@ namespace CoreClash.Presentation
             var state=Simulation.State;
             // The opening-turn bonus shot is not part of any show.
             state.bonusUsed=true;
+            // A show plays by the rule the game itself plays by: a ball has only its card's power.
+            state.plainPowers=true;
             foreach(var piece in script.Pieces)
             {
                 var ball=Simulation.Spawn(piece.Owner,piece.Type,piece.X,piece.Y);
@@ -162,17 +164,23 @@ namespace CoreClash.Presentation
                 .Put(1,"normal",270,420)
                 .Launch(0,"normal",270,420,Hard);
 
-            // Explosives.
-            Show("bomb").Shows("EXPLOSION")
-                .Put(1,"normal",205,400).Put(1,"normal",335,410).Put(0,"normal",180,520)
-                .Launch(0,"bomb",270,460,Up(460),1.6f);
-            Show("mine").Shows("EXPLOSION")
-                .Launch(0,"mine",270,480,Up(480))
-                .Launch(1,"normal",270,480,Down(520),1.6f);
-            Show("timebomb").Shows("EXPLOSION")
-                .Put(1,"normal",205,410).Put(1,"normal",335,420)
-                .Launch(0,"timebomb",270,470,Up(470))
-                .PassTurn().PassTurn().PassTurn(1.8f);
+            // Ice.
+            Show("ice").Shows("FREEZE")
+                .Put(1,"normal",270,410,0,0,2).Put(1,"normal",205,385).Put(1,"normal",335,385)
+                .Launch(0,"ice",270,410,Up(400),1.8f);
+            Show("blizzardcore").Shows("ICE")
+                .Put(1,"normal",190,400).Put(1,"normal",345,420)
+                .Launch(0,"blizzardcore",270,480,Up(480),1.6f)
+                .PassTurn(1.4f).PassTurn(1.4f);
+            Show("frosttrap").Shows("TRAP_TRIGGER")
+                .Launch(0,"frosttrap",270,480,Up(480))
+                .Launch(1,"normal",270,480,Hard,1.8f);
+            Show("shatterer").Shows("SHATTER")
+                .Put(1,"normal",270,420,0,0,2)
+                .Launch(0,"shatterer",270,420,Up(400),1.8f);
+            Show("frostguard").Shows("FROSTGUARD_COUNTER")
+                .Launch(0,"frostguard",270,480,Up(480),1.2f)
+                .Launch(1,"normal",270,480,Hard,2f);
 
             // Fire.
             Show("fire").Shows("FIRE")
@@ -183,20 +191,16 @@ namespace CoreClash.Presentation
                 .Put(1,"normal",200,430).Put(1,"normal",345,440)
                 .Launch(0,"furnace",270,480,Up(480))
                 .PassTurn(1.4f).PassTurn(1.6f);
-            Show("bonfire").Shows("BONFIRE")
-                .Put(0,"bonfire",270,470,5).Put(0,"normal",200,520,15).Put(1,"normal",345,440)
-                .Launch(1,"normal",270,470,Hard,1.8f);
-
-            // Ice.
-            Show("ice").Shows("FREEZE")
-                .Put(1,"normal",270,410,0,0,2).Put(1,"normal",205,385).Put(1,"normal",335,385)
-                .Launch(0,"ice",270,410,Up(400),1.8f);
-            Show("shatterer").Shows("SHATTER")
-                .Put(1,"normal",270,420,0,0,2)
-                .Launch(0,"shatterer",270,420,Up(400),1.8f);
-            Show("frosttrap").Shows("TRAP_TRIGGER")
-                .Launch(0,"frosttrap",270,480,Up(480))
+            Show("embertrap").Shows("TRAP_TRIGGER")
+                .Launch(0,"embertrap",270,480,Up(480))
                 .Launch(1,"normal",270,480,Hard,1.8f);
+            Show("bomb").Shows("EXPLOSION")
+                .Put(1,"normal",205,400).Put(1,"normal",335,410).Put(0,"normal",180,520)
+                .Launch(0,"bomb",270,460,Up(460),1.6f);
+            Show("firebrand").Shows("FIRE")
+                .Put(1,"normal",205,430).Put(1,"normal",335,440)
+                .Launch(0,"firebrand",270,480,Up(480),1.8f)
+                .PassTurn(1.4f);
 
             // Poison.
             // The first Venom comes in off-centre, so it glances away and leaves the way open for the second.
@@ -209,80 +213,76 @@ namespace CoreClash.Presentation
                 .Put(1,"normal",190,400).Put(1,"normal",345,420)
                 .Launch(0,"blightpool",270,480,Up(480),1.6f)
                 .PassTurn(1.4f).PassTurn(1.4f);
+            Show("sporetrap").Shows("TRAP_TRIGGER")
+                .Launch(0,"sporetrap",270,480,Up(480))
+                .Launch(1,"normal",270,480,Hard,1.8f);
+            // The Mushroom is nearly dead; the ball that finishes it and the one standing by are both poisoned.
+            Show("plagueburst").Shows("TOXIN")
+                .Put(0,"plagueburst",270,470,5).Put(1,"normal",210,420)
+                .Launch(1,"normal",270,470,Hard,1.8f);
             Show("plagueleech").Shows("DRAIN")
                 .Put(1,"normal",270,420)
                 .Launch(0,"plagueleech",270,420,Up(410),1.4f)
                 .PassTurn(1.8f);
 
-            // Traps and movement.
-            Show("gravitymine").Shows("EXPLOSION")
-                .Launch(0,"gravitymine",270,500,Up(500))
-                .Launch(1,"normal",270,500,Down(430),1.8f);
-            Show("web").Shows("ROOTED")
-                .Launch(0,"web",270,500,Up(500))
-                .Launch(1,"normal",270,500,Hard,1.8f);
-            Show("harpoon").Window(230,630).Shows("PULL")
-                .Put(1,"normal",150,330).Put(1,"normal",330,440)
-                .Launch(0,"harpoon",270,520,Up(520),2f);
-            // Pulse has no event of its own: the proof is the balls it sets in motion once it has stopped.
+            // Magnetism.
+            // Magnet and Pulse have no event of their own: the proof is the balls they set in motion.
+            Show("magnet").Shows("START")
+                .Put(1,"normal",170,400).Put(1,"normal",375,420).Put(0,"normal",190,560)
+                .Launch(0,"magnet",270,480,Up(480),1.8f);
             Show("pulse").Shows("START")
                 .Put(1,"normal",205,420).Put(1,"normal",335,430).Put(0,"normal",190,540)
                 .Launch(0,"pulse",270,480,Up(480),1.8f);
-            Show("timeshift").Shows("SWAP")
-                .Put(1,"normal",320,420)
-                .Launch(0,"timeshift",270,490,Up(490),1.8f);
-            // Portals open next to the ball and at the mirrored spot; the second shot goes into the far one.
-            Show("gatekeeper").Window(290,650).Shows("PORTAL")
-                .Launch(0,"gatekeeper",150,560,BallDemoScript.PowerFor(317))
-                .PassTurn(.6f)
-                .Launch(0,"normal",390,340,BallDemoScript.PowerFor(760),1.8f);
-            Show("slingshot").Window(200,600).Shows("SLINGSHOT")
-                .Put(0,"normal",150,530).Put(0,"normal",390,530).Put(1,"normal",222,290).Put(1,"normal",318,290)
-                .Launch(0,"slingshot",270,470,Up(470),1.8f);
-            Show("pinballer").Shows("BOUNCE")
-                .Launch(0,"pinballer",110,470,BallDemoScript.PowerFor(415))
-                .PassTurn(.6f)
-                .Launch(0,"normal",60,470,Hard,1.8f);
+            // The Compass stops short on the left and then goes for the enemy on the right by itself.
+            Show("fluxmine").Shows("DASH")
+                .Put(1,"normal",385,400)
+                .Launch(0,"fluxmine",225,520,BallDemoScript.PowerFor(336),2f);
+            Show("gravitymine").Shows("EXPLOSION")
+                .Launch(0,"gravitymine",270,500,Up(500))
+                .Launch(1,"normal",270,500,Down(430),1.8f);
+            // The Anchor is hit as hard as a ball can be hit and stays where it stood.
+            Show("anchor").Shows("HIT")
+                .Launch(0,"anchor",270,470,Up(470),1.2f)
+                .Launch(1,"normal",270,470,Hard,2f);
 
-            // Support.
-            Show("vortexmedic").Shows("HEAL")
-                .Put(0,"normal",190,545,10).Put(0,"normal",326,441).Put(1,"normal",395,395)
-                .Launch(0,"vortexmedic",270,480,Up(480),1.8f);
-            Show("ward").Shows("CLEANSE")
-                .Put(0,"normal",195,500,0,1).Put(0,"normal",345,500,0,0,0,true)
-                .Launch(0,"ward",270,470,Up(470),1.8f);
-            Show("halo").Shows("DIVINE_SHIELD")
-                .Put(0,"halo",270,430)
-                .Launch(1,"normal",270,430,BallDemoScript.PowerFor(520),2f);
+            // Electricity.
+            Show("tesla").Shows("ZAP")
+                .Put(1,"normal",270,420).Put(1,"normal",335,375)
+                .Launch(0,"tesla",270,420,Up(400),1.8f);
+            Show("chainshock").Shows("ZAP")
+                .Put(1,"normal",335,400)
+                .Launch(0,"chainshock",270,490,Up(490),1.2f)
+                .PassTurn(1.2f).PassTurn(1.6f);
+            // The Battery comes with one charge and fires it where it stops; then it charges again.
+            Show("capacitor").Shows("DISCHARGE")
+                .Put(1,"normal",215,440).Put(1,"normal",330,445)
+                .Launch(0,"capacitor",270,490,Up(490),1.6f)
+                .PassTurn(1f).PassTurn(1.6f);
+            Show("staticfield").Shows("JAM")
+                .Launch(0,"staticfield",270,480,Up(480))
+                .Launch(1,"bomb",270,480,Hard,1.8f);
+            // The Bomb is switched off: when it stops, nothing happens.
+            Show("jammer").Shows("JAM")
+                .Put(1,"bomb",270,420)
+                .Launch(0,"jammer",270,420,Up(400),2f);
 
-            // Death powers.
+            // Plants.
+            Show("web").Shows("ROOTED")
+                .Launch(0,"web",270,500,Up(500))
+                .Launch(1,"normal",270,500,Hard,1.8f);
+            Show("thornback").Shows("THORNS")
+                .Put(0,"thornback",270,470)
+                .Launch(1,"normal",270,470,Hard,1.8f);
+            Show("elderbloom").Shows("HEAL")
+                .Put(0,"normal",210,520,10).Put(0,"normal",330,510,15)
+                .Launch(0,"elderbloom",270,480,Up(480),1.2f)
+                .PassTurn(1.2f).PassTurn(1.6f);
+            Show("cultivator").Shows("GROW")
+                .Launch(0,"cultivator",270,480,Up(480),1.2f)
+                .PassTurn(1f).PassTurn(1.4f).PassTurn(1f).PassTurn(1.6f);
             Show("cascade").Shows("RETURN")
                 .Put(0,"cascade",270,470,5)
                 .Launch(1,"normal",270,470,Hard,1.8f);
-            Show("agony").Shows("BONFIRE")
-                .Put(0,"bonfire",270,420).Put(1,"normal",205,385).Put(1,"normal",335,390).Put(0,"normal",195,480,15)
-                .Launch(0,"agony",270,420,Up(410),1.8f);
-            // The hole swallows the attacker, grows as turns pass, and takes the next balls that move near it.
-            Show("singularity").Shows("CONSUME")
-                .Put(0,"singularity",270,460,5).Put(1,"normal",222,442).Put(1,"normal",318,478)
-                .Launch(1,"normal",270,460,Hard,1.2f)
-                .PassTurn(1f).PassTurn(1f)
-                .Launch(0,"normal",270,460,Up(540),1.8f);
-            Show("reclaimer").Shows("RETURN")
-                .Put(0,"fire",150,420,0,0,0,false,true)
-                .Launch(0,"reclaimer",270,470,Up(470),2f);
-
-            // Tricks.
-            Show("traitor").Shows("OWNERSHIP")
-                .Put(1,"furnace",270,410)
-                .Launch(0,"traitor",270,410,Up(400),2f);
-            Show("chronomancer").Shows("REWIND")
-                .Launch(0,"chronomancer",270,480,Up(480),1.2f)
-                .Launch(1,"normal",270,480,Hard,2f);
-            // Echo stops next to a Ward that is already on the board: the Ward's power works again.
-            Show("echo").Shows("CLEANSE")
-                .Put(0,"ward",200,520).Put(0,"normal",150,440,0,1)
-                .Launch(0,"echo",290,480,BallDemoScript.PowerFor(375),2f);
         }
     }
 }

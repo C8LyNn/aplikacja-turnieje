@@ -62,6 +62,8 @@ namespace CoreClash.Presentation
             var state = simulation.State;
             state.ballScale = BallScale;
             state.comebackRule = DoubleTurn;
+            // W24 six groups: a ball has only the power written on its card.
+            state.plainPowers = true;
             var map = Map == RandomMap ? Maps[UnityEngine.Random.Range(0, Maps.Length)] : MapById(Map) ?? Maps[0];
             MatchMaps.Apply(simulation, map);
         }

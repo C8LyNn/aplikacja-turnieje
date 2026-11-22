@@ -88,6 +88,10 @@ namespace CoreClash.Presentation
             if (chilled) Frost(point, radius, scale, ball.iceStacks);
             if (poisoned) Bubbles(point, edge, now, ball.id);
             if (ball.rooted) Web(point, radius, scale);
+            // W24 six groups. Switched off: the ball goes grey and sparks jump off it. A Battery wears
+            // its charges as bolts over its head, one for each charge it holds.
+            if (ball.jammed > 0) { Draw.Circle(body, Alpha(new Color(.36f, .38f, .46f), .52f)); Sparks(point, edge, now, ball.id); }
+            if (ball.type == "capacitor" && ball.charge > 0) Charges(point, edge, scale, ball.charge);
             DrawState(body, point, ball, radius, scale, now);
         }
 
@@ -152,10 +156,38 @@ namespace CoreClash.Presentation
                 Draw.Circle(new Rect(at.x - size * .55f, at.y - size * .6f, size * .6f, size * .6f), new Color(1, 1, 1, .7f));
             }
         }
+        const string BoltSpec = "+P .34 -.98 -.56 .16 .1 .16;+P -.1 -.16 .56 -.16 -.34 .98";
+        static readonly Color Volt = new Color(1f, .9f, .2f);
+        // Sparks on a ball whose power is switched off: three small bolts on its rim, taking turns.
+        static void Sparks(Vector2 point, float edge, float now, int id)
+        {
+            Color dark = Theme.Shade(Volt, 1.1f, .3f); float size = Mathf.Max(9f, edge * .5f);
+            for (int i = 0; i < 3; i++)
+            {
+                // Each bolt shows for a part of the cycle (all three, still, when the player asked for calm effects).
+                if (!Fx.ReducedMotion && Mathf.Repeat(now * 1.6f + i * .34f + id * .13f, 1f) > .62f) continue;
+                float angle = (-90f + (i - 1) * 104f) * Mathf.Deg2Rad;
+                var at = point + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * edge * .92f;
+                var box = new Rect(at.x - size * .5f, at.y - size * .5f, size, size);
+                Glyphs.PaintOutline(box, BoltSpec, dark);
+                Glyphs.Paint(box, BoltSpec, Volt);
+            }
+        }
+        // The charges a Battery holds: bolts in a row over the ball.
+        static void Charges(Vector2 point, float edge, float scale, int charge)
+        {
+            Color dark = Theme.Shade(Volt, 1.1f, .3f); float size = Mathf.Max(10f, edge * .46f), step = size * .86f;
+            for (int i = 0; i < charge; i++)
+            {
+                var box = new Rect(point.x - size * .5f + (i - (charge - 1) * .5f) * step, point.y - edge - size * .82f, size, size);
+                Glyphs.PaintOutline(box, BoltSpec, dark);
+                Glyphs.Paint(box, BoltSpec, Volt);
+            }
+        }
         // A web over a ball that is stuck in one.
         static void Web(Vector2 point, float radius, float scale)
         {
-            Color strand = new Color(1, 1, 1, .88f); float line = Mathf.Max(1.2f, 1.7f * scale);
+            Color strand = new Color(.8f, 1f, .62f, .92f); float line = Mathf.Max(1.2f, 1.7f * scale);
             for (int i = 0; i < 3; i++)
             {
                 float angle = (20f + i * 60f) * Mathf.Deg2Rad; var along = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * radius * .96f;

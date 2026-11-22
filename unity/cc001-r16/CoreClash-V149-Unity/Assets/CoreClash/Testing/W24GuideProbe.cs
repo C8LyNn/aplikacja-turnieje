@@ -96,10 +96,10 @@ namespace CoreClash.Testing
             yield return Shot("93-aim-reach");
             Pointer(to, false, false, false, true);
             yield return null;
-            // A ball that is on fire, poisoned and shielded, and an armed Mine: both opened from the board.
+            // A ball that is on fire, poisoned and shielded, and a switched-off Bomb: both opened from the board.
             var burning = sim.Spawn(0, "normal", 200, 520);
             sim.Abilities.ApplyFire(burning, 1); sim.Abilities.ApplyToxin(burning, 1); sim.Shield(burning, 5);
-            var mine = sim.Spawn(1, "mine", 340, 380); mine.mineArmed = true;
+            var mine = sim.Spawn(1, "bomb", 340, 380); sim.Abilities.Jam(mine);
             app.ShowRuntimeBallDetails(burning.id);
             yield return Shot("91-card-on-board");
             app.ShowRuntimeBallDetails(mine.id);

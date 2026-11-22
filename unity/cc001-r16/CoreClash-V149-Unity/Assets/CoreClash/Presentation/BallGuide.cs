@@ -16,10 +16,12 @@ namespace CoreClash.Presentation
     {
         static readonly System.Collections.Generic.Dictionary<string,string[]> Entries=new System.Collections.Generic.Dictionary<string,string[]>(System.StringComparer.Ordinal)
         {
-            {"roster_element_storm",new[]{"BURZA ŻYWIOŁÓW","Podpalaj, mroź i truj. Nałóż stan, a potem go wykorzystaj."}},
-            {"roster_demolition",new[]{"DEMOLKA","Zastawiaj pułapki, wpychaj w nie wroga i zmieniaj planszę."}},
-            {"roster_afterlife",new[]{"ZAŚWIATY","Twoje kulki są warte więcej, gdy giną. Wywołuj to wtedy, kiedy chcesz."}},
-            {"roster_trickster",new[]{"SZTUKMISTRZ","Zamieniaj miejsca, otwieraj portale, cofaj czas i przejmuj najlepszą kulkę wroga."}},
+            {"roster_fire_pit",new[]{"PALENISKO","Wciągaj wrogów w ogień i nie daj im zgasnąć."}},
+            {"roster_frozen_garden",new[]{"ZIMOWY OGRÓD","Zatrzymaj ich, zamroź i przetrwaj dłużej."}},
+            {"roster_acid_rain",new[]{"KWAŚNY DESZCZ","Zatruj, a osłabionych dobij piorunem."}},
+            {"roster_dynamo",new[]{"DYNAMO","Ściągnij wrogów w jedno miejsce — resztę zrobi piorun."}},
+            {"roster_polar_storm",new[]{"BURZA POLARNA","Zamroź ich w miejscu i wyłącz im moce."}},
+            {"roster_jungle",new[]{"DŻUNGLA","Sidła, kolce i trucizna: z tej dżungli nikt nie wychodzi cały."}},
         };
         public static string NamePl(string id)=>id!=null&&Entries.TryGetValue(id,out var text)?text[0]:null;
         public static string IdentityPl(string id)=>id!=null&&Entries.TryGetValue(id,out var text)?text[1]:null;
@@ -57,11 +59,12 @@ namespace CoreClash.Presentation
         public string Tip=>Lang.T(TipEn,TipPl);
     }
 
-    // CC-001 W24 (owner decisions, 2026-11-22: "split the 30 balls into groups, every group the
-    // same size" and "they are to have synergy with each other"): ten groups of three. A group is
-    // one idea a player can say in a word - fire, ice, pull - and its three balls work better
-    // together than apart; Plan says how, from what the rules really do. A deck of nine is three
-    // groups. Standard belongs to no group: every deck has it.
+    // CC-001 W24 (owner decisions, 2026-11-22): the 30 balls are six groups of five - ice, fire,
+    // poison, magnetism, electricity, plants ("six groups for now; more groups will come and the
+    // groups will grow"). A group is one idea a player can say in a word, and its balls work
+    // better together than apart; Plan says how, from what the rules really do. Nothing in the
+    // code assumes six or five: add a group or a ball here and the screens follow.
+    // Standard belongs to no group: every deck has it.
     public sealed class BallGroup
     {
         public string Id,NameEn,NamePl,PlanEn,PlanPl;
@@ -71,45 +74,32 @@ namespace CoreClash.Presentation
     }
     public static class BallGroups
     {
-        public const int Size=3;
         public static readonly BallGroup[] All=
         {
-            new BallGroup{Id="fire",NameEn="Fire",NamePl="Ogień",Balls=new[]{"fire","furnace","bonfire"},
-                PlanEn="Set them alight, then add more: a second fire on the same ball burns twice as hard.",
-                PlanPl="Podpal, potem dokładaj: drugi ogień na tej samej kulce pali dwa razy mocniej."},
-            new BallGroup{Id="ice",NameEn="Ice",NamePl="Lód",Balls=new[]{"ice","frosttrap","shatterer"},
-                PlanEn="Chill a ball three times to freeze it, then shatter the ice for extra damage.",
-                PlanPl="Zmroź kulkę trzy razy, żeby ją zamrozić, potem skrusz lód dla dodatkowych obrażeń."},
-            new BallGroup{Id="poison",NameEn="Poison",NamePl="Trucizna",Balls=new[]{"venom","blightpool","plagueleech"},
+            new BallGroup{Id="ice",NameEn="Ice",NamePl="Lód",Balls=new[]{"ice","blizzardcore","frosttrap","shatterer","frostguard"},
+                PlanEn="Three chills freeze a ball. A frozen ball cannot move, and the Shatterer hits it harder.",
+                PlanPl="Trzy mrozy zamrażają kulkę. Zamrożona się nie rusza, a Kruszyciel bije ją mocniej."},
+            new BallGroup{Id="fire",NameEn="Fire",NamePl="Ogień",Balls=new[]{"fire","furnace","embertrap","bomb","firebrand"},
+                PlanEn="Set them alight and keep adding: every further fire on the same ball burns harder.",
+                PlanPl="Podpalaj i dokładaj: każdy kolejny ogień na tej samej kulce pali mocniej."},
+            new BallGroup{Id="poison",NameEn="Poison",NamePl="Trucizna",Balls=new[]{"venom","blightpool","sporetrap","plagueburst","plagueleech"},
                 PlanEn="Poison first: Venom bites poisoned enemies harder and the Leech feeds on them.",
                 PlanPl="Najpierw zatruj: Jad mocniej kąsa zatrutych, a Pijawka się nimi żywi."},
-            new BallGroup{Id="blast",NameEn="Blasts",NamePl="Wybuchy",Balls=new[]{"bomb","mine","timebomb"},
-                PlanEn="A blast throws balls about: throw enemies onto your mines.",
-                PlanPl="Wybuch rozrzuca kulki: rzucaj wrogów na swoje miny."},
-            new BallGroup{Id="pull",NameEn="Pull",NamePl="Przyciąganie",Balls=new[]{"harpoon","gravitymine","vortexmedic"},
-                PlanEn="Drag enemies where you want them: into the gravity mine, next to your healer.",
-                PlanPl="Ściągaj wrogów tam, gdzie chcesz: w grawiminę albo pod swój wir."},
-            new BallGroup{Id="push",NameEn="Push",NamePl="Odrzut",Balls=new[]{"pulse","slingshot","pinballer"},
-                PlanEn="Send balls flying: shove enemies away, fling yours forward, speed them up off the bumper.",
-                PlanPl="Wprawiaj kulki w ruch: odpychaj wrogów, wyrzucaj swoje, przyspieszaj je na zderzaku."},
-            new BallGroup{Id="space",NameEn="Space",NamePl="Przestrzeń",Balls=new[]{"timeshift","gatekeeper","chronomancer"},
-                PlanEn="Be somewhere else: swap places with an enemy, go through the portals, jump back.",
-                PlanPl="Bądź gdzie indziej: zamień się z wrogiem miejscami, przejdź portalem, wróć w zapisane miejsce."},
-            new BallGroup{Id="death",NameEn="Death",NamePl="Śmierć",Balls=new[]{"cascade","singularity","agony"},
-                PlanEn="Dying is the plan: Deathcast sets off a death power and the ball stays alive.",
-                PlanPl="Śmierć to plan: Zew śmierci odpala moc śmierci, a kulka zostaje przy życiu."},
-            new BallGroup{Id="guard",NameEn="Guard",NamePl="Ochrona",Balls=new[]{"ward","halo","reclaimer"},
-                PlanEn="Keep your balls on the board: shield them, block a hit, bring a fallen one back.",
-                PlanPl="Trzymaj kulki na planszy: osłoń je, zablokuj cios, przywróć poległą."},
-            new BallGroup{Id="trick",NameEn="Tricks",NamePl="Podstęp",Balls=new[]{"web","echo","traitor"},
-                PlanEn="Turn their strength against them: tie them down, repeat your webs, steal their best ball.",
-                PlanPl="Obróć ich siłę przeciw nim: unieruchom, powtórz swoje sieci, przejmij ich najlepszą kulkę."},
+            new BallGroup{Id="magnet",NameEn="Magnetism",NamePl="Magnetyzm",Balls=new[]{"magnet","pulse","fluxmine","gravitymine","anchor"},
+                PlanEn="You decide where balls stand: pull enemies together, push them away, drag them onto the mine.",
+                PlanPl="Ty decydujesz, gdzie stoją kulki: ściągaj wrogów w jedno miejsce, odpychaj ich, wciągaj na minę."},
+            new BallGroup{Id="electric",NameEn="Electricity",NamePl="Elektryczność",Balls=new[]{"tesla","chainshock","capacitor","staticfield","jammer"},
+                PlanEn="Lightning jumps between enemies that stand close. A switched-off ball has no power at all.",
+                PlanPl="Piorun skacze między wrogami stojącymi blisko siebie. Wyłączona kulka nie ma żadnej mocy."},
+            new BallGroup{Id="plant",NameEn="Plants",NamePl="Rośliny",Balls=new[]{"web","thornback","elderbloom","cultivator","cascade"},
+                PlanEn="Plants stay and grow: they hold enemies, sting whoever touches them, heal and grow back.",
+                PlanPl="Rośliny stoją i rosną: trzymają wrogów, kłują przy dotyku, leczą i odrastają."},
         };
         public static BallGroup Of(string ballId){foreach(var group in All)foreach(string id in group.Balls)if(id==ballId)return group;return null;}
         // Place of a ball in the groups' order (group after group); a ball of no group comes last.
         public static int Order(string ballId)
         {
-            for(int g=0;g<All.Length;g++)for(int i=0;i<All[g].Balls.Length;i++)if(All[g].Balls[i]==ballId)return g*Size+i;
+            for(int g=0;g<All.Length;g++)for(int i=0;i<All[g].Balls.Length;i++)if(All[g].Balls[i]==ballId)return g*1000+i;
             return int.MaxValue;
         }
     }
@@ -176,65 +166,69 @@ namespace CoreClash.Presentation
                 "Nigdy się nie kończy. Każde zderzenie wrogich kulek rani obie.",
                 Count("No limit","Bez limitu"));
 
-            // Explosives.
+            // Ice.
+            Add("ice","Mróz",GuideWhen.Touch,GuideWho.Enemies,100,"Freeze","Mrozi",
+                "Chills the enemy it touches and other enemies near that one. The third chill freezes a ball.",
+                "Mrozi wroga, którego dotknie, i innych wrogów obok niego. Trzeci mróz zamraża kulkę.",
+                "Hitting a frozen ball deals 5 extra damage. Ice and fire cancel each other.",
+                "Uderzenie w zamrożoną kulkę: +5 obrażeń. Lód i ogień znoszą się nawzajem.",
+                Chilled,Fact(GuideFactKind.Frozen,"Frozen: cannot move","Zamrożona: nie rusza się"));
+            Add("blizzardcore","Zamieć",GuideWhen.Stop,GuideWho.Enemies,165,"Ice field","Pole lodu",
+                "Starts a big blizzard that lasts 3 turns. At the end of every turn, enemies standing in it get chilled.",
+                "Rozpętuje dużą zamieć na 3 tury. Na koniec każdej tury wrogowie stojący w zamieci dostają mróz.",
+                "An enemy that stays in it for all 3 turns ends up frozen.",
+                "Wróg, który przestoi w niej wszystkie 3 tury, zostanie zamrożony.",
+                Time("Lasts 3 turns","Trwa 3 tury"),Chilled);
+            Add("frosttrap","Pułapka lodu",GuideWhen.Stop,GuideWho.Enemies,0,"Chills enemy","Mrozi wroga",
+                "Leaves an ice trap on that spot. The first enemy to roll over the trap gets chilled.",
+                "Zostawia w tym miejscu lodową pułapkę. Pierwszy wróg, który na nią wjedzie, dostaje mróz.",
+                "The trap works once.",
+                "Pułapka działa raz.",
+                Chilled,Count("Works once","Działa raz"));
+            Add("shatterer","Kruszyciel",GuideWhen.Touch,GuideWho.Enemies,0,"Ice breaker","Kruszy lód",
+                "Hits chilled enemies harder: a ball with 2 chills, or a frozen one, loses 5 extra HP.",
+                "Mocniej bije zmrożonych: kulka z dwoma mrozami albo zamrożona traci dodatkowe 5 HP.",
+                "The hit uses up the ice on the target. Chill first, then shatter.",
+                "Cios zużywa lód na celu. Najpierw zmroź, potem krusz.",
+                Damage("+5 damage","+5 obrażeń"));
+            Add("frostguard","Bałwan",GuideWhen.Stop,GuideWho.Enemies,0,"Cold to touch","Zimny w dotyku",
+                "Digs in where it stops and gets a shield of 10. Every enemy that hits it gets chilled.",
+                "Okopuje się tam, gdzie stanie, i dostaje tarczę 10. Każdy wróg, który w niego uderzy, dostaje mróz.",
+                "Dug in, it is hard to push away.",
+                "Okopanego trudno przesunąć.",
+                Shield("Shield 10","Tarcza 10"),Chilled);
+
+            // Fire.
+            Add("fire","Płomień",GuideWhen.Touch,GuideWho.Enemies,0,"Burn","Podpala",
+                "Sets fire to every enemy it touches.",
+                "Podpala każdego wroga, którego dotknie.",
+                "Second fire on the same ball: 10 HP a turn. Third: a burst that ignites enemies next to it. Fire and ice cancel each other.",
+                "Drugi ogień na tej samej kulce: 10 HP co turę. Trzeci: wybuch, który podpala wrogów obok. Ogień i lód znoszą się nawzajem.",
+                Burning);
+            Add("furnace","Ognisko",GuideWhen.Turn,GuideWho.Enemies,104,"Fire field","Pole ognia",
+                "In each turn of yours it lights a field of fire around itself. At the end of every turn, enemies standing in the field catch fire.",
+                "W każdej twojej turze rozpala wokół siebie pole ognia. Na koniec każdej tury wrogowie stojący w polu zaczynają płonąć.",
+                "Big and heavy: hard to push away.",
+                "Duże i ciężkie: trudno je odepchnąć.",
+                Burning);
+            Add("embertrap","Pułapka ognia",GuideWhen.Stop,GuideWho.Enemies,0,"Sets alight","Podpala wroga",
+                "Leaves a fire trap on that spot. The first enemy to roll over the trap catches fire.",
+                "Zostawia w tym miejscu ognistą pułapkę. Pierwszy wróg, który na nią wjedzie, zaczyna płonąć.",
+                "The trap works once.",
+                "Pułapka działa raz.",
+                Burning,Count("Works once","Działa raz"));
             Add("bomb","Bomba",GuideWhen.Stop,GuideWho.Everyone,165,"Blast","Wybuch",
                 "Explodes and is gone. The blast hurts and throws back every ball in range — yours too.",
                 "Wybucha i znika. Wybuch rani i odrzuca wszystkie kulki w zasięgu — twoje też.",
                 "Destroyed before it stops? It still explodes.",
                 "Zniszczona, zanim się zatrzyma? I tak wybuchnie.",
                 Damage("10–15 damage","10–15 obrażeń"));
-            Add("mine","Mina",GuideWhen.Stop,GuideWho.Everyone,100,"Touch trap","Pułapka",
-                "Arms itself. Later, when an enemy ball touches it, it explodes and is gone.",
-                "Uzbraja się. Gdy potem dotknie jej kulka wroga, wybucha i znika.",
-                "The blast hurts your balls too. An enemy Frost ball disarms it.",
-                "Wybuch rani też twoje kulki. Wrogi Mróz ją rozbraja.",
-                Damage("10 damage","10 obrażeń"));
-            Add("timebomb","Bomba zegarowa",GuideWhen.Stop,GuideWho.Everyone,165,"2-turn fuse","Lont: 2 tury",
-                "Starts ticking. At the start of your second turn after that, it explodes and is gone.",
-                "Zaczyna tykać. Na początku twojej drugiej tury od tej chwili wybucha i znika.",
-                "The blast hurts your balls too. If it is destroyed first, it never goes off.",
-                "Wybuch rani też twoje kulki. Zniszczona wcześniej — nie wybuchnie.",
-                Time("After 2 turns","Po 2 turach"),Damage("10 damage","10 obrażeń"));
-
-            // Fire.
-            Add("fire","Ogień",GuideWhen.Touch,GuideWho.Enemies,0,"Burn","Podpala",
-                "Sets fire to every enemy it touches.",
-                "Podpala każdego wroga, którego dotknie.",
-                "Second fire on the same ball: 10 HP a turn. Third: a burst that ignites enemies next to it. Fire and ice cancel each other.",
-                "Drugi ogień na tej samej kulce: 10 HP co turę. Trzeci: wybuch, który podpala wrogów obok. Ogień i lód znoszą się nawzajem.",
+            Add("firebrand","Wulkan",GuideWhen.Stop,GuideWho.Enemies,100,"Fire burst","Fala ognia",
+                "Erupts: every enemy nearby catches fire.",
+                "Wybucha ogniem: każdy wróg w pobliżu zaczyna płonąć.",
+                "It stays on the board after the eruption. Stop it between several enemies.",
+                "Po wybuchu zostaje na planszy. Zatrzymaj go między kilkoma wrogami.",
                 Burning);
-            Add("furnace","Piec",GuideWhen.Turn,GuideWho.Enemies,104,"Fire field","Pole ognia",
-                "In each turn of yours it lights a field of fire around itself. At the end of every turn, enemies standing in the field catch fire.",
-                "W każdej twojej turze rozpala wokół siebie pole ognia. Na koniec każdej tury wrogowie stojący w polu zaczynają płonąć.",
-                "Big and heavy: hard to push away.",
-                "Duża i ciężka: trudno ją odepchnąć.",
-                Burning);
-            Add("bonfire","Ognisko",GuideWhen.Death,GuideWho.Everyone,100,"Burn + heal","Pali i leczy",
-                "Enemies nearby lose 10 HP and catch fire. Your balls nearby get 5 HP back.",
-                "Wrogowie w pobliżu tracą 10 HP i zaczynają płonąć. Twoje kulki w pobliżu odzyskują 5 HP.",
-                "Deathcast sets this off without killing Bonfire.",
-                "Zew śmierci odpala ten efekt bez zabijania Ogniska.",
-                Damage("10 to enemies","10 dla wrogów"),Burning,Heal("+5 HP to yours","+5 HP dla twoich"));
-
-            // Ice.
-            Add("ice","Mróz",GuideWhen.Touch,GuideWho.Enemies,100,"Freeze","Mrozi",
-                "Chills the enemy it touches and other enemies near that one. The third chill freezes a ball.",
-                "Mrozi wroga, którego dotknie, i innych wrogów obok niego. Trzeci mróz zamraża kulkę.",
-                "Hitting a frozen ball deals 5 extra damage. Disarms enemy Mines. Ice and fire cancel each other.",
-                "Uderzenie w zamrożoną kulkę: +5 obrażeń. Rozbraja wrogie Miny. Lód i ogień znoszą się nawzajem.",
-                Chilled,Fact(GuideFactKind.Frozen,"Frozen: cannot move","Zamrożona: nie rusza się"));
-            Add("shatterer","Kruszyciel",GuideWhen.Touch,GuideWho.Enemies,0,"Ice breaker","Kruszy lód",
-                "Hits chilled enemies harder: a ball with 2 chills, or a frozen one, loses 5 extra HP.",
-                "Mocniej bije zmrożonych: kulka z dwoma mrozami albo zamrożona traci dodatkowe 5 HP.",
-                "The hit uses up the ice on the target. Chill first with Frost, then shatter.",
-                "Cios zużywa lód na celu. Najpierw zmroź Mrozem, potem krusz.",
-                Damage("+5 damage","+5 obrażeń"));
-            Add("frosttrap","Lodowa pułapka",GuideWhen.Stop,GuideWho.Enemies,0,"Ice trap","Pułapka lodu",
-                "Leaves an ice trap on that spot. The first enemy to roll over the trap gets chilled.",
-                "Zostawia w tym miejscu lodową pułapkę. Pierwszy wróg, który na nią wjedzie, dostaje mróz.",
-                "The trap works once.",
-                "Pułapka działa raz.",
-                Chilled,Count("Works once","Działa raz"));
 
             // Poison.
             Add("venom","Jad",GuideWhen.Touch,GuideWho.Enemies,0,"Poison","Zatruwa",
@@ -249,6 +243,18 @@ namespace CoreClash.Presentation
                 "Push or pull enemies into the pool.",
                 "Wepchnij albo wciągnij wrogów do kałuży.",
                 Time("Pool lasts 3 turns","Kałuża trwa 3 tury"),Poisoned);
+            Add("sporetrap","Pułapka jadu",GuideWhen.Stop,GuideWho.Enemies,0,"Poisons enemy","Zatruwa wroga",
+                "Leaves a poison trap on that spot. The first enemy to roll over the trap is poisoned.",
+                "Zostawia w tym miejscu trującą pułapkę. Pierwszy wróg, który na nią wjedzie, zostaje zatruty.",
+                "The trap works once.",
+                "Pułapka działa raz.",
+                Poisoned,Count("Works once","Działa raz"));
+            Add("plagueburst","Grzyb",GuideWhen.Death,GuideWho.Enemies,100,"Spore cloud","Zarodniki",
+                "Bursts into a cloud of spores: every enemy nearby is poisoned.",
+                "Pęka i rozsiewa zarodniki: każdy wróg w pobliżu zostaje zatruty.",
+                "Weak on purpose: 20 HP. Leave it where enemies will have to hit it.",
+                "Celowo słaby: 20 HP. Zostaw go tam, gdzie wróg będzie musiał w niego uderzyć.",
+                Poisoned);
             Add("plagueleech","Pijawka",GuideWhen.Touch,GuideWho.Enemies,0,"Drain","Wysysa",
                 "The first enemy it touches is poisoned and tied to the Leech. In each turn of yours, the Leech sucks 5 HP out of it and heals itself.",
                 "Pierwszy wróg, którego dotknie, zostaje zatruty i związany z Pijawką. W każdej twojej turze Pijawka wysysa z niego 5 HP i sama się leczy.",
@@ -256,132 +262,115 @@ namespace CoreClash.Presentation
                 "Trwa, dopóki cel żyje i jest zatruty. Wysysanie omija tarczę.",
                 Poisoned,Heal("Drains 5 HP a turn","Wysysa 5 HP co turę"));
 
-            // Traps and movement.
-            Add("gravitymine","Grawimina",GuideWhen.Stop,GuideWho.Everyone,100,"Pull + blast","Wir i wybuch",
-                "Makes a field that pulls balls towards it. When an enemy rolls into the field, the mine explodes and is gone.",
-                "Tworzy pole, które przyciąga kulki. Gdy w pole wjedzie wróg, mina wybucha i znika.",
-                "It needs room: with another ball close by, the field does not appear. The blast hurts your balls too.",
-                "Potrzebuje miejsca: gdy inna kulka jest blisko, pole się nie pojawi. Wybuch rani też twoje kulki.",
-                Damage("10 damage","10 obrażeń"));
-            Add("web","Pająk",GuideWhen.Stop,GuideWho.Enemies,70,"Webs","Sieci",
-                "Places 4 webs around itself. An enemy that rolls into a web is stuck there until the end of its next turn.",
-                "Rozstawia wokół siebie 4 sieci. Wróg, który wjedzie w sieć, utyka w niej do końca swojej następnej tury.",
-                "Each web works once. A stuck ball cannot be launched again.",
-                "Każda sieć działa raz. Uwięzionej kulki nie da się wystrzelić ponownie.",
-                Count("4 webs","4 sieci"),Fact(GuideFactKind.Stuck,"Stuck: cannot move","Uwięziona: nie rusza się"));
-            Add("harpoon","Harpun",GuideWhen.Stop,GuideWho.Enemies,230,"Pull","Przyciąga",
-                "Yanks the farthest enemy in range towards itself.",
-                "Przyciąga do siebie najdalszego wroga w zasięgu.",
-                "Drag an enemy onto a Mine, into a pool or away from your base.",
-                "Ściągnij wroga na Minę, do kałuży albo spod twojej bazy.",
-                Count("1 enemy","1 wróg"));
+            // Magnetism.
+            Add("magnet","Magnes",GuideWhen.Stop,GuideWho.Everyone,165,"Pull","Przyciąga",
+                "Pulls every ball in range towards itself — yours too. It deals no damage.",
+                "Przyciąga do siebie wszystkie kulki w zasięgu — twoje też. Nie zadaje obrażeń.",
+                "The closer a ball is, the harder it is pulled. Pull enemies into a fire, a pool or a trap.",
+                "Im bliżej jest kulka, tym mocniej ją ciągnie. Wciągaj wrogów w ogień, kałużę albo pułapkę.");
             Add("pulse","Impuls",GuideWhen.Stop,GuideWho.Everyone,165,"Push","Odpycha",
                 "Shoves every ball in range away from itself — yours too. It deals no damage.",
                 "Odpycha od siebie wszystkie kulki w zasięgu — twoje też. Nie zadaje obrażeń.",
                 "The closer a ball is, the harder it is pushed.",
                 "Im bliżej jest kulka, tym mocniej ją odpycha.");
-            Add("timeshift","Zamiana",GuideWhen.Stop,GuideWho.Enemies,100,"Swap places","Zamiana miejsc",
-                "Swaps places with the nearest enemy close by.",
-                "Zamienia się miejscami z najbliższym wrogiem w pobliżu.",
-                "The swap deals no damage. Use it to drop an enemy into danger.",
-                "Zamiana nie rani. Użyj jej, żeby wrzucić wroga w kłopoty.",
-                Count("1 enemy","1 wróg"));
-            Add("gatekeeper","Portal",GuideWhen.Stop,GuideWho.Everyone,0,"Portals","Portale",
-                "Opens two linked portals: one here and one on the opposite side of the board. A ball that rolls into one flies out of the other.",
-                "Otwiera dwa połączone portale: jeden tutaj, drugi po przeciwnej stronie planszy. Kulka, która wjedzie w jeden, wylatuje z drugiego.",
-                "Both players can use the portals. They close when this ball dies.",
-                "Z portali korzystają obaj gracze. Znikają, gdy ta kulka zginie.",
-                Count("2 portals","2 portale"));
-            Add("slingshot","Proca",GuideWhen.Stop,GuideWho.Allies,165,"Launch yours","Strzela twoimi",
-                "Gathers your balls from nearby and fires them all in the direction it was flying.",
-                "Zbiera twoje kulki z pobliża i wystrzeliwuje je wszystkie w kierunku, w którym leciała.",
-                "Frozen and stuck balls stay where they are.",
-                "Zamrożone i uwięzione kulki zostają na miejscu.");
-            Add("pinballer","Odbijak",GuideWhen.Stop,GuideWho.Everyone,0,"Bumper","Zderzak",
-                "Puts a bumper by the nearest wall. Balls of both players bounce off the bumper faster than they came.",
-                "Stawia zderzak przy najbliższej ścianie. Kulki obu graczy odbijają się od zderzaka szybciej, niż przyleciały.",
-                "The bumper breaks after 5 hard enemy hits.",
-                "Zderzak pęka po 5 mocnych uderzeniach wroga.",
-                Shield("Bumper: 5 hits","Zderzak: 5 uderzeń"));
+            Add("fluxmine","Kompas",GuideWhen.Stop,GuideWho.Enemies,230,"Second shot","Drugi strzał",
+                "Shoots once more after it has stopped in your turn — straight at the nearest enemy in range.",
+                "Rusza jeszcze raz, gdy zatrzyma się w twojej turze — prosto w najbliższego wroga w zasięgu.",
+                "Once a turn. Stop it close to the ball you want to hit.",
+                "Raz na turę. Zatrzymaj go blisko kulki, w którą chcesz trafić.",
+                Count("Once a turn","Raz na turę"));
+            Add("gravitymine","Mina magnesowa",GuideWhen.Stop,GuideWho.Everyone,100,"Pull + blast","Wir i wybuch",
+                "Makes a field that pulls balls towards it. When an enemy rolls into the field, the mine explodes and is gone.",
+                "Tworzy pole, które przyciąga kulki. Gdy w pole wjedzie wróg, mina wybucha i znika.",
+                "The blast hurts your balls too.",
+                "Wybuch rani też twoje kulki.",
+                Damage("10 damage","10 obrażeń"));
+            Add("anchor","Kotwica",GuideWhen.Stop,GuideWho.Self,0,"Holds ground","Trzyma miejsce",
+                "Drops anchor where it stops: collisions, magnets and blasts barely move it.",
+                "Rzuca kotwicę tam, gdzie stanie: zderzenia, magnesy i wybuchy ledwo ją przesuwają.",
+                "Big, heavy, 35 HP. Park it in the centre or in the enemy's zone.",
+                "Duża, ciężka, 35 HP. Postaw ją na środku albo w strefie wroga.");
 
-            // Support.
-            Add("vortexmedic","Wir leczący",GuideWhen.Stop,GuideWho.Everyone,165,"Pull + heal","Wciąga i leczy",
-                "Pulls nearby enemies in and heals your most hurt ball nearby: 5 HP for one enemy pulled, 10 HP for two or more.",
-                "Przyciąga wrogów z pobliża i leczy twoją najbardziej ranną kulkę w pobliżu: 5 HP za jednego wroga, 10 HP za dwóch lub więcej.",
-                "No enemy in range means no healing.",
-                "Bez wroga w zasięgu nie ma leczenia.",
-                Heal("+5 or +10 HP","+5 albo +10 HP"));
-            Add("ward","Osłona",GuideWhen.Stop,GuideWho.Allies,165,"Protect","Chroni",
-                "Clears fire, ice, poison and webs from your balls in range, and gives each of them a shield of 5.",
-                "Zdejmuje ogień, lód, truciznę i sieci z twoich kulek w zasięgu i daje każdej tarczę 5.",
-                "A shield soaks up damage before HP does.",
-                "Tarcza przyjmuje obrażenia przed HP.",
-                Shield("Shield 5","Tarcza 5"));
-            Add("halo","Aureola",GuideWhen.Always,GuideWho.Self,0,"Blocks 1 hit","Blok 1 ciosu",
-                "The first collision that would hurt it does nothing. After that it is an ordinary ball.",
-                "Pierwsze zderzenie, które by ją zraniło, nic jej nie robi. Potem jest zwykłą kulką.",
-                "Only collisions are blocked — not blasts, fire or poison.",
-                "Blokuje tylko zderzenie — nie wybuch, ogień ani truciznę.",
-                Shield("1 hit blocked","1 cios zablokowany"));
+            // Electricity.
+            Add("tesla","Piorun",GuideWhen.Touch,GuideWho.Enemies,100,"Shock","Razi",
+                "Shocks the enemy it touches, and the bolt jumps to one more enemy next to that one.",
+                "Razi wroga, którego dotknie, a piorun przeskakuje na jeszcze jednego wroga obok.",
+                "Each enemy can be shocked once a turn. Aim at enemies standing together.",
+                "Każdego wroga razi raz na turę. Celuj w kulki stojące blisko siebie.",
+                Damage("5 damage each","Po 5 obrażeń"));
+            Add("chainshock","Burza",GuideWhen.Turn,GuideWho.Enemies,165,"Bolt a turn","Piorun co turę",
+                "At the start of each turn of yours, a bolt strikes the nearest enemy in range.",
+                "Na początku każdej twojej tury piorun uderza w najbliższego wroga w zasięgu.",
+                "Stop it near enemies that cannot easily get away.",
+                "Zatrzymaj ją blisko wrogów, którym trudno uciec.",
+                Damage("5 damage","5 obrażeń"));
+            Add("capacitor","Bateria",GuideWhen.Stop,GuideWho.Enemies,100,"Charge + shock","Ładuje i razi",
+                "Gains one charge in each turn of yours, 3 at most; it starts with one. When it stops next to enemies, it shocks all of them and is empty again.",
+                "W każdej twojej turze zyskuje ładunek, najwyżej 3; zaczyna z jednym. Gdy zatrzyma się obok wrogów, razi ich wszystkich i znów jest pusta.",
+                "No enemy nearby: the charge is kept. Knocked by an enemy, it stops again — and fires.",
+                "Bez wroga w pobliżu ładunek zostaje. Potrącona przez wroga znów się zatrzyma — i wypali.",
+                Damage("5 per charge","5 za ładunek"),Count("Up to 3 charges","Do 3 ładunków"));
+            Add("staticfield","Pułapka prądu",GuideWhen.Stop,GuideWho.Enemies,0,"Shock + off","Razi i wyłącza",
+                "Leaves a shock trap on that spot. The first enemy to roll over it takes 5 damage and loses its power until the end of its next turn.",
+                "Zostawia w tym miejscu pułapkę. Pierwszy wróg, który na nią wjedzie, traci 5 HP i moc — do końca swojej następnej tury.",
+                "The trap works once.",
+                "Pułapka działa raz.",
+                Damage("5 damage","5 obrażeń"),Time("Power off: 1 turn","Bez mocy: 1 tura"),Count("Works once","Działa raz"));
+            Add("jammer","Wyłącznik",GuideWhen.Touch,GuideWho.Enemies,0,"Power off","Wyłącza moc",
+                "The enemy it touches loses its power until the end of that enemy's next turn.",
+                "Wróg, którego dotknie, traci moc do końca swojej następnej tury.",
+                "A switched-off ball does nothing when it touches, stops, starts a turn or dies.",
+                "Wyłączona kulka nic nie robi: ani przy dotyku, ani gdy stanie, ani co turę, ani gdy ginie.",
+                Time("Power off: 1 turn","Bez mocy: 1 tura"));
 
-            // Death powers.
-            Add("cascade","Kaskada",GuideWhen.Death,GuideWho.Self,0,"Comes back","Wraca 2 razy",
-                "Comes back on the same spot with 10 HP. When that one dies, it comes back once more with 5 HP.",
-                "Wraca w tym samym miejscu z 10 HP. Gdy zginie znowu, wraca jeszcze raz — z 5 HP.",
+            // Plants.
+            Add("web","Muchołówka",GuideWhen.Stop,GuideWho.Enemies,70,"Snares","Sidła",
+                "Plants 4 snares around itself. An enemy that rolls into a snare is stuck there until the end of its next turn.",
+                "Sadzi wokół siebie 4 sidła. Wróg, który wjedzie w sidło, utyka w nim do końca swojej następnej tury.",
+                "Each snare works once. A stuck ball cannot be launched again.",
+                "Każde sidło działa raz. Uwięzionej kulki nie da się wystrzelić ponownie.",
+                Count("4 snares","4 sidła"),Fact(GuideFactKind.Stuck,"Stuck: cannot move","Uwięziona: nie rusza się"));
+            Add("thornback","Kaktus",GuideWhen.Touch,GuideWho.Enemies,0,"Thorns","Kolce",
+                "Every enemy that touches it takes 5 damage — whether it hits them or they hit it.",
+                "Każdy wróg, który go dotknie, traci 5 HP — czy to on uderzy, czy w niego uderzą.",
+                "Once a turn for each enemy. Stand it in the enemy's way.",
+                "Raz na turę na każdego wroga. Postaw go wrogowi na drodze.",
+                Damage("5 damage","5 obrażeń"));
+            Add("elderbloom","Kwiat",GuideWhen.Turn,GuideWho.Allies,100,"Heals yours","Leczy twoje",
+                "At the start of each turn of yours, it heals your balls next to it — and itself.",
+                "Na początku każdej twojej tury leczy twoje kulki obok siebie — i siebie.",
+                "Keep your hurt balls close to it.",
+                "Trzymaj przy nim ranne kulki.",
+                Heal("+5 HP a turn","+5 HP co turę"));
+            Add("cultivator","Kiełek",GuideWhen.Turn,GuideWho.Self,0,"Grows","Rośnie",
+                "At the start of each turn of yours, it grows: 5 more HP and a bigger, heavier body. Three times at most.",
+                "Na początku każdej twojej tury rośnie: +5 HP, jest większy i cięższy. Najwyżej 3 razy.",
+                "Fully grown it has 45 HP. Play it early.",
+                "W pełni wyrośnięty ma 45 HP. Zagraj go wcześnie.",
+                Heal("+5 HP a turn","+5 HP co turę"),Count("Grows 3 times","Rośnie 3 razy"));
+            Add("cascade","Żołądź",GuideWhen.Death,GuideWho.Self,0,"Regrows","Odrasta",
+                "Grows back on the same spot with 10 HP. When that one dies, it grows back once more with 5 HP.",
+                "Odrasta w tym samym miejscu z 10 HP. Gdy zginie znowu, odrasta jeszcze raz — z 5 HP.",
                 "The third death is final.",
                 "Trzecia śmierć jest ostatnia.",
                 Heal("25 → 10 → 5 HP","25 → 10 → 5 HP"));
-            Add("agony","Zew śmierci",GuideWhen.Touch,GuideWho.Allies,0,"Triggers","Wyzwala",
-                "Touch one of your own balls that has a “when it dies” power: that power goes off at once, and the ball stays alive.",
-                "Dotknij nią swojej kulki z mocą „gdy ginie”: ta moc zadziała od razu, a kulka przeżyje.",
-                "Works with Bomb, Bonfire, Cascade and Singularity.",
-                "Działa z Bombą, Ogniskiem, Kaskadą i Czarną dziurą.");
-            Add("singularity","Czarna dziura",GuideWhen.Death,GuideWho.Everyone,0,"Swallows balls","Pożera kulki",
-                "Leaves a black hole. The hole pulls in and swallows balls of both players, and it grows every turn.",
-                "Zostawia czarną dziurę. Dziura wciąga i pożera kulki obu graczy i rośnie z każdą turą.",
-                "It closes after swallowing 10 balls. A swallowed ball is gone: no death power, no coming back.",
-                "Zamyka się po pożarciu 10 kulek. Pożarta kulka przepada: bez mocy śmierci i bez powrotu.",
-                Count("Up to 10 balls","Do 10 kulek"),Time("Grows every turn","Rośnie co turę"));
-            Add("reclaimer","Ożywiciel",GuideWhen.Stop,GuideWho.Allies,0,"Revive","Wskrzesza",
-                "Pays 10 HP to bring back your ball that fell first, with 15 HP. It can do this only once.",
-                "Oddaje 10 HP i przywraca twoją najdawniej poległą kulkę z 15 HP. Może to zrobić tylko raz.",
-                "It needs more than 10 HP. Standard and Cascade cannot be brought back.",
-                "Musi mieć ponad 10 HP. Zwykłej i Kaskady nie da się przywrócić.",
-                Damage("Costs 10 HP","Koszt: 10 HP"),Heal("Returns with 15 HP","Wraca z 15 HP"),Count("Once","Raz"));
-
-            // Tricks.
-            Add("traitor","Zdrajca",GuideWhen.Touch,GuideWho.Enemies,0,"Steal","Przejmuje",
-                "The first enemy it touches switches to your side. In return, the Traitor becomes a Standard ball of your opponent.",
-                "Pierwszy wróg, którego dotknie, przechodzi na twoją stronę. W zamian Zdrajca staje się Zwykłą kulką przeciwnika.",
-                "Aim at the enemy's most valuable ball.",
-                "Celuj w najcenniejszą kulkę wroga.",
-                Count("Once","Raz"));
-            Add("chronomancer","Cofanie",GuideWhen.Stop,GuideWho.Self,0,"Save + return","Zapis i powrót",
-                "The first time it stops, it remembers its place and HP. The next time it stops, it jumps back to that place with that HP.",
-                "Gdy zatrzyma się pierwszy raz, zapamiętuje swoje miejsce i HP. Gdy zatrzyma się kolejny raz, wraca w to miejsce z tamtym HP.",
-                "Then it starts over: save, return, save, return…",
-                "Potem od nowa: zapis, powrót, zapis, powrót…");
-            Add("echo","Echo",GuideWhen.Stop,GuideWho.Everyone,165,"Repeat","Powtarza",
-                "Every ball in range repeats its “when it stops” power — enemy balls too.",
-                "Każda kulka w zasięgu powtarza swoją moc „gdy się zatrzyma” — kulki wroga też.",
-                "Stop it next to your balls and far from theirs. Echo does not repeat another Echo.",
-                "Zatrzymaj je obok swoich kulek, z dala od wrogich. Echo nie powtarza innego Echa.");
 
             // Tray labels for the tags that are too long for a card.
-            Short("mine","Trap",null);
-            Short("timebomb","Timer","Zegar");
-            Short("bonfire","Burn+heal","Pali+leczy");
+            Short("frosttrap","Trap","Pułapka");
+            Short("embertrap","Trap","Pułapka");
+            Short("sporetrap","Trap","Pułapka");
+            Short("staticfield","Trap","Pułapka");
             Short("shatterer","Ice break",null);
-            Short("frosttrap","Ice snare","Sidła lodu");
+            Short("frostguard","Chills hit","Mrozi cios");
             Short("blightpool","Pool","Kałuża");
+            Short("plagueburst","Spores",null);
+            Short("fluxmine","Homes in","Namierza");
             Short("gravitymine","Pull+blast","Wir+wybuch");
-            Short("timeshift","Swap","Zamiana");
-            Short("slingshot","Fling","Wyrzuca");
-            Short("vortexmedic","Pull+heal","Wir+leczy");
-            Short("halo","Block hit","Blok ciosu");
-            Short("cascade","Returns ×2","Wraca ×2");
-            Short("singularity","Swallows","Pożera");
-            Short("chronomancer","Rewind","Cofa się");
+            Short("anchor","Holds","Trzyma");
+            Short("chainshock","Bolt/turn","Razi/turę");
+            Short("capacitor","Charges","Ładuje się");
+            Short("jammer",null,"Wyłącza");
+            Short("elderbloom","Heals","Leczy");
         }
     }
 }

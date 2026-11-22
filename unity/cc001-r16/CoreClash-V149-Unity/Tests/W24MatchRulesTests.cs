@@ -116,12 +116,13 @@ public static partial class Program
             }
             CoreClash.Presentation.Lang.Polish=false;True(count>=31);
         });
-        Test("W24 balls: the 30 special balls stand in ten groups of three, each ball in one group",()=>{
-            Eq(10,CoreClash.Presentation.BallGroups.All.Length);
+        Test("W24 balls: the 30 special balls stand in six groups of five, each ball in one group",()=>{
+            var groups=CoreClash.Presentation.BallGroups.All;
+            Eq("ice,fire,poison,magnet,electric,plant",string.Join(",",groups.Select(g=>g.Id)));
             var seen=new System.Collections.Generic.HashSet<string>();
-            foreach(var group in CoreClash.Presentation.BallGroups.All)
+            foreach(var group in groups)
             {
-                Eq(CoreClash.Presentation.BallGroups.Size,group.Balls.Length);
+                Eq(5,group.Balls.Length);
                 True(group.NameEn.Length>0&&group.NamePl.Length>0&&group.PlanEn.Length>0&&group.PlanPl.Length>0,group.Id+": name and plan in both languages");
                 foreach(string id in group.Balls)
                 {
@@ -132,7 +133,9 @@ public static partial class Program
             }
             Eq(30,seen.Count);False(seen.Contains("normal"));
             foreach(string id in CoreClash.Presentation.BallGuide.Ids)True(id=="normal"||seen.Contains(id),id+" has a guide but no group");
-            True(CoreClash.Presentation.BallGroups.Order("fire")<CoreClash.Presentation.BallGroups.Order("ice"));Eq(int.MaxValue,CoreClash.Presentation.BallGroups.Order("normal"));
+            True(CoreClash.Presentation.BallGroups.Order("ice")<CoreClash.Presentation.BallGroups.Order("fire"));
+            True(CoreClash.Presentation.BallGroups.Order("fire")<CoreClash.Presentation.BallGroups.Order("furnace"));
+            Eq(int.MaxValue,CoreClash.Presentation.BallGroups.Order("normal"));
         });
         Test("W24 rules: a map obstacle cannot be damaged, does not use up the structure limit, and stops a ball",()=>{
             var s=Sim();var rock=s.Structures.AddObstacle(270,450,30);

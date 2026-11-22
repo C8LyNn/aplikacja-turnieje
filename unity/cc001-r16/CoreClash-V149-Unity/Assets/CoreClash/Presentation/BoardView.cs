@@ -355,7 +355,8 @@ namespace CoreClash.Presentation
                 bool toxin = zone.kind == "sporetrap" || zone.kind == "blight";
                 Color color = fire ? Theme.Status(StatusKind.Fire) : ice ? Theme.Status(StatusKind.Ice) : toxin ? Theme.Status(StatusKind.Toxin)
                     : zone.kind == "consecrated" ? new Color(1, .76f, .1f)
-                    : zone.kind == "web" ? new Color(.15f, .78f, .5f)
+                    : zone.kind == "web" ? new Color(.28f, .72f, .2f)
+                    : zone.kind == "shocktrap" ? new Color(1f, .84f, .1f)
                     : zone.kind == "portal" ? new Color(.6f, .4f, 1)
                     : zone.kind == "blackHole" ? new Color(.45f, .2f, .8f) : new Color(.42f, .56f, .8f);
                 bool dense = zone.kind == "portal" || zone.kind == "blackHole";
@@ -368,7 +369,7 @@ namespace CoreClash.Presentation
                     float reach = zone.radius * scale;
                     var patch = new Rect(center.x - reach, center.y - reach, reach * 2, reach * 2);
                     StatusKind kind = fire ? StatusKind.Fire : ice ? StatusKind.Ice : StatusKind.Toxin;
-                    Color pale = fire ? new Color(1f, .86f, .25f) : ice ? new Color(.92f, .98f, 1f) : new Color(.78f, 1f, .45f);
+                    Color pale = fire ? new Color(1f, .86f, .25f) : ice ? new Color(.92f, .98f, 1f) : new Color(.9f, .72f, 1f);
                     Color deep = Color.Lerp(color, Theme.Ink, fire ? .1f : ice ? .2f : .3f);
                     Draw.Circle(patch, Theme.A(color, ice ? .46f : .4f));
                     Draw.Circle(Draw.Grow(patch, -reach * .32f), Theme.A(pale, ice ? .3f : .22f));
@@ -384,13 +385,20 @@ namespace CoreClash.Presentation
                 if (dense && !Fx.ReducedMotion) Draw.Ring(center, zone.radius * scale * (.55f + .2f * Mathf.Sin(Time.unscaledTime * 3 + zone.id)), Theme.A(Color.white, .5f), Mathf.Max(1, 1.6f * scale), 6, .45f);
                 if (dense)
                     Draw.Circle(Box(board, zone.x - zone.radius * .68f, zone.y - zone.radius * .68f, zone.radius * 1.36f, zone.radius * 1.36f), new Color(.14f, .08f, .32f));
-                if (zone.kind == "web") Draw.Text(Box(board, zone.x - 12, zone.y - 12, 24, 24), "+", 12, Theme.Ink, TextAnchor.MiddleCenter);
-                if(zone.kind=="embertrap"||zone.kind=="frosttrap"||zone.kind=="sporetrap")
+                if (zone.kind == "web")
+                {
+                    // A snare of the Flytrap: its jaws, small, on the green patch.
+                    float jaws = Mathf.Max(12, 20 * scale);
+                    Glyphs.Paint(new Rect(center.x - jaws / 2, center.y - jaws / 2, jaws, jaws), BallIcons.Spec("web"), Theme.Ink);
+                }
+                if(zone.kind=="embertrap"||zone.kind=="frosttrap"||zone.kind=="sporetrap"||zone.kind=="shocktrap")
                 {
                     // Trap: the owner's ring pattern outside, the element symbol inside.
                     Draw.Ring(center,(zone.radius+3)*scale,Theme.A(Draw.Owner(zone.owner),.85f),Mathf.Max(1,1.5f*scale),zone.owner==1?Theme.P2RingSegments*2:0,Theme.P2RingFill);
                     float glyph=Mathf.Max(10,15*scale);
-                    Draw.Circle(new Rect(center.x-glyph*.8f,center.y-glyph*.8f,glyph*1.6f,glyph*1.6f),Theme.Ink);Glyphs.Paint(new Rect(center.x-glyph/2,center.y-glyph/2,glyph,glyph),fire?StatusKind.Fire:ice?StatusKind.Ice:StatusKind.Toxin,color);
+                    Draw.Circle(new Rect(center.x-glyph*.8f,center.y-glyph*.8f,glyph*1.6f,glyph*1.6f),Theme.Ink);
+                    if(zone.kind=="shocktrap")Glyphs.Paint(new Rect(center.x-glyph/2,center.y-glyph/2,glyph,glyph),"+P .34 -.98 -.56 .16 .1 .16;+P -.1 -.16 .56 -.16 -.34 .98",color);
+                    else Glyphs.Paint(new Rect(center.x-glyph/2,center.y-glyph/2,glyph,glyph),fire?StatusKind.Fire:ice?StatusKind.Ice:StatusKind.Toxin,color);
                 }
             }
         }

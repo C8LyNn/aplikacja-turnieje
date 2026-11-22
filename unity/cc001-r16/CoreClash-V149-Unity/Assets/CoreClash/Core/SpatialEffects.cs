@@ -49,9 +49,16 @@ namespace CoreClash.Core
                 case "harpoon":var far=Near(b,230,false).LastOrDefault();if(far!=null){Impulse(far,b.x,b.y,690);sim.Emit("PULL",far,"Harpoon");}break;
                 case "vortexmedic":var enemies=Near(b,165,false);foreach(var e in enemies)Impulse(e,b.x,b.y,390);var hurt=Living().Where(x=>x.owner==b.owner&&Dist(b,x)<=165&&x.hp<x.maxHp).OrderBy(x=>(float)x.hp/x.maxHp).FirstOrDefault();if(enemies.Length>0&&hurt!=null)sim.Heal(hurt,Math.Min(10,enemies.Length*5));break;
                 case "web":CreateTrap(b,"web",b.x+55,b.y,14);CreateTrap(b,"web",b.x-55,b.y,14);CreateTrap(b,"web",b.x,b.y+55,14);CreateTrap(b,"web",b.x,b.y-55,14);break;
-                case "gravitymine":foreach(var z in S.zones)if(z.sourceId==b.id&&z.kind=="gravitymine")z.dead=true;CreateTrap(b,"gravitymine",b.x,b.y,100);break;
+                case "gravitymine":foreach(var z in S.zones)if(z.sourceId==b.id&&z.kind=="gravitymine")z.dead=true;
+                    // Plain powers: the field always appears where the mine stops (the reference rule
+                    // needs free room the size of the whole field, which no card can explain).
+                    if(S.plainPowers){var field=CreateZone(b,"gravitymine",100,-1);field.trap=true;}else CreateTrap(b,"gravitymine",b.x,b.y,100);break;
                 case "gatekeeper":CreatePortals(b);break;
-                case "magnet":case "pulse":foreach(var t in Near(b,165)){float fall=.45f+.55f*(1-Dist(b,t)/165);Impulse(t,b.type=="magnet"?b.x:2*t.x-b.x,b.type=="magnet"?b.y:2*t.y-b.y,(b.type=="magnet"?520:500)*fall);}break;
+                case "magnet":case "pulse":foreach(var t in Near(b,165)){
+                    // Plain powers: the Magnet gathers balls - each one rolls right up to it and stops
+                    // there (the reference pull throws them into the Magnet hard enough to kill it).
+                    if(S.plainPowers&&b.type=="magnet"){float gap=Dist(b,t)-b.radius-t.radius-4;if(gap>0)Impulse(t,b.x,b.y,(gap+14)/1.175f);continue;}
+                    float fall=.45f+.55f*(1-Dist(b,t)/165);Impulse(t,b.type=="magnet"?b.x:2*t.x-b.x,b.type=="magnet"?b.y:2*t.y-b.y,(b.type=="magnet"?520:500)*fall);}break;
             }
         }
         void CreatePortals(BallRuntime b)
@@ -78,6 +85,8 @@ namespace CoreClash.Core
                     }
                 }else if(ElementTrap(z.kind)){
                     TriggerElementTrap(z);
+                }else if(z.kind=="shocktrap"){
+                    TriggerShockTrap(z);
                 }else if(z.kind=="web"){
                     var target=Living().FirstOrDefault(b=>b.owner!=z.owner&&(b.x-z.x)*(b.x-z.x)+(b.y-z.y)*(b.y-z.y)<(z.radius+b.radius)*(z.radius+b.radius));if(target!=null){Root(target);z.dead=true;}
                 }else if(z.kind=="gravitymine"){

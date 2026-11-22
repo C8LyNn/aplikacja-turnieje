@@ -16,12 +16,12 @@ namespace CoreClash.Core
         bool Archetype(BallRuntime b,string id)=>sim.Catalog.Ball(b.type).archetype==id;
         bool PerTargetTurn(BallRuntime b,BallRuntime target){if(b.turnAffectedIds.Contains(target.id))return false;b.turnAffectedIds.Add(target.id);return true;}
         bool Enter(){if(depth>=8){sim.Emit("CHAIN_LIMIT",null,"Effect chain safely bounded");return false;}depth++;return true;}
-        public void OnSpawn(BallRuntime b){b.divineShield=b.type=="halo";ArchetypeSpawn(b);if(b.type=="phoenix")PhoenixSpawn(b);}
+        public void OnSpawn(BallRuntime b){b.divineShield=b.type=="halo";ArchetypeSpawn(b);GroupSpawn(b);if(b.type=="phoenix")PhoenixSpawn(b);}
         public void OnLaunch(BallRuntime b){b.paradoxSave=b.type=="paradox"?Save(b):b.paradoxSave;}
         public void OnContact(BallRuntime a,BallRuntime b,bool hit,bool source,float impact)
         {
             if(a.dead||b.dead||a.banished||b.banished||!Enter())return;
-            try{if(a.jammed>0){a.jammed--;return;}EvolutionContact(a);if(RealityContact(a,b,hit,source))return;StatusContact(a,b,hit,source);StatusPayoffContact(a,b);ArchetypeContact(a,b,hit);ElementalContact(a,b,hit);MomentumContact(a,b,hit,impact);if(a.owner==b.owner&&a.type=="agony")TriggerDeathEffect(b);}
+            try{if(a.jammed>0){if(!S.plainPowers)a.jammed--;return;}EvolutionContact(a);if(RealityContact(a,b,hit,source))return;StatusContact(a,b,hit,source);StatusPayoffContact(a,b);ArchetypeContact(a,b,hit);ElementalContact(a,b,hit);MomentumContact(a,b,hit,impact);GroupContact(a,b);if(a.owner==b.owner&&a.type=="agony")TriggerDeathEffect(b);}
             finally{depth--;}
         }
         public void OnWall(BallRuntime b,string side,bool hit){if(b.type=="warp"&&(side=="left"||side=="right")){b.x=side=="left"?ZoneResolver.Right-b.radius-2:ZoneResolver.Left+b.radius+2;sim.Emit("TELEPORT",b,"Warp");}}
@@ -29,7 +29,7 @@ namespace CoreClash.Core
         void Stop(BallRuntime b,bool repeated)
         {
             if(b.dead||b.banished||!Enter())return;
-            try{if(b.jammed>0){b.jammed--;return;}if(!repeated)ArchetypeStop(b);StatusStop(b);StatusPayoffStop(b);LifecycleStop(b);SpatialStop(b);MomentumStop(b);ConstructionStop(b);ReinforcementStop(b);ElementalStop(b);ExplosiveStop(b);if(!b.dead)RealityStop(b);}
+            try{if(b.jammed>0){if(!S.plainPowers)b.jammed--;return;}if(!repeated)ArchetypeStop(b);StatusStop(b);StatusPayoffStop(b);LifecycleStop(b);SpatialStop(b);MomentumStop(b);ConstructionStop(b);ReinforcementStop(b);ElementalStop(b);ExplosiveStop(b);if(!b.dead)GroupStop(b);if(!b.dead)RealityStop(b);}
             finally{depth--;}
         }
         public void OnTurnStart(int owner)
@@ -37,14 +37,19 @@ namespace CoreClash.Core
             foreach(var b in S.balls.Where(b=>b.banished&&S.turnNumber>=b.banishedUntilTurn).ToArray()){b.banished=false;b.vx=b.vy=0;PlaceNear(b,b.x,b.y,180);sim.Emit("RETURN",b,"Exile ended");EmitReturn(b,b);}
             GlobalSpatialTurn();LifecycleHandTurn(owner);
             foreach(var b in Living()){
-                if(b.owner!=owner||b.dead)continue;b.ownTurnCounter++;StatusTurn(b);if(b.dead)continue;ArchetypeTurn(b);LifecycleTurn(b);if(b.dead)continue;SpatialTurn(b);ConstructionTurn(b);ReinforcementTurn(b);EvolutionTurn(b);ElementalTurn(b);ExplosiveTurn(b);
+                if(b.owner!=owner||b.dead)continue;b.ownTurnCounter++;StatusTurn(b);if(b.dead)continue;if(S.plainPowers&&b.jammed>0)continue;GroupTurn(b);if(b.dead)continue;ArchetypeTurn(b);LifecycleTurn(b);if(b.dead)continue;SpatialTurn(b);ConstructionTurn(b);ReinforcementTurn(b);EvolutionTurn(b);ElementalTurn(b);ExplosiveTurn(b);
                 if(b.type=="paradox")b.paradoxSave=Save(b);
             }
         }
-        public void OnTurnEnd(int owner){PeriodicZones();foreach(var b in Living())if(b.owner==owner&&b.rooted&&S.players[owner].ownerTurns>=b.rootExpiresOwnerTurn){b.rooted=false;sim.Emit("ROOT_EXPIRED",b,"Root expired");}}
+        public void OnTurnEnd(int owner)
+        {
+            PeriodicZones();foreach(var b in Living())if(b.owner==owner&&b.rooted&&S.players[owner].ownerTurns>=b.rootExpiresOwnerTurn){b.rooted=false;sim.Emit("ROOT_EXPIRED",b,"Root expired");}
+            // W24: a switched-off power comes back at the end of that ball's next own turn.
+            foreach(var b in Living())if(b.owner==owner&&b.jammed>0&&b.jamExpiresOwnerTurn>=0&&S.players[owner].ownerTurns>=b.jamExpiresOwnerTurn){b.jammed=0;b.jamExpiresOwnerTurn=-1;sim.Emit("JAM_EXPIRED",b,"Power back");}
+        }
         public void OnDeath(BallRuntime b)
         {
-            if(!Enter())return;try{DeathObservers(b);ArchetypeDeath(b);foreach(var z in S.zones)if(z.sourceId==b.id&&z.kind=="portal")z.dead=true;TriggerDeathEffect(b);if(b.type=="phoenix")PhoenixDeathEffect(b);}finally{depth--;}
+            if(!Enter())return;try{DeathObservers(b);ArchetypeDeath(b);foreach(var z in S.zones)if(z.sourceId==b.id&&z.kind=="portal")z.dead=true;if(!(S.plainPowers&&b.jammed>0))TriggerDeathEffect(b);if(b.type=="phoenix")PhoenixDeathEffect(b);}finally{depth--;}
         }
         public void OnStep(float dt){LifecycleStep(dt);ExplosiveStep();SpatialStep(dt);}
         public bool BeforeDamage(BallRuntime b,bool kinetic){if(kinetic&&b.divineShield){b.divineShield=false;sim.Emit("DIVINE_SHIELD",b,"First impact blocked");return true;}return false;}
