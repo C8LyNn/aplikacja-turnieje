@@ -89,7 +89,10 @@ async function createStartedDe(entrants: number) {
     }
     throw new Error("play loop did not finish");
   };
-  return { tournamentId, read, complete, revert, play };
+  /** The stored routing plan (it must never be recompiled once the stage runs). */
+  const storedPlan = async () => (await database.pool.query<{ id: number; revision: number; checksum: string }>(
+    "SELECT id, revision, checksum FROM tournament_routing_plans WHERE tournament_id = $1 ORDER BY id", [tournamentId])).rows;
+  return { tournamentId, read, complete, revert, play, storedPlan };
 }
 
 const byName = (state: DeState, name: string) => state.matches.find((m) => m.name === name)!;
@@ -99,6 +102,8 @@ describe("Double Elimination full runs (V6.1)", () => {
   for (const size of [4, 8, 16, 32]) {
     test(`${size} entrants: standard structure, cascading correction, Grand Final + reset, finals correction`, async () => {
       const de = await createStartedDe(size);
+      const planAtStart = await de.storedPlan();
+      assert.equal(planAtStart.length, 1);
       let state = await de.read();
       assert.equal(count(state, "Upper"), size - 1);
       assert.equal(count(state, "Lower"), size - 2);
@@ -142,6 +147,7 @@ describe("Double Elimination full runs (V6.1)", () => {
       assert.equal(state.completed, true);
       assert.equal(state.championParticipantKey, upperChampion);
       assert.notEqual(byName(state, "Grand Final Reset").status, "completed");
+      assert.deepEqual(await de.storedPlan(), planAtStart, "results and corrections never recompile the stored plan");
     });
   }
 
