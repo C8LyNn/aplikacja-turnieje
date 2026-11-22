@@ -149,6 +149,7 @@ namespace CoreClash.Presentation
             if(MatchExitGuard.PausesSimulation(exitGuard.Open,NetworkLink!=null))accumulator=0;
             else if(NetworkLink==null||NetworkLink.IsAuthority){accumulator=Math.Min(accumulator+Time.unscaledDeltaTime,.1f);while(accumulator>=1f/120){Simulation.Step(1f/120);accumulator-=1f/120;}BoardView.VisualLead=accumulator;}
             feedback.Observe(Simulation.State,Time.unscaledTime);
+            BoardView.ComputerThinking=AiTurn&&Simulation.State.phase==MatchPhase.Aiming;
             if(AiTurn&&Simulation.State.phase==MatchPhase.Aiming&&!exitGuard.Open&&ai.Think(Simulation,chosen[0],chosen[1],aiLevel,Time.unscaledTime,AiOpponent.FrameBudget(aiLevel,Application.targetFrameRate),out var aiCommand))
             {
                 aiCommand.sequence=++sequence;

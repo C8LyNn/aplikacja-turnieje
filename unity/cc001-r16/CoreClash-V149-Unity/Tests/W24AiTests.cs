@@ -47,6 +47,13 @@ public static partial class Program
             True(AiBrain.Candidates(sim,AiLevelSettings.For(AiLevel.Normal),random).Any(x=>x.kind==CommandKind.Replay&&x.ballId==home.id));
             False(AiBrain.Candidates(sim,AiLevelSettings.For(AiLevel.Easy),random).Any(x=>x.kind==CommandKind.Replay));
             var fallback=AiBrain.Fallback(sim.State);Eq("normal",fallback.ballType);Eq(0,fallback.owner);True(fallback.dy<0);
+            // The balance report's experiment: the same match without the second player's extra opening ball.
+            foreach(bool bonus in new[]{true,false}){
+                var m=AiLab.NewMatch(c,c.Roster.Decks[0],c.Roster.Decks[1],7,out _,bonus);
+                True(m.TryCommand(AiBrain.Fallback(m.State),out _));Settle(m);Eq(1,m.State.turn);
+                True(m.TryCommand(AiBrain.Fallback(m.State),out _));Settle(m);
+                Eq(bonus,m.State.bonusPending);Eq(bonus?1:0,m.State.turn);
+            }
         });
 
         Test("W24 AI: both players see the same position, each from their own side; a finished match outweighs everything",()=>{

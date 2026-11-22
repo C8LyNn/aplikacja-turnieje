@@ -17,7 +17,8 @@ namespace CoreClash.Testing
     // turn and two screenshots. Never runs in ordinary play.
     public sealed class W24AiProbe : MonoBehaviour
     {
-        CoreClashApp app; string output; int pointerId = 500;
+        CoreClashApp app; string output; int pointerId = 500; bool thinkingShot;
+        static IEnumerator Wait(float seconds) { float until = Time.realtimeSinceStartup + seconds; while (Time.realtimeSinceStartup < until) yield return null; }
         readonly StringBuilder notes = new StringBuilder();
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -68,6 +69,8 @@ namespace CoreClash.Testing
                     Pointer(from, true, true, false); Pointer(to, false, true, false); Pointer(to, false, false, true); pointerId++;
                     if (sim.State.actionSerial != lastSerial) { failure = "a pointer gesture launched a ball on the AI turn"; break; }
                     turnStarted = Time.realtimeSinceStartup;
+                    // Once: what the board shows while the computer is choosing.
+                    if (aiShots == 1 && !thinkingShot) { thinkingShot = true; yield return Wait(.3f); ScreenCapture.CaptureScreenshot(Path.Combine(output, "ai-thinking.png")); }
                     while (sim.State.phase == MatchPhase.Aiming && sim.State.turn == 1 && sim.State.actionSerial == lastSerial && Time.realtimeSinceStartup - turnStarted < 12) yield return null;
                     if (sim.State.actionSerial != lastSerial + 1) { failure = "the AI did not shoot within 12 seconds"; break; }
                     float think = Time.realtimeSinceStartup - turnStarted; longestThink = Mathf.Max(longestThink, think);

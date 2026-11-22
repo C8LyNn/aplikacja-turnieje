@@ -15,16 +15,22 @@ using CoreClash.Presentation;
 namespace CoreClash.SelfPlay
 {
     // CC-001 W24 (owner direction, 2026-11-22): the lab. It plays a great many whole matches with the
-    // game's own rules and the game's own computer player (Core/AiBrain.cs), to do three things:
-    //   train     the computer plays itself, every position of every match is written down together
-    //             with who won in the end, and the weights of its judgement (AiWeights) are fitted to
-    //             that: what was on the board in the matches that were won. The new weights then
-    //             have to beat the old ones in fresh matches, or they are thrown away;
+    // game's own rules and the game's own computer player (Core/AiBrain.cs), to do these things:
     //   balance   every ready deck plays every other; the report says who wins, how much the first
-    //             move is worth, and how much better each ball's best shot is than the Standard ball's;
-    //   levels    checks that Hard beats Normal and Normal beats Easy, and by how much.
+    //             move is worth, and how much better each ball's best shot is than the Standard ball's.
+    //             "--no-bonus" plays the same matches without the second player's extra opening ball;
+    //   levels    checks that Hard beats Normal and Normal beats Easy, and by how much;
+    //   tune      teaches the computer by play: two copies of it, one with each weight of its
+    //             judgement (AiWeights) pushed a little up or down at random and one pushed the
+    //             opposite way, play each other from both seats; the weights then move a small step
+    //             towards the side that won. Thousands of matches later the result has to beat the
+    //             starting weights in fresh matches, or it is thrown away;
+    //   train     the other way of learning, kept for the record: fit the weights to the positions
+    //             of self-played matches and how they ended. Measured on 600 matches (2026-11-22):
+    //             the fit predicted results a little better and played worse - it lost 94:146 to
+    //             the weights it started from. What goes with winning is not what causes it.
     // Run it through the test program:
-    //   dotnet run -c Release --project Tests/CoreClash.Tests.csproj -- . ailab <train|balance|levels|bench> [--out folder] [--threads n]
+    //   dotnet run -c Release --project Tests/CoreClash.Tests.csproj -- . ailab <balance|levels|tune|train|bench> [--out folder] [--threads n]
     public sealed class AiAgent { public AiLevelSettings Level; public AiWeights Weights; }
 
     // A position after a shot has played out, seen by the player who made it, and how the match ended for them.
@@ -44,22 +50,25 @@ namespace CoreClash.SelfPlay
         static readonly JsonSerializerOptions Json = new JsonSerializerOptions { IncludeFields = true };
 
         // The rules the game itself plays by (MatchSetup.Apply), with the map drawn by the seed.
-        public static GameSimulation NewMatch(Catalog catalog, DeckDefinition a, DeckDefinition b, ulong seed, out string map)
+        // openingBonus false: an experiment for the balance report - the second player does not get
+        // the extra ball of the opening turn.
+        public static GameSimulation NewMatch(Catalog catalog, DeckDefinition a, DeckDefinition b, ulong seed, out string map, bool openingBonus = true)
         {
             var sim = new GameSimulation(catalog, a, b) { ActiveRosterOnly = true };
             var state = sim.State;
             state.ballScale = 1.5f; state.comebackRule = true; state.plainPowers = true; state.exclusiveFields = true;
             var picked = MatchMaps.All[(int)(SelfPlayRng.Mix(seed, 77) % (ulong)MatchMaps.All.Length)];
             MatchMaps.Apply(sim, picked); map = picked.Id;
+            if (!openingBonus) state.bonusUsed = true;
             return sim;
         }
 
         // One whole match between two computer players. `trace` collects what the balance report needs,
         // `samples` what the training needs.
-        public static LabMatch Play(Catalog catalog, DeckDefinition a, DeckDefinition b, AiAgent first, AiAgent second, ulong seed, bool trace = false, bool samples = false)
+        public static LabMatch Play(Catalog catalog, DeckDefinition a, DeckDefinition b, AiAgent first, AiAgent second, ulong seed, bool trace = false, bool samples = false, bool openingBonus = true)
         {
             var record = new LabMatch { DeckA = a.id, DeckB = b.id, Samples = samples ? new List<LabSample>() : null };
-            var sim = NewMatch(catalog, a, b, seed, out record.Map);
+            var sim = NewMatch(catalog, a, b, seed, out record.Map, openingBonus);
             var sandbox = new GameSimulation(catalog, a, b) { ActiveRosterOnly = true };
             var agents = new[] { first, second };
             var random = new[] { new Random(unchecked((int)SelfPlayRng.Mix(seed, 1))), new Random(unchecked((int)SelfPlayRng.Mix(seed, 2))) };
@@ -153,7 +162,8 @@ namespace CoreClash.SelfPlay
                 case "train": return Train(catalog, root, args, threads, output);
                 case "balance": return Balance(catalog, root, args, threads, output);
                 case "levels": return Levels(catalog, root, args, threads, output);
-                default: Console.WriteLine("ailab: train | balance | levels | bench"); return 2;
+                case "tune": return Tune(catalog, root, args, threads, output);
+                default: Console.WriteLine("ailab: balance | levels | tune | train | bench"); return 2;
             }
         }
 
@@ -305,6 +315,63 @@ namespace CoreClash.SelfPlay
             return 0;
         }
 
+        // ---------------------------------------------------------------- tune
+        // Learning by play (simultaneous perturbation). In every round each pair of matches draws a
+        // random direction - every weight but the unit (base HP) either up or down by the same
+        // share - and the computer with the weights pushed that way plays the computer with the
+        // weights pushed the opposite way, once from each seat, on the same decks, map and seed.
+        // The weights then move a small step along each direction, towards whichever side won.
+        // One match says very little; thousands, each pulling a little, add up.
+        static int Tune(Catalog catalog, string root, string[] args, int threads, string output)
+        {
+            int rounds = Int(args, "--rounds", 40), pairs = Int(args, "--pairs", 24), verify = Int(args, "--verify", 400);
+            ulong seed = (ulong)Int(args, "--seed", 2026);
+            const double push = .3, step = .15;
+            var decks = catalog.Roster.Decks; int n = AiWeights.Count;
+            var strict = AiLevelSettings.For(AiLevel.Normal); strict.AimNoise = 0; strict.ScoreNoise = 0;
+            var start = new AiWeights(); var log = new StringBuilder(); var watch = Stopwatch.StartNew();
+            void Say(string line) { Console.WriteLine(line); log.AppendLine(line); File.WriteAllText(Path.Combine(output, "ailab-tune.txt"), log.ToString()); }
+            Say("AILAB tune rounds=" + rounds + " pairs=" + pairs + " (" + rounds * pairs * 2 + " matches) verify=" + verify + " threads=" + threads + " seed=" + seed);
+            Say("AILAB start    " + Text(start));
+            var theta = start.ToArray().Select(value => Math.Log(Math.Max(.02, value))).ToArray();
+            var average = new double[n]; int averaged = 0; var random = new Random(unchecked((int)seed));
+            AiWeights Weights(double[] logs, int[] direction, double sign) => AiWeights.FromArray(logs.Select((value, i) => (float)Math.Min(60, Math.Exp(value + (direction == null || i == 0 ? 0 : sign * push * direction[i])))).ToArray());
+            for (int round = 1; round <= rounds; round++)
+            {
+                var directions = new int[pairs][]; var outcome = new int[pairs]; int roundNumber = round;
+                for (int p = 0; p < pairs; p++) directions[p] = Enumerable.Range(0, n).Select(_ => random.Next(2) == 0 ? -1 : 1).ToArray();
+                var current = (double[])theta.Clone();
+                Parallel.For(0, pairs * 2, new ParallelOptions { MaxDegreeOfParallelism = threads }, i =>
+                {
+                    int p = i >> 1; bool swap = (i & 1) == 1; int game = (roundNumber - 1) * pairs + p;
+                    var up = new AiAgent { Level = strict, Weights = Weights(current, directions[p], 1) }; var down = new AiAgent { Level = strict, Weights = Weights(current, directions[p], -1) };
+                    var match = Play(catalog, decks[game % decks.Length], decks[(game / decks.Length + game + 1) % decks.Length], swap ? down : up, swap ? up : down, SelfPlayRng.Mix(seed, (ulong)(500000 + game)));
+                    if (match.Finished && match.Winner >= 0) Interlocked.Add(ref outcome[p], (match.Winner == 0) != swap ? 1 : -1);
+                });
+                for (int i = 1; i < n; i++)
+                {
+                    double pull = 0; for (int p = 0; p < pairs; p++) pull += outcome[p] * directions[p][i];
+                    theta[i] = Math.Max(Math.Log(.02), Math.Min(Math.Log(60), theta[i] + step * pull / pairs));
+                }
+                // The answer is the average of the second half of the walk, which is steadier than its last step.
+                if (round > rounds / 2) { for (int i = 0; i < n; i++) average[i] += theta[i]; averaged++; }
+                if (round % 5 == 0 || round == rounds) Say("AILAB round " + round + "  " + Text(Weights(theta, null, 0)) + "  [" + watch.Elapsed.TotalSeconds.ToString("0") + " s]");
+            }
+            var tuned = Weights(average.Select(value => value / Math.Max(1, averaged)).ToArray(), null, 0);
+            Say("AILAB tuned    " + Text(tuned));
+            Duel(catalog, new AiAgent { Level = strict, Weights = tuned }, new AiAgent { Level = strict, Weights = start }, verify, SelfPlayRng.Mix(seed, 999983), threads, out int wins, out int losses, out int drawn);
+            double share = Share(wins, losses);
+            Say("AILAB verify tuned vs starting weights on " + verify + " fresh matches: " + wins + ":" + losses + " (" + drawn + " drawn) = " + share.ToString("0.0") + "% of decided matches  [" + watch.Elapsed.TotalSeconds.ToString("0") + " s]");
+            // Kept only when really better: 55% of 400 matches is two standard deviations away from an even result.
+            if (share >= 55)
+            {
+                File.WriteAllText(WeightsPath(root), JsonSerializer.Serialize(tuned, new JsonSerializerOptions { IncludeFields = true, WriteIndented = true }) + "\n");
+                Say("AILAB saved " + WeightsPath(root));
+            }
+            else Say("AILAB not saved: the tuned weights are not clearly better than the starting ones");
+            return 0;
+        }
+
         // ---------------------------------------------------------------- levels
         // What the game does: Easy judges with the plain starting weights, Normal and Hard with the learned ones.
         public static AiAgent GameAgent(AiLevel level, AiWeights learned) => new AiAgent { Level = AiLevelSettings.For(level), Weights = level == AiLevel.Easy ? new AiWeights() : learned };
@@ -325,6 +392,7 @@ namespace CoreClash.SelfPlay
         static int Balance(Catalog catalog, string root, string[] args, int threads, string output)
         {
             int perPair = Int(args, "--per-pair", 12); var weights = LoadWeights(root); var decks = catalog.Roster.Decks;
+            bool bonus = Array.IndexOf(args, "--no-bonus") < 0;
             var agent = GameAgent(AiLevel.Normal, weights);
             var jobs = new List<(int a, int b, int k)>();
             for (int a = 0; a < decks.Length; a++) for (int b = 0; b < decks.Length; b++) for (int k = 0; k < perPair; k++) jobs.Add((a, b, k));
@@ -332,24 +400,25 @@ namespace CoreClash.SelfPlay
             Parallel.For(0, jobs.Count, new ParallelOptions { MaxDegreeOfParallelism = threads }, i =>
             {
                 var job = jobs[i];
-                results[i] = Play(catalog, decks[job.a], decks[job.b], agent, agent, SelfPlayRng.Mix(31337, (ulong)i), true);
+                results[i] = Play(catalog, decks[job.a], decks[job.b], agent, agent, SelfPlayRng.Mix(31337, (ulong)i), true, false, bonus);
                 int now = Interlocked.Increment(ref done);
                 if (now % 100 == 0) Console.WriteLine("AILAB balance " + now + "/" + jobs.Count + " [" + watch.Elapsed.TotalSeconds.ToString("0") + " s]");
             });
-            string path = Path.Combine(output, "balans.md");
-            File.WriteAllText(path, BalanceReport(catalog, results, perPair, watch.Elapsed.TotalSeconds, weights), new UTF8Encoding(false));
+            string path = Path.Combine(output, bonus ? "balans.md" : "balans-bez-bonusu.md");
+            File.WriteAllText(path, BalanceReport(catalog, results, perPair, watch.Elapsed.TotalSeconds, weights, bonus), new UTF8Encoding(false));
             Console.WriteLine("AILAB balance report " + path);
             return 0;
         }
 
         static string BallName(Catalog catalog, string id) => BallGuide.NamePl(id) ?? catalog.Ball(id)?.name ?? id;
         static string Percent(int part, int all) => all > 0 ? (part * 100.0 / all).ToString("0") + "%" : "-";
-        static string BalanceReport(Catalog catalog, LabMatch[] matches, int perPair, double seconds, AiWeights weights)
+        static string BalanceReport(Catalog catalog, LabMatch[] matches, int perPair, double seconds, AiWeights weights, bool bonus)
         {
             var decks = catalog.Roster.Decks; var text = new StringBuilder();
             var decided = matches.Where(m => m.Finished && m.Winner >= 0).ToList();
-            text.AppendLine("# Core Clash - raport balansu z symulacji");
+            text.AppendLine("# Core Clash - raport balansu z symulacji" + (bonus ? "" : " (wariant: bez dodatkowej kulki gracza 2 na otwarcie)"));
             text.AppendLine();
+            if (!bonus) text.AppendLine("- **Eksperyment:** w tych meczach gracz 2 NIE dostaje dodatkowego strzału w pierwszej turze. Reszta zasad bez zmian.");
             text.AppendLine("- Mecze: **" + matches.Length + "** (" + perPair + " na każdą parę talii w każdej kolejności), rozstrzygnięte: " + decided.Count + ", remisy: " + matches.Count(m => m.Finished && m.Winner < 0) + ", czas liczenia: " + seconds.ToString("0") + " s.");
             text.AppendLine("- Obie strony gra ten sam komputer (poziom średni), na zasadach gry: kulki ×1,5, podwójna tura poniżej 10 HP bazy, losowa mapa, każda kulka 30 HP, proste moce, jedno pole w jednym miejscu.");
             text.AppendLine("- To są mecze komputera z komputerem. Mówią, co jest mocne **w rękach tego komputera**; człowiek może grać kulką lepiej albo gorzej.");

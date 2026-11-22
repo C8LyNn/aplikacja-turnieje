@@ -312,6 +312,10 @@ namespace CoreClash.Presentation
         // against the wall behind it when it is too large for that (the first step of the rules
         // moves it there).
         static float LaunchY(int owner, float ballRadius) => owner == 0 ? Mathf.Min(853, Bottom - ballRadius) : Mathf.Max(47, Top + ballRadius);
+        // W24: the computer is choosing its shot (the app says so every frame). Its launcher then
+        // shows three dots instead of a ball - it has not picked one yet - so a player waiting for
+        // a hard opponent sees that the game is working. No words.
+        public static bool ComputerThinking;
         static void RenderLauncher(Rect board, GameState state, int owner, LaunchGesture aim, BallDefinition selected)
         {
             float scale = board.width / 540;
@@ -339,6 +343,19 @@ namespace CoreClash.Presentation
                 float travel = Fx.ReducedMotion ? 0 : Mathf.Repeat(Time.unscaledTime * 1.6f + i * .5f, 1);
                 float size = 20 * scale, offset = (DomeRadius + 16 + i * 15 + travel * 6) * scale * (up ? -1 : 1);
                 Glyphs.Paint(new Rect(center.x - size / 2, center.y + offset - size / 2, size, size), up ? Fx.Chevron : "+L -.7 -.45 0 .45 .34;+L 0 .45 .7 -.45 .34", Theme.A(team, .8f - i * .35f));
+            }
+            if (ComputerThinking)
+            {
+                for (int i = 0; i < 3; i++)
+                {
+                    // One after another the dots rise a little and come back; with calm effects they stand still.
+                    float wave = Fx.ReducedMotion ? 0 : Mathf.Max(0, Mathf.Sin(Time.unscaledTime * 6.5f - i * .95f));
+                    float dot = Mathf.Max(3.5f, (6.5f + wave * 1.5f) * scale), rim = Draw.Line(2f * scale);
+                    var at = new Vector2(center.x + (i - 1) * 19 * scale, center.y - wave * 5 * scale);
+                    Draw.Circle(new Rect(at.x - dot - rim, at.y - dot - rim, (dot + rim) * 2, (dot + rim) * 2), Theme.Ink);
+                    Draw.Circle(new Rect(at.x - dot, at.y - dot, dot * 2, dot * 2), team);
+                }
+                return;
             }
             bool aimingHere = aim == null || !aim.Active || (Mathf.Abs(aim.OriginX - 270) < .1f && Mathf.Abs(aim.OriginY - y) < .1f);
             if (selected != null && aimingHere)
