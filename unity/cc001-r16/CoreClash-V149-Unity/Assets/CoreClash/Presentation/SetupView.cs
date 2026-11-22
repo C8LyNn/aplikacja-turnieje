@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CoreClash.Core;
 using CoreClash.Data;
 using UnityEngine;
 namespace CoreClash.Presentation
@@ -52,11 +53,19 @@ namespace CoreClash.Presentation
             bool computer=owner==1&&VersusAi;
             if(computer)Glyphs.Paint(new Rect(r.x+block/2-12,r.y+r.height*.36f-13,24,24),IconRobot,Theme.OnColor);
             else Draw.Ring(new Vector2(r.x+block/2,r.y+r.height*.36f),9,Theme.OnColor,2.8f,owner==1?Theme.P2RingSegments:0,Theme.P2RingFill);
-            Draw.Text(new Rect(r.x,r.y+r.height*.52f,block,18),computer?"AI":Lang.T("P","G")+(owner+1),14,Theme.OnColor,TextAnchor.MiddleCenter,true);
+            // The computer's block names its level (the robot says it is the computer).
+            Draw.Text(new Rect(r.x,r.y+r.height*.52f,block,18),computer?MatchSetup.AiLevelName(MatchSetup.AiLevel).ToUpperInvariant():Lang.T("P","G")+(owner+1),computer?10:14,Theme.OnColor,TextAnchor.MiddleCenter,true);
             if(owner==1)
             {
                 Glyphs.Paint(new Rect(r.x+block/2-7,r.yMax-15,14,14),IconSwitch,Theme.A(Theme.OnColor,.85f));
-                if(Draw.Hit(new Rect(r.x,r.y,block,r.height)))SetVersusAi(!VersusAi);
+                // A tap goes round: a second player, then the computer - easy, normal, hard.
+                if(Draw.Hit(new Rect(r.x,r.y,block,r.height)))
+                {
+                    if(!VersusAi){MatchSetup.AiLevel=AiLevel.Easy;SetVersusAi(true);}
+                    else if(MatchSetup.AiLevel==AiLevel.Hard)SetVersusAi(false);
+                    else MatchSetup.AiLevel=(AiLevel)((int)MatchSetup.AiLevel+1);
+                    MatchSetup.Save();
+                }
             }
             else
             {
@@ -108,7 +117,7 @@ namespace CoreClash.Presentation
             if(Draw.Hit(new Rect(r.x+8,orbY-6,r.width-16,orb+12)))OpenDeckGuide(deck);
             float buttonW=(r.width-44)/2;
             if(Draw.Button(new Rect(r.x+16,r.yMax-actionH-12,buttonW,actionH),Lang.T("Player 1","Gracz 1"),Draw.Cyan,chosen[0].id==deck.id,size:13))SelectDeck(0,deck.id);
-            if(Draw.Button(new Rect(r.x+28+buttonW,r.yMax-actionH-12,buttonW,actionH),Lang.T("Player 2","Gracz 2"),Draw.Pink,chosen[1].id==deck.id,size:13))SelectDeck(1,deck.id);
+            if(Draw.Button(new Rect(r.x+28+buttonW,r.yMax-actionH-12,buttonW,actionH),VersusAi?Lang.T("Computer","Komputer"):Lang.T("Player 2","Gracz 2"),VersusAi?Theme.Muted:Draw.Pink,chosen[1].id==deck.id,size:13))SelectDeck(1,deck.id);
         }
         void OpenBuilder(int owner){builder=true;builderOwner=owner;custom=chosen[owner].balls.ToList();search="";rosterScroll=Vector2.zero;}
         void RenderLibrary()

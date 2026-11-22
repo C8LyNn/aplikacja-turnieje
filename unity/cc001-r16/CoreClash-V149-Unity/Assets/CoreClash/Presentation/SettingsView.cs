@@ -19,7 +19,7 @@ namespace CoreClash.Presentation
             Draw.Rect(new Rect(0,0,UiWidth,UiHeight),Theme.A(Theme.Scrim,.62f));
             bool narrow=UiWidth<560;
             float w=Mathf.Min(620,UiWidth-(narrow?16:48)),pad=narrow?12:18,rowH=narrow?78:54,head=50,foot=64;
-            int rows=11;float content=rows*rowH+3*30+8;
+            int rows=VersusAi?12:11;float content=rows*rowH+3*30+8;
             float h=Mathf.Min(UiHeight-(narrow?16:48),head+content+foot),x=(UiWidth-w)/2,y=(UiHeight-h)/2;
             var card=new Rect(x,y,w,h);Draw.Card(card,null,null,.4f);
             var face=Draw.CardFace(card);
@@ -38,6 +38,12 @@ namespace CoreClash.Presentation
             var maps=MatchSetup.Maps;int map=MatchSetup.Map==MatchSetup.RandomMap?0:1+Mathf.Max(0,Array.FindIndex(maps,m=>m.Id==MatchSetup.Map));
             int next=Stepper(ref at,inner,rowH,narrow,Lang.T("Map","Mapa"),MatchSetup.MapName(MatchSetup.Map),map,maps.Length+1);
             if(next!=map)MatchSetup.Map=next==0?MatchSetup.RandomMap:maps[next-1].Id;
+            // W24 (owner decision): a solo player picks how hard the computer tries.
+            if(VersusAi)
+            {
+                pick=Choice(ref at,inner,rowH,narrow,Lang.T("Computer's level","Poziom komputera"),new[]{MatchSetup.AiLevelName(AiLevel.Easy),MatchSetup.AiLevelName(AiLevel.Normal),MatchSetup.AiLevelName(AiLevel.Hard)},(int)MatchSetup.AiLevel);
+                MatchSetup.AiLevel=(AiLevel)pick;
+            }
             // W24 (owner decision): each player picks a colour; the computer's is drawn for every match.
             Section(ref at,inner,Lang.T("Players' colours","Kolory graczy"),"");
             int colour=Stepper(ref at,inner,rowH,narrow,Lang.T("Player 1","Gracz 1"),Theme.PlayerColorName(MatchSetup.Color1),MatchSetup.Color1,Theme.PlayerColors.Length,Theme.PlayerColors[MatchSetup.Color1]);

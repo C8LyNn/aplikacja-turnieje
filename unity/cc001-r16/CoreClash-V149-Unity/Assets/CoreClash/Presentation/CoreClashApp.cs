@@ -42,6 +42,9 @@ namespace CoreClash.Presentation
         NetworkGameSession session;
         // W24: optional computer opponent in the Player 2 seat of a local match.
         readonly AiOpponent ai=new AiOpponent();bool aiMatch;
+        // The level is fixed when the match starts: changing the option mid-match takes effect in the next one.
+        AiLevel aiLevel=AiLevel.Normal;
+        public AiLevel MatchAiLevel=>aiLevel;
         public bool VersusAi{get;private set;}
         // remember=false changes it for this run only (test drivers), leaving the player's saved choice alone.
         public void SetVersusAi(bool value,bool remember=true){VersusAi=value;if(remember)PlayerPrefs.SetInt("cc.versusAi",value?1:0);}
@@ -146,10 +149,10 @@ namespace CoreClash.Presentation
             if(MatchExitGuard.PausesSimulation(exitGuard.Open,NetworkLink!=null))accumulator=0;
             else if(NetworkLink==null||NetworkLink.IsAuthority){accumulator=Math.Min(accumulator+Time.unscaledDeltaTime,.1f);while(accumulator>=1f/120){Simulation.Step(1f/120);accumulator-=1f/120;}BoardView.VisualLead=accumulator;}
             feedback.Observe(Simulation.State,Time.unscaledTime);
-            if(AiTurn&&Simulation.State.phase==MatchPhase.Aiming&&!exitGuard.Open&&ai.Think(Simulation,chosen[0],chosen[1],Time.unscaledTime,Mathf.Min(.004f,.4f/Mathf.Max(30,Application.targetFrameRate)),out var aiCommand))
+            if(AiTurn&&Simulation.State.phase==MatchPhase.Aiming&&!exitGuard.Open&&ai.Think(Simulation,chosen[0],chosen[1],aiLevel,Time.unscaledTime,AiOpponent.FrameBudget(aiLevel,Application.targetFrameRate),out var aiCommand))
             {
                 aiCommand.sequence=++sequence;
-                if(session.Submit(aiCommand.owner,aiCommand,out var aiReason))Debug.Log("CORE_CLASH_AI_LAUNCH type="+aiCommand.ballType);else Debug.LogWarning("AI shot rejected: "+aiReason);
+                if(session.Submit(aiCommand.owner,aiCommand,out var aiReason))Debug.Log("CORE_CLASH_AI_LAUNCH level="+aiLevel+" kind="+aiCommand.kind+" type="+aiCommand.ballType);else Debug.LogWarning("AI shot rejected: "+aiReason);
             }
             if(Simulation.State.phase==MatchPhase.Aiming)selected=BallSelection.ForTurn(Simulation,selected);
             if(inspect.Length>0||DeveloperOverlay||externalModal||exitGuard.Open||phoneMenu){gesture.Active=false;return;}
@@ -194,7 +197,7 @@ namespace CoreClash.Presentation
         public void SelectDeck(int owner,string id){if(owner<0||owner>1)return;var deck=Catalog.Deck(id);if(deck!=null)chosen[owner]=deck;}
         public void StartLocalMatch()
         {
-            NetworkLink?.Disconnect();GetComponent<NgoGameSession>()?.Disconnect();StartMatchState();aiMatch=VersusAi;
+            NetworkLink?.Disconnect();GetComponent<NgoGameSession>()?.Disconnect();StartMatchState();aiMatch=VersusAi;aiLevel=MatchSetup.AiLevel;
             // W24: the computer's colour is drawn for every match; two players keep the colours they chose.
             if(VersusAi)MatchSetup.DrawComputerColor();else MatchSetup.UseChosenColors();
         }

@@ -23,6 +23,10 @@ namespace CoreClash.Presentation
         // Damage numbers over the balls take the eye off the collision itself: off unless asked for.
         public static bool DamageNumbers = false;
 
+        // ---- the computer's level (W24, owner decision 2026-11-22: "a solo player picks a difficulty")
+        public static AiLevel AiLevel = AiLevel.Normal;
+        public static string AiLevelName(AiLevel level) => level == AiLevel.Easy ? Lang.T("Easy", "Łatwy") : level == AiLevel.Hard ? Lang.T("Hard", "Trudny") : Lang.T("Normal", "Średni");
+
         // ---- players' colours (W24, owner decision): each player's own choice; the computer's is drawn.
         public static int Color1 = 0, Color2 = 1;
         // The next colour for that player that the other one has not taken.
@@ -67,9 +71,13 @@ namespace CoreClash.Presentation
             Color1 = Mathf.Clamp(PlayerPrefs.GetInt("cc.color.p1", 0), 0, Theme.PlayerColors.Length - 1);
             Color2 = Mathf.Clamp(PlayerPrefs.GetInt("cc.color.p2", 1), 0, Theme.PlayerColors.Length - 1);
             if (Color2 == Color1) Color2 = NextColor(1, 1);
+            AiLevel = (AiLevel)Mathf.Clamp(PlayerPrefs.GetInt("cc.ai.level", (int)AiLevel.Normal), 0, 2);
             // Test hooks: "--cc-ball-scale <n>", "--cc-map <id>", "--cc-double-turn <0|1>",
-            // "--cc-colors <first>,<second>" (indices into Theme.PlayerColors; also the computer's).
+            // "--cc-colors <first>,<second>" (indices into Theme.PlayerColors; also the computer's),
+            // "--cc-ai-level <0|1|2>" (easy, normal, hard).
             var args = Environment.GetCommandLineArgs();
+            int ai = Array.IndexOf(args, "--cc-ai-level");
+            if (ai >= 0 && ai + 1 < args.Length && int.TryParse(args[ai + 1], out int wanted)) AiLevel = (AiLevel)Mathf.Clamp(wanted, 0, 2);
             int colors = Array.IndexOf(args, "--cc-colors");
             if (colors >= 0 && colors + 1 < args.Length)
             {
@@ -94,6 +102,7 @@ namespace CoreClash.Presentation
             PlayerPrefs.SetInt("cc.show.stopMark", BoardView.ShowStopEstimate ? 1 : 0);
             PlayerPrefs.SetInt("cc.color.p1", Color1);
             PlayerPrefs.SetInt("cc.color.p2", Color2);
+            PlayerPrefs.SetInt("cc.ai.level", (int)AiLevel);
             PlayerPrefs.Save();
         }
 

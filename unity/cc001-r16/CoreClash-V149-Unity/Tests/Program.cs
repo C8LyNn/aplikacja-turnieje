@@ -12,6 +12,8 @@ public static partial class Program
     {
         string root=args.Length>0?args[0]:Path.GetFullPath(Path.Combine(AppContext.BaseDirectory,"../../../../"));
         projectRoot=root;
+        // W24: "<root> ailab <train|balance|levels|bench> ..." runs the simulation lab instead of the tests.
+        if(args.Length>1&&args[1]=="ailab"){Environment.ExitCode=CoreClash.SelfPlay.AiLab.Main(root,args.Skip(2).ToArray());return;}
         var json=new JsonSerializerOptions{IncludeFields=true};
         catalog=new Catalog(JsonSerializer.Deserialize<CatalogData>(File.ReadAllText(Path.Combine(root,"Assets/Resources/Data/catalog.json")),json),JsonSerializer.Deserialize<FeaturedDeckData>(File.ReadAllText(Path.Combine(root,"Assets/Resources/Data/featured-decks.json")),json));
         Test("new match has source bases and distinct owners",()=>{var s=Sim();Eq(20,s.State.players[0].hp);Eq(20,s.State.players[1].hp);Eq(0,s.State.turn);Eq(1,s.State.turnNumber);});
@@ -49,7 +51,7 @@ public static partial class Program
         StabilityR16Tests();
         StatusPayoffTests();
         W17MatchExitTests();
-        W24MatchRulesTests();W24SixGroupsTests();W24FieldsTests();
+        W24MatchRulesTests();W24SixGroupsTests();W24FieldsTests();W24AiTests();
         Console.WriteLine($"RESULT: {passed} passed, {failed} failed");Environment.ExitCode=failed==0?0:1;
         Directory.CreateDirectory(Path.Combine(root,"Evidence"));File.WriteAllText(Path.Combine(root,"Evidence/unity-tests.json"),JsonSerializer.Serialize(new{spec="V149 UNITY",testedAt=DateTime.UtcNow,passed,failed,results},new JsonSerializerOptions{WriteIndented=true}));
         var support=catalog.Data.balls.Select(b=>new{id=b.id,name=b.name,hidden=b.hidden,status=AbilitySupport.Status(b.id),featured=catalog.Featured.Any(d=>d.balls.Contains(b.id))}).ToArray();
