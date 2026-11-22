@@ -92,7 +92,7 @@ namespace CoreClash.Core
                 }else if(z.kind=="web"){
                     var target=Living().FirstOrDefault(b=>b.owner!=z.owner&&(b.x-z.x)*(b.x-z.x)+(b.y-z.y)*(b.y-z.y)<(z.radius+b.radius)*(z.radius+b.radius));if(target!=null){Root(target);z.dead=true;}
                 }else if(z.kind=="gravitymine"){
-                    foreach(var b in Living().Where(b=>b.id!=z.sourceId)){float d=(float)Math.Sqrt((b.x-z.x)*(b.x-z.x)+(b.y-z.y)*(b.y-z.y));if(d>z.radius)continue;Impulse(b,z.x,z.y,70*dt);if(b.owner!=z.owner){z.dead=true;var source=S.balls.FirstOrDefault(x=>x.id==z.sourceId);if(source!=null){var blast=new BallRuntime{id=source.id,owner=z.owner,type="gravitymine",x=z.x,y=z.y};Explode(blast,100,14,390);sim.Kill(source);}break;}}
+                    foreach(var b in Living().Where(b=>b.id!=z.sourceId)){float d=(float)Math.Sqrt((b.x-z.x)*(b.x-z.x)+(b.y-z.y)*(b.y-z.y));if(d>z.radius||!FieldHolds(z,b))continue;Impulse(b,z.x,z.y,70*dt);if(b.owner!=z.owner){z.dead=true;var source=S.balls.FirstOrDefault(x=>x.id==z.sourceId);if(source!=null){var blast=new BallRuntime{id=source.id,owner=z.owner,type="gravitymine",x=z.x,y=z.y};Explode(blast,100,14,390);sim.Kill(source);}break;}}
                 }else if(z.kind=="blackHole"){
                     foreach(var b in Living()){
                         float dx=z.x-b.x,dy=z.y-b.y,d=(float)Math.Sqrt(dx*dx+dy*dy),swallow=Math.Max(z.coreRadius,z.radius*.145f)+b.radius*.34f;

@@ -173,6 +173,11 @@ namespace CoreClash.Testing
             string clip = null;
             if (clips) { clip = BeginClip("clip-status"); yield return Frames(clip, sim, 8); }
             sim.Heal(many, 6); sim.Shield(chilled, 8); sim.Damage(poisoned, 7, true); sim.Abilities.ApplyFire(rooted, 1);
+            // W24 (owner rule: one place holds one field): a second pool joins the first, a blizzard laid
+            // after them is cut by both, and the campfire's field, laid last, is cut by all three.
+            var pool2 = Place(sim, 0, "blightpool", 330, 720); sim.Abilities.OnStop(pool2);
+            var blizzard = Place(sim, 0, "blizzardcore", 150, 690); sim.Abilities.OnStop(blizzard);
+            sim.State.turn = 0; sim.Abilities.OnTurnStart(0);
             if (clips) { yield return Frames(clip, sim, 42); EndClip(); }
             else yield return Seconds(.25f);
             if (!clips) yield return Capture("09-status-feedback");

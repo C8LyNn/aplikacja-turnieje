@@ -49,6 +49,9 @@ namespace CoreClash.Core
         // its card - the hidden passives of the old archetypes do not run, and a switched-off
         // power stays off for a time instead of for one use.
         public bool plainPowers;
+        // W24 match rule (off = the reference rules): one place on the board holds one field - fields
+        // of one element join, a newer field of another element exists only outside the older one.
+        public bool exclusiveFields;
         public bool comebackRule,comebackActive;
         public string mapId="";
         public string actionKind,resultReason;

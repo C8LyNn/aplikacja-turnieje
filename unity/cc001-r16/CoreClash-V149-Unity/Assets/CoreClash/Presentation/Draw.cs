@@ -544,6 +544,81 @@ namespace CoreClash.Presentation
             }
             return strokeMaterial!=null;
         }
+        // ---------------------------------------------------------------- offscreen layer
+        // W24 (owner rule: fields of one kind join into one shape, a newer field of another kind is
+        // cut by the older one). A layer is a picture made off the screen. A disc drawn into it
+        // REPLACES what is under it - nothing is blended - so the shape drawn last keeps the place
+        // where two overlap, and two discs of one colour become one shape with no seam and no
+        // double tint. Strokes are then laid over them with a smooth edge. The finished picture
+        // goes on the screen as one texture, pixel for pixel, so the engine's group clipping
+        // reaches it. It is redrawn only when its signature changes.
+        sealed class Layer{public RenderTexture texture;public int signature;public bool drawn;}
+        static readonly Dictionary<long,Layer> layers=new Dictionary<long,Layer>();
+        static Material layerFill;static Layer layerNow;static Rect layerPixels;static RenderTexture layerBefore;static bool layerOpen;
+        // False when this device cannot do it (the caller draws the plain way). `fresh` is true when
+        // the picture has to be drawn now: call LayerDisc / LayerStroke, then EndLayer in any case.
+        public static bool BeginLayer(Rect area,int signature,out bool fresh)
+        {
+            fresh=false;layerNow=null;layerOpen=false;
+            if(!StrokeReady())return false;
+            var p=Px(area);int x0=Mathf.FloorToInt(p.x),y0=Mathf.FloorToInt(p.y),w=Mathf.CeilToInt(p.xMax)-x0,h=Mathf.CeilToInt(p.yMax)-y0;
+            if(w<4||h<4||w>8192||h>8192)return false;
+            layerPixels=new Rect(x0,y0,w,h);
+            if(Event.current.type!=EventType.Repaint)return true;
+            long key=((long)w<<20)|(uint)h;
+            if(!layers.TryGetValue(key,out var layer)||layer.texture==null)
+            {
+                // A few sizes at most (the board, the show on a card); a resized window starts over.
+                if(layers.Count>=4){foreach(var old in layers.Values)if(old.texture!=null){old.texture.Release();UnityEngine.Object.Destroy(old.texture);}layers.Clear();}
+                layer=new Layer{texture=new RenderTexture(w,h,0,RenderTextureFormat.ARGB32){name="Core Clash field layer",hideFlags=HideFlags.HideAndDontSave,filterMode=FilterMode.Point,wrapMode=TextureWrapMode.Clamp,antiAliasing=1,useMipMap=false}};
+                layers[key]=layer;
+            }
+            layerNow=layer;
+            if(!layer.texture.IsCreated()){layer.texture.Create();layer.drawn=false;}
+            unchecked{signature=signature*31+x0;signature=signature*31+y0;signature=signature*31+Mathf.RoundToInt(UiViewport.Scale*1000);}
+            if(layer.drawn&&layer.signature==signature)return true;
+            if(layerFill==null)
+            {
+                layerFill=new Material(Shader.Find("Hidden/Internal-Colored")){hideFlags=HideFlags.HideAndDontSave};
+                layerFill.SetInt("_SrcBlend",(int)UnityEngine.Rendering.BlendMode.One);layerFill.SetInt("_DstBlend",(int)UnityEngine.Rendering.BlendMode.Zero);
+                layerFill.SetInt("_Cull",(int)UnityEngine.Rendering.CullMode.Off);layerFill.SetInt("_ZWrite",0);layerFill.SetInt("_ZTest",(int)UnityEngine.Rendering.CompareFunction.Always);
+            }
+            layer.signature=signature;layer.drawn=true;fresh=true;layerOpen=true;
+            layerBefore=RenderTexture.active;RenderTexture.active=layer.texture;
+            GL.PushMatrix();GL.LoadPixelMatrix(0,w,h,0);GL.Clear(false,true,new Color(0,0,0,0));
+            return true;
+        }
+        // A disc that replaces whatever the layer holds there (its colour and its alpha).
+        public static void LayerDisc(Vector2 center,float radius,Color color)
+        {
+            if(!layerOpen||radius<=0)return;
+            float s=UiViewport.Scale,r=radius*s;Vector2 c=center*s-layerPixels.position;
+            int steps=Mathf.Clamp(Mathf.CeilToInt(r*.9f),24,320);
+            layerFill.SetPass(0);GL.Begin(GL.TRIANGLES);GL.Color(color);
+            float before=0;
+            for(int i=1;i<=steps;i++)
+            {
+                float angle=i*Mathf.PI*2/steps;
+                GL.Vertex3(c.x,c.y,0);GL.Vertex3(c.x+Mathf.Cos(before)*r,c.y+Mathf.Sin(before)*r,0);GL.Vertex3(c.x+Mathf.Cos(angle)*r,c.y+Mathf.Sin(angle)*r,0);
+                before=angle;
+            }
+            GL.End();
+        }
+        // A line with round ends and a smooth edge, laid over what the layer holds.
+        public static void LayerStroke(Vector2 a,Vector2 b,Color color,float width)
+        {
+            if(!layerOpen||width<=0||color.a<=0)return;
+            float s=UiViewport.Scale;pair[0]=a*s-layerPixels.position;pair[1]=b*s-layerPixels.position;
+            if((pair[0]-pair[1]).sqrMagnitude<1e-4f)return;
+            strokeMaterial.SetPass(0);GL.Begin(GL.TRIANGLES);EmitHull(pair,2,width*s*.5f,color);GL.End();
+        }
+        public static void EndLayer()
+        {
+            if(layerOpen){GL.PopMatrix();RenderTexture.active=layerBefore;layerOpen=false;}
+            if(Event.current.type!=EventType.Repaint||layerNow==null||layerNow.texture==null||!layerNow.drawn)return;
+            GUI.DrawTexture(layerPixels,layerNow.texture,ScaleMode.StretchToFill,true);
+        }
+
         // A line with round ends; dash > 0 breaks it into dashes that long (between the centres of
         // their round ends) with `gap` between them.
         public static void Stroke(Vector2 a,Vector2 b,Color color,float width,float dash=0,float gap=0)

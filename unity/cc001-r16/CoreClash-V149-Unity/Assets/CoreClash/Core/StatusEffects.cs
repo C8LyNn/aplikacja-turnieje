@@ -95,10 +95,12 @@ namespace CoreClash.Core
                 if(z.kind!="blight"&&z.kind!="consecrated"&&z.kind!="fire"&&z.kind!="ice"&&z.kind!="furnaceFire")continue;
                 var targets=Living().Where(t=>Math.Sqrt((t.x-z.x)*(t.x-z.x)+(t.y-z.y)*(t.y-z.y))<=z.radius+t.radius*.5f).ToArray();
                 if(z.kind=="consecrated"){
-                    var target=targets.Where(t=>t.owner==z.owner&&(t.fireStacks>0||t.iceStacks>0||t.toxinTurns>0||t.rooted||t.frozen>0||t.jammed>0||t.sticky>0)).OrderByDescending(t=>t.statusOrder.Count).ThenBy(t=>t.id).FirstOrDefault();
+                    var target=targets.Where(t=>t.owner==z.owner&&FieldReaches(z,t)&&(t.fireStacks>0||t.iceStacks>0||t.toxinTurns>0||t.rooted||t.frozen>0||t.jammed>0||t.sticky>0)).OrderByDescending(t=>t.statusOrder.Count).ThenBy(t=>t.id).FirstOrDefault();
                     if(target!=null)EmitCleanse(S.balls.FirstOrDefault(t=>t.id==z.sourceId),target,Cleanse(target,true));
                 }else foreach(var target in targets.Where(t=>t.owner!=z.owner)){
-                    string key=z.sourceId+":"+z.kind+":"+target.id;if(!seen.Add(key))continue;
+                    // One place holds one field; joined fields of one element act once.
+                    if(!FieldReaches(z,target))continue;
+                    string key=S.exclusiveFields?FieldElement(z)+":"+target.id:z.sourceId+":"+z.kind+":"+target.id;if(!seen.Add(key))continue;
                     if(z.kind=="blight")ApplyToxin(target,z.owner);else if(z.kind=="fire"||z.kind=="furnaceFire")ApplyFire(target,z.owner);else ApplyIce(target,z.owner);
                 }
                 if(--z.turns<=0)z.dead=true;

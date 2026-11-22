@@ -176,8 +176,8 @@ namespace CoreClash.Presentation
             Add("blizzardcore","Zamieć",GuideWhen.Stop,GuideWho.Enemies,165,"Ice field","Pole lodu",
                 "Starts a big blizzard that lasts 3 turns. At the end of every turn, enemies standing in it get chilled.",
                 "Rozpętuje dużą zamieć na 3 tury. Na koniec każdej tury wrogowie stojący w zamieci dostają mróz.",
-                "An enemy that stays in it for all 3 turns ends up frozen.",
-                "Wróg, który przestoi w niej wszystkie 3 tury, zostanie zamrożony.",
+                "3 turns in it = frozen. Where an older field lies, a new one does not work.",
+                "3 tury w zamieci = zamrożenie. W miejscu starszego pola nowe nie działa.",
                 Time("Lasts 3 turns","Trwa 3 tury"),Chilled);
             Add("frosttrap","Pułapka lodu",GuideWhen.Stop,GuideWho.Enemies,0,"Chills enemy","Mrozi wroga",
                 "Leaves an ice trap on that spot. The first enemy to roll over the trap gets chilled.",
@@ -208,8 +208,8 @@ namespace CoreClash.Presentation
             Add("furnace","Ognisko",GuideWhen.Turn,GuideWho.Enemies,104,"Fire field","Pole ognia",
                 "In each turn of yours it lights a field of fire around itself. At the end of every turn, enemies standing in the field catch fire.",
                 "W każdej twojej turze rozpala wokół siebie pole ognia. Na koniec każdej tury wrogowie stojący w polu zaczynają płonąć.",
-                "Big and heavy: hard to push away.",
-                "Duże i ciężkie: trudno je odepchnąć.",
+                "Big and heavy. Where an older field lies, its fire does not work.",
+                "Duże i ciężkie. W miejscu starszego pola jego ogień nie działa.",
                 Burning);
             Add("embertrap","Pułapka ognia",GuideWhen.Stop,GuideWho.Enemies,0,"Sets alight","Podpala wroga",
                 "Leaves a fire trap on that spot. The first enemy to roll over the trap catches fire.",
@@ -240,8 +240,8 @@ namespace CoreClash.Presentation
             Add("blightpool","Trująca kałuża",GuideWhen.Stop,GuideWho.Enemies,165,"Poison pool","Kałuża jadu",
                 "Spills a big pool of poison that lasts 3 turns. At the end of every turn, enemies standing in the pool get poisoned.",
                 "Rozlewa dużą kałużę trucizny na 3 tury. Na koniec każdej tury wrogowie stojący w kałuży zostają zatruci.",
-                "Push or pull enemies into the pool.",
-                "Wepchnij albo wciągnij wrogów do kałuży.",
+                "Push enemies into the pool. Where an older field lies, a new one does not work.",
+                "Wepchnij wrogów do kałuży. W miejscu starszego pola nowe nie działa.",
                 Time("Pool lasts 3 turns","Kałuża trwa 3 tury"),Poisoned);
             Add("sporetrap","Pułapka jadu",GuideWhen.Stop,GuideWho.Enemies,0,"Poisons enemy","Zatruwa wroga",
                 "Leaves a poison trap on that spot. The first enemy to roll over the trap is poisoned.",
@@ -282,8 +282,8 @@ namespace CoreClash.Presentation
             Add("gravitymine","Mina magnesowa",GuideWhen.Stop,GuideWho.Everyone,100,"Pull + blast","Wir i wybuch",
                 "Makes a field that pulls balls towards it. When an enemy rolls into the field, the mine explodes and is gone.",
                 "Tworzy pole, które przyciąga kulki. Gdy w pole wjedzie wróg, mina wybucha i znika.",
-                "The blast hurts your balls too.",
-                "Wybuch rani też twoje kulki.",
+                "The blast hurts your balls too. Inside an older field the mine's field does not work.",
+                "Wybuch rani też twoje kulki. W starszym polu pole miny nie działa.",
                 Damage("10 damage","10 obrażeń"));
             Add("anchor","Kotwica",GuideWhen.Stop,GuideWho.Self,0,"Holds ground","Trzyma miejsce",
                 "Drops anchor where it stops: collisions, magnets and blasts barely move it.",

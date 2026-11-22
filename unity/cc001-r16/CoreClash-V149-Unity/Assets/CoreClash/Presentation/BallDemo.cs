@@ -75,7 +75,7 @@ namespace CoreClash.Presentation
             // The opening-turn bonus shot is not part of any show.
             state.bonusUsed=true;
             // A show plays by the rule the game itself plays by: a ball has only its card's power.
-            state.plainPowers=true;
+            state.plainPowers=true;state.exclusiveFields=true;
             foreach(var piece in script.Pieces)
             {
                 var ball=Simulation.Spawn(piece.Owner,piece.Type,piece.X,piece.Y);

@@ -346,12 +346,94 @@ namespace CoreClash.Presentation
 
         const string ArrowUp = "+L -.7 .45 0 -.45 .36;+L 0 -.45 .7 .45 .36", ArrowDown = "+L -.7 -.45 0 .45 .36;+L 0 .45 .7 -.45 .36";
         const string ArrowLeft = "+L .45 -.7 -.45 0 .36;+L -.45 0 .45 .7 .36", ArrowRight = "+L -.45 -.7 .45 0 .36;+L .45 0 -.45 .7 .36";
+        // W24 (owner rule, with a sketch: "the same fields are to join; a new one of another kind
+        // cannot appear where the old one was"). All fields are drawn as one picture from the rules'
+        // own question "which field holds this place" (AbilityResolver.FieldAt): fields of one
+        // element are one shape with no line inside, and a newer field of another element is cut by
+        // the older one. Returns false when the picture cannot be made (the fields are then drawn
+        // one by one, as before).
+        static readonly List<ZoneRuntime> fieldList = new List<ZoneRuntime>();
+        static readonly List<Vector2> fieldArc = new List<Vector2>(320);
+        static Color FieldTone(string element)
+            => element == "fire" ? Theme.Status(StatusKind.Fire) : element == "ice" ? Theme.Status(StatusKind.Ice) : element == "toxin" ? Theme.Status(StatusKind.Toxin)
+             : element == "magnet" ? new Color(.36f, .42f, .96f) : new Color(1, .76f, .1f);
+        static Color FieldFill(string element) => Theme.A(FieldTone(element), element == "ice" ? .34f : element == "magnet" ? .24f : .3f);
+        static Color FieldEdgeTone(string element) => Theme.A(Color.Lerp(FieldTone(element), Theme.Ink, element == "fire" ? .1f : element == "ice" ? .2f : element == "magnet" ? .15f : .3f), .92f);
+        static bool RenderFields(Rect board, GameState state, float scale)
+        {
+            fieldList.Clear();
+            foreach (var zone in state.zones) if (AbilityResolver.FieldElement(zone) != null) fieldList.Add(zone);
+            if (fieldList.Count == 0) return true;
+            int signature = 17;
+            unchecked
+            {
+                foreach (var zone in fieldList)
+                {
+                    signature = signature * 31 + zone.id; signature = signature * 31 + zone.kind.GetHashCode();
+                    signature = signature * 31 + Mathf.RoundToInt(zone.x * 16); signature = signature * 31 + Mathf.RoundToInt(zone.y * 16); signature = signature * 31 + Mathf.RoundToInt(zone.radius * 16);
+                }
+                signature = signature * 31 + Mathf.RoundToInt(board.x * 64); signature = signature * 31 + Mathf.RoundToInt(board.y * 64); signature = signature * 31 + Mathf.RoundToInt(board.width * 64);
+            }
+            if (!Draw.BeginLayer(board, signature, out bool fresh)) return false;
+            if (fresh)
+            {
+                // Fills, the newest field first: the older one is laid last and keeps the place.
+                fieldList.Sort((a, b) => b.id.CompareTo(a.id));
+                foreach (var zone in fieldList) Draw.LayerDisc(Point(board, zone.x, zone.y), zone.radius * scale, FieldFill(AbilityResolver.FieldElement(zone)));
+                // Edges: only where the element changes - never between two joined fields.
+                float line = Mathf.Max(2f, 3.4f * scale);
+                foreach (var zone in fieldList) FieldOutline(board, state, zone, scale, FieldEdgeTone(AbilityResolver.FieldElement(zone)), line);
+            }
+            Draw.EndLayer();
+            return true;
+        }
+        // Is the circle of this field, at this angle, a border between two elements (or the outside)?
+        static bool FieldBorder(GameState state, ZoneRuntime zone, float angle)
+        {
+            const float step = .75f; float c = Mathf.Cos(angle), s = Mathf.Sin(angle);
+            var inside = AbilityResolver.FieldAt(state, zone.x + c * (zone.radius - step), zone.y + s * (zone.radius - step));
+            var outside = AbilityResolver.FieldAt(state, zone.x + c * (zone.radius + step), zone.y + s * (zone.radius + step));
+            return AbilityResolver.FieldElement(inside) != AbilityResolver.FieldElement(outside);
+        }
+        static Vector2 FieldRim(Rect board, ZoneRuntime zone, float angle)
+            => Point(board, zone.x + Mathf.Cos(angle) * zone.radius, zone.y + Mathf.Sin(angle) * zone.radius);
+        static void FieldOutline(Rect board, GameState state, ZoneRuntime zone, float scale, Color color, float width)
+        {
+            int count = Mathf.Clamp(Mathf.CeilToInt(zone.radius * scale * .45f), 48, 220); float step = Mathf.PI * 2 / count;
+            bool first = FieldBorder(state, zone, 0), previous = first;
+            fieldArc.Clear();
+            if (previous) fieldArc.Add(FieldRim(board, zone, 0));
+            for (int i = 1; i <= count; i++)
+            {
+                float angle = i * step; bool here = i == count ? first : FieldBorder(state, zone, angle);
+                if (here != previous)
+                {
+                    // Where the border starts or ends, to a fraction of a pixel.
+                    float low = angle - step, high = angle;
+                    for (int k = 0; k < 9; k++) { float middle = (low + high) * .5f; if (FieldBorder(state, zone, middle) == previous) low = middle; else high = middle; }
+                    var cut = FieldRim(board, zone, (low + high) * .5f);
+                    if (previous) { fieldArc.Add(cut); FieldArcOut(color, width); }
+                    else { fieldArc.Clear(); fieldArc.Add(cut); }
+                }
+                if (here) fieldArc.Add(FieldRim(board, zone, angle));
+                previous = here;
+            }
+            if (previous) FieldArcOut(color, width);
+        }
+        static void FieldArcOut(Color color, float width)
+        {
+            for (int i = 0; i + 1 < fieldArc.Count; i++) Draw.LayerStroke(fieldArc[i], fieldArc[i + 1], color, width);
+            fieldArc.Clear();
+        }
         static void RenderZones(Rect board, GameState state)
         {
             float scale = board.width / 540;
+            // One place holds one field (the match rule): the fields are one picture.
+            bool joined = state.exclusiveFields && RenderFields(board, state, scale);
             foreach (var zone in state.zones)
             {
                 if (zone.dead) continue;
+                bool field = joined && AbilityResolver.FieldElement(zone) != null;
                 bool fire = zone.kind == "embertrap" || zone.kind == "furnaceFire" || zone.kind.Contains("fire");
                 bool ice = zone.kind == "frosttrap" || zone.kind.Contains("ice");
                 bool toxin = zone.kind == "sporetrap" || zone.kind == "blight";
@@ -374,14 +456,18 @@ namespace CoreClash.Presentation
                     StatusKind kind = fire ? StatusKind.Fire : ice ? StatusKind.Ice : StatusKind.Toxin;
                     Color pale = fire ? new Color(1f, .86f, .25f) : ice ? new Color(.92f, .98f, 1f) : new Color(.9f, .72f, 1f);
                     Color deep = Color.Lerp(color, Theme.Ink, fire ? .1f : ice ? .2f : .3f);
-                    // The fill is light: a field must not hide the board, the balls or another field under it.
-                    Draw.Circle(patch, Theme.A(color, ice ? .34f : .3f));
-                    Draw.Circle(Draw.Grow(patch, -reach * .32f), Theme.A(pale, ice ? .2f : .15f));
-                    Draw.Ring(center, reach, Theme.A(deep, .92f), Mathf.Max(2f, 3.4f * scale));
-                    Draw.Ring(center, reach - Mathf.Max(2f, 3.4f * scale), Theme.A(pale, .55f), Mathf.Max(1f, 1.6f * scale));
-                    Strew(board, zone, scale, kind, Theme.A(ice ? Color.white : fire ? Color.Lerp(pale, color, .35f) : deep, ice ? .85f : .7f));
+                    if (!field)
+                    {
+                        // The fill is light: a field must not hide the board, the balls or another field under it.
+                        Draw.Circle(patch, Theme.A(color, ice ? .34f : .3f));
+                        Draw.Circle(Draw.Grow(patch, -reach * .32f), Theme.A(pale, ice ? .2f : .15f));
+                        Draw.Ring(center, reach, Theme.A(deep, .92f), Mathf.Max(2f, 3.4f * scale));
+                        Draw.Ring(center, reach - Mathf.Max(2f, 3.4f * scale), Theme.A(pale, .55f), Mathf.Max(1f, 1.6f * scale));
+                    }
+                    // A joined field strews its symbol only over the places it holds itself.
+                    Strew(board, field ? state : null, zone, scale, kind, Theme.A(ice ? Color.white : fire ? Color.Lerp(pale, color, .35f) : deep, ice ? .85f : .7f));
                 }
-                else
+                else if (!field)
                 {
                 Draw.Circle(Box(board, zone.x - zone.radius, zone.y - zone.radius, zone.radius * 2, zone.radius * 2), Theme.A(color, dense ? .6f : .26f));
                 Draw.Ring(center, zone.radius * scale, Theme.A(Color.Lerp(color, Theme.Ink, .15f), dense ? .95f : .8f), Mathf.Max(1.5f, 2.4f * scale), dense ? 0 : 24, .62f);
@@ -389,11 +475,12 @@ namespace CoreClash.Presentation
                 if (zone.kind == "gravitymine")
                 {
                     // The magnet mine's field: four arrowheads on its rim point at the mine.
-                    float mark = Mathf.Max(11, 17 * scale), rim = zone.radius * scale * .74f; Color tint = Theme.A(Color.Lerp(color, Theme.Ink, .25f), .85f);
-                    Glyphs.Paint(new Rect(center.x - mark / 2, center.y - rim - mark / 2, mark, mark), ArrowDown, tint);
-                    Glyphs.Paint(new Rect(center.x - mark / 2, center.y + rim - mark / 2, mark, mark), ArrowUp, tint);
-                    Glyphs.Paint(new Rect(center.x - rim - mark / 2, center.y - mark / 2, mark, mark), ArrowRight, tint);
-                    Glyphs.Paint(new Rect(center.x + rim - mark / 2, center.y - mark / 2, mark, mark), ArrowLeft, tint);
+                    float mark = Mathf.Max(11, 17 * scale), rim = zone.radius * scale * .74f, reach = zone.radius * .74f; Color tint = Theme.A(Color.Lerp(color, Theme.Ink, .25f), .85f);
+                    // Each arrowhead only where the place is this mine's own.
+                    if (!field || AbilityResolver.FieldAt(state, zone.x, zone.y - reach) == zone) Glyphs.Paint(new Rect(center.x - mark / 2, center.y - rim - mark / 2, mark, mark), ArrowDown, tint);
+                    if (!field || AbilityResolver.FieldAt(state, zone.x, zone.y + reach) == zone) Glyphs.Paint(new Rect(center.x - mark / 2, center.y + rim - mark / 2, mark, mark), ArrowUp, tint);
+                    if (!field || AbilityResolver.FieldAt(state, zone.x - reach, zone.y) == zone) Glyphs.Paint(new Rect(center.x - rim - mark / 2, center.y - mark / 2, mark, mark), ArrowRight, tint);
+                    if (!field || AbilityResolver.FieldAt(state, zone.x + reach, zone.y) == zone) Glyphs.Paint(new Rect(center.x + rim - mark / 2, center.y - mark / 2, mark, mark), ArrowLeft, tint);
                 }
                 if (dense && !Fx.ReducedMotion) Draw.Ring(center, zone.radius * scale * (.55f + .2f * Mathf.Sin(Time.unscaledTime * 3 + zone.id)), Theme.A(Color.white, .5f), Mathf.Max(1, 1.6f * scale), 6, .45f);
                 if (dense)
@@ -418,7 +505,8 @@ namespace CoreClash.Presentation
             }
         }
         // The element's symbol strewn over its field: a still pattern made from the field's id.
-        static void Strew(Rect board, ZoneRuntime zone, float scale, StatusKind kind, Color tint)
+        // `state` given: a symbol is drawn only where the place is held by this very field.
+        static void Strew(Rect board, GameState state, ZoneRuntime zone, float scale, StatusKind kind, Color tint)
         {
             uint seed = (uint)zone.id * 2654435761u | 1u;
             int count = Mathf.Clamp(Mathf.RoundToInt(zone.radius * zone.radius / 1500f), 4, 10);
@@ -430,7 +518,9 @@ namespace CoreClash.Presentation
                 // The first one stands in the middle; the rest fill the field evenly out to its edge.
                 float away = i == 0 ? 0 : Mathf.Sqrt((i + .35f) / count) * .8f * zone.radius;
                 float size = Mathf.Max(9, (14 + (seed & 7)) * scale) * (i == 0 ? 1.35f : 1);
-                var at = Point(board, zone.x + Mathf.Cos(angle) * away, zone.y + Mathf.Sin(angle) * away);
+                float wx = zone.x + Mathf.Cos(angle) * away, wy = zone.y + Mathf.Sin(angle) * away;
+                if (state != null && AbilityResolver.FieldAt(state, wx, wy) != zone) continue;
+                var at = Point(board, wx, wy);
                 Glyphs.Paint(new Rect(at.x - size * .5f, at.y - size * .5f, size, size), kind, tint);
             }
         }

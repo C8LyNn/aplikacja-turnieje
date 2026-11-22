@@ -64,6 +64,8 @@ namespace CoreClash.Presentation
             state.comebackRule = DoubleTurn;
             // W24 six groups: a ball has only the power written on its card.
             state.plainPowers = true;
+            // W24 (owner rule): one place on the board holds one field.
+            state.exclusiveFields = true;
             var map = Map == RandomMap ? Maps[UnityEngine.Random.Range(0, Maps.Length)] : MapById(Map) ?? Maps[0];
             MatchMaps.Apply(simulation, map);
         }
