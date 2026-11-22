@@ -387,9 +387,11 @@ namespace CoreClash.Presentation
                     Draw.Circle(Box(board, zone.x - zone.radius * .68f, zone.y - zone.radius * .68f, zone.radius * 1.36f, zone.radius * 1.36f), new Color(.14f, .08f, .32f));
                 if (zone.kind == "web")
                 {
-                    // A snare of the Flytrap: its jaws, small, on the green patch.
-                    float jaws = Mathf.Max(12, 20 * scale);
-                    Glyphs.Paint(new Rect(center.x - jaws / 2, center.y - jaws / 2, jaws, jaws), BallIcons.Spec("web"), Theme.Ink);
+                    // A shoot of the Vine: three leaves round a bud, lying on the floor in the owner's ring.
+                    float sprig = Mathf.Max(16, 30 * scale); var box = new Rect(center.x - sprig / 2, center.y - sprig / 2, sprig, sprig);
+                    Draw.Ring(center, (zone.radius + 3) * scale, Theme.A(Draw.Owner(zone.owner), .85f), Mathf.Max(1, 1.5f * scale), zone.owner == 1 ? Theme.P2RingSegments * 2 : 0, Theme.P2RingFill);
+                    Glyphs.PaintOutline(box, BallIcons.Shoot, Theme.Shade(color, 1.1f, .3f));
+                    Glyphs.Paint(box, BallIcons.Shoot, Color.Lerp(color, Color.white, .25f));
                 }
                 if(zone.kind=="embertrap"||zone.kind=="frosttrap"||zone.kind=="sporetrap"||zone.kind=="shocktrap")
                 {

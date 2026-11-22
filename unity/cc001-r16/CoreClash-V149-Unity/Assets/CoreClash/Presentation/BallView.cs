@@ -184,17 +184,33 @@ namespace CoreClash.Presentation
                 Glyphs.Paint(box, BoltSpec, Volt);
             }
         }
-        // A web over a ball that is stuck in one.
+        // A ball tangled in the Vine: two winding stems lie across it, leaves on their bends.
+        static readonly Color VineGreen = new Color(.36f, .78f, .22f), VineDark = new Color(.08f, .3f, .1f);
+        static readonly Vector2[] vinePath = new Vector2[9];
         static void Web(Vector2 point, float radius, float scale)
         {
-            Color strand = new Color(.8f, 1f, .62f, .92f); float line = Mathf.Max(1.2f, 1.7f * scale);
-            for (int i = 0; i < 3; i++)
+            float band = Mathf.Max(2.6f, radius * .17f), ink = band + Mathf.Max(2f, 2.6f * scale), leaf = Mathf.Max(5f, radius * .3f);
+            for (int pass = 0; pass < 2; pass++)
+            for (int stem = 0; stem < 2; stem++)
             {
-                float angle = (20f + i * 60f) * Mathf.Deg2Rad; var along = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * radius * .96f;
-                Draw.Stroke(point - along, point + along, strand, line);
+                float angle = (stem == 0 ? 28f : -34f) * Mathf.Deg2Rad, turn = stem == 0 ? 1 : -1;
+                var along = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)); var across = new Vector2(-along.y, along.x);
+                int last = vinePath.Length - 1;
+                for (int i = 0; i <= last; i++)
+                {
+                    float t = i / (float)last * 2 - 1;
+                    vinePath[i] = point + along * (t * radius * 1.02f) + across * (Mathf.Sin(t * Mathf.PI) * radius * .2f * turn);
+                }
+                Color tint = pass == 0 ? VineDark : VineGreen; float width = pass == 0 ? ink : band;
+                for (int i = 0; i < last; i++) Draw.Stroke(vinePath[i], vinePath[i + 1], tint, width);
+                // A leaf on the outer side of each bend.
+                for (int bend = 0; bend < 2; bend++)
+                {
+                    float side = (bend == 0 ? -1 : 1) * turn; var root = vinePath[bend == 0 ? 2 : last - 2];
+                    Vector2 tip = root + across * side * leaf * 1.5f + along * leaf * .35f;
+                    Draw.Triangle(root - along * leaf * .5f, root + along * leaf * .5f, tip, pass == 0 ? (ink - band) * .5f + .8f : .8f, tint);
+                }
             }
-            Draw.Ring(point, radius * .52f, strand, line);
-            Draw.Ring(point, radius * .9f, strand, line);
         }
         // What the ball is going through right now. W24 (owner direction): states are kept minimal.
         // What a ball carries is told by its small chip under it (symbol and number); on the ball

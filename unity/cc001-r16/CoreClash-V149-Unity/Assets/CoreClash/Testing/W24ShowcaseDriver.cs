@@ -219,7 +219,7 @@ namespace CoreClash.Testing
             if (perf) yield return Measure("after-explosion", 90);
 
             // 8. W24 six groups, through the balls' own ability hooks: lightning that jumps, a Magnet that
-            // gathers, a Compass that goes for an enemy, a Sprout that grew, a shock trap and a snare.
+            // gathers, a Compass that goes for an enemy, a Sprout that grew, a shock trap and the shoots of a Vine.
             app.StartLocalMatch();
             sim = app.Simulation;
             var bolt = Place(sim, 0, "tesla", 150, 560); var struck = Place(sim, 1, "normal", 215, 520); Place(sim, 1, "normal", 290, 500);
@@ -230,6 +230,7 @@ namespace CoreClash.Testing
             Still(sim);
             yield return Seconds(1.2f);
             sim.Abilities.OnStop(trapper); sim.Abilities.OnStop(planter);
+            trapper.x = 200; trapper.y = 250;
             for (int i = 0; i < 3; i++) { sim.State.turn = 0; sim.Abilities.OnTurnStart(0); }
             yield return Seconds(.5f);
             if (clips) { clip = BeginClip("clip-reality"); yield return Frames(clip, sim, 6); }

@@ -602,28 +602,8 @@ namespace CoreClash.Presentation
                         }
                         break;
                     }
-                    case Shape.Bolt:
-                    {
-                        // A jagged line from the sender into the target: ink outline, yellow body, white
-                        // core. Its kinks are fixed by the event (no flicker), it only fades.
-                        var to = View(board, viewOwner, e.x2, e.y2); Vector2 along = to - at; float length = along.magnitude;
-                        if (length < 2) break;
-                        var across = new Vector2(-along.y, along.x) / length; int pieces = Mathf.Clamp(Mathf.RoundToInt(length / (26 * scale)), 3, 9);
-                        float fade = Mathf.Clamp01((1 - t) * 2.2f) * strength, width = Mathf.Max(2.5f, 5.5f * scale);
-                        for (int pass = 0; pass < 3; pass++)
-                        {
-                            Vector2 from = at;
-                            for (int k = 1; k <= pieces; k++)
-                            {
-                                uint h = (uint)(e.seed * 7919 + k * 104729); h ^= h >> 13; h *= 0x5bd1e995; h ^= h >> 15;
-                                float side = k == pieces ? 0 : ((h % 1000) / 500f - 1) * 12f * scale;
-                                Vector2 next = at + along * (k / (float)pieces) + across * side;
-                                Draw.Stroke(from, next, pass == 0 ? Theme.A(Theme.Ink, fade) : pass == 1 ? Theme.A(e.color, fade) : Theme.A(Color.white, fade), pass == 0 ? width + 4f * scale : pass == 1 ? width : width * .38f);
-                                from = next;
-                            }
-                        }
-                        break;
-                    }
+                    // Lightning is drawn above the balls (RenderOver), so the bolt is seen from its sender.
+                    case Shape.Bolt: break;
                     case Shape.Swirl:
                     {
                         // Dots spiralling inward: the shared sign for portals, swaps and identity changes.
@@ -641,6 +621,28 @@ namespace CoreClash.Presentation
             }
         }
 
+        // A jagged line from the sender into the target: ink outline, yellow body, white core. Its
+        // kinks are fixed by the event (no flicker), it only fades.
+        static void DrawBolt(Effect e, Rect board, int viewOwner, float t, float scale, float strength)
+        {
+            var at = View(board, viewOwner, e.x, e.y);
+            var to = View(board, viewOwner, e.x2, e.y2); Vector2 along = to - at; float length = along.magnitude;
+            if (length < 2) return;
+            var across = new Vector2(-along.y, along.x) / length; int pieces = Mathf.Clamp(Mathf.RoundToInt(length / (26 * scale)), 3, 9);
+            float fade = Mathf.Clamp01((1 - t) * 2.2f) * strength, width = Mathf.Max(2.5f, 5.5f * scale);
+            for (int pass = 0; pass < 3; pass++)
+            {
+                Vector2 from = at;
+                for (int k = 1; k <= pieces; k++)
+                {
+                    uint h = (uint)(e.seed * 7919 + k * 104729); h ^= h >> 13; h *= 0x5bd1e995; h ^= h >> 15;
+                    float side = k == pieces ? 0 : ((h % 1000) / 500f - 1) * 12f * scale;
+                    Vector2 next = at + along * (k / (float)pieces) + across * side;
+                    Draw.Stroke(from, next, pass == 0 ? Theme.A(Theme.Ink, fade) : pass == 1 ? Theme.A(e.color, fade) : Theme.A(Color.white, fade), pass == 0 ? width + 4f * scale : pass == 1 ? width : width * .38f);
+                    from = next;
+                }
+            }
+        }
         // Flashes and particles above the balls.
         public static void RenderOver(Rect board, int viewOwner, float now)
         {
@@ -649,6 +651,7 @@ namespace CoreClash.Presentation
             for (int i = 0; i < effectCount; i++)
             {
                 var e = effects[i]; float age = now - e.born;
+                if (e.shape == Shape.Bolt && age >= 0 && age < e.life) { DrawBolt(e, board, viewOwner, age / e.life, scale, strength); continue; }
                 if (e.shape != Shape.Flash || age < 0 || age >= e.life) continue;
                 float t = age / e.life; var at = View(board, viewOwner, e.x, e.y);
                 float radius = e.radius * (.55f + .6f * t) * scale;

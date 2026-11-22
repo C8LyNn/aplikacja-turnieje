@@ -162,7 +162,7 @@
    "id": "roster_jungle",
    "name": "JUNGLE",
    "description": "Plants and poison.",
-   "identity": "Snares, thorns and poison: nothing leaves this jungle unhurt.",
+   "identity": "Vines, thorns and poison: nothing leaves this jungle unhurt.",
    "accent": "#6cc24a",
    "balls": [
     "web",

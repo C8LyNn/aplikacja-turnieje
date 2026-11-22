@@ -106,11 +106,14 @@ namespace CoreClash.Presentation
             Color tone=WhenColor(guide.When);float icon=size+3;
             Glyphs.Paint(new Rect(r.x,r.y+(r.height-icon)/2,icon,icon),WhenGlyph(guide.When),tone);
             // One line, always: the whole sentence when it fits, in smaller type when that is enough,
-            // and only what the ball does when it is not (the sign in front already says WHEN).
+            // then only what the ball does (the sign in front already says WHEN), then its tray label.
             float room=r.width-icon-5;string line=BallGuide.WhenText(guide.When)+": "+guide.Tag.ToLowerInvariant();int type=size;
             if(Draw.TextWidth(line,type,true)>room&&Draw.TextWidth(line,type-1,true)<=room)type--;
             if(Draw.TextWidth(line,type,true)>room){line=guide.Tag;type=size;}
-            Draw.Text(new Rect(r.x+icon+5,r.y,room,r.height),line,type,Color.Lerp(tone,Theme.Ink,.35f),TextAnchor.MiddleLeft,true);
+            if(Draw.TextWidth(line,type,true)>room&&Draw.TextWidth(line,type-1,true)<=room)type--;
+            if(Draw.TextWidth(line,type,true)>room){line=guide.Short;type=size;}
+            if(Draw.TextWidth(line,type,true)>room)type--;
+            Draw.Text(new Rect(r.x+icon+5,r.y,room+2,r.height),line,type,Color.Lerp(tone,Theme.Ink,.35f),TextAnchor.MiddleLeft,true);
         }
 
         void RenderInfo()

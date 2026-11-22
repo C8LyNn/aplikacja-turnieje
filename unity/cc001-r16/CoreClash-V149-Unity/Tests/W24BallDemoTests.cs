@@ -97,7 +97,7 @@ public static partial class Program
             var shock=W24RunShow(c,"staticfield");True(shock.Seen.Contains("TRAP_TRIGGER"));False(shock.Seen.Contains("EXPLOSION"));True(W24Ball(shock,1,"bomb").hp<=25);True(W24Ball(shock,1,"bomb").jammed>0);
             // Switch: the enemy Bomb is switched off.
             True(W24Ball(W24RunShow(c,"jammer"),1,"bomb").jammed>0);
-            // --- Plants. Flytrap leaves the enemy stuck.
+            // --- Plants. The Vine leaves the enemy stuck.
             True(W24Ball(W24RunShow(c,"web"),1,"normal").rooted);
             // Cactus: the ball that hit it was stung once.
             var cactus=W24RunShow(c,"thornback");True(W24Ball(cactus,1,"normal").hp<=25);

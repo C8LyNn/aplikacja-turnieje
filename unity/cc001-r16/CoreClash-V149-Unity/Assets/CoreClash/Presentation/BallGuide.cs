@@ -21,7 +21,7 @@ namespace CoreClash.Presentation
             {"roster_acid_rain",new[]{"KWAŚNY DESZCZ","Zatruj, a osłabionych dobij piorunem."}},
             {"roster_dynamo",new[]{"DYNAMO","Ściągnij wrogów w jedno miejsce — resztę zrobi piorun."}},
             {"roster_polar_storm",new[]{"BURZA POLARNA","Zamroź ich w miejscu i wyłącz im moce."}},
-            {"roster_jungle",new[]{"DŻUNGLA","Sidła, kolce i trucizna: z tej dżungli nikt nie wychodzi cały."}},
+            {"roster_jungle",new[]{"DŻUNGLA","Pnącza, kolce i trucizna: z tej dżungli nikt nie wychodzi cały."}},
         };
         public static string NamePl(string id)=>id!=null&&Entries.TryGetValue(id,out var text)?text[0]:null;
         public static string IdentityPl(string id)=>id!=null&&Entries.TryGetValue(id,out var text)?text[1]:null;
@@ -305,11 +305,11 @@ namespace CoreClash.Presentation
                 "Zatrzymaj ją blisko wrogów, którym trudno uciec.",
                 Damage("5 damage","5 obrażeń"));
             Add("capacitor","Bateria",GuideWhen.Stop,GuideWho.Enemies,100,"Charge + shock","Ładuje i razi",
-                "Gains one charge in each turn of yours, 3 at most; it starts with one. When it stops next to enemies, it shocks all of them and is empty again.",
-                "W każdej twojej turze zyskuje ładunek, najwyżej 3; zaczyna z jednym. Gdy zatrzyma się obok wrogów, razi ich wszystkich i znów jest pusta.",
-                "No enemy nearby: the charge is kept. Knocked by an enemy, it stops again — and fires.",
-                "Bez wroga w pobliżu ładunek zostaje. Potrącona przez wroga znów się zatrzyma — i wypali.",
-                Damage("5 per charge","5 za ładunek"),Count("Up to 3 charges","Do 3 ładunków"));
+                "Gains a charge in each turn of yours (3 at most, starts with one). When it stops next to enemies, it shocks them all and is empty again.",
+                "Co turę zyskuje ładunek (najwyżej 3, zaczyna z jednym). Gdy stanie obok wrogów, razi ich wszystkich i znów jest pusta.",
+                "No enemy nearby: the charge is kept. Knocked, it stops again — and fires.",
+                "Bez wroga obok ładunek zostaje. Potrącona też stanie — i wypali.",
+                Damage("5 per charge","5 za ładunek"));
             Add("staticfield","Pułapka prądu",GuideWhen.Stop,GuideWho.Enemies,0,"Shock + off","Razi i wyłącza",
                 "Leaves a shock trap on that spot. The first enemy to roll over it takes 5 damage and loses its power until the end of its next turn.",
                 "Zostawia w tym miejscu pułapkę. Pierwszy wróg, który na nią wjedzie, traci 5 HP i moc — do końca swojej następnej tury.",
@@ -324,12 +324,12 @@ namespace CoreClash.Presentation
                 Time("Power off: 1 turn","Bez mocy: 1 tura"));
 
             // Plants.
-            Add("web","Muchołówka",GuideWhen.Stop,GuideWho.Enemies,70,"Snares","Sidła",
-                "Plants 4 snares around itself. An enemy that rolls into a snare is stuck there until the end of its next turn.",
-                "Sadzi wokół siebie 4 sidła. Wróg, który wjedzie w sidło, utyka w nim do końca swojej następnej tury.",
-                "Each snare works once. A stuck ball cannot be launched again.",
-                "Każde sidło działa raz. Uwięzionej kulki nie da się wystrzelić ponownie.",
-                Count("4 snares","4 sidła"),Fact(GuideFactKind.Stuck,"Stuck: cannot move","Uwięziona: nie rusza się"));
+            Add("web","Pnącze",GuideWhen.Stop,GuideWho.Enemies,70,"Tangle","Oplata",
+                "Sends out 4 shoots around itself. An enemy that rolls into a shoot gets tangled and is stuck there until the end of its next turn.",
+                "Wypuszcza wokół siebie 4 pędy. Wróg, który wjedzie w pęd, zostaje opleciony i utyka w nim do końca swojej następnej tury.",
+                "Each shoot works once. A stuck ball cannot be launched again.",
+                "Każdy pęd działa raz. Uwięzionej kulki nie da się wystrzelić ponownie.",
+                Count("4 shoots","4 pędy"),Fact(GuideFactKind.Stuck,"Stuck: cannot move","Uwięziona: nie rusza się"));
             Add("thornback","Kaktus",GuideWhen.Touch,GuideWho.Enemies,0,"Thorns","Kolce",
                 "Every enemy that touches it takes 5 damage — whether it hits them or they hit it.",
                 "Każdy wróg, który go dotknie, traci 5 HP — czy to on uderzy, czy w niego uderzą.",

@@ -63,7 +63,7 @@ public static partial class Program
                 // W24 six groups: every roster ball is named after the thing on its icon
                 {"fire","Flame"},{"furnace","Campfire"},{"embertrap","Fire Trap"},{"firebrand","Volcano"},{"blizzardcore","Blizzard"},{"frosttrap","Ice Trap"},{"frostguard","Snowman"},
                 {"sporetrap","Tox Trap"},{"plagueburst","Mushroom"},{"fluxmine","Compass"},{"gravitymine","Pull Mine"},{"tesla","Lightning"},{"chainshock","Storm"},{"capacitor","Battery"},
-                {"staticfield","Shock Trap"},{"jammer","Switch"},{"web","Flytrap"},{"thornback","Cactus"},{"elderbloom","Flower"},{"cultivator","Sprout"},{"cascade","Acorn"}};
+                {"staticfield","Shock Trap"},{"jammer","Switch"},{"web","Vine"},{"thornback","Cactus"},{"elderbloom","Flower"},{"cultivator","Sprout"},{"cascade","Acorn"}};
             foreach(var ball in catalog.Data.balls)Eq(owner.TryGetValue(ball.id,out var approved)?approved:ball.name,BallIcons.Name(ball));
             Eq("Portal",BallIcons.Name(catalog.Ball("gatekeeper")));Eq("Gatekeeper",catalog.Ball("gatekeeper").name);
             Eq("Standard",BallIcons.Name(catalog.Ball("normal")));
