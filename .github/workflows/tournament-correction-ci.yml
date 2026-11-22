@@ -107,7 +107,7 @@ jobs:
           node --test qa/pack21/source-contract.test.mjs
       - name: Pack 22 SE assessment comparisons and contracts
         run: |
-          pnpm --filter @workspace/api-server exec node --import tsx --test ../tournament-manager/src/lib/se-diagnostic-comparison.test.ts
+          pnpm --filter @workspace/api-server exec tsx --tsconfig ../tournament-manager/tsconfig.json --test ../tournament-manager/src/lib/se-diagnostic-comparison.test.ts
           node --test qa/pack22/source-contract.test.mjs
       - name: Pack 26 SE risk report from forward impact graph
         run: |
@@ -119,11 +119,11 @@ jobs:
           node --test qa/pack25/source-contract.test.mjs
       - name: Pack 24 SE priority and dependency triage
         run: |
-          pnpm --filter @workspace/api-server exec node --import tsx --test ../tournament-manager/src/lib/se-remediation-priority.test.ts
+          pnpm --filter @workspace/api-server exec tsx --tsconfig ../tournament-manager/tsconfig.json --test ../tournament-manager/src/lib/se-remediation-priority.test.ts
           node --test qa/pack24/source-contract.test.mjs
       - name: Pack 23 SE history and recurrence
         run: |
-          pnpm --filter @workspace/api-server exec node --import tsx --test ../tournament-manager/src/lib/se-assessment-history.test.ts
+          pnpm --filter @workspace/api-server exec tsx --tsconfig ../tournament-manager/tsconfig.json --test ../tournament-manager/src/lib/se-assessment-history.test.ts
           node --test qa/pack23/source-contract.test.mjs
       - name: Static and database release gates
         run: node qa/pack17/run-gates.mjs --full

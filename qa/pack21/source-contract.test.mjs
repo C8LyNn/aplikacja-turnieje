@@ -2,6 +2,7 @@
 import assert from "node:assert/strict";
 import {readFileSync,existsSync} from "node:fs";
 import {test} from "node:test";
+import { readUiSource } from "../lib/ui-source.mjs";
 const get=p=>readFileSync(p,"utf8");
 test("diagnostic never authorizes a SE write",()=>{
   const s=get("artifacts/api-server/src/domain/tournament/se-correction-diagnostic.ts");
@@ -21,7 +22,7 @@ test("assessment is tied to original completion action and proposed score",()=>{
   assert.match(s,/p\.score\.current,p\.score\.proposed/);
 });
 test("client displays human readable blockers and assessment ID as advisory",()=>{
-  const s=get("artifacts/tournament-manager/src/components/tournament-result-correction-panel.tsx");
+  const s=readUiSource("artifacts/tournament-manager/src/components/tournament-result-correction-panel.tsx");
   assert.match(s,/seReadiness\.diagnostic\.blockers/);
   assert.match(s,/Identyfikator analizy/);
   assert.match(s,/Tylko podgląd/);

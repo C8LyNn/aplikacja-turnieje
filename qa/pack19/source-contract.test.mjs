@@ -1,12 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
+import { readUiSource } from "../lib/ui-source.mjs";
 const read = p => readFileSync(p,'utf8');
 const domain=read('artifacts/api-server/src/domain/tournament/se-correction-readiness.ts');
 const router=read('artifacts/api-server/src/routes/tournament-se-correction-readiness.ts');
 const index=read('artifacts/api-server/src/routes/index.ts');
 const openapi=read('lib/api-spec/openapi.yaml');
-const panel=read('artifacts/tournament-manager/src/components/tournament-result-correction-panel.tsx');
+const panel=readUiSource('artifacts/tournament-manager/src/components/tournament-result-correction-panel.tsx');
 const ci=read('.github/workflows/tournament-correction-ci.yml');
 test('transaction is explicitly read-only and snapshot isolation',()=>{
   assert.match(router,/isolationLevel:"repeatable read",accessMode:"read only"/);

@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import {readFileSync,existsSync} from 'node:fs';
 import {test} from 'node:test';
+import { readUiSource } from "../lib/ui-source.mjs";
 const get = p => readFileSync(p,'utf8');
 
 test('Pack20 action plan never grants permission or performs writes',()=>{
@@ -23,7 +24,7 @@ test('Plan is derived inside consistent snapshot and never from independently fe
   assert.match(s.slice(idx),/originalScore1:match\.score1,originalScore2:match\.score2/);
 });
 test('Client renders plan as hypothetical with no SE execute control',()=>{
-  const s=get('artifacts/tournament-manager/src/components/tournament-result-correction-panel.tsx');
+  const s=readUiSource('artifacts/tournament-manager/src/components/tournament-result-correction-panel.tsx');
   assert.match(s,/Hipotetyczny plan korekty SE/);
   assert.match(s,/seReadiness\.actionPlan/);
   assert.match(s,/executionEnabled:false/);
