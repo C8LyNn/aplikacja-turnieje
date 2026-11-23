@@ -18,10 +18,10 @@ namespace CoreClash.SelfPlay
     // game's own rules and the game's own computer player (Core/AiBrain.cs), to do these things:
     //   balance   every ready deck plays every other; the report says who wins, how much the first
     //             move is worth, and how much better each ball's best shot is than the Standard ball's.
-    //             "--opening none|standard-bonus|standard-first" plays the same matches with another
-    //             rule for the opening (the reference rule gives the second player an extra ball):
-    //             no extra ball; the extra ball must be a Standard one; no extra ball and the first
-    //             player's first ball must be a Standard one;
+    //             "--opening any-bonus|none|standard-first" plays the same matches with another rule
+    //             for the opening (the game's rule: the second player gets an extra Standard ball):
+    //             the extra ball may be any ball (the reference rule); no extra ball; no extra ball
+    //             and the first player's first ball must be a Standard one;
     //   balls     what each ball is worth to its deck over a whole match: the deck built on the
     //             ball's group plays itself without that ball, from both seats;
     //   levels    checks that Hard beats Normal and Normal beats Easy, and by how much;
@@ -55,13 +55,15 @@ namespace CoreClash.SelfPlay
         static readonly JsonSerializerOptions Json = new JsonSerializerOptions { IncludeFields = true };
 
         // The rules the game itself plays by (MatchSetup.Apply), with the map drawn by the seed.
+        // anyBonusBall true: an experiment - the extra opening ball may be any ball (the reference rule).
         // openingBonus false: an experiment for the balance report - the second player does not get
         // the extra ball of the opening turn.
-        public static GameSimulation NewMatch(Catalog catalog, DeckDefinition a, DeckDefinition b, ulong seed, out string map, bool openingBonus = true)
+        public static GameSimulation NewMatch(Catalog catalog, DeckDefinition a, DeckDefinition b, ulong seed, out string map, bool openingBonus = true, bool anyBonusBall = false)
         {
             var sim = new GameSimulation(catalog, a, b) { ActiveRosterOnly = true };
             var state = sim.State;
             state.ballScale = 1.5f; state.comebackRule = true; state.plainPowers = true; state.exclusiveFields = true;
+            state.standardOpeningBonus = !anyBonusBall;
             var picked = MatchMaps.All[(int)(SelfPlayRng.Mix(seed, 77) % (ulong)MatchMaps.All.Length)];
             MatchMaps.Apply(sim, picked); map = picked.Id;
             if (!openingBonus) state.bonusUsed = true;
@@ -73,7 +75,7 @@ namespace CoreClash.SelfPlay
         public static LabMatch Play(Catalog catalog, DeckDefinition a, DeckDefinition b, AiAgent first, AiAgent second, ulong seed, bool trace = false, bool samples = false, bool openingBonus = true, string[] drop = null, string opening = null)
         {
             var record = new LabMatch { DeckA = a.id, DeckB = b.id, Samples = samples ? new List<LabSample>() : null };
-            var sim = NewMatch(catalog, a, b, seed, out record.Map, openingBonus);
+            var sim = NewMatch(catalog, a, b, seed, out record.Map, openingBonus, opening == "any-bonus");
             // drop[seat]: that player has no copies of this ball (a deck must hold nine, so the ball stays in it, empty).
             for (int seat = 0; drop != null && seat < 2; seat++)
                 foreach (var entry in sim.State.players[seat].stock) if (entry.id == drop[seat]) entry.remaining = 0;
@@ -84,8 +86,8 @@ namespace CoreClash.SelfPlay
             while (sim.State.phase != MatchPhase.Over && guard++ < 600)
             {
                 int owner = sim.State.turn; var agent = agents[owner]; var level = agent.Level;
-                // Experiments with the opening: this one shot may only be a Standard ball.
-                if ((opening == "standard-bonus" && owner == 1 && sim.State.bonusPending && sim.State.turnNumber == 2) || (opening == "standard-first" && owner == 0 && sim.State.turnNumber == 1))
+                // An experiment with the opening: the first player's first ball may only be a Standard one.
+                if (opening == "standard-first" && owner == 0 && sim.State.turnNumber == 1)
                     level = new AiLevelSettings { Level = level.Level, Specials = 0, Powers = level.Powers, Angles = level.Angles, AimNoise = level.AimNoise, ScoreNoise = level.ScoreNoise, Replays = false, ReplayPowers = level.ReplayPowers, ReplayAngles = level.ReplayAngles, MinThink = level.MinThink, MaxThink = level.MaxThink };
                 // One private copy of the position per candidate, without the event history (the rules do not read it).
                 var events = sim.State.events; sim.State.events = new List<GameEvent>();
@@ -404,8 +406,8 @@ namespace CoreClash.SelfPlay
         static int Balance(Catalog catalog, string root, string[] args, int threads, string output)
         {
             int perPair = Int(args, "--per-pair", 12); var weights = LoadWeights(root); var decks = catalog.Roster.Decks;
-            string opening = Array.IndexOf(args, "--no-bonus") >= 0 ? "none" : Arg(args, "--opening", "bonus");
-            bool bonus = opening == "bonus" || opening == "standard-bonus";
+            string opening = Array.IndexOf(args, "--no-bonus") >= 0 ? "none" : Arg(args, "--opening", "game");
+            bool bonus = opening == "game" || opening == "any-bonus";
             var agent = GameAgent(AiLevel.Normal, weights);
             var jobs = new List<(int a, int b, int k)>();
             for (int a = 0; a < decks.Length; a++) for (int b = 0; b < decks.Length; b++) for (int k = 0; k < perPair; k++) jobs.Add((a, b, k));
@@ -417,7 +419,7 @@ namespace CoreClash.SelfPlay
                 int now = Interlocked.Increment(ref done);
                 if (now % 100 == 0) Console.WriteLine("AILAB balance " + now + "/" + jobs.Count + " [" + watch.Elapsed.TotalSeconds.ToString("0") + " s]");
             });
-            string path = Path.Combine(output, opening == "bonus" ? "balans.md" : opening == "none" ? "balans-bez-bonusu.md" : "balans-" + opening + ".md");
+            string path = Path.Combine(output, opening == "game" ? "balans.md" : opening == "none" ? "balans-bez-bonusu.md" : "balans-" + opening + ".md");
             File.WriteAllText(path, BalanceReport(catalog, results, perPair, watch.Elapsed.TotalSeconds, weights, opening), new UTF8Encoding(false));
             Console.WriteLine("AILAB balance report " + path);
             return 0;
@@ -478,7 +480,7 @@ namespace CoreClash.SelfPlay
         static string BalanceReport(Catalog catalog, LabMatch[] matches, int perPair, double seconds, AiWeights weights, string opening)
         {
             string experiment = opening == "none" ? "gracz 2 NIE dostaje dodatkowego strzału w pierwszej turze"
-                : opening == "standard-bonus" ? "dodatkowy strzał gracza 2 w pierwszej turze może być tylko Zwykłą kulką"
+                : opening == "any-bonus" ? "dodatkowy strzał gracza 2 w pierwszej turze może być dowolną kulką (reguła wzorcowa)"
                 : opening == "standard-first" ? "gracz 2 NIE dostaje dodatkowego strzału, a pierwszy strzał gracza 1 może być tylko Zwykłą kulką" : null;
             var decks = catalog.Roster.Decks; var text = new StringBuilder();
             var decided = matches.Where(m => m.Finished && m.Winner >= 0).ToList();
@@ -486,7 +488,7 @@ namespace CoreClash.SelfPlay
             text.AppendLine();
             if (experiment != null) text.AppendLine("- **Eksperyment:** w tych meczach " + experiment + ". Reszta zasad bez zmian.");
             text.AppendLine("- Mecze: **" + matches.Length + "** (" + perPair + " na każdą parę talii w każdej kolejności), rozstrzygnięte: " + decided.Count + ", remisy: " + matches.Count(m => m.Finished && m.Winner < 0) + ", czas liczenia: " + seconds.ToString("0") + " s.");
-            text.AppendLine("- Obie strony gra ten sam komputer (poziom średni), na zasadach gry: kulki ×1,5, podwójna tura poniżej 10 HP bazy, losowa mapa, każda kulka 30 HP, proste moce, jedno pole w jednym miejscu.");
+            text.AppendLine("- Obie strony gra ten sam komputer (poziom średni), na zasadach gry: kulki ×1,5, podwójna tura poniżej 10 HP bazy, losowa mapa, każda kulka 30 HP, proste moce, jedno pole w jednym miejscu, dodatkowa kulka gracza 2 na otwarcie tylko Zwykła.");
             text.AppendLine("- To są mecze komputera z komputerem. Mówią, co jest mocne **w rękach tego komputera**; człowiek może grać kulką lepiej albo gorzej.");
             text.AppendLine();
             text.AppendLine("## Mecz");

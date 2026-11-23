@@ -117,6 +117,8 @@ namespace CoreClash.Presentation
             state.plainPowers = true;
             // W24 (owner rule): one place on the board holds one field.
             state.exclusiveFields = true;
+            // W24 (owner decision after the lab's measurement): Player 2's extra opening ball is a Standard one.
+            state.standardOpeningBonus = true;
             var map = Map == RandomMap ? Maps[UnityEngine.Random.Range(0, Maps.Length)] : MapById(Map) ?? Maps[0];
             MatchMaps.Apply(simulation, map);
         }

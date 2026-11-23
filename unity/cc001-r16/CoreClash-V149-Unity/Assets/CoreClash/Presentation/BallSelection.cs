@@ -12,6 +12,8 @@ namespace CoreClash.Presentation
         {
             if(simulation==null||simulation.State==null||string.IsNullOrEmpty(type)||
                 owner<0||owner>1||owner!=simulation.State.turn)return BallSelectionSource.None;
+            // W24 match rule: Player 2's extra opening ball must be a Standard one (as in TryCommand).
+            if(type!="normal"&&simulation.StandardOnlyShot)return BallSelectionSource.None;
 
             if(simulation.Stock(owner,type)>0)return BallSelectionSource.Stock;
             if(type!="phoenix"||simulation.State.phoenixHand==null)return BallSelectionSource.None;

@@ -103,7 +103,8 @@ namespace CoreClash.Core
                         }
                 }
             replays = list.Count; Shuffle(list, 0, replays, random);
-            var types = state.players[me].stock.Where(entry => entry.remaining > 0).Select(entry => entry.id).OrderBy(_ => random.Next()).Take(Math.Max(0, level.Specials)).ToList();
+            // The extra opening ball under the Standard-only rule: no special balls to consider.
+            var types = simulation.StandardOnlyShot ? new List<string>() : state.players[me].stock.Where(entry => entry.remaining > 0).Select(entry => entry.id).OrderBy(_ => random.Next()).Take(Math.Max(0, level.Specials)).ToList();
             types.Add("normal");
             foreach (string type in types)
                 foreach (float power in level.Powers)

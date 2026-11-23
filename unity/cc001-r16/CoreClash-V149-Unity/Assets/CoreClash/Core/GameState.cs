@@ -52,6 +52,11 @@ namespace CoreClash.Core
         // W24 match rule (off = the reference rules): one place on the board holds one field - fields
         // of one element join, a newer field of another element exists only outside the older one.
         public bool exclusiveFields;
+        // W24 match rule (off = the reference rules; owner decision 2026-11-24, after the lab's
+        // measurement): the extra ball Player 2 gets on the opening turn must be a Standard one.
+        // Measured, computer against computer: with any ball as the extra one the first player
+        // wins 39% of matches, with no extra ball 64%, with a Standard one 47%.
+        public bool standardOpeningBonus;
         public bool comebackRule,comebackActive;
         public string mapId="";
         public string actionKind,resultReason;

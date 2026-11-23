@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text.Json;
 using CoreClash.Core;
 using CoreClash.Data;
+using CoreClash.Presentation;
 using CoreClash.SelfPlay;
 
 // CC-001 W24 (owner direction, 2026-11-22): "simulations that play a great many games, where the
@@ -32,6 +33,7 @@ public static partial class Program
             var c=W22Catalog(out _);var sim=AiLab.NewMatch(c,c.Roster.Decks[0],c.Roster.Decks[1],7,out string map);
             True(MatchMaps.ById(map)!=null);Eq(map,sim.State.mapId);
             True(sim.State.plainPowers);True(sim.State.exclusiveFields);True(sim.State.comebackRule);Eq(1.5f,sim.State.ballScale);True(sim.ActiveRosterOnly);
+            True(sim.State.standardOpeningBonus);False(AiLab.NewMatch(c,c.Roster.Decks[0],c.Roster.Decks[1],7,out _,true,true).State.standardOpeningBonus);
             var random=new Random(1);
             foreach(AiLevel level in Enum.GetValues(typeof(AiLevel))){
                 var list=AiBrain.Candidates(sim,AiLevelSettings.For(level),random);
@@ -54,6 +56,35 @@ public static partial class Program
                 True(m.TryCommand(AiBrain.Fallback(m.State),out _));Settle(m);
                 Eq(bonus,m.State.bonusPending);Eq(bonus?1:0,m.State.turn);
             }
+        });
+
+        Test("W24 opening: off by default; under the rule Player 2's extra opening ball must be a Standard one - in the rules, in the hand and for the computer",()=>{
+            // Reference rules: the extra ball may be any ball.
+            var r=Sim();False(r.State.standardOpeningBonus);True(r.TryCommand(Shot(r),out _));Settle(r);True(r.TryCommand(Shot(r,1),out _));Settle(r);
+            True(r.State.bonusPending);False(r.StandardOnlyShot);True(BallSelection.CanSelect(r,1,"fire"));True(r.TryCommand(Shot(r,1,"fire"),out _));
+            // The rule.
+            var s=Sim();s.State.standardOpeningBonus=true;False(s.StandardOnlyShot);
+            True(s.TryCommand(Shot(s,0,"fire"),out _));Settle(s);                    // Player 1 plays what they like
+            False(s.StandardOnlyShot);True(s.TryCommand(Shot(s,1,"ice"),out _));Settle(s);   // and so does Player 2 with their own first ball
+            True(s.State.bonusPending);True(s.StandardOnlyShot);Eq(1,s.State.turn);
+            int ice=s.Stock(1,"ice"),balls=s.State.balls.Count;
+            False(s.TryCommand(Shot(s,1,"ice"),out string why));True(why.Contains("Standard"),why);
+            Eq(ice,s.Stock(1,"ice"));Eq(balls,s.State.balls.Count);True(s.State.bonusPending);       // a refused ball costs nothing and changes nothing
+            // The hand says the same as the rules: only Standard can be chosen, the specials are dimmed but still counted.
+            False(BallSelection.CanSelect(s,1,"ice"));True(BallSelection.CanSelect(s,1,"normal"));Eq("normal",BallSelection.ForTurn(s,"ice"));
+            True(LocalDeckContent.LockedForShot(s,1,"ice"));False(LocalDeckContent.LockedForShot(s,1,"normal"));False(LocalDeckContent.LockedForShot(s,0,"ice"));
+            True(LocalDeckContent.VisibleAsAvailable(s,1,"ice"));False(LocalDeckContent.CanActivate(s,1,"ice",true));
+            // The computer considers only a Standard ball for that shot, on every level.
+            foreach(AiLevel level in Enum.GetValues(typeof(AiLevel))){
+                var list=AiBrain.Candidates(s,AiLevelSettings.For(level),new Random(1));
+                True(list.Count>0&&list.All(x=>x.kind==CommandKind.Spawn&&x.ballType=="normal"),level.ToString());
+            }
+            True(s.TryCommand(Shot(s,1),out _));Settle(s);Eq(0,s.State.turn);False(s.StandardOnlyShot);True(s.State.bonusUsed);
+            // Afterwards nothing is locked - and the second ball of a double turn is not the opening ball.
+            True(s.TryCommand(Shot(s,0,"fire"),out _));Settle(s);Eq(1,s.State.turn);
+            s.State.bonusPending=true;False(s.StandardOnlyShot);False(LocalDeckContent.LockedForShot(s,1,"ice"));True(s.TryCommand(Shot(s,1,"ice"),out _));
+            // The app plays by the rule.
+            True(File.ReadAllText(Path.Combine(projectRoot,"Assets/CoreClash/Presentation/MatchSetup.cs")).Contains("state.standardOpeningBonus = true;"));
         });
 
         Test("W24 AI: both players see the same position, each from their own side; a finished match outweighs everything",()=>{

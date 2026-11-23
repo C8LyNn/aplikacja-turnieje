@@ -112,6 +112,15 @@ namespace CoreClash.Testing
                 var cards = sim.State.players[turn].stock.Where(entry => entry.remaining > 0).ToList();
                 if (cards.Count > 0) app.SelectBall(cards[(shot / 2 * 2 + turn) % cards.Count].id);
                 yield return null;
+                // The third shot is Player 2's extra ball of the opening turn: only a Standard ball may be
+                // played, so the special balls are dimmed and the selection above was refused.
+                if (shot == 2)
+                {
+                    Require(sim.StandardOnlyShot, "the third shot of a match should be Player 2's extra Standard ball");
+                    Require(app.SelectedBall == "normal", "a special ball stayed selected for the extra opening ball");
+                    yield return Seconds(.3f);
+                    yield return Capture("03b-opening-bonus");
+                }
                 Vector2 from = ScreenPoint(270, turn == 0 ? 853 : 47), to = ScreenPoint(270 + offsets[shot], turn == 0 ? 640 - shot * 22 : 260 + shot * 22);
                 yield return Launch(sim, from, to, shot == 4 ? "04-match-aim" : null);
                 yield return Settle(sim);

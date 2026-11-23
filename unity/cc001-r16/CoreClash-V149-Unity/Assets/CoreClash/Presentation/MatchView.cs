@@ -148,7 +148,7 @@ namespace CoreClash.Presentation
             else if(boardInspection)detail=Lang.T("Inspect either player's ball. Cancel to resume aiming.","Obejrzyj kulkę dowolnego gracza. Anuluj, żeby wrócić do celowania.");
             else if(notice.Length>0&&CanChoose)detail=notice;
             else if(summary.Length>0){detail=summary;result=true;}
-            else detail=state.bonusPending?(state.comebackRule&&state.players[state.turn].comebackUsed&&state.turnNumber>2?Lang.T("Base below 10 HP: a second ball this turn.","Baza poniżej 10 HP: druga kulka w tej turze."):Lang.T("Player 2 gets one extra spawn on the opening turn.","Gracz 2 dostaje jeden dodatkowy strzał w pierwszej turze.")):Lang.T("A glowing home ball can Replay before you spawn.","Świecącą kulkę w twojej strefie możesz wystrzelić ponownie przed nowym strzałem.");
+            else detail=state.bonusPending?(state.comebackRule&&state.players[state.turn].comebackUsed&&state.turnNumber>2?Lang.T("Base below 10 HP: a second ball this turn.","Baza poniżej 10 HP: druga kulka w tej turze."):(Simulation.StandardOnlyShot?Lang.T("Player 2 gets one extra Standard ball on the opening turn.","Gracz 2 dostaje w pierwszej turze dodatkowy strzał Zwykłą kulką."):Lang.T("Player 2 gets one extra spawn on the opening turn.","Gracz 2 dostaje jeden dodatkowy strzał w pierwszej turze."))):Lang.T("A glowing home ball can Replay before you spawn.","Świecącą kulkę w twojej strefie możesz wystrzelić ponownie przed nowym strzałem.");
             var hintBox=RectOf(rows.Hint);
             Draw.Round(hintBox,new Color(.03f,.02f,.16f,.42f));
             Draw.Text(new Rect(hintBox.x+10,hintBox.y+3,hintBox.width-20,17),Soft(hint),13,active,TextAnchor.MiddleLeft,true);
@@ -368,7 +368,7 @@ namespace CoreClash.Presentation
                 Draw.Text(new Rect(face.x+1,line-1,face.width-2,14),label,size,available?Color.Lerp(WhenColor(guide.When),Theme.Ink,.55f):Theme.Muted,TextAnchor.MiddleCenter,true);
             }
             var plate=Draw.PlateFill(face);float plateCorner=Draw.PlateCorner();
-            if(!available)Draw.Round(plate,new Color(1,1,1,.66f),plateCorner);
+            if(!available||(!standard&&LocalDeckContent.LockedForShot(Simulation,owner,id)))Draw.Round(plate,new Color(1,1,1,.66f),plateCorner);
             // Stock badge: how many are left, a loop for the unlimited Standard, H for a ball in hand.
             // It is a tab that fills the card's top right corner exactly (the same corner as the card).
             var badge=new Rect(plate.xMax-22,plate.y,22,16);
@@ -428,7 +428,7 @@ namespace CoreClash.Presentation
                 else if(cue&&available&&BallGuide.For(id)!=null)GuideTag(new Rect(r.x+5,r.yMax-24,r.width-10,16),id,Theme.FontTiny+1);
                 else if(cue)Draw.Text(new Rect(r.x+5,r.yMax-22,r.width-10,14),available?Cue(id):Lang.T("OUT OF STOCK","BRAK"),Theme.FontTiny,Theme.Muted,TextAnchor.MiddleCenter);
             }
-            if(!available)Draw.Round(Draw.PlateFill(r),new Color(1,1,1,.62f),Draw.PlateCorner());
+            if(!available||LocalDeckContent.LockedForShot(Simulation,owner,id))Draw.Round(Draw.PlateFill(r),new Color(1,1,1,.62f),Draw.PlateCorner());
         }
     }
 }

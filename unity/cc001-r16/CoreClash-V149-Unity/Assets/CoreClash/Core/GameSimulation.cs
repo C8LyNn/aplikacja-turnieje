@@ -37,6 +37,10 @@ namespace CoreClash.Core
             return State.players[owner].stock.FirstOrDefault(x=>x.id==type)?.remaining??0;
         }
         public bool CanReplay(BallRuntime b)=>b!=null&&!b.dead&&!b.banished&&!b.rooted&&b.owner==State.turn&&!State.bonusPending&&!State.replayedIds.Contains(b.id)&&ZoneResolver.TouchesOwnZone(b)&&b.type!="titan"&&b.frozen<=0;
+        // Match rule standardOpeningBonus: true while the ball being aimed is Player 2's extra ball of
+        // the opening turn, which then has to be a Standard one. (The second ball of a "double turn"
+        // is not that ball: the opening one has been used by then.)
+        public bool StandardOnlyShot=>State.standardOpeningBonus&&State.bonusPending&&!State.bonusUsed&&State.turn==1;
         public bool TryCommand(PlayerCommand c,out string reason)
         {
             reason="";
@@ -56,6 +60,7 @@ namespace CoreClash.Core
                         x.lastProcessedOwnerTurns>=State.players[c.owner].ownerTurns)
                     :null;
                 if(definition==null||(!hasStock&&hand==null)){reason="That ball has no stock in this deck.";return false;}
+                if(StandardOnlyShot&&c.ballType!="normal"){reason="The extra ball of the opening turn must be a Standard ball.";return false;}
                 float angle=(float)Math.Atan2(c.dx,c.owner==0?-c.dy:c.dy);angle=Clamp(angle,-1.53589f,1.53589f);
                 float vx=(float)Math.Sin(angle)*c.power,vy=(float)Math.Cos(angle)*c.power*(c.owner==0?-1:1);
                 ball=Spawn(c.owner,c.ballType,270,c.owner==0?853:47,vx,vy);
