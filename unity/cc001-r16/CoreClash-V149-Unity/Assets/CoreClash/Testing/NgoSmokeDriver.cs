@@ -78,7 +78,9 @@ namespace CoreClash.Testing
             if(geometryReady&&options.ContainsKey("status")&&state.actionSerial>=2)Debug.Log("CC_NET_STATUS_STATE role="+(host?"host":"client")+" ember=P1 spore=P2 rng="+state.randomState);
             if(geometryReady&&options.ContainsKey("explosives")&&state.actionSerial>=2)Debug.Log("CC_NET_EXPLOSIVE_STATE role="+(host?"host":"client")+" mineArmed=True fuse=2");
             if(host&&geometryReady&&link.AcceptedRemoteIntents>=1&&link.RejectedRemoteIntents>=2&&state.actionSerial>=2){passed=true;if(options.ContainsKey("momentum"))Debug.Log("CC_NET_MOMENTUM_STATE role=host bumpers="+state.structures.Count);Debug.Log("CC_NET_SMOKE_PASS role=host remoteIntents="+link.AcceptedRemoteIntents+" rejected="+link.RejectedRemoteIntents+" actionSerial="+state.actionSerial);}
-            if(!host&&geometryReady&&sent&&link.AcceptedLocalIntents>=1&&link.RejectedLocalIntents>=2&&link.ReceivedSnapshots>=2&&state.actionSerial>=2){passed=true;if(options.ContainsKey("momentum"))Debug.Log("CC_NET_MOMENTUM_STATE role=client bumpers="+state.structures.Count);Debug.Log("CC_NET_SMOKE_PASS role=client snapshots="+link.ReceivedSnapshots+" revision="+link.LastAppliedRevision+" actionSerial="+state.actionSerial+" events="+link.LastReceivedEvents+" rejected="+link.RejectedLocalIntents);}
+            // The forged and the repeated message get no answer the guest counts (their results are stale by
+            // design since W11); that the host refused both is checked on the host's side (rejected=2).
+            if(!host&&geometryReady&&sent&&spoofSent&&duplicateSent&&link.AcceptedLocalIntents>=1&&link.ReceivedSnapshots>=2&&state.actionSerial>=2){passed=true;if(options.ContainsKey("momentum"))Debug.Log("CC_NET_MOMENTUM_STATE role=client bumpers="+state.structures.Count);Debug.Log("CC_NET_SMOKE_PASS role=client snapshots="+link.ReceivedSnapshots+" revision="+link.LastAppliedRevision+" actionSerial="+state.actionSerial+" events="+link.LastReceivedEvents+" rejected="+link.RejectedLocalIntents);}
         }
     }
 }

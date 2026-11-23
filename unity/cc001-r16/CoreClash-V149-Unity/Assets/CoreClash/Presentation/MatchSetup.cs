@@ -51,8 +51,9 @@ namespace CoreClash.Presentation
             if (pick == Color1) pick = (pick + 1) % count;
             Theme.SetPlayerColors(Color1, pick);
         }
-        // A game over the network: the colour I chose is mine whichever seat I sit in. (The other
-        // player's choice is not sent yet: I see them in my own second colour.)
+        // A game over the network: the colour I chose is mine whichever seat I sit in. Until the two
+        // players have exchanged their choices (NgoGameSession.PeerReady / ReceiveColors) I see the
+        // other player in my own second colour.
         public static void UseColorsFor(int localOwner) { if (localOwner == 1) Theme.SetPlayerColors(Color2, Color1); else UseChosenColors(); }
         static int forcedComputer = -1;
 

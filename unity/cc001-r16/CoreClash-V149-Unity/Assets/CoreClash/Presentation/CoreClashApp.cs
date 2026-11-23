@@ -234,7 +234,7 @@ namespace CoreClash.Presentation
         }
         public void ConfirmLeaveMatch(){if(exitGuard.Confirm()){Debug.Log("CORE_CLASH_LEAVE_CONFIRMED");ReturnToSetup();}}
         public void CancelLeaveMatch(){if(exitGuard.Open){exitGuard.Cancel();CancelPointer();Debug.Log("CORE_CLASH_LEAVE_CANCELED");}}
-        public void ReturnToSetup(){deckGuide=null;hintShown=false;exitGuard.Reset();remoteBallSmoother.Reset();NetworkLink?.Disconnect();GetComponent<NgoGameSession>()?.Disconnect();NetworkLink=null;setup=true;builder=library=boardInspection=false;CancelPointer();CloseBallDetails();DeveloperOverlay=false;}
+        public void ReturnToSetup(){deckGuide=null;hintShown=false;exitGuard.Reset();remoteBallSmoother.Reset();NetworkLink?.Disconnect();GetComponent<NgoGameSession>()?.Disconnect();NetworkLink=null;setup=true;builder=library=boardInspection=false;CancelPointer();CloseBallDetails();DeveloperOverlay=false;MatchSetup.UseChosenColors();}
         public void BeginNetworkGame(IUnityNetworkLink link){StartMatchState();NetworkLink=link;networkNotice=link.Status;MatchSetup.UseColorsFor(link.LocalOwner);}
         public void ReceiveNetworkState(GameState state,int snapshotRevision)
         {

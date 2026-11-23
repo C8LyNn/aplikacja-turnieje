@@ -87,6 +87,27 @@ public static partial class Program
             True(File.ReadAllText(Path.Combine(projectRoot,"Assets/CoreClash/Presentation/MatchSetup.cs")).Contains("state.standardOpeningBonus = true;"));
         });
 
+        Test("W24 colours over the network: the host keeps the colour they chose, the guest gets theirs unless it is the host's",()=>{
+            Eq(5,CoreClash.Networking.SeatColors.Guest(2,5,8));     // two different choices: each plays in their own
+            Eq(3,CoreClash.Networking.SeatColors.Guest(2,2,8));     // the same choice: the guest gets the next colour
+            Eq(0,CoreClash.Networking.SeatColors.Guest(7,7,8));     // ...round the end of the list
+            Eq(1,CoreClash.Networking.SeatColors.Guest(0,-4,8));Eq(1,CoreClash.Networking.SeatColors.Guest(0,99,8));   // nonsense from the wire is not a colour
+            Eq(2,CoreClash.Networking.SeatColors.Host(10,8));Eq(7,CoreClash.Networking.SeatColors.Host(-1,8));
+            for(int host=0;host<8;host++)for(int wanted=-1;wanted<=8;wanted++){
+                int guest=CoreClash.Networking.SeatColors.Guest(host,wanted,8);
+                True(CoreClash.Networking.SeatColors.Valid(host,guest,8),host+" "+wanted);
+            }
+            False(CoreClash.Networking.SeatColors.Valid(3,3,8));False(CoreClash.Networking.SeatColors.Valid(8,1,8));False(CoreClash.Networking.SeatColors.Valid(0,-1,8));
+            string bridge=File.ReadAllText(Path.Combine(projectRoot,"Assets/CoreClash/Networking/NgoRpcBridge.cs"));
+            True(bridge.Contains("ReadyRpc(CoreClash.Presentation.MatchSetup.Color1)")&&bridge.Contains("public void ColorsRpc(int hostColor,int guestColor"));
+            // Only the host may tell a guest the colours.
+            True(bridge.Contains("if(!IsServer&&context.Receive.SenderClientId==Unity.Netcode.NetworkManager.ServerClientId)session.ReceiveColors(hostColor,guestColor);"));
+            string session=File.ReadAllText(Path.Combine(projectRoot,"Assets/CoreClash/Networking/NgoGameSession.cs"));
+            True(session.Contains("SeatColors.Guest(hostColor,wishColor,count)")&&session.Contains("SeatColors.Valid(hostColor,guestColor,Theme.PlayerColors.Length)"));
+            // The guest's wish can arrive before their seat is confirmed: it is kept, and settled from both places.
+            True(session.Split(new[]{"SettleColors();"},StringSplitOptions.None).Length>=3,"colours must be settled both when the wish arrives and when the seat is confirmed");
+        });
+
         Test("W24 AI: both players see the same position, each from their own side; a finished match outweighs everything",()=>{
             var c=W22Catalog(out _);var sim=AiLab.NewMatch(c,c.Roster.Decks[0],c.Roster.Decks[1],3,out _);
             sim.Spawn(0,"normal",270,450);sim.Spawn(0,"fire",200,150);var hurt=sim.Spawn(1,"ice",270,760);hurt.hp=10;hurt.fireStacks=2;sim.State.players[1].hp=14;

@@ -82,7 +82,7 @@ namespace CoreClash.Networking
             if(Application.platform==RuntimePlatform.WebGLPlayer||Application.platform==RuntimePlatform.Android){SetStatus("Create the game on Windows; this device can join as Player 2.");return false;}
             if(!LanEndpoint.TryNormalize(hostAddress,port,out hostAddress)){SetStatus("Use a valid host address and gameplay port.");return false;}
             if(!CanStart)return false;
-            ResetSession(true);transport.UseWebSockets=true;transport.UseEncryption=false;transport.SetConnectionData(true,hostAddress,port,"0.0.0.0");
+            ResetSession(true);transport.UseWebSockets=true;transport.UseEncryption=false;transport.SetConnectionData(true,hostAddress,port,hostAddress=="127.0.0.1"?"127.0.0.1":"0.0.0.0");
             app.BeginNetworkGame(this);authority=new NetworkGameSession(app.Simulation);BindCallbacks();
             if(!manager.StartHost()){FailConnection("The game could not be created. Try Create Game again.");return false;}
             SetStatus("HOST P1 · WebSocket :"+port+" · waiting for P2");Debug.Log("CC_NET_HOST_READY port="+port);return true;
@@ -97,7 +97,7 @@ namespace CoreClash.Networking
         }
         void ResetSession(bool hosting)
         {
-            hostRole=hosting;internetMode=false;seat.Reset();pendingIntent=failed=recoveryPending=intentionalDisconnect=false;pendingSequence=0;authority=null;bridge=null;connectDeadline=0;
+            hostRole=hosting;internetMode=false;seat.Reset();wishKnown=false;pendingIntent=failed=recoveryPending=intentionalDisconnect=false;pendingSequence=0;authority=null;bridge=null;connectDeadline=0;
             adapter=new NetworkGameStateAdapter();assembler=new NgoSnapshotAssembler();ReceivedSnapshots=AcceptedRemoteIntents=RejectedRemoteIntents=AcceptedLocalIntents=RejectedLocalIntents=LastAppliedRevision=LastReceivedEvents=0;
             nextSnapshot=0;lastHostTraceAt=lastClientTraceAt=-1f;skippedSnapshotRevisions=0;lastError="";
         }
@@ -141,6 +141,7 @@ namespace CoreClash.Networking
             if(manager.IsServer&&id!=Unity.Netcode.NetworkManager.ServerClientId){
                 if(!seat.Commit(id,Time.unscaledTime)){manager.DisconnectClient(id);return;}
                 authority?.ForgetConnection(1);SetStatus("HOST P1 · P2 connected · authoritative");nextSnapshot=0;Debug.Log("CC_NET_PEER_CONNECTED id="+id+" owner=1");
+                SettleColors();
             }
             else if(!manager.IsServer)SetStatus("P2 connected · awaiting authoritative state");
         }
@@ -155,7 +156,32 @@ namespace CoreClash.Networking
             }
         }
         public void BridgeSpawned(NgoRpcBridge rpcBridge){bridge=rpcBridge;nextSnapshot=0;Debug.Log("CC_NET_BRIDGE_SPAWNED server="+manager.IsServer);}
-        public void PeerReady(ulong sender){if(IsAuthority&&seat.Owns(sender))nextSnapshot=0;}
+        // W24 (owner decision: in PvP each player picks their colour). The guest's ready message says
+        // which colour they chose. It can arrive before the guest's seat is confirmed (measured: it
+        // does), so the wish is kept and the colours are settled as soon as both are known: the host
+        // keeps theirs, the guest gets the one they chose unless it is the host's (SeatColors), and
+        // the host tells the guest, so both screens show the same two colours.
+        ulong wishFrom;int wishColor;bool wishKnown;
+        public void PeerReady(ulong sender,int chosenColor)
+        {
+            if(!IsAuthority)return;
+            wishFrom=sender;wishColor=chosenColor;wishKnown=true;
+            if(seat.Owns(sender)){nextSnapshot=0;SettleColors();}
+        }
+        void SettleColors()
+        {
+            if(!IsAuthority||!wishKnown||!seat.Owns(wishFrom))return;
+            int count=Theme.PlayerColors.Length,hostColor=SeatColors.Host(MatchSetup.Color1,count),guestColor=SeatColors.Guest(hostColor,wishColor,count);
+            Theme.SetPlayerColors(hostColor,guestColor);
+            if(bridge!=null)bridge.ColorsRpc(hostColor,guestColor);
+            Debug.Log("CC_NET_COLORS role=host host="+hostColor+" guest="+guestColor+" asked="+wishColor);
+        }
+        public void ReceiveColors(int hostColor,int guestColor)
+        {
+            if(IsAuthority||!SeatColors.Valid(hostColor,guestColor,Theme.PlayerColors.Length))return;
+            Theme.SetPlayerColors(hostColor,guestColor);
+            Debug.Log("CC_NET_COLORS role=client host="+hostColor+" guest="+guestColor);
+        }
         public bool Submit(PlayerCommand command,out string reason)
         {
             reason="Network is not ready.";
