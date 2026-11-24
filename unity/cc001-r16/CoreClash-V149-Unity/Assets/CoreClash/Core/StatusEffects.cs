@@ -6,7 +6,21 @@ namespace CoreClash.Core
     {
         void Stamp(BallRuntime b,string family,int owner){var stamp=b.statusOrder.FirstOrDefault(x=>x.family==family);if(stamp==null)b.statusOrder.Add(new StatusStamp{family=family,order=++S.statusClock,owner=owner});else stamp.owner=owner;}
         void ClearFire(BallRuntime b){b.fireStacks=b.burnTurns=0;b.statusOrder.RemoveAll(x=>x.family=="FIRE");}
-        void ClearIce(BallRuntime b){b.iceStacks=b.iceTurns=0;b.frozen=0;b.statusOrder.RemoveAll(x=>x.family=="ICE");}
+        void ClearIce(BallRuntime b){b.iceStacks=b.iceTurns=0;b.frozen=0;b.thawTurn=-1;b.statusOrder.RemoveAll(x=>x.family=="ICE");}
+        // Match rule deepFreeze: frozen through the next turns (GameState.freezeTurns), whoever plays them.
+        public static bool DeepFrozen(BallRuntime b)=>b.frozen>0&&b.thawTurn>=0;
+        void Freeze(BallRuntime b)
+        {
+            b.iceStacks=b.iceTurns=0;b.frozen=2.4f;b.vx=b.vy=0;
+            if(S.deepFreeze)b.thawTurn=S.turnNumber+Math.Max(1,S.freezeTurns);
+            sim.Emit("FREEZE",b,"Frozen");
+        }
+        // The ice trap of the deepFreeze rule: frozen at once (ice and fire still cancel each other).
+        public void FreezeNow(BallRuntime b,int owner)
+        {
+            if(b.dead)return;if(b.fireStacks>0){ClearFire(b);return;}if(b.frozen>0)return;
+            Stamp(b,"ICE",owner);Freeze(b);
+        }
         void ClearToxin(BallRuntime b){b.toxinTurns=0;b.statusOrder.RemoveAll(x=>x.family=="TOXIN");S.virulence.RemoveAll(x=>x.targetLineage==b.lineageId);}
         public void ApplyFire(BallRuntime b,int owner){ApplyFireChain(b,owner,new System.Collections.Generic.HashSet<int>());}
         void ApplyFireChain(BallRuntime b,int owner,System.Collections.Generic.HashSet<int> visited)
@@ -21,11 +35,11 @@ namespace CoreClash.Core
         public void ApplyIce(BallRuntime b,int owner)
         {
             if(b.dead)return;if(b.fireStacks>0){ClearFire(b);return;}Stamp(b,"ICE",owner);
-            if(b.frozen>0){b.frozen=2.4f;return;}b.iceStacks++;
-            if(b.iceStacks>=3){b.iceStacks=b.iceTurns=0;b.frozen=2.4f;b.vx=b.vy=0;sim.Emit("FREEZE",b,"Frozen");}
+            if(b.frozen>0){if(!S.deepFreeze)b.frozen=2.4f;return;}b.iceStacks++;
+            if(b.iceStacks>=3)Freeze(b);
             else{b.iceTurns=b.iceStacks==1?3:4;sim.Emit("ICE",b,"Ice "+b.iceStacks);}
         }
-        public void ApplyToxin(BallRuntime b,int owner){if(b.dead)return;Stamp(b,"TOXIN",owner);b.toxinTurns=3;sim.Emit("TOXIN",b,"Toxin 3");}
+        public void ApplyToxin(BallRuntime b,int owner){if(b.dead)return;Stamp(b,"TOXIN",owner);b.toxinTurns=Math.Max(1,S.poisonTurns);sim.Emit("TOXIN",b,"Toxin "+b.toxinTurns);}
         public void Root(BallRuntime b){if(b.dead)return;b.rooted=true;b.rootExpiresOwnerTurn=S.players[b.owner].ownerTurns+1;b.vx=b.vy=0;sim.Emit("ROOTED",b,"Rooted until own turn ends");}
         void StatusTurn(BallRuntime b)
         {
@@ -41,7 +55,8 @@ namespace CoreClash.Core
                 return;
             }
             if(a.type=="fire"||a.type=="kindler")ApplyFire(b,a.owner);
-            if(a.type=="ice"){bool frozen=b.frozen>0;ApplyIce(b,a.owner);if(frozen)sim.Damage(b,5);foreach(var t in Near(b,100).Where(x=>x.owner!=a.owner))ApplyIce(t,a.owner);}
+            // (Match rule deepFreeze: Frost only chills - breaking the ice for damage is the Shatterer's power.)
+            if(a.type=="ice"){bool frozen=b.frozen>0;ApplyIce(b,a.owner);if(frozen&&!S.deepFreeze)sim.Damage(b,5);foreach(var t in Near(b,100).Where(x=>x.owner!=a.owner))ApplyIce(t,a.owner);}
             if(a.type=="plague")ApplyToxin(b,a.owner);
             if(a.type=="plagueleech"&&!a.hitUsed){a.hitUsed=true;a.linkedTargetId=b.id;ApplyToxin(b,a.owner);sim.Emit("LINK",a,"Toxic tether",b.id);}
             if(!hit||!source)return;
@@ -78,7 +93,7 @@ namespace CoreClash.Core
         }
         void StatusStop(BallRuntime b)
         {
-            if(b.type=="blightpool"||b.type=="consecrator")CreateZone(b,b.type=="blightpool"?"blight":"consecrated",165,3);
+            if(b.type=="blightpool"||b.type=="consecrator")CreateZone(b,b.type=="blightpool"?"blight":"consecrated",b.type=="blightpool"?S.poolRadius:165,3);
             if(b.type=="ward"||b.type=="medic"||b.type=="cleanser")foreach(var ally in Living().Where(t=>t.owner==b.owner&&Dist(b,t)<=165)){
                 int removed=Cleanse(ally,false);if(b.type=="medic")sim.Heal(ally,10);if(b.type=="ward")ally.shield=Math.Max(ally.shield,5);EmitCleanse(b,ally,removed);
             }

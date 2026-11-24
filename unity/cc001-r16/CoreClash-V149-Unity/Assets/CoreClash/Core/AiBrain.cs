@@ -139,23 +139,32 @@ namespace CoreClash.Core
             foreach (var ball in state.balls)
             {
                 if (ball.dead || ball.banished) continue;
-                bool mine = ball.owner == me; float health = ball.maxHp > 0 ? Math.Min(1f, ball.hp / (float)ball.maxHp) : 0;
-                float trouble = ball.fireStacks + (ball.toxinTurns > 0 ? 1 : 0) + ball.iceStacks * .5f + (ball.frozen > 0 ? 1.5f : 0) + (ball.rooted ? 1 : 0) + (ball.jammed > 0 ? 1 : 0);
+                bool mine = ball.owner == me;
+                // HP the ball is about to lose to the fire and the poison it already carries counts as lost.
+                float health = ball.maxHp > 0 ? Math.Max(0f, Math.Min(1f, (ball.hp - Pending(ball)) / (float)ball.maxHp)) : 0;
+                // Match rule deepFreeze: a freeze takes a ball out of a whole turn, so each chill on the way to it is worth more.
+                bool deep = state.deepFreeze;
+                float trouble = ball.fireStacks + (ball.toxinTurns > 0 ? 1 : 0) + ball.iceStacks * (deep ? 1f : .5f) + (ball.frozen > 0 ? (deep ? 4f : 1.5f) : 0) + (ball.rooted ? 1 : 0) + (ball.jammed > 0 ? 1 : 0);
+                bool presses = MatchRules.Presses(ball);
                 if (mine)
                 {
                     f[1] += 1; f[2] += health; f[8] -= trouble;
-                    if (ZoneResolver.TouchesEnemyZone(ball)) f[5] += 1;
+                    if (presses && ZoneResolver.TouchesEnemyZone(ball)) f[5] += 1;
                     if (ZoneResolver.TouchesOwnZone(ball) && ball.frozen <= 0 && !ball.rooted) f[9] += 1;
                 }
                 else
                 {
                     f[3] -= 1; f[4] -= health; f[8] += trouble;
-                    if (ZoneResolver.TouchesEnemyZone(ball)) f[6] -= 1;
+                    if (presses && ZoneResolver.TouchesEnemyZone(ball)) f[6] -= 1;
                 }
-                if (ZoneResolver.TouchesCenter(ball, centreRadius)) { if (mine) centreMine++; else centreTheirs++; }
+                if (presses && ZoneResolver.TouchesCenter(ball, centreRadius)) { if (mine) centreMine++; else centreTheirs++; }
             }
             f[7] = Math.Max(-3, Math.Min(3, centreMine - centreTheirs));
         }
+
+        // What a burning or poisoned ball still has to lose: 5 HP a turn for every fire on it while it
+        // burns, 5 HP a turn while the poison lasts.
+        public static int Pending(BallRuntime ball) => ball.fireStacks * 5 * Math.Max(0, ball.burnTurns) + 5 * Math.Max(0, ball.toxinTurns);
 
         // How good the position is for `me`.
         public static float Score(GameState state, int me, AiWeights w)

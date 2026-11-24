@@ -31,10 +31,12 @@ namespace CoreClash.Core
             if(!S.comebackRule)return;
             foreach(var p in S.players)if(!p.comebackUsed&&p.hp>0&&p.hp<ComebackBelow){p.comebackUsed=true;p.comebackArmed=true;}
         }
+        // A ball that presses: alive, on the board and - match rule deepFreeze - not frozen.
+        public static bool Presses(BallRuntime x)=>!x.dead&&!x.banished&&!AbilityResolver.DeepFrozen(x);
         public void ApplyTurnPressure(int owner)
         {
-            DamageBase(1-owner,S.balls.Count(x=>!x.dead&&!x.banished&&x.owner==owner&&ZoneResolver.TouchesEnemyZone(x)));
-            int diff=S.balls.Count(x=>!x.dead&&!x.banished&&x.owner==0&&ZoneResolver.TouchesCenter(x,S.centreRadius))-S.balls.Count(x=>!x.dead&&!x.banished&&x.owner==1&&ZoneResolver.TouchesCenter(x,S.centreRadius));
+            DamageBase(1-owner,S.balls.Count(x=>Presses(x)&&x.owner==owner&&ZoneResolver.TouchesEnemyZone(x)));
+            int diff=S.balls.Count(x=>Presses(x)&&x.owner==0&&ZoneResolver.TouchesCenter(x,S.centreRadius))-S.balls.Count(x=>Presses(x)&&x.owner==1&&ZoneResolver.TouchesCenter(x,S.centreRadius));
             if(System.Math.Abs(diff)>=2)DamageBase(diff>0?1:0,System.Math.Abs(diff)-1);
         }
     }

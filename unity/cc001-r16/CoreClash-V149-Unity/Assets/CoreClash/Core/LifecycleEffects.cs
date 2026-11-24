@@ -175,7 +175,15 @@ namespace CoreClash.Core
         }
         void LifecycleTurn(BallRuntime b)
         {
-            if(b.type=="plagueleech"&&b.linkedTargetId>0){var target=Living().FirstOrDefault(x=>x.id==b.linkedTargetId&&x.owner!=b.owner&&x.toxinTurns>0);if(target==null){b.linkedTargetId=0;return;}int lost=Math.Min(5,target.hp);target.hp-=lost;b.hp=Math.Min(b.maxHp,b.hp+lost);sim.Emit("DRAIN",b,"Drain "+lost,target.id);if(target.hp<=0)sim.Kill(target);}
+            if(b.type=="plagueleech"&&b.linkedTargetId>0){
+                var target=Living().FirstOrDefault(x=>x.id==b.linkedTargetId&&x.owner!=b.owner&&x.toxinTurns>0);if(target==null){b.linkedTargetId=0;return;}
+                // Match rule leechDrain: how much the Leech takes on top of the poison. At 0 it only feeds:
+                // the target loses nothing more and the Leech gets its 5 HP back.
+                int lost=Math.Min(Math.Max(0,S.leechDrain),target.hp),gain=S.leechDrain>0?lost:5,before=b.hp;
+                target.hp-=lost;b.hp=Math.Min(b.maxHp,b.hp+gain);
+                if(S.leechDrain>0||b.hp>before)sim.Emit("DRAIN",b,"Drain "+(S.leechDrain>0?lost:b.hp-before),target.id);
+                if(target.hp<=0)sim.Kill(target);
+            }
             if(b.type=="brood"&&b.spawnCount<5){if(Generate(b,"broodling",5,5,b.spawnCount*.7f)!=null){b.spawnCount++;b.hp=Math.Max(0,b.hp-5);if(b.spawnCount>=5)b.hp=0;if(b.hp<=0)sim.Kill(b);}}
             if(b.type=="necromancer"&&b.spawnCount<2&&b.ownTurnCounter%3==0){var grave=S.graveyard.Where(x=>x.owner==b.owner).ToArray();if(grave.Length>0&&Revive(b,grave[RandomIndex(grave.Length)],5)!=null)b.spawnCount++;}
         }

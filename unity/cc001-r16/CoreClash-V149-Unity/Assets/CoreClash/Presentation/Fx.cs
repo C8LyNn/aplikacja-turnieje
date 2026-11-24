@@ -365,6 +365,11 @@ namespace CoreClash.Presentation
                 case "JAM_EXPIRED":
                     Push(Shape.Ripple, x, y, x, y, now, .45f, (ball?.radius ?? 17) + 22, Volt, e.id);
                     break;
+                case "THAW":
+                    // The ice lets go: a ring and a few flakes falling off the ball.
+                    Push(Shape.Ripple, x, y, x, y, now, .45f, (ball?.radius ?? 17) + 22, Theme.Status(StatusKind.Frozen), e.id);
+                    Burst(x, y, 5, Theme.Status(StatusKind.Ice), Snow, 20, 70, .5f, 6.5f, 60);
+                    break;
                 case "GROW":
                     Push(Shape.Ripple, x, y, x, y, now, .5f, (ball?.radius ?? 17) + 26, Theme.Heal, e.id);
                     Rise(x, y, ball?.radius ?? 17, 5, Theme.Heal, Plus, 7);

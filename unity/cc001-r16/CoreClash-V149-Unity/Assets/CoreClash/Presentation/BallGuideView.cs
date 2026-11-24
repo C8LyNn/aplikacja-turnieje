@@ -363,7 +363,7 @@ namespace CoreClash.Presentation
                 case StatusKind.Fire:return Lang.T("On fire: loses "+n*5+" HP each turn","Płonie: traci "+n*5+" HP co turę");
                 case StatusKind.Ice:return Lang.T("Chilled "+n+" of 3 (3 = frozen)","Mróz "+n+" z 3 (3 = zamrożenie)");
                 case StatusKind.Toxin:return Lang.T("Poisoned: loses 5 HP each turn ("+n+(n==1?" more turn)":" more turns)"),"Zatruta: traci 5 HP co turę (jeszcze "+n+(n==1?" tura)":n<5?" tury)":" tur)"));
-                case StatusKind.Frozen:return Lang.T("Frozen: cannot move","Zamrożona: nie może się ruszyć");
+                case StatusKind.Frozen:return Lang.T("Frozen: does nothing until it thaws","Zamrożona: nic nie robi, dopóki nie odtaje");
                 case StatusKind.Rooted:return Lang.T("Tangled in a vine until its turn ends","Opleciona przez pnącze do końca swojej tury");
                 case StatusKind.Jammed:return Lang.T("Switched off: no power until the end of its next turn","Wyłączona: bez mocy do końca swojej następnej tury");
                 case StatusKind.Frostguard:return Lang.T("Dug in: chills whoever hits it","Okopany: mrozi każdego, kto w niego uderzy");

@@ -52,10 +52,10 @@ public static partial class Program
             var ice=W24RunShow(c,"ice");Eq(1,ice.Simulation.State.balls.Count(b=>b.owner==1&&b.frozen>0));Eq(2,ice.Simulation.State.balls.Count(b=>b.owner==1&&b.iceStacks==1));
             // Blizzard: both enemies standing in it are chilled turn after turn.
             True(Enemies(W24RunShow(c,"blizzardcore")).All(b=>b.iceStacks>=2||b.frozen>0),"Blizzard did not chill the enemies in it twice");
-            // Ice trap: the enemy that rolled over it is chilled and the trap is gone.
-            var iceTrap=W24RunShow(c,"frosttrap");Eq(1,W24Ball(iceTrap,1,"normal").iceStacks);False(iceTrap.Simulation.State.zones.Any(z=>!z.dead&&z.kind=="frosttrap"));
-            // Shatterer: 5 extra damage, the ice is used up.
-            var shatter=W24RunShow(c,"shatterer");True(W24Ball(shatter,1,"normal").hp<=25&&W24Ball(shatter,1,"normal").iceStacks==0);
+            // Ice trap: the enemy that rolled over it is frozen on the spot and the trap is gone.
+            var iceTrap=W24RunShow(c,"frosttrap");True(AbilityResolver.DeepFrozen(W24Ball(iceTrap,1,"normal")),"the ice trap did not freeze");Eq(0,W24Ball(iceTrap,1,"normal").iceStacks);False(iceTrap.Simulation.State.zones.Any(z=>!z.dead&&z.kind=="frosttrap"));
+            // Shatterer: the frozen ball loses 15 HP to the broken ice (and a little to the hit), and is frozen no more.
+            var shatter=W24RunShow(c,"shatterer");True(W24Ball(shatter,1,"normal").hp<=15&&W24Ball(shatter,1,"normal").iceStacks==0&&W24Ball(shatter,1,"normal").frozen<=0,"shatter: hp "+W24Ball(shatter,1,"normal").hp);
             // Snowman: dug in with a shield; the ball that hit it is chilled.
             var snowman=W24RunShow(c,"frostguard");True(W24Ball(snowman,0,"frostguard").frostguardAnchored);Eq(1,W24Ball(snowman,1,"normal").iceStacks);True(snowman.Seen.Contains("SHIELD"));
             // --- Fire. Flame: the enemy burns; Campfire: both enemies in its field burn.
@@ -75,7 +75,9 @@ public static partial class Program
             // Mushroom: dead, and both the ball that killed it and the one standing by are poisoned.
             var mushroom=W24RunShow(c,"plagueburst");True(W24Ball(mushroom,0,"plagueburst")==null);Eq(2,Enemies(mushroom).Count(b=>b.toxinTurns>0));
             // Leech: the drain happens on its owner's turn.
-            True(W24RunShow(c,"plagueleech").Seen.Contains("LINK"));
+            var leech=W24RunShow(c,"plagueleech");True(leech.Seen.Contains("LINK")&&leech.Seen.Contains("DRAIN"));True(W24Ball(leech,1,"normal").toxinTurns>0,"the Leech's target is not poisoned");
+            // It came in with 15 HP and fed twice; its target lost only the poison's 5 HP a turn.
+            Eq(25,W24Ball(leech,0,"plagueleech").hp);Eq(20,W24Ball(leech,1,"normal").hp);
             // --- Magnetism. Magnet: every other ball ends closer to where the Magnet stopped.
             var magnet=W24RunShow(c,"magnet");
             foreach(var ball in magnet.Simulation.State.balls.Where(b=>b.type=="normal"))True(Far(ball,270,480)<75&&ball.hp==30,"Magnet did not gather a ball: "+Far(ball,270,480).ToString("0")+" hp "+ball.hp);

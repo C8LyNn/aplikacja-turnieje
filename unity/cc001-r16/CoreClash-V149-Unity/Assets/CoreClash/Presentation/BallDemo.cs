@@ -11,7 +11,7 @@ namespace CoreClash.Presentation
     // commands, turns pass, and whatever happens is what the simulation computes. Nothing here
     // draws, and nothing here can reach the live match.
     public enum DemoStepKind { Launch, Wait, PassTurn }
-    public sealed class DemoStep { public DemoStepKind Kind;public int Owner;public string Type;public float X,Y,Power,Pause; }
+    public sealed class DemoStep { public DemoStepKind Kind;public int Owner,Hp;public string Type;public float X,Y,Power,Pause; }
     public sealed class DemoPiece { public int Owner,Hp,Fire,Ice;public string Type;public float X,Y;public bool Poison,Fallen; }
 
     public sealed class BallDemoScript
@@ -32,9 +32,10 @@ namespace CoreClash.Presentation
             Pieces.Add(new DemoPiece{Owner=owner,Type=type,X=x,Y=y,Hp=hp,Fire=fire,Ice=ice,Poison=poison,Fallen=fallen});return this;
         }
         // An ordinary launch from that player's base towards (x, y) with the given power.
-        public BallDemoScript Launch(int owner,string type,float x,float y,float power,float pause=1f)
+        // hp above 0: the launched ball comes in hurt, with that much HP (for powers that heal the ball itself).
+        public BallDemoScript Launch(int owner,string type,float x,float y,float power,float pause=1f,int hp=0)
         {
-            Steps.Add(new DemoStep{Kind=DemoStepKind.Launch,Owner=owner,Type=type,X=x,Y=y,Power=power,Pause=pause});return this;
+            Steps.Add(new DemoStep{Kind=DemoStepKind.Launch,Owner=owner,Type=type,X=x,Y=y,Power=power,Pause=pause,Hp=hp});return this;
         }
         public BallDemoScript Wait(float seconds){Steps.Add(new DemoStep{Kind=DemoStepKind.Wait,Pause=seconds});return this;}
         // The acting player's turn ends without a shot, so effects that work "every turn" can be seen.
@@ -76,7 +77,7 @@ namespace CoreClash.Presentation
             // The opening-turn bonus shot is not part of any show.
             state.bonusUsed=true;
             // A show plays by the rule the game itself plays by: a ball has only its card's power.
-            state.plainPowers=true;state.exclusiveFields=true;
+            state.plainPowers=true;state.exclusiveFields=true;RosterBalance.Apply(state);
             // ...and with balls of the size the game shows (match rule ballScale; the app's default).
             state.ballScale=DemoBallScale;
             foreach(var piece in script.Pieces)
@@ -132,7 +133,12 @@ namespace CoreClash.Presentation
                     }
                     var command=new PlayerCommand{owner=next.Owner,turnNumber=state.turnNumber,kind=CommandKind.Spawn,ballType=next.Type,
                         dx=next.X-270,dy=next.Y-(next.Owner==0?853:47),power=next.Power};
-                    if(Simulation.TryCommand(command,out _)){acting=true;pauseAfterAction=next.Pause;}
+                    if(Simulation.TryCommand(command,out _))
+                    {
+                        acting=true;pauseAfterAction=next.Pause;
+                        var launched=next.Hp>0?state.balls.LastOrDefault(ball=>ball.owner==next.Owner&&ball.type==next.Type&&!ball.dead):null;
+                        if(launched!=null)launched.hp=Math.Min(launched.maxHp,next.Hp);
+                    }
                     Collect();
                     break;
             }
@@ -179,7 +185,7 @@ namespace CoreClash.Presentation
                 .Launch(0,"frosttrap",270,480,Up(480))
                 .Launch(1,"normal",270,480,Hard,1.8f);
             Show("shatterer").Shows("SHATTER")
-                .Put(1,"normal",270,420,0,0,2)
+                .Put(1,"normal",270,420,0,0,3)
                 .Launch(0,"shatterer",270,420,Up(400),1.8f);
             Show("frostguard").Shows("FROSTGUARD_COUNTER")
                 .Launch(0,"frostguard",270,480,Up(480),1.2f)
@@ -223,10 +229,11 @@ namespace CoreClash.Presentation
             Show("plagueburst").Shows("TOXIN")
                 .Put(0,"plagueburst",270,470,5).Put(1,"normal",210,420)
                 .Launch(1,"normal",270,470,Hard,1.8f);
+            // The Leech comes in hurt, so the HP it gets back from its poisoned target shows on its gauge.
             Show("plagueleech").Shows("DRAIN")
                 .Put(1,"normal",270,420)
-                .Launch(0,"plagueleech",270,420,Up(410),1.4f)
-                .PassTurn(1.8f);
+                .Launch(0,"plagueleech",270,420,Up(410),1.4f,15)
+                .PassTurn(1.8f).PassTurn(.6f).PassTurn(1.8f);
 
             // Magnetism.
             Show("magnet").Shows("MAGNET")

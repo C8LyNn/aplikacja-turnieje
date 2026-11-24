@@ -57,6 +57,30 @@ namespace CoreClash.Core
         // Measured, computer against computer: with any ball as the extra one the first player
         // wins 39% of matches, with no extra ball 64%, with a Standard one 47%.
         public bool standardOpeningBonus;
+        // W24 match rule (off = the reference rules; owner decision 2026-11-24 "strengthen the ice
+        // balls", after the lab's measurement: the two decks with ice were the two weakest). In the
+        // reference rules a freeze lasts 2.4 seconds of motion - it is over before the other player
+        // aims. With this rule a frozen ball is out of the game for freezeTurns turns after the one
+        // it was frozen in (two = one turn of each player: its owner cannot use it, and the player
+        // who froze it gets a turn to break the ice): it does not move, its power does not work, it
+        // does not press the base or count for the centre. A frozen ball takes no more chills. Also:
+        // the ice trap freezes outright, and the Shatterer takes 5 HP for every chill it breaks (15
+        // from a frozen ball).
+        public bool deepFreeze;
+        public int freezeTurns=2;
+        // W24 match rule (off = the reference rules): Venom's bite into an already poisoned enemy
+        // (5 HP from it, 5 HP back to Venom) works once a turn for each enemy, like the Lightning
+        // and the Cactus - in the reference rules every touch counts.
+        public bool venomOncePerTurn;
+        // W24 match rules, numbers of the poison group (the defaults are the reference numbers; owner
+        // decision 2026-11-24 "weaken the Jungle deck", after the lab's measurement: poison was the
+        // strongest group and the Leech its strongest ball - one touch took 25 HP and gave 10 back).
+        //   poisonTurns  how many turns a poison lasts (5 HP a turn)
+        //   leechDrain   HP the Leech takes from its poisoned target in each turn of its owner, on top
+        //                of the poison; 0 = it takes nothing more and only heals itself (5 HP a turn)
+        //   poolRadius   the radius of the Poison Pool's field
+        public int poisonTurns=3,leechDrain=5;
+        public float poolRadius=165;
         public bool comebackRule,comebackActive;
         public string mapId="";
         public string actionKind,resultReason;
@@ -84,6 +108,8 @@ namespace CoreClash.Core
         public int banishedUntilTurn,jammed;
         // W24 six groups: battery charge; the owner turn in which a switched-off power comes back.
         public int charge,jamExpiresOwnerTurn=-1;
+        // Match rule deepFreeze: the number of the turn at whose end this ball thaws (-1 = not frozen that way).
+        public int thawTurn=-1;
         // Per-instance, serialized once-per-turn DEATH observer gate.
         public int lastDenMotherTurn=-1;
         public int lastRamAction=-1;

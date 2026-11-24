@@ -77,13 +77,13 @@ namespace CoreClash.Presentation
         public static readonly BallGroup[] All=
         {
             new BallGroup{Id="ice",NameEn="Ice",NamePl="Lód",Balls=new[]{"ice","blizzardcore","frosttrap","shatterer","frostguard"},
-                PlanEn="Three chills freeze a ball. A frozen ball cannot move, and the Shatterer hits it harder.",
-                PlanPl="Trzy mrozy zamrażają kulkę. Zamrożona się nie rusza, a Kruszyciel bije ją mocniej."},
+                PlanEn="Three chills freeze a ball. A frozen ball does nothing for 2 turns, and the Shatterer breaks the ice for damage.",
+                PlanPl="Trzy mrozy zamrażają kulkę. Zamrożona przez 2 tury nic nie robi, a Kruszyciel kruszy lód i rani."},
             new BallGroup{Id="fire",NameEn="Fire",NamePl="Ogień",Balls=new[]{"fire","furnace","embertrap","bomb","firebrand"},
                 PlanEn="Set them alight and keep adding: every further fire on the same ball burns harder.",
                 PlanPl="Podpalaj i dokładaj: każdy kolejny ogień na tej samej kulce pali mocniej."},
             new BallGroup{Id="poison",NameEn="Poison",NamePl="Trucizna",Balls=new[]{"venom","blightpool","sporetrap","plagueburst","plagueleech"},
-                PlanEn="Poison first: Venom bites poisoned enemies harder and the Leech feeds on them.",
+                PlanEn="Poison first: Venom bites poisoned enemies harder and the Leech heals off them.",
                 PlanPl="Najpierw zatruj: Jad mocniej kąsa zatrutych, a Pijawka się nimi żywi."},
             new BallGroup{Id="magnet",NameEn="Magnetism",NamePl="Magnetyzm",Balls=new[]{"magnet","pulse","fluxmine","gravitymine","anchor"},
                 PlanEn="You decide where balls stand: pull enemies together, push them away, drag them onto the mine.",
@@ -150,6 +150,7 @@ namespace CoreClash.Presentation
         static GuideFact Burning=>Fact(GuideFactKind.Fire,"Fire: 5 HP × 3 turns","Ogień: 5 HP × 3 tury");
         static GuideFact Poisoned=>Fact(GuideFactKind.Poison,"Poison: 5 HP × 3 turns","Trucizna: 5 HP × 3 tury");
         static GuideFact Chilled=>Fact(GuideFactKind.Ice,"3 chills = frozen","3 mrozy = zamrożenie");
+        static GuideFact FrozenFact=>Fact(GuideFactKind.Frozen,"Frozen for 2 turns","Zamrożona na 2 tury");
 
         static void Add(string id,string namePl,GuideWhen when,GuideWho who,float range,string tagEn,string tagPl,
             string doesEn,string doesPl,string tipEn,string tipPl,params GuideFact[] facts)
@@ -170,27 +171,27 @@ namespace CoreClash.Presentation
             Add("ice","Mróz",GuideWhen.Touch,GuideWho.Enemies,100,"Freeze","Mrozi",
                 "Chills the enemy it touches and other enemies near that one. The third chill freezes a ball.",
                 "Mrozi wroga, którego dotknie, i innych wrogów obok niego. Trzeci mróz zamraża kulkę.",
-                "Hitting a frozen ball deals 5 extra damage. Ice and fire cancel each other.",
-                "Uderzenie w zamrożoną kulkę: +5 obrażeń. Lód i ogień znoszą się nawzajem.",
-                Chilled,Fact(GuideFactKind.Frozen,"Frozen: cannot move","Zamrożona: nie rusza się"));
+                "A frozen ball cannot move, has no power and does not attack the base for 2 turns - yours and the enemy's.",
+                "Zamrożona kulka przez 2 tury (twoją i wroga) nie rusza się, nie ma mocy i nie atakuje bazy.",
+                Chilled);
             Add("blizzardcore","Zamieć",GuideWhen.Stop,GuideWho.Enemies,165,"Ice field","Pole lodu",
                 "Starts a big blizzard that lasts 3 turns. At the end of every turn, enemies standing in it get chilled.",
                 "Rozpętuje dużą zamieć na 3 tury. Na koniec każdej tury wrogowie stojący w zamieci dostają mróz.",
                 "3 turns in it = frozen. Where an older field lies, a new one does not work.",
                 "3 tury w zamieci = zamrożenie. W miejscu starszego pola nowe nie działa.",
                 Time("Lasts 3 turns","Trwa 3 tury"),Chilled);
-            Add("frosttrap","Pułapka lodu",GuideWhen.Stop,GuideWho.Enemies,0,"Chills enemy","Mrozi wroga",
-                "Leaves an ice trap on that spot. The first enemy to roll over the trap gets chilled.",
-                "Zostawia w tym miejscu lodową pułapkę. Pierwszy wróg, który na nią wjedzie, dostaje mróz.",
-                "The trap works once.",
-                "Pułapka działa raz.",
-                Chilled,Count("Works once","Działa raz"));
+            Add("frosttrap","Pułapka lodu",GuideWhen.Stop,GuideWho.Enemies,0,"Freezes enemy","Zamraża wroga",
+                "Leaves an ice trap on that spot. The first enemy to roll over the trap is frozen at once.",
+                "Zostawia w tym miejscu lodową pułapkę. Pierwszy wróg, który na nią wjedzie, od razu zamarza.",
+                "The trap works once. A burning enemy is only put out.",
+                "Pułapka działa raz. Płonącego wroga tylko gasi.",
+                FrozenFact,Count("Works once","Działa raz"));
             Add("shatterer","Kruszyciel",GuideWhen.Touch,GuideWho.Enemies,0,"Ice breaker","Kruszy lód",
-                "Hits chilled enemies harder: a ball with 2 chills, or a frozen one, loses 5 extra HP.",
-                "Mocniej bije zmrożonych: kulka z dwoma mrozami albo zamrożona traci dodatkowe 5 HP.",
-                "The hit uses up the ice on the target. Chill first, then shatter.",
-                "Cios zużywa lód na celu. Najpierw zmroź, potem krusz.",
-                Damage("+5 damage","+5 obrażeń"));
+                "Breaks the ice on the enemy it touches: 5 HP for every chill. A frozen ball loses 15 HP.",
+                "Kruszy lód na wrogu, którego dotknie: zabiera 5 HP za każdy mróz. Zamrożona kulka traci 15 HP.",
+                "The hit uses up the ice: a frozen ball is free again. Chill first, then shatter.",
+                "Cios zużywa lód: zamrożona kulka znów jest wolna. Najpierw zmroź, potem krusz.",
+                Damage("5 HP per chill","5 HP za każdy mróz"),Damage("Frozen: 15 HP","Zamrożona: 15 HP"));
             Add("frostguard","Bałwan",GuideWhen.Stop,GuideWho.Enemies,0,"Cold to touch","Zimny w dotyku",
                 "Digs in where it stops and gets a shield of 10. Every enemy that hits it gets chilled.",
                 "Okopuje się tam, gdzie stanie, i dostaje tarczę 10. Każdy wróg, który w niego uderzy, dostaje mróz.",
@@ -234,12 +235,12 @@ namespace CoreClash.Presentation
             Add("venom","Jad",GuideWhen.Touch,GuideWho.Enemies,0,"Poison","Zatruwa",
                 "Poisons the enemy it touches.",
                 "Zatruwa wroga, którego dotknie.",
-                "Touch an enemy that is already poisoned: it loses 5 HP at once and Venom gets 5 HP back.",
-                "Dotknij już zatrutego wroga: od razu traci 5 HP, a Jad odzyskuje 5 HP.",
+                "Touch an enemy that is already poisoned: it loses 5 HP at once and Venom gets 5 HP back. Once a turn for each enemy.",
+                "Dotknij już zatrutego wroga: od razu traci 5 HP, a Jad odzyskuje 5 HP. Raz na turę na każdego wroga.",
                 Poisoned);
-            Add("blightpool","Trująca kałuża",GuideWhen.Stop,GuideWho.Enemies,165,"Poison pool","Kałuża jadu",
-                "Spills a big pool of poison that lasts 3 turns. At the end of every turn, enemies standing in the pool get poisoned.",
-                "Rozlewa dużą kałużę trucizny na 3 tury. Na koniec każdej tury wrogowie stojący w kałuży zostają zatruci.",
+            Add("blightpool","Trująca kałuża",GuideWhen.Stop,GuideWho.Enemies,CoreClash.Core.RosterBalance.PoolRadius,"Poison pool","Kałuża jadu",
+                "Spills a pool of poison that lasts 3 turns. At the end of every turn, enemies standing in the pool get poisoned.",
+                "Rozlewa kałużę trucizny na 3 tury. Na koniec każdej tury wrogowie stojący w kałuży zostają zatruci.",
                 "Push enemies into the pool. Where an older field lies, a new one does not work.",
                 "Wepchnij wrogów do kałuży. W miejscu starszego pola nowe nie działa.",
                 Time("Pool lasts 3 turns","Kałuża trwa 3 tury"),Poisoned);
@@ -255,12 +256,12 @@ namespace CoreClash.Presentation
                 "Leave it where enemies will have to hit it.",
                 "Zostaw go tam, gdzie wróg będzie musiał w niego uderzyć.",
                 Poisoned);
-            Add("plagueleech","Pijawka",GuideWhen.Touch,GuideWho.Enemies,0,"Drain","Wysysa",
-                "The first enemy it touches is poisoned and tied to the Leech. In each turn of yours, the Leech sucks 5 HP out of it and heals itself.",
-                "Pierwszy wróg, którego dotknie, zostaje zatruty i związany z Pijawką. W każdej twojej turze Pijawka wysysa z niego 5 HP i sama się leczy.",
-                "It lasts while the target is alive and still poisoned. The drain ignores shields.",
-                "Trwa, dopóki cel żyje i jest zatruty. Wysysanie omija tarczę.",
-                Poisoned,Heal("Drains 5 HP a turn","Wysysa 5 HP co turę"));
+            Add("plagueleech","Pijawka",GuideWhen.Touch,GuideWho.Enemies,0,"Feeds","Żywi się",
+                "The first enemy it touches is poisoned and tied to the Leech. While that enemy stays poisoned, the Leech gets 5 HP back in each turn of yours.",
+                "Pierwszy wróg, którego dotknie, zostaje zatruty i związany z Pijawką. Dopóki ten wróg jest zatruty, Pijawka w każdej twojej turze odzyskuje 5 HP.",
+                "Poison its victim again and the Leech keeps healing.",
+                "Zatruj jej ofiarę ponownie, a Pijawka będzie leczyć się dalej.",
+                Poisoned,Heal("+5 HP a turn","+5 HP co turę"));
 
             // Magnetism.
             Add("magnet","Magnes",GuideWhen.Stop,GuideWho.Everyone,165,"Pull","Przyciąga",

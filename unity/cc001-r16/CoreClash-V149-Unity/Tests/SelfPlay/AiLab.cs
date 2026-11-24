@@ -23,7 +23,11 @@ namespace CoreClash.SelfPlay
     //             the extra ball may be any ball (the reference rule); no extra ball; no extra ball
     //             and the first player's first ball must be a Standard one;
     //   balls     what each ball is worth to its deck over a whole match: the deck built on the
-    //             ball's group plays itself without that ball, from both seats;
+    //             ball's group plays itself without that ball, from both seats ("--group ice,poison"
+    //             measures only those groups);
+    //   groups    how strong each GROUP is: the six ready decks pair the groups one way only, so
+    //             here every pair of groups meets (five balls of one group and four of another);
+    //             the report also says what each group does to the other side in a match;
     //   levels    checks that Hard beats Normal and Normal beats Easy, and by how much;
     //   tune      teaches the computer by play: two copies of it, one with each weight of its
     //             judgement (AiWeights) pushed a little up or down at random and one pushed the
@@ -35,7 +39,11 @@ namespace CoreClash.SelfPlay
     //             the fit predicted results a little better and played worse - it lost 94:146 to
     //             the weights it started from. What goes with winning is not what causes it.
     // Run it through the test program:
-    //   dotnet run -c Release --project Tests/CoreClash.Tests.csproj -- . ailab <balance|levels|tune|train|bench> [--out folder] [--threads n]
+    //   dotnet run -c Release --project Tests/CoreClash.Tests.csproj -- . ailab <balance|balls|groups|levels|tune|train|bench> [--out folder] [--threads n]
+    // An experiment: "--rule name=value,name=value" sets match rules (fields of GameState) after the
+    // game's own, and "--name report" saves the report under another name. That is how a balance
+    // number is tried before it goes into Core/RosterBalance.cs:
+    //   ... ailab groups --games 600 --rule leechDrain=5,poolRadius=165 --name before
     public sealed class AiAgent { public AiLevelSettings Level; public AiWeights Weights; }
 
     // A position after a shot has played out, seen by the player who made it, and how the match ended for them.
@@ -48,6 +56,8 @@ namespace CoreClash.SelfPlay
         public readonly Dictionary<string, double> EdgeSum = new Dictionary<string, double>(StringComparer.Ordinal);
         public readonly Dictionary<string, int> EdgeCount = new Dictionary<string, int>(StringComparer.Ordinal);
         public List<LabSample> Samples;
+        // With `trace`: how many events of each kind happened to the balls of each seat (Events[seat][kind]).
+        public readonly Dictionary<string, int>[] Events = { new Dictionary<string, int>(StringComparer.Ordinal), new Dictionary<string, int>(StringComparer.Ordinal) };
     }
 
     public static class AiLab
@@ -58,15 +68,28 @@ namespace CoreClash.SelfPlay
         // anyBonusBall true: an experiment - the extra opening ball may be any ball (the reference rule).
         // openingBonus false: an experiment for the balance report - the second player does not get
         // the extra ball of the opening turn.
+        // An experiment: match rules (fields of GameState) set by name after the game's own, e.g.
+        // --rule deepFreeze=false. Empty = the game's rules.
+        public static string RuleOverrides = "";
+        static void Override(GameState state)
+        {
+            foreach (string part in RuleOverrides.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                string[] pair = part.Split('='); var field = typeof(GameState).GetField(pair[0].Trim());
+                if (field == null || pair.Length != 2) throw new ArgumentException("Unknown match rule: " + part);
+                field.SetValue(state, Convert.ChangeType(pair[1].Trim(), field.FieldType, CultureInfo.InvariantCulture));
+            }
+        }
         public static GameSimulation NewMatch(Catalog catalog, DeckDefinition a, DeckDefinition b, ulong seed, out string map, bool openingBonus = true, bool anyBonusBall = false)
         {
             var sim = new GameSimulation(catalog, a, b) { ActiveRosterOnly = true };
             var state = sim.State;
             state.ballScale = 1.5f; state.comebackRule = true; state.plainPowers = true; state.exclusiveFields = true;
-            state.standardOpeningBonus = !anyBonusBall;
+            state.standardOpeningBonus = !anyBonusBall; RosterBalance.Apply(state);
             var picked = MatchMaps.All[(int)(SelfPlayRng.Mix(seed, 77) % (ulong)MatchMaps.All.Length)];
             MatchMaps.Apply(sim, picked); map = picked.Id;
             if (!openingBonus) state.bonusUsed = true;
+            Override(state);
             return sim;
         }
 
@@ -82,7 +105,7 @@ namespace CoreClash.SelfPlay
             var sandbox = new GameSimulation(catalog, a, b) { ActiveRosterOnly = true };
             var agents = new[] { first, second };
             var random = new[] { new Random(unchecked((int)SelfPlayRng.Mix(seed, 1))), new Random(unchecked((int)SelfPlayRng.Mix(seed, 2))) };
-            int guard = 0;
+            int guard = 0, cursor = 0;
             while (sim.State.phase != MatchPhase.Over && guard++ < 600)
             {
                 int owner = sim.State.turn; var agent = agents[owner]; var level = agent.Level;
@@ -105,7 +128,8 @@ namespace CoreClash.SelfPlay
                         record.EdgeCount.TryGetValue(pair.Key, out int count); record.EdgeCount[pair.Key] = count + 1;
                     }
                 int steps = 0;
-                while (sim.State.phase == MatchPhase.Moving && steps++ < 6000) sim.Step(1f / 120);
+                while (sim.State.phase == MatchPhase.Moving && steps++ < 6000) { sim.Step(1f / 120); if (trace && steps % 20 == 0) Count(sim.State, record, ref cursor); }
+                if (trace) Count(sim.State, record, ref cursor);
                 if (sim.State.phase == MatchPhase.Moving) break;
                 if (record.Samples != null && sim.State.phase != MatchPhase.Over)
                 {
@@ -121,6 +145,19 @@ namespace CoreClash.SelfPlay
                 foreach (var sample in record.Samples) sample.Result = record.Winner < 0 ? .5f : record.Winner == sample.Mover ? 1 : 0;
             }
             return record;
+        }
+
+        // The event list keeps the last hundred: it is read every few steps.
+        static void Count(GameState state, LabMatch record, ref int cursor)
+        {
+            foreach (var e in state.events)
+            {
+                if (e.id <= cursor || e.ballId == 0) continue;
+                int owner = -1; foreach (var ball in state.balls) if (ball.id == e.ballId) { owner = ball.owner; break; }
+                if (owner < 0) continue;
+                record.Events[owner].TryGetValue(e.kind, out int n); record.Events[owner][e.kind] = n + 1;
+            }
+            cursor = state.eventSerial;
         }
 
         static Catalog LoadCatalog(string root)
@@ -168,6 +205,8 @@ namespace CoreClash.SelfPlay
             int threads = Int(args, "--threads", Math.Max(1, Environment.ProcessorCount * 3 / 4));
             try { Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.BelowNormal; } catch (Exception) { }
             string output = Arg(args, "--out", Path.Combine(root, "Logs"));
+            RuleOverrides = Arg(args, "--rule", "");
+            if (RuleOverrides.Length > 0) Console.WriteLine("AILAB experiment, match rules: " + RuleOverrides);
             Directory.CreateDirectory(output);
             switch (mode)
             {
@@ -177,7 +216,8 @@ namespace CoreClash.SelfPlay
                 case "levels": return Levels(catalog, root, args, threads, output);
                 case "tune": return Tune(catalog, root, args, threads, output);
                 case "balls": return Balls(catalog, root, args, threads, output);
-                default: Console.WriteLine("ailab: balance | balls | levels | tune | train | bench"); return 2;
+                case "groups": return Groups(catalog, root, args, threads, output);
+                default: Console.WriteLine("ailab: balance | balls | groups | levels | tune | train | bench"); return 2;
             }
         }
 
@@ -419,7 +459,7 @@ namespace CoreClash.SelfPlay
                 int now = Interlocked.Increment(ref done);
                 if (now % 100 == 0) Console.WriteLine("AILAB balance " + now + "/" + jobs.Count + " [" + watch.Elapsed.TotalSeconds.ToString("0") + " s]");
             });
-            string path = Path.Combine(output, opening == "game" ? "balans.md" : opening == "none" ? "balans-bez-bonusu.md" : "balans-" + opening + ".md");
+            string path = Path.Combine(output, Arg(args, "--name", opening == "game" ? "balans" : opening == "none" ? "balans-bez-bonusu" : "balans-" + opening) + ".md");
             File.WriteAllText(path, BalanceReport(catalog, results, perPair, watch.Elapsed.TotalSeconds, weights, opening), new UTF8Encoding(false));
             Console.WriteLine("AILAB balance report " + path);
             return 0;
@@ -438,7 +478,9 @@ namespace CoreClash.SelfPlay
         static int Balls(Catalog catalog, string root, string[] args, int threads, string output)
         {
             int games = Int(args, "--games", 80); var weights = LoadWeights(root); var agent = GameAgent(AiLevel.Normal, weights);
-            var balls = BallGroups.All.SelectMany(group => group.Balls).Where(id => HomeDeck(catalog, id) != null).ToArray();
+            // --group ice,poison: only the balls of those groups.
+            string[] only = Arg(args, "--group", "").Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+            var balls = BallGroups.All.Where(group => only.Length == 0 || only.Contains(group.Id)).SelectMany(group => group.Balls).Where(id => HomeDeck(catalog, id) != null).ToArray();
             var wins = new int[balls.Length]; var losses = new int[balls.Length]; var watch = Stopwatch.StartNew(); int done = 0, total = balls.Length * games;
             Parallel.For(0, total, new ParallelOptions { MaxDegreeOfParallelism = threads }, i =>
             {
@@ -469,9 +511,103 @@ namespace CoreClash.SelfPlay
                 var own = Enumerable.Range(0, balls.Length).Where(b => group.Balls.Contains(balls[b])).ToList(); if (own.Count == 0) continue;
                 text.AppendLine("| " + group.NamePl + " | " + own.Average(b => Share(wins[b], losses[b])).ToString("0") + "% |");
             }
-            string path = Path.Combine(output, "balans-kulki.md");
+            if (RuleOverrides.Length > 0) { text.AppendLine(); text.AppendLine("**Eksperyment** - zasady meczu zmienione: `" + RuleOverrides + "`."); }
+            string path = Path.Combine(output, Arg(args, "--name", "balans-kulki") + ".md");
             File.WriteAllText(path, text.ToString(), new UTF8Encoding(false));
             Console.WriteLine("AILAB balls report " + path);
+            return 0;
+        }
+
+        // ---------------------------------------------------------------- groups
+        // The six ready decks pair the groups one way only, and in a ring: from their results alone
+        // nobody can tell which of the two groups of a strong deck is the strong one. Here every pair
+        // of groups meets: a deck is the five balls of its main group and four of a second group (the
+        // ball left out changes from match to match). Matches come in twos with the seats changed.
+        public static DeckDefinition GroupDeck(BallGroup main, BallGroup second, int skip)
+            => new DeckDefinition { id = main.Id + "+" + second.Id, name = main.NamePl + " + " + second.NamePl, balls = main.Balls.Concat(second.Balls.Where((_, i) => i != skip % second.Balls.Length)).ToArray() };
+        static int Groups(Catalog catalog, string root, string[] args, int threads, string output)
+        {
+            int games = Int(args, "--games", 720); var weights = LoadWeights(root); var agent = GameAgent(AiLevel.Normal, weights);
+            var groups = BallGroups.All; int kinds = groups.Length * (groups.Length - 1);
+            (int main, int second) Kind(int index) { int main = index / (groups.Length - 1), second = index % (groups.Length - 1); return (main, second >= main ? second + 1 : second); }
+            var results = new LabMatch[games]; var left = new (int a, int b, int skipA, int skipB)[games]; var watch = Stopwatch.StartNew(); int done = 0;
+            Parallel.For(0, games, new ParallelOptions { MaxDegreeOfParallelism = threads }, i =>
+            {
+                int pair = i >> 1; bool swap = (i & 1) == 1; ulong seed = SelfPlayRng.Mix(90210, (ulong)pair);
+                // Every kind of deck plays equally often; its opponent and the balls left out are drawn.
+                int a = pair % kinds, b = (a + 1 + (int)(SelfPlayRng.Mix(seed, 3) % (ulong)(kinds - 1))) % kinds;
+                int skipA = (int)(SelfPlayRng.Mix(seed, 4) % 5), skipB = (int)(SelfPlayRng.Mix(seed, 5) % 5);
+                var deckA = GroupDeck(groups[Kind(a).main], groups[Kind(a).second], skipA); var deckB = GroupDeck(groups[Kind(b).main], groups[Kind(b).second], skipB);
+                results[i] = swap ? Play(catalog, deckB, deckA, agent, agent, seed, true) : Play(catalog, deckA, deckB, agent, agent, seed, true);
+                left[i] = swap ? (b, a, skipB, skipA) : (a, b, skipA, skipB);
+                int now = Interlocked.Increment(ref done);
+                if (now % 100 == 0) Console.WriteLine("AILAB groups " + now + "/" + games + " [" + watch.Elapsed.TotalSeconds.ToString("0") + " s]");
+            });
+            // One line per deck that played: which groups, which ball was left out, did it win.
+            var rows = new List<(int main, int second, string skipped, bool won, bool first)>();
+            // What happened to the balls of the OTHER side (and deaths on both), summed for each main group.
+            string[] watched = { "DEATH", "ICE", "FREEZE", "SHATTER", "FIRE", "TOXIN", "ROOTED", "JAM", "ZAP", "THORNS" };
+            var inflicted = new double[groups.Length, watched.Length]; var lost = new double[groups.Length]; var healed = new double[groups.Length]; var played = new int[groups.Length];
+            for (int i = 0; i < games; i++)
+            {
+                var match = results[i]; if (match == null) continue;
+                for (int seat = 0; seat < 2; seat++)
+                {
+                    int main = Kind(seat == 0 ? left[i].a : left[i].b).main; played[main]++;
+                    for (int k = 0; k < watched.Length; k++) { match.Events[1 - seat].TryGetValue(watched[k], out int n); inflicted[main, k] += n; }
+                    match.Events[seat].TryGetValue("DEATH", out int deaths); lost[main] += deaths;
+                    match.Events[seat].TryGetValue("HEAL", out int heals); healed[main] += heals;
+                }
+            }
+            for (int i = 0; i < games; i++)
+            {
+                var match = results[i]; if (match == null || !match.Finished || match.Winner < 0) continue;
+                var a = Kind(left[i].a); var b = Kind(left[i].b);
+                rows.Add((a.main, a.second, groups[a.second].Balls[left[i].skipA % groups[a.second].Balls.Length], match.Winner == 0, true));
+                rows.Add((b.main, b.second, groups[b.second].Balls[left[i].skipB % groups[b.second].Balls.Length], match.Winner == 1, false));
+            }
+            string Won(IEnumerable<(int main, int second, string skipped, bool won, bool first)> part) { var list = part.ToList(); return list.Count == 0 ? "-" : (list.Count(r => r.won) * 100.0 / list.Count).ToString("0") + "%"; }
+            var text = new StringBuilder();
+            text.AppendLine("# Core Clash - siła grup kulek");
+            text.AppendLine();
+            text.AppendLine("- Każda para grup spotyka się tu z każdą: talia to 5 kulek grupy głównej i 4 kulki drugiej grupy (pomijana kulka zmienia się z meczu na mecz). Mecze parami, z zamianą miejsc.");
+            text.AppendLine("- Mecze: **" + games + "**, rozstrzygnięte: " + rows.Count / 2 + ", zaczynający wygrywa " + Won(rows.Where(r => r.first)) + ", czas liczenia " + watch.Elapsed.TotalSeconds.ToString("0") + " s. Komputer z komputerem, poziom średni, zasady gry" + (RuleOverrides.Length > 0 ? " ze zmianą: `" + RuleOverrides + "`" : "") + ".");
+            text.AppendLine("- 50% = grupa równa pozostałym. Przy tej liczbie meczów przypadek to około ±" + (100 / Math.Sqrt(Math.Max(1, rows.Count / 3))).ToString("0") + " punktów na grupę.");
+            text.AppendLine();
+            text.AppendLine("| Grupa | Wygrane talii z tą grupą | jako główna (5 kulek) | jako druga (4 kulki) | Talie |");
+            text.AppendLine("|---|---|---|---|---|");
+            for (int g = 0; g < groups.Length; g++)
+                text.AppendLine("| " + groups[g].NamePl + " | **" + Won(rows.Where(r => r.main == g || r.second == g)) + "** | " + Won(rows.Where(r => r.main == g)) + " | " + Won(rows.Where(r => r.second == g)) + " | " + rows.Count(r => r.main == g || r.second == g) + " |");
+            text.AppendLine();
+            text.AppendLine("Każda talia osobno (wiersz = grupa główna, kolumna = druga grupa):");
+            text.AppendLine();
+            text.AppendLine("| główna \\ druga | " + string.Join(" | ", groups.Select(g => g.NamePl)) + " |");
+            text.AppendLine("|---|" + string.Concat(groups.Select(_ => "---|")));
+            for (int main = 0; main < groups.Length; main++)
+                text.AppendLine("| " + groups[main].NamePl + " | " + string.Join(" | ", Enumerable.Range(0, groups.Length).Select(second => second == main ? "·" : Won(rows.Where(r => r.main == main && r.second == second)))) + " |");
+            text.AppendLine();
+            text.AppendLine("Kulka pominięta w talii, w której jej grupa jest drugą (wyraźnie powyżej średniej grupy = talia gra lepiej BEZ tej kulki; mało meczów, tylko wskazówka):");
+            text.AppendLine();
+            text.AppendLine("| Kulka | Grupa | Wygrane talii bez niej | Wygrane talii z nią | Mecze bez niej |");
+            text.AppendLine("|---|---|---|---|---|");
+            for (int g = 0; g < groups.Length; g++)
+                foreach (string ball in groups[g].Balls)
+                    text.AppendLine("| " + BallName(catalog, ball) + " | " + groups[g].NamePl + " | " + Won(rows.Where(r => r.second == g && r.skipped == ball)) + " | " + Won(rows.Where(r => r.second == g && r.skipped != ball)) + " | " + rows.Count(r => r.second == g && r.skipped == ball) + " |");
+            text.AppendLine();
+            text.AppendLine("Co talia robi przeciwnikowi, średnio na mecz (wiersz = grupa główna talii):");
+            text.AppendLine();
+            text.AppendLine("| Grupa główna | Zabite kulki wroga | Stracone własne | Mróz | Zamrożenie | Skruszenie | Ogień | Trucizna | Oplątanie | Wyłączenie | Piorun | Kolce | Własne leczenia |");
+            text.AppendLine("|---|---|---|---|---|---|---|---|---|---|---|---|---|");
+            for (int g = 0; g < groups.Length; g++)
+            {
+                if (played[g] == 0) continue;
+                text.AppendLine("| " + groups[g].NamePl + " | " + (inflicted[g, 0] / played[g]).ToString("0.0") + " | " + (lost[g] / played[g]).ToString("0.0") + " | "
+                    + string.Join(" | ", Enumerable.Range(1, watched.Length - 1).Select(k => (inflicted[g, k] / played[g]).ToString("0.0"))) + " | " + (healed[g] / played[g]).ToString("0.0") + " |");
+            }
+            if (RuleOverrides.Length > 0) { text.AppendLine(); text.AppendLine("**Eksperyment** - zasady meczu zmienione: `" + RuleOverrides + "`."); }
+            string path = Path.Combine(output, Arg(args, "--name", "balans-grupy") + ".md");
+            File.WriteAllText(path, text.ToString(), new UTF8Encoding(false));
+            Console.WriteLine("AILAB groups report " + path);
             return 0;
         }
 
@@ -488,7 +624,7 @@ namespace CoreClash.SelfPlay
             text.AppendLine();
             if (experiment != null) text.AppendLine("- **Eksperyment:** w tych meczach " + experiment + ". Reszta zasad bez zmian.");
             text.AppendLine("- Mecze: **" + matches.Length + "** (" + perPair + " na każdą parę talii w każdej kolejności), rozstrzygnięte: " + decided.Count + ", remisy: " + matches.Count(m => m.Finished && m.Winner < 0) + ", czas liczenia: " + seconds.ToString("0") + " s.");
-            text.AppendLine("- Obie strony gra ten sam komputer (poziom średni), na zasadach gry: kulki ×1,5, podwójna tura poniżej 10 HP bazy, losowa mapa, każda kulka 30 HP, proste moce, jedno pole w jednym miejscu, dodatkowa kulka gracza 2 na otwarcie tylko Zwykła.");
+            text.AppendLine("- Obie strony gra ten sam komputer (poziom średni), na zasadach gry: kulki ×1,5, podwójna tura poniżej 10 HP bazy, losowa mapa, każda kulka 30 HP, proste moce, jedno pole w jednym miejscu, dodatkowa kulka gracza 2 na otwarcie tylko Zwykła, zamrożenie trwa 2 tury (liczby balansu z 24.11.2026).");
             text.AppendLine("- To są mecze komputera z komputerem. Mówią, co jest mocne **w rękach tego komputera**; człowiek może grać kulką lepiej albo gorzej.");
             text.AppendLine();
             text.AppendLine("## Mecz");
@@ -526,6 +662,34 @@ namespace CoreClash.SelfPlay
             foreach (var a in decks)
                 text.AppendLine("| " + (DeckText.NamePl(a.id) ?? a.name) + " | " + string.Join(" | ", decks.Select(b => { var pair = decided.Where(m => m.DeckA == a.id && m.DeckB == b.id).ToList(); return Percent(pair.Count(m => m.Winner == 0), pair.Count); })) + " |");
             text.AppendLine();
+
+            // What each deck does to the other side, per match (mirror matches left out).
+            string[] watched = { "DEATH", "FREEZE", "SHATTER", "FIRE", "TOXIN", "DRAIN", "ROOTED", "JAM", "ZAP", "THORNS" };
+            text.AppendLine("Co talia robi przeciwnikowi, średnio na mecz:");
+            text.AppendLine();
+            text.AppendLine("| Talia | Zabite kulki wroga | Stracone własne | Zamrożenia | Skruszenia | Podpalenia | Zatrucia | Wyssania | Oplątania | Wyłączenia | Pioruny | Kolce | Własne leczenia |");
+            text.AppendLine("|---|---|---|---|---|---|---|---|---|---|---|---|---|");
+            foreach (var deck in decks)
+            {
+                var sums = new double[watched.Length]; double lostOwn = 0, heals = 0; int count = 0;
+                foreach (var match in matches)
+                {
+                    if (match.DeckA == match.DeckB || (match.DeckA != deck.id && match.DeckB != deck.id)) continue;
+                    int seat = match.DeckA == deck.id ? 0 : 1; count++;
+                    for (int k = 0; k < watched.Length; k++)
+                    {
+                        // A drain is the Leech's own event; everything else is counted on the ball it happened to.
+                        match.Events[watched[k] == "DRAIN" ? seat : 1 - seat].TryGetValue(watched[k], out int n); sums[k] += n;
+                    }
+                    match.Events[seat].TryGetValue("DEATH", out int deaths); lostOwn += deaths;
+                    match.Events[seat].TryGetValue("HEAL", out int healed); heals += healed;
+                }
+                if (count == 0) continue;
+                text.AppendLine("| " + (DeckText.NamePl(deck.id) ?? deck.name) + " | " + (sums[0] / count).ToString("0.0") + " | " + (lostOwn / count).ToString("0.0") + " | "
+                    + string.Join(" | ", Enumerable.Range(1, watched.Length - 1).Select(k => (sums[k] / count).ToString("0.0"))) + " | " + (heals / count).ToString("0.0") + " |");
+            }
+            text.AppendLine();
+            if (RuleOverrides.Length > 0) { text.AppendLine("**Eksperyment** - zasady meczu zmienione: `" + RuleOverrides + "`."); text.AppendLine(); }
 
             var edge = new Dictionary<string, double>(); var seen = new Dictionary<string, int>(); var launched = new Dictionary<string, int>();
             foreach (var match in matches)
