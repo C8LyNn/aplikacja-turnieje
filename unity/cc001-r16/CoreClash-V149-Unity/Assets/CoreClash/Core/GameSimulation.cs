@@ -112,6 +112,8 @@ namespace CoreClash.Core
             if(b==null||b.dead||amount<=0)return;
             // Match rule compassDashHurt: on its second shot the Compass takes only part of what a collision would cost it.
             if(kinetic&&b.compassDash&&State.compassDashHurt<100){amount=Round(amount*Math.Max(0,State.compassDashHurt)/100f);if(amount<=0)return;}
+            // Match rule brittleBonus: a frozen ball is brittle - a hard hit takes more from it.
+            if(kinetic&&State.brittleBonus>0&&AbilityResolver.DeepFrozen(b))amount+=State.brittleBonus;
             int damage=kinetic?amount:Math.Max(5,Round(amount/5f)*5),absorbed=Math.Min(b.shield,damage);
             if(Abilities.BeforeDamage(b,kinetic))return;
             b.shield-=absorbed;damage-=absorbed;b.hp=Math.Max(0,b.hp-damage);b.lastDamageSourceId=sourceId;Emit("DAMAGE",b,damage>0?"-"+damage:"Shield");if(b.hp<=0)Kill(b);

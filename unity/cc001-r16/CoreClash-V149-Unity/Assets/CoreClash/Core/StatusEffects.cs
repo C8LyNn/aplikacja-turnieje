@@ -14,6 +14,8 @@ namespace CoreClash.Core
             b.iceStacks=b.iceTurns=0;b.frozen=2.4f;b.vx=b.vy=0;
             if(S.deepFreeze)b.thawTurn=S.turnNumber+Math.Max(1,S.freezeTurns);
             sim.Emit("FREEZE",b,"Frozen");
+            // Match rule freezeDamage: freezing itself costs HP.
+            if(S.deepFreeze&&S.freezeDamage>0)sim.Damage(b,S.freezeDamage);
         }
         // The ice trap of the deepFreeze rule: frozen at once (ice and fire still cancel each other).
         public void FreezeNow(BallRuntime b,int owner)

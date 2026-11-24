@@ -44,6 +44,14 @@ namespace CoreClash.Core
             {
                 // Match rule deepFreeze: 5 HP for every chill it breaks; a frozen ball counts as three.
                 int chills=target.frozen>0?3:target.iceStacks;if(chills<=0)return;
+                // Match rule shatterKeepsIce: the same damage, once a turn for each enemy, and the ice stays.
+                if(S.shatterKeepsIce)
+                {
+                    if(!PerTargetTurn(source,target))return;
+                    sim.Emit("SHATTER",target,"Ice struck: +"+chills*ShatterPerChill+" damage",source.id);
+                    sim.Damage(target,chills*ShatterPerChill,false,source.id);
+                    return;
+                }
                 ClearIce(target);sim.Emit("SHATTER",target,"Ice consumed: +"+chills*ShatterPerChill+" damage",source.id);
                 sim.Damage(target,chills*ShatterPerChill,false,source.id);
             }

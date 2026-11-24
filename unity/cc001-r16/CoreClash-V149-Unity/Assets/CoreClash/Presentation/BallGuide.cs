@@ -77,8 +77,12 @@ namespace CoreClash.Presentation
         public static readonly BallGroup[] All=
         {
             new BallGroup{Id="ice",NameEn="Ice",NamePl="Lód",Balls=new[]{"ice","blizzardcore","frosttrap","shatterer","frostguard"},
-                PlanEn="Three chills freeze a ball. A frozen ball does nothing for 2 turns, and the Shatterer breaks the ice for damage.",
-                PlanPl="Trzy mrozy zamrażają kulkę. Zamrożona przez 2 tury nic nie robi, a Kruszyciel kruszy lód i rani."},
+                PlanEn=CoreClash.Core.RosterBalance.FreezeDamage>0
+                    ?"Three chills freeze a ball: it loses "+CoreClash.Core.RosterBalance.FreezeDamage+" HP and does nothing for 2 turns. The Shatterer hurts chilled balls."
+                    :"Three chills freeze a ball. A frozen ball does nothing for 2 turns, and the Shatterer breaks the ice for damage.",
+                PlanPl=CoreClash.Core.RosterBalance.FreezeDamage>0
+                    ?"Trzy mrozy zamrażają kulkę: traci "+CoreClash.Core.RosterBalance.FreezeDamage+" HP i przez 2 tury nic nie robi. Kruszyciel rani zmrożone kulki."
+                    :"Trzy mrozy zamrażają kulkę. Zamrożona przez 2 tury nic nie robi, a Kruszyciel kruszy lód i rani."},
             new BallGroup{Id="fire",NameEn="Fire",NamePl="Ogień",Balls=new[]{"fire","furnace","embertrap","bomb","firebrand"},
                 PlanEn="Set them alight and keep adding: every further fire on the same ball burns harder.",
                 PlanPl="Podpalaj i dokładaj: każdy kolejny ogień na tej samej kulce pali mocniej."},
@@ -151,6 +155,11 @@ namespace CoreClash.Presentation
         static GuideFact Poisoned=>Fact(GuideFactKind.Poison,"Poison: 5 HP × 3 turns","Trucizna: 5 HP × 3 tury");
         static GuideFact Chilled=>Fact(GuideFactKind.Ice,"3 chills = frozen","3 mrozy = zamrożenie");
         static GuideFact FrozenFact=>Fact(GuideFactKind.Frozen,"Frozen for 2 turns","Zamrożona na 2 tury");
+        // What freezing costs a ball under the roster's balance.
+        static GuideFact FreezeCost=>Damage("Freezing: "+Hp(CoreClash.Core.RosterBalance.FreezeDamage)+" damage","Zamrożenie: "+Hp(CoreClash.Core.RosterBalance.FreezeDamage)+" obrażeń");
+        static GuideFact[] IceTrapFacts=>CoreClash.Core.RosterBalance.FreezeDamage>0
+            ?new[]{FrozenFact,FreezeCost,Count("Works once","Działa raz")}
+            :new[]{FrozenFact,Count("Works once","Działa raz")};
         // The numbers of the roster's balance, as the cards print them.
         static string Hp(int amount)=>amount.ToString(System.Globalization.CultureInfo.InvariantCulture);
         // One number while the touch and the jumps take the same, two when the touch takes more.
@@ -176,8 +185,8 @@ namespace CoreClash.Presentation
 
             // Ice.
             Add("ice","Mróz",GuideWhen.Touch,GuideWho.Enemies,100,"Freeze","Mrozi",
-                "Chills the enemy it touches and other enemies near that one. The third chill freezes a ball.",
-                "Mrozi wroga, którego dotknie, i innych wrogów obok niego. Trzeci mróz zamraża kulkę.",
+                "Chills the enemy it touches and other enemies near that one. The third chill freezes a ball"+(CoreClash.Core.RosterBalance.FreezeDamage>0?" and takes "+Hp(CoreClash.Core.RosterBalance.FreezeDamage)+" HP.":"."),
+                "Mrozi wroga, którego dotknie, i innych wrogów obok niego. Trzeci mróz zamraża kulkę"+(CoreClash.Core.RosterBalance.FreezeDamage>0?" i zabiera jej "+Hp(CoreClash.Core.RosterBalance.FreezeDamage)+" HP.":"."),
                 "A frozen ball cannot move, has no power and does not attack the base for 2 turns - yours and the enemy's.",
                 "Zamrożona kulka przez 2 tury (twoją i wroga) nie rusza się, nie ma mocy i nie atakuje bazy.",
                 Chilled);
@@ -192,13 +201,21 @@ namespace CoreClash.Presentation
                 "Zostawia w tym miejscu lodową pułapkę. Pierwszy wróg, który na nią wjedzie, od razu zamarza.",
                 "The trap works once. A burning enemy is only put out.",
                 "Pułapka działa raz. Płonącego wroga tylko gasi.",
-                FrozenFact,Count("Works once","Działa raz"));
-            Add("shatterer","Kruszyciel",GuideWhen.Touch,GuideWho.Enemies,0,"Ice breaker","Kruszy lód",
-                "Breaks the ice on the enemy it touches: 5 HP for every chill. A frozen ball loses 15 HP.",
-                "Kruszy lód na wrogu, którego dotknie: zabiera 5 HP za każdy mróz. Zamrożona kulka traci 15 HP.",
-                "The hit uses up the ice: a frozen ball is free again. Chill first, then shatter.",
-                "Cios zużywa lód: zamrożona kulka znów jest wolna. Najpierw zmroź, potem krusz.",
-                Damage("5 HP per chill","5 HP za każdy mróz"),Damage("Frozen: 15 HP","Zamrożona: 15 HP"));
+                IceTrapFacts);
+            if(CoreClash.Core.RosterBalance.ShatterKeepsIce)
+                Add("shatterer","Kruszyciel",GuideWhen.Touch,GuideWho.Enemies,0,"Ice breaker","Kruszy lód",
+                    "Strikes the ice on the enemy it touches: 5 HP for every chill. A frozen ball loses 15 HP.",
+                    "Bije w lód na wrogu, którego dotknie: zabiera 5 HP za każdy mróz. Zamrożona kulka traci 15 HP.",
+                    "The ice stays: a frozen ball is still frozen. Once a turn for each enemy.",
+                    "Lód zostaje: zamrożona kulka dalej jest zamrożona. Raz na turę na każdego wroga.",
+                    Damage("5 HP per chill","5 HP za każdy mróz"),Damage("Frozen: 15 HP","Zamrożona: 15 HP"));
+            else
+                Add("shatterer","Kruszyciel",GuideWhen.Touch,GuideWho.Enemies,0,"Ice breaker","Kruszy lód",
+                    "Breaks the ice on the enemy it touches: 5 HP for every chill. A frozen ball loses 15 HP.",
+                    "Kruszy lód na wrogu, którego dotknie: zabiera 5 HP za każdy mróz. Zamrożona kulka traci 15 HP.",
+                    "The hit uses up the ice: a frozen ball is free again. Chill first, then shatter.",
+                    "Cios zużywa lód: zamrożona kulka znów jest wolna. Najpierw zmroź, potem krusz.",
+                    Damage("5 HP per chill","5 HP za każdy mróz"),Damage("Frozen: 15 HP","Zamrożona: 15 HP"));
             Add("frostguard","Bałwan",GuideWhen.Stop,GuideWho.Enemies,0,"Cold to touch","Zimny w dotyku",
                 "Digs in where it stops and gets a shield of 10. Every enemy that hits it gets chilled.",
                 "Okopuje się tam, gdzie stanie, i dostaje tarczę 10. Każdy wróg, który w niego uderzy, dostaje mróz.",

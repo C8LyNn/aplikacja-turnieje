@@ -42,6 +42,21 @@ namespace CoreClash.Core
     //   decks, before   Dynamo 43%  Frozen Garden 48%  Acid Rain 49%  Fire Pit 51%  Polar Storm 53%  Jungle 57%
     //   decks, after    Frozen Garden 45%  Polar Storm 46%  Fire Pit 49%  Acid Rain 51%  Dynamo 53%  Jungle 56%
     // Electricity as a group did not move: only the Lightning's touch moves it, and 10 is too much.
+    //
+    // Third pass, the same day (owner decision: "strengthen ice" - the second pass had left ice the
+    // weakest group, 46%, and the two ready decks with ice the two weakest). The lab showed what was
+    // missing: ice chilled 13 times and froze 4 balls a match but killed the fewest, and the
+    // Shatterer's hit set its frozen target free.
+    //   Shatterer  its hit leaves the ice on the ball: a frozen ball stays frozen, a chilled one
+    //              keeps its chills. Once a turn for each enemy.
+    //   freezing   costs the ball 5 HP at the moment it freezes (third chill, field or ice trap).
+    // Tried instead of the 5 HP: a frozen ball being brittle (a hard hit takes 5 more) - ice 49%,
+    // much the same; the 5 HP is easier to say on a card and left ice caring less about its seat.
+    // Measured as above:
+    //   groups, before  ice 46%  electricity 47%  magnetism 50%  plants 50%  poison 52%  fire 54%
+    //   groups, after   electricity 46%  magnetism 48%  ice 50%  plants 50%  poison 53%  fire 54%
+    //   decks, before   Frozen Garden 45%  Polar Storm 46%  Fire Pit 49%  Acid Rain 51%  Dynamo 53%  Jungle 56%
+    //   decks, after    Fire Pit 44%  Polar Storm 46%  Acid Rain 49%  Frozen Garden 52%  Dynamo 53%  Jungle 57%
     public static class RosterBalance
     {
         // The Poison Pool's field. (The Blizzard keeps the reference 165.)
@@ -51,6 +66,11 @@ namespace CoreClash.Core
 
         // A freeze lasts the next two turns - one of each player.
         public const int FreezeTurns=2;
+        // Ice, third pass: the Shatterer's hit leaves the ice on its target; HP a ball loses at the
+        // moment it freezes; HP a hard hit takes on top from a frozen ball (none: tried, see above).
+        public const bool ShatterKeepsIce=true;
+        public const int FreezeDamage=5;
+        public const int BrittleBonus=0;
 
         // Electricity: the Lightning's bolt goes on down a row of enemies; a switched-off ball takes
         // this much more from every bolt.
@@ -74,6 +94,7 @@ namespace CoreClash.Core
         {
             if(state==null)return;
             state.deepFreeze=true;state.freezeTurns=FreezeTurns;
+            state.shatterKeepsIce=ShatterKeepsIce;state.freezeDamage=FreezeDamage;state.brittleBonus=BrittleBonus;
             state.venomOncePerTurn=true;
             state.leechDrain=LeechDrain;
             state.poolRadius=PoolRadius;

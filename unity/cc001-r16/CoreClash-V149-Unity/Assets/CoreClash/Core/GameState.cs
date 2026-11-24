@@ -75,6 +75,16 @@ namespace CoreClash.Core
         // from a frozen ball).
         public bool deepFreeze;
         public int freezeTurns=2;
+        // W24 match rules, ice again (off / 0 = as above; owner decision 2026-11-24 "strengthen ice":
+        // after the second balance pass ice was the weakest group, 46%, and the two ready decks with
+        // ice the two weakest. The lab: ice chills 13 times and freezes 4 balls a match but kills the
+        // fewest, and decks did better WITHOUT the Shatterer - its hit set the frozen ball free.)
+        //   shatterKeepsIce  the Shatterer's hit leaves the ice where it is: a frozen ball stays
+        //                    frozen, a chilled one keeps its chills. Once a turn for each enemy.
+        //   freezeDamage     HP a ball loses at the moment it freezes
+        //   brittleBonus     HP a hard hit takes on top from a frozen ball
+        public bool shatterKeepsIce;
+        public int freezeDamage,brittleBonus;
         // W24 match rule (off = the reference rules): Venom's bite into an already poisoned enemy
         // (5 HP from it, 5 HP back to Venom) works once a turn for each enemy, like the Lightning
         // and the Cactus - in the reference rules every touch counts.

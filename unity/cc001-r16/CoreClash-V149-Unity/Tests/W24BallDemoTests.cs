@@ -55,7 +55,7 @@ public static partial class Program
             // Ice trap: the enemy that rolled over it is frozen on the spot and the trap is gone.
             var iceTrap=W24RunShow(c,"frosttrap");True(AbilityResolver.DeepFrozen(W24Ball(iceTrap,1,"normal")),"the ice trap did not freeze");Eq(0,W24Ball(iceTrap,1,"normal").iceStacks);False(iceTrap.Simulation.State.zones.Any(z=>!z.dead&&z.kind=="frosttrap"));
             // Shatterer: the frozen ball loses 15 HP to the broken ice (and a little to the hit), and is frozen no more.
-            var shatter=W24RunShow(c,"shatterer");True(W24Ball(shatter,1,"normal").hp<=15&&W24Ball(shatter,1,"normal").iceStacks==0&&W24Ball(shatter,1,"normal").frozen<=0,"shatter: hp "+W24Ball(shatter,1,"normal").hp);
+            var shatter=W24RunShow(c,"shatterer");True(W24Ball(shatter,1,"normal").hp<=15&&W24Ball(shatter,1,"normal").iceStacks==0&&(W24Ball(shatter,1,"normal").frozen>0)==RosterBalance.ShatterKeepsIce,"shatter: hp "+W24Ball(shatter,1,"normal").hp+" frozen "+W24Ball(shatter,1,"normal").frozen);
             // Snowman: dug in with a shield; the ball that hit it is chilled.
             var snowman=W24RunShow(c,"frostguard");True(W24Ball(snowman,0,"frostguard").frostguardAnchored);Eq(1,W24Ball(snowman,1,"normal").iceStacks);True(snowman.Seen.Contains("SHIELD"));
             // --- Fire. Flame: the enemy burns; Campfire: both enemies in its field burn.
