@@ -39,6 +39,9 @@ namespace CoreClash.Presentation
         public List<AimPoint> Path=new List<AimPoint>();
     }
 
+    // W24: the match screen now shows the shot played ahead by the rules themselves
+    // (Core/ShotForecast), balls and all. This free-roll estimate stays as what is shown when the
+    // rules refuse the shot in the copy, and as the reference the tests compare against.
     // CC-001 W18-01 (#286): estimated STOP point of a launch on an EMPTY arena.
     // Presentation only: it re-runs, for this one ball, the same per-frame free
     // roll as GameSimulation.Step(1/120) -> BallPhysics.Step/UpdateMotion

@@ -109,6 +109,9 @@ namespace CoreClash.Presentation
         // W24: draw at the refresh rate of the screen the window is on. A fixed 60 on a 100 or 144 Hz
         // screen shows every frame for an uneven number of refreshes, which reads as stutter.
         float displayRateCheckedAt=-9;int displayRateFrame;
+        // The simulation is given whole frames while the game is locked to a display (FrameClock).
+        readonly FrameClock frameClock=new FrameClock();float lockedPeriod;
+        readonly System.Collections.Generic.List<float> displayRates=new System.Collections.Generic.List<float>();
         readonly System.Collections.Generic.List<DisplayInfo> displayLayout=new System.Collections.Generic.List<DisplayInfo>();
         void FollowDisplayRate()
         {
@@ -129,6 +132,9 @@ namespace CoreClash.Presentation
             float fastest=rate;Screen.GetDisplayLayout(displayLayout);
             foreach(var display in displayLayout)fastest=Mathf.Max(fastest,(float)display.refreshRate.value);
             if(QualitySettings.vSyncCount>0&&span<5&&frames/span>fastest*1.3f)QualitySettings.vSyncCount=0;
+            // Locked to a display: which display's rhythm the frames of the last second kept.
+            displayRates.Clear();foreach(var display in displayLayout)displayRates.Add((float)display.refreshRate.value);displayRates.Add(rate);
+            lockedPeriod=QualitySettings.vSyncCount>0&&span<5?FrameClock.LockedPeriod(frames/span,displayRates):0;
             int wanted=QualitySettings.vSyncCount>0?rate:rate*Mathf.Max(2,Mathf.CeilToInt(240f/rate));
             if(Application.targetFrameRate!=wanted)Application.targetFrameRate=wanted;
 #endif
@@ -145,9 +151,9 @@ namespace CoreClash.Presentation
             else if(exitGuard.Open&&!externalModal&&(GetKeyDown(KeyCode.Escape)||GetKeyDown(KeyCode.JoystickButton1)))CancelLeaveMatch();
             else if(GetKeyDown(KeyCode.Escape)&&!externalModal){if(inspect.Length>0)CloseBallDetails();else if(deckGuide!=null)deckGuide=null;else if(DeveloperOverlay)SetDeveloperOverlay(false);else if(phoneMenu)phoneMenu=false;else if(boardInspection)SetBoardInspection(false);else if(builder)builder=false;else if(library)library=false;else if(!setup)RequestLeaveMatch();}
             if(setup)return;
-            BoardView.VisualLead=0;
+            BoardView.StepBlend=1;
             if(MatchExitGuard.PausesSimulation(exitGuard.Open,NetworkLink!=null))accumulator=0;
-            else if(NetworkLink==null||NetworkLink.IsAuthority){accumulator=Math.Min(accumulator+Time.unscaledDeltaTime,.1f);while(accumulator>=1f/120){Simulation.Step(1f/120);accumulator-=1f/120;}BoardView.VisualLead=accumulator;}
+            else if(NetworkLink==null||NetworkLink.IsAuthority){accumulator=Math.Min(accumulator+frameClock.Next(Time.unscaledDeltaTime,lockedPeriod),.1f);while(accumulator>=1f/120){BoardView.RememberStep(Simulation.State);Simulation.Step(1f/120);accumulator-=1f/120;}BoardView.StepBlend=accumulator*120;}
             feedback.Observe(Simulation.State,Time.unscaledTime);
             BoardView.ComputerThinking=AiTurn&&Simulation.State.phase==MatchPhase.Aiming;
             if(AiTurn&&Simulation.State.phase==MatchPhase.Aiming&&!exitGuard.Open&&ai.Think(Simulation,chosen[0],chosen[1],aiLevel,Time.unscaledTime,AiOpponent.FrameBudget(aiLevel,Application.targetFrameRate),out var aiCommand))
@@ -208,7 +214,7 @@ namespace CoreClash.Presentation
             // W22: a match between two active decks keeps random type picks inside the active roster.
             // A match with a frozen deck (developer roster, tests, drivers) runs exactly as before.
             Simulation.ActiveRosterOnly=Catalog.Roster!=null&&Catalog.Roster.IsActiveDeck(chosen[0])&&Catalog.Roster.IsActiveDeck(chosen[1]);
-            session=new NetworkGameSession(Simulation);feedback=new FeedbackTimeline();feedback.Observe(Simulation.State,Time.unscaledTime);Fx.Reset();resultHidden=false;phoneMenu=false;receivedRemoteState=false;sequence=0;setup=false;exitGuard.Reset();builder=library=boardInspection=false;inspectBallId=0;selected="normal";CancelPointer();notice="";trayScroll=matchScroll=Vector2.zero;Debug.Log("CORE_CLASH_MATCH_START "+chosen[0].id+" vs "+chosen[1].id+(Simulation.ActiveRosterOnly?" roster=active":""));}
+            session=new NetworkGameSession(Simulation);feedback=new FeedbackTimeline();feedback.Observe(Simulation.State,Time.unscaledTime);Fx.Reset();resultHidden=false;phoneMenu=false;receivedRemoteState=false;sequence=0;setup=false;exitGuard.Reset();builder=library=boardInspection=false;inspectBallId=0;selected="normal";CancelPointer();notice="";trayScroll=matchScroll=Vector2.zero;BoardView.WarmForecast(Simulation);Debug.Log("CORE_CLASH_MATCH_START "+chosen[0].id+" vs "+chosen[1].id+(Simulation.ActiveRosterOnly?" roster=active":""));}
         public string SelectedBall=>selected;
         public void SelectBall(string id){if(CanChoose&&Catalog.Ball(id)!=null&&BallSelection.CanSelect(Simulation,Simulation.State.turn,id)){if(selected!=id)selectedAt=Time.unscaledTime;selected=id;gesture.Active=false;Debug.Log("CORE_CLASH_SELECT "+id);}}
         public void ShowBallDetails(string id){if(Catalog.Ball(id)!=null){inspect=id;inspectBallId=0;boardInspection=false;infoScroll=Vector2.zero;gesture.Active=false;Debug.Log("CORE_CLASH_DETAILS "+id+" developer="+DeveloperOverlay);}}

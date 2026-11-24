@@ -25,7 +25,28 @@ namespace CoreClash.Presentation
         // The end-position marker is optional (HUD button or E). Default on.
         public static bool ShowStopEstimate = true;
         // Time already passed since the last simulation step, set by the app every frame.
-        public static float VisualLead;
+        // W24 (owner, after playing: "the balls still stutter a little"): the simulation advances in
+        // fixed 1/120 s steps and a frame rarely lands on one. A ball is drawn between its place
+        // before the last step and its place after it, as far along as this frame's time is - always
+        // between two places the rules really put it. (It used to be drawn AHEAD of the last step by
+        // its speed, which showed it for a frame inside whatever it was about to hit, and then back.)
+        // StepBlend: 0 = the place before the last step, 1 = the state as it is.
+        public static float StepBlend=1;
+        // Further than any ball rolls in one step: the ball was moved by a rule, not by rolling.
+        const float StepJump=12;
+        static readonly Dictionary<int,Vector2> beforeStep=new Dictionary<int,Vector2>();
+        public static void RememberStep(GameState state)
+        {
+            beforeStep.Clear();
+            foreach(var ball in state.balls)if(!ball.dead&&!ball.banished)beforeStep[ball.id]=new Vector2(ball.x,ball.y);
+        }
+        public static Vector2 DrawnAt(BallRuntime ball)
+        {
+            var now=new Vector2(ball.x,ball.y);
+            if(StepBlend>=1||!beforeStep.TryGetValue(ball.id,out var from))return now;
+            var step=now-from;
+            return step.sqrMagnitude>StepJump*StepJump?now:from+step*Mathf.Clamp01(StepBlend);
+        }
         static Texture2D stripes, dots;
         static readonly List<(BallRuntime ball,float x,float y,bool replay)> drawn=new List<(BallRuntime,float,float,bool)>();
         static readonly List<UiBox> wantedLabels=new List<UiBox>();
@@ -115,13 +136,8 @@ namespace CoreClash.Presentation
                 if (!ball.dead && !ball.banished)
                 {
                     float renderX=ball.x,renderY=ball.y;
-                    // W24: the simulation advances in fixed 1/120 s steps, a frame rarely lands on one.
-                    // Draw a moving ball where it is at this frame's time (view only, state untouched).
-                    if(remoteVisual==null&&state.phase==MatchPhase.Moving&&ball.moving&&VisualLead>0)
-                    {
-                        renderX=Mathf.Clamp(ball.x+ball.vx*VisualLead,Left+ball.radius,Right-ball.radius);
-                        renderY=Mathf.Clamp(ball.y+ball.vy*VisualLead,Top+ball.radius,Bottom-ball.radius);
-                    }
+                    // Where the ball is at this frame's time, between two steps (view only, state untouched).
+                    if(remoteVisual==null){var at=DrawnAt(ball);renderX=at.x;renderY=at.y;}
                     if(state.phase==MatchPhase.Moving&&remoteVisual!=null&&remoteVisual.TryGetPosition(ball.id,Time.unscaledTime,out var px,out var py)){renderX=px;renderY=py;}
                     bool replay=ReplayAffordance.Advertise(simulation,ball);
                     RenderThreat(clippedBoard,ball,renderX,renderY);
@@ -530,7 +546,8 @@ namespace CoreClash.Presentation
                 {
                     // Trap: the owner's ring pattern outside, the element symbol inside.
                     Draw.Ring(center,(zone.radius+3)*scale,Theme.A(Draw.Owner(zone.owner),.85f),Mathf.Max(1,1.5f*scale),zone.owner==1?Theme.P2RingSegments*2:0,Theme.P2RingFill);
-                    float glyph=Mathf.Max(10,15*scale);
+                    // The symbol's dark disc fills the trap to the same share at any trap size (15 at the reference 14).
+                    float glyph=Mathf.Max(10,zone.radius*(15f/14f)*scale);
                     Draw.Circle(new Rect(center.x-glyph*.8f,center.y-glyph*.8f,glyph*1.6f,glyph*1.6f),Theme.Ink);
                     if(zone.kind=="shocktrap")Glyphs.Paint(new Rect(center.x-glyph/2,center.y-glyph/2,glyph,glyph),"+P .34 -.98 -.56 .16 .1 .16;+P -.1 -.16 .56 -.16 -.34 .98",color);
                     else Glyphs.Paint(new Rect(center.x-glyph/2,center.y-glyph/2,glyph,glyph),fire?StatusKind.Fire:ice?StatusKind.Ice:StatusKind.Toxin,color);
@@ -774,6 +791,20 @@ namespace CoreClash.Presentation
             var replay=fromLauncher?null:state.balls.FirstOrDefault(b=>!b.dead&&Mathf.Abs(b.x-aim.OriginX)<.1f&&Mathf.Abs(b.y-aim.OriginY)<.1f);
             var preview=AimGuide.Preview(aim.OriginX,aim.OriginY,aim.AimX,aim.AimY,state.turn,fromLauncher?(selected?.radius??17)*Mathf.Max(.5f,state.ballScale):(replay?.radius??17));
             if (!GameSimulation.Finite(preview.Distance)) return;
+            if (preview.Valid)
+            {
+                // W24: the arrow stops where the ball will first touch another ball or an obstacle;
+                // the dashed line of the forecast goes on from there, bounce and all.
+                aimBodies.Clear();
+                foreach (var other in state.balls) if (!other.dead && !other.banished && !other.phased && other != replay) aimBodies.Add(new StopObstacle(other.x, other.y, other.radius));
+                foreach (var structure in state.structures) if (!structure.dead) aimBodies.Add(new StopObstacle(structure.x, structure.y, structure.radius, true));
+                float moving = fromLauncher ? (selected?.radius ?? 17) * Mathf.Max(.5f, state.ballScale) : (replay?.radius ?? 17);
+                var cut = AimGuide.ClipAtBodies(preview.Path, moving, aimBodies, out bool touched);
+                // Touching from the very start: keep a stub, so the arrow still shows the direction.
+                if (touched && cut.Length == 2 && (cut[1].x - cut[0].x) * (cut[1].x - cut[0].x) + (cut[1].y - cut[0].y) * (cut[1].y - cut[0].y) < 36)
+                    cut[1] = new AimPoint(cut[0].x + preview.DirX * 6, cut[0].y + preview.DirY * 6);
+                preview.Path = cut;
+            }
             Color team = Draw.Owner(state.turn);
             Color vector = preview.Ready ? Color.Lerp(team, Color.white, .12f) : Alpha(Color.Lerp(team, Color.white, .35f), .7f);
             // W20: every aim stroke sits on a dark edge, so it reads on both home zones.
@@ -890,14 +921,94 @@ namespace CoreClash.Presentation
         // label says the estimate only holds if the path is clear. Never a hit claim.
         static StopEstimate stopCache;
         static string stopCacheKey;
+        static readonly List<StopObstacle> aimBodies=new List<StopObstacle>(32);
+        // W24 (owner direction after playing: "the prediction is to take the balls into account
+        // too"): the estimate is the shot itself, played ahead in a private copy of the match
+        // (ShotForecast) - a slice of it each frame, so aiming never waits for it. Until the first
+        // one of a position is ready nothing is drawn past the arrow; while a newer aim is being
+        // worked out, the last finished one stays up.
+        static ShotForecast forecastShown,forecastRun,forecastDrawn;
+        static string forecastShownKey,forecastRunKey,forecastScope;
+        static GameSimulation forecastSandbox;static Catalog forecastCatalog;
+        static StopEstimate forecastEstimate;
+        static readonly System.Diagnostics.Stopwatch forecastClock=new System.Diagnostics.Stopwatch();
+        static GameSimulation ForecastSandbox(Catalog catalog)
+        {
+            if(forecastSandbox==null||!ReferenceEquals(forecastCatalog,catalog))
+            {
+                var deck=catalog.AllDecks.First();
+                forecastSandbox=new GameSimulation(catalog,deck,deck){ActiveRosterOnly=true};forecastCatalog=catalog;
+            }
+            return forecastSandbox;
+        }
+        // The first forecast of a session pays for everything it touches being used for the first
+        // time (about 50 ms measured). A match pays that when it starts, behind the change of
+        // screen, by playing one plain shot ahead - not in the middle of the player's first aim.
+        public static void WarmForecast(GameSimulation simulation)
+        {
+            if(simulation?.Catalog==null||simulation.State==null||simulation.State.phase!=MatchPhase.Aiming)return;
+            try
+            {
+                var state=simulation.State;
+                var copy=JsonUtility.FromJson<GameState>(JsonUtility.ToJson(state));copy.events.Clear();
+                var command=new PlayerCommand{owner=state.turn,turnNumber=state.turnNumber,kind=CommandKind.Spawn,ballType="normal",dx=40,dy=state.turn==0?-120:120,power=420};
+                var warm=ShotForecast.Begin(ForecastSandbox(simulation.Catalog),copy,command);
+                for(int guard=0;guard<200&&!warm.Advance(64);guard++){}
+            }
+            catch(System.Exception){}
+            forecastShown=forecastRun=null;forecastShownKey=forecastRunKey=forecastScope=null;
+        }
+        static ShotForecast Forecast(GameState state,Catalog catalog,PlayerCommand command,string key,string scope)
+        {
+            // Another turn, another position or another ball: what was worked out no longer applies.
+            if(scope!=forecastScope){forecastShown=forecastRun=null;forecastShownKey=forecastRunKey=null;forecastScope=scope;}
+            if(Event.current.type!=EventType.Repaint)return forecastShown;
+            if(forecastRun==null&&key!=forecastShownKey)
+            {
+                var copy=JsonUtility.FromJson<GameState>(JsonUtility.ToJson(state));copy.events.Clear();
+                forecastRun=ShotForecast.Begin(ForecastSandbox(catalog),copy,command);forecastRunKey=key;
+            }
+            if(forecastRun!=null)
+            {
+                // A quarter of the frame, between 0.8 and 3 ms.
+                double budget=Mathf.Clamp(Time.unscaledDeltaTime*250f,.8f,3f);forecastClock.Restart();
+                bool done=false;
+                while(!done&&forecastClock.Elapsed.TotalMilliseconds<budget)done=forecastRun.Advance(24);
+                if(done){forecastShown=forecastRun;forecastShownKey=forecastRunKey;forecastRun=null;}
+            }
+            return forecastShown;
+        }
+        // The forecast in the shape the drawing below already knows.
+        static StopEstimate Estimate(ShotForecast forecast)
+        {
+            if(ReferenceEquals(forecast,forecastDrawn)&&forecastEstimate!=null)return forecastEstimate;
+            var e=new StopEstimate{Valid=true,StopX=forecast.StopX,StopY=forecast.StopY,
+                Start=new StopBody{Type=forecast.MoverType,Owner=forecast.Owner,Radius=forecast.Radius}};
+            for(int i=0;i<forecast.PathX.Count;i++)e.Path.Add(new AimPoint(forecast.PathX[i],forecast.PathY[i]));
+            e.Reach=StopPredictor.Reach(forecast.Owner,forecast.StopX,forecast.StopY,forecast.Radius,CentreRadius);
+            forecastDrawn=forecast;forecastEstimate=e;return e;
+        }
         static readonly List<Vector2> estimatePath=new List<Vector2>(128);
         static void RenderStopEstimate(Rect board,GameState state,LaunchGesture aim,BallDefinition selected,BallRuntime replay,Catalog catalog,Color vector,float scale,float skip=0)
         {
             float dx=aim.AimX-aim.OriginX,dy=aim.AimY-aim.OriginY;
             if(!StopPredictor.GesturePower(dx,dy,out float power))return;
             if(replay==null&&selected==null)return;
-            string key=state.turn+"|"+state.revision+"|"+aim.OriginX+"|"+aim.OriginY+"|"+aim.AimX+"|"+aim.AimY+"|"+(replay!=null?"r"+replay.id:selected.id);
-            if(key!=stopCacheKey)
+            string scope=state.turn+"|"+state.revision+"|"+(replay!=null?"r"+replay.id:selected.id);
+            string key=scope+"|"+aim.OriginX+"|"+aim.OriginY+"|"+aim.AimX+"|"+aim.AimY;
+            ShotForecast forecast=null;
+            if(catalog!=null)
+            {
+                // The shot exactly as releasing the drag would send it (LaunchGesture.Release).
+                var command=new PlayerCommand{owner=state.turn,turnNumber=state.turnNumber,kind=replay!=null?CommandKind.Replay:CommandKind.Spawn,
+                    ballId=replay?.id??0,ballType=replay!=null?replay.type:selected.id,dx=dx,dy=dy,power=power};
+                forecast=Forecast(state,catalog,command,key,scope);
+                // The first forecast of this position is still being worked out.
+                if(forecast==null)return;
+            }
+            bool played=forecast!=null&&forecast.Valid;
+            // The rules refused the shot in the copy (or there is no catalog): the free-roll estimate.
+            if(!played&&key!=stopCacheKey)
             {
                 var body=replay!=null?StopPredictor.Replay(replay,catalog?.Ball(replay.type)?.archetype,dx,dy,power):StopPredictor.Spawn(selected,state.turn,dx,dy,power);
                 // A ball of this match's size (match rule ballScale).
@@ -906,7 +1017,8 @@ namespace CoreClash.Presentation
                 // The zone it will stop in, by this match's centre.
                 if(stopCache!=null&&stopCache.Valid)stopCache.Reach=StopPredictor.Reach(body.Owner,stopCache.StopX,stopCache.StopY,stopCache.Start.Radius,CentreRadius);stopCacheKey=key;
             }
-            var e=stopCache;if(e==null||!e.Valid)return;
+            var e=played?Estimate(forecast):stopCache;if(e==null||!e.Valid)return;
+            if(played)RenderForecastOthers(board,forecast,scale);
             Color mark=Alpha(vector,e.Obstructed?.45f:.8f);
             // W24 (owner direction: readability): the estimated path is a row of light dashes on a dark
             // edge, and the stop mark a pale ghost of the ball, so both read on the floor and on either
@@ -920,7 +1032,8 @@ namespace CoreClash.Presentation
             float rim=r+scale+Mathf.Max(2,3*scale);
             Draw.Dashes(estimatePath,pathEdge,core+Mathf.Max(1.6f,2.2f*scale),dash,gap,skip,rim);
             Draw.Dashes(estimatePath,pathCore,core,dash,gap,skip,rim);
-            Draw.Circle(new Rect(stop.x-r,stop.y-r,r*2,r*2),Alpha(Color.Lerp(vector,Color.white,.7f),e.Obstructed?.2f:.42f));
+            // A ball the shot destroys leaves no ball where it ends: the mark there is hollow.
+            if(!(played&&forecast.MoverDies))Draw.Circle(new Rect(stop.x-r,stop.y-r,r*2,r*2),Alpha(Color.Lerp(vector,Color.white,.7f),e.Obstructed?.2f:.42f));
             Draw.Ring(stop,r+scale,Alpha(Theme.Ink,.6f*see),Mathf.Max(2.5f,3.8f*scale));
             Draw.Ring(stop,r,Alpha(Color.Lerp(vector,Color.white,.35f),see),Mathf.Max(1.2f,2f*scale),12,.6f);
             Draw.Stroke(stop-new Vector2(r*.45f,0),stop+new Vector2(r*.45f,0),Alpha(Theme.Ink,.55f*see),Mathf.Max(1.2f,1.6f*scale));
@@ -944,6 +1057,38 @@ namespace CoreClash.Presentation
             var standard=BoardLabelLayout.Fit(VisibleField(board),stop.x,stop.y+r+4,stop.y-r-4-h,w,h);
             var rect=RectOf(BoardLabelLayout.FitAvoiding(standard,VisibleField(board),stop.x,stop.y+r+4,stop.y-r-4-h,w,h,BoardKeepOuts(board,state),h+2));
             Draw.Chip(rect,Alpha(Theme.Plate,.95f),Theme.Edge);Draw.Text(rect,label,font,Alpha(Color.Lerp(vector,Theme.Ink,.45f),e.Obstructed?.75f:1f),TextAnchor.MiddleCenter,true);
+        }
+
+        // Where the shot leaves the other balls: a thin dashed line from each ball it moves to a
+        // pale ring where that ball ends, in its owner's colour; a cross where a ball is destroyed.
+        static readonly List<Vector2> forecastLine=new List<Vector2>(2);
+        static void RenderForecastOthers(Rect board,ShotForecast forecast,float scale)
+        {
+            float core=Mathf.Max(1.4f,1.9f*scale),dash=Mathf.Max(3.5f,4.5f*scale),gap=Mathf.Max(5f,7f*scale);int shown=0;
+            foreach(var other in forecast.Others)
+            {
+                if(shown++>=10)break;
+                Color tone=Color.Lerp(Draw.Owner(other.Owner),Color.white,.45f);
+                Vector2 from=Point(board,other.FromX,other.FromY),to=Point(board,other.ToX,other.ToY);float r=other.Radius*scale-scale;
+                if((to-from).sqrMagnitude>r*r*.04f)
+                {
+                    forecastLine.Clear();forecastLine.Add(from);forecastLine.Add(to);
+                    Draw.Dashes(forecastLine,Alpha(Theme.Ink,.4f),core+Mathf.Max(1.4f,1.8f*scale),dash,gap,r+scale,r+scale);
+                    Draw.Dashes(forecastLine,Alpha(tone,.9f),core,dash,gap,r+scale,r+scale);
+                    Draw.Ring(to,r+scale,Alpha(Theme.Ink,.45f),Mathf.Max(2.2f,3.2f*scale));
+                    Draw.Ring(to,r,Alpha(tone,.95f),Mathf.Max(1.1f,1.7f*scale),12,.6f);
+                }
+                if(other.Dies)
+                {
+                    float arm=r*.5f;
+                    for(int pass=0;pass<2;pass++)
+                    {
+                        Color ink=pass==0?Alpha(Theme.Ink,.6f):Alpha(Theme.Damage,.95f);float width=pass==0?Mathf.Max(3.4f,4.6f*scale):Mathf.Max(1.8f,2.4f*scale);
+                        Draw.Stroke(to-new Vector2(arm,arm),to+new Vector2(arm,arm),ink,width);
+                        Draw.Stroke(to-new Vector2(arm,-arm),to+new Vector2(arm,-arm),ink,width);
+                    }
+                }
+            }
         }
 
         // Frame: neutral side walls; each base wall carries its player's colour and that

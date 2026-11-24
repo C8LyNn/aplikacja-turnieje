@@ -11,7 +11,7 @@ namespace CoreClash.Core
         void StatusPayoffStop(BallRuntime source)
         {
             if(!ElementTrap(source.type))return;
-            var trap=CreateTrap(source,source.type,source.x,source.y,14,105);
+            var trap=CreateTrap(source,source.type,source.x,source.y,TrapRadius,105);
             if(trap==null)sim.Emit("PLACEMENT_BLOCKED",source,"No room for elemental trap");
         }
         void TriggerElementTrap(ZoneRuntime trap)

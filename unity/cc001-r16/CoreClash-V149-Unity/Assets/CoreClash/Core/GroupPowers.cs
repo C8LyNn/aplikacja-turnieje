@@ -87,7 +87,7 @@ namespace CoreClash.Core
                     foreach(var target in shocked)Zap(target,b,ZapDamage*power,b.id);
                     break;
                 case "staticfield":
-                    if(CreateTrap(b,"shocktrap",b.x,b.y,14,105)==null)sim.Emit("PLACEMENT_BLOCKED",b,"No room for a shock trap");
+                    if(CreateTrap(b,"shocktrap",b.x,b.y,TrapRadius,105)==null)sim.Emit("PLACEMENT_BLOCKED",b,"No room for a shock trap");
                     break;
                 case "fluxmine":
                     Compass(b);

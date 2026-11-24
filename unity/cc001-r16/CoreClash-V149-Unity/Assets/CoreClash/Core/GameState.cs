@@ -120,6 +120,15 @@ namespace CoreClash.Core
         public int compassDashHurt=100;
         public int shortCircuit,mineDamage,anchorShield;
         public int lightningTouch=5,batteryStart=1,shockTrapDamage=5;
+        // W24 match rules (0 / off = the reference rules; owner direction after playing, 2026-11-24:
+        // "traps are to be bigger and must not lie on one another").
+        //   trapRadius  the radius of an element trap and of the shock trap. The reference 14 was
+        //               sized for the reference balls; the game's balls are one and a half times
+        //               bigger, so the traps looked like crumbs beside them.
+        //   trapsApart  a trap is never laid over another trap, whoever owns it: it goes down beside
+        //               it, and is not laid at all when there is no room near.
+        public float trapRadius;
+        public bool trapsApart;
         public bool comebackRule,comebackActive;
         public string mapId="";
         public string actionKind,resultReason;

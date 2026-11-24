@@ -87,6 +87,11 @@ namespace CoreClash.Core
         public const int AnchorShield=0;
         // On its second shot a collision costs the Compass this much of the usual, in percent.
         public const int CompassDashHurt=50;
+        // Traps (owner direction after playing: bigger, and never one on another): the radius of an
+        // element trap and of the shock trap - about the size of a reference ball, beside balls one
+        // and a half times that - and no trap over another trap.
+        public const float TrapRadius=22;
+        public const bool TrapsApart=true;
         // The opening: HP of the extra Standard ball Player 2 plays on the first turn (0 = a whole ball).
         public const int OpeningBonusHp=15;
 
@@ -102,6 +107,7 @@ namespace CoreClash.Core
             state.lightningTouch=LightningTouch;state.batteryStart=BatteryStart;state.shockTrapDamage=ShockTrapDamage;
             state.mineDamage=MineDamage;state.anchorShield=AnchorShield;state.compassDashHurt=CompassDashHurt;
             state.openingBonusHp=OpeningBonusHp;
+            state.trapRadius=TrapRadius;state.trapsApart=TrapsApart;
         }
     }
 }
