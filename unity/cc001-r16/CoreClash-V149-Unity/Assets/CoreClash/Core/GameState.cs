@@ -57,6 +57,13 @@ namespace CoreClash.Core
         // Measured, computer against computer: with any ball as the extra one the first player
         // wins 39% of matches, with no extra ball 64%, with a Standard one 47%.
         public bool standardOpeningBonus;
+        // W24 match rule (0 = the reference rules: the extra ball is a whole one; owner direction
+        // 2026-11-24: "the player who starts and the other one are to win as often as each other,
+        // whatever the decks"). Player 2's extra ball of the opening turn enters with this many HP.
+        // Measured, computer against computer, every pair of ready decks: no extra ball - the first
+        // player wins 64%; a whole Standard ball - 42%; one with 20 HP - 46%; with 15 HP - 49%. The
+        // game's number is in RosterBalance.
+        public int openingBonusHp;
         // W24 match rule (off = the reference rules; owner decision 2026-11-24 "strengthen the ice
         // balls", after the lab's measurement: the two decks with ice were the two weakest). In the
         // reference rules a freeze lasts 2.4 seconds of motion - it is over before the other player
@@ -81,6 +88,28 @@ namespace CoreClash.Core
         //   poolRadius   the radius of the Poison Pool's field
         public int poisonTurns=3,leechDrain=5;
         public float poolRadius=165;
+        // W24 match rules, magnetism and electricity (off / 0 = the reference rules; owner decision
+        // 2026-11-24 "strengthen magnetism and electricity", after the lab's measurement: Dynamo, the
+        // deck of these two groups, was the weakest ready deck and killed the fewest balls).
+        //   chainLightning  the Lightning's bolt goes on from enemy to enemy for as long as the next
+        //                   one stands within reach of the last - not to one more enemy only. One
+        //                   Lightning shocks each enemy once a turn, touched or reached by the bolt.
+        //   shortCircuit    HP a bolt takes on top from a ball whose power is switched off
+        //   mineDamage      above 0: the Magnet Mine's blast takes exactly this much from every enemy
+        //                   in its field and nothing from its owner's balls (reference: 10-15 by
+        //                   distance, from everybody)
+        //   anchorShield    the shield the Anchor has after it drops anchor
+        //   compassDashHurt how much of a collision's damage the Compass takes during its second
+        //                   shot, in percent (100 = the reference rules, where each of its two hits
+        //                   costs it as much as its target and the lab's decks did better without the
+        //                   ball; 0 = none - measured: far too strong)
+        //   lightningTouch  HP the Lightning takes from the enemy it touches (its jumps stay at 5)
+        //   batteryStart    charges the Battery comes with
+        //   shockTrapDamage HP the shock trap takes
+        public bool chainLightning;
+        public int compassDashHurt=100;
+        public int shortCircuit,mineDamage,anchorShield;
+        public int lightningTouch=5,batteryStart=1,shockTrapDamage=5;
         public bool comebackRule,comebackActive;
         public string mapId="";
         public string actionKind,resultReason;
@@ -110,6 +139,8 @@ namespace CoreClash.Core
         public int charge,jamExpiresOwnerTurn=-1;
         // Match rule deepFreeze: the number of the turn at whose end this ball thaws (-1 = not frozen that way).
         public int thawTurn=-1;
+        // The Compass is on its second shot (from the moment it fires until it stops).
+        public bool compassDash;
         // Per-instance, serialized once-per-turn DEATH observer gate.
         public int lastDenMotherTurn=-1;
         public int lastRamAction=-1;

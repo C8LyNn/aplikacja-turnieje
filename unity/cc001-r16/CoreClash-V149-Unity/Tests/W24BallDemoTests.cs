@@ -87,19 +87,24 @@ public static partial class Program
             True(pulse.Simulation.State.balls.Where(b=>b.type=="normal").All(b=>Math.Abs(b.y-480)>120||Math.Abs(b.x-270)>120),"Pulse pushed nothing away");
             // Compass: it stopped, went again by itself and hit the enemy.
             var compass=W24RunShow(c,"fluxmine");True(W24Ball(compass,1,"normal").hp<30,"the Compass did not reach the enemy");Eq(2,W24Ball(compass,0,"fluxmine").stopCount);
+            // ...and, as its card says, that second shot cost the Compass less than it cost the enemy.
+            True(W24Ball(compass,0,"fluxmine").maxHp-W24Ball(compass,0,"fluxmine").hp<30-W24Ball(compass,1,"normal").hp,"Compass "+W24Ball(compass,0,"fluxmine").hp+", enemy "+W24Ball(compass,1,"normal").hp);
             // Magnet Mine is gone after its blast.
             True(W24Ball(W24RunShow(c,"gravitymine"),0,"gravitymine")==null);
             // Anchor: hit as hard as a ball can be hit, it ends close to where it stood.
             var anchor=W24RunShow(c,"anchor");True(Far(W24Ball(anchor,0,"anchor"),270,470)<45,"the Anchor was moved "+Far(W24Ball(anchor,0,"anchor"),270,470).ToString("0"));Eq(3,W24Ball(anchor,0,"anchor").anchorStacks);
-            // --- Electricity. Lightning: the touched enemy and the one next to it both took the bolt.
-            var bolt=W24RunShow(c,"tesla");True(Enemies(bolt).All(b=>b.hp<=25),"Lightning: "+string.Join(",",Enemies(bolt).Select(b=>b.hp)));True(Enemies(bolt).Any(b=>b.hp==25));
+            // ...and whatever shield the roster's balance gives it is back up once it has come to rest again.
+            Eq(RosterBalance.AnchorShield>0,anchor.Seen.Contains("SHIELD"));Eq(RosterBalance.AnchorShield,W24Ball(anchor,0,"anchor").shield);
+            // --- Electricity. Lightning: the bolt ran down the whole row - the enemy it touched, the next one, and the one after that.
+            var bolt=W24RunShow(c,"tesla");Eq(3,Enemies(bolt).Count());True(Enemies(bolt).All(b=>b.hp<=25),"Lightning: "+string.Join(",",Enemies(bolt).Select(b=>b.hp)));True(Enemies(bolt).Any(b=>b.hp==25));
+            True(Enemies(bolt).Min(b=>b.hp)<=30-RosterBalance.LightningTouch);
             // Storm: one bolt at the start of its owner's turn.
             Eq(25,W24Ball(W24RunShow(c,"chainshock"),1,"normal").hp);
-            // Battery: its one charge went into both enemies next to it; a turn later it has one again.
+            // Battery: the charges it came with went into both enemies next to it; a turn later it has one again.
             var battery=W24RunShow(c,"capacitor");True(battery.Seen.Contains("CHARGE"));Eq(1,W24Ball(battery,0,"capacitor").charge);
-            True(Enemies(battery).All(b=>b.hp==25),"Battery: "+string.Join(",",Enemies(battery).Select(b=>b.hp)));
-            // Shock trap: the Bomb that rolled over it lost 5 HP and its power: it stopped and did not explode.
-            var shock=W24RunShow(c,"staticfield");True(shock.Seen.Contains("TRAP_TRIGGER"));False(shock.Seen.Contains("EXPLOSION"));True(W24Ball(shock,1,"bomb").hp<=25);True(W24Ball(shock,1,"bomb").jammed>0);
+            True(Enemies(battery).All(b=>b.hp==30-5*RosterBalance.BatteryStart),"Battery: "+string.Join(",",Enemies(battery).Select(b=>b.hp)));
+            // Shock trap: the Bomb that rolled over it lost HP and its power: it stopped and did not explode.
+            var shock=W24RunShow(c,"staticfield");True(shock.Seen.Contains("TRAP_TRIGGER"));False(shock.Seen.Contains("EXPLOSION"));True(W24Ball(shock,1,"bomb").hp<=30-RosterBalance.ShockTrapDamage);True(W24Ball(shock,1,"bomb").jammed>0);
             // Switch: the enemy Bomb is switched off.
             True(W24Ball(W24RunShow(c,"jammer"),1,"bomb").jammed>0);
             // --- Plants. The Vine leaves the enemy stuck.

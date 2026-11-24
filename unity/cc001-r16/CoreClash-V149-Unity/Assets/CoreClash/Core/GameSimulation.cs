@@ -40,7 +40,8 @@ namespace CoreClash.Core
         // Match rule standardOpeningBonus: true while the ball being aimed is Player 2's extra ball of
         // the opening turn, which then has to be a Standard one. (The second ball of a "double turn"
         // is not that ball: the opening one has been used by then.)
-        public bool StandardOnlyShot=>State.standardOpeningBonus&&State.bonusPending&&!State.bonusUsed&&State.turn==1;
+        public bool OpeningExtraShot=>State.bonusPending&&!State.bonusUsed&&State.turn==1;
+        public bool StandardOnlyShot=>State.standardOpeningBonus&&OpeningExtraShot;
         public bool TryCommand(PlayerCommand c,out string reason)
         {
             reason="";
@@ -64,6 +65,8 @@ namespace CoreClash.Core
                 float angle=(float)Math.Atan2(c.dx,c.owner==0?-c.dy:c.dy);angle=Clamp(angle,-1.53589f,1.53589f);
                 float vx=(float)Math.Sin(angle)*c.power,vy=(float)Math.Cos(angle)*c.power*(c.owner==0?-1:1);
                 ball=Spawn(c.owner,c.ballType,270,c.owner==0?853:47,vx,vy);
+                // Match rule openingBonusHp: Player 2's extra opening ball comes in hurt.
+                if(OpeningExtraShot&&State.openingBonusHp>0)ball.hp=Math.Min(ball.hp,State.openingBonusHp);
                 if(hasStock){if(c.ballType!="normal")stockEntry.remaining--;}
                 else{
                     // A normal SPAWN after a REPLAY_RETURN, not a second RETURN event.
@@ -80,7 +83,7 @@ namespace CoreClash.Core
                 ball.vx=(float)(c.dx/length*c.power);ball.vy=(float)(c.dy/length*c.power);ball.launchImmune=true;
                 State.replayedIds.Add(ball.id);State.actionKind="replay";
             }else{reason="Unknown command.";return false;}
-            ball.affectedIds.Clear();ball.hitUsed=false;ball.wallUsed=false;ball.mineArmed=false;if(Catalog.Ball(ball.type).archetype=="earth")ball.anchorStacks=Math.Max(0,ball.anchorStacks-1);ball.frostguardAnchored=false;
+            ball.affectedIds.Clear();ball.hitUsed=false;ball.wallUsed=false;ball.mineArmed=false;ball.compassDash=false;if(Catalog.Ball(ball.type).archetype=="earth")ball.anchorStacks=Math.Max(0,ball.anchorStacks-1);ball.frostguardAnchored=false;
             ball.phased=ball.type=="phase";ball.angle=(float)Math.Atan2(ball.vy,ball.vx);ball.motionPeak=c.power;
             State.phase=MatchPhase.Moving;State.actionTime=0;State.actionDeadline=14;State.settledTime=0;State.actionSerial++;State.revision++;
             Emit("LAUNCH",ball,State.actionKind);Abilities.OnLaunch(ball);return true;
@@ -106,7 +109,10 @@ namespace CoreClash.Core
         }
         public void Damage(BallRuntime b,int amount,bool kinetic=false,int sourceId=0)
         {
-            if(b==null||b.dead||amount<=0)return;int damage=kinetic?amount:Math.Max(5,Round(amount/5f)*5),absorbed=Math.Min(b.shield,damage);
+            if(b==null||b.dead||amount<=0)return;
+            // Match rule compassDashHurt: on its second shot the Compass takes only part of what a collision would cost it.
+            if(kinetic&&b.compassDash&&State.compassDashHurt<100){amount=Round(amount*Math.Max(0,State.compassDashHurt)/100f);if(amount<=0)return;}
+            int damage=kinetic?amount:Math.Max(5,Round(amount/5f)*5),absorbed=Math.Min(b.shield,damage);
             if(Abilities.BeforeDamage(b,kinetic))return;
             b.shield-=absorbed;damage-=absorbed;b.hp=Math.Max(0,b.hp-damage);b.lastDamageSourceId=sourceId;Emit("DAMAGE",b,damage>0?"-"+damage:"Shield");if(b.hp<=0)Kill(b);
         }

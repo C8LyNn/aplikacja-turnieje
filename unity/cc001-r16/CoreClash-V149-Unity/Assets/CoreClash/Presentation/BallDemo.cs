@@ -255,8 +255,9 @@ namespace CoreClash.Presentation
                 .Launch(1,"normal",270,470,Hard,2f);
 
             // Electricity.
+            // Three enemies in a row: the Lightning touches the first and the bolt runs down the row.
             Show("tesla").Shows("ZAP")
-                .Put(1,"normal",270,420).Put(1,"normal",335,375)
+                .Put(1,"normal",270,420).Put(1,"normal",340,375).Put(1,"normal",410,330)
                 .Launch(0,"tesla",270,420,Up(400),1.8f);
             Show("chainshock").Shows("ZAP")
                 .Put(1,"normal",335,400)

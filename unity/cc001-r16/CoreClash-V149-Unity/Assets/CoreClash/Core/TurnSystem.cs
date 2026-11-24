@@ -6,7 +6,10 @@ namespace CoreClash.Core
         public TurnSystem(GameSimulation s){sim=s;}
         public void ResolveAction()
         {
-            var s=sim.State;sim.Rules.CheckVictory();if(s.phase==MatchPhase.Over)return;
+            var s=sim.State;
+            // Everything has come to rest: no Compass is on its second shot any more.
+            foreach(var b in s.balls)b.compassDash=false;
+            sim.Rules.CheckVictory();if(s.phase==MatchPhase.Over)return;
             if(s.actionKind=="replay"){s.phase=MatchPhase.Aiming;s.actionKind=null;s.revision++;return;}
             if(s.actionKind=="spawn"&&s.turn==1&&!s.bonusUsed&&s.players[1].ownerTurns==1){s.bonusPending=true;s.phase=MatchPhase.Aiming;s.actionKind=null;s.revision++;return;}
             // Match rule "double turn": the player holding it plays a second ball before the turn ends

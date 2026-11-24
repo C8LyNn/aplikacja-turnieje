@@ -32,10 +32,25 @@ namespace CoreClash.Core
         void Zap(BallRuntime target,BallRuntime from,int amount,int sourceId)
         {
             if(target==null||target.dead)return;
+            // Match rule shortCircuit: a ball whose power is switched off takes more from a bolt.
+            if(target.jammed>0)amount+=Math.Max(0,S.shortCircuit);
             sim.Emit("ZAP",target,"-"+amount,from?.id??0);sim.Damage(target,amount,false,sourceId);
         }
+        // Match rule chainLightning: from the enemy the Lightning touched, the bolt goes on to the
+        // nearest enemy within reach, from that one to the next, and so on. An enemy this Lightning
+        // has already shocked this turn is passed over, so "once a turn for each enemy" stays true.
+        void ChainBolt(BallRuntime lightning,BallRuntime touched)
+        {
+            var last=touched;
+            while(true)
+            {
+                var next=Living().Where(t=>t.owner!=lightning.owner&&!lightning.turnAffectedIds.Contains(t.id)&&Dist(last,t)<=ZapJump).OrderBy(t=>Dist(last,t)).ThenBy(t=>t.id).FirstOrDefault();
+                if(next==null)return;
+                lightning.turnAffectedIds.Add(next.id);Zap(next,last,ZapDamage,lightning.id);last=next;
+            }
+        }
 
-        void GroupSpawn(BallRuntime b){if(b.type=="capacitor")b.charge=1;}
+        void GroupSpawn(BallRuntime b){if(b.type=="capacitor")b.charge=Math.Max(0,Math.Min(ChargeMax,S.batteryStart));}
 
         void GroupContact(BallRuntime a,BallRuntime b)
         {
@@ -44,7 +59,8 @@ namespace CoreClash.Core
             {
                 case "tesla":
                     if(!PerTargetTurn(a,b))break;
-                    Zap(b,a,ZapDamage,a.id);
+                    Zap(b,a,Math.Max(ZapDamage,S.lightningTouch),a.id);
+                    if(S.chainLightning){ChainBolt(a,b);break;}
                     var next=Living().Where(t=>t.owner!=a.owner&&t.id!=b.id&&Dist(b,t)<=ZapJump).OrderBy(t=>Dist(b,t)).ThenBy(t=>t.id).FirstOrDefault();
                     if(next!=null)Zap(next,b,ZapDamage,a.id);
                     break;
@@ -81,10 +97,12 @@ namespace CoreClash.Core
         // One more shot, straight at the nearest enemy. Once a turn, and only in its owner's turn.
         void Compass(BallRuntime b)
         {
+            // Whatever stops it, the second shot is over.
+            b.compassDash=false;
             if(b.owner!=S.turn||b.lastAbilityTurn==S.turnNumber||S.phase!=MatchPhase.Moving)return;
             var target=Near(b,CompassRange,false).FirstOrDefault();if(target==null)return;
             float dx=target.x-b.x,dy=target.y-b.y,distance=(float)Math.Sqrt(dx*dx+dy*dy);if(distance<.001f)return;
-            b.lastAbilityTurn=S.turnNumber;
+            b.lastAbilityTurn=S.turnNumber;b.compassDash=true;
             float speed=CompassSpeed*CollisionResolver.ForceScale(b);
             b.vx=dx/distance*speed;b.vy=dy/distance*speed;b.angle=(float)Math.Atan2(b.vy,b.vx);BallPhysics.ClampSpeed(b);
             // A new launch late in an action needs its own settling window (same bound as Slingshot).
@@ -125,7 +143,7 @@ namespace CoreClash.Core
             if(target==null)return;
             trap.dead=true;
             sim.Emit("TRAP_TRIGGER",target,trap.kind+" spent",trap.sourceId);
-            Zap(target,null,ZapDamage,trap.sourceId);
+            Zap(target,null,Math.Max(ZapDamage,S.shockTrapDamage),trap.sourceId);
             if(!target.dead)Jam(target);
         }
     }

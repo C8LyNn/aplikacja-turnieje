@@ -19,6 +19,29 @@ namespace CoreClash.Core
     // The six ready decks, same computer and same draws, 432 matches a run:
     //   before    Frozen Garden 33%  Polar Storm 36%  Dynamo 43%  Fire Pit 55%  Acid Rain 62%  Jungle 71%
     //   after     Dynamo 43%  Frozen Garden 48%  Acid Rain 49%  Fire Pit 51%  Polar Storm 53%  Jungle 57%
+    //
+    // Second pass, the same day (owner decisions: "strengthen magnetism and electricity" - Dynamo was
+    // the weakest ready deck - and "the player who starts and the other one are to win as often as
+    // each other, whatever the decks; one deck may counter another, but then from either seat"):
+    //   seats        Player 2's extra Standard ball of the opening turn comes in with 15 HP, not 30.
+    //                First player's share of wins over every pair of ready decks: no extra ball 64%,
+    //                a whole ball 42% (1260 matches), 20 HP 46%, 15 HP 49% (840 matches each).
+    //   magnetism    the Magnet Mine takes a whole 15 from every enemy in its field and nothing from
+    //                its owner's balls (it took 10-15 by distance, from everybody); a collision on the
+    //                Compass's second shot costs it half (each of its two hits used to cost it as
+    //                much as its target, and decks did better without the ball).
+    //   electricity  the Lightning's bolt goes on down a row of enemies instead of to one more; a
+    //                switched-off ball takes 5 more from every bolt; the Battery comes with two
+    //                charges; the shock trap takes 10.
+    // Tried and dropped, because they overshot: the Compass taking no damage at all on its second
+    // shot (magnetism 60%, Fire Pit 63%), the Lightning taking 10 from the enemy it touches
+    // (electricity 52-55%, Acid Rain 58% twice), a shield of 10 for the Anchor (Dynamo 58%).
+    // Measured as above (groups: 600 matches, noise about 5 points; ready decks: 432, about 9):
+    //   groups, before  ice 49%  electricity 47%  magnetism 47%  plants 50%  fire 53%  poison 55%
+    //   groups, after   ice 46%  electricity 47%  magnetism 50%  plants 50%  poison 52%  fire 54%
+    //   decks, before   Dynamo 43%  Frozen Garden 48%  Acid Rain 49%  Fire Pit 51%  Polar Storm 53%  Jungle 57%
+    //   decks, after    Frozen Garden 45%  Polar Storm 46%  Fire Pit 49%  Acid Rain 51%  Dynamo 53%  Jungle 56%
+    // Electricity as a group did not move: only the Lightning's touch moves it, and 10 is too much.
     public static class RosterBalance
     {
         // The Poison Pool's field. (The Blizzard keeps the reference 165.)
@@ -29,6 +52,24 @@ namespace CoreClash.Core
         // A freeze lasts the next two turns - one of each player.
         public const int FreezeTurns=2;
 
+        // Electricity: the Lightning's bolt goes on down a row of enemies; a switched-off ball takes
+        // this much more from every bolt.
+        public const bool ChainLightning=true;
+        public const int ShortCircuit=5;
+        // What the Lightning takes from the enemy it touches (the reference 5, the same as a jump of
+        // its bolt), the charges the Battery comes with, what the shock trap takes.
+        public const int LightningTouch=5;
+        public const int BatteryStart=2;
+        public const int ShockTrapDamage=10;
+        // Magnetism: the Magnet Mine takes this from every enemy in its field (and nothing from its
+        // owner's balls). The Anchor's shield after it drops anchor: none (the rule exists, see above).
+        public const int MineDamage=15;
+        public const int AnchorShield=0;
+        // On its second shot a collision costs the Compass this much of the usual, in percent.
+        public const int CompassDashHurt=50;
+        // The opening: HP of the extra Standard ball Player 2 plays on the first turn (0 = a whole ball).
+        public const int OpeningBonusHp=15;
+
         public static void Apply(GameState state)
         {
             if(state==null)return;
@@ -36,6 +77,10 @@ namespace CoreClash.Core
             state.venomOncePerTurn=true;
             state.leechDrain=LeechDrain;
             state.poolRadius=PoolRadius;
+            state.chainLightning=ChainLightning;state.shortCircuit=ShortCircuit;
+            state.lightningTouch=LightningTouch;state.batteryStart=BatteryStart;state.shockTrapDamage=ShockTrapDamage;
+            state.mineDamage=MineDamage;state.anchorShield=AnchorShield;state.compassDashHurt=CompassDashHurt;
+            state.openingBonusHp=OpeningBonusHp;
         }
     }
 }

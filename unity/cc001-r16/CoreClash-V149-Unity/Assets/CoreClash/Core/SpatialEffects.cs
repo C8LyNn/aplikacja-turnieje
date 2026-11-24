@@ -44,7 +44,10 @@ namespace CoreClash.Core
         void SpatialStop(BallRuntime b)
         {
             switch(b.type){
-                case "anchor":b.anchorStacks=3;b.vx=b.vy=0;if(S.plainPowers)sim.Emit("ANCHOR",b,"Anchored");break;
+                case "anchor":b.anchorStacks=3;b.vx=b.vy=0;
+                    // Match rule anchorShield: dropping anchor brings its shield back up to that number.
+                    if(S.anchorShield>b.shield)sim.Shield(b,S.anchorShield-b.shield,S.anchorShield);
+                    if(S.plainPowers)sim.Emit("ANCHOR",b,"Anchored");break;
                 case "vinehook":if(b.lastAbilityTurn!=S.turnNumber){var target=Near(b,165,false).FirstOrDefault(x=>x.anchorStacks<3);if(target!=null){b.lastAbilityTurn=S.turnNumber;Impulse(target,b.x,b.y,300);sim.Emit("PULL",target,"Vinehook");}}break;
                 case "harpoon":var far=Near(b,230,false).LastOrDefault();if(far!=null){Impulse(far,b.x,b.y,690);sim.Emit("PULL",far,"Harpoon");}break;
                 case "vortexmedic":var enemies=Near(b,165,false);foreach(var e in enemies)Impulse(e,b.x,b.y,390);var hurt=Living().Where(x=>x.owner==b.owner&&Dist(b,x)<=165&&x.hp<x.maxHp).OrderBy(x=>(float)x.hp/x.maxHp).FirstOrDefault();if(enemies.Length>0&&hurt!=null)sim.Heal(hurt,Math.Min(10,enemies.Length*5));break;
@@ -62,6 +65,18 @@ namespace CoreClash.Core
                     // Nothing in the rules changes here: the event only lets the screen show the pull or the push.
                     if(S.plainPowers)sim.Emit(b.type=="magnet"?"MAGNET":"PULSE",b,b.type=="magnet"?"Pull":"Push");break;
             }
+        }
+        // Match rule mineDamage: the Magnet Mine throws every ball in its field outwards, and takes the
+        // same, whole amount from each enemy there - none from its owner's balls.
+        void MineBlast(BallRuntime source,float radius,int damage,float force)
+        {
+            foreach(var b in Living()){
+                // The same edge as the field that set it off: the ball that triggered the mine is always hit.
+                if(b.id==source.id)continue;float d=Dist(source,b);if(d>radius)continue;
+                Impulse(b,2*b.x-source.x,2*b.y-source.y,force*Math.Max(.2f,1-d/radius));
+                if(b.owner!=source.owner)sim.Damage(b,damage,false,source.id);
+            }
+            sim.Emit("EXPLOSION",source,"Area explosion");
         }
         void CreatePortals(BallRuntime b)
         {
@@ -92,7 +107,7 @@ namespace CoreClash.Core
                 }else if(z.kind=="web"){
                     var target=Living().FirstOrDefault(b=>b.owner!=z.owner&&(b.x-z.x)*(b.x-z.x)+(b.y-z.y)*(b.y-z.y)<(z.radius+b.radius)*(z.radius+b.radius));if(target!=null){Root(target);z.dead=true;}
                 }else if(z.kind=="gravitymine"){
-                    foreach(var b in Living().Where(b=>b.id!=z.sourceId)){float d=(float)Math.Sqrt((b.x-z.x)*(b.x-z.x)+(b.y-z.y)*(b.y-z.y));if(d>z.radius||!FieldHolds(z,b))continue;Impulse(b,z.x,z.y,70*dt);if(b.owner!=z.owner){z.dead=true;var source=S.balls.FirstOrDefault(x=>x.id==z.sourceId);if(source!=null){var blast=new BallRuntime{id=source.id,owner=z.owner,type="gravitymine",x=z.x,y=z.y};Explode(blast,100,14,390);sim.Kill(source);}break;}}
+                    foreach(var b in Living().Where(b=>b.id!=z.sourceId)){float d=(float)Math.Sqrt((b.x-z.x)*(b.x-z.x)+(b.y-z.y)*(b.y-z.y));if(d>z.radius||!FieldHolds(z,b))continue;Impulse(b,z.x,z.y,70*dt);if(b.owner!=z.owner){z.dead=true;var source=S.balls.FirstOrDefault(x=>x.id==z.sourceId);if(source!=null){var blast=new BallRuntime{id=source.id,owner=z.owner,type="gravitymine",x=z.x,y=z.y};if(S.mineDamage>0)MineBlast(blast,z.radius,S.mineDamage,390);else Explode(blast,100,14,390);sim.Kill(source);}break;}}
                 }else if(z.kind=="blackHole"){
                     foreach(var b in Living()){
                         float dx=z.x-b.x,dy=z.y-b.y,d=(float)Math.Sqrt(dx*dx+dy*dy),swallow=Math.Max(z.coreRadius,z.radius*.145f)+b.radius*.34f;

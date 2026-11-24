@@ -89,8 +89,8 @@ namespace CoreClash.Presentation
                 PlanEn="You decide where balls stand: pull enemies together, push them away, drag them onto the mine.",
                 PlanPl="Ty decydujesz, gdzie stoją kulki: ściągaj wrogów w jedno miejsce, odpychaj ich, wciągaj na minę."},
             new BallGroup{Id="electric",NameEn="Electricity",NamePl="Elektryczność",Balls=new[]{"tesla","chainshock","capacitor","staticfield","jammer"},
-                PlanEn="Lightning jumps between enemies that stand close. A switched-off ball has no power at all.",
-                PlanPl="Piorun skacze między wrogami stojącymi blisko siebie. Wyłączona kulka nie ma żadnej mocy."},
+                PlanEn="Lightning jumps along enemies standing close. A switched-off ball has no power, and bolts hurt it more.",
+                PlanPl="Piorun skacze po wrogach stojących blisko. Wyłączona kulka nie ma mocy, a pioruny ranią ją mocniej."},
             new BallGroup{Id="plant",NameEn="Plants",NamePl="Rośliny",Balls=new[]{"web","thornback","elderbloom","cultivator","cascade"},
                 PlanEn="Plants stay and grow: they hold enemies, sting whoever touches them, heal and grow back.",
                 PlanPl="Rośliny stoją i rosną: trzymają wrogów, kłują przy dotyku, leczą i odrastają."},
@@ -151,6 +151,13 @@ namespace CoreClash.Presentation
         static GuideFact Poisoned=>Fact(GuideFactKind.Poison,"Poison: 5 HP × 3 turns","Trucizna: 5 HP × 3 tury");
         static GuideFact Chilled=>Fact(GuideFactKind.Ice,"3 chills = frozen","3 mrozy = zamrożenie");
         static GuideFact FrozenFact=>Fact(GuideFactKind.Frozen,"Frozen for 2 turns","Zamrożona na 2 tury");
+        // The numbers of the roster's balance, as the cards print them.
+        static string Hp(int amount)=>amount.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        // One number while the touch and the jumps take the same, two when the touch takes more.
+        static GuideFact[] LightningFacts=>CoreClash.Core.RosterBalance.LightningTouch==CoreClash.Core.AbilityResolver.ZapDamage
+            ?new[]{Damage("5 damage each","Po 5 obrażeń")}
+            :new[]{Damage("Touch: "+Hp(CoreClash.Core.RosterBalance.LightningTouch)+" HP","Dotyk: "+Hp(CoreClash.Core.RosterBalance.LightningTouch)+" HP"),Damage("Each jump: 5 HP","Każdy skok: 5 HP")};
+        static GuideFact ShortCircuit=>Damage("Bolts: "+Hp(CoreClash.Core.RosterBalance.ShortCircuit)+" HP more","Pioruny: "+Hp(CoreClash.Core.RosterBalance.ShortCircuit)+" HP więcej");
 
         static void Add(string id,string namePl,GuideWhen when,GuideWho who,float range,string tagEn,string tagPl,
             string doesEn,string doesPl,string tipEn,string tipPl,params GuideFact[] facts)
@@ -277,28 +284,37 @@ namespace CoreClash.Presentation
             Add("fluxmine","Kompas",GuideWhen.Stop,GuideWho.Enemies,230,"Second shot","Drugi strzał",
                 "Shoots once more after it has stopped in your turn — straight at the nearest enemy in range.",
                 "Rusza jeszcze raz, gdy zatrzyma się w twojej turze — prosto w najbliższego wroga w zasięgu.",
-                "Once a turn. Stop it close to the ball you want to hit.",
-                "Raz na turę. Zatrzymaj go blisko kulki, w którą chcesz trafić.",
+                "On its second shot a collision hurts the Compass half as much. Stop it close to the ball you want to hit.",
+                "W drugim strzale zderzenie rani Kompas o połowę słabiej. Zatrzymaj go blisko kulki, w którą chcesz trafić.",
                 Count("Once a turn","Raz na turę"));
             Add("gravitymine","Mina magnesowa",GuideWhen.Stop,GuideWho.Everyone,100,"Pull + blast","Wir i wybuch",
                 "Makes a field that pulls balls towards it. When an enemy rolls into the field, the mine explodes and is gone.",
                 "Tworzy pole, które przyciąga kulki. Gdy w pole wjedzie wróg, mina wybucha i znika.",
-                "The blast hurts your balls too. Inside an older field the mine's field does not work.",
-                "Wybuch rani też twoje kulki. W starszym polu pole miny nie działa.",
-                Damage("10 damage","10 obrażeń"));
-            Add("anchor","Kotwica",GuideWhen.Stop,GuideWho.Self,0,"Holds ground","Trzyma miejsce",
-                "Drops anchor where it stops: collisions, magnets and blasts barely move it.",
-                "Rzuca kotwicę tam, gdzie stanie: zderzenia, magnesy i wybuchy ledwo ją przesuwają.",
-                "Big and heavy. Park it in the centre or in the enemy's zone.",
-                "Duża i ciężka. Postaw ją na środku albo w strefie wroga.");
+                "The blast throws every ball away but hurts only enemies. Inside an older field the mine's field does not work.",
+                "Wybuch odrzuca wszystkie kulki, ale rani tylko wrogów. W starszym polu pole miny nie działa.",
+                Damage(Hp(CoreClash.Core.RosterBalance.MineDamage)+" damage",Hp(CoreClash.Core.RosterBalance.MineDamage)+" obrażeń"));
+            // The Anchor's card names a shield only while the roster's balance gives it one.
+            if(CoreClash.Core.RosterBalance.AnchorShield>0)
+                Add("anchor","Kotwica",GuideWhen.Stop,GuideWho.Self,0,"Holds ground","Trzyma miejsce",
+                    "Drops anchor where it stops and gets a shield of "+Hp(CoreClash.Core.RosterBalance.AnchorShield)+". Collisions, magnets and blasts barely move it.",
+                    "Rzuca kotwicę tam, gdzie stanie, i dostaje tarczę "+Hp(CoreClash.Core.RosterBalance.AnchorShield)+". Zderzenia, magnesy i wybuchy ledwo ją przesuwają.",
+                    "Big and heavy. Park it in the centre or in the enemy's zone.",
+                    "Duża i ciężka. Postaw ją na środku albo w strefie wroga.",
+                    Shield("Shield "+Hp(CoreClash.Core.RosterBalance.AnchorShield),"Tarcza "+Hp(CoreClash.Core.RosterBalance.AnchorShield)));
+            else
+                Add("anchor","Kotwica",GuideWhen.Stop,GuideWho.Self,0,"Holds ground","Trzyma miejsce",
+                    "Drops anchor where it stops: collisions, magnets and blasts barely move it.",
+                    "Rzuca kotwicę tam, gdzie stanie: zderzenia, magnesy i wybuchy ledwo ją przesuwają.",
+                    "Big and heavy. Park it in the centre or in the enemy's zone.",
+                    "Duża i ciężka. Postaw ją na środku albo w strefie wroga.");
 
             // Electricity.
             Add("tesla","Piorun",GuideWhen.Touch,GuideWho.Enemies,100,"Shock","Razi",
-                "Shocks the enemy it touches, and the bolt jumps to one more enemy next to that one.",
-                "Razi wroga, którego dotknie, a piorun przeskakuje na jeszcze jednego wroga obok.",
+                "Shocks the enemy it touches, and the bolt jumps on along the enemies standing close to each other.",
+                "Razi wroga, którego dotknie, a piorun skacze dalej po wrogach stojących blisko siebie.",
                 "Each enemy can be shocked once a turn. Aim at enemies standing together.",
                 "Każdego wroga razi raz na turę. Celuj w kulki stojące blisko siebie.",
-                Damage("5 damage each","Po 5 obrażeń"));
+                LightningFacts);
             Add("chainshock","Burza",GuideWhen.Turn,GuideWho.Enemies,165,"Bolt a turn","Piorun co turę",
                 "At the start of each turn of yours, a bolt strikes the nearest enemy in range.",
                 "Na początku każdej twojej tury piorun uderza w najbliższego wroga w zasięgu.",
@@ -306,23 +322,23 @@ namespace CoreClash.Presentation
                 "Zatrzymaj ją blisko wrogów, którym trudno uciec.",
                 Damage("5 damage","5 obrażeń"));
             Add("capacitor","Bateria",GuideWhen.Stop,GuideWho.Enemies,100,"Charge + shock","Ładuje i razi",
-                "Gains a charge in each turn of yours (3 at most, starts with one). When it stops next to enemies, it shocks them all and is empty again.",
-                "Co turę zyskuje ładunek (najwyżej 3, zaczyna z jednym). Gdy stanie obok wrogów, razi ich wszystkich i znów jest pusta.",
+                "Gains a charge in each turn of yours (3 at most, starts with "+Hp(CoreClash.Core.RosterBalance.BatteryStart)+"). When it stops next to enemies, it shocks them all and is empty again.",
+                "Co turę zyskuje ładunek (najwyżej 3, zaczyna z "+Hp(CoreClash.Core.RosterBalance.BatteryStart)+"). Gdy stanie obok wrogów, razi ich wszystkich i znów jest pusta.",
                 "No enemy nearby: the charge is kept. Knocked, it stops again — and fires.",
                 "Bez wroga obok ładunek zostaje. Potrącona też stanie — i wypali.",
                 Damage("5 per charge","5 za ładunek"));
             Add("staticfield","Pułapka prądu",GuideWhen.Stop,GuideWho.Enemies,0,"Shock + off","Razi i wyłącza",
-                "Leaves a shock trap on that spot. The first enemy to roll over it takes 5 damage and loses its power until the end of its next turn.",
-                "Zostawia w tym miejscu pułapkę. Pierwszy wróg, który na nią wjedzie, traci 5 HP i moc — do końca swojej następnej tury.",
-                "The trap works once.",
-                "Pułapka działa raz.",
-                Damage("5 damage","5 obrażeń"),Time("Power off: 1 turn","Bez mocy: 1 tura"),Count("Works once","Działa raz"));
+                "Leaves a shock trap on that spot. The first enemy to roll over it takes "+Hp(CoreClash.Core.RosterBalance.ShockTrapDamage)+" damage and loses its power until the end of its next turn.",
+                "Zostawia w tym miejscu pułapkę. Pierwszy wróg, który na nią wjedzie, traci "+Hp(CoreClash.Core.RosterBalance.ShockTrapDamage)+" HP i moc — do końca swojej następnej tury.",
+                "The trap works once. Bolts hurt a switched-off ball more.",
+                "Pułapka działa raz. Wyłączoną kulkę pioruny ranią mocniej.",
+                Damage(Hp(CoreClash.Core.RosterBalance.ShockTrapDamage)+" damage",Hp(CoreClash.Core.RosterBalance.ShockTrapDamage)+" obrażeń"),Time("Power off: 1 turn","Bez mocy: 1 tura"),ShortCircuit);
             Add("jammer","Wyłącznik",GuideWhen.Touch,GuideWho.Enemies,0,"Power off","Wyłącza moc",
                 "The enemy it touches loses its power until the end of that enemy's next turn.",
                 "Wróg, którego dotknie, traci moc do końca swojej następnej tury.",
                 "A switched-off ball does nothing when it touches, stops, starts a turn or dies.",
                 "Wyłączona kulka nic nie robi: ani przy dotyku, ani gdy stanie, ani co turę, ani gdy ginie.",
-                Time("Power off: 1 turn","Bez mocy: 1 tura"));
+                Time("Power off: 1 turn","Bez mocy: 1 tura"),ShortCircuit);
 
             // Plants.
             Add("web","Pnącze",GuideWhen.Stop,GuideWho.Enemies,70,"Tangle","Oplata",

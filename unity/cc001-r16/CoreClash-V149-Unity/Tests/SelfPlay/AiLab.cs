@@ -71,6 +71,8 @@ namespace CoreClash.SelfPlay
         // An experiment: match rules (fields of GameState) set by name after the game's own, e.g.
         // --rule deepFreeze=false. Empty = the game's rules.
         public static string RuleOverrides = "";
+        // An experiment: HP added to the first player's base ("komi"). 0 = the game's rules.
+        public static int FirstBaseBonus;
         static void Override(GameState state)
         {
             foreach (string part in RuleOverrides.Split(new[] { ',' }, StringSplitOptions.RemoveEmptyEntries))
@@ -90,6 +92,7 @@ namespace CoreClash.SelfPlay
             MatchMaps.Apply(sim, picked); map = picked.Id;
             if (!openingBonus) state.bonusUsed = true;
             Override(state);
+            state.players[0].hp += FirstBaseBonus;
             return sim;
         }
 
@@ -205,8 +208,9 @@ namespace CoreClash.SelfPlay
             int threads = Int(args, "--threads", Math.Max(1, Environment.ProcessorCount * 3 / 4));
             try { Process.GetCurrentProcess().PriorityClass = ProcessPriorityClass.BelowNormal; } catch (Exception) { }
             string output = Arg(args, "--out", Path.Combine(root, "Logs"));
-            RuleOverrides = Arg(args, "--rule", "");
+            RuleOverrides = Arg(args, "--rule", ""); FirstBaseBonus = Int(args, "--first-base", 0);
             if (RuleOverrides.Length > 0) Console.WriteLine("AILAB experiment, match rules: " + RuleOverrides);
+            if (FirstBaseBonus != 0) Console.WriteLine("AILAB experiment, first player's base: " + FirstBaseBonus.ToString("+0;-0") + " HP");
             Directory.CreateDirectory(output);
             switch (mode)
             {
@@ -217,7 +221,8 @@ namespace CoreClash.SelfPlay
                 case "tune": return Tune(catalog, root, args, threads, output);
                 case "balls": return Balls(catalog, root, args, threads, output);
                 case "groups": return Groups(catalog, root, args, threads, output);
-                default: Console.WriteLine("ailab: balance | balls | groups | levels | tune | train | bench"); return 2;
+                case "seats": return Seats(catalog, root, args, threads, output);
+                default: Console.WriteLine("ailab: balance | balls | groups | seats | levels | tune | train | bench"); return 2;
             }
         }
 
@@ -574,10 +579,10 @@ namespace CoreClash.SelfPlay
             text.AppendLine("- Mecze: **" + games + "**, rozstrzygnięte: " + rows.Count / 2 + ", zaczynający wygrywa " + Won(rows.Where(r => r.first)) + ", czas liczenia " + watch.Elapsed.TotalSeconds.ToString("0") + " s. Komputer z komputerem, poziom średni, zasady gry" + (RuleOverrides.Length > 0 ? " ze zmianą: `" + RuleOverrides + "`" : "") + ".");
             text.AppendLine("- 50% = grupa równa pozostałym. Przy tej liczbie meczów przypadek to około ±" + (100 / Math.Sqrt(Math.Max(1, rows.Count / 3))).ToString("0") + " punktów na grupę.");
             text.AppendLine();
-            text.AppendLine("| Grupa | Wygrane talii z tą grupą | jako główna (5 kulek) | jako druga (4 kulki) | Talie |");
-            text.AppendLine("|---|---|---|---|---|");
+            text.AppendLine("| Grupa | Wygrane talii z tą grupą | jako główna (5 kulek) | jako druga (4 kulki) | gdy zaczyna | gdy jest druga przy stole | Talie |");
+            text.AppendLine("|---|---|---|---|---|---|---|");
             for (int g = 0; g < groups.Length; g++)
-                text.AppendLine("| " + groups[g].NamePl + " | **" + Won(rows.Where(r => r.main == g || r.second == g)) + "** | " + Won(rows.Where(r => r.main == g)) + " | " + Won(rows.Where(r => r.second == g)) + " | " + rows.Count(r => r.main == g || r.second == g) + " |");
+                text.AppendLine("| " + groups[g].NamePl + " | **" + Won(rows.Where(r => r.main == g || r.second == g)) + "** | " + Won(rows.Where(r => r.main == g)) + " | " + Won(rows.Where(r => r.second == g)) + " | " + Won(rows.Where(r => (r.main == g || r.second == g) && r.first)) + " | " + Won(rows.Where(r => (r.main == g || r.second == g) && !r.first)) + " | " + rows.Count(r => r.main == g || r.second == g) + " |");
             text.AppendLine();
             text.AppendLine("Każda talia osobno (wiersz = grupa główna, kolumna = druga grupa):");
             text.AppendLine();
@@ -611,6 +616,95 @@ namespace CoreClash.SelfPlay
             return 0;
         }
 
+        // ---------------------------------------------------------------- seats
+        // Owner direction (2026-11-24): the player who starts and the other one are to win as often
+        // as each other with any decks - one deck may counter another, but then it does so from
+        // either seat. Here every pair of ready decks, and each deck against itself, plays the same
+        // maps and draws twice with the decks changing seats.
+        static string Experiment()
+            => (RuleOverrides.Length > 0 ? " Zasady meczu zmienione: `" + RuleOverrides + "`." : "") + (FirstBaseBonus != 0 ? " Baza zaczynającego: " + FirstBaseBonus.ToString("+0;-0") + " HP." : "");
+        static int Seats(Catalog catalog, string root, string[] args, int threads, string output)
+        {
+            int perPair = Int(args, "--per-pair", 40); perPair += perPair & 1;
+            var weights = LoadWeights(root); var decks = catalog.Roster.Decks; var agent = GameAgent(AiLevel.Normal, weights);
+            var jobs = new List<(int a, int b, int k)>();
+            for (int a = 0; a < decks.Length; a++) for (int b = a; b < decks.Length; b++) for (int k = 0; k < perPair; k++) jobs.Add((a, b, k));
+            var results = new LabMatch[jobs.Count]; var watch = Stopwatch.StartNew(); int done = 0;
+            Parallel.For(0, jobs.Count, new ParallelOptions { MaxDegreeOfParallelism = threads }, i =>
+            {
+                var job = jobs[i]; bool swap = job.a != job.b && (job.k & 1) == 1;
+                // Two decks: one draw for both seatings. A deck against itself: every match its own draw.
+                ulong seed = SelfPlayRng.Mix(SelfPlayRng.Mix(2718, (ulong)(job.a * 100 + job.b)), (ulong)(job.a == job.b ? job.k : job.k >> 1));
+                results[i] = Play(catalog, decks[swap ? job.b : job.a], decks[swap ? job.a : job.b], agent, agent, seed);
+                int now = Interlocked.Increment(ref done);
+                if (now % 100 == 0) Console.WriteLine("AILAB seats " + now + "/" + jobs.Count + " [" + watch.Elapsed.TotalSeconds.ToString("0") + " s]");
+            });
+            string Name(int deck) => DeckText.NamePl(decks[deck].id) ?? decks[deck].name;
+            var decided = results.Where(m => m != null && m.Finished && m.Winner >= 0).ToList();
+            // first[a, b]: matches with deck a starting against deck b; won[a, b]: those the starting deck won.
+            var first = new int[decks.Length, decks.Length]; var won = new int[decks.Length, decks.Length];
+            foreach (var match in decided)
+            {
+                int a = Array.FindIndex(decks, d => d.id == match.DeckA), b = Array.FindIndex(decks, d => d.id == match.DeckB);
+                first[a, b]++; if (match.Winner == 0) won[a, b]++;
+            }
+            string Noise(int count) => "±" + (100 / Math.Sqrt(Math.Max(1, count))).ToString("0");
+            var text = new StringBuilder();
+            text.AppendLine("# Core Clash - czy miejsce przy stole ma znaczenie");
+            text.AppendLine();
+            text.AppendLine("- Każda para gotowych talii i każda talia sama ze sobą: " + perPair + " meczów, te same mapy i losy rozegrane dwa razy, z zamianą miejsc. Komputer z komputerem, poziom średni, zasady gry." + Experiment());
+            text.AppendLine("- Mecze: **" + results.Length + "**, rozstrzygnięte: " + decided.Count + ", czas liczenia " + watch.Elapsed.TotalSeconds.ToString("0") + " s.");
+            text.AppendLine("- **Zaczynający wygrywa " + (decided.Count(m => m.Winner == 0) * 100.0 / Math.Max(1, decided.Count)).ToString("0.0") + "%** (cel: 50%; przypadek przy tej liczbie meczów to około " + Noise(decided.Count) + " pkt).");
+            text.AppendLine("- Cel dla pary talii: talia A wygrywa tak samo często, gdy zaczyna i gdy jest druga. Wtedy jedna talia może kontrować drugą, ale miejsce przy stole nic nie zmienia.");
+            text.AppendLine();
+            text.AppendLine("## Talie");
+            text.AppendLine();
+            text.AppendLine("Bez meczów talii z samą sobą. Różnica bliska 0 = talii jest wszystko jedno, czy zaczyna.");
+            text.AppendLine();
+            text.AppendLine("| Talia | Wygrywa, gdy zaczyna | Wygrywa, gdy jest druga | Różnica | Mecze | Sama ze sobą: zaczynający wygrywa |");
+            text.AppendLine("|---|---|---|---|---|---|");
+            for (int deck = 0; deck < decks.Length; deck++)
+            {
+                int asFirst = 0, wonFirst = 0, asSecond = 0, wonSecond = 0;
+                for (int other = 0; other < decks.Length; other++)
+                {
+                    if (other == deck) continue;
+                    asFirst += first[deck, other]; wonFirst += won[deck, other];
+                    asSecond += first[other, deck]; wonSecond += first[other, deck] - won[other, deck];
+                }
+                double f = wonFirst * 100.0 / Math.Max(1, asFirst), g = wonSecond * 100.0 / Math.Max(1, asSecond);
+                text.AppendLine("| " + Name(deck) + " | " + f.ToString("0") + "% | " + g.ToString("0") + "% | " + (f - g).ToString("+0;-0;0") + " | " + (asFirst + asSecond) + " | " + Percent(won[deck, deck], first[deck, deck]) + " (" + first[deck, deck] + ") |");
+            }
+            text.AppendLine();
+            text.AppendLine("## Pary talii");
+            text.AppendLine();
+            text.AppendLine("Przypadek dla jednej pary to około " + Noise(perPair) + " pkt w kolumnie \"Zaczynający wygrywa\"; dopiero większe odchylenie od 50% coś znaczy. Par jest piętnaście, więc jedno takie odchylenie może też wyjść samym przypadkiem.");
+            text.AppendLine();
+            text.AppendLine("| Talia A | Talia B | A wygrywa, gdy zaczyna | A wygrywa, gdy jest druga | Zaczynający wygrywa | Mecze |");
+            text.AppendLine("|---|---|---|---|---|---|");
+            var skews = new List<double>(); var counts = new List<int>();
+            for (int a = 0; a < decks.Length; a++)
+                for (int b = a + 1; b < decks.Length; b++)
+                {
+                    int count = first[a, b] + first[b, a], starters = won[a, b] + won[b, a]; if (count == 0) continue;
+                    double share = starters * 100.0 / count; skews.Add(share); counts.Add(count);
+                    text.AppendLine("| " + Name(a) + " | " + Name(b) + " | " + Percent(won[a, b], first[a, b]) + " | " + Percent(first[b, a] - won[b, a], first[b, a]) + " | **" + share.ToString("0") + "%**" + (Math.Abs(share - 50) > 100 / Math.Sqrt(count) ? " (odstaje)" : "") + " | " + count + " |");
+                }
+            for (int a = 0; a < decks.Length; a++) if (first[a, a] > 0) { skews.Add(won[a, a] * 100.0 / first[a, a]); counts.Add(first[a, a]); }
+            if (skews.Count > 1)
+            {
+                // How far the pairs differ from each other, against what chance alone would give.
+                double mean = skews.Average(), seen = Math.Sqrt(skews.Sum(v => (v - mean) * (v - mean)) / (skews.Count - 1)), chance = Math.Sqrt(counts.Average(c => mean * (100 - mean) / Math.Max(1, c)));
+                text.AppendLine();
+                text.AppendLine("Rozrzut między parami (razem z meczami talii z samą sobą): " + seen.ToString("0.0") + " pkt; sam przypadek dałby około " + chance.ToString("0.0") + " pkt. Wyraźnie więcej niż przypadek = w niektórych parach miejsce naprawdę ma znaczenie.");
+            }
+            string path = Path.Combine(output, Arg(args, "--name", "balans-miejsca") + ".md");
+            File.WriteAllText(path, text.ToString(), new UTF8Encoding(false));
+            Console.WriteLine("AILAB seats report " + path);
+            Console.WriteLine("AILAB seats first player wins " + (decided.Count(m => m.Winner == 0) * 100.0 / Math.Max(1, decided.Count)).ToString("0.0") + "% of " + decided.Count);
+            return 0;
+        }
+
         static string BallName(Catalog catalog, string id) => BallGuide.NamePl(id) ?? catalog.Ball(id)?.name ?? id;
         static string Percent(int part, int all) => all > 0 ? (part * 100.0 / all).ToString("0") + "%" : "-";
         static string BalanceReport(Catalog catalog, LabMatch[] matches, int perPair, double seconds, AiWeights weights, string opening)
@@ -624,7 +718,7 @@ namespace CoreClash.SelfPlay
             text.AppendLine();
             if (experiment != null) text.AppendLine("- **Eksperyment:** w tych meczach " + experiment + ". Reszta zasad bez zmian.");
             text.AppendLine("- Mecze: **" + matches.Length + "** (" + perPair + " na każdą parę talii w każdej kolejności), rozstrzygnięte: " + decided.Count + ", remisy: " + matches.Count(m => m.Finished && m.Winner < 0) + ", czas liczenia: " + seconds.ToString("0") + " s.");
-            text.AppendLine("- Obie strony gra ten sam komputer (poziom średni), na zasadach gry: kulki ×1,5, podwójna tura poniżej 10 HP bazy, losowa mapa, każda kulka 30 HP, proste moce, jedno pole w jednym miejscu, dodatkowa kulka gracza 2 na otwarcie tylko Zwykła, zamrożenie trwa 2 tury (liczby balansu z 24.11.2026).");
+            text.AppendLine("- Obie strony gra ten sam komputer (poziom średni), na zasadach gry: kulki ×1,5, podwójna tura poniżej 10 HP bazy, losowa mapa, każda kulka 30 HP, proste moce, jedno pole w jednym miejscu, dodatkowa kulka gracza 2 na otwarcie tylko Zwykła" + (RosterBalance.OpeningBonusHp > 0 ? " i z " + RosterBalance.OpeningBonusHp + " HP" : "") + ", zamrożenie trwa 2 tury (liczby balansu z 24.11.2026)." + Experiment());
             text.AppendLine("- To są mecze komputera z komputerem. Mówią, co jest mocne **w rękach tego komputera**; człowiek może grać kulką lepiej albo gorzej.");
             text.AppendLine();
             text.AppendLine("## Mecz");

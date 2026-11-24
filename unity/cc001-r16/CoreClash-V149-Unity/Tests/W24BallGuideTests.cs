@@ -73,7 +73,9 @@ public static partial class Program
             {var s=Sim();var g=s.Spawn(0,"gravitymine",270,450);var e=s.Spawn(1,"normal",470,450);s.Abilities.OnStop(g);True(s.State.zones.Any(z=>!z.dead&&z.kind=="gravitymine"));e.x=360;s.Abilities.OnStep(1f/120);Eq(20,e.hp);True(g.dead);}
             // Plain powers (the rule the game plays by): the field always appears, as the card says.
             {var s=Sim();s.State.plainPowers=true;var g=s.Spawn(0,"gravitymine",270,450);s.Spawn(0,"normal",330,450);s.Abilities.OnStop(g);True(s.State.zones.Any(z=>!z.dead&&z.kind=="gravitymine"));}
-            Eq("10 damage",W24Fact("gravitymine",0));
+            // The game plays by the roster's balance: the card prints its number, and that is what an enemy in the field loses.
+            Eq(RosterBalance.MineDamage+" damage",W24Fact("gravitymine",0));
+            {var s=Sim();s.State.plainPowers=true;RosterBalance.Apply(s.State);var g=s.Spawn(0,"gravitymine",270,450);s.Abilities.OnStop(g);var e=s.Spawn(1,"normal",360,450);s.Abilities.OnStep(1f/120);Eq(30-RosterBalance.MineDamage,e.hp);}
         });
         Test("W24 guide: fire, poison, ice and the support numbers on the cards are what the rules produce",()=>{
             // Fire and poison: 5 HP on each of the target's own turns, three times.
