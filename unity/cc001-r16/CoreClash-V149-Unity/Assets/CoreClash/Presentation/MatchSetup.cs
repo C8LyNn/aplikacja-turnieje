@@ -58,6 +58,12 @@ namespace CoreClash.Presentation
         static int forcedComputer = -1;
 
         public static MapDefinition MapById(string id) => MatchMaps.ById(id);
+        // The map after this one, round the list ("next level" after a match).
+        public static string NextMap(string id)
+        {
+            int at = Array.FindIndex(Maps, map => map.Id == id);
+            return Maps[(at + 1) % Maps.Length].Id;
+        }
         public static string MapName(string id) => id == RandomMap ? Lang.T("Random", "Losowa") : (MapById(id) is MapDefinition named ? Lang.T(named.NameEn, named.NamePl) : Lang.T("Open", "Otwarta"));
 
         public static void Load()

@@ -28,7 +28,8 @@ namespace CoreClash.Presentation
             var view=new Rect(x+pad,y+head+4,w-2*pad,h-head-foot-4);float inner=view.width-10;
             settingsScroll=Draw.ScrollView(view,settingsScroll,new Rect(0,0,inner,content));
             float at=0;
-            Section(ref at,inner,Lang.T("Rules of the match","Zasady meczu"),Lang.T("from the next match","od następnego meczu"));
+            // A guest's own rules do not count in a network game: the host's do.
+            Section(ref at,inner,Lang.T("Rules of the match","Zasady meczu"),NetworkLink!=null&&!NetworkLink.IsAuthority?Lang.T("online: the host's rules","w sieci: zasady gospodarza"):Lang.T("from the next match","od następnego meczu"));
             // W24: who plays the second side. (The home screen has the same choice on Player 2's block,
             // but a phone held sideways has no room for that block.)
             int rival=Choice(ref at,inner,rowH,narrow,Lang.T("Opponent","Przeciwnik"),new[]{Lang.T("Player 2","Gracz 2"),Lang.T("Computer","Komputer")},VersusAi?1:0);

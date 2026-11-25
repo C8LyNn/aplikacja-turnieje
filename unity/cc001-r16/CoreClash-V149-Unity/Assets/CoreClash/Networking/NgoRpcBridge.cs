@@ -17,6 +17,17 @@ namespace CoreClash.Networking
         {
             if(!IsServer&&context.Receive.SenderClientId==Unity.Netcode.NetworkManager.ServerClientId)session.ReceiveColors(hostColor,guestColor);
         }
+        // W24 lobby: the host's room to the guest; the guest's choice (deck, colour, ready) and its
+        // requests to the host.
+        [Rpc(SendTo.NotServer,InvokePermission=RpcInvokePermission.Server)]
+        public void LobbyRpc(string json,RpcParams context=default)
+        {
+            if(!IsServer&&context.Receive.SenderClientId==Unity.Netcode.NetworkManager.ServerClientId)session.ReceiveLobby(json);
+        }
+        [Rpc(SendTo.Server,InvokePermission=RpcInvokePermission.Everyone)]
+        public void LobbyChoiceRpc(string json,RpcParams context=default){if(IsServer)session.ReceiveLobbyChoice(context.Receive.SenderClientId,json);}
+        [Rpc(SendTo.Server,InvokePermission=RpcInvokePermission.Everyone)]
+        public void LobbyRequestRpc(int request,RpcParams context=default){if(IsServer)session.ReceiveLobbyRequest(context.Receive.SenderClientId,request);}
         [Rpc(SendTo.NotServer,InvokePermission=RpcInvokePermission.Server)]
         public void SnapshotChunkRpc(int revision,int index,int count,byte[] payload,RpcParams context=default)
         {

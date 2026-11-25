@@ -5,7 +5,11 @@ namespace CoreClash.Presentation
     // CC-001 W24: the end of a match. A card rises over the arena with the winner's colour,
     // the real result reason from the simulation and the two base totals. It can be put away
     // to look at the final board. Leaving goes through the same exit guard as every other
-    // exit control; "Play again" exists only for a local match.
+    // exit control. W24 (the course brief: "a summary - results, statistics - and the players can
+    // start again, play the next level or go back to the lobby"): the card also says how long the
+    // match was and what each side has left and lost; a network match shows the score of the
+    // session, and its host plays again, plays the next map or takes everybody back to the room -
+    // a guest can ask for the room.
     public sealed partial class CoreClashApp
     {
         bool resultHidden;
@@ -44,9 +48,12 @@ namespace CoreClash.Presentation
                 return;
             }
             float t=Fx.ReducedMotion?1:Mathf.Clamp01((now-resultAt)/Theme.ResultRise),ease=1-(1-t)*(1-t)*(1-t);
-            bool local=NetworkLink==null,draw=state.winner<0;
+            bool local=NetworkLink==null,draw=state.winner<0,hosting=!local&&NetworkLink.IsAuthority;
+            var room=local?null:Room;var session=room?.Lobby;
             Color tint=draw?Theme.Select:Draw.Owner(state.winner),deep=draw?Theme.SelectInk:Theme.TeamDeep(state.winner);
-            float w=Mathf.Min(area.width-12,330),h=Mathf.Min(214,area.height-16);
+            // The card grows by what it has to say: the two sides' balls, the session, the host's second row.
+            float extra=18+(session!=null?22+(hosting?50:18):0);
+            float w=Mathf.Min(area.width-12,330),h=Mathf.Min(214+extra,area.height-16);
             var card=new Rect(area.center.x-w/2,area.center.y-h/2+(1-ease)*46,w,h);
             Draw.Rect(new Rect(area.x,area.y,area.width,area.height),Theme.A(Theme.Scrim,.28f*ease));
             Draw.Shadow(card,.4f,18,10);
@@ -70,6 +77,9 @@ namespace CoreClash.Presentation
             // A match against the computer says on which level it was played, when that fits beside the reason.
             string reason=ResultReason(state.resultReason),versus=aiMatch?Lang.T("Computer: ","Komputer: ")+MatchSetup.AiLevelName(aiLevel).ToLowerInvariant():"";
             if(versus.Length>0)reason=reason.Length==0?versus:Draw.TextWidth(reason+"  ·  "+versus,13,true)<=card.width-24?reason+"  ·  "+versus:reason;
+            // How long the match was, when that fits beside the reason.
+            string length=Lang.T("turn ","tura ")+state.turnNumber;
+            if(Draw.TextWidth(reason+"  ·  "+length,13,true)<=card.width-24)reason+="  ·  "+length;
             Draw.Text(new Rect(card.x+12,ribbon.yMax+6,card.width-24,20),reason,13,Theme.Text,TextAnchor.MiddleCenter,true);
             // Both bases, in their colours, with what is left of the 20 HP.
             float cellW=(card.width-36)/2,cellY=ribbon.yMax+30;
@@ -83,10 +93,41 @@ namespace CoreClash.Presentation
                 if(Draw.TextWidth(label,10,true)+Draw.TextWidth(left,14,true)+8>cell.width-36)label=seat;
                 Draw.Text(new Rect(cell.x+28,cell.y,cell.width-36,cell.height),label,10,Theme.TeamDeep(owner),TextAnchor.MiddleLeft,true);
                 Draw.Text(new Rect(cell.x+28,cell.y,cell.width-36,cell.height),left,14,Theme.Text,TextAnchor.MiddleRight,true);
+                // What the side has on the board and what it lost.
+                int alive=0,lost=0;
+                foreach(var ball in state.balls){if(ball.owner!=owner)continue;if(ball.dead)lost++;else if(!ball.banished)alive++;}
+                Draw.Text(new Rect(cell.x,cell.yMax+2,cell.width,16),Lang.T("balls ","kulki ")+alive+"  ·  "+Lang.T("lost ","stracone ")+lost,10,Theme.Muted,TextAnchor.MiddleCenter,true);
             }
-            float buttonY=card.yMax-5-44-10,buttonW=local?(card.width-36)/2:card.width-24;
-            if(local&&Draw.Button(new Rect(card.x+12,buttonY,buttonW,44),Lang.T("Play again","Zagraj ponownie"),tint,true,true,14))StartLocalMatch();
-            if(Draw.Button(new Rect(local?card.x+24+buttonW:card.x+12,buttonY,buttonW,44),local?Lang.T("Decks","Talie"):Lang.T("Leave","Wyjdź"),size:14))RequestLeaveMatch();
+            float buttonY=card.yMax-5-44-10,buttonW=(card.width-36)/2,secondX=card.x+24+buttonW;
+            if(local)
+            {
+                if(Draw.Button(new Rect(card.x+12,buttonY,buttonW,44),Lang.T("Play again","Zagraj ponownie"),tint,true,true,14))StartLocalMatch();
+                if(Draw.Button(new Rect(secondX,buttonY,buttonW,44),Lang.T("Decks","Talie"),size:14))RequestLeaveMatch();
+            }
+            else
+            {
+                float lineY=cellY+30+20;
+                if(session!=null)
+                {
+                    // The score of the session, each number in its player's colour.
+                    string label=Lang.T("Session","Sesja");float labelW=Draw.TextWidth(label,11,true),scoreW=74,startX=card.center.x-(labelW+10+scoreW)/2;
+                    Draw.Text(new Rect(startX,lineY,labelW+2,20),label,11,Theme.Muted,TextAnchor.MiddleLeft,true);
+                    Draw.Text(new Rect(startX+labelW+10,lineY,30,20),session.host.wins.ToString(),16,Theme.TeamDeep(0),TextAnchor.MiddleRight,true);
+                    Draw.Text(new Rect(startX+labelW+40,lineY,14,20),":",14,Theme.Text,TextAnchor.MiddleCenter,true);
+                    Draw.Text(new Rect(startX+labelW+54,lineY,30,20),session.guest.wins.ToString(),16,Theme.TeamDeep(1),TextAnchor.MiddleLeft,true);
+                    lineY+=21;
+                }
+                // The room goes on after the match. The host decides what is played next.
+                bool again=hosting&&session!=null&&session.inMatch&&session.guest.present,back=session!=null&&session.inMatch;
+                if(hosting)
+                {
+                    if(Draw.Button(new Rect(card.x+12,buttonY-50,buttonW,44),Lang.T("Rematch","Rewanż"),tint,true,again,14))room.LobbyRematch(false);
+                    if(Draw.Button(new Rect(secondX,buttonY-50,buttonW,44),Lang.T("Next map","Następna mapa"),Theme.Info,false,again,13))room.LobbyRematch(true);
+                }
+                else if(session!=null)Draw.Text(new Rect(card.x+12,lineY,card.width-24,16),Lang.T("The host decides about a rematch.","O rewanżu decyduje gospodarz."),11,Theme.Muted,TextAnchor.MiddleCenter,true);
+                if(Draw.Button(new Rect(card.x+12,buttonY,buttonW,44),Lang.T("Lobby","Poczekalnia"),hosting?(Color?)null:tint,!hosting,back,14))room.LobbyReturn();
+                if(Draw.Button(new Rect(secondX,buttonY,buttonW,44),Lang.T("Leave","Wyjdź"),size:14))RequestLeaveMatch();
+            }
             if(Draw.Button(new Rect(card.xMax-40,card.y+6,32,24),"×",size:14))resultHidden=true;
         }
     }

@@ -243,10 +243,11 @@ namespace CoreClash.Presentation
         }
         public void ConfirmLeaveMatch(){if(exitGuard.Confirm()){Debug.Log("CORE_CLASH_LEAVE_CONFIRMED");ReturnToSetup();}}
         public void CancelLeaveMatch(){if(exitGuard.Open){exitGuard.Cancel();CancelPointer();Debug.Log("CORE_CLASH_LEAVE_CANCELED");}}
-        public void ReturnToSetup(){deckGuide=null;hintShown=false;exitGuard.Reset();remoteBallSmoother.Reset();NetworkLink?.Disconnect();GetComponent<NgoGameSession>()?.Disconnect();NetworkLink=null;setup=true;builder=library=boardInspection=false;CancelPointer();CloseBallDetails();DeveloperOverlay=false;MatchSetup.UseChosenColors();}
-        public void BeginNetworkGame(IUnityNetworkLink link){StartMatchState();NetworkLink=link;networkNotice=link.Status;MatchSetup.UseColorsFor(link.LocalOwner);}
+        public void ReturnToSetup(){deckGuide=null;hintShown=false;exitGuard.Reset();remoteBallSmoother.Reset();NetworkLink?.Disconnect();GetComponent<NgoGameSession>()?.Disconnect();NetworkLink=null;inLobby=remoteMatchPending=false;lobbyPreview=null;setup=true;builder=library=boardInspection=false;CancelPointer();CloseBallDetails();DeveloperOverlay=false;MatchSetup.UseChosenColors();}
         public void ReceiveNetworkState(GameState state,int snapshotRevision)
         {
+            // In the room no state of a match is taken - except the first one of the match the host has just started.
+            if(inLobby&&!remoteMatchPending)return;
             if(NetworkLink!=null&&!NetworkLink.IsAuthority&&state!=null){
                 // A30 W11: prevent stale/duplicate/unversioned packets from modifying
                 // the client authoritative state, event cursor, or visual cache.
@@ -255,7 +256,7 @@ namespace CoreClash.Presentation
                 var instantBallIds=RemoteSnapshotEvents.InstantBallIds(state,remoteLastEventId,out var latestEventId);
                 remoteLastEventId=latestEventId;
                 remoteBallSmoother.Observe(state,Time.unscaledTime,instantBallIds,snapshotRevision);
-                Simulation.State=state;setup=false;
+                Simulation.State=state;setup=false;inLobby=remoteMatchPending=false;
                 if(!receivedRemoteState){feedback=new FeedbackTimeline();feedback.Observe(state,Time.unscaledTime);receivedRemoteState=true;}
             }
         }
@@ -296,11 +297,11 @@ namespace CoreClash.Presentation
                 Draw.Inked(new Rect(x+44,11,UiWidth<360?130:small?190:330,30),"CORE CLASH",size,Theme.Select,TextAnchor.MiddleLeft,2f);
             }
             if(fatal.Length>0){Draw.Text(new Rect(30,100,UiWidth-60,200),fatal,18,Theme.OnColor);return;}if(Catalog==null)return;
-            int screen=setup?(builder?1:library?2:0):3;
+            int screen=setup?(builder?1:library?2:inLobby?4:0):3;
             if(screen!=screenShown){screenShown=screen;screenAt=Time.unscaledTime;}
             bool prior=GUI.enabled;GUI.enabled=!externalModal&&inspect.Length==0&&!DeveloperOverlay&&deckGuide==null;
             GUI.enabled=GUI.enabled&&!exitGuard.Open&&!settingsOpen;
-            if(setup){if(builder)RenderBuilder();else if(library)RenderLibrary();else RenderSetup();}else RenderMatch();GUI.enabled=prior;
+            if(setup){if(builder)RenderBuilder();else if(library)RenderLibrary();else if(inLobby)RenderLobby();else RenderSetup();}else RenderMatch();GUI.enabled=prior;
             // Screen change: the new screen fades in from the backdrop. Input is never held back.
             float fade=Fx.ReducedMotion?0:1-Mathf.Clamp01((Time.unscaledTime-screenAt)/Theme.ScreenFade);
             if(fade>0&&Event.current.type==EventType.Repaint)Draw.Rect(new Rect(0,60,UiWidth,UiHeight-60),Theme.A(Color.Lerp(Theme.BackdropTop,Theme.BackdropBottom,.5f),fade*fade));

@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using CoreClash.Core;
 using CoreClash.Presentation;
 using Unity.Netcode;
@@ -25,7 +26,8 @@ namespace CoreClash.Networking
         long skippedSnapshotRevisions;
         string status="Choose Create Game or Join Game",lastError="";
         public bool IsAuthority=>hostRole&&manager!=null&&manager.IsServer;
-        public bool IsConnected=>!failed&&manager!=null&&manager.IsListening&&bridge!=null&&bridge.IsSpawned&&(IsAuthority?seat.Connected.HasValue:manager.IsConnectedClient&&ReceivedSnapshots>0);
+        // Connected: the host has its guest; the guest has heard from the host - the room, or a match.
+        public bool IsConnected=>!failed&&manager!=null&&manager.IsListening&&bridge!=null&&bridge.IsSpawned&&(IsAuthority?seat.Connected.HasValue:manager.IsConnectedClient&&(lobbyKnown||ReceivedSnapshots>0));
         public int LocalOwner=>hostRole?0:1;
         public string Status=>status;
         public int ReceivedSnapshots {get;private set;}
@@ -54,7 +56,9 @@ namespace CoreClash.Networking
             if(nm.NetworkConfig==null)nm.NetworkConfig=new NetworkConfig();
             var utp=nm.GetComponent<UnityTransport>();if(utp==null)utp=nm.gameObject.AddComponent<UnityTransport>();
             utp.UseWebSockets=true;utp.MaxPayloadSize=4096;utp.MaxSendQueueSize=1024*1024;utp.SetConnectionData("127.0.0.1",7777,"0.0.0.0");
-            nm.NetworkConfig.NetworkTransport=utp;nm.NetworkConfig.ProtocolVersion=149;nm.NetworkConfig.TickRate=20;
+            // 150: W24, a session starts in a room (MatchLobby). A game of an older build expects the match
+            // at once, so the two refuse each other at the door instead of waiting for one another.
+            nm.NetworkConfig.NetworkTransport=utp;nm.NetworkConfig.ProtocolVersion=150;nm.NetworkConfig.TickRate=20;
             nm.NetworkConfig.ConnectionApproval=true;nm.NetworkConfig.EnableSceneManagement=true;nm.NetworkConfig.PlayerPrefab=null;
             if(appObject.GetComponent<NetworkObject>()==null)appObject.AddComponent<NetworkObject>();
             if(appObject.GetComponent<NgoRpcBridge>()==null)appObject.AddComponent<NgoRpcBridge>();
@@ -83,7 +87,7 @@ namespace CoreClash.Networking
             if(!LanEndpoint.TryNormalize(hostAddress,port,out hostAddress)){SetStatus("Use a valid host address and gameplay port.");return false;}
             if(!CanStart)return false;
             ResetSession(true);transport.UseWebSockets=true;transport.UseEncryption=false;transport.SetConnectionData(true,hostAddress,port,hostAddress=="127.0.0.1"?"127.0.0.1":"0.0.0.0");
-            app.BeginNetworkGame(this);authority=new NetworkGameSession(app.Simulation);BindCallbacks();
+            OpenRoom();app.BeginNetworkLobby(this);BindCallbacks();
             if(!manager.StartHost()){FailConnection("The game could not be created. Try Create Game again.");return false;}
             SetStatus("HOST P1 · WebSocket :"+port+" · waiting for P2");Debug.Log("CC_NET_HOST_READY port="+port);return true;
         }
@@ -92,12 +96,12 @@ namespace CoreClash.Networking
             if(!CanStart)return false;
             if(!LanEndpoint.TryNormalize(hostAddress,port,out hostAddress)){SetStatus("Use a valid host IP or paste an invitation.");return false;}
             ResetSession(false);transport.UseWebSockets=true;transport.UseEncryption=false;transport.SetConnectionData(true,hostAddress.Trim(),port);
-            app.BeginNetworkGame(this);BindCallbacks();SetStatus("Joining the game as Player 2…");connectDeadline=Time.unscaledTime+20;
+            OpenRoom();app.BeginNetworkLobby(this);BindCallbacks();SetStatus("Joining the game as Player 2…");connectDeadline=Time.unscaledTime+20;
             if(!manager.StartClient()){FailConnection("The connection could not start. Choose a game and try again.");return false;}return true;
         }
         void ResetSession(bool hosting)
         {
-            hostRole=hosting;internetMode=false;seat.Reset();wishKnown=false;pendingIntent=failed=recoveryPending=intentionalDisconnect=false;pendingSequence=0;authority=null;bridge=null;connectDeadline=0;
+            hostRole=hosting;internetMode=false;seat.Reset();wishKnown=false;lobby=null;lobbyShown=null;lobbyKnown=false;choiceJson=null;pendingIntent=failed=recoveryPending=intentionalDisconnect=false;pendingSequence=0;authority=null;bridge=null;connectDeadline=0;
             adapter=new NetworkGameStateAdapter();assembler=new NgoSnapshotAssembler();ReceivedSnapshots=AcceptedRemoteIntents=RejectedRemoteIntents=AcceptedLocalIntents=RejectedLocalIntents=LastAppliedRevision=LastReceivedEvents=0;
             nextSnapshot=0;lastHostTraceAt=lastClientTraceAt=-1f;skippedSnapshotRevisions=0;lastError="";
         }
@@ -116,7 +120,7 @@ namespace CoreClash.Networking
             ResetSession(hosting);internetMode=true;
             transport.UseWebSockets=true;transport.UseEncryption=false;transport.SetRelayServerData(configuration.RelayServerData);
             // MPS calls this handler instead of its default NGO handler. Prepare authority before the one NGO start.
-            app.BeginNetworkGame(this);if(hosting)authority=new NetworkGameSession(app.Simulation);BindCallbacks();
+            OpenRoom();app.BeginNetworkLobby(this);BindCallbacks();
             SetStatus(hosting?"HOST P1 · Internet Relay · waiting for P2":"Joining Internet Relay as Player 2…");
             if(!hosting)connectDeadline=Time.unscaledTime+35;
             bool started=hosting?manager.StartHost():manager.StartClient();
@@ -141,21 +145,173 @@ namespace CoreClash.Networking
             if(manager.IsServer&&id!=Unity.Netcode.NetworkManager.ServerClientId){
                 if(!seat.Commit(id,Time.unscaledTime)){manager.DisconnectClient(id);return;}
                 authority?.ForgetConnection(1);SetStatus("HOST P1 · P2 connected · authoritative");nextSnapshot=0;Debug.Log("CC_NET_PEER_CONNECTED id="+id+" owner=1");
-                SettleColors();
+                lobby?.GuestJoined();SettleColors();
+                // What the guest said before its seat was confirmed.
+                if(choiceJson!=null&&choiceFrom==id){string kept=choiceJson;choiceJson=null;ReceiveLobbyChoice(id,kept);}
+                SendLobby();
             }
             else if(!manager.IsServer)SetStatus("P2 connected · awaiting authoritative state");
         }
         void Disconnected(ulong id)
         {
             if(intentionalDisconnect||recoveryPending)return;
-            if(hostRole){if(seat.Release(id)){pendingIntent=false;SetStatus("Player 2 disconnected. Waiting for a player to rejoin.");Debug.Log("CC_NET_SEAT_RELEASED id="+id);}}
+            if(hostRole){if(seat.Release(id)){pendingIntent=false;lobby?.GuestLeft();SetStatus("Player 2 disconnected. Waiting for a player to rejoin.");Debug.Log("CC_NET_SEAT_RELEASED id="+id);}}
             else if(id==manager.LocalClientId){
                 Debug.LogWarning("CC_NET_DISCONNECT_DETAIL "+manager.DisconnectReason);
-                string message=ReceivedSnapshots>0?"Connection to the host was lost. You can join again or play locally.":"Could not join the game. Check that the host is still running and try again.";
+                string message=ReceivedSnapshots>0||lobbyKnown?"Connection to the host was lost. You can join again or play locally.":"Could not join the game. Check that the host is still running and try again.";
                 FailConnection(manager.DisconnectReason==FullRoomReason?FullRoomReason:message);
             }
         }
-        public void BridgeSpawned(NgoRpcBridge rpcBridge){bridge=rpcBridge;nextSnapshot=0;Debug.Log("CC_NET_BRIDGE_SPAWNED server="+manager.IsServer);}
+        public void BridgeSpawned(NgoRpcBridge rpcBridge)
+        {
+            bridge=rpcBridge;nextSnapshot=0;Debug.Log("CC_NET_BRIDGE_SPAWNED server="+manager.IsServer);
+            // The guest tells the host at once what it brings.
+            if(!manager.IsServer)SendChoice();
+        }
+
+        // ------------------------------------------------------------ the lobby (W24, the course brief)
+        // Before a match the players are in a room: each brings a deck and says "ready", and the host
+        // starts the match when both have. After a match the host plays again, plays the next map or
+        // takes everybody back to the room. The host's MatchLobby decides; the guest shows the
+        // host's LobbyState and asks.
+        MatchLobby lobby;LobbyState lobbyShown;LobbyChoice mine=new LobbyChoice();
+        bool lobbyKnown;int sentLobbyRevision=-1,seenRound;float nextLobbySend;
+        ulong choiceFrom;string choiceJson;
+        // The room as this player sees it (null before a session, and for a guest until the host has sent it).
+        public LobbyState Lobby=>hostRole?lobby?.State:lobbyShown;
+        public bool InLobby=>Lobby!=null&&!Lobby.inMatch;
+        public LobbyBlock LobbyBlocked=>hostRole&&lobby!=null?lobby.Blocked:MatchLobby.BlockOf(lobbyShown,balls=>balls!=null&&balls.Length==9);
+        public bool LobbyCanStart=>IsAuthority&&lobby!=null&&bridge!=null&&lobby.CanStart;
+        void OpenRoom()
+        {
+            lobby=hostRole?app.NewRoom():null;lobbyShown=null;lobbyKnown=false;sentLobbyRevision=-1;seenRound=0;nextLobbySend=0;choiceJson=null;
+            mine=new LobbyChoice{color=MatchSetup.Color1};
+            var deck=app.LocalDeck;
+            if(hostRole)
+            {
+                int count=Theme.PlayerColors.Length,hostColor=SeatColors.Host(MatchSetup.Color1,count);
+                lobby.SetDeck(0,deck.id,deck.name,deck.balls);lobby.SetColors(hostColor,SeatColors.Guest(hostColor,MatchSetup.Color2,count));PublishRules();
+            }
+            else{mine.deckId=deck.id;mine.deckName=deck.name;mine.balls=(string[])deck.balls.Clone();}
+        }
+        // The rules of the next match are the host's own settings.
+        public void PublishRules(){if(hostRole&&lobby!=null)lobby.SetRules(MatchSetup.Map,MatchSetup.BallScale,MatchSetup.DoubleTurn);}
+        public void SetRoomName(string name){if(hostRole&&lobby!=null)lobby.SetRoom(name);}
+        // This player brings another deck.
+        public void LobbySetDeck(CoreClash.Data.DeckDefinition deck)
+        {
+            if(deck==null||Lobby==null||Lobby.inMatch)return;
+            if(hostRole)lobby.SetDeck(0,deck.id,deck.name,deck.balls);
+            else{mine.deckId=deck.id;mine.deckName=deck.name;mine.balls=(string[])deck.balls.Clone();mine.ready=false;SendChoice();}
+        }
+        public void LobbySetReady(bool ready)
+        {
+            if(Lobby==null||Lobby.inMatch)return;
+            if(hostRole)lobby.SetReady(0,ready);else{mine.ready=ready;SendChoice();}
+        }
+        // This player took another colour (MatchSetup.Color1). The host keeps its own; the guest
+        // gets the one it asks for unless it is the host's.
+        public void LobbyColorChanged()
+        {
+            if(Lobby==null||Lobby.inMatch)return;
+            if(!hostRole){SendChoice();return;}
+            if(wishKnown&&seat.Owns(wishFrom)){SettleColors();return;}
+            int count=Theme.PlayerColors.Length,hostColor=SeatColors.Host(MatchSetup.Color1,count),guestColor=SeatColors.Guest(hostColor,MatchSetup.Color2,count);
+            Theme.SetPlayerColors(hostColor,guestColor);lobby.SetColors(hostColor,guestColor);
+        }
+        void SendChoice()
+        {
+            if(hostRole||bridge==null||!bridge.IsSpawned)return;
+            mine.color=MatchSetup.Color1;bridge.LobbyChoiceRpc(JsonUtility.ToJson(mine));
+        }
+        // The host starts the match the room agreed on.
+        public bool LobbyStart()
+        {
+            if(!LobbyCanStart||!lobby.Start())return false;
+            BeginMatch();return true;
+        }
+        // From the result screen (host): the same decks again, on the same map or on the next one.
+        public bool LobbyRematch(bool nextMap)
+        {
+            if(!IsAuthority||lobby==null||!lobby.State.inMatch||app.Simulation.State.phase!=MatchPhase.Over)return false;
+            lobby.Finish(app.Simulation.State.winner);
+            if(!lobby.Rematch())return false;
+            // "Next map": the one after the map just played, for this match only - the host's own
+            // setting (a chosen map, or a random one every time) stays as it is.
+            string setting=MatchSetup.Map;
+            if(nextMap)MatchSetup.Map=MatchSetup.NextMap(app.Simulation.State.mapId);
+            try{BeginMatch();}finally{MatchSetup.Map=setting;}
+            return true;
+        }
+        // Back to the room. The host does it; a guest asks the host for it.
+        public void LobbyReturn()
+        {
+            if(Lobby==null||!Lobby.inMatch)return;
+            if(!hostRole){if(bridge!=null&&bridge.IsSpawned)bridge.LobbyRequestRpc(MatchLobby.RequestLobby);return;}
+            if(app.Simulation.State.phase==MatchPhase.Over)lobby.Finish(app.Simulation.State.winner);
+            lobby.ReturnToLobby();authority=null;pendingIntent=false;app.ShowNetworkLobby();SendLobby();
+            Debug.Log("CC_NET_LOBBY_RETURN round="+lobby.State.round);
+        }
+        void BeginMatch()
+        {
+            Theme.SetPlayerColors(lobby.State.host.color,lobby.State.guest.color);
+            app.BeginNetworkMatch(this,lobby.Deck(0),lobby.Deck(1));authority=new NetworkGameSession(app.Simulation);pendingIntent=false;
+            // The room first, the match's state after it: the guest gets ready for a new match on the room's word.
+            SendLobby();nextSnapshot=0;
+            Debug.Log("CC_NET_LOBBY_START round="+lobby.State.round+" map="+app.Simulation.State.mapId);
+        }
+        void SendLobby()
+        {
+            if(!IsAuthority||lobby==null||bridge==null||!bridge.IsSpawned)return;
+            sentLobbyRevision=lobby.State.revision;nextLobbySend=Time.unscaledTime+1;
+            if(seat.Connected.HasValue)bridge.LobbyRpc(JsonUtility.ToJson(lobby.State));
+        }
+        public void ReceiveLobby(string json)
+        {
+            if(IsAuthority||failed||json==null||json.Length>MatchLobby.MaxWire)return;
+            LobbyState state=null;try{state=JsonUtility.FromJson<LobbyState>(json);}catch(ArgumentException){}
+            if(!MatchLobby.Admit(state,app.Catalog))return;
+            bool first=!lobbyKnown,fromMatch=lobbyShown!=null&&lobbyShown.inMatch;lobbyShown=state;lobbyKnown=true;
+            if(SeatColors.Valid(state.host.color,state.guest.color,Theme.PlayerColors.Length))Theme.SetPlayerColors(state.host.color,state.guest.color);
+            if(first){SetStatus("P2 · in the lobby");Debug.Log("CC_NET_LOBBY_JOINED round="+state.round+" inMatch="+state.inMatch);}
+            if(state.inMatch&&state.round!=seenRound)
+            {
+                // A new match of the session: nothing of the last one may be taken for it.
+                seenRound=state.round;adapter=new NetworkGameStateAdapter();assembler=new NgoSnapshotAssembler();
+                ReceivedSnapshots=LastAppliedRevision=LastReceivedEvents=0;skippedSnapshotRevisions=0;pendingIntent=false;pendingSequence=0;
+                mine.ready=false;app.BeginNetworkMatch(this,ShownDeck(0),ShownDeck(1));Debug.Log("CC_NET_LOBBY_MATCH round="+state.round);
+            }
+            else if(!state.inMatch)
+            {
+                // Back from a match everybody confirms again.
+                if(fromMatch)mine.ready=false;
+                app.ShowNetworkLobby();
+                // The host has no deck for this player (or another one): say again what is brought.
+                if(mine.balls!=null&&mine.balls.Length==9&&!mine.balls.SequenceEqual(state.guest.balls)&&Time.unscaledTime>=nextLobbySend){nextLobbySend=Time.unscaledTime+1;SendChoice();}
+            }
+        }
+        // A seat of the room the host sent, as a deck (this player's own deck if the host sent none).
+        CoreClash.Data.DeckDefinition ShownDeck(int owner)
+        {
+            var deck=MatchLobby.DeckOf(lobbyShown,owner,app.Catalog);
+            return deck.balls.Length==9?deck:app.LocalDeck;
+        }
+        public void ReceiveLobbyChoice(ulong sender,string json)
+        {
+            if(!IsAuthority||lobby==null||json==null||json.Length>MatchLobby.MaxWire)return;
+            // Like the colour wish, the choice can arrive before the seat is confirmed: kept until it is.
+            if(!seat.Owns(sender)){choiceFrom=sender;choiceJson=json;return;}
+            LobbyChoice choice=null;try{choice=JsonUtility.FromJson<LobbyChoice>(json);}catch(ArgumentException){}
+            if(choice==null)return;
+            wishFrom=sender;wishColor=choice.color;wishKnown=true;SettleColors();
+            lobby.Apply(choice);
+        }
+        public void ReceiveLobbyRequest(ulong sender,int request)
+        {
+            if(!IsAuthority||lobby==null||!seat.Owns(sender))return;
+            // A guest may ask for the lobby once the match is over.
+            if(request==MatchLobby.RequestLobby&&lobby.State.inMatch&&app.Simulation.State.phase==MatchPhase.Over)LobbyReturn();
+        }
         // W24 (owner decision: in PvP each player picks their colour). The guest's ready message says
         // which colour they chose. It can arrive before the guest's seat is confirmed (measured: it
         // does), so the wish is kept and the colours are settled as soon as both are known: the host
@@ -172,7 +328,7 @@ namespace CoreClash.Networking
         {
             if(!IsAuthority||!wishKnown||!seat.Owns(wishFrom))return;
             int count=Theme.PlayerColors.Length,hostColor=SeatColors.Host(MatchSetup.Color1,count),guestColor=SeatColors.Guest(hostColor,wishColor,count);
-            Theme.SetPlayerColors(hostColor,guestColor);
+            Theme.SetPlayerColors(hostColor,guestColor);lobby?.SetColors(hostColor,guestColor);
             if(bridge!=null)bridge.ColorsRpc(hostColor,guestColor);
             Debug.Log("CC_NET_COLORS role=host host="+hostColor+" guest="+guestColor+" asked="+wishColor);
         }
@@ -215,6 +371,8 @@ namespace CoreClash.Networking
         public void ReceiveChunk(int revision,int index,int count,byte[] payload)
         {
             if(IsAuthority||failed)return;
+            // The state of a match counts only while the room says a match is on.
+            if(!lobbyKnown||!lobbyShown.inMatch)return;
             try{
                 if(!assembler.Add(revision,index,count,payload,out var json))return;
                 var packet=JsonUtility.FromJson<SessionSnapshot>(json);
@@ -235,7 +393,7 @@ namespace CoreClash.Networking
                         " balls="+adapter.State.balls.Count+" received="+ReceivedSnapshots+
                         " skippedRevisions="+skippedSnapshotRevisions);
                 }
-                if(ReceivedSnapshots==1){SetStatus("P2 · authoritative state received · your deck is chosen by host");Debug.Log("CC_NET_STATE_APPLIED revision="+revision+" owner=1");}
+                if(ReceivedSnapshots==1){SetStatus("P2 · authoritative state received");Debug.Log("CC_NET_STATE_APPLIED revision="+revision+" owner=1");}
             }catch(Exception e){FailConnection("The host sent unusable game state. Try joining again.");Debug.LogError("CC_NET_SNAPSHOT_ERROR "+e.Message);}
         }
         void LateUpdate()
@@ -243,7 +401,13 @@ namespace CoreClash.Networking
             if(recoveryPending){if(manager!=null&&manager.IsListening&&!manager.ShutdownInProgress)manager.Shutdown();return;}
             if(!hostRole&&!failed&&connectDeadline>0){if(IsConnected)connectDeadline=0;else if(Time.unscaledTime>=connectDeadline){FailConnection("The game did not respond. Check the invitation and try again.");return;}}
             if(IsAuthority)ExpirePendingSeat();
-            if(!IsAuthority||authority==null||!IsConnected||Time.unscaledTime<nextSnapshot)return;
+            if(IsAuthority&&lobby!=null)
+            {
+                if(lobby.State.inMatch&&app.Simulation.State.phase==MatchPhase.Over)lobby.Finish(app.Simulation.State.winner);
+                if(!lobby.State.inMatch)PublishRules();
+                if(seat.Connected.HasValue&&(lobby.State.revision!=sentLobbyRevision||Time.unscaledTime>=nextLobbySend))SendLobby();
+            }
+            if(!IsAuthority||authority==null||lobby==null||!lobby.State.inMatch||!IsConnected||Time.unscaledTime<nextSnapshot)return;
             try{
                 var packet=authority.Capture(JsonUtility.ToJson);
                 var packed=NgoWireProtocol.Encode(JsonUtility.ToJson(packet));
@@ -278,7 +442,7 @@ namespace CoreClash.Networking
         }
         void SetStatus(string value){status=value;app?.SetNetworkNotice(value);}
         void FailConnection(string message){failed=true;pendingIntent=false;recoveryPending=true;connectDeadline=0;lastError=message;SetStatus(message);Internet?.CancelAndLeave();Debug.LogWarning("CC_LAN_CONNECTION_FAILED "+message);}
-        public void Disconnect(){intentionalDisconnect=true;recoveryPending=false;connectDeadline=0;Internet?.CancelAndLeave();if(manager!=null&&manager.IsListening&&!manager.ShutdownInProgress)manager.Shutdown();failed=true;pendingIntent=false;SetStatus("Disconnected");}
+        public void Disconnect(){lobby=null;lobbyShown=null;lobbyKnown=false;intentionalDisconnect=true;recoveryPending=false;connectDeadline=0;Internet?.CancelAndLeave();if(manager!=null&&manager.IsListening&&!manager.ShutdownInProgress)manager.Shutdown();failed=true;pendingIntent=false;SetStatus("Disconnected");}
         void OnDestroy()
         {
             Internet?.CancelAndLeave();if(manager==null)return;manager.ConnectionApprovalCallback-=Approve;manager.OnClientConnectedCallback-=Connected;manager.OnClientDisconnectCallback-=Disconnected;manager.OnTransportFailure-=TransportFailed;

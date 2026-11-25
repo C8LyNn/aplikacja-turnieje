@@ -120,6 +120,14 @@ namespace CoreClash.Presentation
             if(Draw.Button(new Rect(r.x+28+buttonW,r.yMax-actionH-12,buttonW,actionH),VersusAi?Lang.T("Computer","Komputer"):Lang.T("Player 2","Gracz 2"),VersusAi?Theme.Muted:Draw.Pink,chosen[1].id==deck.id,size:13))SelectDeck(1,deck.id);
         }
         void OpenBuilder(int owner){builder=true;builderOwner=owner;custom=chosen[owner].balls.ToList();search="";rosterScroll=Vector2.zero;}
+        // The deck just built goes to the player it was built for. In a network room that is this
+        // player's own deck (chosen[0]), whichever seat of the room they sit in.
+        void UseBuiltDeck()
+        {
+            int slot=inLobby?0:builderOwner;
+            chosen[slot]=new DeckDefinition{id="custom_"+slot,name=inLobby?Lang.T("Custom deck","Własna talia"):Lang.T("Custom Deck / Player ","Własna talia / Gracz ")+(builderOwner+1),balls=custom.ToArray(),description=Lang.T("A deck you created.","Talia, którą stworzyłeś.")};
+            builder=false;
+        }
         void RenderLibrary()
         {
             bool shortView=UiHeight<440;float left=24,width=UiWidth-48;Heading(new Rect(left,78,width-(shortView?360:110),30),Lang.T("All decks","Wszystkie talie"),shortView?18:25);
@@ -237,7 +245,7 @@ namespace CoreClash.Presentation
                 blockY+=rows*(tileH+gap)+blockGap;
             }
             GUI.EndScrollView();
-            if(Draw.Button(new Rect(left,UiHeight-68,width,56),custom.Count==9?Lang.T("Use this deck","Użyj tej talii"):custom.Count+" / 9",Go,true,custom.Count==9,16)){chosen[builderOwner]=new DeckDefinition{id="custom_"+builderOwner,name=Lang.T("Custom Deck / Player ","Własna talia / Gracz ")+(builderOwner+1),balls=custom.ToArray(),description=Lang.T("A deck you created.","Talia, którą stworzyłeś.")};builder=false;}
+            if(Draw.Button(new Rect(left,UiHeight-68,width,56),custom.Count==9?Lang.T("Use this deck","Użyj tej talii"):custom.Count+" / 9",Go,true,custom.Count==9,16))UseBuiltDeck();
         }
         // W24 (owner decision: six groups): the deck builder of a wide screen. Each group is a panel
         // - its name and plan on a band in its colour, its balls as rows under it; the nine picks
@@ -314,7 +322,7 @@ namespace CoreClash.Presentation
                 }
             }
             GUI.EndScrollView();
-            if(Draw.Button(new Rect(left,UiHeight-66,width,50),custom.Count==9?Lang.T("Use this deck","Użyj tej talii"):custom.Count+" / 9",Go,true,custom.Count==9,15)){chosen[builderOwner]=new DeckDefinition{id="custom_"+builderOwner,name=Lang.T("Custom Deck / Player ","Własna talia / Gracz ")+(builderOwner+1),balls=custom.ToArray(),description=Lang.T("A deck you created.","Talia, którą stworzyłeś.")};builder=false;}
+            if(Draw.Button(new Rect(left,UiHeight-66,width,50),custom.Count==9?Lang.T("Use this deck","Użyj tej talii"):custom.Count+" / 9",Go,true,custom.Count==9,15))UseBuiltDeck();
         }
         // The column layout needs every ball of the roster to be in a group (it has no place for others).
         bool ShortBuilderFits()=>RosterReadiness.Visible(Catalog,"",RosterReadinessFilter.All,true).All(b=>BallGroups.Of(b.id)!=null);
@@ -372,7 +380,7 @@ namespace CoreClash.Presentation
                     if(Draw.Button(new Rect(row.xMax-info+1,row.y+(row.height-Mathf.Min(row.height-2,30))/2,info-3,Mathf.Min(row.height-2,30)),"i",size:12))ShowBallDetails(d.id);
                 }
             }
-            if(Draw.Button(new Rect(left,UiHeight-58,width,46),custom.Count==9?Lang.T("Use this deck","Użyj tej talii"):custom.Count+" / 9",Go,true,custom.Count==9,15)){chosen[builderOwner]=new DeckDefinition{id="custom_"+builderOwner,name=Lang.T("Custom Deck / Player ","Własna talia / Gracz ")+(builderOwner+1),balls=custom.ToArray(),description=Lang.T("A deck you created.","Talia, którą stworzyłeś.")};builder=false;}
+            if(Draw.Button(new Rect(left,UiHeight-58,width,46),custom.Count==9?Lang.T("Use this deck","Użyj tej talii"):custom.Count+" / 9",Go,true,custom.Count==9,15))UseBuiltDeck();
         }
         void RenderBuilder()
         {
@@ -419,7 +427,7 @@ namespace CoreClash.Presentation
                 else ReadinessChip(RectOf(cl.Badge),RosterReadiness.Badge(Catalog,d.id));
                 if(Draw.Button(RectOf(cl.Info),"i",size:15))ShowBallDetails(d.id);
             }GUI.EndScrollView();
-            if(Draw.Button(new Rect(left,UiHeight-66,width,50),Lang.T("Use this deck","Użyj tej talii"),Go,true,custom.Count==9,15)){chosen[builderOwner]=new DeckDefinition{id="custom_"+builderOwner,name=Lang.T("Custom Deck / Player ","Własna talia / Gracz ")+(builderOwner+1),balls=custom.ToArray(),description=Lang.T("A deck you created.","Talia, którą stworzyłeś.")};builder=false;}
+            if(Draw.Button(new Rect(left,UiHeight-66,width,50),Lang.T("Use this deck","Użyj tej talii"),Go,true,custom.Count==9,15))UseBuiltDeck();
         }
     }
 }

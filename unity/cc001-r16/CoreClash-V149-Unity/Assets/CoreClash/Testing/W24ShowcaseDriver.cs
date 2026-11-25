@@ -25,7 +25,7 @@ namespace CoreClash.Testing
         string output = "", profile = "Desktop";
         float started;
         int repaints, lastRepaint = -1, pointerId = 300;
-        bool finished, clips, perf;
+        bool finished, clips, perf, lobbyOnly;
         readonly List<string> captures = new List<string>();
         readonly StringBuilder notes = new StringBuilder();
 
@@ -49,6 +49,8 @@ namespace CoreClash.Testing
             if (index < 0 || index + 1 >= args.Length || !Path.IsPathRooted(args[index + 1])) { Fail("--cc-output must name an absolute directory"); return; }
             output = Path.GetFullPath(args[index + 1]);
             clips = args.Contains("--cc-clips"); perf = args.Contains("--cc-perf");
+            // "--cc-lobby-shots": only the home screen, the builder and the lobby, then quit.
+            lobbyOnly = args.Contains("--cc-lobby-shots");
             Directory.CreateDirectory(output);
             StartCoroutine(Guarded());
         }
@@ -98,6 +100,39 @@ namespace CoreClash.Testing
             yield return Seconds(.4f);
             yield return Capture("02-deck-builder");
             app.ReturnToSetup();
+
+            // The lobby of a network game, drawn from made-up rooms (no connection): the host waiting
+            // for a guest, the host with a guest who is ready, the guest's view of a room where
+            // everybody is ready after two matches, and a guest who picked no deck yet.
+            {
+                var room = new CoreClash.Networking.LobbyState { roomName = "Core Clash", map = "pillars", ballScale = 1.5f, doubleTurn = true };
+                room.host.color = MatchSetup.Color1; room.guest.color = MatchSetup.Color2;
+                room.host.deckId = decks[0].id; room.host.deckName = decks[0].name; room.host.balls = decks[0].balls;
+                app.PreviewLobby(room, 0);
+                yield return Seconds(.5f);
+                yield return Capture("02a-lobby-waiting");
+                room.guest.present = true; room.guest.deckId = decks[3].id; room.guest.deckName = decks[3].name; room.guest.balls = decks[3].balls; room.guest.ready = true;
+                yield return Seconds(.3f);
+                yield return Capture("02b-lobby-host");
+                room.host.ready = true; room.round = 2; room.host.wins = 1; room.guest.wins = 1; room.map = "random";
+                app.SelectDeck(0, decks[3].id);
+                app.PreviewLobby(room, 1);
+                yield return Seconds(.3f);
+                yield return Capture("02c-lobby-guest");
+                room.guest.ready = false; room.host.ready = false; room.guest.balls = new string[0]; room.round = 0;
+                yield return Seconds(.3f);
+                yield return Capture("02d-lobby-no-deck");
+                app.PreviewLobby(null, 0);
+                app.ReturnToSetup();
+                app.SelectDeck(0, decks[0].id);
+            }
+            if (lobbyOnly)
+            {
+                finished = true;
+                Debug.Log("CC_W24_SHOWCASE_PASS captures=" + captures.Count + " size=" + Screen.width + "x" + Screen.height + " lobby-only");
+                Application.Quit(0);
+                yield break;
+            }
 
             // 3. An ordinary match: every ball is chosen from the deck and launched by the pointer gesture.
             app.SelectDeck(0, decks[0].id); app.SelectDeck(1, decks[1].id);

@@ -155,7 +155,7 @@ namespace CoreClash.Networking
             RenderAdvanced(width,325);
 #else
             Draw.Text(new Rect(0,0,width,44),internetMode?Lang.T("PLAY ACROSS THE INTERNET","GRA PRZEZ INTERNET"):Lang.T("PLAY ON THE SAME NETWORK","GRA W TEJ SAMEJ SIECI"),17,Theme.Text,TextAnchor.MiddleLeft,true);
-            Draw.Text(new Rect(0,51,width,65),internetMode?Lang.T("You play as Player 1. Choose both decks in Match Setup, then share the game code with Player 2.","Grasz jako Gracz 1. Wybierz obie talie na ekranie głównym, potem podaj kod gry Graczowi 2."):Lang.T("Your game appears on the same Wi-Fi / LAN. Choose both decks in Match Setup; you play as Player 1.","Twoja gra pojawi się w tej samej sieci Wi-Fi / LAN. Wybierz obie talie na ekranie głównym; grasz jako Gracz 1."),13,Draw.Muted);
+            Draw.Text(new Rect(0,48,width,74),internetMode?Lang.T("You play as Player 1. Share the game code with Player 2. Each of you picks a deck in the lobby and confirms being ready; then you start the match.","Grasz jako Gracz 1. Podaj kod gry Graczowi 2. W poczekalni każdy wybiera swoją talię i potwierdza gotowość; mecz rozpoczynasz ty."):Lang.T("Your game appears on the same Wi-Fi / LAN; you play as Player 1. Each of you picks a deck in the lobby and confirms being ready; then you start the match.","Twoja gra pojawi się w tej samej sieci Wi-Fi / LAN; grasz jako Gracz 1. W poczekalni każdy wybiera swoją talię i potwierdza gotowość; mecz rozpoczynasz ty."),13,Draw.Muted);
             Draw.Text(new Rect(0,125,width,25),Lang.T("ROOM NAME  ·  OPTIONAL","NAZWA GRY  ·  NIEOBOWIĄZKOWA"),11,Draw.Cyan,TextAnchor.MiddleLeft,true);
             roomName=Field(new Rect(0,156,width,44),roomName,LanDiscoveryProtocol.MaxNameLength);
             bool valid=LanDiscoveryProtocol.ValidName(string.IsNullOrWhiteSpace(roomName)?DefaultRoomName:roomName.Trim());
@@ -231,7 +231,7 @@ namespace CoreClash.Networking
             if(!listening||(!hosting&&!link.IsConnected)){
                 if(Draw.Button(new Rect(0,bottom,width,44),Lang.T("CANCEL CONNECTING","ANULUJ ŁĄCZENIE"),Draw.Pink)){CancelConnection();}return;
             }
-            if(Draw.Button(new Rect(0,bottom,width,44),link.IsConnected?Lang.T("RETURN TO MATCH","WRÓĆ DO MECZU"):Lang.T("KEEP WAITING","CZEKAJ DALEJ"),Draw.Cyan))open=false;
+            if(Draw.Button(new Rect(0,bottom,width,44),link.InLobby?Lang.T("BACK TO THE LOBBY","WRÓĆ DO POCZEKALNI"):link.IsConnected?Lang.T("RETURN TO MATCH","WRÓĆ DO MECZU"):Lang.T("KEEP WAITING","CZEKAJ DALEJ"),Draw.Cyan))open=false;
             if(Draw.Button(new Rect(0,bottom+58,width,44),Lang.T("DISCONNECT","ROZŁĄCZ"),Draw.Pink)){app.ReturnToSetup();open=true;joinTab=!hosting;notice="";}
         }
         void RenderAdvanced(float width,float y)
