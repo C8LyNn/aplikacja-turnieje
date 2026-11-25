@@ -1,8 +1,17 @@
 import "./style.css";
 import { installPreviewTransport } from "./animation/previewTransport";
-import { eventPlaybackInstance, isTriggeredEffect, triggerPlaybackDurationMs } from "./animation/triggers";
-import { appendAlertCaption } from "./animation/alertText";
+import { eventPlaybackInstance, isTriggeredEffect, playAlertSound, triggerPlaybackDurationMs } from "./animation/triggers";
+import { appendAlertCaption, formatAlertCaption } from "./animation/alertText";
+import { CAPTION_ANIMATIONS_CSS } from "./animation/captionMotion";
 import { installAlertDiagnostics } from "./animation/alertDiagnosticsPanel";
+import {
+  READY_ALERT_EVENTS,
+  READY_ALERT_STYLES,
+  createReadyAlert,
+  createReadyAlertSet,
+  findReadyAlertEvent,
+} from "./editor/readyAlerts";
+import type { EffectTriggerEvent } from "./core/types";
 
 import {
   installPack08UiQa,
@@ -111,6 +120,15 @@ app.innerHTML = `
           type="button"
         >
           Wyczy\u015B\u0107 scen\u0119
+        </button>
+
+        <button
+          id="open-ready-alerts"
+          class="ae-button ae-button-secondary ae-ready-open"
+          type="button"
+          title="Efekt, napis i wyzwalacz StreamElements w jednym kliknięciu"
+        >
+          ＋ Gotowy alert
         </button>
 
         <button
@@ -404,7 +422,56 @@ app.innerHTML = `
       ></textarea>
     </div>
   </dialog>
+
+  <dialog id="ready-alerts" class="export-dialog ae-ready-dialog" aria-labelledby="ready-alerts-title">
+    <div class="export-header">
+      <div>
+        <strong id="ready-alerts-title">Gotowe alerty</strong>
+        <span class="ae-ready-lead">Efekt, napis i wyzwalacz StreamElements w jednym kliknięciu. Potem wszystko zmienisz w ustawieniach warstwy.</span>
+      </div>
+      <button type="button" data-ready-close aria-label="Zamknij">×</button>
+    </div>
+    <section class="ae-ready-section">
+      <strong>1. Zdarzenie</strong>
+      <div class="ae-ready-events" role="radiogroup" aria-label="Zdarzenie uruchamiające alert">
+        ${READY_ALERT_EVENTS.map((item, index) => `
+          <label class="ae-ready-event">
+            <input type="radio" name="ready-event" value="${item.event}" ${index === 0 ? "checked" : ""}>
+            <span>${item.label}</span>
+          </label>
+        `).join("")}
+      </div>
+    </section>
+    <section class="ae-ready-section">
+      <strong>2. Styl</strong>
+      <div class="ae-ready-styles" role="radiogroup" aria-label="Styl alertu">
+        ${READY_ALERT_STYLES.map((style, index) => `
+          <label class="ae-ready-style">
+            <input type="radio" name="ready-style" value="${style.id}" ${index === 0 ? "checked" : ""}>
+            <span class="ae-ready-swatch" style="background: linear-gradient(135deg, ${style.colors[0]}, ${style.colors[1]})"></span>
+            <span class="ae-ready-name">${style.label}</span>
+            <span class="ae-ready-hint">${style.hint}</span>
+          </label>
+        `).join("")}
+      </div>
+    </section>
+    <p class="ae-ready-preview" data-ready-preview aria-live="polite"></p>
+    <div class="ae-ready-actions">
+      <label class="ae-caption-switch">
+        <input type="checkbox" data-ready-test checked>
+        <span>Od razu pokaż test w podglądzie</span>
+      </label>
+      <button type="button" class="ae-button ae-button-secondary" data-ready-add-set>Dodaj komplet: follow, sub, donacja, bits, raid</button>
+      <button type="button" class="ae-button ae-button-primary" data-ready-add>Dodaj alert</button>
+    </div>
+  </dialog>
 `;
+
+// Caption and letter keyframes shared with the exported widget (one source for both).
+const captionMotionStyle = document.createElement("style");
+captionMotionStyle.id = "ae-caption-motion";
+captionMotionStyle.textContent = CAPTION_ANIMATIONS_CSS;
+document.head.appendChild(captionMotionStyle);
 
 function getRequiredElement<
   T extends HTMLElement
@@ -1127,6 +1194,7 @@ document.addEventListener("animated-effects:test-trigger", (event) => {
     ? { data: { displayName: "Przykładowy widz", text: "Świetny turniej!" } }
     : { name: "Przykładowy widz", amount: 42, message: "Dobra robota!" };
   const label = appendAlertCaption(holder, instance.trigger?.caption, sampleListener, sampleEvent, triggerPlaybackDurationMs(instance));
+  playAlertSound(instance.trigger?.sound);
   if (label && instance.trigger?.caption?.position === "custom") {
     label.style.pointerEvents = "auto";
     label.style.cursor = "grab";
@@ -1621,6 +1689,72 @@ document
       );
     },
   );
+
+// --- Ready-made alerts ---------------------------------------------------------------------------------------------
+
+const readyDialog =
+  document.querySelector<HTMLDialogElement>(
+    "#ready-alerts",
+  );
+
+const READY_SAMPLE_EVENT = { name: "Przykładowy widz", amount: 42, message: "Dobra robota!" };
+const READY_SAMPLE_MESSAGE = { data: { displayName: "Przykładowy widz", text: "Świetny turniej!" } };
+
+function readySelection(): { event: EffectTriggerEvent; style: string } {
+  const event =
+    readyDialog?.querySelector<HTMLInputElement>("input[name='ready-event']:checked")?.value as EffectTriggerEvent | undefined;
+  const style =
+    readyDialog?.querySelector<HTMLInputElement>("input[name='ready-style']:checked")?.value;
+  return {
+    event: event ?? READY_ALERT_EVENTS[0]!.event,
+    style: style ?? READY_ALERT_STYLES[0]!.id,
+  };
+}
+
+function updateReadyPreview(): void {
+  const preview = readyDialog?.querySelector<HTMLElement>("[data-ready-preview]");
+  if (!preview) return;
+  const { event } = readySelection();
+  const kind = findReadyAlertEvent(event);
+  const sample = event === "message" ? READY_SAMPLE_MESSAGE : READY_SAMPLE_EVENT;
+  const title = formatAlertCaption(kind.title, event, sample);
+  const subtitle = formatAlertCaption(kind.subtitle, event, sample);
+  preview.textContent = subtitle ? `Napis: „${title}” — ${subtitle}` : `Napis: „${title}”`;
+}
+
+function testReadyAlert(instanceId: string | undefined): void {
+  if (!instanceId || !readyDialog?.querySelector<HTMLInputElement>("[data-ready-test]")?.checked) return;
+  // Let the editor subscription render the new layer before the test plays it.
+  window.setTimeout(() => {
+    document.dispatchEvent(new CustomEvent("animated-effects:test-trigger", { detail: { instanceId } }));
+  }, 60);
+}
+
+document
+  .querySelector<HTMLButtonElement>(
+    "#open-ready-alerts",
+  )
+  ?.addEventListener(
+    "click",
+    () => {
+      updateReadyPreview();
+      readyDialog?.showModal();
+    },
+  );
+
+readyDialog?.addEventListener("change", updateReadyPreview);
+readyDialog?.querySelector("[data-ready-close]")?.addEventListener("click", () => readyDialog.close());
+readyDialog?.querySelector("[data-ready-add]")?.addEventListener("click", () => {
+  const { event, style } = readySelection();
+  const created = createReadyAlert(event, style);
+  readyDialog.close();
+  testReadyAlert(created?.instanceId);
+});
+readyDialog?.querySelector("[data-ready-add-set]")?.addEventListener("click", () => {
+  const created = createReadyAlertSet(readySelection().style);
+  readyDialog.close();
+  testReadyAlert(created[0]?.instanceId);
+});
 
 addEffect(
   "rainfall",

@@ -638,6 +638,7 @@ function aeNextQueued() {
     return;
   }
   aeAttachCaption(element, next.effect.trigger.caption, next.listener, next.eventData, next.effect.playbackMs);
+  aePlaySound(next.effect.trigger.sound);
   aeQueuedPlaying = element;
   aeCounters.started++;
   aeReport("started", next.effect, "queue");
@@ -757,6 +758,7 @@ function aeHandleEvent(obj) {
     aeCounters.started++;
     aeReport("started", effect, "replace");
     aeAttachCaption(element, rule.caption, detail.listener, eventData, effect.playbackMs);
+    aePlaySound(rule.sound);
     aeLastFired[effect.instanceId] = now;
     aeActive.set(effect.instanceId, element);
     aePending.set(effect.instanceId, setTimeout(function () {

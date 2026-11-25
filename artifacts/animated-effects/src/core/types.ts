@@ -73,6 +73,13 @@ export interface LayerTimeline {
 export type EffectTriggerEvent =
   | "follower-latest" | "subscriber-latest" | "tip-latest"
   | "cheer-latest" | "raid-latest" | "message";
+export type CaptionIntro = "fade" | "slide" | "pop" | "zoom" | "bounce" | "drop" | "blur";
+export type CaptionOutro = "fade" | "slide" | "pop" | "zoom" | "drop" | "blur";
+/** "default" keeps the font of the page (the look of captions made before fonts were selectable). */
+export type CaptionFont = "default" | "system" | "impact" | "trebuchet" | "verdana" | "georgia" | "mono" | "comic";
+export type CaptionEffect = "shadow" | "outline" | "glow" | "none";
+export type CaptionBackground = "none" | "box" | "pill";
+export type CaptionLetters = "none" | "wave" | "typewriter" | "pop";
 export interface AlertCaption {
   enabled: boolean;
   /** Template supports {name}, {amount}, {message}, {event}. */
@@ -83,10 +90,27 @@ export interface AlertCaption {
   yPercent?: number;
   fontSize: number;
   color: string;
-  intro?: "fade" | "slide" | "pop";
-  outro?: "fade" | "slide" | "pop";
+  intro?: CaptionIntro;
+  outro?: CaptionOutro;
   avatarEnabled?: boolean;
   avatarSize?: number;
+  /** Optional smaller second line, same placeholders (for example "{message}"). */
+  subtitle?: string;
+  font?: CaptionFont;
+  effect?: CaptionEffect;
+  background?: CaptionBackground;
+  backgroundColor?: string;
+  /** 0-100 percent. */
+  backgroundOpacity?: number;
+  /** Per-letter animation of the main line. */
+  letters?: CaptionLetters;
+}
+
+/** Played when the alert starts; an https file the streamer chose (for example uploaded to StreamElements). */
+export interface AlertSound {
+  url: string;
+  /** 0-100 percent. */
+  volume: number;
 }
 
 export interface EffectTrigger {
@@ -101,6 +125,7 @@ export interface EffectTrigger {
   queueMode?: "replace" | "queue";
   /** Higher priority is shown sooner; never interrupts an active alert. */
   priority?: number;
+  sound?: AlertSound;
 }
 
 export interface EffectInstance {
