@@ -84,8 +84,12 @@ namespace CoreClash.Presentation
                     ?"Trzy mrozy zamrażają kulkę: traci "+CoreClash.Core.RosterBalance.FreezeDamage+" HP i przez 2 tury nic nie robi. Kruszyciel rani zmrożone kulki."
                     :"Trzy mrozy zamrażają kulkę. Zamrożona przez 2 tury nic nie robi, a Kruszyciel kruszy lód i rani."},
             new BallGroup{Id="fire",NameEn="Fire",NamePl="Ogień",Balls=new[]{"fire","furnace","embertrap","bomb","firebrand"},
-                PlanEn="Set them alight and keep adding: every further fire on the same ball burns harder.",
-                PlanPl="Podpalaj i dokładaj: każdy kolejny ogień na tej samej kulce pali mocniej."},
+                PlanEn=CoreClash.Core.RosterBalance.FireFlat
+                    ?"Set them alight and keep adding: a second fire burns longer, a third bursts."
+                    :"Set them alight and keep adding: every further fire on the same ball burns harder.",
+                PlanPl=CoreClash.Core.RosterBalance.FireFlat
+                    ?"Podpalaj i dokładaj: drugi ogień pali dłużej, a trzeci wybucha."
+                    :"Podpalaj i dokładaj: każdy kolejny ogień na tej samej kulce pali mocniej."},
             new BallGroup{Id="poison",NameEn="Poison",NamePl="Trucizna",Balls=new[]{"venom","blightpool","sporetrap","plagueburst","plagueleech"},
                 PlanEn="Poison first: Venom bites poisoned enemies harder and the Leech heals off them.",
                 PlanPl="Najpierw zatruj: Jad mocniej kąsa zatrutych, a Pijawka się nimi żywi."},

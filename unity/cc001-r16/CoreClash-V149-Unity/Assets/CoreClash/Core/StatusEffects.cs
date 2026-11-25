@@ -45,7 +45,7 @@ namespace CoreClash.Core
         public void Root(BallRuntime b){if(b.dead)return;b.rooted=true;b.rootExpiresOwnerTurn=S.players[b.owner].ownerTurns+1;b.vx=b.vy=0;sim.Emit("ROOTED",b,"Rooted until own turn ends");}
         void StatusTurn(BallRuntime b)
         {
-            if(b.fireStacks>0){sim.Damage(b,b.fireStacks*5);if(--b.burnTurns<=0)ClearFire(b);}
+            if(b.fireStacks>0){sim.Damage(b,S.fireFlat?5:b.fireStacks*5);if(--b.burnTurns<=0)ClearFire(b);}
             if(b.dead)return;if(b.toxinTurns>0){sim.Damage(b,5);if(--b.toxinTurns<=0)ClearToxin(b);}
             if(b.iceStacks>0&&--b.iceTurns<=0)ClearIce(b);
         }

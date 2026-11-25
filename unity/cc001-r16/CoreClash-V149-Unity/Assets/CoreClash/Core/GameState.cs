@@ -97,6 +97,12 @@ namespace CoreClash.Core
         //                of the poison; 0 = it takes nothing more and only heals itself (5 HP a turn)
         //   poolRadius   the radius of the Poison Pool's field
         public int poisonTurns=3,leechDrain=5;
+        // W24 match rule, fire (off = the reference rules; fourth balance pass, 2026-11-25: with powers
+        // that work on touch valued properly Fire Pit won 62% of its matches against the other
+        // ready decks). A burning ball loses 5 HP a turn however many fires are on it - in the
+        // reference rules 5 for each, so a second touch made 40 HP of fire, more than a ball has.
+        // A second fire still makes the ball burn longer, and a third bursts.
+        public bool fireFlat;
         public float poolRadius=165;
         // W24 match rules, magnetism and electricity (off / 0 = the reference rules; owner decision
         // 2026-11-24 "strengthen magnetism and electricity", after the lab's measurement: Dynamo, the

@@ -68,6 +68,30 @@ namespace CoreClash.Core
     //   decks (432)   Frozen Garden 38%  Polar Storm 47%  Dynamo 48%  Acid Rain 49%  Fire Pit 57%  Jungle 61%
     //   seats (1260)  the first player wins 48.5%; no pair of decks stands out
     // The Blizzard made a new field every time it was knocked; made once, ice chills a third less.
+    //
+    // Fourth pass, 2026-11-25 (the agent's work under the owner's standing "keep improving"; he had
+    // been offered "even out the decks" as the next step). What the pass learnt first: the deck
+    // report (432 matches, 120 a deck) moves a deck by about 9 points by chance - it showed Frozen
+    // Garden going from 38% to 48% for a change the bigger sample did not see at all. From here on
+    // decks are judged by the seats run: every pair of ready decks 60 times, 300 matches a deck
+    // (about 6 points), the same draws with the seats swapped.
+    //   as the game was          Fire Pit 62  Acid Rain 57  Jungle 56  Frozen Garden 45  Dynamo 41  Polar Storm 40
+    //   freezing costs 10 HP     Fire Pit 62  Jungle 57  Acid Rain 55  Dynamo 43  Polar Storm 43  Frozen Garden 42
+    //   ... and the flat fire    Fire Pit 56  Acid Rain 56  Jungle 55  Frozen Garden 46  Dynamo 44  Polar Storm 44
+    // Taken: freezing costs 10 HP (little by itself: ice as a group 46% -> 48%; first player 49.7%).
+    // Measured and waiting for the owner's word, because it changes what the fire group's card
+    // says ("every further fire burns harder"): the flat fire (GameState.fireFlat, FireFlat below).
+    // It is the one change that moved the strongest deck and nobody else: the spread between the
+    // ready decks falls from 22 points to 12.
+    // Tried and dropped (all on top of the 10 HP):
+    //   poison lasting 2 turns           Acid Rain 40%, and Fire Pit up in the small sample
+    //   the Lightning's touch taking 10  Polar Storm 58%, Jungle 45%
+    //   fire burning 2 turns, not 3      nothing moved
+    //   a freeze on the second chill     Frozen Garden 58%, Dynamo 37%; with a 5 HP or no cost it
+    //                                    gave nothing over the third chill
+    //   a shield of 10 for the Anchor    Dynamo +3, inside the noise
+    //   shock trap 15, Battery 3 charges inside the noise; together the first player fell to 44%
+    // Still true after the pass: three ready decks stand at 55-56% and three at 44-46%.
     public static class RosterBalance
     {
         // The Poison Pool's field. (The Blizzard keeps the reference 165.)
@@ -80,8 +104,11 @@ namespace CoreClash.Core
         // Ice, third pass: the Shatterer's hit leaves the ice on its target; HP a ball loses at the
         // moment it freezes; HP a hard hit takes on top from a frozen ball (none: tried, see above).
         public const bool ShatterKeepsIce=true;
-        public const int FreezeDamage=5;
+        public const int FreezeDamage=10;
         public const int BrittleBonus=0;
+        // Fire: a burning ball loses 5 HP a turn however many fires are on it. Off until the owner
+        // decides (see the fourth pass above); the fire group's card follows this switch.
+        public const bool FireFlat=false;
 
         // Electricity: the Lightning's bolt goes on down a row of enemies; a switched-off ball takes
         // this much more from every bolt.
@@ -114,7 +141,7 @@ namespace CoreClash.Core
             if(state==null)return;
             state.deepFreeze=true;state.freezeTurns=FreezeTurns;
             state.shatterKeepsIce=ShatterKeepsIce;state.freezeDamage=FreezeDamage;state.brittleBonus=BrittleBonus;
-            state.venomOncePerTurn=true;
+            state.venomOncePerTurn=true;state.fireFlat=FireFlat;
             state.leechDrain=LeechDrain;
             state.poolRadius=PoolRadius;
             state.chainLightning=ChainLightning;state.shortCircuit=ShortCircuit;
