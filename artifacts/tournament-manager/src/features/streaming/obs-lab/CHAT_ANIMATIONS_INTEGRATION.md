@@ -36,6 +36,36 @@ biblioteki profili czy symulatora.
 - Kontrolka `Testuj serię 4 wiadomości` pozwala ocenić zróżnicowanie
   ruchu zamiast uruchamiać niezależny efekt całej sceny.
 
+## Zrealizowany etap 2 — opcje i wygląd czatu (2026-11-25)
+
+Każda opcja trafia jednocześnie do podglądu, adresu Browser Source (OBS) i
+natywnego widgetu StreamElements. Reguły wiadomości są w
+`chat-message-format.ts`; eksport SE ma ich kopię w skrypcie, a
+`chat-options.test.tsx` porównuje oba renderery na tych samych wiadomościach.
+
+- **Układ:** nowy tryb „Sam czat” (bez ramki kamerki, własna szerokość i
+  wysokość), wyrównanie do lewej/prawej, najnowsze na górze, układ wiadomości:
+  w jednej linii / nick nad tekstem / dymki.
+- **Tekst i nicki:** 10 czcionek systemowych + własna (zainstalowana na
+  komputerze z OBS; nazwa jest oczyszczana przed wpisaniem do CSS), własny
+  rozmiar w px, kolor i krycie tekstu, cień/obrys, kolory nicków (z Twitcha /
+  stała paleta / jeden kolor), rozjaśnianie zbyt ciemnych nicków, dwukropek.
+- **Wygląd:** kolor panelu, kolor/krycie/zaokrąglenie dymków, pasek w kolorze
+  nicku, odznaki (MOD/VIP/SUB) i emotki (Twitch, BTTV, FFZ, 7TV z danych SE)
+  z rozmiarem i powiększeniem wiadomości złożonych z samych emotek.
+- **Filtry i wyróżnienia:** ukrywanie komend `!`, linków (`[link]`), wybranych
+  użytkowników (boty), limit długości, wyróżnianie słów kolorem.
+- **Czas i animacje:** znikanie po N sekundach z animacją wyjścia
+  (przenikanie / wysunięcie / zmniejszenie).
+- **Konfigurator:** 10 motywów, autozapis w przeglądarce, własne zapisane
+  konfiguracje, wczytanie ustawień z wklejonego adresu OBS, tło podglądu i
+  przyciski wiadomości testowych (emotki, moderator, komenda, link, /me, bot…).
+- **Bezpieczeństwo:** treść widzów zawsze jako tekst; obrazki tylko z https
+  znanych CDN czatu (Twitch, BTTV, FFZ, 7TV, YouTube, StreamElements).
+- **Zgodność:** brakujący parametr w adresie oznacza dotychczasowy wygląd, więc
+  nakładki już dodane do OBS działają dalej; wklejone wcześniej widgety SE są
+  samodzielne i nie zmieniają się, dopóki nie wklei się nowego kodu.
+
 ## Kierunek następnych etapów
 
 1. **Animacja tekstu wiadomości:** wejście znakami/słowami, maska reveal,

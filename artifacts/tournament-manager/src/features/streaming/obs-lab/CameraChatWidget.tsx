@@ -1,92 +1,125 @@
 ﻿import { t } from "@/i18n";
-import type { CSSProperties } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 
 import {
   type CameraChatConfig,
-  getCameraChatSize,
+  CHAT_TEXT_SHADOWS,
+  chatAvatarPx,
+  chatBadgePx,
+  chatDensityGap,
+  chatDensityPadding,
+  chatEmotePx,
+  chatExitMs,
+  chatFontFamily,
+  chatFontPx,
+  chatLineHeightPx,
   getCameraChatAnimationCss,
-  resolveChatMotion,
+  getCameraChatExitCss,
+  getCameraChatSize,
+  rgbaCss,
 } from "./camera-chat-settings";
+import {
+  type ChatBadge,
+  type ChatEmote,
+  type ChatMessage,
+  type ChatRow,
+  buildChatRows,
+  nextChatPhaseChange,
+} from "./chat-message-format";
 
-export type MockChatMessage = {
-  name: string;
-  text: string;
+/** Kept under its old name: the preview, the OBS page and tests all pass messages of this shape. */
+export type MockChatMessage = ChatMessage;
 
-  msgId?: string;
-  userId?: string;
+// --- Sample chat (preview and the OBS page without StreamElements) ------------------------------------------------
 
-  color?: string;
-};
+const svgImage = (svg: string) => `data:image/svg+xml,${encodeURIComponent(svg)}`;
+const face = (fill: string, mouth: string) => svgImage(
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><circle cx="16" cy="16" r="14" fill="${fill}"/>`
+  + `<circle cx="11" cy="13" r="2.4" fill="#1e1b4b"/><circle cx="21" cy="13" r="2.4" fill="#1e1b4b"/>${mouth}</svg>`,
+);
 
-const RANDOM_CHARS =
-  "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_";
-
-const NAME_COLORS = [
-  "text-rose-400",
-  "text-emerald-400",
-  "text-violet-400",
-  "text-sky-400",
-  "text-amber-400",
-  "text-cyan-400",
+/** Sample emotes drawn locally, so the preview loads nothing from the internet. */
+export const SAMPLE_EMOTES: readonly ChatEmote[] = [
+  { name: "swarmHype", url: face("#fbbf24", `<ellipse cx="16" cy="22" rx="5" ry="4" fill="#1e1b4b"/>`) },
+  { name: "swarmLol", url: face("#38bdf8", `<path d="M9 19 Q16 27 23 19" stroke="#1e1b4b" stroke-width="2.6" fill="none" stroke-linecap="round"/>`) },
+  { name: "swarmPog", url: face("#fb923c", `<circle cx="16" cy="22" r="3.6" fill="#1e1b4b"/>`) },
+  { name: "swarmLove", url: svgImage(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><path d="M16 28C3 19 3 7 10.5 6.2c3-.3 4.8 1.5 5.5 3.3.7-1.8 2.5-3.6 5.5-3.3C29 7 29 19 16 28z" fill="#f43f5e"/></svg>`) },
+  { name: "swarmGG", url: svgImage(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect x="2" y="6" width="28" height="20" rx="6" fill="#22c55e"/><path d="M12 12h-3.5a1.5 1.5 0 0 0-1.5 1.5v5a1.5 1.5 0 0 0 1.5 1.5H12v-3.5h-2M23.5 12H20a1.5 1.5 0 0 0-1.5 1.5v5A1.5 1.5 0 0 0 20 20h3.5v-3.5h-2" stroke="#fff" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`) },
 ];
 
-function randomInt(
-  min: number,
-  max: number,
-) {
-  return (
-    Math.floor(
-      Math.random() *
-        (max - min + 1),
-    ) + min
-  );
+const badgeIcon = (fill: string, shape: string) => svgImage(
+  `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18"><rect width="18" height="18" rx="4" fill="${fill}"/>${shape}</svg>`,
+);
+
+export const SAMPLE_BADGES: Record<"broadcaster" | "moderator" | "vip" | "subscriber", ChatBadge> = {
+  broadcaster: { type: "broadcaster", description: "Broadcaster", url: badgeIcon("#e91916", `<circle cx="7.5" cy="9" r="3.2" fill="#fff"/><path d="M11 7l4-2v8l-4-2z" fill="#fff"/>`) },
+  moderator: { type: "moderator", description: "Moderator", url: badgeIcon("#00ad03", `<path d="M4.5 13.5l8-8M10.5 4.5l3 3M5 11l2 2" stroke="#fff" stroke-width="2" stroke-linecap="round"/>`) },
+  vip: { type: "vip", description: "VIP", url: badgeIcon("#e005b9", `<path d="M9 14.5L3.5 8 6 4.5h6L14.5 8z" fill="#fff"/>`) },
+  subscriber: { type: "subscriber", description: "Subscriber", url: badgeIcon("#8205b4", `<path d="M9 3l1.8 3.8 4.2.5-3.1 2.9.8 4.1L9 12.3l-3.7 2 .8-4.1L3 7.3l4.2-.5z" fill="#fff"/>`) },
+};
+
+type SampleViewer = { name: string; color: string; badges: ChatBadge[] };
+
+const SAMPLE_VIEWERS: readonly SampleViewer[] = [
+  { name: "NightOwl", color: "#1E90FF", badges: [SAMPLE_BADGES.subscriber] },
+  { name: "PixelMaja", color: "#FF69B4", badges: [SAMPLE_BADGES.vip, SAMPLE_BADGES.subscriber] },
+  { name: "KubaGG", color: "", badges: [] },
+  { name: "GreenWolf", color: "#2E8B57", badges: [SAMPLE_BADGES.moderator] },
+  { name: "LunaPlays", color: "#9ACD32", badges: [SAMPLE_BADGES.subscriber] },
+  { name: "Bartek_TV", color: "#0000FF", badges: [] },
+  { name: "frostbyte", color: "#DAA520", badges: [] },
+  { name: "AdaQ", color: "#B22222", badges: [SAMPLE_BADGES.subscriber] },
+];
+
+function sampleTexts(): string[] {
+  const [hype, lol, pog, love, gg] = SAMPLE_EMOTES.map((emote) => emote.name);
+  return [
+    t("cameraChatWidget.hej_wszystkim"),
+    t("cameraChatWidget.co_za_mecz_gg"),
+    `${hype} ${hype} ${hype}`,
+    t("cameraChatWidget.kiedy_nastepny_turniej"),
+    t("cameraChatWidget.najlepsza_runda_dzisiaj", { emote: pog }),
+    t("cameraChatWidget.pozdrowienia_z_gdanska"),
+    `lol ${lol}`,
+    t("cameraChatWidget.trzymam_kciuki_za_niebieskich"),
+    t("cameraChatWidget.ten_clutch_byl_szalony", { emote: love }),
+    t("cameraChatWidget.dzieki_za_stream", { emote: gg }),
+  ];
 }
 
-function randomString(
-  minLength: number,
-  maxLength: number,
-) {
-  const length = randomInt(
-    minLength,
-    maxLength,
-  );
-
-  let result = "";
-
-  for (
-    let i = 0;
-    i < length;
-    i++
-  ) {
-    result +=
-      RANDOM_CHARS[
-        randomInt(
-          0,
-          RANDOM_CHARS.length - 1,
-        )
-      ];
-  }
-
-  return result;
-}
+let sampleSeries = 0;
 
 export function generateMockMessages(
   count = 30,
 ): MockChatMessage[] {
-  return Array.from(
-    { length: count },
-    () => ({
-      name: randomString(4, 13),
+  const texts = sampleTexts();
+  const series = ++sampleSeries;
+  const offset = Math.floor(Math.random() * texts.length);
+  return Array.from({ length: count }, (_, index) => {
+    const viewer = SAMPLE_VIEWERS[Math.floor(Math.random() * SAMPLE_VIEWERS.length)];
+    return {
+      id: `sample-${series}-${index}`,
+      name: viewer.name,
+      nick: viewer.name.toLowerCase(),
+      color: viewer.color || undefined,
+      badges: viewer.badges,
+      emotes: [...SAMPLE_EMOTES],
+      text: texts[(offset + index) % texts.length],
+    };
+  });
+}
 
-      text: Array.from(
-        {
-          length: randomInt(2, 8),
-        },
-        () =>
-          randomString(2, 10),
-      ).join(" "),
-    }),
-  );
+// --- Widget -------------------------------------------------------------------------------------------------------
+
+/** Re-renders exactly when a message reaches the end of its lifetime or of its exit animation. */
+function useChatClock(messages: readonly MockChatMessage[], config: CameraChatConfig) {
+  const [, setTick] = useState(0);
+  const next = nextChatPhaseChange(messages, config, Date.now());
+  useEffect(() => {
+    if (next === null) return undefined;
+    const timer = window.setTimeout(() => setTick((tick) => tick + 1), Math.max(16, next - Date.now() + 5));
+    return () => window.clearTimeout(timer);
+  }, [next]);
 }
 
 type Props = {
@@ -100,34 +133,126 @@ export function CameraChatWidget({
   messages,
   previewCamera = false,
 }: Props) {
+  useChatClock(messages, config);
   const size =
     getCameraChatSize(config);
 
-  const visibleMessages =
-    messages.slice(
-      -config.maxMessages,
+  const rows = buildChatRows(messages, config, Date.now());
+
+  const fontPx = chatFontPx(config);
+  const lineHeight = chatLineHeightPx(config);
+  const avatarPx = chatAvatarPx(config);
+  const badgePx = chatBadgePx(config);
+  const emotePx = chatEmotePx(config);
+  const exitMs = chatExitMs(config);
+  const right = config.textAlign === "right";
+  const block = config.messageLayout !== "inline";
+
+  const renderRow = (row: ChatRow) => {
+    const { message } = row;
+    const entry = config.animateMessages
+      ? `${config.animationStyle === "random" ? "obs-chat-in-" + row.motion : "obs-chat-in"} ${config.animationDurationMs}ms cubic-bezier(.2,.7,.2,1) backwards`
+      : undefined;
+    const bar = row.highlighted
+      ? `inset ${right ? -3 : 3}px 0 0 ${config.highlightColor}`
+      : config.accentBar ? `inset ${right ? -3 : 3}px 0 0 ${row.nameColor}` : undefined;
+    const style: CSSProperties = {
+      opacity: row.opacity,
+      gap: 8,
+      padding: chatDensityPadding(config.density),
+      flexDirection: right ? "row-reverse" : "row",
+      textAlign: config.textAlign,
+      borderRadius: config.messageBackground || row.highlighted ? config.bubbleRadius : undefined,
+      background: row.highlighted
+        ? rgbaCss(config.highlightColor, 18)
+        : config.messageBackground ? rgbaCss(config.bubbleColor, config.bubbleOpacity) : undefined,
+      border: config.showBorders ? "1px solid rgba(255,255,255,.07)" : undefined,
+      boxShadow: bar,
+      ...(config.messageLayout === "bubble" ? { alignSelf: right ? "flex-end" : "flex-start", maxWidth: "100%" } : {}),
+      animation: row.phase === "leaving" && exitMs > 0
+        ? `obs-chat-out ${exitMs}ms ease-in forwards`
+        : entry,
+    };
+    const emoteHeight = row.emoteOnly ? emotePx * 2 : emotePx;
+    const name = (
+      <span className="obs-chat-name" style={{ color: row.nameColor, fontWeight: 900, marginRight: block ? undefined : 8 }}>
+        {message.name}{config.showColon ? ":" : ""}
+      </span>
+    );
+    const badges = row.badges.map((badge, index) => (
+      <img
+        key={`${badge.type ?? "badge"}-${index}`}
+        className="obs-chat-badge"
+        src={badge.url}
+        alt={badge.description || badge.type || ""}
+        style={{ display: "inline-block", height: badgePx, width: "auto", marginRight: 4, verticalAlign: "middle" }}
+      />
+    ));
+    const text = (
+      <span
+        className="obs-chat-text"
+        style={{
+          color: message.isAction ? row.nameColor : rgbaCss(config.textColor, config.textOpacity),
+          fontStyle: message.isAction ? "italic" : undefined,
+          overflowWrap: "anywhere",
+          display: block ? "block" : undefined,
+        }}
+      >
+        {row.parts.map((part, index) => part.kind === "emote"
+          ? (
+            <img
+              key={index}
+              className="obs-chat-emote"
+              src={part.url}
+              alt={part.name}
+              style={{ display: "inline-block", height: emoteHeight, width: "auto", margin: "0 1px", verticalAlign: "middle" }}
+            />
+          )
+          : part.text)}
+      </span>
     );
 
-  const fontClass =
-    config.fontSize === "small"
-      ? "text-xs"
-      : config.fontSize === "large"
-        ? "text-base"
-        : "text-sm";
+    return (
+      <div
+        key={row.key}
+        className={[
+          "obs-chat-message flex min-w-0 items-start",
+          row.phase === "leaving" ? "obs-chat-leaving" : "",
+          row.emoteOnly ? "obs-chat-emote-only" : "",
+          row.highlighted ? "obs-chat-highlight" : "",
+        ].filter(Boolean).join(" ")}
+        style={style}
+      >
+        {config.showAvatars && (
+          <div
+            className="grid shrink-0 place-items-center rounded-full font-black"
+            style={{
+              width: avatarPx,
+              height: avatarPx,
+              fontSize: Math.round(avatarPx * 0.36),
+              background: rgbaCss(row.nameColor, 22),
+              color: row.nameColor,
+            }}
+          >
+            {(Array.from(message.name)[0] ?? "").toUpperCase()}
+          </div>
+        )}
 
-  const messagePadding =
-    config.density === "compact"
-      ? "px-2.5 py-1.5"
-      : config.density === "relaxed"
-        ? "px-4 py-3"
-        : "px-3 py-2";
-
-  const messageGap =
-    config.density === "compact"
-      ? "space-y-1"
-      : config.density === "relaxed"
-        ? "space-y-4"
-        : "space-y-2";
+        <div
+          className="min-w-0"
+          style={{
+            fontSize: fontPx,
+            lineHeight: `${lineHeight}px`,
+            textShadow: config.textShadow === "none" ? undefined : CHAT_TEXT_SHADOWS[config.textShadow],
+          }}
+        >
+          {block
+            ? (<><div className="obs-chat-head">{badges}{name}</div>{text}</>)
+            : (<>{badges}{name}<wbr />{text}</>)}
+        </div>
+      </div>
+    );
+  };
 
   const renderMessages = (
     forceHeight?: number | string,
@@ -142,97 +267,18 @@ export function CameraChatWidget({
       style={{
         height: forceHeight,
         maxHeight,
-        backgroundColor:
-          `rgba(2, 6, 23, ${
-            config.panelOpacity / 100
-          })`,
+        backgroundColor: rgbaCss(config.panelColor, config.panelOpacity),
       }}
     >
       <div
-        className={`shrink-0 ${messageGap}`}
+        className="flex shrink-0 flex-col"
         style={{
+          gap: chatDensityGap(config.density),
           padding:
             `${config.innerPadding}px`,
         }}
       >
-        {visibleMessages.map(
-          (message, index) => {
-            const opacity =
-              config.fadeOldMessages
-                ? 0.5 +
-                  ((index + 1) /
-                    visibleMessages.length) *
-                    0.5
-                : 1;
-
-            return (
-              <div
-                key={
-                  message.msgId ??
-                  (
-                    message.name +
-                    message.text +
-                    index
-                  )
-                }
-                className={[
-                  "obs-chat-message flex min-w-0 items-start gap-2",
-                  config.messageBackground
-                    ? "rounded-xl bg-white/[0.055]"
-                    : "",
-                  config.showBorders
-                    ? "border border-white/[0.07]"
-                    : "",
-                  messagePadding,
-                ].join(" ")}
-                style={{
-                  opacity,
-                  animation:
-                    config.animateMessages
-                      ? `${config.animationStyle === "random"
-                        ? "obs-chat-in-" + resolveChatMotion(
-                          config.animationStyle, message.msgId || message.name + "|" + message.text,
-                        )
-                        : "obs-chat-in"} ${config.animationDurationMs}ms cubic-bezier(.2,.7,.2,1) backwards`
-                      : undefined,
-                }}
-              >
-                {config.showAvatars && (
-                  <div className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-white/10 text-[10px] font-black text-white/70">
-                    {message.name[0]}
-                  </div>
-                )}
-
-                <div
-                  className={`min-w-0 leading-5 ${fontClass}`}
-                >
-                  <span
-                    style={
-                      message.color
-                        ? {
-                            color:
-                              message.color,
-                          }
-                        : undefined
-                    }
-                    className={`mr-2 font-black ${
-                      NAME_COLORS[
-                        index %
-                          NAME_COLORS.length
-                      ]
-                    }`}
-                  >
-                    {message.name}
-                  </span>
-
-                  <span className="break-all text-white/85">
-                    {message.text}
-                  </span>
-                </div>
-              </div>
-            );
-          },
-        )}
+        {rows.map(renderRow)}
       </div>
     </div>
   );
@@ -307,22 +353,22 @@ export function CameraChatWidget({
   return (
     <>
       <style>{`${getCameraChatAnimationCss(config.animationStyle, "obs-chat-in")}
+${getCameraChatExitCss(config.exitStyle, config.textAlign, "obs-chat-out")}
 @media (prefers-reduced-motion: reduce) { .obs-chat-message { animation: none !important; } }`}</style>
 
       <div
-        className={[
-          "relative shrink-0 overflow-hidden",
-          config.showBorders
-            ? "border border-white/10"
-            : "",
-        ].join(" ")}
+        className="relative shrink-0 overflow-hidden"
         style={{
           width: `${size.width}px`,
           height: `${size.height}px`,
           borderRadius:
             `${config.radius}px`,
+          border: config.showBorders ? "1px solid rgba(255,255,255,.1)" : undefined,
+          fontFamily: chatFontFamily(config),
         }}
       >
+        {config.layout === "chat" && renderMessages("100%")}
+
         {config.layout === "right" && (
           <div
             className="flex h-full"

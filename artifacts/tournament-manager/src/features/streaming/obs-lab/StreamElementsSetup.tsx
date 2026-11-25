@@ -38,7 +38,13 @@ export function StreamElementsSetup({ config, width, height }: Props) {
         <CodePanel title={t("streamElementsSetup.css")} code={cssCode} copied={copied === "css"} onCopy={() => copy(cssCode, "css")} />
         <CodePanel title={t("streamElementsSetup.js")} code={jsCode} copied={copied === "js"} onCopy={() => copy(jsCode, "js")} />
       </div>
-      <p className="mt-4 text-xs leading-5 text-muted-foreground">{t("streamElementsSetup.w_streamelements_utworz_custom_widget")}</p>
+      <ol className="mt-4 list-decimal space-y-1.5 pl-5 text-xs leading-5 text-muted-foreground">
+        <li>{t("streamElementsSetup.w_streamelements_otworz_overlays_i", { width, height })}</li>
+        <li>{t("streamElementsSetup.dodaj_widget_static_custom_custom")}</li>
+        <li>{t("streamElementsSetup.wklej_html_css_i_js")}</li>
+        <li>{t("streamElementsSetup.zapisz_i_sprawdz_przyciskiem_emulate")}</li>
+      </ol>
+      <p className="mt-3 text-xs leading-5 text-muted-foreground">{t("streamElementsSetup.ustawienia_sa_zapisane_w_kodzie")}</p>
     </ToolPanel>
   );
 }

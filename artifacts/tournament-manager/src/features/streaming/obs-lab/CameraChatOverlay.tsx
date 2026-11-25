@@ -13,6 +13,10 @@ import {
 import {
   cameraChatConfigFromSearch,
 } from "./camera-chat-settings";
+import {
+  chatBadgesFromEvent,
+  chatEmotesFromEvent,
+} from "./chat-message-format";
 
 type BridgeMessage = {
   source?: string;
@@ -79,6 +83,8 @@ export default function CameraChatOverlay() {
     if (!streamElementsMode) {
       return;
     }
+
+    let nextLocalId = 0;
 
     function handleMessage(
       event: MessageEvent,
@@ -156,24 +162,41 @@ export default function CameraChatOverlay() {
             ],
           );
 
+        const nick =
+          valueAsString(
+            data["nick"],
+          );
+
+        const localId = `se-${++nextLocalId}`;
+
         setMessages(
           (current) =>
-            [
-              ...current,
-              {
-                name,
-                text,
-                msgId:
-                  msgId ||
-                  undefined,
-                userId:
-                  userId ||
-                  undefined,
-                color:
-                  color ||
-                  undefined,
-              },
-            ].slice(-100),
+            msgId && current.some((message) => message.msgId === msgId)
+              ? current
+              : [
+                ...current,
+                {
+                  id: localId,
+                  name,
+                  text,
+                  msgId:
+                    msgId ||
+                    undefined,
+                  userId:
+                    userId ||
+                    undefined,
+                  nick:
+                    nick ||
+                    undefined,
+                  color:
+                    color ||
+                    undefined,
+                  badges: chatBadgesFromEvent(data["badges"]),
+                  emotes: chatEmotesFromEvent(data["emotes"]),
+                  isAction: data["isAction"] === true,
+                  receivedAt: Date.now(),
+                },
+              ].slice(-100),
         );
 
         return;
