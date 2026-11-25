@@ -185,8 +185,9 @@ public static partial class Program
             True(ball.Contains("OwnerPip("),"ownership has no non-colour pattern");
             int bodies=board.IndexOf("BallView.Render(clippedBoard",StringComparison.Ordinal),badges=board.IndexOf("BallView.RenderBadges(clippedBoard",StringComparison.Ordinal);
             True(bodies>0&&badges>bodies,"plates must be drawn after every ball body");
-            True(board.Contains("if(preview.Ready&&ShowStopEstimate)RenderStopEstimate(")&&board.Contains("public static bool ShowStopEstimate = true;"),"STOP mark is not optional");
-            True(match.Contains("ToggleStopEstimate()")&&app.Contains("GetKeyDown(KeyCode.E))ToggleStopEstimate();"),"no control for the STOP mark");
+            // W24: the stop mark became one of five levels of aim help (0 = off).
+            True(board.Contains("if(preview.Ready&&AimHelp>0)RenderStopEstimate(")&&board.Contains("public static int AimHelp = AimHelpDefault;"),"STOP mark is not optional");
+            True(match.Contains("CycleAimHelp()")&&app.Contains("GetKeyDown(KeyCode.E))CycleAimHelp();"),"no control for the STOP mark");
             True(board.Contains("FeedbackLabels.Stack(")&&!board.Contains("labels.Any(r=>r.Overlaps(label))"),"overlapping feedback labels are still dropped");
             True(board.Contains("RenderTurnCue(")&&board.Contains("feedback.TurnBorn"),"turn cue does not come from the TURN stamp");
             True(board.Contains("BoardLabelLayout.FitAvoiding(standard,VisibleField(board)")&&board.Contains("FeedbackStyle.HasLabel(kind)"),"STOP label or explosion label rule not applied");

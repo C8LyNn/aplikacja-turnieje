@@ -63,8 +63,8 @@ namespace CoreClash.Presentation
             MatchSetup.DamageNumbers=pick==0;
             pick=Choice(ref at,inner,rowH,narrow,Lang.T("HP as a number on balls","Liczba HP na kulkach"),OnOff,Theme.ShowHpNumber?0:1);
             Theme.ShowHpNumber=pick==0;
-            pick=Choice(ref at,inner,rowH,narrow,Lang.T("Mark where the ball will stop","Znacznik miejsca zatrzymania"),OnOff,BoardView.ShowStopEstimate?0:1);
-            if((pick==0)!=BoardView.ShowStopEstimate)ToggleStopEstimate();
+            pick=Stepper(ref at,inner,rowH,narrow,Lang.T("Aim help","Podpowiedź celowania"),BoardView.AimHelpName(BoardView.AimHelp),BoardView.AimHelp,BoardView.AimHelpLevels);
+            if(pick!=BoardView.AimHelp)SetAimHelp(pick);
             pick=Choice(ref at,inner,rowH,narrow,Lang.T("Effects","Efekty"),new[]{Lang.T("Full","Pełne"),Lang.T("Calm","Spokojne")},Fx.ReducedMotion?1:0);
             if((pick==1)!=Fx.ReducedMotion)Fx.SetReducedMotion(pick==1);
             int arena=Mathf.Max(0,Array.IndexOf(Theme.Arenas,Theme.Arena));

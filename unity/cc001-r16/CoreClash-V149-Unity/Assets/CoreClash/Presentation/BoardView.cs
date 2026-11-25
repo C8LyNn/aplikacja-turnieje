@@ -23,7 +23,29 @@ namespace CoreClash.Presentation
         static int actingOwner = -1, turnShown;
         static float turnSince;
         // The end-position marker is optional (HUD button or E). Default on.
-        public static bool ShowStopEstimate = true;
+        // W24 (owner, 2026-11-25, after playing with the full forecast: "it probably helps too much -
+        // I want several levels of it, from nothing up to this detailed, five levels, to switch on
+        // as one likes"). How much the aim shows:
+        //   0  the arrow only: direction and strength
+        //   1  + a dashed line to the first thing the ball touches (a wall, an obstacle or a ball)
+        //   2  + its bounces off walls and obstacles, up to the first ball it hits
+        //   3  + the whole path of the launched ball and where it stops
+        //   4  + what the shot does to the other balls (where they end, which are destroyed)
+        // Every level shows a part of the same forecast - the shot played ahead by the rules - so
+        // a lower level shows less, never something else.
+        public const int AimHelpLevels = 5, AimHelpDefault = 2;
+        public static int AimHelp = AimHelpDefault;
+        public static string AimHelpName(int level)
+        {
+            switch (Mathf.Clamp(level, 0, AimHelpLevels - 1))
+            {
+                case 0: return Lang.T("0 · Arrow only", "0 · Tylko strzałka");
+                case 1: return Lang.T("1 · First contact", "1 · Pierwszy kontakt");
+                case 2: return Lang.T("2 · To the first ball", "2 · Do pierwszej kulki");
+                case 3: return Lang.T("3 · Whole path", "3 · Cały tor");
+                default: return Lang.T("4 · Path and results", "4 · Tor i skutki");
+            }
+        }
         // Time already passed since the last simulation step, set by the app every frame.
         // W24 (owner, after playing: "the balls still stutter a little"): the simulation advances in
         // fixed 1/120 s steps and a frame rarely lands on one. A ball is drawn between its place
@@ -791,7 +813,10 @@ namespace CoreClash.Presentation
             var replay=fromLauncher?null:state.balls.FirstOrDefault(b=>!b.dead&&Mathf.Abs(b.x-aim.OriginX)<.1f&&Mathf.Abs(b.y-aim.OriginY)<.1f);
             var preview=AimGuide.Preview(aim.OriginX,aim.OriginY,aim.AimX,aim.AimY,state.turn,fromLauncher?(selected?.radius??17)*Mathf.Max(.5f,state.ballScale):(replay?.radius??17));
             if (!GameSimulation.Finite(preview.Distance)) return;
-            if (preview.Valid)
+            // Level 0: the arrow says where and how hard, and nothing about what happens then - it is
+            // straight, and it does not turn at a wall.
+            if (preview.Valid && AimHelp <= 0) { if (preview.Path.Length > 2) preview.Path = new[] { preview.Path[0], preview.Path[1] }; }
+            else if (preview.Valid)
             {
                 // W24: the arrow stops where the ball will first touch another ball or an obstacle;
                 // the dashed line of the forecast goes on from there, bounce and all.
@@ -846,7 +871,7 @@ namespace CoreClash.Presentation
                 if(pull>clear+4)Draw.Stroke(origin+(finger-origin)/pull*clear,finger,Alpha(team,Theme.AimPull),Mathf.Max(1.2f,1.6f*scale),Mathf.Max(3,4*scale),Mathf.Max(4,6*scale));
                 // The estimate is drawn from the end of the arrow on, not over it.
                 float arrow=0;for(int i=1;i<path.Length;i++)arrow+=(Point(board,path[i].x,path[i].y)-Point(board,path[i-1].x,path[i-1].y)).magnitude;
-                if(preview.Ready&&ShowStopEstimate)RenderStopEstimate(board,state,aim,selected,replay,catalog,vector,scale,arrow+edge+Mathf.Max(4,6*scale));
+                if(preview.Ready&&AimHelp>0)RenderStopEstimate(board,state,aim,selected,replay,catalog,vector,scale,arrow+edge+Mathf.Max(4,6*scale));
             }
             Draw.Ring(finger, 11 * scale, under, Mathf.Max(2.5f, 3.8f * scale));
             Draw.Ring(finger, 10 * scale, Alpha(team, .9f), Mathf.Max(1.2f, 1.8f * scale));
@@ -958,7 +983,7 @@ namespace CoreClash.Presentation
             catch(System.Exception){}
             forecastShown=forecastRun=null;forecastShownKey=forecastRunKey=forecastScope=null;
         }
-        static ShotForecast Forecast(GameState state,Catalog catalog,PlayerCommand command,string key,string scope)
+        static ShotForecast Forecast(GameState state,Catalog catalog,PlayerCommand command,string key,string scope,ForecastDetail detail)
         {
             // Another turn, another position or another ball: what was worked out no longer applies.
             if(scope!=forecastScope){forecastShown=forecastRun=null;forecastShownKey=forecastRunKey=null;forecastScope=scope;}
@@ -966,7 +991,7 @@ namespace CoreClash.Presentation
             if(forecastRun==null&&key!=forecastShownKey)
             {
                 var copy=JsonUtility.FromJson<GameState>(JsonUtility.ToJson(state));copy.events.Clear();
-                forecastRun=ShotForecast.Begin(ForecastSandbox(catalog),copy,command);forecastRunKey=key;
+                forecastRun=ShotForecast.Begin(ForecastSandbox(catalog),copy,command,detail);forecastRunKey=key;
             }
             if(forecastRun!=null)
             {
@@ -994,7 +1019,9 @@ namespace CoreClash.Presentation
             float dx=aim.AimX-aim.OriginX,dy=aim.AimY-aim.OriginY;
             if(!StopPredictor.GesturePower(dx,dy,out float power))return;
             if(replay==null&&selected==null)return;
-            string scope=state.turn+"|"+state.revision+"|"+(replay!=null?"r"+replay.id:selected.id);
+            // How far the forecast is played is the level's business: no further than what is shown.
+            var detail=AimHelp<=1?ForecastDetail.FirstTouch:AimHelp==2?ForecastDetail.FirstBall:ForecastDetail.Whole;
+            string scope=state.turn+"|"+state.revision+"|"+(replay!=null?"r"+replay.id:selected.id)+"|"+AimHelp;
             string key=scope+"|"+aim.OriginX+"|"+aim.OriginY+"|"+aim.AimX+"|"+aim.AimY;
             ShotForecast forecast=null;
             if(catalog!=null)
@@ -1002,12 +1029,14 @@ namespace CoreClash.Presentation
                 // The shot exactly as releasing the drag would send it (LaunchGesture.Release).
                 var command=new PlayerCommand{owner=state.turn,turnNumber=state.turnNumber,kind=replay!=null?CommandKind.Replay:CommandKind.Spawn,
                     ballId=replay?.id??0,ballType=replay!=null?replay.type:selected.id,dx=dx,dy=dy,power=power};
-                forecast=Forecast(state,catalog,command,key,scope);
+                forecast=Forecast(state,catalog,command,key,scope,detail);
                 // The first forecast of this position is still being worked out.
                 if(forecast==null)return;
             }
             bool played=forecast!=null&&forecast.Valid;
-            // The rules refused the shot in the copy (or there is no catalog): the free-roll estimate.
+            // The rules refused the shot in the copy (or there is no catalog): the free-roll estimate -
+            // on the levels that show a whole path; the lower ones then show nothing.
+            if(!played&&AimHelp<3)return;
             if(!played&&key!=stopCacheKey)
             {
                 var body=replay!=null?StopPredictor.Replay(replay,catalog?.Ball(replay.type)?.archetype,dx,dy,power):StopPredictor.Spawn(selected,state.turn,dx,dy,power);
@@ -1018,7 +1047,9 @@ namespace CoreClash.Presentation
                 if(stopCache!=null&&stopCache.Valid)stopCache.Reach=StopPredictor.Reach(body.Owner,stopCache.StopX,stopCache.StopY,stopCache.Start.Radius,CentreRadius);stopCacheKey=key;
             }
             var e=played?Estimate(forecast):stopCache;if(e==null||!e.Valid)return;
-            if(played)RenderForecastOthers(board,forecast,scale);
+            // The path ends at a contact (levels 1 and 2), not where the ball comes to rest.
+            bool contactEnd=played&&forecast.EndsAtContact;
+            if(played&&AimHelp>=4)RenderForecastOthers(board,forecast,scale);
             Color mark=Alpha(vector,e.Obstructed?.45f:.8f);
             // W24 (owner direction: readability): the estimated path is a row of light dashes on a dark
             // edge, and the stop mark a pale ghost of the ball, so both read on the floor and on either
@@ -1032,6 +1063,29 @@ namespace CoreClash.Presentation
             float rim=r+scale+Mathf.Max(2,3*scale);
             Draw.Dashes(estimatePath,pathEdge,core+Mathf.Max(1.6f,2.2f*scale),dash,gap,skip,rim);
             Draw.Dashes(estimatePath,pathCore,core,dash,gap,skip,rim);
+            // The launched ball at every bounce: a thin outline standing against what it bounces off,
+            // so a turn of the line in the open reads as what it is. (The line is the ball's centre.)
+            if(played)
+            {
+                int shownBounces=0;Color ghost=Alpha(Color.Lerp(vector,Color.white,.5f),.75f);
+                foreach(int at in forecast.Bounces)
+                {
+                    if(at<0||at>=e.Path.Count||(contactEnd&&at==e.Path.Count-1))continue;
+                    if(shownBounces++>=6)break;
+                    Vector2 where=Point(board,e.Path[at].x,e.Path[at].y);
+                    Draw.Ring(where,r+scale*.5f,Alpha(Theme.Ink,.3f),Mathf.Max(1.8f,2.6f*scale));
+                    Draw.Ring(where,r,ghost,Mathf.Max(1f,1.4f*scale),16,.55f);
+                }
+            }
+            if(contactEnd)
+            {
+                // Where the ball is when it touches: its outline, lightly filled. No stop mark - what
+                // happens after the contact is the business of a higher level.
+                Draw.Circle(new Rect(stop.x-r,stop.y-r,r*2,r*2),Alpha(Color.Lerp(vector,Color.white,.7f),.3f));
+                Draw.Ring(stop,r+scale,Alpha(Theme.Ink,.55f),Mathf.Max(2.5f,3.8f*scale));
+                Draw.Ring(stop,r,Alpha(Color.Lerp(vector,Color.white,.35f),1f),Mathf.Max(1.2f,2f*scale));
+                return;
+            }
             // A ball the shot destroys leaves no ball where it ends: the mark there is hollow.
             if(!(played&&forecast.MoverDies))Draw.Circle(new Rect(stop.x-r,stop.y-r,r*2,r*2),Alpha(Color.Lerp(vector,Color.white,.7f),e.Obstructed?.2f:.42f));
             Draw.Ring(stop,r+scale,Alpha(Theme.Ink,.6f*see),Mathf.Max(2.5f,3.8f*scale));

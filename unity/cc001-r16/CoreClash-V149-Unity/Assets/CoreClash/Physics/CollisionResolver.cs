@@ -7,6 +7,13 @@ namespace CoreClash.Physics
     {
         readonly GameSimulation sim;
         readonly Dictionary<long,int> contacts=new Dictionary<long,int>();
+        // W24: which pairs touched in the last frames is remembered for ONE course of events. A
+        // simulation that is handed another state (the computer trying a shot in its private copy,
+        // the aim forecast) starts with nothing remembered. It used to keep the contacts of the shot
+        // it had tried before - with frame numbers from that shot's future - so a pair that touched
+        // there was "already touching" here, and the power of the ball that touched did not work
+        // in about half of the shots tried.
+        GameState remembered;
         public CollisionResolver(GameSimulation s){sim=s;}
         public static int ImpactDamage(float impact){if(impact<=90)return 0;float t=GameSimulation.Clamp((impact-90)/340,0,1);return Math.Max(1,GameSimulation.Round(1+15*(float)Math.Pow(t,1.18)));}
         // Mirror V148: real Earth stacks take precedence over the defensive
@@ -23,6 +30,7 @@ namespace CoreClash.Physics
             if(a.dead||b.dead||a.banished||b.banished||a.phased||b.phased||a.spawnGrace>0||b.spawnGrace>0)return;
             float dx=b.x-a.x,dy=b.y-a.y,r=a.radius+b.radius,d2=dx*dx+dy*dy;if(d2>=r*r)return;
             float d=(float)Math.Sqrt(d2),nx=d>.0001f?dx/d:1,ny=d>.0001f?dy/d:0,avx=a.vx,avy=a.vy,bvx=b.vx,bvy=b.vy,closing=Math.Max(0,(avx-bvx)*nx+(avy-bvy)*ny);
+            if(!ReferenceEquals(remembered,sim.State)){contacts.Clear();remembered=sim.State;}
             long key=((long)Math.Min(a.id,b.id)<<32)|(uint)Math.Max(a.id,b.id);bool fresh=!contacts.TryGetValue(key,out int seen)||seen<sim.State.frame-1;contacts[key]=sim.State.frame;
             float ma=Mass(a),mb=Mass(b),overlap=r-d;
             bool heldA=Held(a),heldB=Held(b);

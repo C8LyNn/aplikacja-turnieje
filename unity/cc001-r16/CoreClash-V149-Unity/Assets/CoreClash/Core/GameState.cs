@@ -129,6 +129,13 @@ namespace CoreClash.Core
         //               it, and is not laid at all when there is no room near.
         public float trapRadius;
         public bool trapsApart;
+        // W24 match rule (off = the reference rules; owner direction after playing, 2026-11-25: "a
+        // ball must not be able to generate things every turn, or even several times a turn - only
+        // the first time"). By turn 41 of one of his matches the board held some thirty shoots and
+        // twenty poison traps: a trap ball laid a new trap every time it came to rest, knocked or
+        // not. With this rule a ball puts its thing down once - its trap, its shoots, its field -
+        // at the first stop where it can; after that it is a ball like any other.
+        public bool placeOnce;
         public bool comebackRule,comebackActive;
         public string mapId="";
         public string actionKind,resultReason;
@@ -160,6 +167,8 @@ namespace CoreClash.Core
         public int thawTurn=-1;
         // The Compass is on its second shot (from the moment it fires until it stops).
         public bool compassDash;
+        // Match rule placeOnce: this ball has put its trap, its shoots or its field down.
+        public bool placed;
         // Per-instance, serialized once-per-turn DEATH observer gate.
         public int lastDenMotherTurn=-1;
         public int lastRamAction=-1;

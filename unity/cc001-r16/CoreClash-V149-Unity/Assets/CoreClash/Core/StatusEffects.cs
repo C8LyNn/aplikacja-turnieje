@@ -95,11 +95,13 @@ namespace CoreClash.Core
         }
         void StatusStop(BallRuntime b)
         {
-            if(b.type=="blightpool"||b.type=="consecrator")CreateZone(b,b.type=="blightpool"?"blight":"consecrated",b.type=="blightpool"?S.poolRadius:165,3);
+            // Match rule placeOnce: a ball makes its field once.
+            bool mayPlace=!(S.placeOnce&&b.placed);
+            if((b.type=="blightpool"||b.type=="consecrator")&&mayPlace){CreateZone(b,b.type=="blightpool"?"blight":"consecrated",b.type=="blightpool"?S.poolRadius:165,3);b.placed=true;}
             if(b.type=="ward"||b.type=="medic"||b.type=="cleanser")foreach(var ally in Living().Where(t=>t.owner==b.owner&&Dist(b,t)<=165)){
                 int removed=Cleanse(ally,false);if(b.type=="medic")sim.Heal(ally,10);if(b.type=="ward")ally.shield=Math.Max(ally.shield,5);EmitCleanse(b,ally,removed);
             }
-            if(b.type=="pyrecore"||b.type=="blizzardcore")CreateZone(b,b.type=="pyrecore"?"fire":"ice",165,3);
+            if((b.type=="pyrecore"||b.type=="blizzardcore")&&mayPlace){CreateZone(b,b.type=="pyrecore"?"fire":"ice",165,3);b.placed=true;}
         }
         ZoneRuntime CreateZone(BallRuntime b,string kind,float radius,int turns)
         {

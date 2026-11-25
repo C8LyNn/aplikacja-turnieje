@@ -11,8 +11,10 @@ namespace CoreClash.Core
         void StatusPayoffStop(BallRuntime source)
         {
             if(!ElementTrap(source.type))return;
+            // Match rule placeOnce: one trap for each ball. A trap that found no room does not count.
+            if(S.placeOnce&&source.placed)return;
             var trap=CreateTrap(source,source.type,source.x,source.y,TrapRadius,105);
-            if(trap==null)sim.Emit("PLACEMENT_BLOCKED",source,"No room for elemental trap");
+            if(trap==null)sim.Emit("PLACEMENT_BLOCKED",source,"No room for elemental trap");else source.placed=true;
         }
         void TriggerElementTrap(ZoneRuntime trap)
         {

@@ -193,14 +193,14 @@ namespace CoreClash.Presentation
             Add("blizzardcore","Zamieć",GuideWhen.Stop,GuideWho.Enemies,165,"Ice field","Pole lodu",
                 "Starts a big blizzard that lasts 3 turns. At the end of every turn, enemies standing in it get chilled.",
                 "Rozpętuje dużą zamieć na 3 tury. Na koniec każdej tury wrogowie stojący w zamieci dostają mróz.",
-                "3 turns in it = frozen. Where an older field lies, a new one does not work.",
-                "3 tury w zamieci = zamrożenie. W miejscu starszego pola nowe nie działa.",
+                "The blizzard starts once: where the ball first stops.",
+                "Zamieć powstaje raz: tam, gdzie kulka stanie po raz pierwszy.",
                 Time("Lasts 3 turns","Trwa 3 tury"),Chilled);
             Add("frosttrap","Pułapka lodu",GuideWhen.Stop,GuideWho.Enemies,0,"Freezes enemy","Zamraża wroga",
                 "Leaves an ice trap on that spot. The first enemy to roll over the trap is frozen at once.",
                 "Zostawia w tym miejscu lodową pułapkę. Pierwszy wróg, który na nią wjedzie, od razu zamarza.",
-                "The trap works once. A burning enemy is only put out.",
-                "Pułapka działa raz. Płonącego wroga tylko gasi.",
+                "One trap for each ball. A burning enemy is only put out.",
+                "Jedna pułapka na kulkę. Płonącego wroga tylko gasi.",
                 IceTrapFacts);
             if(CoreClash.Core.RosterBalance.ShatterKeepsIce)
                 Add("shatterer","Kruszyciel",GuideWhen.Touch,GuideWho.Enemies,0,"Ice breaker","Kruszy lód",
@@ -239,8 +239,8 @@ namespace CoreClash.Presentation
             Add("embertrap","Pułapka ognia",GuideWhen.Stop,GuideWho.Enemies,0,"Sets alight","Podpala wroga",
                 "Leaves a fire trap on that spot. The first enemy to roll over the trap catches fire.",
                 "Zostawia w tym miejscu ognistą pułapkę. Pierwszy wróg, który na nią wjedzie, zaczyna płonąć.",
-                "The trap works once.",
-                "Pułapka działa raz.",
+                "One trap for each ball, laid where it first stops.",
+                "Kulka stawia jedną pułapkę: tam, gdzie stanie po raz pierwszy.",
                 Burning,Count("Works once","Działa raz"));
             Add("bomb","Bomba",GuideWhen.Stop,GuideWho.Everyone,165,"Blast","Wybuch",
                 "Explodes and is gone. The blast hurts and throws back every ball in range — yours too.",
@@ -265,14 +265,14 @@ namespace CoreClash.Presentation
             Add("blightpool","Trująca kałuża",GuideWhen.Stop,GuideWho.Enemies,CoreClash.Core.RosterBalance.PoolRadius,"Poison pool","Kałuża jadu",
                 "Spills a pool of poison that lasts 3 turns. At the end of every turn, enemies standing in the pool get poisoned.",
                 "Rozlewa kałużę trucizny na 3 tury. Na koniec każdej tury wrogowie stojący w kałuży zostają zatruci.",
-                "Push enemies into the pool. Where an older field lies, a new one does not work.",
-                "Wepchnij wrogów do kałuży. W miejscu starszego pola nowe nie działa.",
+                "The pool is spilled once: where the ball first stops.",
+                "Kałuża powstaje raz: tam, gdzie kulka stanie po raz pierwszy.",
                 Time("Pool lasts 3 turns","Kałuża trwa 3 tury"),Poisoned);
             Add("sporetrap","Pułapka jadu",GuideWhen.Stop,GuideWho.Enemies,0,"Poisons enemy","Zatruwa wroga",
                 "Leaves a poison trap on that spot. The first enemy to roll over the trap is poisoned.",
                 "Zostawia w tym miejscu trującą pułapkę. Pierwszy wróg, który na nią wjedzie, zostaje zatruty.",
-                "The trap works once.",
-                "Pułapka działa raz.",
+                "One trap for each ball, laid where it first stops.",
+                "Kulka stawia jedną pułapkę: tam, gdzie stanie po raz pierwszy.",
                 Poisoned,Count("Works once","Działa raz"));
             Add("plagueburst","Grzyb",GuideWhen.Death,GuideWho.Enemies,100,"Spore cloud","Zarodniki",
                 "Bursts into a cloud of spores: every enemy nearby is poisoned.",
@@ -307,8 +307,8 @@ namespace CoreClash.Presentation
             Add("gravitymine","Mina magnesowa",GuideWhen.Stop,GuideWho.Everyone,100,"Pull + blast","Wir i wybuch",
                 "Makes a field that pulls balls towards it. When an enemy rolls into the field, the mine explodes and is gone.",
                 "Tworzy pole, które przyciąga kulki. Gdy w pole wjedzie wróg, mina wybucha i znika.",
-                "The blast throws every ball away but hurts only enemies. Inside an older field the mine's field does not work.",
-                "Wybuch odrzuca wszystkie kulki, ale rani tylko wrogów. W starszym polu pole miny nie działa.",
+                "The field is made once, where the mine first stops. The blast throws every ball away but hurts only enemies.",
+                "Pole powstaje raz: tam, gdzie mina stanie po raz pierwszy. Wybuch odrzuca wszystkie kulki, a rani tylko wrogów.",
                 Damage(Hp(CoreClash.Core.RosterBalance.MineDamage)+" damage",Hp(CoreClash.Core.RosterBalance.MineDamage)+" obrażeń"));
             // The Anchor's card names a shield only while the roster's balance gives it one.
             if(CoreClash.Core.RosterBalance.AnchorShield>0)
@@ -347,8 +347,8 @@ namespace CoreClash.Presentation
             Add("staticfield","Pułapka prądu",GuideWhen.Stop,GuideWho.Enemies,0,"Shock + off","Razi i wyłącza",
                 "Leaves a shock trap on that spot. The first enemy to roll over it takes "+Hp(CoreClash.Core.RosterBalance.ShockTrapDamage)+" damage and loses its power until the end of its next turn.",
                 "Zostawia w tym miejscu pułapkę. Pierwszy wróg, który na nią wjedzie, traci "+Hp(CoreClash.Core.RosterBalance.ShockTrapDamage)+" HP i moc — do końca swojej następnej tury.",
-                "The trap works once. Bolts hurt a switched-off ball more.",
-                "Pułapka działa raz. Wyłączoną kulkę pioruny ranią mocniej.",
+                "One trap for each ball. Bolts hurt a switched-off ball more.",
+                "Kulka stawia jedną pułapkę. Wyłączoną kulkę pioruny ranią mocniej.",
                 Damage(Hp(CoreClash.Core.RosterBalance.ShockTrapDamage)+" damage",Hp(CoreClash.Core.RosterBalance.ShockTrapDamage)+" obrażeń"),Time("Power off: 1 turn","Bez mocy: 1 tura"),ShortCircuit);
             Add("jammer","Wyłącznik",GuideWhen.Touch,GuideWho.Enemies,0,"Power off","Wyłącza moc",
                 "The enemy it touches loses its power until the end of that enemy's next turn.",
@@ -361,8 +361,8 @@ namespace CoreClash.Presentation
             Add("web","Pnącze",GuideWhen.Stop,GuideWho.Enemies,70,"Tangle","Oplata",
                 "Sends out 4 shoots around itself. An enemy that rolls into a shoot gets tangled and is stuck there until the end of its next turn.",
                 "Wypuszcza wokół siebie 4 pędy. Wróg, który wjedzie w pęd, zostaje opleciony i utyka w nim do końca swojej następnej tury.",
-                "Each shoot works once. A stuck ball cannot be launched again.",
-                "Każdy pęd działa raz. Uwięzionej kulki nie da się wystrzelić ponownie.",
+                "The shoots grow once, at the Vine's first stop. Each shoot works once.",
+                "Pędy wyrastają raz, przy pierwszym zatrzymaniu. Każdy pęd działa raz.",
                 Count("4 shoots","4 pędy"),Fact(GuideFactKind.Stuck,"Stuck: cannot move","Uwięziona: nie rusza się"));
             Add("thornback","Kaktus",GuideWhen.Touch,GuideWho.Enemies,0,"Thorns","Kolce",
                 "Every enemy that touches it takes 5 damage — whether it hits them or they hit it.",

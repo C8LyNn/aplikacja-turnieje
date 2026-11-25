@@ -57,6 +57,17 @@ namespace CoreClash.Core
     //   groups, after   electricity 46%  magnetism 48%  ice 50%  plants 50%  poison 53%  fire 54%
     //   decks, before   Frozen Garden 45%  Polar Storm 46%  Fire Pit 49%  Acid Rain 51%  Dynamo 53%  Jungle 56%
     //   decks, after    Fire Pit 44%  Polar Storm 46%  Acid Rain 49%  Frozen Garden 52%  Dynamo 53%  Jungle 57%
+    //
+    // 2026-11-25, after the owner played: traps are bigger (22) and never one on another, and a ball
+    // puts its thing down once - its trap, its shoots, its field (GameState.placeOnce). The same day
+    // a fault in every simulation that tries shots in a copy of the match was mended (see
+    // CollisionResolver): powers that work on touch had been lost in about half of the shots the
+    // computer tried, so every number above was measured with a computer that undervalued them.
+    // Measured with both in place - not yet rebalanced:
+    //   groups (600)  ice 46%  electricity 46%  plants 49%  magnetism 50%  poison 53%  fire 56%
+    //   decks (432)   Frozen Garden 38%  Polar Storm 47%  Dynamo 48%  Acid Rain 49%  Fire Pit 57%  Jungle 61%
+    //   seats (1260)  the first player wins 48.5%; no pair of decks stands out
+    // The Blizzard made a new field every time it was knocked; made once, ice chills a third less.
     public static class RosterBalance
     {
         // The Poison Pool's field. (The Blizzard keeps the reference 165.)
@@ -92,6 +103,9 @@ namespace CoreClash.Core
         // and a half times that - and no trap over another trap.
         public const float TrapRadius=22;
         public const bool TrapsApart=true;
+        // A ball puts its thing down once (owner direction after playing): its trap, its shoots or
+        // its field appears at its first stop and never again.
+        public const bool PlaceOnce=true;
         // The opening: HP of the extra Standard ball Player 2 plays on the first turn (0 = a whole ball).
         public const int OpeningBonusHp=15;
 
@@ -107,7 +121,7 @@ namespace CoreClash.Core
             state.lightningTouch=LightningTouch;state.batteryStart=BatteryStart;state.shockTrapDamage=ShockTrapDamage;
             state.mineDamage=MineDamage;state.anchorShield=AnchorShield;state.compassDashHurt=CompassDashHurt;
             state.openingBonusHp=OpeningBonusHp;
-            state.trapRadius=TrapRadius;state.trapsApart=TrapsApart;
+            state.trapRadius=TrapRadius;state.trapsApart=TrapsApart;state.placeOnce=PlaceOnce;
         }
     }
 }

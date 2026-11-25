@@ -111,6 +111,9 @@ namespace CoreClash.Presentation
         float displayRateCheckedAt=-9;int displayRateFrame;
         // The simulation is given whole frames while the game is locked to a display (FrameClock).
         readonly FrameClock frameClock=new FrameClock();float lockedPeriod;
+        // Test hook (the motion probe's forecast check): called with the match as it stands and the
+        // shot, just before a local player's shot is played. Nothing listens in ordinary play.
+        public static System.Action<GameSimulation,PlayerCommand> BeforeLocalShot;
         readonly System.Collections.Generic.List<float> displayRates=new System.Collections.Generic.List<float>();
         readonly System.Collections.Generic.List<DisplayInfo> displayLayout=new System.Collections.Generic.List<DisplayInfo>();
         void FollowDisplayRate()
@@ -168,7 +171,7 @@ namespace CoreClash.Presentation
                 for(int i=0;i<Simulation.State.players[Simulation.State.turn].stock.Count&&i<9;i++)if(GetKeyDown((KeyCode)((int)KeyCode.Alpha1+i))||GetKeyDown((KeyCode)((int)KeyCode.Keypad1+i)))SelectBall(Simulation.State.players[Simulation.State.turn].stock[i].id);
             }
             if(GetKeyDown(KeyCode.I))SetBoardInspection(!boardInspection);
-            if(GetKeyDown(KeyCode.E))ToggleStopEstimate();
+            if(GetKeyDown(KeyCode.E))CycleAimHelp();
             if(IgnoreDeviceInput)return;
             if(UnityEngine.Input.touchCount==0&&UnityEngine.Input.GetMouseButtonDown(1)&&InspectAt(UnityEngine.Input.mousePosition))return;
             if(TouchInput.Read(out var pointer)||DesktopInput.Read(out pointer))HandlePointer(pointer);
@@ -196,7 +199,7 @@ namespace CoreClash.Presentation
             }
             if(p.held||p.up)gesture.Move(p.id,world.x,world.y);
             if(p.up&&gesture.Release(p.id,Simulation.State.turn,Simulation.State.turnNumber,selected,replayId,out var command)){
-                command.sequence=++sequence;bool accepted=NetworkLink!=null?NetworkLink.Submit(command,out notice):session.Submit(command.owner,command,out notice);
+                command.sequence=++sequence;BeforeLocalShot?.Invoke(Simulation,command);bool accepted=NetworkLink!=null?NetworkLink.Submit(command,out notice):session.Submit(command.owner,command,out notice);
                 if(!accepted){Debug.LogWarning("Intent rejected: "+notice);notice=Lang.T("This shot could not be played. Try again.","Tego strzału nie dało się wykonać. Spróbuj ponownie.");}
                 else{notice="";Debug.Log("CORE_CLASH_LAUNCH owner="+command.owner+" type="+command.ballType);}
             }

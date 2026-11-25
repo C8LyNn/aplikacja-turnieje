@@ -58,8 +58,14 @@ namespace CoreClash.Core
                 case "vinehook":if(b.lastAbilityTurn!=S.turnNumber){var target=Near(b,165,false).FirstOrDefault(x=>x.anchorStacks<3);if(target!=null){b.lastAbilityTurn=S.turnNumber;Impulse(target,b.x,b.y,300);sim.Emit("PULL",target,"Vinehook");}}break;
                 case "harpoon":var far=Near(b,230,false).LastOrDefault();if(far!=null){Impulse(far,b.x,b.y,690);sim.Emit("PULL",far,"Harpoon");}break;
                 case "vortexmedic":var enemies=Near(b,165,false);foreach(var e in enemies)Impulse(e,b.x,b.y,390);var hurt=Living().Where(x=>x.owner==b.owner&&Dist(b,x)<=165&&x.hp<x.maxHp).OrderBy(x=>(float)x.hp/x.maxHp).FirstOrDefault();if(enemies.Length>0&&hurt!=null)sim.Heal(hurt,Math.Min(10,enemies.Length*5));break;
-                case "web":CreateTrap(b,"web",b.x+55,b.y,14);CreateTrap(b,"web",b.x-55,b.y,14);CreateTrap(b,"web",b.x,b.y+55,14);CreateTrap(b,"web",b.x,b.y-55,14);break;
-                case "gravitymine":foreach(var z in S.zones)if(z.sourceId==b.id&&z.kind=="gravitymine")z.dead=true;
+                case "web":
+                    if(S.placeOnce&&b.placed)break;
+                    {bool grew=CreateTrap(b,"web",b.x+55,b.y,14)!=null;grew|=CreateTrap(b,"web",b.x-55,b.y,14)!=null;grew|=CreateTrap(b,"web",b.x,b.y+55,14)!=null;grew|=CreateTrap(b,"web",b.x,b.y-55,14)!=null;if(grew)b.placed=true;}
+                    break;
+                case "gravitymine":
+                    // Match rule placeOnce: the field stays where the mine first stopped.
+                    if(S.placeOnce&&b.placed)break;b.placed=true;
+                    foreach(var z in S.zones)if(z.sourceId==b.id&&z.kind=="gravitymine")z.dead=true;
                     // Plain powers: the field always appears where the mine stops (the reference rule
                     // needs free room the size of the whole field, which no card can explain).
                     if(S.plainPowers){var field=CreateZone(b,"gravitymine",100,-1);field.trap=true;}else CreateTrap(b,"gravitymine",b.x,b.y,100);break;

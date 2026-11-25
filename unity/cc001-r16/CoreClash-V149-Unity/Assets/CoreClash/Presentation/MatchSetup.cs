@@ -68,7 +68,8 @@ namespace CoreClash.Presentation
             if (Map != RandomMap && MapById(Map) == null) Map = RandomMap;
             DamageNumbers = PlayerPrefs.GetInt("cc.show.damageNumbers", 0) == 1;
             Theme.ShowHpNumber = PlayerPrefs.GetInt("cc.show.hpNumbers", 0) == 1;
-            BoardView.ShowStopEstimate = PlayerPrefs.GetInt("cc.show.stopMark", 1) == 1;
+            // Aim help, 0-4. A player who had switched the old stop mark off keeps it off (level 0).
+            BoardView.AimHelp = Mathf.Clamp(PlayerPrefs.GetInt("cc.aim.help", PlayerPrefs.GetInt("cc.show.stopMark", 1) == 1 ? BoardView.AimHelpDefault : 0), 0, BoardView.AimHelpLevels - 1);
             Color1 = Mathf.Clamp(PlayerPrefs.GetInt("cc.color.p1", 0), 0, Theme.PlayerColors.Length - 1);
             Color2 = Mathf.Clamp(PlayerPrefs.GetInt("cc.color.p2", 1), 0, Theme.PlayerColors.Length - 1);
             if (Color2 == Color1) Color2 = NextColor(1, 1);
@@ -90,6 +91,9 @@ namespace CoreClash.Presentation
             if (at >= 0 && at + 1 < args.Length && float.TryParse(args[at + 1], NumberStyles.Float, CultureInfo.InvariantCulture, out float scale)) BallScale = Mathf.Clamp(scale, .5f, 3f);
             at = Array.IndexOf(args, "--cc-map");
             if (at >= 0 && at + 1 < args.Length && (args[at + 1] == RandomMap || MapById(args[at + 1]) != null)) Map = args[at + 1];
+            // Test hook: the aim help level for a capture run.
+            at = Array.IndexOf(args, "--cc-aim-help");
+            if (at >= 0 && at + 1 < args.Length && int.TryParse(args[at + 1], out int help)) BoardView.AimHelp = Mathf.Clamp(help, 0, BoardView.AimHelpLevels - 1);
             at = Array.IndexOf(args, "--cc-double-turn");
             if (at >= 0 && at + 1 < args.Length) DoubleTurn = args[at + 1] == "1";
         }
@@ -100,7 +104,7 @@ namespace CoreClash.Presentation
             PlayerPrefs.SetString("cc.rule.map", Map);
             PlayerPrefs.SetInt("cc.show.damageNumbers", DamageNumbers ? 1 : 0);
             PlayerPrefs.SetInt("cc.show.hpNumbers", Theme.ShowHpNumber ? 1 : 0);
-            PlayerPrefs.SetInt("cc.show.stopMark", BoardView.ShowStopEstimate ? 1 : 0);
+            PlayerPrefs.SetInt("cc.aim.help", BoardView.AimHelp);
             PlayerPrefs.SetInt("cc.color.p1", Color1);
             PlayerPrefs.SetInt("cc.color.p2", Color2);
             PlayerPrefs.SetInt("cc.ai.level", (int)AiLevel);

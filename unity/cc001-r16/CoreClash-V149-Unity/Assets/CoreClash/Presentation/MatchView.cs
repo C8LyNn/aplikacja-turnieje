@@ -162,7 +162,9 @@ namespace CoreClash.Presentation
             if(Fx.ReducedMotion||age<0||age>=Theme.SelectPop)return 1;
             float t=age/Theme.SelectPop;return 1+.16f*Mathf.Sin(t*Mathf.PI);
         }
-        public void ToggleStopEstimate(){BoardView.ShowStopEstimate=!BoardView.ShowStopEstimate;Debug.Log("CORE_CLASH_STOP_MARK "+BoardView.ShowStopEstimate);}
+        // The aim help level (0-4, see BoardView.AimHelp); the key and the menu button go round the five.
+        public void SetAimHelp(int level){BoardView.AimHelp=Mathf.Clamp(level,0,BoardView.AimHelpLevels-1);MatchSetup.Save();Debug.Log("CORE_CLASH_AIM_HELP "+BoardView.AimHelp);}
+        public void CycleAimHelp(){SetAimHelp((BoardView.AimHelp+1)%BoardView.AimHelpLevels);}
 
         // Compact phone landscape does not use the 810-unit desktop scroll view.
         // Every critical control is drawn from testable MatchLayout rectangles.
@@ -292,7 +294,7 @@ namespace CoreClash.Presentation
             float cell=(w-pad*2-gap)/2;
             Rect Slot(int i)=>new Rect(sheet.x+pad+(i%2)*(cell+gap),sheet.y+pad+(i/2)*(buttonH+gap),cell,buttonH);
             if(MenuButton(Slot(0),IconInspect,boardInspection?Lang.T("Stop inspecting","Koniec podglądu"):Lang.T("Inspect a ball","Obejrzyj kulkę"),Theme.Info,boardInspection)){SetBoardInspection(!boardInspection);phoneMenu=false;}
-            if(MenuButton(Slot(1),IconStop,BoardView.ShowStopEstimate?Lang.T("Stop mark: on","Znacznik stopu: wł."):Lang.T("Stop mark: off","Znacznik stopu: wył."),Theme.Select,BoardView.ShowStopEstimate))ToggleStopEstimate();
+            if(MenuButton(Slot(1),IconStop,Lang.T("Aim help: ","Celowanie: ")+BoardView.AimHelp+"/"+(BoardView.AimHelpLevels-1),Theme.Select,BoardView.AimHelp>0))CycleAimHelp();
             if(MenuButton(Slot(2),Fx.Star,Lang.T("Rules and options","Zasady i opcje"),Theme.Heal,true)){phoneMenu=false;OpenSettings();}
             if(MenuButton(Slot(3),IconLeave,Lang.T("Leave match","Wyjdź z meczu"),Theme.Damage,false)){phoneMenu=false;RequestLeaveMatch();}
         }

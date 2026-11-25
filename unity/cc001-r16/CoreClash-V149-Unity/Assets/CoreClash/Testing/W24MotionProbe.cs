@@ -23,6 +23,39 @@ namespace CoreClash.Testing
         // Frames of Player 1's own aiming turns (the probe's drags, with the shot forecast at work):
         // how many, how many ran long, and the longest. The computer's turns are left out - its
         // thinking takes its own share of a frame.
+        // Forecast check.
+        GameSimulation checkSandbox; int expectId = -1, checks, checkMisses, copyMismatches; float expectX, expectY, checkWorst; bool expectDies; GameState expectIn;
+        readonly StringBuilder checkLog = new StringBuilder();
+        void Expect(GameSimulation live, PlayerCommand command)
+        {
+            try
+            {
+                var copy = JsonUtility.FromJson<GameState>(JsonUtility.ToJson(live.State));
+                // Does the copy carry every position and speed over exactly?
+                for (int i = 0; i < live.State.balls.Count && i < copy.balls.Count; i++)
+                {
+                    var a = live.State.balls[i]; var b = copy.balls[i];
+                    if (a.x != b.x || a.y != b.y || a.vx != b.vx || a.vy != b.vy || a.radius != b.radius || a.mass != b.mass) copyMismatches++;
+                }
+                copy.events.Clear();
+                if (checkSandbox == null) { var deck = live.Catalog.AllDecks.First(); checkSandbox = new GameSimulation(live.Catalog, deck, deck) { ActiveRosterOnly = true }; }
+                var forecast = ShotForecast.Begin(checkSandbox, copy, command);
+                for (int guard = 0; guard < 400 && !forecast.Advance(64); guard++) { }
+                if (!forecast.Valid) return;
+                expectId = forecast.MoverId; expectX = forecast.StopX; expectY = forecast.StopY; expectDies = forecast.MoverDies; expectIn = live.State;
+            }
+            catch (Exception e) { checkLog.Append(" error:").Append(e.GetType().Name); }
+        }
+        void Compare(GameSimulation sim)
+        {
+            if (expectId < 0 || sim.State.phase == MatchPhase.Moving || !ReferenceEquals(sim.State, expectIn)) return;
+            var ball = sim.State.balls.FirstOrDefault(b => b.id == expectId); int id = expectId; expectId = -1;
+            checks++;
+            bool gone = ball == null || ball.dead;
+            float off = gone ? (expectDies ? 0 : 999) : expectDies ? 999 : Mathf.Sqrt((ball.x - expectX) * (ball.x - expectX) + (ball.y - expectY) * (ball.y - expectY));
+            checkWorst = Mathf.Max(checkWorst, off);
+            if (off > .01f) { checkMisses++; if (checkLog.Length < 400) checkLog.Append(' ').Append(off.ToString("0.00", CultureInfo.InvariantCulture)).Append("@ball").Append(id).Append("t").Append(sim.State.turnNumber); }
+        }
         int aimFrames, aimLate; float aimSum, aimMax; readonly StringBuilder aimLong = new StringBuilder();
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -39,6 +72,11 @@ namespace CoreClash.Testing
             // --cc-motion-nostop: this run aims without the stop mark (and so without the forecast),
             // to tell what the forecast costs from what aiming costs anyway.
             probe.noStopMark = Array.IndexOf(args, "--cc-motion-nostop") >= 0;
+            // --cc-forecast-check: before every shot of the local player the whole shot is forecast
+            // from a copy of the match made the way the game makes it, and when the real shot has
+            // come to rest the two are compared. Also counts numbers the copy does not carry over
+            // exactly. The result is in the log's first line.
+            if (Array.IndexOf(args, "--cc-forecast-check") >= 0) CoreClashApp.BeforeLocalShot = probe.Expect;
             Application.runInBackground = true;
         }
 
@@ -47,8 +85,9 @@ namespace CoreClash.Testing
         void LateUpdate()
         {
             if (uncapped && QualitySettings.vSyncCount != 0) QualitySettings.vSyncCount = 0;
-            if (noStopMark) BoardView.ShowStopEstimate = false;
+            if (noStopMark) BoardView.AimHelp = 0;
             var sim = app.Simulation; if (sim == null) return;
+            Compare(sim);
             int steps = sim.State.frame - lastSimFrame; lastSimFrame = sim.State.frame;
             int painted = repaints; repaints = 0;
             if (sim.State.phase == MatchPhase.Aiming && sim.State.turn == 0)
@@ -72,7 +111,8 @@ namespace CoreClash.Testing
         {
             var display = Screen.mainWindowDisplayInfo;
             string head = "# display=" + display.name + " refresh=" + display.refreshRate.value.ToString("0.0", CultureInfo.InvariantCulture) + " vsync=" + QualitySettings.vSyncCount + " target=" + Application.targetFrameRate + " api=" + SystemInfo.graphicsDeviceType + " gpu=" + SystemInfo.graphicsDeviceName
-                + " aimFrames=" + aimFrames + " aimMeanMs=" + (aimFrames > 0 ? aimSum / aimFrames : 0).ToString("0.00", CultureInfo.InvariantCulture) + " aimLate=" + aimLate + " aimMaxMs=" + aimMax.ToString("0.00", CultureInfo.InvariantCulture) + " aimLong=" + aimLong + '\n';
+                + " aimFrames=" + aimFrames + " aimMeanMs=" + (aimFrames > 0 ? aimSum / aimFrames : 0).ToString("0.00", CultureInfo.InvariantCulture) + " aimLate=" + aimLate + " aimMaxMs=" + aimMax.ToString("0.00", CultureInfo.InvariantCulture) + " aimLong=" + aimLong
+                + " forecastChecks=" + checks + " forecastMisses=" + checkMisses + " forecastWorst=" + checkWorst.ToString("0.000", CultureInfo.InvariantCulture) + " copyMismatches=" + copyMismatches + " forecastOff=" + checkLog + '\n';
             try { File.WriteAllText(path, head + log); } catch (Exception) { }
         }
     }
