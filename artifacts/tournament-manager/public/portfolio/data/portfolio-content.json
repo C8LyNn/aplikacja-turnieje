@@ -1,0 +1,928 @@
+{
+ "schemaVersion": "portfolio-r13-1",
+ "edition": "R13",
+ "intro": {
+  "pl": {
+   "title": "Game Designer / Systems Designer",
+   "description": "Projektuję mechaniki, ekonomię i systemy rozgrywki. Pokazuję konkretne decyzje projektowe, działające prototypy i materiały źródłowe.",
+   "eyebrow": "JAKUB POWIERSKI · PORTFOLIO",
+   "explore": "Zobacz projekty",
+   "projects": "Wybrane projekty"
+  },
+  "en": {
+   "title": "Game Designer / Systems Designer",
+   "description": "I design gameplay mechanics, economies and interconnected systems. My case studies show design choices, working prototypes and original project evidence.",
+   "eyebrow": "JAKUB POWIERSKI · PORTFOLIO",
+   "explore": "Explore projects",
+   "projects": "Selected projects"
+  }
+ },
+ "projects": [
+  {
+   "id": "warehousecoop",
+   "slug": "warehousecoop",
+   "label": "WarehouseCoop",
+   "accent": "#e6b373",
+   "category": {
+    "pl": "Kooperacja / logistyka",
+    "en": "Co-op / logistics"
+   },
+   "role": {
+    "pl": "Lider projektu / Game Design",
+    "en": "Project Lead / Game Design"
+   },
+   "stage": {
+    "pl": "Materiały archiwalne",
+    "en": "Archived project"
+   },
+   "caseTitle": {
+    "pl": "Co kupić, gdy magazyn przestaje nadążać?",
+    "en": "What should the team upgrade when the warehouse bottlenecks?"
+   },
+   "contribution": {
+    "pl": "Zaprojektowałem przepływ dostaw, interakcje i rozwój magazynu. Pełniłem funkcję lidera zespołu czterech programistów i siedmiu grafików.",
+    "en": "Designed delivery flow, interactions and warehouse progression. Led a team of four programmers and seven artists."
+   },
+   "sourceSummary": {
+    "pl": "Oryginalne plansze GDD, zrzuty z prototypu Unity i wybrane grafiki z portfolio praktyk.",
+    "en": "Original GDD visuals, Unity prototype captures and selected internship portfolio graphics."
+   },
+   "pl": {
+    "overview": "Kooperacyjna gra o pracy w magazynie. Gracze obsługują dostawy, sortują paczki, realizują wysyłki i rozwijają infrastrukturę.",
+    "playerLoop": [
+     "Przyjmij dostawę i rozdziel obowiązki w zespole.",
+     "Sortuj paczki i kieruj je do odpowiednich stanowisk.",
+     "Wykorzystaj zarobki, by usprawnić przestrzeń lub transport."
+    ],
+    "caseStudy": {
+     "problem": "Zator może wynikać zarówno z braku miejsca, jak i zbyt długiej trasy paczek.",
+     "decision": "Rozdzieliłem odpowiedzialności między stanowiska oraz dwa rodzaje inwestycji: zwiększenie przestrzeni i skrócenie transportu.",
+     "playerImpact": "Zespół musi rozpoznać rodzaj wąskiego gardła i dobrać ulepszenie do problemu.",
+     "existingEvidence": "W portfolio R08 są schematy obiegu paczek, cztery osie rozwoju oraz reguły tub i taśm z GDD.",
+     "limitation": "Schemat nie jest ilościowym pomiarem wydajności."
+    }
+   },
+   "en": {
+    "overview": "A cooperative warehouse management game: players receive deliveries, sort parcels, fulfil orders and develop logistics infrastructure.",
+    "playerLoop": [
+     "Receive deliveries and divide responsibilities.",
+     "Sort parcels and move them between workstations.",
+     "Reinvest earnings in storage capacity or transport."
+    ],
+    "caseStudy": {
+     "problem": "Bottlenecks may come from limited capacity or lengthy parcel routes.",
+     "decision": "Split responsibilities by workstation and separated capacity upgrades from transport shortcuts.",
+     "playerImpact": "Teams diagnose the bottleneck and choose the upgrade that addresses it.",
+     "existingEvidence": "R08 includes parcel-flow diagrams, four upgrade axes, and GDD rules for tubes and belts.",
+     "limitation": "Diagrams are not quantitative evidence of performance."
+    }
+   },
+   "featuredImage": "warehouse-hero.webp",
+   "images": [
+    {
+     "file": "warehouse-hero.webp",
+     "role": "hero",
+     "kind": "prototype",
+     "title": {
+      "pl": "Widok hali magazynowej w prototypie",
+      "en": "Warehouse prototype: warehouse floor"
+     },
+     "caption": {
+      "pl": "Oryginalny kadr gry lub interfejsu. Pokazuje stan z chwili wykonania materiału, nie dowodzi nowszego builda.",
+      "en": "Original game or interface frame. Shows the recorded state, not evidence of a newer build."
+     },
+     "alt": {
+      "pl": "Widok hali magazynowej w prototypie",
+      "en": "Warehouse prototype: warehouse floor"
+     },
+     "source": {
+      "pl": "Portfolio R08 — historyczny kadr prototypu",
+      "en": "Portfolio R08 — archived prototype capture"
+     },
+     "page": 2
+    },
+    {
+     "file": "warehouse-wimdoms.webp",
+     "role": "evidence",
+     "kind": "prototype",
+     "title": {
+      "pl": "Terminal Wimdoms: wybór rozwinięcia magazynu",
+      "en": "Wimdoms terminal: warehouse upgrade choice"
+     },
+     "caption": {
+      "pl": "Oryginalny kadr gry lub interfejsu. Pokazuje stan z chwili wykonania materiału, nie dowodzi nowszego builda.",
+      "en": "Original game or interface frame. Shows the recorded state, not evidence of a newer build."
+     },
+     "alt": {
+      "pl": "Terminal Wimdoms: wybór rozwinięcia magazynu",
+      "en": "Wimdoms terminal: warehouse upgrade choice"
+     },
+     "source": {
+      "pl": "Portfolio R08 — historyczny kadr prototypu",
+      "en": "Portfolio R08 — archived prototype capture"
+     },
+     "page": 5
+    },
+    {
+     "file": "warehouse-gdd-progression.webp",
+     "role": "evidence",
+     "kind": "gdd",
+     "title": {
+      "pl": "Cztery gałęzie inwestycji: Area, Equipment, Trucks i Packages",
+      "en": "Four progression branches: Area, Equipment, Trucks and Packages"
+     },
+     "caption": {
+      "pl": "Oddzielne drzewka odpowiadają na różne ograniczenia magazynu: przestrzeń, sprzęt, przepustowość i rodzaje przesyłek.",
+      "en": "Separate upgrade trees address space, equipment, truck throughput and parcel complexity."
+     },
+     "alt": {
+      "pl": "Cztery gałęzie inwestycji: Area, Equipment, Trucks i Packages",
+      "en": "Four progression branches: Area, Equipment, Trucks and Packages"
+     },
+     "source": {
+      "pl": "GDD Warehouse COOP, slajd 17 — zapis źródłowy w portfolio",
+      "en": "Warehouse COOP GDD, slide 17 — source record in the portfolio"
+     },
+     "page": 1
+    },
+    {
+     "file": "warehouse-gdd-transport.webp",
+     "role": "evidence",
+     "kind": "gdd",
+     "title": {
+      "pl": "Zasady tub i taśm — projekt transportu paczek",
+      "en": "Tube and conveyor rules — parcel transport design"
+     },
+     "caption": {
+      "pl": "Tuby mają przenosić paczki między punktami, a taśmy przesuwać je poziomo. To opis reguły, nie pomiar jej skuteczności.",
+      "en": "Tubes are specified to transfer parcels between points, while belts move them horizontally. This is a rule specification, not a performance measurement."
+     },
+     "alt": {
+      "pl": "Zasady tub i taśm — projekt transportu paczek",
+      "en": "Tube and conveyor rules — parcel transport design"
+     },
+     "source": {
+      "pl": "GDD Warehouse COOP, slajd 29 — fragment reguł",
+      "en": "Warehouse COOP GDD, slide 29 — rules excerpt"
+     },
+     "page": 2
+    },
+    {
+     "file": "warehouse-prototype-placement.webp",
+     "role": "evidence",
+     "kind": "prototype",
+     "title": {
+      "pl": "Wstawianie wyposażenia w hali — prototyp",
+      "en": "Placing equipment on the warehouse floor — prototype"
+     },
+     "caption": {
+      "pl": "Kadr pokazuje miejsce wybranego obiektu i przestrzeń wokół. Sam nie potwierdza ukończonego systemu ekonomii.",
+      "en": "The frame shows a placement spot and surrounding space, not proof of a complete economy."
+     },
+     "alt": {
+      "pl": "Wstawianie wyposażenia w hali — prototyp",
+      "en": "Placing equipment on the warehouse floor — prototype"
+     },
+     "source": {
+      "pl": "WarehouseCoop, prototyp Unity; dokumentacja portfolio, strona 4",
+      "en": "WarehouseCoop, Unity prototype; portfolio documentation, page 4"
+     },
+     "page": 4
+    },
+    {
+     "file": "internship-unity-blockout.webp",
+     "role": "evidence",
+     "kind": "internship",
+     "title": {
+      "pl": "Szkice ramp, przejść i hali — blocking w Unity",
+      "en": "Ramps, walkways and warehouse blockout in Unity"
+     },
+     "caption": {
+      "pl": "Zestaw szkiców i kadrów z Unity pokazuje przygotowanie geometrii oraz wskazówek dla zespołu graficznego.",
+      "en": "Sketches and Unity captures show the spatial blockout and references prepared for the art team."
+     },
+     "alt": {
+      "pl": "Szkice ramp, przejść i hali — blocking w Unity",
+      "en": "Ramps, walkways and warehouse blockout in Unity"
+     },
+     "source": {
+      "pl": "Portfolio zaliczeniowe praktyk, załączniki graficzne, strona 8",
+      "en": "Internship assessment portfolio, graphic appendices, page 8"
+     },
+     "page": 8
+    },
+    {
+     "file": "internship-tier-math.webp",
+     "role": "evidence",
+     "kind": "internship",
+     "title": {
+      "pl": "Warianty tierów i prawdopodobieństw — tabela robocza",
+      "en": "Tier and probability variants — working spreadsheet"
+     },
+     "caption": {
+      "pl": "Tabela pokazuje ręczne warianty procentów oraz mnożników. Nie przedstawia finalnego balansu ani wyników playtestów.",
+      "en": "The table shows candidate percentages and multipliers, not final balance or playtest results."
+     },
+     "alt": {
+      "pl": "Warianty tierów i prawdopodobieństw — tabela robocza",
+      "en": "Tier and probability variants — working spreadsheet"
+     },
+     "source": {
+      "pl": "Portfolio zaliczeniowe praktyk, załączniki graficzne, strona 7",
+      "en": "Internship assessment portfolio, graphic appendices, page 7"
+     },
+     "page": 7
+    }
+   ]
+  },
+  {
+   "id": "cuckoo-clock",
+   "slug": "cuckoo-clock",
+   "label": "Cuckoo Clock",
+   "accent": "#e6bd68",
+   "category": {
+    "pl": "Platformówka / projektowanie poziomów",
+    "en": "Platformer / level design"
+   },
+   "role": {
+    "pl": "Level Design / UX gracza",
+    "en": "Level Design / Player UX"
+   },
+   "stage": {
+    "pl": "Archiwalny prototyp",
+    "en": "Archived prototype"
+   },
+   "caseTitle": {
+    "pl": "Podpowiedź w miejscu, w którym można z niej skorzystać",
+    "en": "Teach a mechanic where the player can use it"
+   },
+   "contribution": {
+    "pl": "Po testach rozbudowałem tutorial, wskazówki przy obiektach i sposób orientacji w poziomie.",
+    "en": "Iterated the tutorial after tests, focusing on contextual prompts and navigation through the level."
+   },
+   "sourceSummary": {
+    "pl": "Źródłowe kadry uczelniane pokazują układ planszy, licznik pierwszej dźwigni, działanie tłoka i HUD.",
+    "en": "Academic source frames show the level layout, the first lever progress, the timed piston and HUD."
+   },
+   "pl": {
+    "overview": "Platformówka o mechanicznej kukułce eksplorującej wnętrze zegara, rozwiązującej zadania i omijającej pułapki.",
+    "playerLoop": [
+     "Eksploruj kolejne części mechanizmu zegara.",
+     "Aktywuj dwie dźwignie i zdobądź klucz.",
+     "Wróć do wyjścia, omijając pułapki czasowe."
+    ],
+    "caseStudy": {
+     "problem": "Wcześniejsi testerzy wracali do tych samych miejsc i gubili kierunek. Sama obecność przedmiotu nie wyjaśniała, co zrobić dalej.",
+     "decision": "Umieściłem krótkie podpowiedzi przy półce z kasetą naciągu i powiązałem kolejny krok z widoczną zmianą interfejsu po jej użyciu.",
+     "playerImpact": "Gracz poznaje zasadę dokładnie tam, gdzie może ją sprawdzić, a zmianę stanu rozpoznaje bez szukania osobnej instrukcji.",
+     "existingEvidence": "R08, str. 12: kadr tutorialu oraz dwa stany interfejsu podczas użycia kasety; oryginalny fragment nagrania 00:58–01:22.",
+     "limitation": "To dowód działania sekwencji, nie wynik porównawczego badania skuteczności całego tutorialu."
+    }
+   },
+   "en": {
+    "overview": "A platformer about a mechanical cuckoo exploring the inside of a clock, solving environmental challenges and avoiding traps.",
+    "playerLoop": [
+     "Explore the clockwork environment.",
+     "Activate two levers and obtain the key.",
+     "Return to the exit while timing movement through traps."
+    ],
+    "caseStudy": {
+     "problem": "Earlier testers revisited the same areas and lost their bearings. An item on a shelf did not explain the next step by itself.",
+     "decision": "Placed short prompts by the winding cassette and linked the action to a visible UI change after using it.",
+     "playerImpact": "Players learn a rule where they can immediately try it and recognise the changed state without finding a separate instruction.",
+     "existingEvidence": "R08, p. 12: a tutorial frame and two UI states during cassette use; the original video segment spans 00:58–01:22.",
+     "limitation": "This demonstrates the interaction, not the comparative effectiveness of the entire tutorial."
+    }
+   },
+   "featuredImage": "cuckoo-hero.webp",
+   "images": [
+    {
+     "file": "cuckoo-hero.webp",
+     "role": "hero",
+     "kind": "prototype",
+     "title": {
+      "pl": "Mapa zegara z mechanizmami i licznikiem postępu",
+      "en": "Clockwork level with mechanisms and progress counter"
+     },
+     "caption": {
+      "pl": "Oryginalny kadr gry lub interfejsu. Pokazuje stan z chwili wykonania materiału, nie dowodzi nowszego builda.",
+      "en": "Original game or interface frame. Shows the recorded state, not evidence of a newer build."
+     },
+     "alt": {
+      "pl": "Mapa zegara z mechanizmami i licznikiem postępu",
+      "en": "Clockwork level with mechanisms and progress counter"
+     },
+     "source": {
+      "pl": "Portfolio R08 — historyczny kadr prototypu",
+      "en": "Portfolio R08 — archived prototype capture"
+     },
+     "page": 10
+    },
+    {
+     "file": "cuckoo-tutorial.webp",
+     "role": "evidence",
+     "kind": "prototype",
+     "title": {
+      "pl": "Kadr tutorialu z podpowiedziami przy kasecie naciągu",
+      "en": "Tutorial frame with contextual hints by the winding cassette"
+     },
+     "caption": {
+      "pl": "Oryginalny kadr gry lub interfejsu. Pokazuje stan z chwili wykonania materiału, nie dowodzi nowszego builda.",
+      "en": "Original game or interface frame. Shows the recorded state, not evidence of a newer build."
+     },
+     "alt": {
+      "pl": "Kadr tutorialu z podpowiedziami przy kasecie naciągu",
+      "en": "Tutorial frame with contextual hints by the winding cassette"
+     },
+     "source": {
+      "pl": "Portfolio R08 — historyczny kadr prototypu",
+      "en": "Portfolio R08 — archived prototype capture"
+     },
+     "page": 12
+    },
+    {
+     "file": "cuckoo-student-level-overview.webp",
+     "role": "evidence",
+     "kind": "academic",
+     "title": {
+      "pl": "Rozłożenie pułapek i przejść na planszy",
+      "en": "Platforming hazards and traversal routes"
+     },
+     "caption": {
+      "pl": "Pełniejszy kadr poziomu pokazuje rozmieszczenie stref i potencjalnych dróg gracza.",
+      "en": "A wider level frame reveals hazard placement and possible routes."
+     },
+     "alt": {
+      "pl": "Rozłożenie pułapek i przejść na planszy",
+      "en": "Platforming hazards and traversal routes"
+     },
+     "source": {
+      "pl": "Cuckoo Clock, portfolio projektu uczelnianego, strona 1",
+      "en": "Cuckoo Clock, university project portfolio, page 1"
+     },
+     "page": 1
+    },
+    {
+     "file": "cuckoo-student-lever-before.webp",
+     "role": "evidence",
+     "kind": "academic",
+     "title": {
+      "pl": "Pierwsza dźwignia — potwierdzony licznik 1/2",
+      "en": "First lever — confirmed 1/2 progress"
+     },
+     "caption": {
+      "pl": "Kadr z 141,10 s pokazuje stan licznika po pierwszej aktywacji; to nie jest stan sprzed interakcji.",
+      "en": "Frame at 141.10 s shows progress after the first activation, not a pre-interaction state."
+     },
+     "alt": {
+      "pl": "Pierwsza dźwignia — potwierdzony licznik 1/2",
+      "en": "First lever — confirmed 1/2 progress"
+     },
+     "source": {
+      "pl": "Cuckoo Clock, portfolio projektu uczelnianego, strona 3",
+      "en": "Cuckoo Clock, university project portfolio, page 3"
+     },
+     "page": 3
+    },
+    {
+     "file": "cuckoo-student-piston.webp",
+     "role": "evidence",
+     "kind": "academic",
+     "title": {
+      "pl": "Tłok po cofnięciu — przejście pod głowicą",
+      "en": "Retracted piston — passing beneath the head"
+     },
+     "caption": {
+      "pl": "Kadr z ok. 188 s pokazuje przelot pod tłokiem po cofnięciu przeszkody. Gracz musi zsynchronizować ruch z jej cyklem.",
+      "en": "A frame around 188 s shows traversal beneath a retracting piston. Players must time their movement with the obstacle cycle."
+     },
+     "alt": {
+      "pl": "Tłok po cofnięciu — przejście pod głowicą",
+      "en": "Retracted piston — passing beneath the head"
+     },
+     "source": {
+      "pl": "Cuckoo Clock, portfolio projektu uczelnianego, strona 2",
+      "en": "Cuckoo Clock, university project portfolio, page 2"
+     },
+     "page": 2
+    },
+    {
+     "file": "cuckoo-student-hud.webp",
+     "role": "evidence",
+     "kind": "academic",
+     "title": {
+      "pl": "HUD: licznik dźwigni, ekwipunek i zegar",
+      "en": "HUD: lever count, inventory and clock"
+     },
+     "caption": {
+      "pl": "Jednoczesny widok postępu, aktywnego wyposażenia i zegara pokazuje, jak gra informuje o celu i zasobach.",
+      "en": "The progress counter, equipped items and clock communicate objectives and available resources."
+     },
+     "alt": {
+      "pl": "HUD: licznik dźwigni, ekwipunek i zegar",
+      "en": "HUD: lever count, inventory and clock"
+     },
+     "source": {
+      "pl": "Cuckoo Clock, portfolio projektu uczelnianego, strona 4",
+      "en": "Cuckoo Clock, university project portfolio, page 4"
+     },
+     "page": 4
+    }
+   ]
+  },
+  {
+   "id": "roborougelike",
+   "slug": "roborougelike",
+   "label": "RoboRougelike",
+   "accent": "#6cdac2",
+   "category": {
+    "pl": "Action roguelike / budowa pojazdów",
+    "en": "Action roguelike / vehicle building"
+   },
+   "role": {
+    "pl": "Główny projektant gry / System Design",
+    "en": "Lead Game Designer / Systems Design"
+   },
+   "stage": {
+    "pl": "W rozwoju",
+    "en": "In development"
+   },
+   "caseTitle": {
+    "pl": "Pokaż utratę części, zanim gracz podejmie kolejną decyzję",
+    "en": "Show component loss before the next combat decision"
+   },
+   "contribution": {
+    "pl": "Jako główny projektant definiuję funkcje części, zasady ich uszkadzania oraz pętlę budowy i walki. Prototyp powstaje z pomocą narzędzi AI.",
+    "en": "As lead designer, I define component roles, damage rules and the build–combat loop. The prototype is developed with AI-assisted tools."
+   },
+   "sourceSummary": {
+    "pl": "Oryginalne kadry z archiwalnego portfolio R08.",
+    "en": "Original captures from the archived R08 portfolio."
+   },
+   "pl": {
+    "overview": "Action roguelike, w którym gracz konstruuje bojowy pojazd z modułów, walczy z maszynami i rozwija konstrukcję dzięki zdobytym częściom.",
+    "playerLoop": [
+     "Zbuduj pojazd i wybierz wyposażenie.",
+     "Walcz i zdobywaj części po starciach.",
+     "Wróć do garażu, przebuduj pojazd i rusz do kolejnej areny."
+    ],
+    "caseStudy": {
+     "problem": "Jeden ogólny pasek zdrowia nie tłumaczy utraty pojedynczego elementu konstrukcji.",
+     "decision": "Części mają odrębne funkcje; zniszczony element może odpaść i wywołać czytelny komunikat.",
+     "playerImpact": "Gracz widzi, którą część utracił i jaki system jest zagrożony; wpływ na faktyczne sterowanie wymaga dodatkowego pomiaru.",
+     "existingEvidence": "R08 zawiera nagranie odpadnięcia koła i komunikatu HUD.",
+     "limitation": "Nie wykazano jeszcze, że utrata koła zmienia zachowanie pojazdu przy tym samym manewrze."
+    }
+   },
+   "en": {
+    "overview": "An action roguelike where players assemble a combat vehicle from modular parts, fight machines and rebuild using recovered components.",
+    "playerLoop": [
+     "Build and equip a vehicle.",
+     "Fight and recover parts from encounters.",
+     "Return to the garage, rebuild and tackle the next arena."
+    ],
+    "caseStudy": {
+     "problem": "A single health bar does not communicate the loss of a specific vehicle component.",
+     "decision": "Components have distinct functions; destroyed parts can detach with readable feedback.",
+     "playerImpact": "Players can see which part they lost and which system is at risk; a handling comparison is still needed.",
+     "existingEvidence": "R08 includes a clip of wheel detachment and HUD feedback.",
+     "limitation": "The existing footage does not yet prove altered handling under identical input."
+    }
+   },
+   "featuredImage": "robo-hero.webp",
+   "images": [
+    {
+     "file": "robo-hero.webp",
+     "role": "hero",
+     "kind": "prototype",
+     "title": {
+      "pl": "Modułowy pojazd bojowy na arenie",
+      "en": "Modular combat vehicle in an arena"
+     },
+     "caption": {
+      "pl": "Oryginalny kadr gry lub interfejsu. Pokazuje stan z chwili wykonania materiału, nie dowodzi nowszego builda.",
+      "en": "Original game or interface frame. Shows the recorded state, not evidence of a newer build."
+     },
+     "alt": {
+      "pl": "Modułowy pojazd bojowy na arenie",
+      "en": "Modular combat vehicle in an arena"
+     },
+     "source": {
+      "pl": "Portfolio R08 — historyczny kadr prototypu",
+      "en": "Portfolio R08 — archived prototype capture"
+     },
+     "page": 16
+    },
+    {
+     "file": "robo-wheel.webp",
+     "role": "evidence",
+     "kind": "prototype",
+     "title": {
+      "pl": "Kadr prototypu: pojazd po utracie koła",
+      "en": "Prototype frame: a vehicle after wheel loss"
+     },
+     "caption": {
+      "pl": "Oryginalny kadr gry lub interfejsu. Pokazuje stan z chwili wykonania materiału, nie dowodzi nowszego builda.",
+      "en": "Original game or interface frame. Shows the recorded state, not evidence of a newer build."
+     },
+     "alt": {
+      "pl": "Kadr prototypu: pojazd po utracie koła",
+      "en": "Prototype frame: a vehicle after wheel loss"
+     },
+     "source": {
+      "pl": "Portfolio R08 — historyczny kadr prototypu",
+      "en": "Portfolio R08 — archived prototype capture"
+     },
+     "page": 19
+    }
+   ]
+  },
+  {
+   "id": "core-clash",
+   "slug": "core-clash",
+   "label": "Core Clash",
+   "accent": "#899cf9",
+   "category": {
+    "pl": "Pojedynek turowy / systemy walki",
+    "en": "Turn-based / combat systems"
+   },
+   "role": {
+    "pl": "Projektant systemów gry / UX walki",
+    "en": "Game Systems Design / Combat UX"
+   },
+   "stage": {
+    "pl": "Prototyp",
+    "en": "Prototype"
+   },
+   "caseTitle": {
+    "pl": "Przewiduj strzał, nie zasłaniając celu",
+    "en": "Predict a shot without hiding the target"
+   },
+   "contribution": {
+    "pl": "Zaprojektowałem zdolności kul, sekwencje wyzwalaczy oraz zasady informacji zwrotnej przy celowaniu. Prototypy testuję z pomocą narzędzi AI.",
+    "en": "Designed ball abilities, trigger resolution and shot-feedback rules; prototype iterations use AI-assisted development tools."
+   },
+   "sourceSummary": {
+    "pl": "Oryginalne kadry z archiwalnego portfolio R08.",
+    "en": "Original captures from the archived R08 portfolio."
+   },
+   "pl": {
+    "overview": "Turowy pojedynek, w którym gracze wystrzeliwują kulki o różnych właściwościach, planują trajektorie i łączą efekty, by zniszczyć bazę rywala.",
+    "playerLoop": [
+     "Wybierz kulę i oceń układ planszy.",
+     "Ustal kierunek oraz siłę strzału.",
+     "Obserwuj kolejność efektów i zaplanuj następną turę."
+    ],
+    "caseStudy": {
+     "problem": "Predykcja strzału zasłaniała cele i wartości HP w gęstym układzie.",
+     "decision": "Przeniosłem napis EST. STOP poza cele, zachowując znacznik końca trajektorii i HP kul.",
+     "playerImpact": "Gracz może jednocześnie analizować strzał i stan przeciwnika.",
+     "existingEvidence": "R08 zawiera porównanie tego samego kadru przed i po, z 30 i 25 HP.",
+     "limitation": "To dowód czytelności konkretnego układu, nie wynik szerszego badania UX. Synergia Fire → Ash Core wymaga nagrania."
+    }
+   },
+   "en": {
+    "overview": "A turn-based duel where players launch ability-driven balls, plan trajectories and combine interactions to destroy an opposing base.",
+    "playerLoop": [
+     "Select a ball and assess the board.",
+     "Set shot direction and power.",
+     "Resolve effects and plan the next turn."
+    ],
+    "caseStudy": {
+     "problem": "Shot prediction labels obscured targets and HP values on dense boards.",
+     "decision": "Moved the EST. STOP label away from targets while preserving trajectory and HP indicators.",
+     "playerImpact": "Players can inspect the planned shot and target state together.",
+     "existingEvidence": "R08 contains a same-state before/after with 30 and 25 HP visible.",
+     "limitation": "This verifies one composition, not broad usability. Fire → Ash Core still needs a full recording."
+    }
+   },
+   "featuredImage": "core-hero.webp",
+   "images": [
+    {
+     "file": "core-hero.webp",
+     "role": "hero",
+     "kind": "prototype",
+     "title": {
+      "pl": "Prototyp Core Clash: arena i wybór kuli",
+      "en": "Core Clash prototype: arena and ball selection"
+     },
+     "caption": {
+      "pl": "Oryginalny kadr gry lub interfejsu. Pokazuje stan z chwili wykonania materiału, nie dowodzi nowszego builda.",
+      "en": "Original game or interface frame. Shows the recorded state, not evidence of a newer build."
+     },
+     "alt": {
+      "pl": "Prototyp Core Clash: arena i wybór kuli",
+      "en": "Core Clash prototype: arena and ball selection"
+     },
+     "source": {
+      "pl": "Portfolio R08 — historyczny kadr prototypu",
+      "en": "Portfolio R08 — archived prototype capture"
+     },
+     "page": 22
+    },
+    {
+     "file": "core-before-after.webp",
+     "role": "evidence",
+     "kind": "prototype",
+     "title": {
+      "pl": "Porównanie tego samego układu celowania przed i po poprawce",
+      "en": "Same aiming setup before and after the readability fix"
+     },
+     "caption": {
+      "pl": "Oryginalny kadr gry lub interfejsu. Pokazuje stan z chwili wykonania materiału, nie dowodzi nowszego builda.",
+      "en": "Original game or interface frame. Shows the recorded state, not evidence of a newer build."
+     },
+     "alt": {
+      "pl": "Porównanie tego samego układu celowania przed i po poprawce",
+      "en": "Same aiming setup before and after the readability fix"
+     },
+     "source": {
+      "pl": "Portfolio R08 — historyczny kadr prototypu",
+      "en": "Portfolio R08 — archived prototype capture"
+     },
+     "page": 28
+    }
+   ]
+  },
+  {
+   "id": "tournament-manager",
+   "slug": "tournament-manager",
+   "label": "Tournament Manager",
+   "accent": "#64bacc",
+   "category": {
+    "pl": "Aplikacja webowa / organizacja turniejów",
+    "en": "Web app / tournament operations"
+   },
+   "role": {
+    "pl": "Projektant produktu / UX",
+    "en": "Product Design / UX"
+   },
+   "stage": {
+    "pl": "Aktywny projekt · kadry archiwalne",
+    "en": "Active project · archived captures"
+   },
+   "caseTitle": {
+    "pl": "Jeden wynik, dwie perspektywy",
+    "en": "One result, two user perspectives"
+   },
+   "contribution": {
+    "pl": "Zaprojektowałem ścieżki konfiguracji, prezentację wyników i rozdzielenie ról organizatora oraz widza.",
+    "en": "Designed configuration flows, result presentation and the separation of organizer and spectator experiences."
+   },
+   "sourceSummary": {
+    "pl": "Oryginalne kadry z archiwalnego portfolio R08.",
+    "en": "Original captures from the archived R08 portfolio."
+   },
+   "pl": {
+    "overview": "Aplikacja do prowadzenia małych turniejów. Organizator ustawia format, uczestników i wyniki; widz może śledzić przebieg bez konta gracza.",
+    "playerLoop": [
+     "Utwórz turniej i wybierz format.",
+     "Dodaj uczestników oraz prowadź mecze.",
+     "Publikuj wyniki, klasyfikację i awanse w widoku widza."
+    ],
+    "caseStudy": {
+     "problem": "Organizator potrzebuje szybkich decyzji, a widz czytelnego wyniku bez dostępu administracyjnego.",
+     "decision": "Rozdzieliłem przepływy organizatora i widza, zachowując spójność wyników oraz wyjaśnienia kolejności w tabelach.",
+     "playerImpact": "Obie role widzą ten sam rezultat w interfejsie dostosowanym do swoich zadań.",
+     "existingEvidence": "R08, str. 35–36: testowy mecz Celina–Ada 2:1, tabela widza i awans z grup. Dane przykładowe; zrzuty lokalnego V5.8 z 18.11.2026.",
+     "limitation": "Screeny z V5.8 nie potwierdzają wyglądu ani pełnej funkcjonalności LIVE V6.1."
+    }
+   },
+   "en": {
+    "overview": "A web application for small tournaments. Organizers manage formats, participants and results while spectators follow progress without player accounts.",
+    "playerLoop": [
+     "Create a tournament and choose its format.",
+     "Add participants and manage matches.",
+     "Expose results, standings and progression to spectators."
+    ],
+    "caseStudy": {
+     "problem": "Organizers need quick operational controls while spectators need clear, read-only outcomes.",
+     "decision": "Separated organizer and spectator flows while retaining consistent match results and standings explanations.",
+     "playerImpact": "Both roles see the same outcome through task-specific interfaces.",
+     "existingEvidence": "R08, pp. 35–36: sample Celina–Ada 2:1 match, spectator standings and group advancement. Example data; local V5.8 captures dated 18 Nov 2026.",
+     "limitation": "V5.8 screenshots do not verify the look or complete behaviour of live V6.1."
+    }
+   },
+   "featuredImage": "tournament-hero.webp",
+   "images": [
+    {
+     "file": "tournament-hero.webp",
+     "role": "hero",
+     "kind": "prototype",
+     "title": {
+      "pl": "Kreator turnieju z panelem podsumowania",
+      "en": "Tournament creation wizard with live summary"
+     },
+     "caption": {
+      "pl": "Oryginalny kadr gry lub interfejsu. Pokazuje stan z chwili wykonania materiału, nie dowodzi nowszego builda.",
+      "en": "Original game or interface frame. Shows the recorded state, not evidence of a newer build."
+     },
+     "alt": {
+      "pl": "Kreator turnieju z panelem podsumowania",
+      "en": "Tournament creation wizard with live summary"
+     },
+     "source": {
+      "pl": "Portfolio R08 — historyczny kadr prototypu",
+      "en": "Portfolio R08 — archived prototype capture"
+     },
+     "page": 29
+    },
+    {
+     "file": "tournament-result.webp",
+     "role": "evidence",
+     "kind": "prototype",
+     "title": {
+      "pl": "Wynik testowego meczu Celina – Ada 2:1",
+      "en": "Sample match result, Celina versus Ada 2:1"
+     },
+     "caption": {
+      "pl": "Oryginalny kadr gry lub interfejsu. Pokazuje stan z chwili wykonania materiału, nie dowodzi nowszego builda.",
+      "en": "Original game or interface frame. Shows the recorded state, not evidence of a newer build."
+     },
+     "alt": {
+      "pl": "Wynik testowego meczu Celina – Ada 2:1",
+      "en": "Sample match result, Celina versus Ada 2:1"
+     },
+     "source": {
+      "pl": "Portfolio R08 — historyczny kadr prototypu",
+      "en": "Portfolio R08 — archived prototype capture"
+     },
+     "page": 35
+    },
+    {
+     "file": "tournament-standings.webp",
+     "role": "evidence",
+     "kind": "prototype",
+     "title": {
+      "pl": "Tabela widza po rozstrzygnięciu remisu",
+      "en": "Spectator standings after resolving a tie"
+     },
+     "caption": {
+      "pl": "Oryginalny kadr gry lub interfejsu. Pokazuje stan z chwili wykonania materiału, nie dowodzi nowszego builda.",
+      "en": "Original game or interface frame. Shows the recorded state, not evidence of a newer build."
+     },
+     "alt": {
+      "pl": "Tabela widza po rozstrzygnięciu remisu",
+      "en": "Spectator standings after resolving a tie"
+     },
+     "source": {
+      "pl": "Portfolio R08 — historyczny kadr prototypu",
+      "en": "Portfolio R08 — archived prototype capture"
+     },
+     "page": 35
+    },
+    {
+     "file": "tournament-groups.webp",
+     "role": "evidence",
+     "kind": "prototype",
+     "title": {
+      "pl": "Tabela dwóch grup z oznaczonymi miejscami awansu",
+      "en": "Two group tables with qualifying places marked"
+     },
+     "caption": {
+      "pl": "Oryginalny kadr gry lub interfejsu. Pokazuje stan z chwili wykonania materiału, nie dowodzi nowszego builda.",
+      "en": "Original game or interface frame. Shows the recorded state, not evidence of a newer build."
+     },
+     "alt": {
+      "pl": "Tabela dwóch grup z oznaczonymi miejscami awansu",
+      "en": "Two group tables with qualifying places marked"
+     },
+     "source": {
+      "pl": "Portfolio R08 — historyczny kadr prototypu",
+      "en": "Portfolio R08 — archived prototype capture"
+     },
+     "page": 36
+    },
+    {
+     "file": "tournament-bracket.webp",
+     "role": "evidence",
+     "kind": "prototype",
+     "title": {
+      "pl": "Drabinka półfinałów po awansie z dwóch grup",
+      "en": "Semifinal bracket following qualification from two groups"
+     },
+     "caption": {
+      "pl": "Oryginalny kadr gry lub interfejsu. Pokazuje stan z chwili wykonania materiału, nie dowodzi nowszego builda.",
+      "en": "Original game or interface frame. Shows the recorded state, not evidence of a newer build."
+     },
+     "alt": {
+      "pl": "Drabinka półfinałów po awansie z dwóch grup",
+      "en": "Semifinal bracket following qualification from two groups"
+     },
+     "source": {
+      "pl": "Portfolio R08 — historyczny kadr prototypu",
+      "en": "Portfolio R08 — archived prototype capture"
+     },
+     "page": 36
+    }
+   ]
+  },
+  {
+   "id": "strona-portal",
+   "slug": "strona-portal",
+   "label": "Strona Portal",
+   "accent": "#ba9cf3",
+   "category": {
+    "pl": "Portal / architektura informacji",
+    "en": "Web / information architecture"
+   },
+   "role": {
+    "pl": "Projektant produktu / architektura informacji",
+    "en": "Product Design / Information Architecture"
+   },
+   "stage": {
+    "pl": "Prototyp katalogu",
+    "en": "Directory prototype"
+   },
+   "caseTitle": {
+    "pl": "Od potrzeby do narzędzia bez znajomości jego nazwy",
+    "en": "From user intent to the right tool"
+   },
+   "contribution": {
+    "pl": "Zaprojektowałem grupowanie projektów według potrzeb, strukturę kart i czytelne oznaczenia ich stanu.",
+    "en": "Designed intent-based categories, consistent project-card structure and clearly differentiated project states."
+   },
+   "sourceSummary": {
+    "pl": "Oryginalne kadry z archiwalnego portfolio R08.",
+    "en": "Original captures from the archived R08 portfolio."
+   },
+   "pl": {
+    "overview": "Katalog gier i narzędzi, który pomaga znaleźć właściwy produkt na podstawie zadania użytkownika, a nie znajomości nazwy aplikacji.",
+    "playerLoop": [
+     "Wybierz kategorię odpowiadającą potrzebie.",
+     "Sprawdź opis oraz status projektu.",
+     "Otwórz wybrany produkt lub wróć do katalogu."
+    ],
+    "caseStudy": {
+     "problem": "Osoba szukająca narzędzia może nie znać nazwy żadnego produktu.",
+     "decision": "Zaprojektowałem nawigację od kategorii przez kartę do jednoznacznego działania Otwórz.",
+     "playerImpact": "Użytkownik może przejść od potrzeby do konkretnego wyboru.",
+     "existingEvidence": "R08 pokazuje kategorie Turnieje i OBS / Stream, karty oraz elementy nawigacji.",
+     "limitation": "Nie ma zmierzonego wpływu tego układu na konwersję."
+    }
+   },
+   "en": {
+    "overview": "A directory of games and tools that helps people find the right product based on their task rather than knowing an app name.",
+    "playerLoop": [
+     "Choose a category based on your need.",
+     "Review the project description and status.",
+     "Open the product or return to the catalog."
+    ],
+    "caseStudy": {
+     "problem": "A visitor may know their need but not the product name.",
+     "decision": "Designed a category-to-card-to-open information path.",
+     "playerImpact": "Visitors can move from intent to a concrete selection.",
+     "existingEvidence": "R08 shows Tournament and OBS/Stream categories, product cards and navigation.",
+     "limitation": "No measured conversion lift is available."
+    }
+   },
+   "featuredImage": "portal-hero.webp",
+   "images": [
+    {
+     "file": "portal-hero.webp",
+     "role": "hero",
+     "kind": "prototype",
+     "title": {
+      "pl": "Katalog z kategoriami Turnieje i OBS / Stream",
+      "en": "Directory with Tournaments and OBS / Stream categories"
+     },
+     "caption": {
+      "pl": "Oryginalny kadr gry lub interfejsu. Pokazuje stan z chwili wykonania materiału, nie dowodzi nowszego builda.",
+      "en": "Original game or interface frame. Shows the recorded state, not evidence of a newer build."
+     },
+     "alt": {
+      "pl": "Katalog z kategoriami Turnieje i OBS / Stream",
+      "en": "Directory with Tournaments and OBS / Stream categories"
+     },
+     "source": {
+      "pl": "Portfolio R08 — historyczny kadr prototypu",
+      "en": "Portfolio R08 — archived prototype capture"
+     },
+     "page": 37
+    },
+    {
+     "file": "portal-cards.webp",
+     "role": "evidence",
+     "kind": "prototype",
+     "title": {
+      "pl": "Karty katalogu o spójnym układzie",
+      "en": "Directory cards with a consistent layout"
+     },
+     "caption": {
+      "pl": "Oryginalny kadr gry lub interfejsu. Pokazuje stan z chwili wykonania materiału, nie dowodzi nowszego builda.",
+      "en": "Original game or interface frame. Shows the recorded state, not evidence of a newer build."
+     },
+     "alt": {
+      "pl": "Karty katalogu o spójnym układzie",
+      "en": "Directory cards with a consistent layout"
+     },
+     "source": {
+      "pl": "Portfolio R08 — historyczny kadr prototypu",
+      "en": "Portfolio R08 — archived prototype capture"
+     },
+     "page": 40
+    }
+   ]
+  }
+ ]
+}

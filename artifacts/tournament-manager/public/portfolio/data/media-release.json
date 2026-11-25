@@ -1,0 +1,5 @@
+{
+ "about": "Portfolio R13 media allowlist. A frame is shown publicly only when its file name is listed in approvedImages AND the file sits in public/portfolio/assets/. Add a frame only after the author (and, for team, university or internship material, the rights holder) has approved it. Videos go to public/portfolio/media/ and are listed in publishedVideos as {id, project, file, poster, title:{pl,en}, caption:{pl,en}}.",
+ "approvedImages": [],
+ "publishedVideos": []
+}

@@ -2,6 +2,7 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
+import fs from "fs";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 import { spaHttpRouting } from "./scripts/spa-http-routing";
 
@@ -78,6 +79,39 @@ export default defineConfig({
             );
           }
           next();
+        });
+      },
+    },
+    {
+      // Portfolio R13 author preview. Frames not yet cleared for publication stay in the git-ignored
+      // portfolio-private/ folder (filled by scripts/portfolio-author-preview.mjs). Only this local dev
+      // server serves them, only with PORTFOLIO_AUTHOR_PREVIEW=1 and only to loopback clients; they are
+      // never in public/, so `vite build` cannot ship them.
+      name: "portfolio-author-preview",
+      apply: "serve",
+      configureServer(server) {
+        if (process.env.PORTFOLIO_AUTHOR_PREVIEW !== "1") return;
+        const privateRoot = path.resolve(import.meta.dirname, "portfolio-private");
+        const loopback = new Set(["127.0.0.1", "::1", "::ffff:127.0.0.1"]);
+        server.middlewares.use((request, response, next) => {
+          const match = /^\/portfolio\/__author\/([^?#]+)/.exec(request.url ?? "");
+          if (!match) return next();
+          let file = "";
+          try {
+            file = path.resolve(privateRoot, decodeURIComponent(match[1]));
+          } catch {
+            file = "";
+          }
+          const allowed = loopback.has(request.socket.remoteAddress ?? "") && file.startsWith(privateRoot + path.sep) &&
+            fs.existsSync(file) && fs.statSync(file).isFile();
+          if (!allowed) {
+            response.statusCode = 404;
+            response.end();
+            return;
+          }
+          response.setHeader("Content-Type", file.endsWith(".json") ? "application/json" : file.endsWith(".webp") ? "image/webp" : "application/octet-stream");
+          response.setHeader("Cache-Control", "no-store");
+          fs.createReadStream(file).pipe(response);
         });
       },
     },
