@@ -849,6 +849,14 @@ body.presentation .panel{padding:10px}
   .result-row{grid-template-columns:34px minmax(0,1fr)}
   .result-row span:nth-child(3),.result-row span:last-child{grid-column:2}
 }
+
+/* --- Stage fit (2026-11-25) ---
+   The revealed card ends 45px higher and 6% larger, so it covered the TALIA/GRUPA chips;
+   the deck title collided with the bottom caption; "CENTRUM" did not fit a 42px column. */
+.center-stage{min-height:500px!important;padding-top:112px!important;padding-bottom:100px!important}
+.reveal-caption{display:none}
+.deck-position-controls{grid-template-columns:42px minmax(78px,auto) 42px}
+.engine-controls #stageDrawBtn{min-width:150px}
 </style>
 </head>
 <body>
@@ -1141,6 +1149,7 @@ body.presentation .panel{padding:10px}
     </div>
 
     <div class="engine-controls">
+      <button id="stageDrawBtn" type="button">Losuj kartę</button>
       <button id="shuffleAllBtn" class="secondary">Potasuj wszystkie talie</button>
       <button id="autoBtn" class="secondary">Losuj automatycznie</button>
       <button id="showMixBtn" class="ghost">Wymieszaj 2 talie</button>
@@ -2075,7 +2084,10 @@ body.presentation .panel{padding:10px}
           {duration:ms,easing:"cubic-bezier(.2,.78,.15,1)",fill:"forwards"}
         );
         anim.onfinish=()=>{
+          // fill:"forwards" keeps the last keyframe (opacity .98) above the inline style,
+          // so the card back stayed on top of the revealed card. Hide it, then drop the effect.
           drawOriginCard.style.opacity="0";
+          anim.cancel();
           resolve();
         };
       }else{
@@ -2128,10 +2140,32 @@ body.presentation .panel{padding:10px}
     });
   }
 
+  // Bring the stage on screen before a card leaves the deck (the draw buttons can sit far above it).
+  function ensureStageVisible(){
+    const r=centerStage.getBoundingClientRect();
+    const vh=window.innerHeight||document.documentElement.clientHeight;
+    const shown=Math.max(0,Math.min(r.bottom,vh)-Math.max(r.top,0));
+    if(shown>=Math.min(r.height,vh)*.8)return Promise.resolve();
+    const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+    centerStage.scrollIntoView({behavior:reduce?"auto":"smooth",block:"nearest"});
+    return new Promise(res=>setTimeout(res,reduce?0:360));
+  }
+
+  // The assignment grid scrolls on its own; show the target slot inside it (no page scroll).
+  function revealAssignmentSlot(target){
+    const grid=assignmentGrid;
+    if(grid.scrollHeight<=grid.clientHeight+1)return;
+    const top=target.offsetTop-grid.offsetTop;
+    if(top<grid.scrollTop||top+target.offsetHeight>grid.scrollTop+grid.clientHeight){
+      grid.scrollTop=Math.max(0,top-grid.clientHeight/2+target.offsetHeight/2);
+    }
+  }
+
   function flyToAssignment(card,assignment,index){
     return new Promise(resolve=>{
       const target=assignmentGrid.querySelector(`[data-assignment-index="${index}"]`);
       if(!target){resolve();return}
+      revealAssignmentSlot(target);
       const from=revealCard.getBoundingClientRect(), to=target.getBoundingClientRect();
       const skin=skinData();
       const ghost=document.createElement("div");
@@ -2197,6 +2231,7 @@ body.presentation .panel{padding:10px}
     engineState.textContent=`Pobieranie karty z Talii ${d+1}…`;
     statusBox.innerHTML=`<strong>Talia ${d+1}.</strong> Górna karta opuszcza stos.`;
 
+    await ensureStageVisible();
     await animateFromDeckToReveal(d);
 
     // Dopiero po fizycznym wyjściu karty usuwamy ją z talii.
@@ -2518,6 +2553,12 @@ body.presentation .panel{padding:10px}
     updateActiveDeckStage(d);
   });
   drawBtn.addEventListener("click",drawOne);
+  // Second draw button right under the stage; it follows the main button's state.
+  const stageDrawBtn=$("stageDrawBtn");
+  const syncStageDrawBtn=()=>{stageDrawBtn.disabled=drawBtn.disabled};
+  new MutationObserver(syncStageDrawBtn).observe(drawBtn,{attributes:true,attributeFilter:["disabled"]});
+  syncStageDrawBtn();
+  stageDrawBtn.addEventListener("click",drawOne);
   autoBtn.addEventListener("click",()=>{
     autoMode=!autoMode;
     autoBtn.textContent=autoMode?"Zatrzymaj automat":"Losuj automatycznie";

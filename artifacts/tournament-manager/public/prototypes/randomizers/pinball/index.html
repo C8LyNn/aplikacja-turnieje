@@ -590,6 +590,23 @@
     body{padding:12px}
     .bottom-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   }
+
+  /* --- Board on screen (2026-11-25) ---
+     The machine is 980×1480, so at full width only part of it fit on a laptop screen.
+     "Cały tor" lets the viewport height bound the canvas (no change where width is the limit, e.g. phones). */
+  body.board-fit .board-wrap canvas{
+    width:auto;
+    max-width:100%;
+    max-height:calc(100vh - var(--board-fit-gap, 28px));
+    margin:0 auto;
+  }
+  @supports (height:100dvh){
+    body.board-fit .board-wrap canvas{max-height:calc(100dvh - var(--board-fit-gap, 28px))}
+  }
+  body.presentation-mode #boardPanel > .sub{display:none}
+  .board-start{min-width:112px;box-shadow:0 0 0 1px rgba(255,255,255,.08),0 8px 22px rgba(124,156,255,.28)}
+  .board-start:disabled{box-shadow:none}
+  #fitBoardBtn[aria-pressed="true"]{border-color:var(--accent);color:#dfe6ff;background:rgba(124,156,255,.14)}
 </style>
 </head>
 <body>
@@ -925,6 +942,8 @@ Team 32</textarea>
           <span class="small" id="boardStateLabel">Gotowy</span>
         </div>
         <div class="board-toolbar-group">
+          <button id="boardStartBtn" class="board-start" type="button" aria-label="Pociągnij dźwignię i wypuść kulki">Start ▶</button>
+          <button id="fitBoardBtn" class="secondary" type="button" aria-pressed="true" title="Przełącz: cały tor na ekranie albo pełna szerokość">Cały tor</button>
           <button id="presentationBtn" data-tds-action="presentation" class="secondary" type="button">Tryb prezentacji</button>
           <button id="scrollStartBtn" class="secondary" type="button">Do STARTU</button>
           <button id="scrollResultsBtn" class="secondary" type="button">Do wyników</button>
@@ -2745,9 +2764,26 @@ Team 32</textarea>
     // już wewnątrz zamkniętego lejka i wyrzuca PONAD jego krawędzie.
     ball.y = yTop - ball.r - 18;
 
-    // Mocny impuls w górę + wyraźny impuls boczny w stronę wolnego miejsca.
-    ball.vy = -(6.8 + seededRandom() * 1.4) * springPower;
-    ball.vx = dir * (3.3 + seededRandom() * 1.5) * springPower;
+    // Celowany, niski skok nad lejkami w stronę najbliższego wolnego otworu.
+    // Dawny impuls (~7 px/klatkę w górę) wyrzucał kulkę ~400 px z powrotem między pegi,
+    // więc przy ostatnich wolnych otworach jedna kulka potrafiła krążyć 10–20 s.
+    const free = findNearestFreeSlotByX(ball.x);
+    if (free) {
+      let lowestPeg = -Infinity;
+      for (const peg of pegs) lowestPeg = Math.max(lowestPeg, peg.y + peg.r);
+      const clearance = (ball.y - ball.r) - lowestPeg - 6;
+      const hop = Math.max(14, Math.min(70, clearance)) * Math.max(0.75, Math.min(1.15, springPower));
+      const vy = Math.sqrt(2 * gravity * hop);
+      const flight = 2 * vy / gravity;                       // klatki do powrotu na wysokość wyrzutu
+      const drag = (1 - Math.pow(air, flight)) / Math.max(1e-6, -Math.log(air) * flight);
+      const vx = (free.x - ball.x) / flight / drag;
+      ball.vy = -vy * (0.96 + seededRandom() * 0.08);
+      ball.vx = Math.max(-11, Math.min(11, vx * (0.94 + seededRandom() * 0.12)));
+    } else {
+      // Mocny impuls w górę + wyraźny impuls boczny (gdy nie ma już wolnych otworów).
+      ball.vy = -(6.8 + seededRandom() * 1.4) * springPower;
+      ball.vx = dir * (3.3 + seededRandom() * 1.5) * springPower;
+    }
 
     // Kilkadziesiąt klatek ochrony przed ponownym "złapaniem"
     // przez to samo zamknięte wyjście.
@@ -3589,8 +3625,60 @@ Team 32</textarea>
     resultsPanel.scrollIntoView({behavior:'smooth',block:'start'});
   });
 
-  leverBtn.addEventListener('click', pullLever);
+  // Start next to the board: the lever sits at the bottom of the settings column,
+  // which presentation mode hides, so there the draw could not be started at all.
+  const boardStartBtn = document.getElementById('boardStartBtn');
+  const fitBoardBtn = document.getElementById('fitBoardBtn');
+
+  function syncBoardStart(){
+    boardStartBtn.disabled = leverBtn.disabled;
+    boardStartBtn.textContent = !leverBtn.disabled
+      ? 'Start ▶'
+      : (leverTitle.textContent === 'Losowanie zakończone' ? 'Zakończone' : 'Losowanie trwa…');
+  }
+  new MutationObserver(syncBoardStart).observe(leverBtn, {attributes:true, attributeFilter:['disabled']});
+  new MutationObserver(syncBoardStart).observe(leverTitle, {childList:true, characterData:true, subtree:true});
+
+  // In presentation mode the toolbar and counters stay on screen above the machine,
+  // so the canvas may only take what is left of the viewport.
+  function updateBoardFitGap(){
+    const pres = document.body.classList.contains('presentation-mode');
+    const above = pres ? Math.round(canvas.getBoundingClientRect().top - boardPanel.getBoundingClientRect().top) : 0;
+    document.body.style.setProperty('--board-fit-gap', `${Math.max(28, above + 24)}px`);
+  }
+  window.addEventListener('resize', updateBoardFitGap);
+  presentationBtn.addEventListener('click', updateBoardFitGap);
+
+  // Pulling the lever from the settings column used to leave the machine off screen.
+  function bringBoardIntoView(){
+    const r = canvas.getBoundingClientRect();
+    const vh = window.innerHeight || document.documentElement.clientHeight;
+    const shown = Math.max(0, Math.min(r.bottom, vh) - Math.max(r.top, 0));
+    if (shown >= Math.min(r.height, vh) * 0.97) return;
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    canvas.scrollIntoView({behavior: reduce ? 'auto' : 'smooth', block: r.height <= vh ? 'center' : 'start'});
+  }
+
+  function startFromAnywhere(){
+    if (runStarted || !activeBalls.length) return;
+    pullLever();
+    bringBoardIntoView();
+  }
+
+  function setBoardFit(on){
+    document.body.classList.toggle('board-fit', on);
+    fitBoardBtn.setAttribute('aria-pressed', String(on));
+  }
+
+  boardStartBtn.addEventListener('click', startFromAnywhere);
+  fitBoardBtn.addEventListener('click', ()=>setBoardFit(fitBoardBtn.getAttribute('aria-pressed') !== 'true'));
+  setBoardFit(true);
+  updateBoardFitGap();
+  syncBoardStart();
+
+  leverBtn.addEventListener('click', startFromAnywhere);
   resetBtn.addEventListener('click', resetBoard);
+  resetBtn.addEventListener('click', updateBoardFitGap);   // reset also leaves presentation mode
   seedRandomBtn.addEventListener('click', randomSeed);
 
   // init
