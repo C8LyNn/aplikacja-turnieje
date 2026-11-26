@@ -50,13 +50,19 @@ import {
   IRC_ESCAPE_PATTERN,
   POINTS_MESSAGE_COLOR,
   PREFIX_CURRENCIES,
+  CHAT_GOAL_SESSION_KEYS,
+  CHAT_HYPE_EVENT_WEIGHT,
+  CHAT_HYPE_WINDOW_MS,
+  chatConfettiPieces,
+  chatGoalProgress,
   chatPaceIntervalMs,
   getChatEventCss,
 } from "./chat-events";
+import { CHAT_SOUND_RECIPES, CHAT_TICK_GAP_MS } from "./chat-sound";
 
 /** The widget's markup; particles and the header box (texts escaped) sit in the panel before the message list. */
-function widgetHtml(config: CameraChatConfig): string {
-  const decor = chatDecorHtml(config);
+function widgetHtml(config: CameraChatConfig, labels: ChatEventLabels): string {
+  const decor = chatDecorHtml(config, chatGoalProgress(config, config.goalStart, labels, labels.tipCurrency));
   return `<div id="se-camera-chat">
   <div class="se-camera"></div>
   <div class="se-chat-box">
@@ -284,6 +290,20 @@ const settings = ${scriptJson({
     replyMax: CHAT_REPLY_MAX,
     paceMs: chatPaceIntervalMs(config.floodLimit),
     paceMax: CHAT_PACE_QUEUE_MAX,
+    goalKind: config.goalKind,
+    goalTarget: config.goalTarget,
+    goalStart: config.goalStart,
+    goalSessionKey: config.goalKind === "none" ? null : CHAT_GOAL_SESSION_KEYS[config.goalKind],
+    hypeMeter: config.hypeMeter,
+    hypeTarget: config.hypeTarget,
+    hypeWindow: CHAT_HYPE_WINDOW_MS,
+    hypeEventWeight: CHAT_HYPE_EVENT_WEIGHT,
+    confetti: config.eventConfetti ? chatConfettiPieces() : [],
+    sound: config.sound,
+    soundVolume: config.soundVolume,
+    soundRecipe: CHAT_SOUND_RECIPES[config.soundStyle],
+    tickRecipe: CHAT_SOUND_RECIPES.tick,
+    tickGap: CHAT_TICK_GAP_MS,
   })};
 const list = document.getElementById("se-chat-messages");
 const nameColors = ${scriptJson(CHAT_NAME_PALETTES[config.namePalette])};
@@ -593,7 +613,122 @@ function buildEventRow(message) {
     body.appendChild(line);
   }
   row.appendChild(body);
+  settings.confetti.forEach(function (piece) {
+    const bit = document.createElement("span");
+    bit.className = "chat-confetti";
+    bit.setAttribute("aria-hidden", "true");
+    bit.style.setProperty("--x", piece.x);
+    bit.style.setProperty("--y", piece.y);
+    bit.style.setProperty("--r", piece.r);
+    bit.style.setProperty("--d", piece.d);
+    bit.style.background = piece.color;
+    row.appendChild(bit);
+  });
   return row;
+}
+// Goal bar: start value, the StreamElements session counter (onWidgetLoad) and the events since then.
+let goalSession = 0;
+let goalLive = 0;
+const seenEventIds = new Set();
+function goalAmount(event) {
+  if (settings.goalKind === "follow") return event.kind === "follow" ? 1 : 0;
+  if (settings.goalKind === "sub") return event.kind === "sub" ? 1 : event.kind === "gift" ? (event.bulk ? event.amount : 1) : 0;
+  if (settings.goalKind === "bits") return event.kind === "cheer" ? event.amount : 0;
+  if (settings.goalKind === "tip") return event.kind === "tip" ? event.amount : 0;
+  return 0;
+}
+function goalValue(value) {
+  return settings.goalKind === "tip" ? formatTip(value) : String(Math.floor(value));
+}
+function renderGoal() {
+  const box = document.querySelector(".chat-goal");
+  if (settings.goalKind === "none" || !box) return;
+  const count = settings.goalStart + goalSession + goalLive;
+  const target = Math.max(1, settings.goalTarget);
+  box.querySelector(".chat-goal-count").textContent = goalValue(count) + " / " + goalValue(target);
+  box.querySelector(".chat-goal-fill").style.width = Math.min(100, Math.floor(count / target * 100)) + "%";
+  if (count >= target) box.setAttribute("data-done", "1");
+  else box.removeAttribute("data-done");
+}
+// Hype meter: shown messages (1) and events (5) of the last 20 seconds.
+const hypeHits = [];
+let hypeTimer = null;
+function renderHype() {
+  const box = document.querySelector(".chat-hype");
+  if (!settings.hypeMeter || !box) return;
+  const now = Date.now();
+  while (hypeHits.length && now - hypeHits[0].at >= settings.hypeWindow) hypeHits.shift();
+  let sum = 0;
+  hypeHits.forEach(function (hit) { sum += hit.weight; });
+  const percent = Math.min(100, Math.floor(sum / Math.max(1, settings.hypeTarget) * 100));
+  box.querySelector(".chat-hype-fill").style.width = percent + "%";
+  if (percent >= 100) box.setAttribute("data-hot", "1");
+  else box.removeAttribute("data-hot");
+  if (hypeTimer === null && hypeHits.length) {
+    hypeTimer = window.setTimeout(function () {
+      hypeTimer = null;
+      renderHype();
+    }, 1000);
+  }
+}
+function addHype(weight) {
+  if (!settings.hypeMeter) return;
+  hypeHits.push({ at: Date.now(), weight: weight });
+  renderHype();
+}
+// Sounds drawn with Web Audio (nothing is downloaded); OBS plays them without a click.
+let audio = null;
+let lastTick = 0;
+function audioContext() {
+  if (!audio) {
+    const Context = window.AudioContext || window.webkitAudioContext;
+    if (!Context) return null;
+    try {
+      audio = new Context();
+    } catch (error) {
+      return null;
+    }
+  }
+  if (audio.state === "suspended" && audio.resume) {
+    const resumed = audio.resume();
+    if (resumed && resumed.catch) resumed.catch(function () {});
+  }
+  return audio;
+}
+function playNotes(notes) {
+  const share = Math.max(0, Math.min(100, settings.soundVolume)) / 100;
+  const peak = share * share * 0.35;
+  if (peak <= 0) return;
+  const context = audioContext();
+  if (!context) return;
+  const start = context.currentTime + 0.01;
+  notes.forEach(function (note) {
+    const from = start + note.at;
+    const oscillator = context.createOscillator();
+    const gain = context.createGain();
+    oscillator.type = note.wave;
+    oscillator.frequency.setValueAtTime(note.freq, from);
+    if (note.to) oscillator.frequency.exponentialRampToValueAtTime(note.to, from + note.dur);
+    gain.gain.setValueAtTime(0.0001, from);
+    gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, peak * note.gain), from + 0.015);
+    gain.gain.exponentialRampToValueAtTime(0.0001, from + note.dur);
+    oscillator.connect(gain);
+    gain.connect(context.destination);
+    oscillator.start(from);
+    oscillator.stop(from + note.dur + 0.05);
+  });
+}
+function soundFor(message) {
+  if (settings.sound === "none") return;
+  if (message.event) {
+    playNotes(settings.soundRecipe);
+    return;
+  }
+  if (settings.sound !== "all") return;
+  const now = Date.now();
+  if (now - lastTick < settings.tickGap) return;
+  lastTick = now;
+  playNotes(settings.tickRecipe);
 }
 function buildRow(message) {
   if (message.event) return buildEventRow(message);
@@ -766,6 +901,8 @@ function show(message) {
   messages = messages.slice(-100);
   scheduleExit(message);
   renderMessages();
+  soundFor(message);
+  addHype(message.event ? settings.hypeEventWeight : 1);
 }
 function schedulePace() {
   if (paceTimer !== null) return;
@@ -804,6 +941,14 @@ window.addEventListener("onWidgetLoad", function (event) {
   const detail = event.detail || {};
   const symbol = detail.currency && typeof detail.currency === "object" ? cleanText(detail.currency.symbol, 5) : "";
   if (symbol) currency = symbol;
+  const session = detail.session && typeof detail.session === "object" && detail.session.data && typeof detail.session.data === "object"
+    ? detail.session.data : null;
+  if (session && settings.goalSessionKey) {
+    const entry = session[settings.goalSessionKey[0]];
+    const value = entry && typeof entry === "object" ? Number(entry[settings.goalSessionKey[1]]) : NaN;
+    if (isFinite(value) && value >= 0) goalSession = Math.min(value, 10000000);
+  }
+  renderGoal();
 });
 
 window.addEventListener("onEventReceived", function (event) {
@@ -843,8 +988,18 @@ window.addEventListener("onEventReceived", function (event) {
   } else if (eventListeners[detail.listener]) {
     // Events go straight to the screen, past the calm-chat queue.
     const intake = eventFrom(detail.listener, data);
-    if (!intake || !eventShown(intake.event)) return;
-    if (intake.id && messages.some(message => message.eventId === intake.id)) return;
+    if (!intake) return;
+    if (intake.id) {
+      if (seenEventIds.has(intake.id)) return;
+      seenEventIds.add(intake.id);
+    }
+    // Events that get no row still move the goal bar.
+    const goal = goalAmount(intake.event);
+    if (goal > 0) {
+      goalLive += goal;
+      renderGoal();
+    }
+    if (!eventShown(intake.event)) return;
     show({
       localId: ++nextLocalId,
       name: intake.event.name,
@@ -877,5 +1032,5 @@ window.addEventListener("onEventReceived", function (event) {
 });
 })();`;
 
-  return { html: widgetHtml(config), css, js };
+  return { html: widgetHtml(config, eventLabels), css, js };
 }

@@ -22,6 +22,7 @@ import {
 import {
   chatEventFromStreamElements,
   chatEventShown,
+  chatGoalAmount,
   chatPointsFromTags,
   chatReplyFromTags,
 } from "./chat-events";
@@ -224,7 +225,8 @@ export default function CameraChatOverlay() {
           raw["event"],
         );
 
-        if (!intake || !chatEventShown(intake.event, config)) {
+        // Events that get no row still move the goal bar.
+        if (!intake || !(chatEventShown(intake.event, config) || chatGoalAmount(intake.event, config.goalKind) > 0)) {
           return;
         }
 

@@ -1,5 +1,5 @@
 ﻿import { t } from "@/i18n";
-import { useEffect, useState, type CSSProperties } from "react";
+import { useEffect, useRef, useState, type CSSProperties } from "react";
 
 import {
   type CameraChatConfig,
@@ -31,6 +31,7 @@ import {
   type RevealPiece,
   CHAT_ROLE_COLORS,
   buildChatRows,
+  isChatMessageHidden,
   nextChatPhaseChange,
 } from "./chat-message-format";
 import {
@@ -38,20 +39,31 @@ import {
   chatAmbientParticles,
   chatBubbleFilled,
   chatBurstPieces,
+  CHAT_HYPE_LABEL,
   chatHeaderContent,
   chatShapeBorder,
   getChatDecorCss,
 } from "./chat-decor";
 import {
   type ChatEventLabels,
+  type ChatGoalKind,
+  type ChatHypeHit,
   type ChatStreamEvent,
   CHAT_EVENT_ICONS,
+  CHAT_HYPE_EVENT_WEIGHT,
+  CHAT_HYPE_WINDOW_MS,
   POINTS_MESSAGE_COLOR,
+  chatConfettiPieces,
+  chatEventShown,
   chatEventTag,
   chatEventTitleParts,
+  chatGoalAmount,
+  chatGoalProgress,
+  chatHypePercent,
   getChatEventCss,
 } from "./chat-events";
 import { chatEventLabels } from "./chat-event-labels";
+import { CHAT_SOUND_RECIPES, CHAT_TICK_GAP_MS, chatAudio, playChatNotes } from "./chat-sound";
 
 /** Kept under its old name: the preview, the OBS page and tests all pass messages of this shape. */
 export type MockChatMessage = ChatMessage;
@@ -148,6 +160,69 @@ function useChatClock(messages: readonly MockChatMessage[], config: CameraChatCo
   }, [next]);
 }
 
+type GoalTotals = Record<Exclude<ChatGoalKind, "none">, number>;
+
+/** Goal totals of every event the widget has seen (the message list itself is trimmed to the last ones). */
+function useGoalTotals(messages: readonly MockChatMessage[]): GoalTotals {
+  const seen = useRef(new Set<string>());
+  const totals = useRef<GoalTotals>({ follow: 0, sub: 0, bits: 0, tip: 0 });
+  for (const message of messages) {
+    if (!message.event) continue;
+    const key = message.id ?? message.msgId ?? `${message.name}|${message.event.kind}|${message.event.amount}|${message.receivedAt ?? ""}`;
+    if (seen.current.has(key)) continue;
+    seen.current.add(key);
+    for (const goal of ["follow", "sub", "bits", "tip"] as const) totals.current[goal] += chatGoalAmount(message.event, goal);
+  }
+  return totals.current;
+}
+
+/** Hype: shown messages and events of the last 20 seconds; re-checked every second while the meter is on. */
+function useHypePercent(messages: readonly MockChatMessage[], config: CameraChatConfig): number {
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (!config.hypeMeter) return undefined;
+    const timer = window.setInterval(() => setTick((tick) => tick + 1), 1000);
+    return () => window.clearInterval(timer);
+  }, [config.hypeMeter]);
+  if (!config.hypeMeter) return 0;
+  const now = Date.now();
+  const hits: ChatHypeHit[] = [];
+  for (const message of messages) {
+    if (message.receivedAt === undefined || now - message.receivedAt >= CHAT_HYPE_WINDOW_MS) continue;
+    if (message.event ? chatEventShown(message.event, config) : !isChatMessageHidden(message, config)) {
+      hits.push({ at: message.receivedAt, weight: message.event ? CHAT_HYPE_EVENT_WEIGHT : 1 });
+    }
+  }
+  return chatHypePercent(hits, now, config.hypeTarget);
+}
+
+/** A sound for new rows that just arrived: the event sound for events, a quiet tick for messages when asked. */
+function useChatSounds(rows: readonly ChatRow[], config: CameraChatConfig) {
+  const seen = useRef<Set<string> | null>(null);
+  const lastTick = useRef(0);
+  useEffect(() => {
+    const keys = rows.map((row) => row.key);
+    if (seen.current === null || seen.current.size > 2000) {
+      seen.current = new Set(keys);
+      return;
+    }
+    const fresh = rows.filter((row) => !seen.current!.has(row.key));
+    for (const key of keys) seen.current.add(key);
+    if (config.sound === "none" || !fresh.length) return;
+    const now = Date.now();
+    const recent = fresh.filter((row) => row.message.receivedAt !== undefined && now - row.message.receivedAt < 5000);
+    if (!recent.length) return;
+    const audio = chatAudio();
+    if (!audio) return;
+    if (recent.some((row) => row.event)) {
+      playChatNotes(audio, CHAT_SOUND_RECIPES[config.soundStyle], config.soundVolume);
+    } else if (config.sound === "all" && now - lastTick.current >= CHAT_TICK_GAP_MS) {
+      lastTick.current = now;
+      playChatNotes(audio, CHAT_SOUND_RECIPES.tick, config.soundVolume);
+    }
+  });
+}
+
 type Props = {
   config: CameraChatConfig;
   messages: MockChatMessage[];
@@ -170,6 +245,9 @@ export function CameraChatWidget({
     getCameraChatSize(config);
 
   const rows = buildChatRows(messages, config, Date.now());
+  const goalTotals = useGoalTotals(messages);
+  const hype = useHypePercent(messages, config);
+  useChatSounds(rows, config);
 
   const fontPx = chatFontPx(config);
   const lineHeight = chatLineHeightPx(config);
@@ -224,6 +302,14 @@ export function CameraChatWidget({
           </span>
           {said && <span className="chat-event-text">{said}</span>}
         </div>
+        {config.eventConfetti && chatConfettiPieces().map((piece, index) => (
+          <span
+            key={`confetti-${index}`}
+            className="chat-confetti"
+            aria-hidden="true"
+            style={{ "--x": piece.x, "--y": piece.y, "--r": piece.r, "--d": piece.d, background: piece.color } as CSSProperties}
+          />
+        ))}
       </div>
     );
   };
@@ -385,6 +471,9 @@ export function CameraChatWidget({
 
   const particles = chatAmbientParticles(config);
   const headerContent = chatHeaderContent(config);
+  const goal = config.goalKind === "none"
+    ? null
+    : chatGoalProgress(config, config.goalStart + goalTotals[config.goalKind], labels, tipCurrency);
 
   const renderMessages = (
     forceHeight?: number | string,
@@ -417,6 +506,21 @@ export function CameraChatWidget({
             <div className={`chat-header chat-header-${config.headerStyle}`}>
               {headerContent.live && <span className="chat-live-dot" />}
               <span>{headerContent.title}</span>
+            </div>
+          )}
+          {goal && (
+            <div className="chat-goal" data-goal={config.goalKind} data-done={goal.done ? "1" : undefined}>
+              <div className="chat-goal-top">
+                <span className="chat-goal-label">{goal.label}</span>
+                <span className="chat-goal-count">{goal.text}</span>
+              </div>
+              <div className="chat-goal-track"><div className="chat-goal-fill" style={{ width: `${goal.percent}%` }} /></div>
+            </div>
+          )}
+          {headerContent.hype && (
+            <div className="chat-hype" data-hot={hype >= 100 ? "1" : undefined}>
+              <span className="chat-hype-label">{CHAT_HYPE_LABEL}</span>
+              <div className="chat-hype-track"><div className="chat-hype-fill" style={{ width: `${hype}%` }} /></div>
             </div>
           )}
           {headerContent.pinned && <div className="chat-pinned">{headerContent.pinned}</div>}

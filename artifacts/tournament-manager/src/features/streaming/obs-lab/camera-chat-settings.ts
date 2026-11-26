@@ -1,4 +1,12 @@
-﻿import { type CameraChatEventStyle, type ChatEventKind, CHAT_EVENT_KINDS, CHAT_EVENT_STYLES } from "./chat-events";
+﻿import {
+  type CameraChatEventStyle,
+  type ChatEventKind,
+  type ChatGoalKind,
+  CHAT_EVENT_KINDS,
+  CHAT_EVENT_STYLES,
+  CHAT_GOAL_KINDS,
+} from "./chat-events";
+import { type ChatSoundMode, type ChatSoundStyle, CHAT_SOUND_MODES, CHAT_SOUND_STYLES } from "./chat-sound";
 
 export type CameraChatLayout = "right" | "left" | "below" | "above" | "overlay" | "chat";
 export type CameraChatAspectRatio = "16:9" | "4:3" | "1:1";
@@ -220,6 +228,22 @@ export type CameraChatConfig = {
   showReplies: boolean;
   /** Calm chat: at most this many messages a second reach the screen (0 = off); events are never held back. */
   floodLimit: number;
+  /** A bar under the header that fills with follows, subs, bits or tips. */
+  goalKind: ChatGoalKind;
+  goalTarget: number;
+  /** Where the bar starts (for example the count from the last stream). */
+  goalStart: number;
+  /** Own title of the bar; empty = the default title for the goal. */
+  goalText: string;
+  /** A bar that fills when the chat gets busy. */
+  hypeMeter: boolean;
+  /** Messages in 20 seconds that fill the hype bar. */
+  hypeTarget: number;
+  /** Confetti flies across a new event row. */
+  eventConfetti: boolean;
+  sound: ChatSoundMode;
+  soundStyle: ChatSoundStyle;
+  soundVolume: number;
 
   animateMessages: boolean;
   animationStyle: CameraChatAnimationStyle;
@@ -325,6 +349,16 @@ export const DEFAULT_CAMERA_CHAT_CONFIG: CameraChatConfig = {
   pointsHighlight: false,
   showReplies: false,
   floodLimit: 0,
+  goalKind: "none",
+  goalTarget: 10,
+  goalStart: 0,
+  goalText: "",
+  hypeMeter: false,
+  hypeTarget: 20,
+  eventConfetti: false,
+  sound: "none",
+  soundStyle: "ding",
+  soundVolume: 50,
 
   animateMessages: true,
   animationStyle: "rise",
@@ -917,6 +951,16 @@ export function cameraChatConfigToSearch(
   flag("points", config.pointsHighlight);
   flag("replies", config.showReplies);
   params.set("flood", String(config.floodLimit));
+  params.set("goal", config.goalKind);
+  params.set("goaltarget", String(config.goalTarget));
+  params.set("goalstart", String(config.goalStart));
+  params.set("goaltext", config.goalText);
+  flag("hype", config.hypeMeter);
+  params.set("hypemax", String(config.hypeTarget));
+  flag("confetti", config.eventConfetti);
+  params.set("sound", config.sound);
+  params.set("soundstyle", config.soundStyle);
+  params.set("soundvol", String(config.soundVolume));
   flag("anim", config.animateMessages);
   params.set("animstyle", config.animationStyle);
   params.set("animdur", String(config.animationDurationMs));
@@ -1046,6 +1090,16 @@ export function cameraChatConfigFromSearch(
     pointsHighlight: booleanParam(params, "points", defaults.pointsHighlight),
     showReplies: booleanParam(params, "replies", defaults.showReplies),
     floodLimit: integerParam(params, "flood", defaults.floodLimit, 0, 20),
+    goalKind: enumParam(params, "goal", CHAT_GOAL_KINDS, defaults.goalKind),
+    goalTarget: integerParam(params, "goaltarget", defaults.goalTarget, 1, 1_000_000),
+    goalStart: integerParam(params, "goalstart", defaults.goalStart, 0, 1_000_000),
+    goalText: cleanChatText(textParam(params, "goaltext", defaults.goalText, 120), 40),
+    hypeMeter: booleanParam(params, "hype", defaults.hypeMeter),
+    hypeTarget: integerParam(params, "hypemax", defaults.hypeTarget, 5, 200),
+    eventConfetti: booleanParam(params, "confetti", defaults.eventConfetti),
+    sound: enumParam(params, "sound", CHAT_SOUND_MODES, defaults.sound),
+    soundStyle: enumParam(params, "soundstyle", CHAT_SOUND_STYLES, defaults.soundStyle),
+    soundVolume: integerParam(params, "soundvol", defaults.soundVolume, 0, 100),
 
     animateMessages: booleanParam(params, "anim", defaults.animateMessages),
     animationStyle,

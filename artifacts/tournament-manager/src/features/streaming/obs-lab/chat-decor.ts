@@ -12,6 +12,7 @@ import {
   cleanChatText,
   rgbaCss,
 } from "./camera-chat-settings";
+import { type ChatGoalProgress, CHAT_GOAL_COLORS } from "./chat-events";
 
 // --- Background particles -----------------------------------------------------------------------------------------
 
@@ -136,7 +137,7 @@ export function getChatDecorCss(config: CameraChatConfig, panel: string, row: st
       "@keyframes chat-amb-twinkle { 0%, 100% { opacity: .15; transform: scale(.6); } 50% { opacity: 1; transform: scale(1.1); } }",
     );
   }
-  if (config.headerStyle !== "none" || cleanChatText(config.pinnedText, 120)) {
+  if (chatHeaderContent(config).visible) {
     const accent = config.headerColor;
     rules.push(
       `.chat-header-box { flex: none; display: flex; flex-direction: column; gap: 6px; padding: ${config.innerPadding}px ${config.innerPadding}px 0; font-size: ${fontPx}px;${config.chatAnchor === "bottom" ? " margin-bottom: auto;" : ""} }`,
@@ -150,6 +151,32 @@ export function getChatDecorCss(config: CameraChatConfig, panel: string, row: st
       "@keyframes chat-live { 0% { box-shadow: 0 0 0 0 rgba(239,68,68,.7); } 70% { box-shadow: 0 0 0 .5em rgba(239,68,68,0); } 100% { box-shadow: 0 0 0 0 rgba(239,68,68,0); } }",
       `.chat-pinned { padding: 6px 10px; border-radius: 8px; font-size: .9em; line-height: 1.35; color: ${rgbaCss(config.textColor, config.textOpacity)}; background: rgba(255,255,255,.07); border-left: 3px solid ${accent}; overflow-wrap: anywhere; }`,
     );
+  }
+  if (config.goalKind !== "none") {
+    const goal = CHAT_GOAL_COLORS[config.goalKind];
+    rules.push(
+      `.chat-goal { display: flex; flex-direction: column; gap: 4px; padding: 6px 10px; border-radius: 8px; background: rgba(255,255,255,.07); font-size: .82em; line-height: 1.3; }`,
+      `.chat-goal-top { display: flex; justify-content: space-between; gap: 8px; font-weight: 800; color: ${rgbaCss(config.textColor, config.textOpacity)}; }`,
+      `.chat-goal-label { min-width: 0; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }`,
+      `.chat-goal-count { flex: none; color: ${goal}; font-variant-numeric: tabular-nums; }`,
+      ".chat-goal-track { height: .55em; overflow: hidden; border-radius: 999px; background: rgba(255,255,255,.14); }",
+      `.chat-goal-fill { height: 100%; border-radius: inherit; background: linear-gradient(90deg, ${rgbaCss(goal, 55)}, ${goal}); transition: width .6s ease; }`,
+      `.chat-goal[data-done="1"] .chat-goal-fill { animation: chat-goal-done 1.6s ease-in-out infinite; }`,
+      `@keyframes chat-goal-done { 50% { filter: brightness(1.45); box-shadow: 0 0 10px ${goal}; } }`,
+    );
+  }
+  if (config.hypeMeter) {
+    rules.push(
+      `.chat-hype { display: flex; align-items: center; gap: 8px; padding: 2px 4px; font-size: .78em; font-weight: 900; letter-spacing: .12em; color: ${rgbaCss(config.textColor, config.textOpacity)}; }`,
+      ".chat-hype-label { display: inline-block; transition: color .3s; }",
+      ".chat-hype-track { flex: 1; height: .5em; overflow: hidden; border-radius: 999px; background: rgba(255,255,255,.14); }",
+      ".chat-hype-fill { height: 100%; border-radius: inherit; background: linear-gradient(90deg, #22d3ee, #a855f7 55%, #f43f5e); transition: width .8s ease; }",
+      `.chat-hype[data-hot="1"] .chat-hype-label { color: #fb923c; animation: chat-hype-pulse .8s ease-in-out infinite; }`,
+      "@keyframes chat-hype-pulse { 50% { transform: scale(1.12); text-shadow: 0 0 8px #fb923c; } }",
+    );
+  }
+  if (config.goalKind !== "none" || config.hypeMeter) {
+    rules.push("@media (prefers-reduced-motion: reduce) { .chat-goal-fill, .chat-hype-fill, .chat-hype-label { animation: none !important; transition: none !important; } }");
   }
   if (config.bubbleShape === "tail" && config.messageBackground) {
     const side = config.textAlign === "right" ? "right" : "left";
@@ -183,25 +210,39 @@ export function chatBurstPieces(config: Pick<CameraChatConfig, "animateMessages"
 }
 
 /** Header markup values (shown only when there is something to show). */
-export function chatHeaderContent(config: Pick<CameraChatConfig, "headerStyle" | "headerText" | "headerLive" | "pinnedText">) {
+export function chatHeaderContent(
+  config: Pick<CameraChatConfig, "headerStyle" | "headerText" | "headerLive" | "pinnedText" | "goalKind" | "hypeMeter">,
+) {
   const title = cleanChatText(config.headerText, 40);
   const pinned = cleanChatText(config.pinnedText, 120);
   const header = config.headerStyle !== "none" && (title !== "" || config.headerLive);
-  return { header, title, live: header && config.headerLive, pinned, visible: header || pinned !== "" };
+  const goal = config.goalKind !== "none";
+  return { header, title, live: header && config.headerLive, pinned, goal, hype: config.hypeMeter, visible: header || pinned !== "" || goal || config.hypeMeter };
 }
+
+/** The label shown on the hype bar. */
+export const CHAT_HYPE_LABEL = "HYPE";
 
 const escapeHtml = (value: string) => value
   .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 
 /** Static HTML of the header box and of the particle layer for the StreamElements widget (texts escaped). */
-export function chatDecorHtml(config: CameraChatConfig): { ambient: string; header: string } {
+export function chatDecorHtml(config: CameraChatConfig, goal: ChatGoalProgress | null = null): { ambient: string; header: string } {
   const particles = chatAmbientParticles(config);
   const ambient = particles.length
     ? `<div class="chat-ambient" aria-hidden="true">${particles.map((particle) => `<span class="${particle.className}" style="${ambientStyleText(particle)}">${escapeHtml(particle.text)}</span>`).join("")}</div>`
     : "";
   const content = chatHeaderContent(config);
   const header = content.visible
-    ? `<div class="chat-header-box">${content.header ? `<div class="chat-header chat-header-${config.headerStyle}">${content.live ? "<span class=\"chat-live-dot\"></span>" : ""}<span>${escapeHtml(content.title)}</span></div>` : ""}${content.pinned ? `<div class="chat-pinned">${escapeHtml(content.pinned)}</div>` : ""}</div>`
+    ? `<div class="chat-header-box">${content.header ? `<div class="chat-header chat-header-${config.headerStyle}">${content.live ? "<span class=\"chat-live-dot\"></span>" : ""}<span>${escapeHtml(content.title)}</span></div>` : ""}${content.goal && goal ? goalHtml(config, goal) : ""}${content.hype ? hypeHtml() : ""}${content.pinned ? `<div class="chat-pinned">${escapeHtml(content.pinned)}</div>` : ""}</div>`
     : "";
   return { ambient, header };
+}
+
+function goalHtml(config: CameraChatConfig, goal: ChatGoalProgress): string {
+  return `<div class="chat-goal" data-goal="${config.goalKind}"${goal.done ? " data-done=\"1\"" : ""}><div class="chat-goal-top"><span class="chat-goal-label">${escapeHtml(goal.label)}</span><span class="chat-goal-count">${escapeHtml(goal.text)}</span></div><div class="chat-goal-track"><div class="chat-goal-fill" style="width: ${goal.percent}%"></div></div></div>`;
+}
+
+function hypeHtml(): string {
+  return `<div class="chat-hype"><span class="chat-hype-label">${CHAT_HYPE_LABEL}</span><div class="chat-hype-track"><div class="chat-hype-fill" style="width: 0%"></div></div></div>`;
 }

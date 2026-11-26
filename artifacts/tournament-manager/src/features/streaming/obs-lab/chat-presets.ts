@@ -3,10 +3,12 @@ import { type CameraChatConfig, DEFAULT_CAMERA_CHAT_CONFIG } from "./camera-chat
 
 /** Ready-made chat looks for the configurator; each one is a complete, URL-safe configuration. */
 export type ChatPresetId =
-  "glass" | "minimal" | "compact" | "neon" | "classic" | "bubbles" | "light" | "clear" | "terminal" | "esport" | "rainbow";
+  | "glass" | "minimal" | "compact" | "neon" | "classic" | "bubbles" | "light" | "clear" | "terminal" | "esport" | "rainbow"
+  | "winter" | "christmas" | "halloween" | "valentine";
 
 export const CHAT_PRESET_IDS: readonly ChatPresetId[] =
-  ["glass", "minimal", "compact", "neon", "classic", "bubbles", "light", "clear", "terminal", "esport", "rainbow"];
+  ["glass", "minimal", "compact", "neon", "classic", "bubbles", "light", "clear", "terminal", "esport", "rainbow",
+    "winter", "christmas", "halloween", "valentine"];
 
 export function chatPresetLabel(id: ChatPresetId): string {
   switch (id) {
@@ -21,6 +23,10 @@ export function chatPresetLabel(id: ChatPresetId): string {
     case "terminal": return t("obsLab.terminal");
     case "esport": return t("obsLab.e_sport");
     case "rainbow": return t("obsLab.teczowa_ramka");
+    case "winter": return t("obsLab.zima");
+    case "christmas": return t("obsLab.swieta");
+    case "halloween": return t("obsLab.halloween");
+    case "valentine": return t("obsLab.walentynki");
   }
 }
 
@@ -198,6 +204,95 @@ export function chatPresetConfig(id: ChatPresetId): CameraChatConfig {
         frameWidth: 3,
         frameSpeed: 5,
         panelAnimation: "shimmer",
+      };
+    // Seasonal looks: colours, frame and background particles of the season.
+    case "winter":
+      return {
+        ...base,
+        panelColor: "#0b1a2e",
+        panelGradient: true,
+        panelColor2: "#12304f",
+        panelOpacity: 80,
+        radius: 20,
+        showBorders: false,
+        bubbleColor: "#bae6fd",
+        bubbleOpacity: 8,
+        readableNames: true,
+        namePalette: "cool",
+        animationStyle: "fade",
+        frameStyle: "glow",
+        frameColor: "#7dd3fc",
+        frameWidth: 2,
+        ambient: "snow",
+        ambientDensity: 18,
+        ambientColor: "#e0f2fe",
+      };
+    case "christmas":
+      return {
+        ...base,
+        panelColor: "#2a0a0a",
+        panelGradient: true,
+        panelColor2: "#0f2a14",
+        panelOpacity: 84,
+        radius: 18,
+        showBorders: false,
+        bubbleColor: "#fde68a",
+        bubbleOpacity: 7,
+        readableNames: true,
+        namePalette: "warm",
+        animationStyle: "bounce",
+        newMessageEffect: "glow",
+        frameStyle: "flow",
+        frameColor: "#ef4444",
+        frameColor2: "#22c55e",
+        frameWidth: 3,
+        ambient: "snow",
+        ambientDensity: 14,
+        ambientColor: "#ffffff",
+      };
+    case "halloween":
+      return {
+        ...base,
+        panelColor: "#140a1f",
+        panelGradient: true,
+        panelColor2: "#2b1405",
+        panelOpacity: 86,
+        radius: 14,
+        showBorders: false,
+        bubbleColor: "#f97316",
+        bubbleOpacity: 8,
+        readableNames: true,
+        namePalette: "warm",
+        textShadow: "strong",
+        animationStyle: "flip",
+        frameStyle: "pulse",
+        frameColor: "#f97316",
+        frameColor2: "#a855f7",
+        frameWidth: 2,
+        ambient: "sparkles",
+        ambientDensity: 12,
+        ambientColor: "#f97316",
+      };
+    case "valentine":
+      return {
+        ...base,
+        panelColor: "#2a0b1a",
+        panelOpacity: 78,
+        radius: 22,
+        showBorders: false,
+        bubbleColor: "#f9a8d4",
+        bubbleOpacity: 10,
+        bubbleRadius: 16,
+        readableNames: true,
+        namePalette: "pastel",
+        animationStyle: "pop",
+        newMessageEffect: "pulse",
+        frameStyle: "glow",
+        frameColor: "#f472b6",
+        frameWidth: 2,
+        ambient: "hearts",
+        ambientDensity: 12,
+        ambientColor: "#fb7185",
       };
   }
 }

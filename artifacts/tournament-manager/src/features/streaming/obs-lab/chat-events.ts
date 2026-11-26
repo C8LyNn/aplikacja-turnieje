@@ -70,6 +70,11 @@ export type ChatEventLabels = {
   raid: string;
   tip: string;
   tipCurrency: string;
+  /** Default titles of the goal bar. */
+  goalFollow: string;
+  goalSub: string;
+  goalBits: string;
+  goalTip: string;
 };
 
 export const CHAT_EVENT_LABELS_EN: ChatEventLabels = {
@@ -82,6 +87,10 @@ export const CHAT_EVENT_LABELS_EN: ChatEventLabels = {
   raid: "{name} is raiding with {amount} viewers!",
   tip: "{name} tipped {amount}!",
   tipCurrency: "$",
+  goalFollow: "Follower goal",
+  goalSub: "Sub goal",
+  goalBits: "Bits goal",
+  goalTip: "Tip goal",
 };
 
 export const CHAT_PACE_QUEUE_MAX = 30;
@@ -308,6 +317,97 @@ export class ChatPacer<T> {
   }
 }
 
+// --- Goal bar -------------------------------------------------------------------------------------------------------
+
+export type ChatGoalKind = "none" | "follow" | "sub" | "bits" | "tip";
+export const CHAT_GOAL_KINDS: readonly ChatGoalKind[] = ["none", "follow", "sub", "bits", "tip"];
+
+export const CHAT_GOAL_COLORS: Record<Exclude<ChatGoalKind, "none">, string> = {
+  follow: CHAT_EVENT_COLORS.follow,
+  sub: CHAT_EVENT_COLORS.sub,
+  bits: CHAT_EVENT_COLORS.cheer,
+  tip: CHAT_EVENT_COLORS.tip,
+};
+
+/** StreamElements session counters (onWidgetLoad "session.data"): this stream's follows, subs, bits and tips. */
+export const CHAT_GOAL_SESSION_KEYS: Record<Exclude<ChatGoalKind, "none">, readonly [string, string]> = {
+  follow: ["follower-session", "count"],
+  sub: ["subscriber-session", "count"],
+  bits: ["cheer-session", "amount"],
+  tip: ["tip-session", "amount"],
+};
+
+/** How much an event moves a goal: a gift bomb counts every gifted sub, a cheer its bits, a tip its amount. */
+export function chatGoalAmount(event: ChatStreamEvent, goal: ChatGoalKind): number {
+  switch (goal) {
+    case "follow": return event.kind === "follow" ? 1 : 0;
+    case "sub": return event.kind === "sub" ? 1 : event.kind === "gift" ? (event.bulk ? event.amount : 1) : 0;
+    case "bits": return event.kind === "cheer" ? event.amount : 0;
+    case "tip": return event.kind === "tip" ? event.amount : 0;
+    case "none": return 0;
+  }
+}
+
+export function chatGoalDefaultLabel(goal: Exclude<ChatGoalKind, "none">, labels: ChatEventLabels): string {
+  switch (goal) {
+    case "follow": return labels.goalFollow;
+    case "sub": return labels.goalSub;
+    case "bits": return labels.goalBits;
+    case "tip": return labels.goalTip;
+  }
+}
+
+export type ChatGoalProgress = { label: string; text: string; percent: number; done: boolean };
+
+/** Title, "3 / 10" and the filled share of the goal bar (tips with the channel currency). */
+export function chatGoalProgress(
+  config: Pick<CameraChatConfig, "goalKind" | "goalTarget" | "goalText">,
+  count: number,
+  labels: ChatEventLabels,
+  currency: string,
+): ChatGoalProgress | null {
+  if (config.goalKind === "none") return null;
+  const target = Math.max(1, config.goalTarget);
+  const format = (value: number) => (config.goalKind === "tip" ? formatChatTip(value, currency) : String(Math.floor(value)));
+  return {
+    label: config.goalText || chatGoalDefaultLabel(config.goalKind, labels),
+    text: `${format(count)} / ${format(target)}`,
+    percent: Math.min(100, Math.floor((count / target) * 100)),
+    done: count >= target,
+  };
+}
+
+// --- Hype meter -----------------------------------------------------------------------------------------------------
+
+/** The meter counts the last 20 seconds; a message is one point, a shown event five. */
+export const CHAT_HYPE_WINDOW_MS = 20_000;
+export const CHAT_HYPE_EVENT_WEIGHT = 5;
+
+export type ChatHypeHit = { at: number; weight: number };
+
+export function chatHypePercent(hits: readonly ChatHypeHit[], now: number, target: number): number {
+  let sum = 0;
+  for (const hit of hits) if (hit.at <= now && now - hit.at < CHAT_HYPE_WINDOW_MS) sum += hit.weight;
+  return Math.min(100, Math.floor((sum / Math.max(1, target)) * 100));
+}
+
+// --- Event confetti -------------------------------------------------------------------------------------------------
+
+export const CHAT_CONFETTI_COLORS: readonly string[] = ["#f472b6", "#facc15", "#38bdf8", "#a855f7", "#22c55e", "#fb923c"];
+
+export type ChatConfettiPiece = { x: string; y: string; r: string; d: string; color: string };
+
+/** Fourteen pieces that fly from the event icon across the row; fixed, so both renderers draw the same burst. */
+export function chatConfettiPieces(): ChatConfettiPiece[] {
+  return Array.from({ length: 14 }, (_, index) => ({
+    x: `${22 + ((index * 37) % 74)}%`,
+    y: `${index % 2 ? 6 + ((index * 13) % 30) : 62 + ((index * 17) % 30)}%`,
+    r: `${180 + ((index * 47) % 360)}deg`,
+    d: `${(index * 45) % 420}ms`,
+    color: CHAT_CONFETTI_COLORS[index % CHAT_CONFETTI_COLORS.length]!,
+  }));
+}
+
 // --- CSS ------------------------------------------------------------------------------------------------------------
 
 function rgba(hex: string, alpha: number): string {
@@ -320,7 +420,7 @@ function rgba(hex: string, alpha: number): string {
  * sets its colour variables, so no colour-mix() is needed (older OBS versions lack it).
  */
 export function getChatEventCss(
-  config: Pick<CameraChatConfig, "streamEvents" | "eventStyle" | "bubbleRadius" | "showReplies" | "textAlign" | "textColor" | "textOpacity">,
+  config: Pick<CameraChatConfig, "streamEvents" | "eventStyle" | "bubbleRadius" | "showReplies" | "textAlign" | "textColor" | "textOpacity" | "eventConfetti">,
   row: string,
 ): string {
   const rules: string[] = [];
@@ -354,6 +454,10 @@ export function getChatEventCss(
     rules.push(`${row}.chat-event-compact { background: transparent; box-shadow: none; font-size: .92em; }`);
     rules.push(`${row}.chat-event-compact .chat-event-icon { width: auto; height: auto; background: none; color: var(--chat-event); }`);
   }
-  rules.push(`@media (prefers-reduced-motion: reduce) { ${row}.chat-event::after { animation: none !important; opacity: 0; } }`);
+  if (config.eventConfetti) {
+    rules.push(`.chat-confetti { position: absolute; left: 1.2em; top: 50%; width: 6px; height: 9px; border-radius: 1px; opacity: 0; pointer-events: none; animation: chat-confetti-fly 1.3s cubic-bezier(.15,.7,.3,1) var(--d) 1 both; }`);
+    rules.push(`@keyframes chat-confetti-fly { 0% { left: 1.2em; top: 50%; opacity: 0; transform: rotate(0deg) scale(1); } 6% { opacity: 1; } 100% { left: var(--x); top: var(--y); opacity: 0; transform: rotate(var(--r)) scale(.7); } }`);
+  }
+  rules.push(`@media (prefers-reduced-motion: reduce) { ${row}.chat-event::after { animation: none !important; opacity: 0; } .chat-confetti { display: none; } }`);
   return rules.join("\n");
 }

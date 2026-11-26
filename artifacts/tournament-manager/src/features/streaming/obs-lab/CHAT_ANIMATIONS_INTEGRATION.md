@@ -150,6 +150,34 @@ natywnego widgetu StreamElements. Reguły wiadomości są w
   Szablony zdarzeń pochodzą z katalogu tłumaczeń i są dzielone na tekst i imiona — nigdy nie są HTML.
   `chat-events.test.tsx` porównuje stronę OBS i natywny widget na tym samym strumieniu zdarzeń.
 
+## Zrealizowany etap 8 — bajery i prostsze ustawianie (2026-11-26)
+
+- **Pasek celu** (`goal`: obserwujący / suby / bitsy / napiwki, `goaltarget`, `goalstart`, `goaltext`): pasek pod
+  nagłówkiem napełnia się ze zdarzeń StreamElements, także gdy wiersze zdarzeń są wyłączone. Gift bomb liczy każdy
+  sub, powtórzone zdarzenie liczy się raz. Widget SE zaczyna od licznika sesji z `onWidgetLoad`
+  (`follower-session`, `subscriber-session`, `cheer-session`, `tip-session`), jeśli StreamElements go poda.
+- **Pasek hype** (`hype`, `hypemax`): napełnia się, gdy czat się rozkręca (ostatnie 20 s; wiadomość = 1,
+  zdarzenie = 5); pełny pasek pulsuje.
+- **Konfetti przy zdarzeniach** (`confetti`): 14 drobinek przelatuje przez nowy wiersz zdarzenia (stały układ,
+  ten sam w obu renderach; wyłączone przy `prefers-reduced-motion`).
+- **Dźwięki** (`sound`: bez / zdarzenia / zdarzenia i wiadomości, `soundstyle`: dzwonek, pyknięcie, automat,
+  cymbałki, `soundvol`): tworzone przez Web Audio z krótkich nut — bez plików, więc widget SE zostaje samodzielny.
+  Historia na ekranie przy starcie nie gra; przy zalewie wiadomości „tik” najwyżej co 150 ms.
+- **Motywy sezonowe:** Zima, Święta, Halloween, Walentynki.
+- **Gotowe zestawy** (krok „Na start” w szybkim ustawieniu): Gry, Rozmowy, Turniej, Podcast, Pionowy stream,
+  Spokojny wieczór — układ, wygląd i dodatki jednym kliknięciem; własna lista botów, słowa i teksty zostają
+  (pusta lista botów dostaje popularne boty).
+- **Styl nie kasuje zachowania:** wybór stylu zmienia tylko wygląd; filtry, boty, zdarzenia, cel, hype i dźwięki
+  zostają (`CHAT_BEHAVIOUR_FIELDS`).
+- **Sprawdzenie ustawień:** panel pod podglądem wykrywa typowe problemy (słaby kontrast, przezroczysty czat bez cienia,
+  bardzo mały tekst, pusty nagłówek, zdarzenia bez rodzajów, konfetti bez zdarzeń, zbyt szybkie znikanie, cisza przy
+  głośności 0, cel osiągnięty na starcie, czat zasłaniający kamerkę, widoczne boty) i naprawia każdy jednym kliknięciem
+  albo wszystkie naraz.
+- **Szukaj opcji** w trybie „Wszystkie opcje”: zostają i otwierają się tylko sekcje z pasującym tekstem (bez polskich
+  znaków, np. „dzwiek”); wyczyszczenie przywraca listę.
+- Logika: `chat-events.ts` (cel, hype, konfetti), `chat-sound.ts`, `chat-setup-check.ts`, `chat-quick-setup.ts`
+  (zestawy); testy w `chat-gadgets.test.tsx`.
+
 ## Kierunek następnych etapów
 
 1. **Animacja tekstu wiadomości:** wejście znakami/słowami, maska reveal,

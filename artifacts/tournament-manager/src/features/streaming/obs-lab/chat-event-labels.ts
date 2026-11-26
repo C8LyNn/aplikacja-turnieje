@@ -13,5 +13,9 @@ export function chatEventLabels(): ChatEventLabels {
     raid: t("obsLab.zdarzenie_raid"),
     tip: t("obsLab.zdarzenie_napiwek"),
     tipCurrency: t("obsLab.zdarzenie_waluta"),
+    goalFollow: t("obsLab.cel_obserwujacych"),
+    goalSub: t("obsLab.cel_subow"),
+    goalBits: t("obsLab.cel_bitsow"),
+    goalTip: t("obsLab.cel_napiwkow"),
   };
 }

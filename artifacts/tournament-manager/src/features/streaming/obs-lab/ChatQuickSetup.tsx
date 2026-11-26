@@ -1,6 +1,6 @@
 import { t } from "@/i18n";
 import type { CSSProperties, ReactNode } from "react";
-import { Check, Copy, Shuffle } from "lucide-react";
+import { Check, Copy, Gamepad2, MessagesSquare, Mic, Moon, Shuffle, Smartphone, Trophy, type LucideIcon } from "lucide-react";
 import { ToolButton, ToolPanel } from "@/components/tool-ui";
 import {
   type CameraChatConfig,
@@ -18,9 +18,12 @@ import {
   chatPresetLabel,
 } from "./chat-presets";
 import {
+  CHAT_SCENARIO_IDS,
   QUICK_EXTRAS,
+  type ChatScenarioId,
   type QuickExtraId,
   applyChatPresetKeepingPlacement,
+  chatScenarioConfig,
   quickExtraOn,
   randomChatLook,
   toggleQuickExtra,
@@ -103,6 +106,41 @@ function quickExtraLabel(id: QuickExtraId): string {
     case "fade": return t("obsLab.znikanie_po_30_s");
     case "events": return t("obsLab.zdarzenia_na_czacie");
     case "calm": return t("obsLab.spokojny_czat");
+    case "confetti": return t("obsLab.konfetti_przy_zdarzeniach");
+    case "hype": return t("obsLab.pasek_hype");
+    case "goal": return t("obsLab.cel_subow");
+    case "sound": return t("obsLab.dzwieki_zdarzen");
+  }
+}
+
+const SCENARIO_ICONS: Record<ChatScenarioId, LucideIcon> = {
+  gaming: Gamepad2,
+  talk: MessagesSquare,
+  tournament: Trophy,
+  podcast: Mic,
+  vertical: Smartphone,
+  cozy: Moon,
+};
+
+function scenarioLabel(id: ChatScenarioId): string {
+  switch (id) {
+    case "gaming": return t("obsLab.zestaw_gry");
+    case "talk": return t("obsLab.zestaw_rozmowy");
+    case "tournament": return t("obsLab.zestaw_turniej");
+    case "podcast": return t("obsLab.zestaw_podcast");
+    case "vertical": return t("obsLab.zestaw_pionowy");
+    case "cozy": return t("obsLab.zestaw_wieczor");
+  }
+}
+
+function scenarioHint(id: ChatScenarioId): string {
+  switch (id) {
+    case "gaming": return t("obsLab.zestaw_gry_opis");
+    case "talk": return t("obsLab.zestaw_rozmowy_opis");
+    case "tournament": return t("obsLab.zestaw_turniej_opis");
+    case "podcast": return t("obsLab.zestaw_podcast_opis");
+    case "vertical": return t("obsLab.zestaw_pionowy_opis");
+    case "cozy": return t("obsLab.zestaw_wieczor_opis");
   }
 }
 
@@ -150,8 +188,31 @@ type Props = {
 /** Five short steps that cover what most streamers change; everything else stays in "All options". */
 export function ChatQuickSetup({ config, update, width, height, copied, onCopyUrl, onShowAll }: Props) {
   return (
-    <ToolPanel title={t("obsLab.szybkie_ustawienie")} description={t("obsLab.piec_krokow_opis")}>
+    <ToolPanel title={t("obsLab.szybkie_ustawienie")} description={t("obsLab.zestaw_lub_kroki_opis")}>
       <div className="space-y-6" data-testid="chat-quick-setup">
+        <Step title={t("obsLab.krok_zestaw")} hint={t("obsLab.krok_zestaw_opis")}>
+          <div className="grid grid-cols-2 gap-1.5">
+            {CHAT_SCENARIO_IDS.map((scenario) => {
+              const Icon = SCENARIO_ICONS[scenario];
+              return (
+                <button
+                  key={scenario}
+                  type="button"
+                  onClick={() => update((current) => chatScenarioConfig(scenario, current, t("obsLab.czat_na_zywo")))}
+                  className={`${choiceClass(false)} flex items-start gap-2 px-2 py-1.5 text-left`}
+                  data-testid={`quick-scenario-${scenario}`}
+                >
+                  <Icon className="mt-0.5 h-4 w-4 shrink-0 text-fuchsia-300" aria-hidden="true" />
+                  <span className="min-w-0">
+                    <span className="block leading-tight text-foreground">{scenarioLabel(scenario)}</span>
+                    <span className="mt-0.5 block text-[10px] font-normal leading-tight">{scenarioHint(scenario)}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </Step>
+
         <Step title={t("obsLab.krok_gdzie_czat")}>
           <div className="grid grid-cols-3 gap-1.5">
             {LAYOUT_TILES.map((tile) => (

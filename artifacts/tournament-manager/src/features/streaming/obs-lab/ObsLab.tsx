@@ -1,6 +1,6 @@
 import { t } from "@/i18n";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { ArrowLeft, Copy, ExternalLink, MonitorPlay, Redo2, RefreshCw, Save, Sparkles, Trash2, Undo2, Upload } from "lucide-react";
+import { ArrowLeft, Copy, ExternalLink, MonitorPlay, Redo2, RefreshCw, Save, Search, Sparkles, Trash2, Undo2, Upload, Volume2 } from "lucide-react";
 import {
   ToolButton,
   ToolDisclosure,
@@ -17,8 +17,16 @@ import {
 } from "@/components/tool-ui";
 import { StreamElementsSetup } from "./StreamElementsSetup";
 import { ChatQuickSetup, ObsSourceSteps, PresetSwatch, choiceClass } from "./ChatQuickSetup";
-import { type CameraChatEventStyle, type ChatEventKind, CHAT_EVENT_KINDS } from "./chat-events";
+import { type CameraChatEventStyle, type ChatEventKind, type ChatGoalKind, CHAT_EVENT_KINDS, chatGoalDefaultLabel } from "./chat-events";
+import { type ChatSoundMode, type ChatSoundStyle, CHAT_SOUND_RECIPES, chatAudio, playChatNotes } from "./chat-sound";
+import { chatEventLabels } from "./chat-event-labels";
+import { ChatSetupCheck } from "./ChatSetupCheck";
 import { useChatPacer } from "./use-chat-pacer";
+
+/** Lower case, without Polish accents, so "snieg" finds "Śnieg". */
+function normalizeSearch(value: string): string {
+  return value.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\u0142/g, "l");
+}
 import { commitChatHistory, redoChatHistory, startChatHistory, undoChatHistory } from "./chat-quick-setup";
 import {
   CameraChatWidget,
@@ -307,6 +315,9 @@ export function ObsLab() {
   const [importUrl, setImportUrl] = useState("");
   const [importResult, setImportResult] = useState<"ok" | "invalid" | null>(null);
   const previewMessageId = useRef(0);
+  const optionsRef = useRef<HTMLDivElement>(null);
+  const [optionQuery, setOptionQuery] = useState("");
+  const [optionMatches, setOptionMatches] = useState(0);
   const configRef = useRef(config);
   configRef.current = config;
   // Test messages go through the same calm-chat pacing as the OBS page; each lifetime starts when it shows.
@@ -332,6 +343,34 @@ export function ObsLab() {
   useEffect(() => {
     storeValue(MODE_STORAGE_KEY, mode);
   }, [mode]);
+
+  // Option search: sections whose text matches stay and open; the rest hide. Clearing restores them.
+  useEffect(() => {
+    const root = optionsRef.current;
+    if (!root) return;
+    const query = normalizeSearch(optionQuery.trim());
+    let matches = 0;
+    root.querySelectorAll<HTMLDetailsElement>("details").forEach((details) => {
+      if (!query) {
+        details.hidden = false;
+        if (details.dataset["searchOpened"]) {
+          details.open = false;
+          delete details.dataset["searchOpened"];
+        }
+        return;
+      }
+      const match = normalizeSearch(details.textContent ?? "").includes(query);
+      details.hidden = !match;
+      if (match) {
+        matches += 1;
+        if (!details.open) {
+          details.open = true;
+          details.dataset["searchOpened"] = "1";
+        }
+      }
+    });
+    setOptionMatches(matches);
+  }, [optionQuery, mode, config]);
 
   // Live preview: a test message every few seconds, so animations and extras show without clicking.
   useEffect(() => {
@@ -393,6 +432,11 @@ export function ObsLab() {
       });
     }
     setMockMessages((current) => [...current, testEvent(kind, ++previewMessageId.current)].slice(-40));
+  }
+
+  function previewSound() {
+    const audio = chatAudio();
+    if (audio) playChatNotes(audio, CHAT_SOUND_RECIPES[config.soundStyle], Math.max(config.soundVolume, 10));
   }
 
   function toggleEventKind(kind: ChatEventKind) {
@@ -519,6 +563,25 @@ export function ObsLab() {
       <div data-testid="chat-setup-mode">
         <ToolSegmented<SetupMode> value={mode} options={SETUP_MODE_OPTIONS} onChange={setMode} />
       </div>
+      {mode === "all" && (
+        <div>
+          <div className="relative">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" aria-hidden="true" />
+            <ToolInput
+              type="search"
+              value={optionQuery}
+              onChange={(event) => setOptionQuery(event.target.value)}
+              placeholder={t("obsLab.szukaj_opcji")}
+              aria-label={t("obsLab.szukaj_opcji")}
+              className="pl-9"
+              data-testid="chat-option-search"
+            />
+          </div>
+          {optionQuery.trim() !== "" && optionMatches === 0 && (
+            <p className="mt-1.5 text-xs text-muted-foreground">{t("obsLab.brak_takiej_opcji")}</p>
+          )}
+        </div>
+      )}
       {mode === "quick" && (
         <ChatQuickSetup
           config={config}
@@ -530,7 +593,8 @@ export function ObsLab() {
           onShowAll={() => setMode("all")}
         />
       )}
-      {mode === "all" && (
+      {/* While searching, the results come right under the search box. */}
+      {mode === "all" && !optionQuery.trim() && (
       <ToolPanel
         title={t("obsLab.presety")}
         actions={
@@ -634,7 +698,7 @@ export function ObsLab() {
         </div>
       </ToolDisclosure>
 
-      {mode === "all" && (<>
+      {mode === "all" && (<div ref={optionsRef} className="space-y-3" data-testid="chat-all-options">
       <ToolDisclosure title={chatOnly ? t("obsLab.rozmiar_czatu") : t("obsLab.kamerka")} open>
         <div className="space-y-4 text-fuchsia-300">
           {chatOnly ? (
@@ -1078,6 +1142,86 @@ export function ObsLab() {
         </div>
       </ToolDisclosure>
 
+      <ToolDisclosure title={t("obsLab.cel_hype_i_dzwieki")}>
+        <div className="space-y-4 text-fuchsia-300" data-testid="chat-gadgets-options">
+          <FieldLabel label={t("obsLab.pasek_celu")} hint={t("obsLab.pasek_celu_opis")}>
+            <ToolSelect value={config.goalKind} onChange={(event) => patchConfig({ goalKind: event.target.value as ChatGoalKind })} data-testid="chat-goal-kind">
+              <option value="none">{t("obsLab.bez_celu")}</option>
+              <option value="follow">{t("obsLab.cel_obserwujacych")}</option>
+              <option value="sub">{t("obsLab.cel_subow")}</option>
+              <option value="bits">{t("obsLab.cel_bitsow")}</option>
+              <option value="tip">{t("obsLab.cel_napiwkow")}</option>
+            </ToolSelect>
+          </FieldLabel>
+          {config.goalKind !== "none" && (
+            <div className="space-y-3 rounded-xl border border-border bg-background/35 p-3">
+              <FieldLabel label={t("obsLab.tytul_paska")}>
+                <ToolInput
+                  value={config.goalText}
+                  maxLength={40}
+                  placeholder={chatGoalDefaultLabel(config.goalKind, chatEventLabels())}
+                  onChange={(event) => patchConfig({ goalText: event.target.value })}
+                />
+              </FieldLabel>
+              <div className="grid grid-cols-2 gap-2">
+                <FieldLabel label={t("obsLab.cel_do_zdobycia")}>
+                  <ToolInput
+                    type="number"
+                    min={1}
+                    max={1000000}
+                    value={config.goalTarget}
+                    onChange={(event) => patchConfig({ goalTarget: Math.min(1000000, Math.max(1, Math.round(Number(event.target.value) || 1))) })}
+                    data-testid="chat-goal-target"
+                  />
+                </FieldLabel>
+                <FieldLabel label={t("obsLab.zaczyna_od")}>
+                  <ToolInput
+                    type="number"
+                    min={0}
+                    max={1000000}
+                    value={config.goalStart}
+                    onChange={(event) => patchConfig({ goalStart: Math.min(1000000, Math.max(0, Math.round(Number(event.target.value) || 0))) })}
+                  />
+                </FieldLabel>
+              </div>
+            </div>
+          )}
+          <ToolToggle label={t("obsLab.pasek_hype")} description={t("obsLab.pasek_hype_opis")} checked={config.hypeMeter} onChange={(hypeMeter) => patchConfig({ hypeMeter })} />
+          {config.hypeMeter && (
+            <ToolRange label={t("obsLab.wiadomosci_do_pelnego_paska")} value={config.hypeTarget} min={5} max={200} step={5} onChange={(hypeTarget) => patchConfig({ hypeTarget })} />
+          )}
+          <ToolToggle
+            label={t("obsLab.konfetti_przy_zdarzeniach")}
+            description={t("obsLab.konfetti_przy_zdarzeniach_opis")}
+            checked={config.eventConfetti}
+            onChange={(eventConfetti) => patchConfig({ eventConfetti })}
+          />
+          <FieldLabel label={t("obsLab.dzwieki")} hint={t("obsLab.dzwieki_opis")}>
+            <ToolSelect value={config.sound} onChange={(event) => patchConfig({ sound: event.target.value as ChatSoundMode })} data-testid="chat-sound">
+              <option value="none">{t("obsLab.bez_dzwiekow")}</option>
+              <option value="events">{t("obsLab.tylko_przy_zdarzeniach")}</option>
+              <option value="all">{t("obsLab.zdarzenia_i_wiadomosci")}</option>
+            </ToolSelect>
+          </FieldLabel>
+          {config.sound !== "none" && (
+            <div className="space-y-3 rounded-xl border border-border bg-background/35 p-3">
+              <FieldLabel label={t("obsLab.dzwiek_zdarzenia")}>
+                <ToolSelect value={config.soundStyle} onChange={(event) => patchConfig({ soundStyle: event.target.value as ChatSoundStyle })}>
+                  <option value="ding">{t("obsLab.dzwonek")}</option>
+                  <option value="pop">{t("obsLab.pykniecie")}</option>
+                  <option value="arcade">{t("obsLab.automat_do_gier")}</option>
+                  <option value="chime">{t("obsLab.cymbalki")}</option>
+                </ToolSelect>
+              </FieldLabel>
+              <ToolRange label={t("obsLab.glosnosc")} value={config.soundVolume} suffix="%" min={0} max={100} step={5} onChange={(soundVolume) => patchConfig({ soundVolume })} />
+              <ToolButton type="button" className="px-2.5 py-1 text-xs" onClick={previewSound} data-testid="chat-sound-preview">
+                <Volume2 className="h-3.5 w-3.5" />{" "}{t("obsLab.posluchaj")}
+              </ToolButton>
+            </div>
+          )}
+        </div>
+      </ToolDisclosure>
+
       <ToolDisclosure title={t("obsLab.animacje")}>
         <div className="space-y-4 text-fuchsia-300">
           <ToolToggle label={t("obsLab.animacja_wejscia")} checked={config.animateMessages} onChange={(animateMessages) => patchConfig({ animateMessages })} />
@@ -1136,7 +1280,7 @@ export function ObsLab() {
           )}
         </div>
       </ToolDisclosure>
-      </>)}
+      </div>)}
     </div>
   );
 
@@ -1196,6 +1340,8 @@ export function ObsLab() {
               <ToolToggle label={t("obsLab.ozyw_podglad")} description={t("obsLab.ozyw_podglad_opis")} checked={livePreview} onChange={setLivePreview} />
             </div>
           </ToolPanel>
+
+          <ChatSetupCheck config={config} update={setConfig} />
 
           <ToolPanel title={t("obsLab.browser_source")} description={t("obsLab.gotowy_adres_zawierajacy_aktualna_konfig")}>
             <div className="break-all rounded-xl border border-border bg-background/70 p-3 font-mono text-xs leading-5">{overlayUrl}</div>
