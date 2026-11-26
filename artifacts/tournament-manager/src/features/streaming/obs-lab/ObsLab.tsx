@@ -1,6 +1,6 @@
 import { t } from "@/i18n";
-import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
-import { ArrowLeft, Copy, ExternalLink, MonitorPlay, RefreshCw, Save, Sparkles, Trash2, Upload } from "lucide-react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { ArrowLeft, Copy, ExternalLink, MonitorPlay, Redo2, RefreshCw, Save, Sparkles, Trash2, Undo2, Upload } from "lucide-react";
 import {
   ToolButton,
   ToolDisclosure,
@@ -16,6 +16,8 @@ import {
   ToolWorkspace,
 } from "@/components/tool-ui";
 import { StreamElementsSetup } from "./StreamElementsSetup";
+import { ChatQuickSetup, ObsSourceSteps, PresetSwatch } from "./ChatQuickSetup";
+import { commitChatHistory, redoChatHistory, startChatHistory, undoChatHistory } from "./chat-quick-setup";
 import {
   CameraChatWidget,
   generateMockMessages,
@@ -52,7 +54,6 @@ import {
   cameraChatConfigFromUrl,
   cameraChatConfigToSearch,
   getCameraChatSize,
-  rgbaCss,
 } from "./camera-chat-settings";
 import { parseChatNameList, parseChatWordList } from "./chat-message-format";
 import {
@@ -82,6 +83,7 @@ const ALIGN_OPTIONS = [
 // --- Stored setups (this browser only) ----------------------------------------------------------------------------
 
 const CONFIG_STORAGE_KEY = "tm_obs_camera_chat_config";
+const MODE_STORAGE_KEY = "tm_obs_camera_chat_mode";
 const SAVED_STORAGE_KEY = "tm_obs_camera_chat_saved";
 const MAX_SAVED_SETUPS = 20;
 
@@ -109,6 +111,24 @@ function loadSavedSetups(): SavedSetup[] {
     return [];
   }
 }
+
+type SetupMode = "quick" | "all";
+
+const SETUP_MODE_OPTIONS = [
+  { value: "quick", get label() { return t("obsLab.szybkie_ustawienie"); } },
+  { value: "all", get label() { return t("obsLab.wszystkie_opcje"); } },
+] as const;
+
+function loadSetupMode(): SetupMode {
+  try {
+    return localStorage.getItem(MODE_STORAGE_KEY) === "all" ? "all" : "quick";
+  } catch {
+    return "quick";
+  }
+}
+
+/** How often "live preview" sends a test message. */
+const LIVE_PREVIEW_MS = 2500;
 
 function storeValue(key: string, value: string) {
   try {
@@ -221,40 +241,14 @@ function FieldLabel({ label, children, hint }: { label: string; children: ReactN
   );
 }
 
-function PresetSwatch({ config }: { config: CameraChatConfig }) {
-  const panel = rgbaCss(config.panelColor, Math.max(config.panelOpacity, 35));
-  const bubble = config.messageBackground ? rgbaCss(config.bubbleColor, Math.max(config.bubbleOpacity, 14)) : "transparent";
-  const name = config.nameColorMode === "single" ? config.nameColor : "#a78bfa";
-  const text = rgbaCss(config.textColor, config.textOpacity);
-  const bar = (width: string, style?: CSSProperties) => (
-    <span className="flex items-center gap-1 rounded px-1 py-0.5" style={{ background: bubble, ...style }}>
-      <span className="h-1 w-2.5 rounded-full" style={{ background: name }} />
-      <span className="h-1 rounded-full" style={{ width, background: text }} />
-    </span>
-  );
-  return (
-    <span
-      aria-hidden="true"
-      className="flex h-10 w-12 shrink-0 flex-col justify-end gap-0.5 overflow-hidden rounded-md border border-white/10 p-1"
-      style={{
-        background: config.panelOpacity > 0 ? panel : PREVIEW_BACKGROUNDS.checker,
-        alignItems: config.textAlign === "right" ? "flex-end" : "flex-start",
-        boxShadow: config.frameStyle === "none"
-          ? undefined
-          : `inset 0 0 0 2px ${config.frameStyle === "rainbow" ? "#f472b6" : config.frameColor}`,
-      }}
-    >
-      {bar("60%")}
-      {bar("80%")}
-    </span>
-  );
-}
-
 // --- Configurator -------------------------------------------------------------------------------------------------
 
 export function ObsLab() {
   const [openChatLab, setOpenChatLab] = useState(false);
-  const [config, setConfig] = useState<CameraChatConfig>(loadStoredConfig);
+  const [history, setHistory] = useState(() => startChatHistory(loadStoredConfig()));
+  const config = history.present;
+  const [mode, setMode] = useState<SetupMode>(loadSetupMode);
+  const [livePreview, setLivePreview] = useState(false);
   const [mockMessages, setMockMessages] = useState(() => generateMockMessages());
   const [copied, setCopied] = useState(false);
   const [previewBackground, setPreviewBackground] = useState<PreviewBackground>("dark");
@@ -263,6 +257,8 @@ export function ObsLab() {
   const [importUrl, setImportUrl] = useState("");
   const [importResult, setImportResult] = useState<"ok" | "invalid" | null>(null);
   const previewMessageId = useRef(0);
+  const configRef = useRef(config);
+  configRef.current = config;
 
   const size = getCameraChatSize(config);
   const chatOnly = config.layout === "chat";
@@ -278,6 +274,26 @@ export function ObsLab() {
   useEffect(() => {
     storeValue(SAVED_STORAGE_KEY, JSON.stringify(savedSetups));
   }, [savedSetups]);
+
+  useEffect(() => {
+    storeValue(MODE_STORAGE_KEY, mode);
+  }, [mode]);
+
+  // Live preview: a test message every few seconds, so animations and extras show without clicking.
+  useEffect(() => {
+    if (!livePreview) return undefined;
+    let index = 0;
+    const timer = window.setInterval(() => {
+      const kind = TEST_KINDS[index++ % TEST_KINDS.length]!;
+      setMockMessages((current) => [...current, testMessage(kind, ++previewMessageId.current, configRef.current)].slice(-40));
+    }, LIVE_PREVIEW_MS);
+    return () => window.clearInterval(timer);
+  }, [livePreview]);
+
+  /** Every change goes through the undo history (quick changes, such as dragging a slider, are one step). */
+  function setConfig(next: CameraChatConfig | ((current: CameraChatConfig) => CameraChatConfig)) {
+    setHistory((current) => commitChatHistory(current, typeof next === "function" ? next(current.present) : next, Date.now()));
+  }
 
   function patchConfig(patch: Partial<CameraChatConfig>) {
     setConfig((current) => ({ ...current, ...patch }));
@@ -406,6 +422,21 @@ export function ObsLab() {
 
   const controls = (
     <div className="space-y-3">
+      <div data-testid="chat-setup-mode">
+        <ToolSegmented<SetupMode> value={mode} options={SETUP_MODE_OPTIONS} onChange={setMode} />
+      </div>
+      {mode === "quick" && (
+        <ChatQuickSetup
+          config={config}
+          update={setConfig}
+          width={size.width}
+          height={size.height}
+          copied={copied}
+          onCopyUrl={copyUrl}
+          onShowAll={() => setMode("all")}
+        />
+      )}
+      {mode === "all" && (
       <ToolPanel
         title={t("obsLab.presety")}
         actions={
@@ -453,6 +484,7 @@ export function ObsLab() {
           <p className="mt-1.5 text-[11px] leading-4 text-muted-foreground">{t("obsLab.zmienia_tylko_kolory_panelu_dymkow")}</p>
         </div>
       </ToolPanel>
+      )}
 
       <ToolDisclosure title={t("obsLab.moje_konfiguracje")}>
         <div className="space-y-4">
@@ -508,6 +540,7 @@ export function ObsLab() {
         </div>
       </ToolDisclosure>
 
+      {mode === "all" && (<>
       <ToolDisclosure title={chatOnly ? t("obsLab.rozmiar_czatu") : t("obsLab.kamerka")} open>
         <div className="space-y-4 text-fuchsia-300">
           {chatOnly ? (
@@ -936,6 +969,7 @@ export function ObsLab() {
           )}
         </div>
       </ToolDisclosure>
+      </>)}
     </div>
   );
 
@@ -944,7 +978,13 @@ export function ObsLab() {
       <ToolToolbar>
         <ToolButton type="button" onClick={() => setOpenChatLab(false)}>
           <ArrowLeft className="h-4 w-4" />{" "}{t("obsLab.narzedzia_obs")}</ToolButton>
-        <ToolSegmented value={config.layout} options={LAYOUT_OPTIONS} onChange={(layout) => patchConfig({ layout })} />
+        <div className="flex flex-wrap items-center gap-2">
+          <ToolButton type="button" variant="ghost" onClick={() => setHistory(undoChatHistory)} disabled={history.past.length === 0} data-testid="chat-undo">
+            <Undo2 className="h-4 w-4" />{" "}{t("obsLab.cofnij")}</ToolButton>
+          <ToolButton type="button" variant="ghost" onClick={() => setHistory(redoChatHistory)} disabled={history.future.length === 0} data-testid="chat-redo">
+            <Redo2 className="h-4 w-4" />{" "}{t("obsLab.ponow")}</ToolButton>
+          <ToolSegmented value={config.layout} options={LAYOUT_OPTIONS} onChange={(layout) => patchConfig({ layout })} />
+        </div>
       </ToolToolbar>
 
       <ToolWorkspace sidebar={controls} sidebarWidth="350px">
@@ -974,6 +1014,9 @@ export function ObsLab() {
                 </ToolButton>
               ))}
             </div>
+            <div className="mt-3 max-w-md" data-testid="chat-live-preview">
+              <ToolToggle label={t("obsLab.ozyw_podglad")} description={t("obsLab.ozyw_podglad_opis")} checked={livePreview} onChange={setLivePreview} />
+            </div>
           </ToolPanel>
 
           <ToolPanel title={t("obsLab.browser_source")} description={t("obsLab.gotowy_adres_zawierajacy_aktualna_konfig")}>
@@ -994,6 +1037,9 @@ export function ObsLab() {
                 <div className="text-xs text-muted-foreground">{t("obsLab.wysokosc_w_obs")}</div>
                 <div className="mt-1 text-xl font-black">{size.height}{t("obsLab.px")}</div>
               </div>
+            </div>
+            <div className="mt-4">
+              <ObsSourceSteps width={size.width} height={size.height} />
             </div>
           </ToolPanel>
 

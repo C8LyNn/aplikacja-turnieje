@@ -115,6 +115,19 @@ natywnego widgetu StreamElements. Reguły wiadomości są w
 - CSS i dane dodatków tworzy `chat-decor.ts` dla obu renderów; testy porównują drobinki, nagłówek,
   kształty, etykietę NOWY i emotki między podglądem a widgetem SE.
 
+## Zrealizowany etap 6 — łatwiejsze ustawianie (2026-11-26)
+
+- Konfigurator otwiera się w trybie **Szybkie ustawienie** (przełącznik „Szybkie ustawienie / Wszystkie
+  opcje”, zapamiętywany w przeglądarce). Pięć kroków: 1) gdzie czat — kafelki z rysunkiem układu, a dla
+  czatu na kamerce siatka 3 × 3 z wyborem rogu; 2) styl — gotowy wygląd **bez zmiany położenia** czatu,
+  plus „Losuj wygląd”; 3) kolory; 4) dodatki jednym kliknięciem (śnieg, serduszka, iskierki, nagłówek na
+  żywo, etykieta NOWY, wylatujące emotki, animowana ramka, znikanie po 30 s); 5) dodanie do OBS —
+  ponumerowana instrukcja z wymiarami i przycisk kopiowania adresu.
+- **Cofnij / Ponów** (do 50 kroków; przeciąganie suwaka to jeden krok).
+- **Ożyw podgląd:** co 2,5 s przychodzi wiadomość testowa, więc animacje i dodatki widać bez klikania.
+- Ta sama instrukcja OBS jest też w panelu Browser Source.
+- Logika jest w `chat-quick-setup.ts` (czyste funkcje), testy w `chat-quick-setup.test.tsx`.
+
 ## Kierunek następnych etapów
 
 1. **Animacja tekstu wiadomości:** wejście znakami/słowami, maska reveal,
