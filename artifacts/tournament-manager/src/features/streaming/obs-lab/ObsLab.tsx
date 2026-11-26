@@ -121,6 +121,7 @@ import {
   chatPresetCategoryLabel,
 } from "./chat-presets";
 import type { ChatSkinId } from "./chat-skins";
+import { type ChatSceneId, CHAT_SCENE_IDS } from "./chat-scenes";
 
 const LAYOUT_OPTIONS = [
   { value: "chat", get label() { return t("obsLab.sam_czat"); } },
@@ -1034,6 +1035,16 @@ export function ObsLab() {
               {CHAT_PRESET_CATEGORY_IDS.map((category) => (
                 <optgroup key={category} label={chatPresetCategoryLabel(category)}>
                   {CHAT_PRESET_CATEGORIES[category].map((preset) => <option key={preset} value={preset}>{chatPresetLabel(preset)}</option>)}
+                </optgroup>
+              ))}
+            </ToolSelect>
+          </FieldLabel>
+          <FieldLabel label={t("obsLab.scena_w_tle")} hint={t("obsLab.scena_w_tle_opis")}>
+            <ToolSelect value={config.scene} onChange={(event) => patchConfig({ scene: event.target.value as ChatSceneId })} data-testid="chat-scene">
+              <option value="none">{t("obsLab.bez_sceny")}</option>
+              {CHAT_PRESET_CATEGORY_IDS.map((category) => (
+                <optgroup key={category} label={chatPresetCategoryLabel(category)}>
+                  {CHAT_PRESET_CATEGORIES[category].filter((preset) => (CHAT_SCENE_IDS as readonly string[]).includes(preset)).map((preset) => <option key={preset} value={preset}>{chatPresetLabel(preset)}</option>)}
                 </optgroup>
               ))}
             </ToolSelect>

@@ -104,8 +104,11 @@ const SKINS = {
     `@keyframes chat-skin-blink { 50% { opacity: 0; } }`,
   ],
   cyberpunk: ({ card }) => [
-    `${card} { clip-path: ${cut(10)}; background: linear-gradient(90deg, rgba(250,204,21,.16), rgba(34,211,238,.05)) !important; border: none !important; }`,
-    `.chat-name { text-shadow: 2px 0 #ff2a6d, -2px 0 #05d9e8 !important; letter-spacing: .08em; }`,
+    `${card} { clip-path: ${cut(10)}; background: linear-gradient(90deg, #fcee0a 0 calc(100% - 26px), #00e5ff calc(100% - 26px) calc(100% - 22px), #fcee0a calc(100% - 22px)) !important; border: none !important; box-shadow: inset 4px 0 0 #b3002d !important; }`,
+    `.chat-name { text-shadow: 1px 0 rgba(255,42,109,.55), -1px 0 rgba(0,229,255,.55) !important; letter-spacing: .08em; }`,
+    `.chat-text { font-weight: 600; }`,
+    // Nicks as black labels with yellow type, like the plates of a futuristic HUD.
+    `.chat-name { background: #0a0a0a !important; border-color: #0a0a0a !important; color: #fcee0a !important; -webkit-text-fill-color: #fcee0a; }`,
   ],
   synthwave: ({ card }) => [
     `${card} { background: linear-gradient(180deg, rgba(244,114,182,.2), rgba(34,211,238,.06)) !important; border-radius: 0 !important; border-bottom: 2px solid #f472b6 !important; }`,
@@ -120,9 +123,11 @@ const SKINS = {
     `.chat-name { font-family: Consolas, "Courier New", monospace; letter-spacing: .08em; }`,
   ],
   matrix: ({ card }) => [
-    `.chat-text { text-shadow: 0 0 6px rgba(34,197,94,.75); }`,
-    `${card}:not(:last-child) .chat-text { color: #15803d !important; }`,
-    `${card}:last-child .chat-text { color: #dcfce7 !important; }`,
+    // The code rain stays behind: every message sits on its own dark plate, older ones only a little dimmer.
+    `${card} { border-left: 2px solid #22c55e !important; border-radius: 2px !important; box-shadow: 0 0 0 1px rgba(34,197,94,.18) !important; }`,
+    `.chat-text { text-shadow: none; }`,
+    `${card}:not(:last-child) .chat-text { color: #86efac !important; }`,
+    `${card}:last-child .chat-text { color: #dcfce7 !important; text-shadow: 0 0 4px rgba(34,197,94,.45); }`,
   ],
   amberterm: ({ panel }) => [
     `${panel} { border-radius: 22px / 50px !important; animation: chat-skin-flicker 4s infinite; }`,
@@ -193,12 +198,12 @@ const SKINS = {
     paintedBorder(card, "#2e1065", "repeating-linear-gradient(45deg, #f0abfc 0 6px, #ffffff 6px 12px)", 3, 14),
   ],
   mint: ({ card }) => [
-    `${card} { border-radius: 4px 16px 4px 16px !important; border-left: 3px solid #34d399 !important; }`,
-    `.chat-text { color: #ecfdf5 !important; }`,
+    `${card} { border-radius: 4px 16px 4px 16px !important; border-left: 3px solid #34d399 !important; box-shadow: 0 2px 8px rgba(4,120,87,.18) !important; }`,
+    `.chat-name { letter-spacing: .02em; }`,
   ],
   coffee: ({ card }) => [
     hideShapeLayer(card),
-    `${card} { background: linear-gradient(180deg, rgba(214,167,122,.2), rgba(63,42,32,.32)) !important; border-radius: 4px 4px 16px 16px !important; border-top: 2px solid rgba(214,167,122,.6) !important; }`,
+    `${card} { background: linear-gradient(180deg, #fffaf2, #f6e7d3) !important; border-radius: 4px 4px 16px 16px !important; border-top: 3px solid #14532d !important; box-shadow: 0 3px 8px rgba(0,0,0,.35) !important; }`,
     `.chat-name { font-style: italic; }`,
   ],
   princess: ({ card }) => [
@@ -336,7 +341,7 @@ const SKINS = {
   ],
   summer: ({ card }) => [
     hideShapeLayer(card),
-    `${card} { background: linear-gradient(90deg, rgba(253,224,71,.22), rgba(14,165,233,.12)) !important; border-radius: 16px !important; border-bottom: 3px solid #0ea5e9 !important; }`,
+    `${card} { background: rgba(255,255,255,.88) !important; border-radius: 16px !important; border-bottom: 3px solid #f59e0b !important; box-shadow: 0 3px 10px rgba(12,74,110,.25) !important; }`,
   ],
   spring: ({ card }) => [
     `${card} { border-radius: 20px 20px 20px 4px !important; border: 1px solid rgba(134,239,172,.42) !important; }`,

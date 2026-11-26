@@ -9,6 +9,7 @@
 import { type ChatSoundMode, type ChatSoundStyle, CHAT_SOUND_MODES, CHAT_SOUND_STYLES } from "./chat-sound";
 import { type ChatOrnament, CHAT_ORNAMENTS } from "./chat-ornaments";
 import { type ChatSkinId, CHAT_SKIN_IDS } from "./chat-skins";
+import { type ChatSceneId, CHAT_SCENE_IDS } from "./chat-scenes";
 
 export type CameraChatLayout = "right" | "left" | "below" | "above" | "overlay" | "chat";
 export type CameraChatAspectRatio = "16:9" | "4:3" | "1:1";
@@ -289,6 +290,8 @@ export type CameraChatConfig = {
   ornamentColor: string;
   /** The theme's own bespoke look (row shapes, borders, type); every theme has its own. */
   skin: ChatSkinId;
+  /** An animated picture behind the messages (waves and fish, trees, comets, fireworks...). */
+  scene: ChatSceneId;
 
   animateMessages: boolean;
   animationStyle: CameraChatAnimationStyle;
@@ -413,6 +416,7 @@ export const DEFAULT_CAMERA_CHAT_CONFIG: CameraChatConfig = {
   ornament: "none",
   ornamentColor: "#facc15",
   skin: "none",
+  scene: "none",
 
   animateMessages: true,
   animationStyle: "rise",
@@ -1071,6 +1075,7 @@ export function cameraChatConfigToSearch(
   params.set("ornament", config.ornament);
   params.set("ornac", config.ornamentColor);
   params.set("skin", config.skin);
+  params.set("scene", config.scene);
   flag("anim", config.animateMessages);
   params.set("animstyle", config.animationStyle);
   params.set("animdur", String(config.animationDurationMs));
@@ -1219,6 +1224,7 @@ export function cameraChatConfigFromSearch(
     ornament: enumParam(params, "ornament", CHAT_ORNAMENTS, defaults.ornament),
     ornamentColor: color("ornac", defaults.ornamentColor),
     skin: enumParam(params, "skin", CHAT_SKIN_IDS, defaults.skin),
+    scene: enumParam(params, "scene", CHAT_SCENE_IDS, defaults.scene),
 
     animateMessages: booleanParam(params, "anim", defaults.animateMessages),
     animationStyle,

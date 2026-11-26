@@ -264,6 +264,39 @@ natywnego widgetu StreamElements. Reguły wiadomości są w
 - Test różnic liczy 15 cech (doszła skórka); test w `chat-identity.test.tsx` sprawdza, że każdy motyw ma własną,
   niepowtarzalną skórkę bez `url()`/`@import`, z domkniętymi nawiasami, i że trafia ona do podglądu i do widżetu.
 
+## Zrealizowany etap 14 — sceny w tle (2026-11-26)
+
+- **Sceny** (`scene`, `chat-scenes.ts`): animowany obrazek za wiadomościami dla 60 motywów, zbudowany ze wspólnych
+  klocków: fale (nieregularne, każda warstwa płynie, faluje i kołysze się we własnym tempie), rzędy drzew, góry, miasto
+  z oknami, spadające i unoszące się rzeczy (liście klonu, dębu i brzozy, pisanki, cukierki, lód, płatki), obiekty
+  przelatujące co jakiś czas (ryby, statek kosmiczny, smok, ptaki, bolid, nietoperze, latające auta), fajerwerki,
+  zębatki, ogień, zorza.
+- Zgłoszone przez właściciela: Cyberpunk (żółte tabliczki z czarnymi etykietami nicków, ścięte rogi, megamiasto
+  z neonami i latającymi autami, ramki HUD, glitch — bez nazw i znaków z gry), Cukierki (girlanda cukierków, lizaki,
+  spadające słodycze), Mięta (świeża mięta: gałązka, liście, kostki lodu, bąbelki, jasne tło), Kawiarnia (markiza,
+  tablica z menu, filiżanka z parą, ziarna, deski, kremowe karty), Głębia oceanu (fale na górze, promienie światła,
+  ryby, wodorosty i koral, coraz ciemniej w głąb), Las nocą (sosny po bokach i w trzech planach, księżyc, mgła),
+  Kosmos (komety, statek co jakiś czas, planeta z pierścieniem, gwiazdy bez pulsowania), Zachód słońca (słońce na
+  horyzoncie, odblaski na wodzie, chmury, wyspa, ptaki), Jesień (klon, dąb, brzoza w kolorach jesieni, gałąź),
+  Sylwester (fajerwerki nad miastem), Wielkanoc (spadające pisanki), Lato (morze z falami i żaglówką, palma, słońce),
+  Matrix (deszcz kodu w tle, każda wiadomość na ciemnej płytce, bez przyciemniania starszych), Magia (krąg magiczny,
+  księżyc, świetliste kule), Steampunk (zębatki, rura z parą, manometr), Smok (ogień z boku z płomieni i iskier, smok
+  w oddali), Zorza polarna (falujące kurtyny z promieniami, góry), Gazeta (stary papier: plamy, zagięcie, przypalone
+  brzegi), Wyścigi (asfalt, krawężniki, szachownica, ślady opon, bolid, światła startowe).
+- Dalsze motywy z tematem dostały swoje sceny (zima, święta, Halloween, walentynki, wiosna, karnawał, sakura,
+  pustynia, wulkan, dżungla, piracki, samuraj, horror, Dziki Zachód, gotycki, księżniczka, jednorożec, wata cukrowa,
+  liliowy sen, kawaii, bąbelki, pastel goth, Y2K, brzoskwinia, synthwave, vaporwave, neonowe miasto, salon gier,
+  retro 8-bit, rytm muzyki, neonowe fale, e-sport, FPS, noir, hologram, Memphis, lampa lava, złoto, tablica kredowa,
+  plan techniczny, komiks, tablica korkowa). Proste style (Glass, Minimal, Klasyczny…) zostają bez sceny.
+- Czytelność: najważniejsze części obrazka są w górnej połowie i po bokach (czat rośnie od dołu); wiadomości lekko
+  rozmywają to, co jest tuż za nimi (`backdrop-filter`); motywy z jasną sceną mają jasne karty i ciemny tekst.
+  Animacje zatrzymują się przy `prefers-reduced-motion`.
+- Bezpieczeństwo: znaczniki sceny są stałe (tylko stałe z pliku, bez tekstu od kogokolwiek), bez `url()`, skryptów
+  i obrazków z sieci. Test sprawdza też poprawność każdej ścieżki SVG i to, że każda użyta animacja ma swoje
+  `@keyframes`, oraz zgodność sceny w podglądzie, na stronie OBS i w widżecie StreamElements (`chat-scenes.test.tsx`).
+- Wybór sceny w konfiguratorze („Scena w tle”); motyw ustawia swoją scenę sam. Stare adresy bez `scene` wyglądają jak
+  dotąd. Test różnic liczy 16 cech (doszła scena).
+
 ## Kierunek następnych etapów
 
 1. **Animacja tekstu wiadomości:** wejście znakami/słowami, maska reveal,

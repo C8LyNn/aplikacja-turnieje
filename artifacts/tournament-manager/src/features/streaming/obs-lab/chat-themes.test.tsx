@@ -208,8 +208,8 @@ test("the pickers filter looks by group; a seasonal look and the combo extra app
   act(() => { fireEvent.click(view.getByTestId("preset-category-seasonal")); });
   assert.equal(quickPresets(), CHAT_PRESET_CATEGORIES.seasonal.length);
   act(() => { fireEvent.click(view.getByTestId("quick-preset-autumn")); });
-  assert.deepEqual([stored().ambient, stored().animationStyle], ["leaves", "drop"]);
-  assert.ok(view.container.querySelectorAll(".chat-ambient .chat-amb-leaf").length > 0, "leaves fall in the preview");
+  assert.deepEqual([stored().scene, stored().animationStyle], ["autumn", "drop"]);
+  assert.ok(view.container.querySelectorAll(".chat-scene .cs svg").length > 5, "maple, oak and birch leaves fall in the preview");
   act(() => { fireEvent.click(view.getByTestId("quick-extra-combo")); });
   assert.equal(stored().comboMessages, true);
   act(() => { fireEvent.click(view.getByTestId("chat-test-plain")); });
@@ -220,11 +220,11 @@ test("the pickers filter looks by group; a seasonal look and the combo extra app
   act(() => { fireEvent.click(view.getByTestId("preset-category-neon")); });
   assert.equal(view.container.querySelectorAll("[data-testid^='chat-preset-']").length, CHAT_PRESET_CATEGORIES.neon.length);
   act(() => { fireEvent.click(view.getByTestId("chat-preset-cyberpunk")); });
-  assert.deepEqual([stored().nameStyle, stored().panelPattern, stored().animationStyle], ["glow", "grid", "glitch"]);
+  assert.deepEqual([stored().nameStyle, stored().panelPattern, stored().animationStyle], ["plain", "grid", "glitch"]);
   assert.ok(view.container.querySelector(".chat-pattern"));
 });
 
-test("every two looks differ in at least five of fifteen visible traits, not only in colour", () => {
+test("every two looks differ in at least five of sixteen visible traits, not only in colour", () => {
   const close: string[] = [];
   let total = 0;
   let pairs = 0;
@@ -238,6 +238,6 @@ test("every two looks differ in at least five of fifteen visible traits, not onl
   }
   assert.deepEqual(close, []);
   assert.ok(total / pairs >= 8, `on average looks differ in ${(total / pairs).toFixed(1)} traits`);
-  assert.equal(Object.keys(chatLookTraits(DEFAULT_CAMERA_CHAT_CONFIG)).length, 15);
+  assert.equal(Object.keys(chatLookTraits(DEFAULT_CAMERA_CHAT_CONFIG)).length, 16);
   assert.deepEqual([chatPanelTone("#fdf6e3"), chatPanelTone("#0a0a0a"), chatPanelTone("#7f1d1d")], ["light", "neutral", "hue-0"]);
 });

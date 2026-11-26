@@ -1,5 +1,6 @@
 import { t } from "@/i18n";
 import { type CameraChatConfig, DEFAULT_CAMERA_CHAT_CONFIG } from "./camera-chat-settings";
+import { chatSceneFor } from "./chat-scenes";
 
 /** Ready-made chat looks for the configurator; each one is a complete, URL-safe configuration. */
 export type ChatPresetId =
@@ -259,8 +260,44 @@ const THEME_IDENTITY: Partial<Record<ChatPresetId, Partial<CameraChatConfig>>> =
   carnival: { ornament: "diamond", ornamentColor: "#fde047", nameTag: "pill" },
 };
 
+/**
+ * Looks with a scene (chat-scenes.ts) get colours that suit the picture: a sky that darkens with depth, a sky over the
+ * sea, light cards on a summer beach or in a café. The picture replaces the old particles where it draws its own.
+ */
+const SCENE_TUNING: Partial<Record<ChatPresetId, Partial<CameraChatConfig>>> = {
+  ocean: { panelAnimation: "none", panelGradient: true, panelColor: "#0e7490", panelColor2: "#020617", panelGradientAngle: 180, panelPattern: "none", ambientDensity: 8 },
+  forest: { panelColor: "#0f172a", panelColor2: "#052e16", panelGradientAngle: 180 },
+  space: { panelAnimation: "none", ambient: "none" },
+  sunset: { panelGradient: true, panelColor: "#1e1b4b", panelColor2: "#be185d", panelGradientAngle: 180, ambient: "none" },
+  autumn: { ambient: "none" },
+  newyear: { ambientDensity: 6 },
+  easter: { ambient: "none" },
+  summer: {
+    panelColor: "#0284c7", panelColor2: "#7dd3fc", panelGradientAngle: 180, ambient: "none", textColor: "#0c4a6e", textOpacity: 100,
+    textShadow: "none", nameColorMode: "single", nameColor: "#c2410c", nameStyle: "plain", bubbleColor: "#ffffff", bubbleOpacity: 86,
+  },
+  matrix: { ambientColor: "#15803d", ambientDensity: 14, messageBackground: true, bubbleColor: "#000000", bubbleOpacity: 80, nameStyle: "plain", animationStyle: "fade" },
+  steampunk: { ambientDensity: 6 },
+  aurora: { panelAnimation: "none", ambient: "none" },
+  candy: { ambient: "none" },
+  mint: {
+    panelGradient: true, panelColor: "#ecfdf5", panelColor2: "#a7f3d0", panelGradientAngle: 180, panelOpacity: 94, panelPattern: "none",
+    textColor: "#064e3b", textOpacity: 100, textShadow: "none", nameColorMode: "single", nameColor: "#047857", bubbleColor: "#ffffff", bubbleOpacity: 72,
+  },
+  coffee: {
+    panelColor: "#3b2416", panelColor2: "#5c3a21", panelPattern: "planks", patternColor: "#000000", patternOpacity: 22, textColor: "#3b2416",
+    textOpacity: 100, textShadow: "none", nameColorMode: "single", nameColor: "#9a3412", bubbleColor: "#fdf6ec", bubbleOpacity: 94,
+  },
+  cyberpunk: {
+    panelColor: "#0b0b14", bubbleColor: "#fcee0a", bubbleOpacity: 92, textColor: "#0a0a0a", textOpacity: 100, textShadow: "none",
+    nameColorMode: "single", nameColor: "#b3002d", nameStyle: "plain", frameColor: "#fcee0a", patternColor: "#00e5ff", patternOpacity: 8,
+  },
+  racing: { panelPattern: "none" },
+  newspaper: { panelColor: "#ebdfc0", textColor: "#2b2118", nameColor: "#6b1d0f", frameColor: "#3b2f22", ornamentColor: "#2b2118" },
+};
+
 export function chatPresetConfig(id: ChatPresetId): CameraChatConfig {
-  return { ...basePresetConfig(id), ...LOOK_TRAITS[id], ...THEME_IDENTITY[id], skin: id };
+  return { ...basePresetConfig(id), ...LOOK_TRAITS[id], ...THEME_IDENTITY[id], ...SCENE_TUNING[id], skin: id, scene: chatSceneFor(id) };
 }
 
 function basePresetConfig(id: ChatPresetId): CameraChatConfig {

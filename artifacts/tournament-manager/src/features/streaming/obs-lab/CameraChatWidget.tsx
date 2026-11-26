@@ -48,6 +48,7 @@ import {
   getChatDecorCss,
 } from "./chat-decor";
 import { chatOrnamentGlyph } from "./chat-ornaments";
+import { chatSceneHtml } from "./chat-scenes";
 import {
   type ChatEventLabels,
   type ChatGoalKind,
@@ -484,6 +485,7 @@ export function CameraChatWidget({
   };
 
   const particles = chatAmbientParticles(config);
+  const sceneMarkup = chatSceneHtml(config);
   const headerContent = chatHeaderContent(config);
   const goal = config.goalKind === "none"
     ? null
@@ -507,6 +509,8 @@ export function CameraChatWidget({
           : { backgroundColor: chatPanelBackground(config) }),
       }}
     >
+      {/* The scene markup is fixed per scene (constants only, nothing typed by anyone), see chat-scenes.ts. */}
+      {sceneMarkup && <div className="chat-scene" aria-hidden="true" dangerouslySetInnerHTML={{ __html: sceneMarkup }} />}
       {config.panelPattern !== "none" && <div className="chat-pattern" aria-hidden="true" />}
       {particles.length > 0 && (
         <div className="chat-ambient" aria-hidden="true">

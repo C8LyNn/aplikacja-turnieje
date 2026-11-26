@@ -17,6 +17,7 @@ import {
 import { type ChatGoalProgress, CHAT_GOAL_COLORS } from "./chat-events";
 import { chatOrnamentHtml, getChatOrnamentCss } from "./chat-ornaments";
 import { getChatSkinCss } from "./chat-skins";
+import { chatSceneHtml, getChatSceneCss } from "./chat-scenes";
 
 // --- Background particles -----------------------------------------------------------------------------------------
 
@@ -206,6 +207,8 @@ export function getChatDecorCss(config: CameraChatConfig, panel: string, row: st
       "@keyframes chat-amb-petal { 0% { top: -8%; transform: translateX(0) rotate(0deg); } 50% { transform: translateX(18px) rotate(200deg); } 100% { top: 108%; transform: translateX(-10px) rotate(400deg); } }",
     );
   }
+  const scene = getChatSceneCss(config, panel, row);
+  if (scene) rules.push(scene);
   if (config.panelPattern !== "none") {
     rules.push(
       `${panel} { position: relative; isolation: isolate; }`,
@@ -414,7 +417,9 @@ export function chatDecorHtml(config: CameraChatConfig, goal: ChatGoalProgress |
   const particles = chatAmbientParticles(config);
   const pattern = config.panelPattern !== "none" ? `<div class="chat-pattern" aria-hidden="true"></div>` : "";
   const ornament = chatOrnamentHtml(config);
-  const ambient = pattern + (particles.length
+  const sceneMarkup = chatSceneHtml(config);
+  const scene = sceneMarkup ? `<div class="chat-scene" aria-hidden="true">${sceneMarkup}</div>` : "";
+  const ambient = scene + pattern + (particles.length
     ? `<div class="chat-ambient" aria-hidden="true">${particles.map((particle) => `<span class="${particle.className}" style="${ambientStyleText(particle)}">${escapeHtml(particle.text)}</span>`).join("")}</div>`
     : "") + ornament.emblem;
   const content = chatHeaderContent(config);
