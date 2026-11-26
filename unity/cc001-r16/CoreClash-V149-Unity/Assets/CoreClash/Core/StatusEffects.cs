@@ -5,31 +5,51 @@ namespace CoreClash.Core
     public sealed partial class AbilityResolver
     {
         void Stamp(BallRuntime b,string family,int owner){var stamp=b.statusOrder.FirstOrDefault(x=>x.family==family);if(stamp==null)b.statusOrder.Add(new StatusStamp{family=family,order=++S.statusClock,owner=owner});else stamp.owner=owner;}
+        // Match rule noFriendlyFire: a player's own fire, ice or poison does not land on that player's
+        // balls. (The part that helps stays: own fire thaws, own ice puts a fire out.)
+        bool Own(BallRuntime b,int owner)=>S.noFriendlyFire&&b.owner==owner;
         void ClearFire(BallRuntime b){b.fireStacks=b.burnTurns=0;b.statusOrder.RemoveAll(x=>x.family=="FIRE");}
-        void ClearIce(BallRuntime b){b.iceStacks=b.iceTurns=0;b.frozen=0;b.statusOrder.RemoveAll(x=>x.family=="ICE");}
+        void ClearIce(BallRuntime b){b.iceStacks=b.iceTurns=0;b.frozen=0;b.thawTurn=-1;b.statusOrder.RemoveAll(x=>x.family=="ICE");}
+        // Match rule deepFreeze: frozen through the next turns (GameState.freezeTurns), whoever plays them.
+        public static bool DeepFrozen(BallRuntime b)=>b.frozen>0&&b.thawTurn>=0;
+        void Freeze(BallRuntime b)
+        {
+            b.iceStacks=b.iceTurns=0;b.frozen=2.4f;b.vx=b.vy=0;
+            if(S.deepFreeze)b.thawTurn=S.turnNumber+Math.Max(1,S.freezeTurns);
+            sim.Emit("FREEZE",b,"Frozen");
+            // Match rule freezeDamage: freezing itself costs HP.
+            if(S.deepFreeze&&S.freezeDamage>0)sim.Damage(b,S.freezeDamage);
+        }
+        // The ice trap of the deepFreeze rule: frozen at once (ice and fire still cancel each other).
+        public void FreezeNow(BallRuntime b,int owner)
+        {
+            if(b.dead)return;if(b.fireStacks>0){ClearFire(b);return;}if(b.frozen>0||Own(b,owner))return;
+            Stamp(b,"ICE",owner);Freeze(b);
+        }
         void ClearToxin(BallRuntime b){b.toxinTurns=0;b.statusOrder.RemoveAll(x=>x.family=="TOXIN");S.virulence.RemoveAll(x=>x.targetLineage==b.lineageId);}
         public void ApplyFire(BallRuntime b,int owner){ApplyFireChain(b,owner,new System.Collections.Generic.HashSet<int>());}
         void ApplyFireChain(BallRuntime b,int owner,System.Collections.Generic.HashSet<int> visited)
         {
             if(b.dead||!visited.Add(b.id)||!Enter())return;
             try{
-                if(b.iceStacks>0||b.frozen>0){ClearIce(b);return;}Stamp(b,"FIRE",owner);b.fireStacks++;
+                if(b.iceStacks>0||b.frozen>0){ClearIce(b);return;}if(Own(b,owner))return;Stamp(b,"FIRE",owner);b.fireStacks++;
                 if(b.fireStacks>=3){ClearFire(b);sim.Damage(b,5);foreach(var other in Near(b,58).Where(t=>t.owner!=owner))ApplyFireChain(other,owner,visited);sim.Emit("FIRE_BURST",b,"Third fire stack");return;}
-                b.burnTurns=b.fireStacks==1?3:4;sim.Emit("FIRE",b,"Fire "+b.fireStacks);
+                // Match rule fireLasts: turns one fire burns; a second fire burns one turn longer.
+                int lasts=Math.Max(1,S.fireLasts);b.burnTurns=b.fireStacks==1?lasts:lasts+1;sim.Emit("FIRE",b,"Fire "+b.fireStacks);
             }finally{depth--;}
         }
         public void ApplyIce(BallRuntime b,int owner)
         {
-            if(b.dead)return;if(b.fireStacks>0){ClearFire(b);return;}Stamp(b,"ICE",owner);
-            if(b.frozen>0){b.frozen=2.4f;return;}b.iceStacks++;
-            if(b.iceStacks>=3){b.iceStacks=b.iceTurns=0;b.frozen=2.4f;b.vx=b.vy=0;sim.Emit("FREEZE",b,"Frozen");}
+            if(b.dead)return;if(b.fireStacks>0){ClearFire(b);return;}if(Own(b,owner))return;Stamp(b,"ICE",owner);
+            if(b.frozen>0){if(!S.deepFreeze)b.frozen=2.4f;return;}b.iceStacks++;
+            if(b.iceStacks>=3)Freeze(b);
             else{b.iceTurns=b.iceStacks==1?3:4;sim.Emit("ICE",b,"Ice "+b.iceStacks);}
         }
-        public void ApplyToxin(BallRuntime b,int owner){if(b.dead)return;Stamp(b,"TOXIN",owner);b.toxinTurns=3;sim.Emit("TOXIN",b,"Toxin 3");}
+        public void ApplyToxin(BallRuntime b,int owner){if(b.dead||Own(b,owner))return;Stamp(b,"TOXIN",owner);b.toxinTurns=Math.Max(1,S.poisonTurns);sim.Emit("TOXIN",b,"Toxin "+b.toxinTurns);}
         public void Root(BallRuntime b){if(b.dead)return;b.rooted=true;b.rootExpiresOwnerTurn=S.players[b.owner].ownerTurns+1;b.vx=b.vy=0;sim.Emit("ROOTED",b,"Rooted until own turn ends");}
         void StatusTurn(BallRuntime b)
         {
-            if(b.fireStacks>0){sim.Damage(b,b.fireStacks*5);if(--b.burnTurns<=0)ClearFire(b);}
+            if(b.fireStacks>0){sim.Damage(b,S.fireFlat?5:b.fireStacks*5);if(--b.burnTurns<=0)ClearFire(b);}
             if(b.dead)return;if(b.toxinTurns>0){sim.Damage(b,5);if(--b.toxinTurns<=0)ClearToxin(b);}
             if(b.iceStacks>0&&--b.iceTurns<=0)ClearIce(b);
         }
@@ -41,7 +61,8 @@ namespace CoreClash.Core
                 return;
             }
             if(a.type=="fire"||a.type=="kindler")ApplyFire(b,a.owner);
-            if(a.type=="ice"){bool frozen=b.frozen>0;ApplyIce(b,a.owner);if(frozen)sim.Damage(b,5);foreach(var t in Near(b,100).Where(x=>x.owner!=a.owner))ApplyIce(t,a.owner);}
+            // (Match rule deepFreeze: Frost only chills - breaking the ice for damage is the Shatterer's power.)
+            if(a.type=="ice"){bool frozen=b.frozen>0;ApplyIce(b,a.owner);if(frozen&&!S.deepFreeze)sim.Damage(b,5);foreach(var t in Near(b,100).Where(x=>x.owner!=a.owner))ApplyIce(t,a.owner);}
             if(a.type=="plague")ApplyToxin(b,a.owner);
             if(a.type=="plagueleech"&&!a.hitUsed){a.hitUsed=true;a.linkedTargetId=b.id;ApplyToxin(b,a.owner);sim.Emit("LINK",a,"Toxic tether",b.id);}
             if(!hit||!source)return;
@@ -78,11 +99,13 @@ namespace CoreClash.Core
         }
         void StatusStop(BallRuntime b)
         {
-            if(b.type=="blightpool"||b.type=="consecrator")CreateZone(b,b.type=="blightpool"?"blight":"consecrated",165,3);
+            // Match rule placeOnce: a ball makes its field once.
+            bool mayPlace=!(S.placeOnce&&b.placed);
+            if((b.type=="blightpool"||b.type=="consecrator")&&mayPlace){CreateZone(b,b.type=="blightpool"?"blight":"consecrated",b.type=="blightpool"?S.poolRadius:165,3);b.placed=true;}
             if(b.type=="ward"||b.type=="medic"||b.type=="cleanser")foreach(var ally in Living().Where(t=>t.owner==b.owner&&Dist(b,t)<=165)){
                 int removed=Cleanse(ally,false);if(b.type=="medic")sim.Heal(ally,10);if(b.type=="ward")ally.shield=Math.Max(ally.shield,5);EmitCleanse(b,ally,removed);
             }
-            if(b.type=="pyrecore"||b.type=="blizzardcore")CreateZone(b,b.type=="pyrecore"?"fire":"ice",165,3);
+            if((b.type=="pyrecore"||b.type=="blizzardcore")&&mayPlace){CreateZone(b,b.type=="pyrecore"?"fire":"ice",165,3);b.placed=true;}
         }
         ZoneRuntime CreateZone(BallRuntime b,string kind,float radius,int turns)
         {
@@ -95,10 +118,12 @@ namespace CoreClash.Core
                 if(z.kind!="blight"&&z.kind!="consecrated"&&z.kind!="fire"&&z.kind!="ice"&&z.kind!="furnaceFire")continue;
                 var targets=Living().Where(t=>Math.Sqrt((t.x-z.x)*(t.x-z.x)+(t.y-z.y)*(t.y-z.y))<=z.radius+t.radius*.5f).ToArray();
                 if(z.kind=="consecrated"){
-                    var target=targets.Where(t=>t.owner==z.owner&&(t.fireStacks>0||t.iceStacks>0||t.toxinTurns>0||t.rooted||t.frozen>0||t.jammed>0||t.sticky>0)).OrderByDescending(t=>t.statusOrder.Count).ThenBy(t=>t.id).FirstOrDefault();
+                    var target=targets.Where(t=>t.owner==z.owner&&FieldReaches(z,t)&&(t.fireStacks>0||t.iceStacks>0||t.toxinTurns>0||t.rooted||t.frozen>0||t.jammed>0||t.sticky>0)).OrderByDescending(t=>t.statusOrder.Count).ThenBy(t=>t.id).FirstOrDefault();
                     if(target!=null)EmitCleanse(S.balls.FirstOrDefault(t=>t.id==z.sourceId),target,Cleanse(target,true));
                 }else foreach(var target in targets.Where(t=>t.owner!=z.owner)){
-                    string key=z.sourceId+":"+z.kind+":"+target.id;if(!seen.Add(key))continue;
+                    // One place holds one field; joined fields of one element act once.
+                    if(!FieldReaches(z,target))continue;
+                    string key=S.exclusiveFields?FieldElement(z)+":"+target.id:z.sourceId+":"+z.kind+":"+target.id;if(!seen.Add(key))continue;
                     if(z.kind=="blight")ApplyToxin(target,z.owner);else if(z.kind=="fire"||z.kind=="furnaceFire")ApplyFire(target,z.owner);else ApplyIce(target,z.owner);
                 }
                 if(--z.turns<=0)z.dead=true;

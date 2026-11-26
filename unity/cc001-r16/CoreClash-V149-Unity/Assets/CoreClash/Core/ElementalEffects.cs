@@ -75,6 +75,13 @@ namespace CoreClash.Core
                 // V148 makes/refreshes one 104px, 3-tick element zone per
                 // source; the zone applies FIRE at turn end, not every frame.
                 var zone = S.zones.FirstOrDefault(z => !z.dead && z.kind == "furnaceFire" && z.sourceId == source.id && z.owner == source.owner);
+                if (zone != null && S.exclusiveFields && (zone.x != source.x || zone.y != source.y))
+                {
+                    // One place holds the field that was there first: a field carried to a new
+                    // place is a new field there.
+                    zone.dead = true;
+                    zone = null;
+                }
                 if (zone == null)
                 {
                     zone = CreateZone(source, "furnaceFire", 104, 3);

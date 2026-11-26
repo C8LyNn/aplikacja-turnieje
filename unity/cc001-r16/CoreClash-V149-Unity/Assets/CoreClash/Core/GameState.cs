@@ -16,6 +16,9 @@ namespace CoreClash.Core
     [Serializable] public sealed class PlayerState
     {
         public int owner,hp,ownerTurns;
+        // Match rule "double turn" (see GameState.comebackRule): armed when this base first falls
+        // below 10 HP, spent on this player's next turn. Once a match.
+        public bool comebackArmed,comebackUsed;
         public string deckId;
         public List<StockEntry> stock=new List<StockEntry>();
     }
@@ -34,6 +37,134 @@ namespace CoreClash.Core
         public float time,actionTime,settledTime;
         public float actionDeadline=14;
         public bool bonusPending,bonusUsed;
+        // W24 (owner decisions): rules chosen for one match. The defaults are the reference rules,
+        // so a match that sets none of them - every test, every demo - plays exactly as before.
+        //   ballScale     every ball's radius is multiplied by it
+        //   comebackRule  a player whose base falls below 10 HP plays two balls on their next turn
+        //   mapId         the map: its obstacles are structures of kind StructureSystem.Obstacle
+        //   centreRadius  the radius of the centre a player holds; a map that blocks part of the
+        //                 centre makes it larger (owner's terrain rule)
+        public float ballScale=1,centreRadius=112;
+        // W24 match rule (off = the reference rules): every ball has only the power written on
+        // its card - the hidden passives of the old archetypes do not run, and a switched-off
+        // power stays off for a time instead of for one use.
+        public bool plainPowers;
+        // W24 match rule (off = the reference rules): one place on the board holds one field - fields
+        // of one element join, a newer field of another element exists only outside the older one.
+        public bool exclusiveFields;
+        // W24 match rule (off = the reference rules; owner decision 2026-11-24, after the lab's
+        // measurement): the extra ball Player 2 gets on the opening turn must be a Standard one.
+        // Measured, computer against computer: with any ball as the extra one the first player
+        // wins 39% of matches, with no extra ball 64%, with a Standard one 47%.
+        public bool standardOpeningBonus;
+        // W24 match rule (0 = the reference rules: the extra ball is a whole one; owner direction
+        // 2026-11-24: "the player who starts and the other one are to win as often as each other,
+        // whatever the decks"). Player 2's extra ball of the opening turn enters with this many HP.
+        // Measured, computer against computer, every pair of ready decks: no extra ball - the first
+        // player wins 64%; a whole Standard ball - 42%; one with 20 HP - 46%; with 15 HP - 49%. The
+        // game's number is in RosterBalance.
+        public int openingBonusHp;
+        // W24 match rule (off = the reference rules; owner decision 2026-11-24 "strengthen the ice
+        // balls", after the lab's measurement: the two decks with ice were the two weakest). In the
+        // reference rules a freeze lasts 2.4 seconds of motion - it is over before the other player
+        // aims. With this rule a frozen ball is out of the game for freezeTurns turns after the one
+        // it was frozen in (two = one turn of each player: its owner cannot use it, and the player
+        // who froze it gets a turn to break the ice): it does not move, its power does not work, it
+        // does not press the base or count for the centre. A frozen ball takes no more chills. Also:
+        // the ice trap freezes outright, and the Shatterer takes 5 HP for every chill it breaks (15
+        // from a frozen ball).
+        public bool deepFreeze;
+        public int freezeTurns=2;
+        // W24 match rules, ice again (off / 0 = as above; owner decision 2026-11-24 "strengthen ice":
+        // after the second balance pass ice was the weakest group, 46%, and the two ready decks with
+        // ice the two weakest. The lab: ice chills 13 times and freezes 4 balls a match but kills the
+        // fewest, and decks did better WITHOUT the Shatterer - its hit set the frozen ball free.)
+        //   shatterKeepsIce  the Shatterer's hit leaves the ice where it is: a frozen ball stays
+        //                    frozen, a chilled one keeps its chills. Once a turn for each enemy.
+        //   freezeDamage     HP a ball loses at the moment it freezes
+        //   brittleBonus     HP a hard hit takes on top from a frozen ball
+        public bool shatterKeepsIce;
+        public int freezeDamage,brittleBonus;
+        // W24 match rule (off = the reference rules): Venom's bite into an already poisoned enemy
+        // (5 HP from it, 5 HP back to Venom) works once a turn for each enemy, like the Lightning
+        // and the Cactus - in the reference rules every touch counts.
+        public bool venomOncePerTurn;
+        // W24 match rules, numbers of the poison group (the defaults are the reference numbers; owner
+        // decision 2026-11-24 "weaken the Jungle deck", after the lab's measurement: poison was the
+        // strongest group and the Leech its strongest ball - one touch took 25 HP and gave 10 back).
+        //   poisonTurns  how many turns a poison lasts (5 HP a turn)
+        //   leechDrain   HP the Leech takes from its poisoned target in each turn of its owner, on top
+        //                of the poison; 0 = it takes nothing more and only heals itself (5 HP a turn)
+        //   poolRadius   the radius of the Poison Pool's field
+        public int poisonTurns=3,leechDrain=5;
+        // W24 match rule, fire (off = the reference rules; fourth balance pass, 2026-11-25: with powers
+        // that work on touch valued properly Fire Pit won 62% of its matches against the other
+        // ready decks). A burning ball loses 5 HP a turn however many fires are on it - in the
+        // reference rules 5 for each, so a second touch made 40 HP of fire, more than a ball has.
+        // A second fire still makes the ball burn longer, and a third bursts.
+        public bool fireFlat;
+        // W24 match rules, numbers of the fire group (the defaults are the reference numbers; fifth
+        // balance pass, 2026-11-26, owner: "balance it with the numbers").
+        //   fireLasts   how many turns one fire burns (a second fire burns one turn longer)
+        //   bombDamage  above 0: what the Bomb's blast takes at its centre, whether it stopped or
+        //               was destroyed (reference: 19 and 17); a ball further out loses less
+        public int fireLasts=3,bombDamage;
+        // W24 match rules, numbers of the poison group in the same pass (the defaults are the
+        // reference numbers):
+        //   venomHeal    HP Venom gets back when it bites an already poisoned enemy
+        //   sporeRadius  how far the cloud of the Mushroom reaches when it bursts
+        public int venomHeal=5;
+        public float sporeRadius=100;
+        // W24 match rule (off = the reference rules; owner rule 2026-11-26, "an important rule:
+        // your own balls must not hurt your other balls"). A player's ball never hurts another ball of
+        // the same player: an explosion (the Bomb, a mine, a time bomb) and any other power takes
+        // no HP from its owner's other balls - it still throws them back - and a player's own fire,
+        // ice or poison does not land on that player's balls (own fire still thaws, own ice still
+        // puts a fire out). A black hole leaves its owner's balls alone. What a ball does to itself
+        // (the Bomb is gone when it explodes) and what an enemy's fire does on your ball stay as
+        // they were. In the reference rules a blast hurts everybody in range.
+        public bool noFriendlyFire;
+        public float poolRadius=165;
+        // W24 match rules, magnetism and electricity (off / 0 = the reference rules; owner decision
+        // 2026-11-24 "strengthen magnetism and electricity", after the lab's measurement: Dynamo, the
+        // deck of these two groups, was the weakest ready deck and killed the fewest balls).
+        //   chainLightning  the Lightning's bolt goes on from enemy to enemy for as long as the next
+        //                   one stands within reach of the last - not to one more enemy only. One
+        //                   Lightning shocks each enemy once a turn, touched or reached by the bolt.
+        //   shortCircuit    HP a bolt takes on top from a ball whose power is switched off
+        //   mineDamage      above 0: the Magnet Mine's blast takes exactly this much from every enemy
+        //                   in its field and nothing from its owner's balls (reference: 10-15 by
+        //                   distance, from everybody)
+        //   anchorShield    the shield the Anchor has after it drops anchor
+        //   compassDashHurt how much of a collision's damage the Compass takes during its second
+        //                   shot, in percent (100 = the reference rules, where each of its two hits
+        //                   costs it as much as its target and the lab's decks did better without the
+        //                   ball; 0 = none - measured: far too strong)
+        //   lightningTouch  HP the Lightning takes from the enemy it touches (its jumps stay at 5)
+        //   batteryStart    charges the Battery comes with
+        //   shockTrapDamage HP the shock trap takes
+        public bool chainLightning;
+        public int compassDashHurt=100;
+        public int shortCircuit,mineDamage,anchorShield;
+        public int lightningTouch=5,batteryStart=1,shockTrapDamage=5;
+        // W24 match rules (0 / off = the reference rules; owner direction after playing, 2026-11-24:
+        // "traps are to be bigger and must not lie on one another").
+        //   trapRadius  the radius of an element trap and of the shock trap. The reference 14 was
+        //               sized for the reference balls; the game's balls are one and a half times
+        //               bigger, so the traps looked like crumbs beside them.
+        //   trapsApart  a trap is never laid over another trap, whoever owns it: it goes down beside
+        //               it, and is not laid at all when there is no room near.
+        public float trapRadius;
+        public bool trapsApart;
+        // W24 match rule (off = the reference rules; owner direction after playing, 2026-11-25: "a
+        // ball must not be able to generate things every turn, or even several times a turn - only
+        // the first time"). By turn 41 of one of his matches the board held some thirty shoots and
+        // twenty poison traps: a trap ball laid a new trap every time it came to rest, knocked or
+        // not. With this rule a ball puts its thing down once - its trap, its shoots, its field -
+        // at the first stop where it can; after that it is a ball like any other.
+        public bool placeOnce;
+        public bool comebackRule,comebackActive;
+        public string mapId="";
         public string actionKind,resultReason;
         public MatchPhase phase=MatchPhase.Aiming;
         public PlayerState[] players=new[]{new PlayerState(),new PlayerState()};
@@ -57,6 +188,14 @@ namespace CoreClash.Core
         public float x,y,vx,vy,radius,mass,restitution,wallRestitution,maxSpeed,stopHold,frozen,spawnGrace,angle=-1.5707963f,motionPeak,portalCooldown,sticky,phoenixEntryTimer;
         public bool dead,moving,phased,mineArmed,exploded,splitDone,abilityUsed,resurrected,generated,hitUsed,wallUsed,launchImmune,rooted,ancestral,divineShield,banished,identityUsed;
         public int banishedUntilTurn,jammed;
+        // W24 six groups: battery charge; the owner turn in which a switched-off power comes back.
+        public int charge,jamExpiresOwnerTurn=-1;
+        // Match rule deepFreeze: the number of the turn at whose end this ball thaws (-1 = not frozen that way).
+        public int thawTurn=-1;
+        // The Compass is on its second shot (from the moment it fires until it stops).
+        public bool compassDash;
+        // Match rule placeOnce: this ball has put its trap, its shoots or its field down.
+        public bool placed;
         // Per-instance, serialized once-per-turn DEATH observer gate.
         public int lastDenMotherTurn=-1;
         public int lastRamAction=-1;

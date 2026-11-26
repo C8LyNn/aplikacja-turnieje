@@ -27,7 +27,7 @@ namespace CoreClash.Presentation
 
         // Board chip for the acting player; empty when nothing can be replayed.
         // W19-05: short, one line, fits beside the launcher; the "drag a glowing ball" hint stays in the side panel.
-        public static string CounterLabel(int owner,int count)=>count<=0?"":"P"+(owner+1)+" · REPLAY ×"+count;
+        public static string CounterLabel(int owner,int count)=>count<=0?"":Lang.T("P","G")+(owner+1)+Lang.T(" · REPLAY ×"," · PONOWNIE ×")+count;
         public const string BallChip="R";
     }
 }

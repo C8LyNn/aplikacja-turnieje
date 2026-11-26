@@ -44,11 +44,11 @@ namespace CoreClash.Core
                 case "cascade":CascadeReturn(b);break;
                 case "singularity":var hole=CreateZone(b,"blackHole",34,-1);hole.coreRadius=12;hole.pull=690;break;
                 case "genesis":CreateZone(b,"whiteHole",36,3);break;
-                case "bomb":if(!b.dead||!b.exploded){if(b.dead)b.exploded=true;Explode(b,165,17,405);}break;
+                case "bomb":if(!b.dead||!b.exploded){if(b.dead)b.exploded=true;Explode(b,165,S.bombDamage>0?S.bombDamage:17,405);}break;
                 case "deathpulse":foreach(var t in Near(b,100))Impulse(t,2*t.x-b.x,2*t.y-b.y,300);break;
                 case "frostgrave":CreateZone(b,"ice",104,3);break;
                 case "martyr":S.players[b.owner].hp=Math.Min(20,S.players[b.owner].hp+3);break;
-                case "plagueburst":foreach(var t in Near(b,100,false))ApplyToxin(t,b.owner);break;
+                case "plagueburst":foreach(var t in Near(b,S.sporeRadius>0?S.sporeRadius:100,false))ApplyToxin(t,b.owner);if(S.plainPowers)sim.Emit("SPORES",b,"Spore cloud");break;
                 case "eggsac":SpawnEggSacBroodlings(b);break;
                 case "swarmcore":SpawnSwarmShards(b);break;
                 case "conscriptor":ConscriptorDeath(b);break;
@@ -109,9 +109,9 @@ namespace CoreClash.Core
             if(Living().Length>=256)return null;
             var d=sim.Catalog.Ball(type);
             if(d==null||d.hidden||maxHp<=0)return null;
-            if(!FindPlacement(desiredX,desiredY,d.radius,0,180,source.angle,out float x,out float y))return null;
+            if(!FindPlacement(desiredX,desiredY,sim.Radius(d),0,180,source.angle,out float x,out float y))return null;
             var child=new BallRuntime{id=S.nextId++,owner=source.owner,type=type,x=x,y=y,
-                hp=Math.Min(hp,maxHp),maxHp=maxHp,radius=d.radius,mass=d.mass,
+                hp=Math.Min(hp,maxHp),maxHp=maxHp,radius=sim.Radius(d),mass=d.mass,
                 restitution=d.restitution,wallRestitution=d.wallRestitution,maxSpeed=d.maxSpeed,
                 lineageId=lineageId,life=life,reviveGeneration=reviveGeneration,
                 generated=false,spawnGrace=.38f,angle=source.angle};
@@ -175,19 +175,29 @@ namespace CoreClash.Core
         }
         void LifecycleTurn(BallRuntime b)
         {
-            if(b.type=="plagueleech"&&b.linkedTargetId>0){var target=Living().FirstOrDefault(x=>x.id==b.linkedTargetId&&x.owner!=b.owner&&x.toxinTurns>0);if(target==null){b.linkedTargetId=0;return;}int lost=Math.Min(5,target.hp);target.hp-=lost;b.hp=Math.Min(b.maxHp,b.hp+lost);sim.Emit("DRAIN",b,"Drain "+lost,target.id);if(target.hp<=0)sim.Kill(target);}
+            if(b.type=="plagueleech"&&b.linkedTargetId>0){
+                var target=Living().FirstOrDefault(x=>x.id==b.linkedTargetId&&x.owner!=b.owner&&x.toxinTurns>0);if(target==null){b.linkedTargetId=0;return;}
+                // Match rule leechDrain: how much the Leech takes on top of the poison. At 0 it only feeds:
+                // the target loses nothing more and the Leech gets its 5 HP back.
+                int lost=Math.Min(Math.Max(0,S.leechDrain),target.hp),gain=S.leechDrain>0?lost:5,before=b.hp;
+                target.hp-=lost;b.hp=Math.Min(b.maxHp,b.hp+gain);
+                if(S.leechDrain>0||b.hp>before)sim.Emit("DRAIN",b,"Drain "+(S.leechDrain>0?lost:b.hp-before),target.id);
+                if(target.hp<=0)sim.Kill(target);
+            }
             if(b.type=="brood"&&b.spawnCount<5){if(Generate(b,"broodling",5,5,b.spawnCount*.7f)!=null){b.spawnCount++;b.hp=Math.Max(0,b.hp-5);if(b.spawnCount>=5)b.hp=0;if(b.hp<=0)sim.Kill(b);}}
             if(b.type=="necromancer"&&b.spawnCount<2&&b.ownTurnCounter%3==0){var grave=S.graveyard.Where(x=>x.owner==b.owner).ToArray();if(grave.Length>0&&Revive(b,grave[RandomIndex(grave.Length)],5)!=null)b.spawnCount++;}
         }
         BallRuntime CascadeReturn(BallRuntime parent)
         {
-            int next=parent.maxHp>=20?10:parent.maxHp>=10?5:0;if(next==0)return null;
-            var child=Generate(parent,"cascade",next,next);if(child==null)return null;child.lineageId=parent.lineageId;child.life=parent.life+1;child.generated=false;EmitReturn(parent,child);return child;
+            // Plain powers: every ball has the same HP gauge, so the one that grows back keeps the full
+            // gauge and comes back hurt (10 HP, then 5); which return it is, is counted by its life.
+            int next=S.plainPowers?(parent.life<=1?10:parent.life==2?5:0):parent.maxHp>=20?10:parent.maxHp>=10?5:0;if(next==0)return null;
+            var child=Generate(parent,"cascade",next,S.plainPowers?Math.Max(next,sim.Catalog.Ball("cascade").hp):next);if(child==null)return null;child.lineageId=parent.lineageId;child.life=parent.life+1;child.generated=false;EmitReturn(parent,child);return child;
         }
         BallRuntime Generate(BallRuntime parent,string type,int hp,int maxHp,float offset=0)
         {
             if(Living().Length>=256)return null;var definition=sim.Catalog.Ball(type);if(definition==null)return null;
-            if(!FindPlacement(parent.x,parent.y,definition.radius,0,180,parent.angle+offset,out float x,out float y))return null;
+            if(!FindPlacement(parent.x,parent.y,sim.Radius(definition),0,180,parent.angle+offset,out float x,out float y))return null;
             var b=sim.Spawn(parent.owner,type,x,y);b.maxHp=maxHp;b.hp=Math.Min(hp,maxHp);b.generated=definition.hidden;b.spawnGrace=.32f;b.angle=parent.angle;S.replayedIds.Add(b.id);return b;
         }
         BallRuntime Revive(BallRuntime source,GraveRecord record,int hp)
@@ -206,7 +216,10 @@ namespace CoreClash.Core
         void Explode(BallRuntime source,float radius,int damage,float force)
         {
             foreach(var b in Living()){
-                if(b.id==source.id)continue;float d=Dist(source,b);if(d>=radius)continue;float fall=Math.Max(.2f,1-d/radius);Impulse(b,2*b.x-source.x,2*b.y-source.y,force*fall);sim.Damage(b,GameSimulation.Round(damage*(.45f+.55f*fall)),false,source.id);
+                if(b.id==source.id)continue;float d=Dist(source,b);if(d>=radius)continue;float fall=Math.Max(.2f,1-d/radius);Impulse(b,2*b.x-source.x,2*b.y-source.y,force*fall);
+                // Match rule noFriendlyFire: the blast throws its owner's balls back and takes nothing from them.
+                if(S.noFriendlyFire&&b.owner==source.owner)continue;
+                sim.Damage(b,GameSimulation.Round(damage*(.45f+.55f*fall)),false,source.id);
             }
             sim.Emit("EXPLOSION",source,"Area explosion");
         }

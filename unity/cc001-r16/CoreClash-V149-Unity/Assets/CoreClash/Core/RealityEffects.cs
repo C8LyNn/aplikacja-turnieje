@@ -19,7 +19,7 @@ namespace CoreClash.Core
         void Transmute(BallRuntime b,string type,BallRuntime template=null)
         {
             var definition=sim.Catalog.Ball(type);float ratio=Math.Max(.15f,(float)b.hp/Math.Max(1,b.maxHp));
-            int maxHp=template?.maxHp??definition.hp;float radius=template?.radius??definition.radius,mass=template?.mass??definition.mass,restitution=template?.restitution??definition.restitution,wall=template?.wallRestitution??definition.wallRestitution,maxSpeed=template?.maxSpeed??definition.maxSpeed;
+            int maxHp=template?.maxHp??definition.hp;float radius=template?.radius??sim.Radius(definition),mass=template?.mass??definition.mass,restitution=template?.restitution??definition.restitution,wall=template?.wallRestitution??definition.wallRestitution,maxSpeed=template?.maxSpeed??definition.maxSpeed;
             b.type=type;b.maxHp=maxHp;b.hp=Math.Min(maxHp,Math.Max(5,GameSimulation.Round(maxHp*ratio/5)*5));b.radius=radius;b.mass=mass;b.restitution=restitution;b.wallRestitution=wall;b.maxSpeed=maxSpeed;
             b.lastRamAction=-1;b.lastElementalTurn=-1;b.frostguardAnchored=false;
             b.quartermasterTurnCounter=0;b.lastReinforcementTurn=-1;b.splitDone=false;

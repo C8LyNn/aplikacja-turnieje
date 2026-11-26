@@ -22,10 +22,21 @@ namespace CoreClash.Core
             Finish(diff==0?-1:diff>0?0:1,diff==0?"50 turns: identical score":"50 turns: living ball count");
         }
         public void DamageBase(int owner,int amount){if(amount<=0)return;S.players[owner].hp=System.Math.Max(0,S.players[owner].hp-amount);sim.Emit("BASE_DAMAGE",null,"P"+(owner+1)+" base -"+amount);}
+        // Match rule "double turn": a base that has fallen below 10 HP for the first time gives its
+        // owner two balls on their next turn. Checked when a turn ends, so it never changes the turn
+        // that is being played.
+        public const int ComebackBelow=10;
+        public void ArmComeback()
+        {
+            if(!S.comebackRule)return;
+            foreach(var p in S.players)if(!p.comebackUsed&&p.hp>0&&p.hp<ComebackBelow){p.comebackUsed=true;p.comebackArmed=true;}
+        }
+        // A ball that presses: alive, on the board and - match rule deepFreeze - not frozen.
+        public static bool Presses(BallRuntime x)=>!x.dead&&!x.banished&&!AbilityResolver.DeepFrozen(x);
         public void ApplyTurnPressure(int owner)
         {
-            DamageBase(1-owner,S.balls.Count(x=>!x.dead&&!x.banished&&x.owner==owner&&ZoneResolver.TouchesEnemyZone(x)));
-            int diff=S.balls.Count(x=>!x.dead&&!x.banished&&x.owner==0&&ZoneResolver.TouchesCenter(x))-S.balls.Count(x=>!x.dead&&!x.banished&&x.owner==1&&ZoneResolver.TouchesCenter(x));
+            DamageBase(1-owner,S.balls.Count(x=>Presses(x)&&x.owner==owner&&ZoneResolver.TouchesEnemyZone(x)));
+            int diff=S.balls.Count(x=>Presses(x)&&x.owner==0&&ZoneResolver.TouchesCenter(x,S.centreRadius))-S.balls.Count(x=>Presses(x)&&x.owner==1&&ZoneResolver.TouchesCenter(x,S.centreRadius));
             if(System.Math.Abs(diff)>=2)DamageBase(diff>0?1:0,System.Math.Abs(diff)-1);
         }
     }

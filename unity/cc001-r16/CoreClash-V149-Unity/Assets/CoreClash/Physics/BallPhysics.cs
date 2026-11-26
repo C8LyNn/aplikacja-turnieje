@@ -18,7 +18,7 @@ namespace CoreClash.Physics
             thisStructureContacts.Clear();
             foreach(var b in sim.State.balls.ToArray()){
                 if(b.dead||b.banished)continue;b.spawnGrace=Math.Max(0,b.spawnGrace-dt);
-                if(b.frozen>0){if(sim.State.phase==MatchPhase.Moving){b.frozen=Math.Max(0,b.frozen-dt);if(b.frozen==0)b.statusOrder.RemoveAll(x=>x.family=="ICE");}b.vx=b.vy=0;}
+                if(b.frozen>0){if(sim.State.phase==MatchPhase.Moving&&b.thawTurn<0){b.frozen=Math.Max(0,b.frozen-dt);if(b.frozen==0)b.statusOrder.RemoveAll(x=>x.family=="ICE");}b.vx=b.vy=0;}
                 if(b.rooted)b.vx=b.vy=0;
                 float f=(float)Math.Pow(b.type=="dart"?.991:.986,dt*60);if(b.anchorStacks>=3)f*=(float)Math.Pow(.90,dt*60);
                 if(b.sticky>0){b.sticky=Math.Max(0,b.sticky-dt);f*=(float)Math.Pow(.86,dt*60);}b.vx*=f;b.vy*=f;ClampSpeed(b);b.x+=b.vx*dt;b.y+=b.vy*dt;

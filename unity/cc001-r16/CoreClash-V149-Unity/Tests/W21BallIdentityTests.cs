@@ -22,7 +22,7 @@ public static partial class Program
                 True(BallIcons.Valid(BallIcons.Spec(id)),"malformed shape list: "+id);
             }
             Eq(ids.Length,ids.Select(BallIcons.Spec).Distinct(StringComparer.Ordinal).Count());
-            Eq(50,ids.Length);
+            Eq(67,ids.Length);
             // every featured deck, plus Standard, is fully covered; nothing beyond that batch has an icon yet
             Eq(4,catalog.Featured.Length);
             foreach(var deck in catalog.Featured)
@@ -30,7 +30,9 @@ public static partial class Program
             var planned=new HashSet<string>(catalog.Featured.SelectMany(deck=>deck.balls).Concat(new[]{"normal","fire","ice","mine","bomb","medic"}));
             // W22 added icons only for active-roster balls that had none
             planned.UnionWith(new[]{"timebomb","furnace","shatterer","frosttrap","venom","pulse","slingshot","pinballer"});
-            True(planned.SetEquals(ids),"icon batch is not exactly the featured decks, the six basics and the W22 roster additions");
+            // W24 six groups: the roster balls that had no icon yet
+            planned.UnionWith(new[]{"embertrap","firebrand","blizzardcore","frostguard","sporetrap","plagueburst","magnet","fluxmine","anchor","tesla","chainshock","capacitor","staticfield","jammer","thornback","elderbloom","cultivator"});
+            True(planned.SetEquals(ids),"icon batch is not exactly the featured decks, the six basics, the W22 roster additions and the W24 six groups");
             True(BallIcons.Has("normal"));
             // a ball outside the batch keeps its letter mark and catalog name
             var other=catalog.Data.balls.First(b=>!BallIcons.Has(b.id));
@@ -53,11 +55,15 @@ public static partial class Program
                 True(name.Split(' ').All(word=>word.Length<=10),"word too long for a card: "+name);
             }
             True(renamed>0&&renamed<=BallIcons.BatchSize);
-            Eq(13,renamed);
+            Eq(34,renamed);
             Eq("Deathspore",BallIcons.Name(catalog.Ball("vector")));Eq("Rootstrike",BallIcons.Name(catalog.Ball("briarheart")));
             Eq("Deathcast",BallIcons.Name(catalog.Ball("agony")));Eq("Agony",catalog.Ball("agony").name);
             Eq("Snapback",BallIcons.Name(catalog.Ball("paradox")));Eq("Paradox",catalog.Ball("paradox").name);
-            var owner=new Dictionary<string,string>{{"blightpool","Tox Pool"},{"vector","Deathspore"},{"septiccore","Tox Burst"},{"consecrator","Sanctum"},{"penitent","Scapegoat"},{"briarheart","Rootstrike"},{"gatekeeper","Portal"},{"agony","Deathcast"},{"reclaimer","Reviver"},{"doppelganger","Copycat"},{"timeshift","Swap"},{"chronomancer","Rewind"},{"paradox","Snapback"}};
+            var owner=new Dictionary<string,string>{{"blightpool","Tox Pool"},{"vector","Deathspore"},{"septiccore","Tox Burst"},{"consecrator","Sanctum"},{"penitent","Scapegoat"},{"briarheart","Rootstrike"},{"gatekeeper","Portal"},{"agony","Deathcast"},{"reclaimer","Reviver"},{"doppelganger","Copycat"},{"timeshift","Swap"},{"chronomancer","Rewind"},{"paradox","Snapback"},
+                // W24 six groups: every roster ball is named after the thing on its icon
+                {"fire","Flame"},{"furnace","Campfire"},{"embertrap","Fire Trap"},{"firebrand","Volcano"},{"blizzardcore","Blizzard"},{"frosttrap","Ice Trap"},{"frostguard","Snowman"},
+                {"sporetrap","Tox Trap"},{"plagueburst","Mushroom"},{"fluxmine","Compass"},{"gravitymine","Pull Mine"},{"tesla","Lightning"},{"chainshock","Storm"},{"capacitor","Battery"},
+                {"staticfield","Shock Trap"},{"jammer","Switch"},{"web","Vine"},{"thornback","Cactus"},{"elderbloom","Flower"},{"cultivator","Sprout"},{"cascade","Acorn"}};
             foreach(var ball in catalog.Data.balls)Eq(owner.TryGetValue(ball.id,out var approved)?approved:ball.name,BallIcons.Name(ball));
             Eq("Portal",BallIcons.Name(catalog.Ball("gatekeeper")));Eq("Gatekeeper",catalog.Ball("gatekeeper").name);
             Eq("Standard",BallIcons.Name(catalog.Ball("normal")));
@@ -114,7 +120,8 @@ public static partial class Program
             string Code(string f)=>Regex.Replace(File.ReadAllText(Path.Combine(dir,f)),@"//[^\n]*","");
             string ball=Code("BallView.cs"),match=Code("MatchView.cs"),details=Code("DetailsView.cs"),setup=Code("SetupView.cs"),board=Code("BoardView.cs");
             True(ball.Contains("BallIcons.Spec(")&&ball.Contains("Glyphs.Paint(box, spec"),"ball body does not draw the icon");
-            True(ball.Contains("Draw.Segments(")&&ball.Contains("BallBadges.HpSegments(ball.maxHp)")&&ball.Contains("BallBadges.HpLit(ball.hp, ball.maxHp)"),"HP ring is not driven by current HP");
+            // W24: the gauge is a smooth arc from the real HP share, marked every 5 HP (was: lit 5 HP segments).
+            True(ball.Contains("Draw.Arc(")&&ball.Contains("BallBadges.HpSegments(ball.maxHp)")&&ball.Contains("ball.hp / (float)Mathf.Max(1, ball.maxHp)"),"HP ring is not driven by current HP");
             True(ball.Contains("OwnerPip(")&&ball.Contains("BallBadges.PipSide(ball.owner, localOwner)"),"ownership has no non-colour cue");
             True(ball.Contains("ball.hp.ToString()"),"exact HP number is gone");
             True(!Regex.IsMatch(match+details,@"\bd\.name\b|Ball\((selected|id)\)\.name"),"a card or the details view still shows the raw catalog name");

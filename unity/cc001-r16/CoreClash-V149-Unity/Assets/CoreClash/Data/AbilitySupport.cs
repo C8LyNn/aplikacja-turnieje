@@ -9,7 +9,9 @@ namespace CoreClash.Data
         // coverage and builds, but broader native interaction acceptance is pending.
         static readonly HashSet<string> statusPayoffReady=new HashSet<string>{"embertrap","frosttrap","sporetrap","venom","shatterer"};
         static readonly HashSet<string> verifiedCandidates=new HashSet<string>{"wallmaker","barricade","repairpulse","engineer","bastion","commander","quartermaster","armorer","splitter","hatchery","replicator","mitosis","swarmcore","conscriptor","firebrand","chainfrost","ashcore","furnace","frostguard"};
-        public static string Status(string type)=>type=="pinballer"||type=="slingshot"||type=="mine"||type=="timebomb"||type=="bomb"||statusPayoffReady.Contains(type)||ready.Contains(type)?"UNITY_READY":type=="ram"||partial.Contains(type)||verifiedCandidates.Contains(type)?"PARTIAL":"DATA_ONLY";
+        // W24 six groups: powers written for the roster in GroupPowers.cs.
+        static readonly HashSet<string> sixGroups=new HashSet<string>{"tesla","chainshock","capacitor","staticfield","jammer","fluxmine","thornback","elderbloom","cultivator"};
+        public static string Status(string type)=>sixGroups.Contains(type)||type=="pinballer"||type=="slingshot"||type=="mine"||type=="timebomb"||type=="bomb"||statusPayoffReady.Contains(type)||ready.Contains(type)?"UNITY_READY":type=="ram"||partial.Contains(type)||verifiedCandidates.Contains(type)?"PARTIAL":"DATA_ONLY";
         public static string Label(string type)=>Status(type).Replace('_',' ');
     }
 }

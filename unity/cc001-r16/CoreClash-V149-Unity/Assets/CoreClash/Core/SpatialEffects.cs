@@ -18,18 +18,25 @@ namespace CoreClash.Core
             S.randomState = value;
             return (int)(value % (uint)count);
         }
-        bool Free(float x,float y,float r,int ignore)
+        // The radius of an element trap and of the shock trap (match rule trapRadius).
+        public const float ReferenceTrapRadius=14,TrapGap=8;
+        float TrapRadius=>S.trapRadius>0?S.trapRadius:ReferenceTrapRadius;
+        // A trap laid on the floor for the first enemy that rolls over it (not a field, not a portal).
+        public static bool SmallTrap(ZoneRuntime z)=>z!=null&&z.trap&&!z.dead&&z.kind!="gravitymine";
+        bool Free(float x,float y,float r,int ignore,bool clearOfTraps=false)
         {
+            // Match rule trapsApart: not over another trap, with a clear gap between the two.
+            if(clearOfTraps)foreach(var z in S.zones)if(SmallTrap(z)&&(z.x-x)*(z.x-x)+(z.y-y)*(z.y-y)<(z.radius+r+TrapGap)*(z.radius+r+TrapGap))return false;
             if(x-r<ZoneResolver.Left+2||x+r>ZoneResolver.Right-2||y-r<18||y+r>882)return false;
             if(Math.Sqrt((x-270)*(x-270)+(y-853)*(y-853))<r+61||Math.Sqrt((x-270)*(x-270)+(y-47)*(y-47))<r+61)return false;
             foreach(var b in Living())if(b.id!=ignore&&(b.x-x)*(b.x-x)+(b.y-y)*(b.y-y)<(b.radius+r+4)*(b.radius+r+4))return false;
             foreach(var g in S.structures)if(!g.dead&&(g.x-x)*(g.x-x)+(g.y-y)*(g.y-y)<(g.radius+r+4)*(g.radius+r+4))return false;
             return true;
         }
-        bool FindPlacement(float x,float y,float r,int ignore,float search,float angle,out float px,out float py)
+        bool FindPlacement(float x,float y,float r,int ignore,float search,float angle,out float px,out float py,bool clearOfTraps=false)
         {
-            if(Free(x,y,r,ignore)){px=x;py=y;return true;}
-            for(float ring=12;ring<=search;ring+=12)for(int i=0;i<16;i++){float a=angle+i*(float)Math.PI/8,tx=x+(float)Math.Cos(a)*ring,ty=y+(float)Math.Sin(a)*ring;if(Free(tx,ty,r,ignore)){px=tx;py=ty;return true;}}
+            if(Free(x,y,r,ignore,clearOfTraps)){px=x;py=y;return true;}
+            for(float ring=12;ring<=search;ring+=12)for(int i=0;i<16;i++){float a=angle+i*(float)Math.PI/8,tx=x+(float)Math.Cos(a)*ring,ty=y+(float)Math.Sin(a)*ring;if(Free(tx,ty,r,ignore,clearOfTraps)){px=tx;py=ty;return true;}}
             px=x;py=y;return false;
         }
         bool PlaceNear(BallRuntime b,float x,float y,float search)
@@ -38,21 +45,51 @@ namespace CoreClash.Core
         }
         ZoneRuntime CreateTrap(BallRuntime b,string kind,float x,float y,float radius,float search=62)
         {
-            if(S.zones.Count(z=>!z.dead)>=256||!FindPlacement(x,y,radius,b.id,search,b.angle,out float px,out float py))return null;
+            if(S.zones.Count(z=>!z.dead)>=256||!FindPlacement(x,y,radius,b.id,search,b.angle,out float px,out float py,S.trapsApart&&kind!="gravitymine"))return null;
             var z=CreateZone(b,kind,radius,-1);z.x=px;z.y=py;z.trap=true;return z;
         }
         void SpatialStop(BallRuntime b)
         {
             switch(b.type){
-                case "anchor":b.anchorStacks=3;b.vx=b.vy=0;break;
+                case "anchor":b.anchorStacks=3;b.vx=b.vy=0;
+                    // Match rule anchorShield: dropping anchor brings its shield back up to that number.
+                    if(S.anchorShield>b.shield)sim.Shield(b,S.anchorShield-b.shield,S.anchorShield);
+                    if(S.plainPowers)sim.Emit("ANCHOR",b,"Anchored");break;
                 case "vinehook":if(b.lastAbilityTurn!=S.turnNumber){var target=Near(b,165,false).FirstOrDefault(x=>x.anchorStacks<3);if(target!=null){b.lastAbilityTurn=S.turnNumber;Impulse(target,b.x,b.y,300);sim.Emit("PULL",target,"Vinehook");}}break;
                 case "harpoon":var far=Near(b,230,false).LastOrDefault();if(far!=null){Impulse(far,b.x,b.y,690);sim.Emit("PULL",far,"Harpoon");}break;
                 case "vortexmedic":var enemies=Near(b,165,false);foreach(var e in enemies)Impulse(e,b.x,b.y,390);var hurt=Living().Where(x=>x.owner==b.owner&&Dist(b,x)<=165&&x.hp<x.maxHp).OrderBy(x=>(float)x.hp/x.maxHp).FirstOrDefault();if(enemies.Length>0&&hurt!=null)sim.Heal(hurt,Math.Min(10,enemies.Length*5));break;
-                case "web":CreateTrap(b,"web",b.x+55,b.y,14);CreateTrap(b,"web",b.x-55,b.y,14);CreateTrap(b,"web",b.x,b.y+55,14);CreateTrap(b,"web",b.x,b.y-55,14);break;
-                case "gravitymine":foreach(var z in S.zones)if(z.sourceId==b.id&&z.kind=="gravitymine")z.dead=true;CreateTrap(b,"gravitymine",b.x,b.y,100);break;
+                case "web":
+                    if(S.placeOnce&&b.placed)break;
+                    {bool grew=CreateTrap(b,"web",b.x+55,b.y,14)!=null;grew|=CreateTrap(b,"web",b.x-55,b.y,14)!=null;grew|=CreateTrap(b,"web",b.x,b.y+55,14)!=null;grew|=CreateTrap(b,"web",b.x,b.y-55,14)!=null;if(grew)b.placed=true;}
+                    break;
+                case "gravitymine":
+                    // Match rule placeOnce: the field stays where the mine first stopped.
+                    if(S.placeOnce&&b.placed)break;b.placed=true;
+                    foreach(var z in S.zones)if(z.sourceId==b.id&&z.kind=="gravitymine")z.dead=true;
+                    // Plain powers: the field always appears where the mine stops (the reference rule
+                    // needs free room the size of the whole field, which no card can explain).
+                    if(S.plainPowers){var field=CreateZone(b,"gravitymine",100,-1);field.trap=true;}else CreateTrap(b,"gravitymine",b.x,b.y,100);break;
                 case "gatekeeper":CreatePortals(b);break;
-                case "magnet":case "pulse":foreach(var t in Near(b,165)){float fall=.45f+.55f*(1-Dist(b,t)/165);Impulse(t,b.type=="magnet"?b.x:2*t.x-b.x,b.type=="magnet"?b.y:2*t.y-b.y,(b.type=="magnet"?520:500)*fall);}break;
+                case "magnet":case "pulse":foreach(var t in Near(b,165)){
+                    // Plain powers: the Magnet gathers balls - each one rolls right up to it and stops
+                    // there (the reference pull throws them into the Magnet hard enough to kill it).
+                    if(S.plainPowers&&b.type=="magnet"){float gap=Dist(b,t)-b.radius-t.radius-4;if(gap>0){Impulse(t,b.x,b.y,(gap+14)/1.175f);sim.Emit("PULL",t,"Magnet",b.id);}continue;}
+                    float fall=.45f+.55f*(1-Dist(b,t)/165);Impulse(t,b.type=="magnet"?b.x:2*t.x-b.x,b.type=="magnet"?b.y:2*t.y-b.y,(b.type=="magnet"?520:500)*fall);if(S.plainPowers&&b.type=="pulse")sim.Emit("PUSH",t,"Pulse",b.id);}
+                    // Nothing in the rules changes here: the event only lets the screen show the pull or the push.
+                    if(S.plainPowers)sim.Emit(b.type=="magnet"?"MAGNET":"PULSE",b,b.type=="magnet"?"Pull":"Push");break;
             }
+        }
+        // Match rule mineDamage: the Magnet Mine throws every ball in its field outwards, and takes the
+        // same, whole amount from each enemy there - none from its owner's balls.
+        void MineBlast(BallRuntime source,float radius,int damage,float force)
+        {
+            foreach(var b in Living()){
+                // The same edge as the field that set it off: the ball that triggered the mine is always hit.
+                if(b.id==source.id)continue;float d=Dist(source,b);if(d>radius)continue;
+                Impulse(b,2*b.x-source.x,2*b.y-source.y,force*Math.Max(.2f,1-d/radius));
+                if(b.owner!=source.owner)sim.Damage(b,damage,false,source.id);
+            }
+            sim.Emit("EXPLOSION",source,"Area explosion");
         }
         void CreatePortals(BallRuntime b)
         {
@@ -78,12 +115,16 @@ namespace CoreClash.Core
                     }
                 }else if(ElementTrap(z.kind)){
                     TriggerElementTrap(z);
+                }else if(z.kind=="shocktrap"){
+                    TriggerShockTrap(z);
                 }else if(z.kind=="web"){
                     var target=Living().FirstOrDefault(b=>b.owner!=z.owner&&(b.x-z.x)*(b.x-z.x)+(b.y-z.y)*(b.y-z.y)<(z.radius+b.radius)*(z.radius+b.radius));if(target!=null){Root(target);z.dead=true;}
                 }else if(z.kind=="gravitymine"){
-                    foreach(var b in Living().Where(b=>b.id!=z.sourceId)){float d=(float)Math.Sqrt((b.x-z.x)*(b.x-z.x)+(b.y-z.y)*(b.y-z.y));if(d>z.radius)continue;Impulse(b,z.x,z.y,70*dt);if(b.owner!=z.owner){z.dead=true;var source=S.balls.FirstOrDefault(x=>x.id==z.sourceId);if(source!=null){var blast=new BallRuntime{id=source.id,owner=z.owner,type="gravitymine",x=z.x,y=z.y};Explode(blast,100,14,390);sim.Kill(source);}break;}}
+                    foreach(var b in Living().Where(b=>b.id!=z.sourceId)){float d=(float)Math.Sqrt((b.x-z.x)*(b.x-z.x)+(b.y-z.y)*(b.y-z.y));if(d>z.radius||!FieldHolds(z,b))continue;Impulse(b,z.x,z.y,70*dt);if(b.owner!=z.owner){z.dead=true;var source=S.balls.FirstOrDefault(x=>x.id==z.sourceId);if(source!=null){var blast=new BallRuntime{id=source.id,owner=z.owner,type="gravitymine",x=z.x,y=z.y};if(S.mineDamage>0)MineBlast(blast,z.radius,S.mineDamage,390);else Explode(blast,100,14,390);sim.Kill(source);}break;}}
                 }else if(z.kind=="blackHole"){
                     foreach(var b in Living()){
+                        // Match rule noFriendlyFire: a black hole leaves its owner's balls alone.
+                        if(S.noFriendlyFire&&b.owner==z.owner)continue;
                         float dx=z.x-b.x,dy=z.y-b.y,d=(float)Math.Sqrt(dx*dx+dy*dy),swallow=Math.Max(z.coreRadius,z.radius*.145f)+b.radius*.34f;
                         if(d<swallow){Consume(z.owner,z.sourceId,b);if(++z.swallowed>=10){z.dead=true;break;}}
                         else if(d<z.radius)Impulse(b,z.x,z.y,(.24f+.76f*(1-d/z.radius))*z.pull*dt);

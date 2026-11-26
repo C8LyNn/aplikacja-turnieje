@@ -12,7 +12,7 @@ namespace CoreClash.Core
         {
             if (parent == null || S.balls.Count(x => !x.dead && !x.banished) >= 256) return null;
             var definition = sim.Catalog.Ball(type);
-            if (definition == null || !FindPlacement(targetX, targetY, definition.radius, 0,
+            if (definition == null || !FindPlacement(targetX, targetY, sim.Radius(definition), 0,
                 searchRadius, preferredAngle, out float x, out float y)) return null;
             var child = sim.Spawn(parent.owner, type, x, y);
             child.maxHp = maxHp;
@@ -95,7 +95,7 @@ namespace CoreClash.Core
         {
             var definition = sim.Catalog.Ball("broodling");
             if (definition == null) return;
-            float distance = b.radius + definition.radius + 8;
+            float distance = b.radius + sim.Radius(definition) + 8;
             for (int i = 0; i < 4; i++)
             {
                 float angle = b.angle + i * (float)Math.PI / 2;

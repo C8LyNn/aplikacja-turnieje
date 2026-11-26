@@ -32,6 +32,12 @@ namespace CoreClash.Presentation
         {
             return Remaining(simulation,owner,id)>0||ActiveSource(simulation,owner,id)==BallSelectionSource.Hand;
         }
+        // W24 match rule: while Player 2 aims the extra ball of the opening turn, the special balls are
+        // still in the hand (their count is shown) but cannot be played - the card is drawn dimmed.
+        public static bool LockedForShot(GameSimulation simulation,int owner,string id)
+        {
+            return simulation!=null&&simulation.State!=null&&simulation.State.turn==owner&&id!="normal"&&simulation.StandardOnlyShot;
+        }
         public static bool CanActivate(GameSimulation simulation,int owner,string id,bool localInputEnabled)
         {
             return localInputEnabled&&simulation!=null&&simulation.State!=null&&
@@ -61,7 +67,7 @@ namespace CoreClash.Presentation
         {
             int remaining=Remaining(simulation,owner,id);
             if(remaining>0)return "x"+remaining;
-            return ActiveSource(simulation,owner,id)==BallSelectionSource.Hand?"HAND READY":"EMPTY";
+            return ActiveSource(simulation,owner,id)==BallSelectionSource.Hand?Lang.T("HAND READY","W RĘCE"):Lang.T("EMPTY","BRAK");
         }
     }
 

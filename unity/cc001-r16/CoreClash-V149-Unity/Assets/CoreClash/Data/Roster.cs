@@ -11,7 +11,13 @@ namespace CoreClash.Data
     public enum RosterTier { Active, Rework, Freezer, Internal }
 
     [Serializable] public sealed class RosterDeck { public string id,name,description,identity,accent; public string[] balls; }
-    [Serializable] public sealed class RosterData { public string version; public string[] active,rework; public RosterDeck[] decks; }
+    // W24: how many copies of an active ball a deck holds, where the roster's design differs
+    // from the catalog's (a ball that was a one-copy unique there and is a basic ball here).
+    [Serializable] public sealed class RosterStock { public string id; public int copies; }
+    // hp (W24, owner decision 2026-11-22: "every ball always has the same HP - less to keep in
+    // mind, a simpler picture; the powers are what gets balanced"): the HP of every active ball.
+    // 0 keeps each ball's own HP from the catalog.
+    [Serializable] public sealed class RosterData { public string version; public int hp; public string[] active,rework; public RosterStock[] stock; public RosterDeck[] decks; }
 
     public sealed class Roster
     {
@@ -27,6 +33,16 @@ namespace CoreClash.Data
             active=Ids(catalog,data.active,"active");rework=Ids(catalog,data.rework,"rework");
             if(!active.Contains("normal"))throw new ArgumentException("Standard must be active.");
             if(active.Overlaps(rework))throw new ArgumentException("A ball cannot be both active and a rework candidate.");
+            if(data.hp!=0)
+            {
+                if(data.hp<5||data.hp>100||data.hp%5!=0)throw new ArgumentException("Roster HP must be a multiple of 5 between 5 and 100.");
+                foreach(string id in active){var ball=catalog.Ball(id);ball.hp=ball.typeHp=data.hp;}
+            }
+            foreach(var entry in data.stock??Array.Empty<RosterStock>())
+            {
+                if(entry==null||!active.Contains(entry.id??"")||entry.id=="normal"||entry.copies<1||entry.copies>9)throw new ArgumentException("Roster stock entry is not an active special ball with 1-9 copies: "+entry?.id);
+                catalog.Ball(entry.id).stockCopies=entry.copies;
+            }
             var decks=new List<DeckDefinition>();
             foreach(var deck in data.decks??Array.Empty<RosterDeck>())
             {

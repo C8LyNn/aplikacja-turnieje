@@ -1,37 +1,38 @@
 {
- "version": "W22-1",
+ "version": "W24-6x5-hp30",
+ "hp": 30,
  "active": [
   "normal",
-  "bomb",
-  "mine",
-  "timebomb",
+  "ice",
+  "blizzardcore",
+  "frosttrap",
+  "shatterer",
+  "frostguard",
   "fire",
   "furnace",
-  "bonfire",
-  "ice",
-  "shatterer",
-  "frosttrap",
+  "embertrap",
+  "bomb",
+  "firebrand",
   "venom",
   "blightpool",
+  "sporetrap",
+  "plagueburst",
   "plagueleech",
-  "gravitymine",
-  "web",
-  "harpoon",
+  "magnet",
   "pulse",
-  "timeshift",
-  "gatekeeper",
-  "slingshot",
-  "pinballer",
-  "vortexmedic",
-  "ward",
-  "halo",
-  "cascade",
-  "agony",
-  "singularity",
-  "reclaimer",
-  "traitor",
-  "chronomancer",
-  "echo"
+  "fluxmine",
+  "gravitymine",
+  "anchor",
+  "tesla",
+  "chainshock",
+  "capacitor",
+  "staticfield",
+  "jammer",
+  "web",
+  "thornback",
+  "elderbloom",
+  "cultivator",
+  "cascade"
  ],
  "rework": [
   "wallmaker",
@@ -44,84 +45,136 @@
   "banish",
   "phase",
   "warp",
-  "frostguard",
   "martyr",
   "phoenix",
   "mirage",
-  "tesla",
   "colossus"
+ ],
+ "stock": [
+  {
+   "id": "tesla",
+   "copies": 5
+  },
+  {
+   "id": "chainshock",
+   "copies": 2
+  },
+  {
+   "id": "staticfield",
+   "copies": 4
+  },
+  {
+   "id": "anchor",
+   "copies": 3
+  }
  ],
  "decks": [
   {
-   "id": "roster_element_storm",
-   "name": "ELEMENT STORM",
-   "description": "Fire, frost and toxin: apply a status, then cash it in.",
-   "identity": "Burn, freeze and poison. Apply a status, then cash it in.",
+   "id": "roster_fire_pit",
+   "name": "FIRE PIT",
+   "description": "Fire and magnets.",
+   "identity": "Pull enemies into the fire and keep them burning.",
    "accent": "#ff8a45",
    "balls": [
     "fire",
     "furnace",
+    "embertrap",
+    "bomb",
+    "firebrand",
+    "magnet",
+    "pulse",
+    "gravitymine",
+    "fluxmine"
+   ]
+  },
+  {
+   "id": "roster_frozen_garden",
+   "name": "FROZEN GARDEN",
+   "description": "Ice and plants.",
+   "identity": "Hold them, freeze them and outlast them.",
+   "accent": "#6fd6f5",
+   "balls": [
     "ice",
-    "shatterer",
+    "blizzardcore",
     "frosttrap",
+    "shatterer",
+    "frostguard",
+    "web",
+    "thornback",
+    "elderbloom",
+    "cultivator"
+   ]
+  },
+  {
+   "id": "roster_acid_rain",
+   "name": "ACID RAIN",
+   "description": "Poison and lightning.",
+   "identity": "Poison them, then finish the weakened ones with lightning.",
+   "accent": "#b872e8",
+   "balls": [
     "venom",
     "blightpool",
+    "sporetrap",
+    "plagueburst",
     "plagueleech",
-    "ward"
+    "tesla",
+    "chainshock",
+    "capacitor",
+    "jammer"
    ]
   },
   {
-   "id": "roster_demolition",
-   "name": "DEMOLITION",
-   "description": "Explosives and board control.",
-   "identity": "Set traps, move the enemy into them and reshape the arena.",
-   "accent": "#c98bff",
+   "id": "roster_dynamo",
+   "name": "DYNAMO",
+   "description": "Magnets and lightning.",
+   "identity": "Pull enemies together; lightning does the rest.",
+   "accent": "#7f8cff",
    "balls": [
-    "bomb",
-    "mine",
-    "timebomb",
-    "gravitymine",
-    "harpoon",
+    "magnet",
     "pulse",
-    "slingshot",
-    "pinballer",
-    "web"
+    "fluxmine",
+    "gravitymine",
+    "anchor",
+    "tesla",
+    "chainshock",
+    "capacitor",
+    "staticfield"
    ]
   },
   {
-   "id": "roster_afterlife",
-   "name": "AFTERLIFE",
-   "description": "Death effects on demand.",
-   "identity": "Your balls are worth more when they fall. Trigger it on your terms.",
-   "accent": "#ffa46a",
+   "id": "roster_polar_storm",
+   "name": "POLAR STORM",
+   "description": "Lightning and ice.",
+   "identity": "Freeze them in place and switch their powers off.",
+   "accent": "#f2c230",
    "balls": [
-    "bonfire",
-    "cascade",
-    "singularity",
-    "agony",
-    "reclaimer",
-    "echo",
-    "halo",
-    "vortexmedic",
-    "bomb"
+    "tesla",
+    "chainshock",
+    "capacitor",
+    "staticfield",
+    "jammer",
+    "ice",
+    "frosttrap",
+    "blizzardcore",
+    "frostguard"
    ]
   },
   {
-   "id": "roster_trickster",
-   "name": "TRICKSTER",
-   "description": "Position and ownership tricks.",
-   "identity": "Swap places, open portals, rewind and turn their best ball.",
-   "accent": "#8ea7ff",
+   "id": "roster_jungle",
+   "name": "JUNGLE",
+   "description": "Plants and poison.",
+   "identity": "Vines, thorns and poison: nothing leaves this jungle unhurt.",
+   "accent": "#6cc24a",
    "balls": [
-    "timeshift",
-    "gatekeeper",
-    "traitor",
-    "chronomancer",
-    "echo",
     "web",
-    "harpoon",
-    "halo",
-    "pulse"
+    "thornback",
+    "elderbloom",
+    "cultivator",
+    "cascade",
+    "venom",
+    "blightpool",
+    "sporetrap",
+    "plagueleech"
    ]
   }
  ]

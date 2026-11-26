@@ -37,6 +37,11 @@ namespace CoreClash.Core
             return State.players[owner].stock.FirstOrDefault(x=>x.id==type)?.remaining??0;
         }
         public bool CanReplay(BallRuntime b)=>b!=null&&!b.dead&&!b.banished&&!b.rooted&&b.owner==State.turn&&!State.bonusPending&&!State.replayedIds.Contains(b.id)&&ZoneResolver.TouchesOwnZone(b)&&b.type!="titan"&&b.frozen<=0;
+        // Match rule standardOpeningBonus: true while the ball being aimed is Player 2's extra ball of
+        // the opening turn, which then has to be a Standard one. (The second ball of a "double turn"
+        // is not that ball: the opening one has been used by then.)
+        public bool OpeningExtraShot=>State.bonusPending&&!State.bonusUsed&&State.turn==1;
+        public bool StandardOnlyShot=>State.standardOpeningBonus&&OpeningExtraShot;
         public bool TryCommand(PlayerCommand c,out string reason)
         {
             reason="";
@@ -56,9 +61,12 @@ namespace CoreClash.Core
                         x.lastProcessedOwnerTurns>=State.players[c.owner].ownerTurns)
                     :null;
                 if(definition==null||(!hasStock&&hand==null)){reason="That ball has no stock in this deck.";return false;}
+                if(StandardOnlyShot&&c.ballType!="normal"){reason="The extra ball of the opening turn must be a Standard ball.";return false;}
                 float angle=(float)Math.Atan2(c.dx,c.owner==0?-c.dy:c.dy);angle=Clamp(angle,-1.53589f,1.53589f);
                 float vx=(float)Math.Sin(angle)*c.power,vy=(float)Math.Cos(angle)*c.power*(c.owner==0?-1:1);
                 ball=Spawn(c.owner,c.ballType,270,c.owner==0?853:47,vx,vy);
+                // Match rule openingBonusHp: Player 2's extra opening ball comes in hurt.
+                if(OpeningExtraShot&&State.openingBonusHp>0)ball.hp=Math.Min(ball.hp,State.openingBonusHp);
                 if(hasStock){if(c.ballType!="normal")stockEntry.remaining--;}
                 else{
                     // A normal SPAWN after a REPLAY_RETURN, not a second RETURN event.
@@ -75,15 +83,17 @@ namespace CoreClash.Core
                 ball.vx=(float)(c.dx/length*c.power);ball.vy=(float)(c.dy/length*c.power);ball.launchImmune=true;
                 State.replayedIds.Add(ball.id);State.actionKind="replay";
             }else{reason="Unknown command.";return false;}
-            ball.affectedIds.Clear();ball.hitUsed=false;ball.wallUsed=false;ball.mineArmed=false;if(Catalog.Ball(ball.type).archetype=="earth")ball.anchorStacks=Math.Max(0,ball.anchorStacks-1);ball.frostguardAnchored=false;
+            ball.affectedIds.Clear();ball.hitUsed=false;ball.wallUsed=false;ball.mineArmed=false;ball.compassDash=false;if(Catalog.Ball(ball.type).archetype=="earth")ball.anchorStacks=Math.Max(0,ball.anchorStacks-1);ball.frostguardAnchored=false;
             ball.phased=ball.type=="phase";ball.angle=(float)Math.Atan2(ball.vy,ball.vx);ball.motionPeak=c.power;
             State.phase=MatchPhase.Moving;State.actionTime=0;State.actionDeadline=14;State.settledTime=0;State.actionSerial++;State.revision++;
             Emit("LAUNCH",ball,State.actionKind);Abilities.OnLaunch(ball);return true;
         }
+        // The radius of a ball of this type in this match (match rule ballScale).
+        public float Radius(BallDefinition d)=>d.radius*(State.ballScale>0?State.ballScale:1);
         public BallRuntime Spawn(int owner,string type,float x,float y,float vx=0,float vy=0)
         {
             var d=Catalog.Ball(type)??throw new ArgumentException("Unknown ball: "+type);
-            var b=new BallRuntime{id=State.nextId++,owner=owner,type=type,x=x,y=y,vx=vx,vy=vy,hp=d.hp,maxHp=d.hp,radius=d.radius,mass=d.mass,restitution=d.restitution,wallRestitution=d.wallRestitution,maxSpeed=d.maxSpeed};
+            var b=new BallRuntime{id=State.nextId++,owner=owner,type=type,x=x,y=y,vx=vx,vy=vy,hp=d.hp,maxHp=d.hp,radius=Radius(d),mass=d.mass,restitution=d.restitution,wallRestitution=d.wallRestitution,maxSpeed=d.maxSpeed};
             b.lineageId=b.id;b.moving=Math.Sqrt(vx*vx+vy*vy)>=18;State.balls.Add(b);Emit("SPAWN",b,d.name);Abilities.OnSpawn(b);return b;
         }
         public void Step(float dt)
@@ -99,7 +109,15 @@ namespace CoreClash.Core
         }
         public void Damage(BallRuntime b,int amount,bool kinetic=false,int sourceId=0)
         {
-            if(b==null||b.dead||amount<=0)return;int damage=kinetic?amount:Math.Max(5,Round(amount/5f)*5),absorbed=Math.Min(b.shield,damage);
+            if(b==null||b.dead||amount<=0)return;
+            // Match rule noFriendlyFire: a ball takes no HP from another ball of its own player
+            // (whatever the power: this is the one gate every power's damage goes through).
+            if(State.noFriendlyFire&&sourceId!=0&&sourceId!=b.id){var source=State.balls.FirstOrDefault(x=>x.id==sourceId);if(source!=null&&source.owner==b.owner)return;}
+            // Match rule compassDashHurt: on its second shot the Compass takes only part of what a collision would cost it.
+            if(kinetic&&b.compassDash&&State.compassDashHurt<100){amount=Round(amount*Math.Max(0,State.compassDashHurt)/100f);if(amount<=0)return;}
+            // Match rule brittleBonus: a frozen ball is brittle - a hard hit takes more from it.
+            if(kinetic&&State.brittleBonus>0&&AbilityResolver.DeepFrozen(b))amount+=State.brittleBonus;
+            int damage=kinetic?amount:Math.Max(5,Round(amount/5f)*5),absorbed=Math.Min(b.shield,damage);
             if(Abilities.BeforeDamage(b,kinetic))return;
             b.shield-=absorbed;damage-=absorbed;b.hp=Math.Max(0,b.hp-damage);b.lastDamageSourceId=sourceId;Emit("DAMAGE",b,damage>0?"-"+damage:"Shield");if(b.hp<=0)Kill(b);
         }

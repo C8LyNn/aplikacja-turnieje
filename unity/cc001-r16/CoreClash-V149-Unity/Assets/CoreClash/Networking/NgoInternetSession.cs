@@ -37,6 +37,26 @@ namespace CoreClash.Networking
             link.InternetPending(hosting);_ = RunAsync(hosting,value,ticket);return true;
         }
         bool Current(int ticket)=>!destroyed&&operation.IsCurrent(ticket);
+        // Two copies of the game on one computer share one saved anonymous sign-in, and the service
+        // refuses the same player twice in one game (the guest got "session conflict"). A second
+        // copy signs in under a profile of its own: "--cc-network-profile name", or by itself when
+        // another copy of the game is already running on this computer. Players on two computers
+        // are two players anyway and use the default profile.
+        static string Profile()
+        {
+            try {
+                string[] args=Environment.GetCommandLineArgs();
+                for(int i=0;i+1<args.Length;i++)if(args[i]=="--cc-network-profile"){
+                    var name=new System.Text.StringBuilder();
+                    foreach(char c in args[i+1])if(name.Length<30&&(c>='a'&&c<='z'||c>='A'&&c<='Z'||c>='0'&&c<='9'||c=='-'||c=='_'))name.Append(c);
+                    return name.ToString();
+                }
+                if(Application.platform==RuntimePlatform.WindowsPlayer)
+                    using(var me=System.Diagnostics.Process.GetCurrentProcess())
+                        if(System.Diagnostics.Process.GetProcessesByName(me.ProcessName).Length>1)return "second";
+            } catch(Exception){}
+            return "";
+        }
         async Task RunAsync(bool hosting,string value,int ticket)
         {
             ISession acquired=null;
@@ -44,7 +64,11 @@ namespace CoreClash.Networking
                 if(!Guid.TryParse(Application.cloudProjectId,out var project)||project==Guid.Empty)
                     throw new InternetSetupException("Internet play needs a linked Unity Cloud project. Link this project and enable Authentication, Lobby and Relay, then rebuild. LAN is ready to use.");
                 link.InternetStatus("Connecting to Unity Gaming Services…");
-                if(UnityServices.State!=ServicesInitializationState.Initialized)await UnityServices.InitializeAsync();
+                if(UnityServices.State!=ServicesInitializationState.Initialized){
+                    var setup=new InitializationOptions();string profile=Profile();
+                    if(profile.Length>0){setup.SetProfile(profile);Debug.Log("CC_NET_INTERNET_PROFILE "+profile);}
+                    await UnityServices.InitializeAsync(setup);
+                }
                 if(!Current(ticket))return;
                 if(!AuthenticationService.Instance.IsSignedIn)await AuthenticationService.Instance.SignInAnonymouslyAsync();
                 if(!Current(ticket))return;

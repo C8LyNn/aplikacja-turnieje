@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 
 namespace CoreClash.Core
@@ -6,12 +7,15 @@ namespace CoreClash.Core
     {
         // V148 persistent one-charge elemental traps. No additional damage or
         // root is implied: they feed the existing shared status machine.
+        public const int ShatterPerChill=5;
         static bool ElementTrap(string kind)=>kind=="embertrap"||kind=="frosttrap"||kind=="sporetrap";
         void StatusPayoffStop(BallRuntime source)
         {
             if(!ElementTrap(source.type))return;
-            var trap=CreateTrap(source,source.type,source.x,source.y,14,105);
-            if(trap==null)sim.Emit("PLACEMENT_BLOCKED",source,"No room for elemental trap");
+            // Match rule placeOnce: one trap for each ball. A trap that found no room does not count.
+            if(S.placeOnce&&source.placed)return;
+            var trap=CreateTrap(source,source.type,source.x,source.y,TrapRadius,105);
+            if(trap==null)sim.Emit("PLACEMENT_BLOCKED",source,"No room for elemental trap");else source.placed=true;
         }
         void TriggerElementTrap(ZoneRuntime trap)
         {
@@ -21,7 +25,7 @@ namespace CoreClash.Core
             // Spend first: status cascades may kill targets or create new units.
             trap.dead=true;
             if(trap.kind=="embertrap")ApplyFire(target,trap.owner);
-            else if(trap.kind=="frosttrap")ApplyIce(target,trap.owner);
+            else if(trap.kind=="frosttrap"){if(S.deepFreeze)FreezeNow(target,trap.owner);else ApplyIce(target,trap.owner);}
             else ApplyToxin(target,trap.owner);
             sim.Emit("TRAP_TRIGGER",target,trap.kind+" spent",trap.sourceId);
         }
@@ -32,10 +36,28 @@ namespace CoreClash.Core
             {
                 if(target.toxinTurns>0)
                 {
-                    sim.Damage(target,5,false,source.id);sim.Heal(source,5);
-                    sim.Emit("VENOM",source,"Toxin payoff +5 HP",target.id);
+                    // Match rule venomOncePerTurn: once a turn for each enemy.
+                    if(S.venomOncePerTurn&&!PerTargetTurn(source,target))return;
+                    // Match rule venomHeal: what the bite gives back to Venom.
+                    sim.Damage(target,5,false,source.id);if(S.venomHeal>0)sim.Heal(source,S.venomHeal);
+                    sim.Emit("VENOM",source,"Toxin payoff +"+Math.Max(0,S.venomHeal)+" HP",target.id);
                 }
                 else if(target.type!="plague")ApplyToxin(target,source.owner);
+            }
+            else if(source.type=="shatterer"&&S.deepFreeze)
+            {
+                // Match rule deepFreeze: 5 HP for every chill it breaks; a frozen ball counts as three.
+                int chills=target.frozen>0?3:target.iceStacks;if(chills<=0)return;
+                // Match rule shatterKeepsIce: the same damage, once a turn for each enemy, and the ice stays.
+                if(S.shatterKeepsIce)
+                {
+                    if(!PerTargetTurn(source,target))return;
+                    sim.Emit("SHATTER",target,"Ice struck: +"+chills*ShatterPerChill+" damage",source.id);
+                    sim.Damage(target,chills*ShatterPerChill,false,source.id);
+                    return;
+                }
+                ClearIce(target);sim.Emit("SHATTER",target,"Ice consumed: +"+chills*ShatterPerChill+" damage",source.id);
+                sim.Damage(target,chills*ShatterPerChill,false,source.id);
             }
             else if(source.type=="shatterer"&&(target.frozen>0||target.iceStacks>=2))
             {

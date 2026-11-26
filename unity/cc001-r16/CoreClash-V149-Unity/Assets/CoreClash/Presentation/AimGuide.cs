@@ -23,6 +23,35 @@ namespace CoreClash.Presentation
         }
         static float Distance(float origin,float direction,float min,float max)=>Math.Abs(direction)<.00001f?float.PositiveInfinity:Math.Max(0,((direction>0?max:min)-origin)/direction);
 
+        // W24 (owner direction after playing: "the prediction is to take the balls into account too"):
+        // the same path, cut where a ball of `radius` rolling along it first touches one of the bodies
+        // (other balls, obstacles). The last point is then the ball's centre at the moment of contact.
+        // A body the ball already overlaps at the start of a stretch is not a contact.
+        public static AimPoint[] ClipAtBodies(AimPoint[] path,float radius,IReadOnlyList<StopObstacle> bodies,out bool touched)
+        {
+            touched=false;
+            if(path==null||path.Length<2||bodies==null||bodies.Count==0||!(radius>=0))return path;
+            for(int i=1;i<path.Length;i++)
+            {
+                float ax=path[i-1].x,ay=path[i-1].y,dx=path[i].x-ax,dy=path[i].y-ay,length=(float)Math.Sqrt(dx*dx+dy*dy);
+                if(length<.001f)continue;
+                float ux=dx/length,uy=dy/length,first=length;bool hit=false;
+                foreach(var body in bodies)
+                {
+                    float reach=radius+body.Radius,cx=body.X-ax,cy=body.Y-ay;
+                    if(cx*cx+cy*cy<=reach*reach)continue;
+                    float along=cx*ux+cy*uy;if(along<=0)continue;
+                    float side=cx*cx+cy*cy-along*along;if(side>=reach*reach)continue;
+                    float at=along-(float)Math.Sqrt(reach*reach-side);
+                    if(at>=0&&at<first){first=at;hit=true;}
+                }
+                if(!hit)continue;
+                var cut=new AimPoint[i+1];Array.Copy(path,cut,i);
+                cut[i]=new AimPoint(ax+ux*first,ay+uy*first);touched=true;return cut;
+            }
+            return path;
+        }
+
         // W17-02 (#284): the launcher is the authoritative spawn point used by
         // GameSimulation.TryCommand; the preview must start exactly there.
         public const float LauncherX=270f;

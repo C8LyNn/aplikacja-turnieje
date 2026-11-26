@@ -38,16 +38,16 @@ public static partial class Program
             }
             Eq(RosterTier.Active,c.Roster.Tier(c,"bomb"));Eq(RosterTier.Rework,c.Roster.Tier(c,"wildcard"));Eq(RosterTier.Freezer,c.Roster.Tier(c,"plague"));
             Eq(RosterTier.Internal,c.Roster.Tier(c,"broodling"));Eq(RosterTier.Internal,c.Roster.Tier(c,"shard"));Eq(RosterTier.Freezer,c.Roster.Tier(c,"missing"));
-            Eq(31,c.Data.balls.Count(b=>c.Roster.Tier(c,b.id)==RosterTier.Active));Eq(16,c.Data.balls.Count(b=>c.Roster.Tier(c,b.id)==RosterTier.Rework));
-            Eq(178,c.Data.balls.Count(b=>c.Roster.Tier(c,b.id)==RosterTier.Freezer));Eq(2,c.Data.balls.Count(b=>c.Roster.Tier(c,b.id)==RosterTier.Internal));
+            Eq(31,c.Data.balls.Count(b=>c.Roster.Tier(c,b.id)==RosterTier.Active));Eq(14,c.Data.balls.Count(b=>c.Roster.Tier(c,b.id)==RosterTier.Rework));
+            Eq(180,c.Data.balls.Count(b=>c.Roster.Tier(c,b.id)==RosterTier.Freezer));Eq(2,c.Data.balls.Count(b=>c.Roster.Tier(c,b.id)==RosterTier.Internal));
             // every frozen ball is still a full definition with its ability
             foreach(var ball in c.Data.balls)True(c.Ball(ball.id)==ball&&c.Ability(ball.abilityId)!=null,"definition lost: "+ball.id);
             // without a roster nothing is frozen (the catalog every older test uses)
             True(catalog.Roster==null&&catalog.Data.balls.All(b=>catalog.IsActive(b.id)));False(catalog.IsActive("missing"));
         });
-        Test("W22 roster decks: four legal decks of active balls that together use the whole roster",()=>{
+        Test("W22 roster decks: six legal decks of active balls that together use the whole roster",()=>{
             var c=W22Catalog(out var data);
-            Eq(4,c.Roster.Decks.Length);
+            Eq(6,c.Roster.Decks.Length);
             var used=new HashSet<string>();
             foreach(var deck in c.Roster.Decks)
             {
