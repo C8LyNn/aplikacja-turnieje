@@ -781,6 +781,10 @@ body.presentation-mode .wheel-config{display:none!important}
 /* Phones: 91vw plus the 13 px momentum ring was wider than the panel, so the page scrolled sideways. */
 @media(max-width:650px){
   .wheel-wrap,body.presentation-mode .wheel-wrap{width:calc(100vw - 78px)}
+  /* While it spins, the square wheel and trail layers turn, so their corners (empty, the wheel is round) reach past
+     the screen edge for a moment and the page could be pushed sideways. clip cuts only what is off screen anyway and,
+     unlike hidden, does not turn the page into a separate scroll box. */
+  html,body{overflow-x:clip}
 }
 </style>
 </head>
