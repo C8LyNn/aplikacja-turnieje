@@ -357,8 +357,8 @@ export const DEFAULT_CAMERA_CHAT_CONFIG: CameraChatConfig = {
 
   showBadges: true,
   showEmotes: true,
-  emoteScale: 140,
-  emoteOnlyLarge: true,
+  emoteScale: 100,
+  emoteOnlyLarge: false,
 
   messageLifetime: 0,
   maxMessageLength: 0,
@@ -461,8 +461,9 @@ export function chatLineHeightPx(config: Pick<CameraChatConfig, "fontSize" | "fo
   return Math.max(20, Math.round(chatFontPx(config) * 1.25));
 }
 
+/** Avatars, badges and emotes follow the text line, so every part of a message keeps the size of the chat. */
 export function chatAvatarPx(config: Pick<CameraChatConfig, "fontSize" | "fontSizePx">): number {
-  return Math.max(28, Math.round(chatLineHeightPx(config) * 1.4));
+  return Math.round(chatLineHeightPx(config) * 1.2);
 }
 
 export function chatBadgePx(config: Pick<CameraChatConfig, "fontSize" | "fontSizePx">): number {

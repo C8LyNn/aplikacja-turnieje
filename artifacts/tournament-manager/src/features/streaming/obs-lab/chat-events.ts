@@ -437,7 +437,7 @@ export function getChatEventCss(
   // flex-shrink: 0 keeps the row whole when the list is squeezed under a header (overflow: hidden would let it shrink).
   rules.push(`${row}.chat-event { position: relative; flex-shrink: 0; overflow: hidden; align-self: stretch; max-width: none; align-items: center; gap: 10px; border-radius: ${config.bubbleRadius}px; }`);
   rules.push(`${row}.chat-event::before { display: none; }`);
-  rules.push(`.chat-event-icon { display: grid; flex: none; place-items: center; width: 1.9em; height: 1.9em; border-radius: 50%; background: var(--chat-event); color: #0b1020; font-weight: 900; line-height: 1; }`);
+  rules.push(`.chat-event-icon { display: grid; flex: none; place-items: center; width: 1.45em; height: 1.45em; font-size: .9em; border-radius: 50%; background: var(--chat-event); color: #0b1020; font-weight: 900; line-height: 1; }`);
   rules.push(`.chat-event-body { min-width: 0; color: ${rgba(config.textColor, config.textOpacity / 100)}; }`);
   rules.push(`.chat-event-title { display: block; overflow-wrap: anywhere; font-weight: 600; }`);
   rules.push(`.chat-event-name { color: var(--chat-event); font-weight: 900; }`);

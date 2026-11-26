@@ -351,6 +351,8 @@ const PARITY_CONFIGS: Array<[string, CameraChatConfig]> = [
     highlightWords: "giveaway",
     readableNames: true,
     showColon: true,
+    // Off by default since emotes follow the text size; switched on here to cover the option.
+    emoteOnlyLarge: true,
   }],
   ["newest first, single colour, no badges or emotes", {
     ...DEFAULT_CAMERA_CHAT_CONFIG,

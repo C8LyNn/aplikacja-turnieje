@@ -17,6 +17,7 @@ export type ChatSetupIssueId =
   | "coverCamera"
   | "soundSilent"
   | "goalDone"
+  | "bigEmotes"
   | "bots";
 
 export type ChatSetupIssue = {
@@ -107,6 +108,10 @@ export function checkChatSetup(config: CameraChatConfig, liveTitle: string): Cha
       values: { start: config.goalStart, target: config.goalTarget },
       fix: (current) => ({ ...current, goalTarget: Math.min(1_000_000, Math.max(current.goalStart + 1, current.goalStart * 2)) }),
     });
+  }
+  // Emotes larger than the text line make rows uneven (the old default: 140% and doubled emote-only messages).
+  if (config.showEmotes && (config.emoteScale > 120 || config.emoteOnlyLarge)) {
+    issues.push({ id: "bigEmotes", level: "tip", fix: (current) => ({ ...current, emoteScale: 100, emoteOnlyLarge: false }) });
   }
   if (config.layout === "overlay" && config.chatWidth >= 50 && config.messageLifetime === 0) {
     issues.push({ id: "coverCamera", level: "tip", fix: (current) => ({ ...current, messageLifetime: 30 }) });

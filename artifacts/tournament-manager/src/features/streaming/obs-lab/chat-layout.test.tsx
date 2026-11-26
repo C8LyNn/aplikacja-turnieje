@@ -14,9 +14,15 @@ import {
   DEFAULT_CAMERA_CHAT_CONFIG,
   cameraChatConfigFromSearch,
   cameraChatConfigToSearch,
+  chatAvatarPx,
+  chatBadgePx,
+  chatEmotePx,
+  chatLineHeightPx,
   chatOverlaySize,
   getCameraChatSize,
 } from "./camera-chat-settings";
+import { getChatEventCss } from "./chat-events";
+import { checkChatSetup } from "./chat-setup-check";
 import { chatAmbientParticles } from "./chat-decor";
 import { CHAT_PRESET_CATEGORY_IDS, chatPresetConfig } from "./chat-presets";
 
@@ -95,4 +101,27 @@ test("Matrix rains code; seven theme groups", () => {
     assert.ok(drop.text.split("\n").length >= 5, "each drop is a column of glyphs");
   }
   assert.deepEqual([...CHAT_PRESET_CATEGORY_IDS], ["classic", "neon", "fantasy", "cute", "abstract", "nature", "seasonal"]);
+});
+
+test("every part of a message follows the chat text: emotes, badges, avatars, event icons", () => {
+  const line = chatLineHeightPx(DEFAULT_CAMERA_CHAT_CONFIG);
+  assert.equal(chatEmotePx(DEFAULT_CAMERA_CHAT_CONFIG), line, "an emote is one text line high");
+  assert.ok(chatBadgePx(DEFAULT_CAMERA_CHAT_CONFIG) <= line);
+  assert.ok(chatAvatarPx(DEFAULT_CAMERA_CHAT_CONFIG) <= Math.round(line * 1.2));
+  assert.equal(DEFAULT_CAMERA_CHAT_CONFIG.emoteOnlyLarge, false, "emote-only messages are not enlarged by default");
+  for (const fontSizePx of [12, 24, 40]) {
+    const config = { ...DEFAULT_CAMERA_CHAT_CONFIG, fontSize: "custom" as const, fontSizePx };
+    assert.equal(chatEmotePx(config), chatLineHeightPx(config), `${fontSizePx}px text`);
+  }
+  const emote = { name: "Kappa", url: "https://static-cdn.jtvnw.net/emoticons/v2/25/default/dark/1.0" };
+  const { container } = render(<CameraChatWidget config={DEFAULT_CAMERA_CHAT_CONFIG} messages={[{ id: "1", name: "A", text: "Kappa Kappa", emotes: [emote] }]} />);
+  for (const image of Array.from(container.querySelectorAll<HTMLElement>(".obs-chat-emote"))) assert.equal(image.style.height, `${line}px`);
+  assert.match(getChatEventCss({ ...DEFAULT_CAMERA_CHAT_CONFIG, streamEvents: true }, ".row"), /\.chat-event-icon \{[^}]*width: 1\.45em/);
+
+  const old = cameraChatConfigFromSearch("emotescale=140&emotebig=1&ignore=bot");
+  const tip = checkChatSetup(old, "Live").find((issue) => issue.id === "bigEmotes");
+  assert.ok(tip, "addresses with the old big emotes get a one-click fix");
+  const fixed = tip.fix(old);
+  assert.deepEqual([fixed.emoteScale, fixed.emoteOnlyLarge], [100, false]);
+  assert.equal(checkChatSetup(fixed, "Live").some((issue) => issue.id === "bigEmotes"), false);
 });

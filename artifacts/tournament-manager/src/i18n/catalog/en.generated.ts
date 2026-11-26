@@ -2897,6 +2897,7 @@ export const enGenerated: Record<keyof typeof plGenerated, string> = {
   "obsLab.spr_brak_rodzajow": "Events are on, but no kind is picked.",
   "obsLab.spr_cel_osiagniety": "The goal is reached at the start ({start} of {target}).",
   "obsLab.spr_cichy_dzwiek": "Sounds are on, but the volume is 0.",
+  "obsLab.spr_duze_emotki": "Emotes are larger than the chat text. Fix it to make them the height of a text line.",
   "obsLab.spr_konfetti_bez_zdarzen": "Confetti only flies with events, and events are off.",
   "obsLab.spr_kontrast": "The text barely stands out from the background (contrast {ratio}:1).",
   "obsLab.spr_krotkie_znikanie": "Messages disappear after {n} s, too fast to read.",

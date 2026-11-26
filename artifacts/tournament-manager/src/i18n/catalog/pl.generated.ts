@@ -2896,6 +2896,7 @@ export const plGenerated = {
   "obsLab.spr_brak_rodzajow": "Zdarzenia są włączone, ale nie wybrano żadnego rodzaju.",
   "obsLab.spr_cel_osiagniety": "Cel jest osiągnięty już na starcie ({start} z {target}).",
   "obsLab.spr_cichy_dzwiek": "Dźwięki są włączone, ale głośność to 0.",
+  "obsLab.spr_duze_emotki": "Emotki są większe niż tekst czatu. Napraw, żeby miały wysokość linii tekstu.",
   "obsLab.spr_konfetti_bez_zdarzen": "Konfetti leci tylko przy zdarzeniach, a zdarzenia są wyłączone.",
   "obsLab.spr_kontrast": "Tekst słabo odcina się od tła (kontrast {ratio}:1).",
   "obsLab.spr_krotkie_znikanie": "Wiadomości znikają po {n} s — za szybko, żeby je przeczytać.",

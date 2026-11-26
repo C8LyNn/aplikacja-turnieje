@@ -17,6 +17,7 @@ function issueText(issue: ChatSetupIssue): string {
     case "coverCamera": return t("obsLab.spr_zaslania_kamerke");
     case "soundSilent": return t("obsLab.spr_cichy_dzwiek");
     case "goalDone": return t("obsLab.spr_cel_osiagniety", values);
+    case "bigEmotes": return t("obsLab.spr_duze_emotki");
     case "bots": return t("obsLab.spr_boty");
   }
 }
