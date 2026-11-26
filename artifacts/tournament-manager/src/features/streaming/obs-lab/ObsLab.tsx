@@ -38,6 +38,8 @@ import {
   type CameraChatAlign,
   type CameraChatNameColorMode,
   type CameraChatExitStyle,
+  type CameraChatMessageEffect,
+  type CameraChatTextReveal,
   COMMON_CHAT_BOTS,
   DEFAULT_CAMERA_CHAT_CONFIG,
   cameraChatConfigFromSearch,
@@ -663,6 +665,12 @@ export function ObsLab() {
             <ToolInput value={config.highlightWords} maxLength={300} placeholder={t("obsLab.np_twoj_nick_giveaway")} onChange={(event) => patchConfig({ highlightWords: event.target.value })} />
           </FieldLabel>
           <ColorField label={t("obsLab.kolor_wyroznienia")} value={config.highlightColor} onChange={(highlightColor) => patchConfig({ highlightColor })} />
+          <ToolToggle
+            label={t("obsLab.wyrozniaj_nadawce_moderatorow_i_vip")}
+            description={t("obsLab.kolor_wedlug_odznaki_z_twitcha")}
+            checked={config.roleHighlight}
+            onChange={(roleHighlight) => patchConfig({ roleHighlight })}
+          />
         </div>
       </ToolDisclosure>
 
@@ -690,6 +698,22 @@ export function ObsLab() {
               <p className="text-xs leading-5 text-muted-foreground">{t("obsLab.animujemy")}{" "}<strong>{t("obsLab.sama_wiadomosc_czatu")}</strong>{t("obsLab.a_nie_cale_tlo_sceny")}</p>
             </div>
           )}
+          <FieldLabel label={t("obsLab.efekt_nowej_wiadomosci")} hint={t("obsLab.efekt_ma_kolor_nicku_widza")}>
+            <ToolSelect value={config.newMessageEffect} onChange={(event) => patchConfig({ newMessageEffect: event.target.value as CameraChatMessageEffect })}>
+              <option value="none">{t("obsLab.brak")}</option>
+              <option value="glow">{t("obsLab.poswiata")}</option>
+              <option value="shine">{t("obsLab.blysk")}</option>
+              <option value="pulse">{t("obsLab.puls")}</option>
+              <option value="flash">{t("obsLab.rozblysk_tla")}</option>
+            </ToolSelect>
+          </FieldLabel>
+          <FieldLabel label={t("obsLab.odslanianie_tekstu")}>
+            <ToolSelect value={config.textReveal} onChange={(event) => patchConfig({ textReveal: event.target.value as CameraChatTextReveal })}>
+              <option value="none">{t("obsLab.od_razu_caly_tekst")}</option>
+              <option value="typewriter">{t("obsLab.maszyna_do_pisania")}</option>
+              <option value="words">{t("obsLab.slowo_po_slowie")}</option>
+            </ToolSelect>
+          </FieldLabel>
           <FieldLabel label={t("obsLab.znikanie_wiadomosci")} hint={t("obsLab.dziala_gdy_ustawisz_znikanie_po")}>
             <ToolSelect value={config.exitStyle} onChange={(event) => patchConfig({ exitStyle: event.target.value as CameraChatExitStyle })}>
               <option value="fade">{t("obsLab.przenikanie")}</option>

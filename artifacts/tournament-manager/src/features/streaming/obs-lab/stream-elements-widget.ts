@@ -12,12 +12,15 @@ import {
   chatFontFamily,
   chatFontPx,
   chatLineHeightPx,
+  chatRevealBaseMs,
   getCameraChatAnimationCss,
   getCameraChatExitCss,
   getCameraChatSize,
+  getChatEffectCss,
   rgbaCss,
 } from "./camera-chat-settings";
 import {
+  CHAT_ROLE_COLORS,
   CHAT_DATA_IMAGE_PATTERN,
   CHAT_IMAGE_HOSTS,
   CHAT_LINK_PATTERN,
@@ -172,8 +175,9 @@ export function generateStreamElementsWidget(config: CameraChatConfig) {
 .se-emote-only .se-emote { height: ${emoteSize * 2}px; }
 ${getCameraChatAnimationCss(config.animationStyle, "se-chat-in")}
 ${getCameraChatExitCss(config.exitStyle, config.textAlign, "se-chat-out")}
+${getChatEffectCss(config, ".se-fx")}
 @media (prefers-reduced-motion: reduce) {
-  .se-message, .se-leaving { animation: none !important; }
+  .se-message, .se-leaving, .se-message::after, .se-reveal, .se-emote { animation: none !important; }
 }`;
 
   // Only validated, bounded configuration values are embedded in the exported script.
@@ -202,6 +206,12 @@ const settings = ${scriptJson({
     highlightWords: parseChatWordList(config.highlightWords),
     lifetimeMs: config.messageLifetime * 1000,
     exitMs,
+    effect: config.newMessageEffect,
+    roleHighlight: config.roleHighlight,
+    roleColors: CHAT_ROLE_COLORS,
+    bubbleRadius: config.bubbleRadius,
+    textReveal: config.textReveal,
+    revealBaseMs: chatRevealBaseMs(config),
   })};
 const list = document.getElementById("se-chat-messages");
 const nameColors = ${scriptJson(CHAT_NAME_PALETTE)};
@@ -326,6 +336,56 @@ function textParts(text, known) {
   if (buffer) parts.push({ kind: "text", text: buffer });
   return parts;
 }
+function roleOf(types) {
+  if (types.indexOf("broadcaster") !== -1) return "broadcaster";
+  if (types.indexOf("moderator") !== -1) return "moderator";
+  if (types.indexOf("vip") !== -1) return "vip";
+  return null;
+}
+function revealStep(count) {
+  return count <= 1 ? 0 : Math.max(12, Math.min(45, Math.floor(1400 / count)));
+}
+// Letters (typewriter) or words appear one after another; emotes count as one step; long messages appear at once.
+function revealPieces(parts) {
+  if (settings.textReveal === "none") return null;
+  let total = 0;
+  parts.forEach(function (part) { total += part.kind === "text" ? Array.from(part.text).length : 1; });
+  if (total > 200) return null;
+  const pieces = [];
+  const animated = [];
+  parts.forEach(function (part) {
+    if (part.kind === "emote") {
+      const emote = { kind: "emote", name: part.name, url: part.url };
+      pieces.push(emote);
+      animated.push(emote);
+      return;
+    }
+    part.text.split(/(\\s+)/).forEach(function (chunk) {
+      if (!chunk) return;
+      if (!chunk.trim()) {
+        pieces.push({ kind: "text", text: chunk });
+      } else if (settings.textReveal === "words") {
+        const word = { kind: "text", text: chunk, word: true };
+        pieces.push(word);
+        animated.push(word);
+      } else {
+        Array.from(chunk).forEach(function (char) {
+          const letter = { kind: "text", text: char };
+          pieces.push(letter);
+          animated.push(letter);
+        });
+      }
+    });
+  });
+  const step = revealStep(animated.length);
+  animated.forEach(function (piece, index) {
+    const delay = settings.revealBaseMs + index * step;
+    piece.animation = settings.textReveal === "words"
+      ? "chat-reveal-word 280ms ease-out " + delay + "ms both"
+      : "chat-reveal-type 1ms linear " + delay + "ms both";
+  });
+  return pieces;
+}
 function image(className, src, alt) {
   const element = document.createElement("img");
   element.className = className;
@@ -341,10 +401,21 @@ function buildRow(message) {
   const onlyEmotes = parts.some(function (part) { return part.kind === "emote"; })
     && parts.every(function (part) { return part.kind === "emote" || !part.text.trim(); });
   if (settings.emoteOnlyLarge && onlyEmotes) row.classList.add("se-emote-only");
+  const role = settings.roleHighlight ? roleOf(message.roles) : null;
   if (highlighted(message.text)) {
     row.classList.add("se-highlight");
+  } else if (role) {
+    const roleColor = settings.roleColors[role];
+    row.dataset.role = role;
+    row.style.borderRadius = settings.bubbleRadius + "px";
+    row.style.background = rgba(roleColor, 0.14);
+    row.style.boxShadow = "inset " + (settings.alignRight ? -3 : 3) + "px 0 0 " + roleColor;
   } else if (settings.accentBar) {
     row.style.boxShadow = "inset " + (settings.alignRight ? -3 : 3) + "px 0 0 " + color;
+  }
+  if (settings.effect !== "none") {
+    row.classList.add("se-fx", "se-fx-" + settings.effect);
+    row.style.setProperty("--chat-fx", color);
   }
   if (settings.animateMessages && settings.animationStyle === "random") {
     row.style.animationName = "se-chat-in-" + pickMotion(message.msgId || message.name + "|" + message.text);
@@ -378,8 +449,21 @@ function buildRow(message) {
   const text = document.createElement("span");
   text.className = message.isAction ? "se-text se-action" : "se-text";
   if (message.isAction) text.style.color = color;
-  parts.forEach(function (part) {
-    text.appendChild(part.kind === "emote" ? image("se-emote", part.url, part.name) : document.createTextNode(part.text));
+  (revealPieces(parts) || parts).forEach(function (part) {
+    if (part.kind === "emote") {
+      const emote = image("se-emote", part.url, part.name);
+      if (part.animation) emote.style.animation = part.animation;
+      text.appendChild(emote);
+    } else if (part.animation) {
+      const piece = document.createElement("span");
+      piece.className = "se-reveal";
+      if (part.word) piece.style.display = "inline-block";
+      piece.style.animation = part.animation;
+      piece.textContent = part.text;
+      text.appendChild(piece);
+    } else {
+      text.appendChild(document.createTextNode(part.text));
+    }
   });
   content.appendChild(text);
   row.appendChild(content);
@@ -457,6 +541,9 @@ window.addEventListener("onEventReceived", function (event) {
       userId: asString(data.userId),
       color: asString(data.displayColor),
       isAction: data.isAction === true,
+      roles: Array.isArray(data.badges) ? data.badges.slice(0, 10).map(function (badge) {
+        return badge && typeof badge === "object" ? asString(badge.type).toLowerCase().slice(0, 40) : "";
+      }).filter(Boolean) : [],
       badges: badgeList(data.badges),
       emotes: emoteMap(data.emotes)
     };

@@ -16,6 +16,7 @@ import {
 import {
   chatBadgesFromEvent,
   chatEmotesFromEvent,
+  chatRolesFromEvent,
 } from "./chat-message-format";
 
 type BridgeMessage = {
@@ -192,6 +193,7 @@ export default function CameraChatOverlay() {
                     color ||
                     undefined,
                   badges: chatBadgesFromEvent(data["badges"]),
+                  roles: chatRolesFromEvent(data["badges"]),
                   emotes: chatEmotesFromEvent(data["emotes"]),
                   isAction: data["isAction"] === true,
                   receivedAt: Date.now(),

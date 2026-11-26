@@ -70,6 +70,7 @@ export function chatPresetConfig(id: ChatPresetId): CameraChatConfig {
         textShadow: "soft",
         highlightColor: "#22d3ee",
         animationStyle: "pop",
+        newMessageEffect: "glow",
       };
     case "classic":
       return {
@@ -86,6 +87,7 @@ export function chatPresetConfig(id: ChatPresetId): CameraChatConfig {
         showColon: true,
         fadeOldMessages: false,
         animationStyle: "fade",
+        roleHighlight: true,
       };
     case "bubbles":
       return {
@@ -101,6 +103,7 @@ export function chatPresetConfig(id: ChatPresetId): CameraChatConfig {
         fadeOldMessages: false,
         maxMessages: 6,
         animationStyle: "bounce",
+        newMessageEffect: "pulse",
       };
     case "light":
       return {
@@ -151,6 +154,7 @@ export function chatPresetConfig(id: ChatPresetId): CameraChatConfig {
         showBadges: false,
         fadeOldMessages: false,
         animationStyle: "wipe",
+        textReveal: "typewriter",
       };
     case "esport":
       return {
@@ -167,6 +171,8 @@ export function chatPresetConfig(id: ChatPresetId): CameraChatConfig {
         readableNames: true,
         showBorders: false,
         animationStyle: "slide",
+        newMessageEffect: "shine",
+        roleHighlight: true,
       };
   }
 }

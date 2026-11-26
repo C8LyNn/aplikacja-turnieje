@@ -24,6 +24,7 @@ import {
   buildChatRows,
   chatMessagePhase,
   chatMessageParts,
+  chatRevealPieces,
   hideChatLinks,
   isChatMessageHidden,
   nextChatPhaseChange,
@@ -76,9 +77,12 @@ const CUSTOM: CameraChatConfig = {
   ignoredUsers: "nightbot, StreamElements",
   highlightWords: "giveaway, @kuba",
   highlightColor: "#f43f5e",
+  roleHighlight: true,
   animationStyle: "random",
   animationDurationMs: 500,
   exitStyle: "slide",
+  newMessageEffect: "glow",
+  textReveal: "words",
 };
 
 test("every new option survives the Browser Source URL", () => {
@@ -194,13 +198,20 @@ test("lifetime: shown, then leaving for the exit animation, then gone; one timer
 
 // --- React preview vs native StreamElements -----------------------------------------------------------------------
 
-type Shape = { name: string; color: string; text: string; emotes: string[]; badges: string[]; flags: string[]; opacity: string };
+type Shape = {
+  name: string; color: string; text: string; emotes: string[]; badges: string[]; flags: string[]; opacity: string;
+  role: string; fx: string; background: string; reveal: string[];
+};
 
 function previewShape(container: HTMLElement): Shape[] {
   return Array.from(container.querySelectorAll<HTMLElement>(".obs-chat-message"), (row) => ({
     name: row.querySelector(".obs-chat-name")?.textContent ?? "",
     color: (row.querySelector(".obs-chat-name") as HTMLElement | null)?.style.color ?? "",
     text: row.querySelector(".obs-chat-text")?.textContent ?? "",
+    role: row.dataset.role ?? "",
+    fx: row.classList.contains("obs-chat-fx") ? row.style.getPropertyValue("--chat-fx") : "",
+    background: row.dataset.role ? row.style.background : "",
+    reveal: Array.from(row.querySelectorAll<HTMLElement>(".obs-chat-reveal, .obs-chat-emote"), (node) => `${node.textContent || (node as HTMLImageElement).alt}:${node.style.animation}`),
     emotes: Array.from(row.querySelectorAll<HTMLImageElement>(".obs-chat-emote"), (img) => `${img.alt}@${img.src}`),
     badges: Array.from(row.querySelectorAll<HTMLImageElement>(".obs-chat-badge"), (img) => img.src),
     flags: [
@@ -217,6 +228,10 @@ function nativeShape(document: Document): Shape[] {
     name: row.querySelector(".se-name")?.textContent ?? "",
     color: (row.querySelector(".se-name") as HTMLElement | null)?.style.color ?? "",
     text: row.querySelector(".se-text")?.textContent ?? "",
+    role: row.dataset.role ?? "",
+    fx: row.classList.contains("se-fx") ? row.style.getPropertyValue("--chat-fx") : "",
+    background: row.dataset.role ? row.style.background : "",
+    reveal: Array.from(row.querySelectorAll<HTMLElement>(".se-reveal, .se-emote"), (node) => `${node.textContent || (node as HTMLImageElement).alt}:${node.style.animation}`),
     emotes: Array.from(row.querySelectorAll<HTMLImageElement>(".se-emote"), (img) => `${img.alt}@${img.src}`),
     badges: Array.from(row.querySelectorAll<HTMLImageElement>(".se-badge"), (img) => img.src),
     flags: [
@@ -311,6 +326,20 @@ const PARITY_CONFIGS: Array<[string, CameraChatConfig]> = [
     showEmotes: false,
     fadeOldMessages: true,
   }],
+  ["typewriter reveal with emotes, shine effect", {
+    ...DEFAULT_CAMERA_CHAT_CONFIG,
+    maxMessages: 10,
+    textReveal: "typewriter",
+    newMessageEffect: "shine",
+    animationDurationMs: 400,
+  }],
+  ["word reveal without entry animation, glow effect", {
+    ...DEFAULT_CAMERA_CHAT_CONFIG,
+    maxMessages: 10,
+    textReveal: "words",
+    newMessageEffect: "glow",
+    animateMessages: false,
+  }],
   ["stacked bubbles on the right, palette colours", {
     ...DEFAULT_CAMERA_CHAT_CONFIG,
     maxMessages: 10,
@@ -327,6 +356,8 @@ for (const [label, config] of PARITY_CONFIGS) {
     const preview = render(<CameraChatWidget config={config} messages={CHAT.map(asPreview)} />);
     const expected = previewShape(preview.container);
     assert.ok(expected.length >= 4 && expected.every((row) => row.name && row.color), "the comparison is not empty");
+    if (config.textReveal !== "none") assert.ok(expected.every((row) => row.reveal.some((piece) => piece.includes("chat-reveal-"))), "every row reveals its text");
+    if (config.newMessageEffect !== "none") assert.ok(expected.every((row) => row.fx.startsWith("#")), "every row carries the effect colour");
     const native = nativeWidget(config);
     try {
       for (const message of CHAT) native.send("message", message as unknown as Record<string, unknown>);
@@ -339,6 +370,58 @@ for (const [label, config] of PARITY_CONFIGS) {
     }
   });
 }
+
+const ROLE_CHAT: Incoming[] = [
+  { displayName: "Host", nick: "host", text: "Witajcie!", msgId: "r1", userId: "h", badges: [{ type: "broadcaster", url: "javascript:alert(1)", description: "" }, { type: "subscriber", url: BADGE_URL, description: "Sub" }] },
+  { displayName: "Mod", nick: "mod", text: "Regulamin w opisie", msgId: "r2", userId: "m", badges: [{ type: "moderator", url: BADGE_URL, description: "Moderator" }] },
+  { displayName: "Vip", nick: "vip", text: "giveaway?", msgId: "r3", userId: "v", badges: [{ type: "vip", url: BADGE_URL, description: "VIP" }] },
+  { displayName: "Viewer", nick: "viewer", text: "hej", msgId: "r4", userId: "x", badges: [{ type: "subscriber", url: BADGE_URL, description: "Sub" }] },
+];
+
+test("broadcaster, moderators and VIPs are coloured by their badge in both renderers, even with badges hidden", () => {
+  const config = { ...DEFAULT_CAMERA_CHAT_CONFIG, maxMessages: 10, roleHighlight: true, showBadges: false, highlightWords: "giveaway" };
+  const expected = previewShape(render(<CameraChatWidget config={config} messages={ROLE_CHAT.map(asPreview)} />).container);
+  assert.deepEqual(expected.map((row) => row.role), ["broadcaster", "moderator", "", ""], "a highlighted word wins over the VIP colour");
+  assert.equal(expected[1]!.background, "rgba(34, 197, 94, 0.14)");
+  assert.deepEqual(expected[2]!.flags, ["highlight"]);
+  const native = nativeWidget(config);
+  try {
+    for (const message of ROLE_CHAT) native.send("message", message as unknown as Record<string, unknown>);
+    assert.deepEqual(nativeShape(native.dom.window.document), expected);
+  } finally {
+    native.dom.window.close();
+  }
+  const off = previewShape(render(<CameraChatWidget config={{ ...config, roleHighlight: false }} messages={ROLE_CHAT.map(asPreview)} />).container);
+  assert.ok(off.every((row) => row.role === ""));
+});
+
+test("reveal timing: letters or words in order after half the entry animation; emotes count as one step; long text at once", () => {
+  const parts = chatMessageParts("Hej Kappa ok", [{ name: "Kappa", url: EMOTE_URL }], true);
+  const letters = chatRevealPieces(parts, "typewriter", 110)!;
+  const animated = letters.filter((piece) => piece.animation);
+  assert.deepEqual(animated.map((piece) => (piece.kind === "emote" ? piece.name : piece.text)), ["H", "e", "j", "Kappa", "o", "k"]);
+  assert.deepEqual(animated.map((piece) => piece.animation), [0, 1, 2, 3, 4, 5].map((index) => `chat-reveal-type 1ms linear ${110 + index * 45}ms both`));
+  const words = chatRevealPieces(parts, "words", 0)!.filter((piece) => piece.animation);
+  assert.deepEqual(words.map((piece) => piece.animation), [0, 1, 2].map((index) => `chat-reveal-word 280ms ease-out ${index * 45}ms both`));
+  assert.equal(chatRevealPieces(parts, "none", 0), null);
+  assert.equal(chatRevealPieces([{ kind: "text", text: "z".repeat(201) }], "typewriter", 0), null);
+});
+
+test("the new-message effect is a ::after layer in the name colour, in preview and StreamElements CSS", () => {
+  for (const effect of ["glow", "shine", "pulse", "flash"] as const) {
+    const config = { ...DEFAULT_CAMERA_CHAT_CONFIG, newMessageEffect: effect, animationDurationMs: 300 };
+    const { css } = generateStreamElementsWidget(config);
+    assert.match(css, new RegExp(`\\.se-fx::after \\{[^}]*animation: chat-fx-${effect} 1100ms ease-out 150ms 1 both;`));
+    assert.match(css, new RegExp(`@keyframes chat-fx-${effect} `));
+    const preview = render(<CameraChatWidget config={config} messages={[{ id: "1", name: "Ala", text: "hej", color: "#22c55e" }]} />);
+    assert.match(preview.container.querySelector("style")?.textContent ?? "", new RegExp(`\\.obs-chat-fx::after \\{[^}]*chat-fx-${effect}`));
+    assert.equal((preview.container.querySelector(".obs-chat-fx") as HTMLElement).style.getPropertyValue("--chat-fx"), "#22c55e");
+    preview.unmount();
+  }
+  const none = generateStreamElementsWidget(DEFAULT_CAMERA_CHAT_CONFIG).css;
+  assert.doesNotMatch(none, /chat-fx|chat-reveal/);
+  assert.match(none, /prefers-reduced-motion[\s\S]*\.se-message::after, \.se-reveal/);
+});
 
 test("the preview applies the rules: hidden, truncated, highlighted, emote-only, action", () => {
   const config = PARITY_CONFIGS[1]![1];

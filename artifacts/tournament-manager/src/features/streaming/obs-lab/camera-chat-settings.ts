@@ -22,6 +22,10 @@ export type CameraChatMessageLayout = "inline" | "stacked" | "bubble";
 export type CameraChatAlign = "left" | "right";
 export type CameraChatNameColorMode = "user" | "palette" | "single";
 export type CameraChatExitStyle = "fade" | "slide" | "shrink" | "none";
+/** A one-time accent on a message when it arrives, in the viewer's name colour. */
+export type CameraChatMessageEffect = "none" | "glow" | "shine" | "pulse" | "flash";
+/** How the message text appears after the bubble enters. */
+export type CameraChatTextReveal = "none" | "typewriter" | "words";
 
 export const CHAT_MOTION_PRESETS: readonly CameraChatMotionPreset[] =
   ["rise", "slide", "pop", "fade", "bounce", "flip", "wipe"];
@@ -33,6 +37,8 @@ export const CHAT_TEXT_SHADOW_STYLES: readonly CameraChatTextShadow[] = ["none",
 export const CHAT_MESSAGE_LAYOUTS: readonly CameraChatMessageLayout[] = ["inline", "stacked", "bubble"];
 export const CHAT_NAME_COLOR_MODES: readonly CameraChatNameColorMode[] = ["user", "palette", "single"];
 export const CHAT_EXIT_STYLES: readonly CameraChatExitStyle[] = ["fade", "slide", "shrink", "none"];
+export const CHAT_MESSAGE_EFFECTS: readonly CameraChatMessageEffect[] = ["none", "glow", "shine", "pulse", "flash"];
+export const CHAT_TEXT_REVEALS: readonly CameraChatTextReveal[] = ["none", "typewriter", "words"];
 
 /** Same hash in the React preview, the OBS page and the exported StreamElements script. */
 export function chatHash(key: string): number {
@@ -128,11 +134,15 @@ export type CameraChatConfig = {
   /** Comma separated words or phrases that highlight a message. */
   highlightWords: string;
   highlightColor: string;
+  /** Broadcaster, moderators and VIPs get a tint and bar in their badge colour. */
+  roleHighlight: boolean;
 
   animateMessages: boolean;
   animationStyle: CameraChatAnimationStyle;
   animationDurationMs: number;
   exitStyle: CameraChatExitStyle;
+  newMessageEffect: CameraChatMessageEffect;
+  textReveal: CameraChatTextReveal;
 };
 
 export const DEFAULT_CAMERA_CHAT_CONFIG: CameraChatConfig = {
@@ -199,11 +209,14 @@ export const DEFAULT_CAMERA_CHAT_CONFIG: CameraChatConfig = {
   ignoredUsers: "",
   highlightWords: "",
   highlightColor: "#facc15",
+  roleHighlight: false,
 
   animateMessages: true,
   animationStyle: "rise",
   animationDurationMs: 220,
   exitStyle: "fade",
+  newMessageEffect: "none",
+  textReveal: "none",
 };
 
 /** Bots that most channels hide from an on-stream chat. */
@@ -367,6 +380,48 @@ export function getCameraChatExitCss(style: CameraChatExitStyle, align: CameraCh
 
 export function chatExitMs(config: Pick<CameraChatConfig, "exitStyle" | "animationDurationMs">): number {
   return config.exitStyle === "none" ? 0 : Math.min(800, Math.max(150, config.animationDurationMs));
+}
+
+/** The new-message accent and the text reveal start halfway through the entry animation. */
+export function chatRevealBaseMs(config: Pick<CameraChatConfig, "animateMessages" | "animationDurationMs">): number {
+  return config.animateMessages ? Math.round(config.animationDurationMs * 0.5) : 0;
+}
+
+const MESSAGE_EFFECT_KEYFRAMES: Record<Exclude<CameraChatMessageEffect, "none">, string> = {
+  glow: "@keyframes chat-fx-glow { 0% { opacity: 0; box-shadow: 0 0 0 0 var(--chat-fx); } 35% { opacity: 1; box-shadow: 0 0 18px 3px var(--chat-fx); } 100% { opacity: 0; box-shadow: 0 0 0 0 var(--chat-fx); } }",
+  shine: "@keyframes chat-fx-shine { 0% { opacity: 1; background-position: 160% 0; } 90% { opacity: 1; background-position: -60% 0; } 100% { opacity: 0; background-position: -60% 0; } }",
+  pulse: "@keyframes chat-fx-pulse { 0% { opacity: 1; box-shadow: 0 0 0 0 var(--chat-fx); } 100% { opacity: 0; box-shadow: 0 0 0 12px var(--chat-fx); } }",
+  flash: "@keyframes chat-fx-flash { 0% { opacity: 0; } 25% { opacity: .38; } 100% { opacity: 0; } }",
+};
+
+/**
+ * CSS of the new-message accent and of the text reveal, shared by the React preview and the StreamElements widget.
+ * The accent is drawn by a ::after layer of the row, so it never replaces the row's own entry animation; its colour
+ * comes from the row's --chat-fx variable (the viewer's name colour).
+ */
+export function getChatEffectCss(
+  config: Pick<CameraChatConfig, "newMessageEffect" | "textReveal" | "animateMessages" | "animationDurationMs">,
+  rowSelector: string,
+): string {
+  const rules: string[] = [];
+  const effect = config.newMessageEffect;
+  if (effect !== "none") {
+    const layer = effect === "shine"
+      ? " background: linear-gradient(105deg, transparent 35%, rgba(255,255,255,.5) 50%, transparent 65%); background-size: 250% 100%;"
+      : effect === "flash" ? " background: var(--chat-fx);" : "";
+    rules.push(
+      `${rowSelector} { position: relative; }`,
+      `${rowSelector}::after { content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: 0;${layer} animation: chat-fx-${effect} 1100ms ease-out ${chatRevealBaseMs(config)}ms 1 both; }`,
+      MESSAGE_EFFECT_KEYFRAMES[effect],
+    );
+  }
+  if (config.textReveal !== "none") {
+    rules.push(
+      "@keyframes chat-reveal-type { from { opacity: 0; } to { opacity: 1; } }",
+      "@keyframes chat-reveal-word { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }",
+    );
+  }
+  return rules.join("\n");
 }
 
 // --- Size ---------------------------------------------------------------------------------------------------------
@@ -563,10 +618,13 @@ export function cameraChatConfigToSearch(
   params.set("ignore", config.ignoredUsers);
   params.set("hl", config.highlightWords);
   params.set("hlc", config.highlightColor);
+  flag("roles", config.roleHighlight);
   flag("anim", config.animateMessages);
   params.set("animstyle", config.animationStyle);
   params.set("animdur", String(config.animationDurationMs));
   params.set("exit", config.exitStyle);
+  params.set("fx", config.newMessageEffect);
+  params.set("reveal", config.textReveal);
 
   return params.toString();
 }
@@ -659,11 +717,14 @@ export function cameraChatConfigFromSearch(
     ignoredUsers: textParam(params, "ignore", defaults.ignoredUsers, 600),
     highlightWords: textParam(params, "hl", defaults.highlightWords, 300),
     highlightColor: color("hlc", defaults.highlightColor),
+    roleHighlight: booleanParam(params, "roles", defaults.roleHighlight),
 
     animateMessages: booleanParam(params, "anim", defaults.animateMessages),
     animationStyle,
     animationDurationMs: Math.round(numberParam(params, "animdur", defaults.animationDurationMs, 100, 1200)),
     exitStyle: enumParam(params, "exit", CHAT_EXIT_STYLES, defaults.exitStyle),
+    newMessageEffect: enumParam(params, "fx", CHAT_MESSAGE_EFFECTS, defaults.newMessageEffect),
+    textReveal: enumParam(params, "reveal", CHAT_TEXT_REVEALS, defaults.textReveal),
   };
 }
 

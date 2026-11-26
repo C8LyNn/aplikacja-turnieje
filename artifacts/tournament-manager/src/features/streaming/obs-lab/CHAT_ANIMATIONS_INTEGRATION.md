@@ -66,6 +66,20 @@ natywnego widgetu StreamElements. Reguły wiadomości są w
   nakładki już dodane do OBS działają dalej; wklejone wcześniej widgety SE są
   samodzielne i nie zmieniają się, dopóki nie wklei się nowego kodu.
 
+## Zrealizowany etap 3 — animacje wiadomości (2026-11-26)
+
+- **Efekt nowej wiadomości** (`fx`): poświata, błysk, puls, rozbłysk tła — jednorazowy, w kolorze nicku
+  widza. Rysuje go warstwa `::after` wiersza (zmienna `--chat-fx`), więc nie zastępuje animacji wejścia.
+- **Odsłanianie tekstu** (`reveal`): maszyna do pisania (litera po literze) albo słowo po słowie; emotka to
+  jeden krok, start w połowie animacji wejścia, maks. 45 ms na krok, wiadomości dłuższe niż 200 znaków
+  pojawiają się od razu. Słowa nie są łamane.
+- **Wyróżnianie ról** (`roles`): nadawca (czerwony), moderator (zielony), VIP (różowy) — tło i pasek
+  w kolorze odznaki, także przy ukrytych odznakach; wyróżnione słowo ma pierwszeństwo.
+- Motywy: Neon (poświata), Bąbelki (puls), E-sport (błysk + role), Klasyczny ciemny (role),
+  Terminal (maszyna do pisania).
+- `prefers-reduced-motion` wyłącza efekt i odsłanianie (tekst od razu widoczny).
+- `chat-options.test.tsx` porównuje podgląd i widget SE także dla ról, efektu i czasów odsłaniania.
+
 ## Kierunek następnych etapów
 
 1. **Animacja tekstu wiadomości:** wejście znakami/słowami, maska reveal,

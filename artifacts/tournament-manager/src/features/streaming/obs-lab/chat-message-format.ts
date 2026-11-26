@@ -8,7 +8,9 @@
 import {
   type CameraChatConfig,
   type CameraChatMotionPreset,
+  type CameraChatTextReveal,
   chatExitMs,
+  chatRevealBaseMs,
   resolveChatMotion,
   resolveChatNameColor,
 } from "./camera-chat-settings";
@@ -32,6 +34,8 @@ export type ChatMessage = {
   emotes?: ChatEmote[];
   /** Twitch "/me" message. */
   isAction?: boolean;
+  /** Badge types (for example "moderator"), kept even when badge images are hidden or have no address. */
+  roles?: string[];
   /** Arrival time (ms); only messages with it can hide after their lifetime. */
   receivedAt?: number;
 };
@@ -138,6 +142,80 @@ export function isEmoteOnly(parts: readonly ChatPart[]): boolean {
   return parts.some((part) => part.kind === "emote") && parts.every((part) => part.kind === "emote" || !part.text.trim());
 }
 
+export type ChatRole = "broadcaster" | "moderator" | "vip";
+
+export const CHAT_ROLE_COLORS: Record<ChatRole, string> = {
+  broadcaster: "#ef4444",
+  moderator: "#22c55e",
+  vip: "#ec4899",
+};
+
+/** The most important role among badge types: broadcaster, then moderator, then VIP. */
+export function chatMessageRole(types: readonly string[]): ChatRole | null {
+  const lower = types.map((type) => type.toLowerCase());
+  if (lower.includes("broadcaster")) return "broadcaster";
+  if (lower.includes("moderator")) return "moderator";
+  if (lower.includes("vip")) return "vip";
+  return null;
+}
+
+/** Longer messages appear at once (bounded number of animated elements). */
+export const CHAT_REVEAL_LIMIT = 200;
+
+export function chatRevealStepMs(count: number): number {
+  return count <= 1 ? 0 : Math.max(12, Math.min(45, Math.floor(1400 / count)));
+}
+
+export function chatRevealAnimation(reveal: Exclude<CameraChatTextReveal, "none">, index: number, stepMs: number, baseMs: number): string {
+  const delay = baseMs + index * stepMs;
+  return reveal === "words"
+    ? `chat-reveal-word 280ms ease-out ${delay}ms both`
+    : `chat-reveal-type 1ms linear ${delay}ms both`;
+}
+
+export type RevealPiece =
+  | { kind: "text"; text: string; animation?: string; word?: boolean }
+  | { kind: "emote"; name: string; url: string; animation?: string };
+
+/**
+ * The message split for a reveal: letters (typewriter) or words appear one after another; emotes count as one step;
+ * spaces are plain text. Null when there is nothing to reveal or the message is too long.
+ */
+export function chatRevealPieces(parts: readonly ChatPart[], reveal: CameraChatTextReveal, baseMs: number): RevealPiece[] | null {
+  if (reveal === "none") return null;
+  const total = parts.reduce((sum, part) => sum + (part.kind === "text" ? Array.from(part.text).length : 1), 0);
+  if (total > CHAT_REVEAL_LIMIT) return null;
+  const pieces: RevealPiece[] = [];
+  const animated: RevealPiece[] = [];
+  for (const part of parts) {
+    if (part.kind === "emote") {
+      const emote: RevealPiece = { kind: "emote", name: part.name, url: part.url };
+      pieces.push(emote);
+      animated.push(emote);
+      continue;
+    }
+    for (const chunk of part.text.split(/(\s+)/)) {
+      if (!chunk) continue;
+      if (!chunk.trim()) {
+        pieces.push({ kind: "text", text: chunk });
+      } else if (reveal === "words") {
+        const word: RevealPiece = { kind: "text", text: chunk, word: true };
+        pieces.push(word);
+        animated.push(word);
+      } else {
+        for (const char of Array.from(chunk)) {
+          const letter: RevealPiece = { kind: "text", text: char };
+          pieces.push(letter);
+          animated.push(letter);
+        }
+      }
+    }
+  }
+  const step = chatRevealStepMs(animated.length);
+  animated.forEach((piece, index) => { piece.animation = chatRevealAnimation(reveal, index, step, baseMs); });
+  return pieces;
+}
+
 export type ChatPhase = "shown" | "leaving" | "gone";
 
 /** A message is shown for its lifetime, then plays the exit animation, then disappears. */
@@ -184,6 +262,10 @@ export type ChatRow = {
   badges: ChatBadge[];
   /** Entry motion of this message (stable per message in random mode). */
   motion: CameraChatMotionPreset;
+  /** Set only when role highlighting is on and the viewer has a highlighted role. */
+  role: ChatRole | null;
+  /** Letters or words of the text with their reveal animation; null shows the text at once. */
+  reveal: RevealPiece[] | null;
 };
 
 /** The rows to draw, in display order: filtered, bounded to the message count, newest first when asked. */
@@ -207,6 +289,10 @@ export function buildChatRows(messages: readonly ChatMessage[], config: CameraCh
         ? (message.badges ?? []).filter((badge) => safeChatImageUrl(badge.url)).slice(0, 6)
         : [],
       motion: resolveChatMotion(config.animationStyle, message.msgId || message.name + "|" + message.text),
+      role: config.roleHighlight
+        ? chatMessageRole(message.roles ?? (message.badges ?? []).map((badge) => badge.type ?? ""))
+        : null,
+      reveal: chatRevealPieces(parts, config.textReveal, chatRevealBaseMs(config)),
     };
   });
   return config.newestFirst ? rows.reverse() : rows;
@@ -223,6 +309,14 @@ export function chatBadgesFromEvent(raw: unknown): ChatBadge[] {
     const url = safeChatImageUrl(badge["url"]);
     return url ? [{ type: asString(badge["type"]).slice(0, 40), url, description: asString(badge["description"]).slice(0, 60) }] : [];
   });
+}
+
+/** Badge types from a StreamElements message, with or without an image address. */
+export function chatRolesFromEvent(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.slice(0, 10).flatMap((item) => item && typeof item === "object"
+    ? [asString((item as Record<string, unknown>)["type"]).toLowerCase().slice(0, 40)]
+    : []);
 }
 
 /** Emotes from a StreamElements message ({ name, urls: { 1, 2, 4 } }), Twitch and third-party alike. */

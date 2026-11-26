@@ -16,13 +16,17 @@ import {
   getCameraChatAnimationCss,
   getCameraChatExitCss,
   getCameraChatSize,
+  getChatEffectCss,
   rgbaCss,
 } from "./camera-chat-settings";
 import {
   type ChatBadge,
   type ChatEmote,
   type ChatMessage,
+  type ChatPart,
   type ChatRow,
+  type RevealPiece,
+  CHAT_ROLE_COLORS,
   buildChatRows,
   nextChatPhaseChange,
 } from "./chat-message-format";
@@ -153,25 +157,29 @@ export function CameraChatWidget({
     const entry = config.animateMessages
       ? `${config.animationStyle === "random" ? "obs-chat-in-" + row.motion : "obs-chat-in"} ${config.animationDurationMs}ms cubic-bezier(.2,.7,.2,1) backwards`
       : undefined;
+    const roleColor = !row.highlighted && row.role ? CHAT_ROLE_COLORS[row.role] : null;
     const bar = row.highlighted
       ? `inset ${right ? -3 : 3}px 0 0 ${config.highlightColor}`
-      : config.accentBar ? `inset ${right ? -3 : 3}px 0 0 ${row.nameColor}` : undefined;
-    const style: CSSProperties = {
+      : roleColor ? `inset ${right ? -3 : 3}px 0 0 ${roleColor}`
+        : config.accentBar ? `inset ${right ? -3 : 3}px 0 0 ${row.nameColor}` : undefined;
+    const style: CSSProperties & { "--chat-fx"?: string } = {
       opacity: row.opacity,
       gap: 8,
       padding: chatDensityPadding(config.density),
       flexDirection: right ? "row-reverse" : "row",
       textAlign: config.textAlign,
-      borderRadius: config.messageBackground || row.highlighted ? config.bubbleRadius : undefined,
+      borderRadius: config.messageBackground || row.highlighted || roleColor ? config.bubbleRadius : undefined,
       background: row.highlighted
         ? rgbaCss(config.highlightColor, 18)
-        : config.messageBackground ? rgbaCss(config.bubbleColor, config.bubbleOpacity) : undefined,
+        : roleColor ? rgbaCss(roleColor, 14)
+          : config.messageBackground ? rgbaCss(config.bubbleColor, config.bubbleOpacity) : undefined,
       border: config.showBorders ? "1px solid rgba(255,255,255,.07)" : undefined,
       boxShadow: bar,
       ...(config.messageLayout === "bubble" ? { alignSelf: right ? "flex-end" : "flex-start", maxWidth: "100%" } : {}),
       animation: row.phase === "leaving" && exitMs > 0
         ? `obs-chat-out ${exitMs}ms ease-in forwards`
         : entry,
+      ...(config.newMessageEffect !== "none" ? { "--chat-fx": row.nameColor } : {}),
     };
     const emoteHeight = row.emoteOnly ? emotePx * 2 : emotePx;
     const name = (
@@ -198,17 +206,34 @@ export function CameraChatWidget({
           display: block ? "block" : undefined,
         }}
       >
-        {row.parts.map((part, index) => part.kind === "emote"
+        {(row.reveal ?? row.parts as ReadonlyArray<ChatPart | RevealPiece>).map((part, index) => part.kind === "emote"
           ? (
             <img
               key={index}
               className="obs-chat-emote"
               src={part.url}
               alt={part.name}
-              style={{ display: "inline-block", height: emoteHeight, width: "auto", margin: "0 1px", verticalAlign: "middle" }}
+              style={{
+                display: "inline-block",
+                height: emoteHeight,
+                width: "auto",
+                margin: "0 1px",
+                verticalAlign: "middle",
+                animation: "animation" in part ? part.animation : undefined,
+              }}
             />
           )
-          : part.text)}
+          : "animation" in part && part.animation
+            ? (
+              <span
+                key={index}
+                className="obs-chat-reveal"
+                style={{ display: "word" in part && part.word ? "inline-block" : undefined, animation: part.animation }}
+              >
+                {part.text}
+              </span>
+            )
+            : part.text)}
       </span>
     );
 
@@ -220,8 +245,10 @@ export function CameraChatWidget({
           row.phase === "leaving" ? "obs-chat-leaving" : "",
           row.emoteOnly ? "obs-chat-emote-only" : "",
           row.highlighted ? "obs-chat-highlight" : "",
+          config.newMessageEffect !== "none" ? `obs-chat-fx obs-chat-fx-${config.newMessageEffect}` : "",
         ].filter(Boolean).join(" ")}
         style={style}
+        data-role={roleColor ? row.role ?? undefined : undefined}
       >
         {config.showAvatars && (
           <div
@@ -354,7 +381,8 @@ export function CameraChatWidget({
     <>
       <style>{`${getCameraChatAnimationCss(config.animationStyle, "obs-chat-in")}
 ${getCameraChatExitCss(config.exitStyle, config.textAlign, "obs-chat-out")}
-@media (prefers-reduced-motion: reduce) { .obs-chat-message { animation: none !important; } }`}</style>
+${getChatEffectCss(config, ".obs-chat-fx")}
+@media (prefers-reduced-motion: reduce) { .obs-chat-message, .obs-chat-message::after, .obs-chat-reveal, .obs-chat-emote { animation: none !important; } }`}</style>
 
       <div
         className="relative shrink-0 overflow-hidden"
