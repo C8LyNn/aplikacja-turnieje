@@ -4,6 +4,8 @@ import {
   CHAT_NAME_PALETTES,
   CHAT_TEXT_SHADOWS,
   chatOverlayPlacement,
+  chatOverlaySize,
+  isChatOverlayDock,
   chatPanelBackground,
   getChatFrameCss,
   chatAvatarPx,
@@ -111,6 +113,10 @@ export function generateStreamElementsWidget(
   const placement = Object.entries(chatOverlayPlacement(config.overlayPosition, inset))
     .map(([property, value]) => `${property}: ${value};`)
     .join("\n  ");
+  const dock = config.layout === "overlay" && isChatOverlayDock(config.overlayPosition);
+  const overlaySize = Object.entries(chatOverlaySize(config.overlayPosition, config.chatWidth, size.cameraHeight, inset))
+    .map(([property, value]) => `${property.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}: ${value};`)
+    .join("\n  ");
   const chatBox = chatOnly
     ? `width: 100%;
   height: 100%;`
@@ -123,8 +129,7 @@ export function generateStreamElementsWidget(
         ? `width: 100%;
   height: ${config.belowHeight}px;`
         : `position: absolute;
-  width: ${config.chatWidth}%;
-  max-height: ${size.cameraHeight - inset * 2}px;
+  ${overlaySize}
   border-radius: ${Math.max(6, config.radius * .7)}px;
   ${placement}`;
   const filled = chatBubbleFilled(config);
@@ -170,7 +175,7 @@ export function generateStreamElementsWidget(
   flex-direction: column;
   justify-content: ${config.chatAnchor === "top" ? "flex-start" : "flex-end"};
   width: 100%;
-  ${chatOnly || stacked || (beside && config.fitChatHeight) ? "height: 100%;" : ""}
+  ${chatOnly || stacked || dock || (beside && config.fitChatHeight) ? "height: 100%;" : ""}
   ${config.layout === "overlay" ? `max-height: ${size.cameraHeight - inset * 2}px;` : ""}
   min-height: 0;
   overflow: hidden;

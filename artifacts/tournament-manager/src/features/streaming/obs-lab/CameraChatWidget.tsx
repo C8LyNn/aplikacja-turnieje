@@ -19,6 +19,8 @@ import {
   getChatEffectCss,
   getChatFrameCss,
   chatOverlayPlacement,
+  chatOverlaySize,
+  isChatOverlayDock,
   chatPanelBackground,
   rgbaCss,
 } from "./camera-chat-settings";
@@ -587,6 +589,8 @@ export function CameraChatWidget({
     Math.max(0, (size.cameraHeight - 1) / 2),
     Math.max(0, (config.cameraWidth - size.chatWidthPx) / 2));
   const overlayPositionStyle: CSSProperties = chatOverlayPlacement(config.overlayPosition, overlayInset);
+  const overlayDock = isChatOverlayDock(config.overlayPosition);
+  const overlaySizeStyle: CSSProperties = chatOverlaySize(config.overlayPosition, config.chatWidth, size.cameraHeight, overlayInset);
 
   return (
     <>
@@ -675,13 +679,7 @@ ${getChatEventCss(config, ".obs-chat-message")}
             <div
               className="absolute overflow-hidden"
               style={{
-                width:
-                  `${config.chatWidth}%`,
-                maxHeight:
-                  `${
-                    size.cameraHeight -
-                    overlayInset * 2
-                  }px`,
+                ...overlaySizeStyle,
                 borderRadius:
                   `${Math.max(
                     6,
@@ -690,7 +688,9 @@ ${getChatEventCss(config, ".obs-chat-message")}
                 ...overlayPositionStyle,
               }}
             >
-              {renderMessages(undefined, size.cameraHeight - overlayInset * 2)}
+              {overlayDock
+                ? renderMessages("100%")
+                : renderMessages(undefined, size.cameraHeight - overlayInset * 2)}
             </div>
           </>
         )}

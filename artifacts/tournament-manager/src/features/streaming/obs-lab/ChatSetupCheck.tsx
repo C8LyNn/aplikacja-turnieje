@@ -46,7 +46,7 @@ export function ChatSetupCheck({ config, update }: Props) {
         </ToolButton>
       ) : undefined}
     >
-      <div data-testid="chat-setup-check">
+      <div id="chat-setup-check" data-testid="chat-setup-check">
         {issues.length === 0 ? (
           <p className="flex items-center gap-2 text-xs font-semibold text-emerald-400">
             <CheckCircle2 className="h-4 w-4" />{t("obsLab.wszystko_wyglada_dobrze")}

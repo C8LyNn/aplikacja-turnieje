@@ -127,7 +127,7 @@ test("every new option survives the Browser Source URL", () => {
 test("an address made by the previous version keeps its settings and look", () => {
   const legacy = "layout=right&ratio=16%3A9&cw=640&chatw=32&belowh=150&messages=5&font=large&density=normal&opacity=72&radius=22&gap=0&padding=12&anchor=bottom&position=bottom-right&inset=14&fit=1&avatars=0&borders=1&msgbg=1&fade=1&anim=1&animstyle=pop&animdur=300";
   const config = cameraChatConfigFromSearch(legacy);
-  assert.deepEqual(config, { ...DEFAULT_CAMERA_CHAT_CONFIG, fontSize: "large", animationStyle: "pop", animationDurationMs: 300 });
+  assert.deepEqual(config, { ...DEFAULT_CAMERA_CHAT_CONFIG, layout: "right", fontSize: "large", animationStyle: "pop", animationDurationMs: 300 });
   const { css } = generateStreamElementsWidget(config);
   assert.match(css, /font-size: 16px/);
   assert.match(css, /line-height: 20px/);
@@ -704,7 +704,7 @@ test("OBS page bridge carries badges, emotes and /me from StreamElements data", 
 });
 
 test("every preset is a valid URL and a standalone StreamElements widget", () => {
-  assert.equal(CHAT_PRESET_IDS.length, 35, "35 looks in five groups");
+  assert.equal(CHAT_PRESET_IDS.length, 49, "49 looks in seven groups");
   for (const preset of CHAT_PRESET_IDS) {
     const config = chatPresetConfig(preset);
     assert.deepEqual(cameraChatConfigFromSearch(cameraChatConfigToSearch(config)), config, preset);

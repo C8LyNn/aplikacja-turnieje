@@ -197,6 +197,22 @@ natywnego widgetu StreamElements. Reguły wiadomości są w
   moderacja zdejmuje usuniętą wiadomość z licznika. Działa tak samo na stronie OBS i w widgecie SE.
 - Testy w `chat-themes.test.tsx`.
 
+## Zrealizowany etap 10 — podgląd zawsze widoczny, pasy na kamerce, kolejne motywy (2026-11-26)
+
+- **Podgląd nie znika przy ustawianiu:** na szerokim ekranie opcje są po lewej, a podgląd z przyciskami testowymi
+  stoi po prawej (przyklejony przy przewijaniu); na wąskim ekranie podgląd jest przyklejonym paskiem u góry, a opcje
+  przewijają się pod nim. Nakładka jest pomniejszana, żeby zmieściła się w całości (`FitPreview`, nigdy
+  powiększana). W nagłówku podglądu jest licznik uwag ze sprawdzenia ustawień (klik przewija do listy).
+- **Pasy na kamerce** (`position=dock-left|dock-right|dock-top|dock-bottom`): czat jako kolumna przez całą wysokość
+  kamerki po lewej lub prawej albo pas przez całą szerokość u góry lub na dole (wysokość pasa = suwak rozmiaru
+  czatu, 15–70%). Okienko w 9 miejscach kamerki działa jak dotąd; w szybkim ustawieniu pod siatką są 4 kafelki
+  pasów i suwak rozmiaru.
+- **Sam czat jest domyślny i pierwszy** (kafelki, pasek układów, lista). Adresy z `layout=…` zachowują swój układ.
+- **14 nowych motywów (49 w 7 grupach):** Matrix (spadający zielony kod), Fantasy, Steampunk, Gotycki, Smok;
+  Księżniczka, Wata cukrowa, Liliowy sen, Jednorożec (grupa „Słodkie i dziewczęce”); Zorza polarna, Hologram,
+  Memphis, Lampa lava, Vaporwave (grupa „Abstrakcyjne”). Nowe drobinki: spadający kod i żarzące się iskry.
+- Testy w `chat-layout.test.tsx` (domyślny układ, pasy w obu renderach, przyklejony i skalowany podgląd, Matrix).
+
 ## Kierunek następnych etapów
 
 1. **Animacja tekstu wiadomości:** wejście znakami/słowami, maska reveal,

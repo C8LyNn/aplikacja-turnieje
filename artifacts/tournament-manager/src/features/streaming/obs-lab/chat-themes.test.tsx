@@ -1,4 +1,4 @@
-// Themes and look gadgets: 35 looks in five groups, all readable; new colour sets, particles, entry motions, nick
+// Themes and look gadgets: 49 looks in seven groups, all readable; new colour sets, particles, entry motions, nick
 // styles and panel patterns reach both renderers; message combos count the same in the OBS page and the native
 // StreamElements widget; the pickers filter looks by group.
 import assert from "node:assert/strict";
@@ -75,11 +75,11 @@ function rowsOf(root: ParentNode, rowClass: string, textClass: string) {
   }));
 }
 
-test("35 looks in five groups, each a valid address and readable by the settings check", () => {
-  assert.equal(CHAT_PRESET_IDS.length, 35);
+test("49 looks in seven groups, each a valid address and readable by the settings check", () => {
+  assert.equal(CHAT_PRESET_IDS.length, 49);
   const grouped = CHAT_PRESET_CATEGORY_IDS.flatMap((category) => [...CHAT_PRESET_CATEGORIES[category]]);
   assert.deepEqual([...grouped].sort(), [...CHAT_PRESET_IDS].sort(), "every look is in exactly one group");
-  assert.equal(chatPresetsIn("all").length, 35);
+  assert.equal(chatPresetsIn("all").length, 49);
   const unreadable: string[] = [];
   for (const preset of CHAT_PRESET_IDS) {
     const config = { ...chatPresetConfig(preset), ignoredUsers: "bot" };
@@ -203,7 +203,7 @@ test("the pickers filter looks by group; a seasonal look and the combo extra app
   fireEvent.click(view.getByText("Camera + Chat Overlay"));
   const stored = () => cameraChatConfigFromSearch(localStorage.getItem("tm_obs_camera_chat_config") ?? "");
   const quickPresets = () => view.container.querySelectorAll("[data-testid^='quick-preset-']").length;
-  assert.equal(quickPresets(), 35);
+  assert.equal(quickPresets(), 49);
   act(() => { fireEvent.click(view.getByTestId("preset-category-seasonal")); });
   assert.equal(quickPresets(), CHAT_PRESET_CATEGORIES.seasonal.length);
   act(() => { fireEvent.click(view.getByTestId("quick-preset-autumn")); });

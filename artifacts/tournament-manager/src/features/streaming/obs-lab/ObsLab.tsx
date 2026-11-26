@@ -13,8 +13,9 @@ import {
   ToolSelect,
   ToolToggle,
   ToolToolbar,
-  ToolWorkspace,
 } from "@/components/tool-ui";
+import { FitPreview, usePreviewMaxHeight } from "./FitPreview";
+import { checkChatSetup } from "./chat-setup-check";
 import { StreamElementsSetup } from "./StreamElementsSetup";
 import { ChatQuickSetup, ObsSourceSteps, PresetCategoryChips, PresetSwatch, choiceClass } from "./ChatQuickSetup";
 import { type CameraChatEventStyle, type ChatEventKind, type ChatGoalKind, CHAT_EVENT_KINDS, chatGoalDefaultLabel } from "./chat-events";
@@ -80,12 +81,12 @@ import {
 } from "./chat-presets";
 
 const LAYOUT_OPTIONS = [
+  { value: "chat", get label() { return t("obsLab.sam_czat"); } },
   { value: "right", get label() { return t("obsLab.prawo"); } },
   { value: "left", get label() { return t("obsLab.lewo"); } },
   { value: "below", get label() { return t("obsLab.dol"); } },
   { value: "above", get label() { return t("obsLab.gora"); } },
   { value: "overlay", get label() { return t("obsLab.na_kamerce"); } },
-  { value: "chat", get label() { return t("obsLab.sam_czat"); } },
 ] as const;
 
 const ALIGN_OPTIONS = [
@@ -324,6 +325,8 @@ export function ObsLab() {
   const [presetCategory, setPresetCategory] = useState<ChatPresetCategory | "all">("all");
   const configRef = useRef(config);
   configRef.current = config;
+  const previewMaxHeight = usePreviewMaxHeight();
+  const setupIssues = checkChatSetup(config, t("obsLab.czat_na_zywo")).length;
   // Test messages go through the same calm-chat pacing as the OBS page; each lifetime starts when it shows.
   const pacer = useChatPacer<MockChatMessage>(config.floodLimit, (message) => {
     setMockMessages((current) => [...current, { ...message, receivedAt: Date.now() }].slice(-40));
@@ -734,16 +737,24 @@ export function ObsLab() {
       <ToolDisclosure title={t("obsLab.uklad")} open>
         <div className="space-y-4 text-fuchsia-300">
           <ToolSelect value={config.layout} onChange={(event) => patchConfig({ layout: event.target.value as CameraChatLayout })}>
+            <option value="chat">{t("obsLab.sam_czat_bez_kamerki")}</option>
             <option value="right">{t("obsLab.czat_po_prawej")}</option>
             <option value="left">{t("obsLab.czat_po_lewej")}</option>
             <option value="below">{t("obsLab.czat_pod_kamerka")}</option>
             <option value="above">{t("obsLab.czat_nad_kamerka")}</option>
             <option value="overlay">{t("obsLab.czat_na_kamerce")}</option>
-            <option value="chat">{t("obsLab.sam_czat_bez_kamerki")}</option>
           </ToolSelect>
 
           {(beside || config.layout === "overlay") && (
-            <ToolRange label={t("obsLab.szerokosc_czatu")} value={config.chatWidth} suffix="%" min={20} max={55} onChange={(chatWidth) => patchConfig({ chatWidth })} />
+            <ToolRange
+              label={config.layout === "overlay" && (config.overlayPosition === "dock-top" || config.overlayPosition === "dock-bottom")
+                ? t("obsLab.wysokosc_pasa_czatu") : t("obsLab.szerokosc_czatu")}
+              value={config.chatWidth}
+              suffix="%"
+              min={15}
+              max={70}
+              onChange={(chatWidth) => patchConfig({ chatWidth })}
+            />
           )}
           {stacked && (
             <ToolRange label={t("obsLab.wysokosc_czatu")} value={config.belowHeight} suffix="px" min={80} max={300} onChange={(belowHeight) => patchConfig({ belowHeight })} />
@@ -765,6 +776,12 @@ export function ObsLab() {
                 <option value="bottom-left">{t("obsLab.lewy_dolny")}</option>
                 <option value="bottom-center">{t("obsLab.dol_srodek")}</option>
                 <option value="bottom-right">{t("obsLab.prawy_dolny")}</option>
+                <optgroup label={t("obsLab.pas_przy_krawedzi")}>
+                  <option value="dock-left">{t("obsLab.pas_po_lewej")}</option>
+                  <option value="dock-right">{t("obsLab.pas_po_prawej")}</option>
+                  <option value="dock-top">{t("obsLab.pas_u_gory")}</option>
+                  <option value="dock-bottom">{t("obsLab.pas_na_dole")}</option>
+                </optgroup>
               </ToolSelect>
               <ToolRange label={t("obsLab.odsuniecie")} value={config.overlayInset} suffix="px" min={0} max={50} onChange={(overlayInset) => patchConfig({ overlayInset })} />
             </>
@@ -1038,6 +1055,8 @@ export function ObsLab() {
               <option value="petals">{t("obsLab.platki_sakury")}</option>
               <option value="leaves">{t("obsLab.jesienne_liscie")}</option>
               <option value="pixels">{t("obsLab.piksele")}</option>
+              <option value="code">{t("obsLab.kod_matrix")}</option>
+              <option value="embers">{t("obsLab.zarzace_iskry")}</option>
             </ToolSelect>
           </FieldLabel>
           {config.ambient !== "none" && (
@@ -1346,49 +1365,71 @@ export function ObsLab() {
         </div>
       </ToolToolbar>
 
-      <ToolWorkspace sidebar={controls} sidebarWidth="350px">
-        <div className="space-y-4">
-          <ToolPanel
-            title={t("obsLab.podglad")}
-            description={t("obsLab.zmiany_sa_od_razu_widoczne")}
-            actions={
-              <>
-                <ToolSegmented<PreviewBackground> value={previewBackground} options={PREVIEW_BACKGROUND_OPTIONS} onChange={setPreviewBackground} />
+      <div className="lg:grid lg:grid-cols-[minmax(340px,400px)_minmax(0,1fr)] lg:items-start lg:gap-4">
+        {/* The preview stays on screen while options change: a sticky column next to them, or a bar at the top. */}
+        <div className="sticky top-0 z-30 mb-4 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:top-4 lg:mb-0" data-testid="chat-preview-dock">
+          <section className="rounded-2xl border border-border bg-card/95 p-3 shadow-xl shadow-black/30 backdrop-blur">
+            <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+              <div className="flex flex-wrap items-center gap-2 text-sm font-bold">
+                {t("obsLab.podglad")}
                 <span className="text-xs font-semibold text-muted-foreground">{size.width} × {size.height}{t("obsLab.px")}</span>
-              </>
-            }
-          >
+                {setupIssues > 0
+                  ? (
+                    <button
+                      type="button"
+                      onClick={() => document.getElementById("chat-setup-check")?.scrollIntoView({ behavior: "smooth", block: "center" })}
+                      className="rounded-full bg-amber-500/15 px-2 py-0.5 text-[11px] font-semibold text-amber-300 hover:bg-amber-500/25"
+                      data-testid="chat-preview-issues"
+                    >
+                      {t("obsLab.uwagi_do_ustawien", { n: setupIssues })}
+                    </button>
+                  )
+                  : <span className="text-[11px] font-semibold text-emerald-400">{t("obsLab.wszystko_wyglada_dobrze")}</span>}
+              </div>
+              <ToolSegmented<PreviewBackground> value={previewBackground} options={PREVIEW_BACKGROUND_OPTIONS} onChange={setPreviewBackground} />
+            </div>
             <div
-              className="flex min-h-[560px] items-center justify-center overflow-auto rounded-xl border border-border p-6"
+              className="overflow-hidden rounded-xl border border-border p-2"
               style={{ background: PREVIEW_BACKGROUNDS[previewBackground] }}
               aria-label={t("obsLab.tlo_podgladu")}
             >
-              <CameraChatWidget config={config} messages={mockMessages} previewCamera />
+              <FitPreview width={size.width} height={size.height} maxHeight={previewMaxHeight}>
+                <CameraChatWidget config={config} messages={mockMessages} previewCamera />
+              </FitPreview>
             </div>
-            <div className="mt-3 flex flex-wrap items-center gap-1.5">
-              <span className="mr-1 text-xs font-semibold text-muted-foreground">{t("obsLab.wyslij_testowa_wiadomosc")}</span>
+            <div className="mt-2 flex items-center gap-1.5 overflow-x-auto pb-1 [scrollbar-width:thin] lg:flex-wrap" data-testid="chat-test-strip">
+              <span className="shrink-0 text-[11px] font-semibold text-muted-foreground">{t("obsLab.wyslij_testowa_wiadomosc")}</span>
               {TEST_KINDS.map((kind) => (
-                <ToolButton key={kind} type="button" className="px-2.5 py-1 text-xs" onClick={() => sendTest(kind)} data-testid={`chat-test-${kind}`}>
+                <ToolButton key={kind} type="button" className="shrink-0 px-2 py-0.5 text-[11px]" onClick={() => sendTest(kind)} data-testid={`chat-test-${kind}`}>
                   {testKindLabel(kind)}
                 </ToolButton>
               ))}
-            </div>
-            <div className="mt-2 flex flex-wrap items-center gap-1.5">
-              <span className="mr-1 text-xs font-semibold text-muted-foreground">{t("obsLab.testowe_zdarzenie")}</span>
+              <span className="ml-1 shrink-0 text-[11px] font-semibold text-muted-foreground">{t("obsLab.testowe_zdarzenie")}</span>
               {CHAT_EVENT_KINDS.map((kind) => (
-                <ToolButton key={kind} type="button" className="px-2.5 py-1 text-xs" onClick={() => sendEvent(kind)} data-testid={`chat-test-event-${kind}`}>
+                <ToolButton key={kind} type="button" className="shrink-0 px-2 py-0.5 text-[11px]" onClick={() => sendEvent(kind)} data-testid={`chat-test-event-${kind}`}>
                   {eventKindLabel(kind)}
                 </ToolButton>
               ))}
-              <ToolButton type="button" className="px-2.5 py-1 text-xs" onClick={floodTest} data-testid="chat-test-flood">
+              <ToolButton type="button" className="shrink-0 px-2 py-0.5 text-[11px]" onClick={floodTest} data-testid="chat-test-flood">
                 {t("obsLab.zalew_czatu", { n: FLOOD_TEST_COUNT })}
               </ToolButton>
+              <button
+                type="button"
+                aria-pressed={livePreview}
+                title={t("obsLab.ozyw_podglad_opis")}
+                onClick={() => setLivePreview((on) => !on)}
+                className={`${choiceClass(livePreview)} shrink-0 px-2 py-0.5`}
+                data-testid="chat-live-preview"
+              >
+                {t("obsLab.ozyw_podglad")}
+              </button>
             </div>
-            <div className="mt-3 max-w-md" data-testid="chat-live-preview">
-              <ToolToggle label={t("obsLab.ozyw_podglad")} description={t("obsLab.ozyw_podglad_opis")} checked={livePreview} onChange={setLivePreview} />
-            </div>
-          </ToolPanel>
+          </section>
+        </div>
 
+        <div className="min-w-0 lg:col-start-1 lg:row-start-1">{controls}</div>
+
+        <div className="mt-4 min-w-0 space-y-4 lg:col-start-1 lg:row-start-2">
           <ChatSetupCheck config={config} update={setConfig} />
 
           <ToolPanel title={t("obsLab.browser_source")} description={t("obsLab.gotowy_adres_zawierajacy_aktualna_konfig")}>
@@ -1417,7 +1458,7 @@ export function ObsLab() {
 
           <StreamElementsSetup config={config} width={size.width} height={size.height} />
         </div>
-      </ToolWorkspace>
+      </div>
     </div>
   );
 }

@@ -6,21 +6,27 @@ export type ChatPresetId =
   | "glass" | "minimal" | "compact" | "neon" | "classic" | "bubbles" | "light" | "clear" | "terminal" | "esport" | "rainbow"
   | "winter" | "christmas" | "halloween" | "valentine"
   | "paper" | "noir" | "gold" | "cyberpunk" | "synthwave" | "retro" | "fps" | "kawaii" | "candy" | "mint" | "coffee"
-  | "ocean" | "forest" | "space" | "sunset" | "sakura" | "autumn" | "newyear" | "easter" | "summer";
+  | "ocean" | "forest" | "space" | "sunset" | "sakura" | "autumn" | "newyear" | "easter" | "summer"
+  | "matrix" | "fantasy" | "steampunk" | "gothic" | "dragon" | "princess" | "cottoncandy" | "lilac" | "unicorn"
+  | "aurora" | "hologram" | "memphis" | "lavalamp" | "vaporwave";
 
 export const CHAT_PRESET_IDS: readonly ChatPresetId[] =
   ["glass", "minimal", "compact", "neon", "classic", "bubbles", "light", "clear", "terminal", "esport", "rainbow",
     "winter", "christmas", "halloween", "valentine",
     "paper", "noir", "gold", "cyberpunk", "synthwave", "retro", "fps", "kawaii", "candy", "mint", "coffee",
-    "ocean", "forest", "space", "sunset", "sakura", "autumn", "newyear", "easter", "summer"];
+    "ocean", "forest", "space", "sunset", "sakura", "autumn", "newyear", "easter", "summer",
+    "matrix", "fantasy", "steampunk", "gothic", "dragon", "princess", "cottoncandy", "lilac", "unicorn",
+    "aurora", "hologram", "memphis", "lavalamp", "vaporwave"];
 
-export type ChatPresetCategory = "classic" | "neon" | "cute" | "nature" | "seasonal";
+export type ChatPresetCategory = "classic" | "neon" | "fantasy" | "cute" | "abstract" | "nature" | "seasonal";
 
 /** Looks grouped for the pickers; every look is in exactly one group. */
 export const CHAT_PRESET_CATEGORIES: Record<ChatPresetCategory, readonly ChatPresetId[]> = {
   classic: ["glass", "minimal", "compact", "classic", "light", "clear", "paper", "noir", "gold"],
-  neon: ["neon", "esport", "rainbow", "terminal", "cyberpunk", "synthwave", "retro", "fps"],
-  cute: ["bubbles", "kawaii", "candy", "mint", "coffee"],
+  neon: ["neon", "esport", "rainbow", "terminal", "cyberpunk", "synthwave", "retro", "fps", "matrix"],
+  fantasy: ["fantasy", "steampunk", "gothic", "dragon"],
+  cute: ["bubbles", "kawaii", "candy", "mint", "coffee", "princess", "cottoncandy", "lilac", "unicorn"],
+  abstract: ["aurora", "hologram", "memphis", "lavalamp", "vaporwave"],
   nature: ["ocean", "forest", "space", "sunset", "sakura"],
   seasonal: ["winter", "christmas", "halloween", "valentine", "autumn", "newyear", "easter", "summer"],
 };
@@ -32,7 +38,9 @@ export function chatPresetCategoryLabel(id: ChatPresetCategory | "all"): string 
     case "all": return t("obsLab.wszystkie_motywy");
     case "classic": return t("obsLab.kategoria_klasyczne");
     case "neon": return t("obsLab.kategoria_neon");
-    case "cute": return t("obsLab.kategoria_slodkie");
+    case "fantasy": return t("obsLab.kategoria_fantasy");
+    case "cute": return t("obsLab.kategoria_slodkie_dziewczece");
+    case "abstract": return t("obsLab.kategoria_abstrakcyjne");
     case "nature": return t("obsLab.kategoria_natura");
     case "seasonal": return t("obsLab.kategoria_sezonowe");
   }
@@ -79,6 +87,20 @@ export function chatPresetLabel(id: ChatPresetId): string {
     case "newyear": return t("obsLab.motyw_sylwester");
     case "easter": return t("obsLab.motyw_wielkanoc");
     case "summer": return t("obsLab.motyw_lato");
+    case "matrix": return t("obsLab.motyw_matrix");
+    case "fantasy": return t("obsLab.motyw_fantasy");
+    case "steampunk": return t("obsLab.motyw_steampunk");
+    case "gothic": return t("obsLab.motyw_gotycki");
+    case "dragon": return t("obsLab.motyw_smok");
+    case "princess": return t("obsLab.motyw_ksiezniczka");
+    case "cottoncandy": return t("obsLab.motyw_wata_cukrowa");
+    case "lilac": return t("obsLab.motyw_liliowy_sen");
+    case "unicorn": return t("obsLab.motyw_jednorozec");
+    case "aurora": return t("obsLab.motyw_zorza");
+    case "hologram": return t("obsLab.motyw_hologram");
+    case "memphis": return t("obsLab.motyw_memphis");
+    case "lavalamp": return t("obsLab.motyw_lampa_lava");
+    case "vaporwave": return t("obsLab.motyw_vaporwave");
   }
 }
 
@@ -519,6 +541,132 @@ export function chatPresetConfig(id: ChatPresetId): CameraChatConfig {
         showBorders: false, bubbleColor: "#fde047", bubbleOpacity: 8, readableNames: true, namePalette: "warm",
         frameStyle: "glow", frameColor: "#fde047", frameWidth: 2,
         ambient: "sparkles", ambientDensity: 10, ambientColor: "#fde047", animationStyle: "bounce",
+      };
+    // Matrix: green code rain on black
+    case "matrix":
+      return {
+        ...base,
+        panelColor: "#000000", panelOpacity: 90, radius: 6, showBorders: false, messageBackground: false,
+        fontFamily: "courier", textColor: "#86efac", nameColorMode: "single", nameColor: "#22c55e", nameStyle: "glow",
+        frameStyle: "solid", frameColor: "#16a34a", frameWidth: 1,
+        panelPattern: "scanlines", patternColor: "#22c55e", patternOpacity: 6,
+        ambient: "code", ambientDensity: 18, ambientColor: "#22c55e", animationStyle: "glitch", textReveal: "typewriter",
+      };
+    // Fantasy
+    case "fantasy":
+      return {
+        ...base,
+        panelColor: "#1a1033", panelGradient: true, panelColor2: "#0f2a3d", panelOpacity: 86, radius: 16,
+        showBorders: false, bubbleColor: "#fcd34d", bubbleOpacity: 6, textColor: "#f5f3ff", fontFamily: "palatino",
+        namePalette: "pastel", readableNames: true, nameStyle: "shimmer", newMessageEffect: "glow",
+        frameStyle: "glow", frameColor: "#fbbf24", frameWidth: 2,
+        ambient: "sparkles", ambientDensity: 14, ambientColor: "#fde68a", animationStyle: "zoom",
+      };
+    case "steampunk":
+      return {
+        ...base,
+        panelColor: "#2a1a0e", panelGradient: true, panelColor2: "#4a2c14", panelOpacity: 90, radius: 8,
+        showBorders: false, textColor: "#fde8c8", bubbleColor: "#b87333", bubbleOpacity: 10, fontFamily: "georgia",
+        namePalette: "warm", readableNames: true, messageLayout: "stacked",
+        frameStyle: "solid", frameColor: "#b87333", frameWidth: 4,
+        panelPattern: "grid", patternColor: "#d4a373", patternOpacity: 7,
+        ambient: "embers", ambientDensity: 10, ambientColor: "#f59e0b", animationStyle: "swing",
+      };
+    case "gothic":
+      return {
+        ...base,
+        panelColor: "#0a0204", panelGradient: true, panelColor2: "#2a0509", panelOpacity: 90, radius: 4,
+        showBorders: false, textColor: "#e7e5e4", bubbleColor: "#7f1d1d", bubbleOpacity: 14, fontFamily: "cambria",
+        nameColorMode: "single", nameColor: "#f87171", nameStyle: "glow",
+        frameStyle: "pulse", frameColor: "#991b1b", frameColor2: "#1c1917", frameWidth: 2,
+        ambient: "embers", ambientDensity: 8, ambientColor: "#ef4444", animationStyle: "fade", textReveal: "words",
+      };
+    case "dragon":
+      return {
+        ...base,
+        panelColor: "#1c0a00", panelGradient: true, panelColor2: "#450a0a", panelOpacity: 88, radius: 14,
+        showBorders: false, bubbleColor: "#f97316", bubbleOpacity: 8, readableNames: true, namePalette: "warm",
+        nameStyle: "gradient", fontFamily: "bahnschrift", newMessageEffect: "flash",
+        frameStyle: "flow", frameColor: "#ef4444", frameColor2: "#f59e0b", frameWidth: 3,
+        ambient: "embers", ambientDensity: 16, ambientColor: "#fb923c", animationStyle: "drop",
+      };
+    // Cute and girly
+    case "princess":
+      return {
+        ...base,
+        panelColor: "#3b0a2a", panelGradient: true, panelColor2: "#581c47", panelOpacity: 86, radius: 22,
+        showBorders: false, bubbleColor: "#f9a8d4", bubbleOpacity: 12, bubbleRadius: 18, bubbleShape: "tail",
+        textColor: "#fff1f7", fontFamily: "segoeprint", namePalette: "pastel", readableNames: true, nameStyle: "shimmer",
+        newMessageEffect: "pulse", frameStyle: "glow", frameColor: "#f9a8d4", frameWidth: 2,
+        ambient: "sparkles", ambientDensity: 14, ambientColor: "#fbcfe8", animationStyle: "pop",
+      };
+    case "cottoncandy":
+      return {
+        ...base,
+        panelColor: "#fdf2f8", panelGradient: true, panelColor2: "#e0f2fe", panelOpacity: 94, radius: 24,
+        showBorders: false, textColor: "#581c87", textOpacity: 100, textShadow: "none",
+        bubbleColor: "#ffffff", bubbleOpacity: 45, bubbleRadius: 18, fontFamily: "comic",
+        nameColorMode: "single", nameColor: "#db2777",
+        frameStyle: "gradient", frameColor: "#f9a8d4", frameColor2: "#7dd3fc", frameWidth: 3,
+        ambient: "bubbles", ambientDensity: 10, ambientColor: "#f9a8d4", animationStyle: "bounce",
+      };
+    case "lilac":
+      return {
+        ...base,
+        panelColor: "#2e1065", panelOpacity: 82, radius: 20, showBorders: false, bubbleColor: "#ddd6fe", bubbleOpacity: 10,
+        textColor: "#faf5ff", namePalette: "pastel", readableNames: true, nameStyle: "gradient", fontFamily: "trebuchet",
+        frameStyle: "glow", frameColor: "#c4b5fd", frameWidth: 2,
+        ambient: "petals", ambientDensity: 12, ambientColor: "#d8b4fe", animationStyle: "swing",
+      };
+    case "unicorn":
+      return {
+        ...base,
+        panelColor: "#2a1145", panelGradient: true, panelColor2: "#11284a", panelOpacity: 86, radius: 22,
+        showBorders: false, bubbleColor: "#f5d0fe", bubbleOpacity: 10, readableNames: true, namePalette: "pastel",
+        nameStyle: "rainbow", frameStyle: "rainbow", frameWidth: 3, frameSpeed: 6, panelAnimation: "shimmer",
+        ambient: "sparkles", ambientDensity: 12, ambientColor: "#fef9c3", animationStyle: "bounce",
+      };
+    // Abstract
+    case "aurora":
+      return {
+        ...base,
+        panelColor: "#021b1a", panelGradient: true, panelColor2: "#2e1065", panelGradientAngle: 135, panelOpacity: 86,
+        radius: 20, showBorders: false, bubbleColor: "#5eead4", bubbleOpacity: 6, readableNames: true, namePalette: "cool",
+        nameStyle: "gradient", frameStyle: "flow", frameColor: "#34d399", frameColor2: "#a78bfa", frameWidth: 2, frameSpeed: 8,
+        panelAnimation: "shimmer", ambient: "stars", ambientDensity: 10, ambientColor: "#ccfbf1", animationStyle: "fade",
+      };
+    case "hologram":
+      return {
+        ...base,
+        panelColor: "#020617", panelOpacity: 82, radius: 12, showBorders: false, bubbleColor: "#67e8f9", bubbleOpacity: 6,
+        textColor: "#e0f2fe", textShadow: "soft", readableNames: true, namePalette: "neon", nameStyle: "shimmer",
+        fontFamily: "segoe", frameStyle: "rainbow", frameWidth: 1, frameSpeed: 4,
+        panelPattern: "scanlines", patternColor: "#67e8f9", patternOpacity: 8, animationStyle: "glitch",
+      };
+    case "memphis":
+      return {
+        ...base,
+        panelColor: "#111827", panelOpacity: 90, radius: 0, bubbleRadius: 0, showBorders: false,
+        bubbleColor: "#facc15", bubbleOpacity: 8, bubbleShape: "skew", accentBar: true, readableNames: true,
+        namePalette: "neon", nameUppercase: true, fontFamily: "franklin",
+        frameStyle: "dashes", frameColor: "#f472b6", frameWidth: 3,
+        panelPattern: "dots", patternColor: "#facc15", patternOpacity: 16, animationStyle: "pop",
+      };
+    case "lavalamp":
+      return {
+        ...base,
+        panelColor: "#3b0764", panelGradient: true, panelColor2: "#7c2d12", panelGradientAngle: 200, panelOpacity: 86,
+        radius: 26, showBorders: false, bubbleColor: "#fb923c", bubbleOpacity: 8, readableNames: true, namePalette: "warm",
+        frameStyle: "pulse", frameColor: "#f97316", frameColor2: "#c026d3", frameWidth: 3, panelAnimation: "breathe",
+        ambient: "bubbles", ambientDensity: 8, ambientColor: "#fdba74", animationStyle: "zoom",
+      };
+    case "vaporwave":
+      return {
+        ...base,
+        panelColor: "#1e0b3b", panelGradient: true, panelColor2: "#0b2a4a", panelOpacity: 86, radius: 6,
+        showBorders: false, bubbleColor: "#f0abfc", bubbleOpacity: 8, readableNames: true, namePalette: "neon",
+        nameStyle: "gradient", fontFamily: "trebuchet", frameStyle: "gradient", frameColor: "#f0abfc", frameColor2: "#67e8f9",
+        frameWidth: 2, panelPattern: "grid", patternColor: "#f0abfc", patternOpacity: 12, animationStyle: "slide",
       };
   }
 }

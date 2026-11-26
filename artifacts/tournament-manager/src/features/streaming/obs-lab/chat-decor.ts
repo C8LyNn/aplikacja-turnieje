@@ -35,6 +35,8 @@ export type AmbientParticle = {
 };
 
 const CONFETTI_COLORS = ["#f472b6", "#facc15", "#34d399", "#60a5fa", "#a78bfa", "#fb923c"];
+/** Digits and half-width katakana for the code rain (fonts on Windows and macOS have them). */
+const CODE_GLYPHS = Array.from("0101ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎ");
 const LEAF_COLORS = ["#f59e0b", "#ea580c", "#dc2626", "#ca8a04", "#b45309"];
 
 /** Small deterministic generator (mulberry32): the same particles in every renderer and on every reload. */
@@ -114,6 +116,17 @@ export function chatAmbientParticles(config: Pick<CameraChatConfig, "ambient" | 
           },
         };
       }
+      case "code": {
+        const time = duration(3, 7);
+        const length = Math.round(between(5, 10));
+        const glyphs = Array.from({ length }, () => CODE_GLYPHS[Math.floor(random() * CODE_GLYPHS.length)]!).join("\n");
+        return { className: "chat-amb chat-amb-code", text: glyphs, style: { left, top: "-40%", fontSize: `${round(between(10, 14))}px`, color: config.ambientColor, animation: `chat-amb-code ${time}s linear ${-round(between(0, time))}s infinite` } };
+      }
+      case "embers": {
+        const size = `${round(between(2, 4))}px`;
+        const time = duration(4, 8);
+        return { className: "chat-amb chat-amb-dot", text: "", style: { left, top: "105%", width: size, height: size, background: config.ambientColor, boxShadow: `0 0 6px 1px ${config.ambientColor}`, animation: `chat-amb-ember ${time}s ease-out ${-round(between(0, time))}s infinite` } };
+      }
       case "pixels": {
         const size = `${Math.round(between(4, 7))}px`;
         const time = duration(6, 10);
@@ -172,6 +185,9 @@ export function getChatDecorCss(config: CameraChatConfig, panel: string, row: st
       "@keyframes chat-amb-twinkle { 0%, 100% { opacity: .15; transform: scale(.6); } 50% { opacity: 1; transform: scale(1.1); } }",
       ".chat-amb-petal { border-radius: 70% 0 70% 0; opacity: .9; }",
       ".chat-amb-leaf { border-radius: 0 80% 0 80%; }",
+      ".chat-amb-code { white-space: pre; font-family: Consolas, \"Courier New\", monospace; font-weight: 700; line-height: 1.05; opacity: .75; text-shadow: 0 0 6px currentColor; }",
+      "@keyframes chat-amb-code { from { top: -40%; } to { top: 110%; } }",
+      "@keyframes chat-amb-ember { 0% { top: 105%; opacity: 0; transform: translateX(0); } 15% { opacity: 1; } 60% { transform: translateX(10px); } 100% { top: -5%; opacity: 0; transform: translateX(-8px); } }",
       "@keyframes chat-amb-rain { from { top: -12%; transform: translateX(0) rotate(12deg); } to { top: 108%; transform: translateX(-14px) rotate(12deg); } }",
       "@keyframes chat-amb-wander { 0%, 100% { transform: translate(0, 0); opacity: .2; } 25% { transform: translate(14px, -10px); opacity: 1; } 50% { transform: translate(-6px, -20px); opacity: .4; } 75% { transform: translate(-14px, -6px); opacity: .9; } }",
       "@keyframes chat-amb-petal { 0% { top: -8%; transform: translateX(0) rotate(0deg); } 50% { transform: translateX(18px) rotate(200deg); } 100% { top: 108%; transform: translateX(-10px) rotate(400deg); } }",

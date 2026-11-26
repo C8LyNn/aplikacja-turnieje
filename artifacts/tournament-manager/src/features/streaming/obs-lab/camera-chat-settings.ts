@@ -58,7 +58,7 @@ export type CameraChatNamePalette = "classic" | "pastel" | "neon" | "warm" | "co
 /** Particles floating behind the messages. */
 export type CameraChatAmbient =
   | "none" | "snow" | "sparkles" | "hearts" | "bubbles" | "stars" | "confetti"
-  | "rain" | "fireflies" | "petals" | "leaves" | "pixels";
+  | "rain" | "fireflies" | "petals" | "leaves" | "pixels" | "code" | "embers";
 export type CameraChatNameStyle = "plain" | "glow" | "gradient" | "rainbow" | "shimmer";
 export type CameraChatPanelPattern = "none" | "dots" | "grid" | "stripes" | "carbon" | "waves" | "scanlines";
 export type CameraChatHeaderStyle = "none" | "bar" | "pill" | "minimal";
@@ -72,7 +72,8 @@ export const CHAT_MOTION_PRESETS: readonly CameraChatMotionPreset[] =
 export const CHAT_MOTION_STYLES: readonly CameraChatMotionPreset[] =
   [...CHAT_MOTION_PRESETS, "drop", "zoom", "swing", "glitch"];
 
-export const CHAT_LAYOUTS: readonly CameraChatLayout[] = ["right", "left", "below", "above", "overlay", "chat"];
+/** Chat only comes first: it is the default for a new setup. */
+export const CHAT_LAYOUTS: readonly CameraChatLayout[] = ["chat", "right", "left", "below", "above", "overlay"];
 export const CHAT_FONT_FAMILIES: readonly CameraChatFontFamily[] = [
   "inter", "system", "segoe", "arial", "verdana", "trebuchet", "georgia", "mono", "impact", "comic",
   "bahnschrift", "arialblack", "tahoma", "calibri", "cambria", "franklin", "times", "courier", "lucida", "palatino",
@@ -80,13 +81,14 @@ export const CHAT_FONT_FAMILIES: readonly CameraChatFontFamily[] = [
 ];
 export const CHAT_OVERLAY_POSITIONS: readonly CameraChatOverlayPosition[] = [
   "top-left", "top-center", "top-right", "middle-left", "middle-right", "bottom-left", "bottom-center", "bottom-right",
+  "dock-left", "dock-right", "dock-top", "dock-bottom",
 ];
 export const CHAT_FRAME_STYLES: readonly CameraChatFrameStyle[] =
   ["none", "solid", "gradient", "pulse", "glow", "flow", "rotate", "rainbow", "dashes", "corners"];
 export const CHAT_PANEL_ANIMATIONS: readonly CameraChatPanelAnimation[] = ["none", "float", "breathe", "shimmer", "intro"];
 export const CHAT_NAME_PALETTE_IDS: readonly CameraChatNamePalette[] = ["classic", "pastel", "neon", "warm", "cool"];
 export const CHAT_AMBIENTS: readonly CameraChatAmbient[] =
-  ["none", "snow", "sparkles", "hearts", "bubbles", "stars", "confetti", "rain", "fireflies", "petals", "leaves", "pixels"];
+  ["none", "snow", "sparkles", "hearts", "bubbles", "stars", "confetti", "rain", "fireflies", "petals", "leaves", "pixels", "code", "embers"];
 export const CHAT_NAME_STYLES: readonly CameraChatNameStyle[] = ["plain", "glow", "gradient", "rainbow", "shimmer"];
 export const CHAT_PANEL_PATTERNS: readonly CameraChatPanelPattern[] = ["none", "dots", "grid", "stripes", "carbon", "waves", "scanlines"];
 export const CHAT_HEADER_STYLES: readonly CameraChatHeaderStyle[] = ["none", "bar", "pill", "minimal"];
@@ -123,7 +125,12 @@ export type CameraChatOverlayPosition =
   | "middle-right"
   | "bottom-left"
   | "bottom-center"
-  | "bottom-right";
+  | "bottom-right"
+  /** Bands along a whole edge of the camera: a full-height column or a full-width strip. */
+  | "dock-left"
+  | "dock-right"
+  | "dock-top"
+  | "dock-bottom";
 
 export type CameraChatConfig = {
   layout: CameraChatLayout;
@@ -275,7 +282,7 @@ export type CameraChatConfig = {
 };
 
 export const DEFAULT_CAMERA_CHAT_CONFIG: CameraChatConfig = {
-  layout: "right",
+  layout: "chat",
   aspectRatio: "16:9",
 
   cameraWidth: 640,
@@ -560,6 +567,14 @@ export type ChatPlacement = { top?: string; bottom?: string; left?: string; righ
 
 /** Where the chat box sits on the camera: corners, the middle of an edge, with the same inset in both renderers. */
 export function chatOverlayPlacement(position: CameraChatOverlayPosition, inset: number): ChatPlacement {
+  const edge = `${inset}px`;
+  switch (position) {
+    case "dock-left": return { top: edge, left: edge };
+    case "dock-right": return { top: edge, right: edge };
+    case "dock-top": return { top: edge, left: edge, right: edge };
+    case "dock-bottom": return { bottom: edge, left: edge, right: edge };
+    default: break;
+  }
   const [vertical, horizontal] = position.split("-") as ["top" | "middle" | "bottom", "left" | "center" | "right"];
   const placement: ChatPlacement = {};
   if (vertical === "top") placement.top = `${inset}px`;
@@ -575,6 +590,28 @@ export function chatOverlayPlacement(position: CameraChatOverlayPosition, inset:
     placement.transform = "translateX(-50%)";
   }
   return placement;
+}
+
+export function isChatOverlayDock(position: CameraChatOverlayPosition): boolean {
+  return position.startsWith("dock-");
+}
+
+/**
+ * Size of the chat on the camera: a box (the chat width, at most the camera height), a full-height column (the chat
+ * width) or a full-width strip (the chat width read as a share of the camera height).
+ */
+export function chatOverlaySize(
+  position: CameraChatOverlayPosition,
+  chatWidth: number,
+  cameraHeight: number,
+  inset: number,
+): { width?: string; height?: string; maxHeight?: string } {
+  const inner = Math.max(0, Math.round(cameraHeight - inset * 2));
+  if (position === "dock-left" || position === "dock-right") return { width: `${chatWidth}%`, height: `${inner}px` };
+  if (position === "dock-top" || position === "dock-bottom") {
+    return { height: `${Math.min(inner, Math.round((cameraHeight * chatWidth) / 100))}px` };
+  }
+  return { width: `${chatWidth}%`, maxHeight: `${inner}px` };
 }
 
 const RAINBOW = "#ff3d6e 0, #ffb13d 40px, #f9ff3d 70px, #3dff8a 100px, #3dc8ff 135px, #9b3dff 170px, #ff3d6e 200px";

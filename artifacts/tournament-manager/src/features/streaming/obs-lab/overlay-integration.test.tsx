@@ -62,7 +62,7 @@ test("public overlay is transparent, handles parent bridge safely and restores d
 });
 
 test("StreamElements snippets are standalone and do not load the app or embed a frame", () => {
-  const { container } = render(<StreamElementsSetup config={DEFAULT_CAMERA_CHAT_CONFIG} width={845} height={360} />);
+  const { container } = render(<StreamElementsSetup config={{ ...DEFAULT_CAMERA_CHAT_CONFIG, layout: "right" }} width={845} height={360} />);
   const snippets = Array.from(container.querySelectorAll("code"), node => node.textContent ?? "");
   assert.equal(snippets.length, 3);
   assert.match(snippets[0], /id="se-chat-messages"/);

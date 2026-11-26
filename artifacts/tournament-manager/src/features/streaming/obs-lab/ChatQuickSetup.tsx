@@ -1,7 +1,7 @@
 import { t } from "@/i18n";
 import { useState, type CSSProperties, type ReactNode } from "react";
 import { Check, Copy, Gamepad2, MessagesSquare, Mic, Moon, Shuffle, Smartphone, Trophy, type LucideIcon } from "lucide-react";
-import { ToolButton, ToolPanel } from "@/components/tool-ui";
+import { ToolButton, ToolPanel, ToolRange } from "@/components/tool-ui";
 import {
   type CameraChatConfig,
   type CameraChatLayout,
@@ -69,12 +69,20 @@ export function PresetSwatch({ config }: { config: CameraChatConfig }) {
 // --- Step 1: placement --------------------------------------------------------------------------------------------
 
 const LAYOUT_TILES: ReadonlyArray<{ layout: CameraChatLayout; camera?: CSSProperties; chat: CSSProperties; label: () => string }> = [
+  { layout: "chat", chat: { inset: "0 26%" }, label: () => t("obsLab.sam_czat_bez_kamerki") },
   { layout: "right", camera: { inset: "0 32% 0 0" }, chat: { inset: "0 0 0 72%" }, label: () => t("obsLab.czat_po_prawej") },
   { layout: "left", camera: { inset: "0 0 0 32%" }, chat: { inset: "0 72% 0 0" }, label: () => t("obsLab.czat_po_lewej") },
   { layout: "below", camera: { inset: "0 0 34% 0" }, chat: { inset: "70% 0 0 0" }, label: () => t("obsLab.czat_pod_kamerka") },
   { layout: "above", camera: { inset: "34% 0 0 0" }, chat: { inset: "0 0 70% 0" }, label: () => t("obsLab.czat_nad_kamerka") },
   { layout: "overlay", camera: { inset: "0" }, chat: { inset: "44% 8% 10% 58%" }, label: () => t("obsLab.czat_na_kamerce") },
-  { layout: "chat", chat: { inset: "0 26%" }, label: () => t("obsLab.sam_czat_bez_kamerki") },
+];
+
+/** Bands along a whole edge of the camera, with a small picture of each. */
+const DOCK_TILES: ReadonlyArray<{ position: CameraChatOverlayPosition; chat: CSSProperties; label: () => string }> = [
+  { position: "dock-left", chat: { inset: "8% 66% 8% 6%" }, label: () => t("obsLab.pas_po_lewej") },
+  { position: "dock-right", chat: { inset: "8% 6% 8% 66%" }, label: () => t("obsLab.pas_po_prawej") },
+  { position: "dock-top", chat: { inset: "8% 6% 62% 6%" }, label: () => t("obsLab.pas_u_gory") },
+  { position: "dock-bottom", chat: { inset: "62% 6% 8% 6%" }, label: () => t("obsLab.pas_na_dole") },
 ];
 
 /** Reading order of the 3 × 3 picker; the middle cell is the camera itself. */
@@ -94,6 +102,10 @@ function overlayPositionLabel(position: CameraChatOverlayPosition): string {
     case "bottom-left": return t("obsLab.lewy_dolny");
     case "bottom-center": return t("obsLab.dol_srodek");
     case "bottom-right": return t("obsLab.prawy_dolny");
+    case "dock-left": return t("obsLab.pas_po_lewej");
+    case "dock-right": return t("obsLab.pas_po_prawej");
+    case "dock-top": return t("obsLab.pas_u_gory");
+    case "dock-bottom": return t("obsLab.pas_na_dole");
   }
 }
 
@@ -277,6 +289,35 @@ export function ChatQuickSetup({ config, update, width, height, copied, onCopyUr
                     </button>
                   )
                   : <span key={`camera-${index}`} aria-hidden="true" className="grid h-7 place-items-center text-[9px] font-black text-muted-foreground/60">{t("cameraChatWidget.cam")}</span>)}
+              </div>
+              <div className="mb-1.5 mt-3 text-[11px] font-semibold text-muted-foreground">{t("obsLab.albo_pas_przy_krawedzi")}</div>
+              <div className="grid grid-cols-4 gap-1.5">
+                {DOCK_TILES.map((tile) => (
+                  <button
+                    key={tile.position}
+                    type="button"
+                    aria-pressed={config.overlayPosition === tile.position}
+                    onClick={() => update((current) => ({ ...current, overlayPosition: tile.position }))}
+                    className={`${choiceClass(config.overlayPosition === tile.position)} flex flex-col items-center gap-1 px-1 py-1.5`}
+                    data-testid={`quick-position-${tile.position}`}
+                  >
+                    <span aria-hidden="true" className="relative h-8 w-12 overflow-hidden rounded border border-white/10 bg-slate-500/50">
+                      <span className="absolute rounded-sm bg-fuchsia-400/85" style={tile.chat} />
+                    </span>
+                    <span className="leading-tight">{tile.label()}</span>
+                  </button>
+                ))}
+              </div>
+              <div className="mt-3">
+                <ToolRange
+                  label={config.overlayPosition === "dock-top" || config.overlayPosition === "dock-bottom"
+                    ? t("obsLab.wysokosc_pasa_czatu") : t("obsLab.szerokosc_czatu")}
+                  value={config.chatWidth}
+                  suffix="%"
+                  min={15}
+                  max={70}
+                  onChange={(chatWidth) => update((current) => ({ ...current, chatWidth }))}
+                />
               </div>
             </div>
           )}
