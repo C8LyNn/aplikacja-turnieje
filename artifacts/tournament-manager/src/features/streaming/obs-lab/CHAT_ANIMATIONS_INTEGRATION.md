@@ -178,6 +178,25 @@ natywnego widgetu StreamElements. Reguły wiadomości są w
 - Logika: `chat-events.ts` (cel, hype, konfetti), `chat-sound.ts`, `chat-setup-check.ts`, `chat-quick-setup.ts`
   (zestawy); testy w `chat-gadgets.test.tsx`.
 
+## Zrealizowany etap 9 — więcej motywów i bajery wyglądu (2026-11-26)
+
+- **35 motywów w pięciu grupach** (wybór grupy nad siatką motywów w obu trybach): Klasyczne (m.in. Papier
+  w kratkę, Noir, Złoto), Neon i gry (Cyberpunk, Synthwave, Retro 8-bit, Taktyczny FPS), Słodkie (Kawaii, Cukierki,
+  Mięta, Kawiarnia), Natura (Głębia oceanu, Las nocą, Kosmos, Zachód słońca, Sakura), Sezonowe (Zima, Święta,
+  Halloween, Walentynki, Jesień, Sylwester, Wielkanoc, Lato). Każdy motyw przechodzi sprawdzenie czytelności
+  (test); „Minimal” dostał miękki cień tekstu, bo na przezroczystym panelu bywał nieczytelny.
+- **16 zestawów kolorów** (nowe: mięta, złoto, wiśnia, północ, lawenda, kawa, limonka, czerń i biel).
+- **Styl nicków** (`namestyle`): świecące, gradient, tęczowe (ruchome), z połyskiem; kolor bierze z nicku widza.
+- **Wzór na tle czatu** (`pattern`, `patternc`, `patterno`): kropki, kratka, paski, karbon, fale, linie starego
+  monitora — osobna warstwa panelu (ramka zajmuje `::before`/`::after`).
+- **Nowe drobinki w tle:** deszcz, świetliki, płatki sakury, jesienne liście, piksele 8-bit.
+- **Nowe animacje wejścia:** spadnięcie z góry, najazd (zoom), wahadło, glitch. Tryb „losowo” losuje dalej tylko
+  z 7 dawnych animacji, więc nakładki z losowym stylem wyglądają jak wcześniej.
+- **Kombo wiadomości** (`combo`): ta sama krótka wiadomość (do 40 znaków, bez względu na wielkość liter) wysłana
+  kilka razy z rzędu to jeden wiersz z licznikiem „×N” (od ×5 ognisty); kombo przedłuża czas życia wiersza,
+  moderacja zdejmuje usuniętą wiadomość z licznika. Działa tak samo na stronie OBS i w widgecie SE.
+- Testy w `chat-themes.test.tsx`.
+
 ## Kierunek następnych etapów
 
 1. **Animacja tekstu wiadomości:** wejście znakami/słowami, maska reveal,

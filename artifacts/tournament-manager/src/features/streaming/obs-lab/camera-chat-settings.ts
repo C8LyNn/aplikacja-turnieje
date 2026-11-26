@@ -13,7 +13,8 @@ export type CameraChatAspectRatio = "16:9" | "4:3" | "1:1";
 export type CameraChatFontSize = "small" | "medium" | "large" | "custom";
 export type CameraChatDensity = "compact" | "normal" | "relaxed";
 export type CameraChatAnchor = "top" | "bottom";
-export type CameraChatMotionPreset = "rise" | "slide" | "pop" | "fade" | "bounce" | "flip" | "wipe";
+export type CameraChatMotionPreset =
+  "rise" | "slide" | "pop" | "fade" | "bounce" | "flip" | "wipe" | "drop" | "zoom" | "swing" | "glitch";
 export type CameraChatAnimationStyle = CameraChatMotionPreset | "random";
 export type CameraChatFontFamily =
   | "inter"
@@ -55,12 +56,21 @@ export type CameraChatPanelAnimation = "none" | "float" | "breathe" | "shimmer" 
 /** Palette for viewers without their own colour (and for palette mode). */
 export type CameraChatNamePalette = "classic" | "pastel" | "neon" | "warm" | "cool";
 /** Particles floating behind the messages. */
-export type CameraChatAmbient = "none" | "snow" | "sparkles" | "hearts" | "bubbles" | "stars" | "confetti";
+export type CameraChatAmbient =
+  | "none" | "snow" | "sparkles" | "hearts" | "bubbles" | "stars" | "confetti"
+  | "rain" | "fireflies" | "petals" | "leaves" | "pixels";
+export type CameraChatNameStyle = "plain" | "glow" | "gradient" | "rainbow" | "shimmer";
+export type CameraChatPanelPattern = "none" | "dots" | "grid" | "stripes" | "carbon" | "waves" | "scanlines";
 export type CameraChatHeaderStyle = "none" | "bar" | "pill" | "minimal";
 export type CameraChatBubbleShape = "rounded" | "tail" | "skew" | "outline" | "underline";
 
+/** The motions "random" picks from (unchanged, so random overlays keep the look they had). */
 export const CHAT_MOTION_PRESETS: readonly CameraChatMotionPreset[] =
   ["rise", "slide", "pop", "fade", "bounce", "flip", "wipe"];
+
+/** Every entry motion a streamer can pick. */
+export const CHAT_MOTION_STYLES: readonly CameraChatMotionPreset[] =
+  [...CHAT_MOTION_PRESETS, "drop", "zoom", "swing", "glitch"];
 
 export const CHAT_LAYOUTS: readonly CameraChatLayout[] = ["right", "left", "below", "above", "overlay", "chat"];
 export const CHAT_FONT_FAMILIES: readonly CameraChatFontFamily[] = [
@@ -75,7 +85,10 @@ export const CHAT_FRAME_STYLES: readonly CameraChatFrameStyle[] =
   ["none", "solid", "gradient", "pulse", "glow", "flow", "rotate", "rainbow", "dashes", "corners"];
 export const CHAT_PANEL_ANIMATIONS: readonly CameraChatPanelAnimation[] = ["none", "float", "breathe", "shimmer", "intro"];
 export const CHAT_NAME_PALETTE_IDS: readonly CameraChatNamePalette[] = ["classic", "pastel", "neon", "warm", "cool"];
-export const CHAT_AMBIENTS: readonly CameraChatAmbient[] = ["none", "snow", "sparkles", "hearts", "bubbles", "stars", "confetti"];
+export const CHAT_AMBIENTS: readonly CameraChatAmbient[] =
+  ["none", "snow", "sparkles", "hearts", "bubbles", "stars", "confetti", "rain", "fireflies", "petals", "leaves", "pixels"];
+export const CHAT_NAME_STYLES: readonly CameraChatNameStyle[] = ["plain", "glow", "gradient", "rainbow", "shimmer"];
+export const CHAT_PANEL_PATTERNS: readonly CameraChatPanelPattern[] = ["none", "dots", "grid", "stripes", "carbon", "waves", "scanlines"];
 export const CHAT_HEADER_STYLES: readonly CameraChatHeaderStyle[] = ["none", "bar", "pill", "minimal"];
 export const CHAT_BUBBLE_SHAPES: readonly CameraChatBubbleShape[] = ["rounded", "tail", "skew", "outline", "underline"];
 export const CHAT_TEXT_SHADOW_STYLES: readonly CameraChatTextShadow[] = ["none", "soft", "strong", "outline"];
@@ -244,6 +257,14 @@ export type CameraChatConfig = {
   sound: ChatSoundMode;
   soundStyle: ChatSoundStyle;
   soundVolume: number;
+  /** Nicks with a glow, a gradient, a moving rainbow or a shine. */
+  nameStyle: CameraChatNameStyle;
+  /** A light pattern drawn over the panel background. */
+  panelPattern: CameraChatPanelPattern;
+  patternColor: string;
+  patternOpacity: number;
+  /** The same short message sent again in a row becomes one row with a "x2, x3..." counter. */
+  comboMessages: boolean;
 
   animateMessages: boolean;
   animationStyle: CameraChatAnimationStyle;
@@ -359,6 +380,11 @@ export const DEFAULT_CAMERA_CHAT_CONFIG: CameraChatConfig = {
   sound: "none",
   soundStyle: "ding",
   soundVolume: 50,
+  nameStyle: "plain",
+  panelPattern: "none",
+  patternColor: "#ffffff",
+  patternOpacity: 10,
+  comboMessages: false,
 
   animateMessages: true,
   animationStyle: "rise",
@@ -655,7 +681,23 @@ export function getCameraChatAnimationCss(
     bounce: "opacity: 0; transform: translateY(24px) scale(.92);",
     flip: "opacity: 0; transform: perspective(360px) rotateX(-78deg); transform-origin: top center;",
     wipe: "opacity: 0; clip-path: inset(0 100% 0 0);",
+    drop: "opacity: 0; transform: translateY(-26px);",
+    zoom: "opacity: 0; transform: scale(1.35); filter: blur(3px);",
+    swing: "opacity: 0; transform: rotate(-8deg) translateX(-12px); transform-origin: left center;",
+    glitch: "opacity: 0; transform: translateX(-10px) skewX(12deg); filter: hue-rotate(90deg);",
   };
+  if (style === "drop") {
+    return `@keyframes ${name} { 0% { ${from[style]} } 60% { opacity: 1; transform: translateY(4px); } 80% { transform: translateY(-2px); } 100% { opacity: 1; transform: none; } }`;
+  }
+  if (style === "swing") {
+    return `@keyframes ${name} { 0% { ${from[style]} } 60% { opacity: 1; transform: rotate(3deg); transform-origin: left center; } 100% { opacity: 1; transform: none; transform-origin: left center; } }`;
+  }
+  if (style === "glitch") {
+    return `@keyframes ${name} { 0% { ${from[style]} } 20% { opacity: 1; transform: translateX(6px) skewX(-8deg); } 40% { transform: translateX(-4px); filter: hue-rotate(-60deg); } 60% { transform: translateX(2px); filter: none; } 100% { opacity: 1; transform: none; filter: none; } }`;
+  }
+  if (style === "zoom") {
+    return `@keyframes ${name} { from { ${from[style]} } to { opacity: 1; transform: none; filter: none; } }`;
+  }
   if (style === "bounce") {
     return `@keyframes ${name} { 0% { ${from[style]} } 65% { opacity: 1; transform: translateY(-5px) scale(1.03); } 100% { opacity: 1; transform: none; } }`;
   }
@@ -961,6 +1003,11 @@ export function cameraChatConfigToSearch(
   params.set("sound", config.sound);
   params.set("soundstyle", config.soundStyle);
   params.set("soundvol", String(config.soundVolume));
+  params.set("namestyle", config.nameStyle);
+  params.set("pattern", config.panelPattern);
+  params.set("patternc", config.patternColor);
+  params.set("patterno", String(config.patternOpacity));
+  flag("combo", config.comboMessages);
   flag("anim", config.animateMessages);
   params.set("animstyle", config.animationStyle);
   params.set("animdur", String(config.animationDurationMs));
@@ -989,7 +1036,7 @@ export function cameraChatConfigFromSearch(
 
   const animationRaw = params.get("animstyle");
   const animationStyle: CameraChatAnimationStyle =
-    animationRaw !== null && (CHAT_MOTION_PRESETS as readonly string[]).includes(animationRaw)
+    animationRaw !== null && (CHAT_MOTION_STYLES as readonly string[]).includes(animationRaw)
       ? animationRaw as CameraChatMotionPreset
       : animationRaw === "random" ? "random" : "rise";
 
@@ -1100,6 +1147,11 @@ export function cameraChatConfigFromSearch(
     sound: enumParam(params, "sound", CHAT_SOUND_MODES, defaults.sound),
     soundStyle: enumParam(params, "soundstyle", CHAT_SOUND_STYLES, defaults.soundStyle),
     soundVolume: integerParam(params, "soundvol", defaults.soundVolume, 0, 100),
+    nameStyle: enumParam(params, "namestyle", CHAT_NAME_STYLES, defaults.nameStyle),
+    panelPattern: enumParam(params, "pattern", CHAT_PANEL_PATTERNS, defaults.panelPattern),
+    patternColor: color("patternc", defaults.patternColor),
+    patternOpacity: integerParam(params, "patterno", defaults.patternOpacity, 2, 50),
+    comboMessages: booleanParam(params, "combo", defaults.comboMessages),
 
     animateMessages: booleanParam(params, "anim", defaults.animateMessages),
     animationStyle,

@@ -26,6 +26,7 @@ import {
   CHAT_ROLE_COLORS,
   CHAT_DATA_IMAGE_PATTERN,
   CHAT_IMAGE_HOSTS,
+  CHAT_COMBO_MAX_LENGTH,
   CHAT_LINK_PATTERN,
   parseChatNameList,
   parseChatWordList,
@@ -304,6 +305,9 @@ const settings = ${scriptJson({
     soundRecipe: CHAT_SOUND_RECIPES[config.soundStyle],
     tickRecipe: CHAT_SOUND_RECIPES.tick,
     tickGap: CHAT_TICK_GAP_MS,
+    nameStyle: config.nameStyle,
+    combo: config.comboMessages,
+    comboMax: CHAT_COMBO_MAX_LENGTH,
   })};
 const list = document.getElementById("se-chat-messages");
 const nameColors = ${scriptJson(CHAT_NAME_PALETTES[config.namePalette])};
@@ -804,8 +808,9 @@ function buildRow(message) {
     head.appendChild(image("se-badge", badge.url, badge.description || badge.type || ""));
   });
   const name = document.createElement("span");
-  name.className = "se-name";
+  name.className = "se-name chat-name";
   name.textContent = message.name + (settings.showColon ? ":" : "");
+  if (settings.nameStyle !== "plain") name.style.setProperty("--chat-name", color);
   name.style.color = color;
   head.appendChild(name);
   // A line may break after the name, so the first word of the message is not split in two.
@@ -881,7 +886,11 @@ function removeMessage(localId) {
 
 function scheduleExit(message) {
   if (!(settings.lifetimeMs > 0)) return;
+  // A combo restarts the lifetime: only the timer of the latest version counts.
+  const version = message.version || 0;
   window.setTimeout(function () {
+    if ((message.version || 0) !== version) return;
+    message.leaving = true;
     const row = renderedRows.get(message.localId);
     if (settings.exitMs > 0 && row) {
       row.classList.add("se-leaving");
@@ -896,7 +905,40 @@ function scheduleExit(message) {
 const paceQueue = [];
 let paceLast = -Infinity;
 let paceTimer = null;
+// Combo: a short message equal to the row just before joins it ("x2, x3..."), while that row is still shown.
+function comboKey(message) {
+  if (message.event) return "";
+  const key = message.text.trim().replace(/\\s+/g, " ").toLowerCase();
+  return key && Array.from(key).length <= settings.comboMax ? key : "";
+}
+function updateCombo(message) {
+  const row = renderedRows.get(message.localId);
+  const content = row ? row.querySelector(".se-content") : null;
+  if (!content) return;
+  const old = content.querySelector(".chat-combo");
+  if (old) old.remove();
+  if (!(message.combo > 1)) return;
+  const badge = document.createElement("span");
+  badge.className = "chat-combo";
+  if (message.combo >= 5) badge.dataset.hot = "1";
+  badge.textContent = "\\u00d7" + message.combo;
+  content.appendChild(badge);
+}
+function membersOf(message) {
+  return message.members || [message];
+}
 function show(message) {
+  const last = messages[messages.length - 1];
+  const key = settings.combo ? comboKey(message) : "";
+  if (key && last && !last.leaving && comboKey(last) === key) {
+    last.members = membersOf(last).concat([{ msgId: message.msgId, userId: message.userId }]);
+    last.combo = last.members.length;
+    last.version = (last.version || 0) + 1;
+    updateCombo(last);
+    scheduleExit(last);
+    addHype(1);
+    return;
+  }
   messages.push(message);
   messages = messages.slice(-100);
   scheduleExit(message);
@@ -930,6 +972,20 @@ function pace(message) {
   if (paceQueue.length > settings.paceMax) paceQueue.shift();
   schedulePace();
 }
+// Moderation: a removed message leaves its combo (the count drops); a row with nothing left disappears.
+function dropMembers(test) {
+  messages = messages.filter(function (message) {
+    const members = membersOf(message);
+    const left = members.filter(function (member) { return !test(member); });
+    if (!left.length) return false;
+    if (left.length !== members.length) {
+      message.members = left;
+      message.combo = left.length;
+      updateCombo(message);
+    }
+    return true;
+  });
+}
 function dropWaiting(test) {
   for (let i = paceQueue.length - 1; i >= 0; i--) {
     if (test(paceQueue[i])) paceQueue.splice(i, 1);
@@ -960,7 +1016,8 @@ window.addEventListener("onEventReceived", function (event) {
     const text = asString(data.text);
     if (!text) return;
     const msgId = asString(data.msgId);
-    if (msgId && (messages.some(message => message.msgId === msgId) || paceQueue.some(message => message.msgId === msgId))) return;
+    if (msgId && (messages.some(message => membersOf(message).some(member => member.msgId === msgId))
+      || paceQueue.some(message => message.msgId === msgId))) return;
     const name = asString(data.displayName) || asString(data.nick) || "user";
     const nick = asString(data.nick);
     if (hiddenMessage(name, nick, text)) return;
@@ -1018,12 +1075,12 @@ window.addEventListener("onEventReceived", function (event) {
   } else if (detail.listener === "delete-message") {
     const id = asString(data.msgId);
     if (!id) return;
-    messages = messages.filter(message => message.msgId !== id);
+    dropMembers(member => member.msgId === id);
     dropWaiting(message => message.msgId === id);
   } else if (detail.listener === "delete-messages") {
     const id = asString(data.userId);
     if (!id) return;
-    messages = messages.filter(message => message.userId !== id);
+    dropMembers(member => member.userId === id);
     dropWaiting(message => message.userId === id);
   } else {
     return;

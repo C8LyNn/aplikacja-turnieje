@@ -1,5 +1,5 @@
 import { t } from "@/i18n";
-import type { CSSProperties, ReactNode } from "react";
+import { useState, type CSSProperties, type ReactNode } from "react";
 import { Check, Copy, Gamepad2, MessagesSquare, Mic, Moon, Shuffle, Smartphone, Trophy, type LucideIcon } from "lucide-react";
 import { ToolButton, ToolPanel } from "@/components/tool-ui";
 import {
@@ -9,10 +9,13 @@ import {
   rgbaCss,
 } from "./camera-chat-settings";
 import {
+  type ChatPresetCategory,
   CHAT_COLOR_THEMES,
   CHAT_COLOR_THEME_IDS,
-  CHAT_PRESET_IDS,
+  CHAT_PRESET_CATEGORY_IDS,
   applyChatColorTheme,
+  chatPresetCategoryLabel,
+  chatPresetsIn,
   chatColorThemeLabel,
   chatPresetConfig,
   chatPresetLabel,
@@ -110,7 +113,28 @@ function quickExtraLabel(id: QuickExtraId): string {
     case "hype": return t("obsLab.pasek_hype");
     case "goal": return t("obsLab.cel_subow");
     case "sound": return t("obsLab.dzwieki_zdarzen");
+    case "combo": return t("obsLab.kombo_wiadomosci");
   }
+}
+
+/** Theme groups above a preset grid; each chip shows how many looks it holds. */
+export function PresetCategoryChips({ value, onChange }: { value: ChatPresetCategory | "all"; onChange: (value: ChatPresetCategory | "all") => void }) {
+  return (
+    <div className="flex flex-wrap gap-1" role="group" aria-label={t("obsLab.kategorie_motywow")}>
+      {(["all", ...CHAT_PRESET_CATEGORY_IDS] as const).map((category) => (
+        <button
+          key={category}
+          type="button"
+          aria-pressed={value === category}
+          onClick={() => onChange(category)}
+          className={`${choiceClass(value === category)} px-2 py-1`}
+          data-testid={`preset-category-${category}`}
+        >
+          {chatPresetCategoryLabel(category)} <span className="opacity-60">{chatPresetsIn(category).length}</span>
+        </button>
+      ))}
+    </div>
+  );
 }
 
 const SCENARIO_ICONS: Record<ChatScenarioId, LucideIcon> = {
@@ -187,6 +211,7 @@ type Props = {
 
 /** Five short steps that cover what most streamers change; everything else stays in "All options". */
 export function ChatQuickSetup({ config, update, width, height, copied, onCopyUrl, onShowAll }: Props) {
+  const [category, setCategory] = useState<ChatPresetCategory | "all">("all");
   return (
     <ToolPanel title={t("obsLab.szybkie_ustawienie")} description={t("obsLab.zestaw_lub_kroki_opis")}>
       <div className="space-y-6" data-testid="chat-quick-setup">
@@ -258,8 +283,9 @@ export function ChatQuickSetup({ config, update, width, height, copied, onCopyUr
         </Step>
 
         <Step title={t("obsLab.krok_styl")} hint={t("obsLab.styl_zachowuje_uklad")}>
+          <PresetCategoryChips value={category} onChange={setCategory} />
           <div className="grid grid-cols-2 gap-1.5">
-            {CHAT_PRESET_IDS.map((preset) => (
+            {chatPresetsIn(category).map((preset) => (
               <button
                 key={preset}
                 type="button"

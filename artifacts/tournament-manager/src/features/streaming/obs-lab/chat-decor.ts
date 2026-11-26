@@ -6,6 +6,8 @@
  */
 import {
   type CameraChatConfig,
+  type CameraChatNameStyle,
+  type CameraChatPanelPattern,
   chatEmotePx,
   chatFontPx,
   chatRevealBaseMs,
@@ -27,11 +29,13 @@ export type AmbientParticle = {
     fontSize?: string;
     background?: string;
     color?: string;
+    boxShadow?: string;
     animation: string;
   };
 };
 
 const CONFETTI_COLORS = ["#f472b6", "#facc15", "#34d399", "#60a5fa", "#a78bfa", "#fb923c"];
+const LEAF_COLORS = ["#f59e0b", "#ea580c", "#dc2626", "#ca8a04", "#b45309"];
 
 /** Small deterministic generator (mulberry32): the same particles in every renderer and on every reload. */
 function seeded(seed: number): () => number {
@@ -84,6 +88,37 @@ export function chatAmbientParticles(config: Pick<CameraChatConfig, "ambient" | 
         const time = duration(3, 6);
         return { className: "chat-amb chat-amb-dot", text: "", style: { left, top: `${round(between(0, 96))}%`, width: size, height: size, background: config.ambientColor, animation: `chat-amb-twinkle ${time}s ease-in-out ${-round(between(0, time))}s infinite` } };
       }
+      case "rain": {
+        const time = duration(0.7, 1.3);
+        return { className: "chat-amb", text: "", style: { left, top: "-12%", width: "1.5px", height: `${round(between(10, 18))}px`, background: `linear-gradient(transparent, ${config.ambientColor})`, animation: `chat-amb-rain ${time}s linear ${-round(between(0, time))}s infinite` } };
+      }
+      case "fireflies": {
+        const size = `${round(between(3, 5))}px`;
+        const time = duration(6, 12);
+        return { className: "chat-amb chat-amb-dot", text: "", style: { left, top: `${round(between(8, 92))}%`, width: size, height: size, background: config.ambientColor, boxShadow: `0 0 6px 2px ${config.ambientColor}`, animation: `chat-amb-wander ${time}s ease-in-out ${-round(between(0, time))}s infinite` } };
+      }
+      case "petals":
+      case "leaves": {
+        const time = duration(7, 12);
+        const leaf = kind === "leaves";
+        return {
+          className: leaf ? "chat-amb chat-amb-leaf" : "chat-amb chat-amb-petal",
+          text: "",
+          style: {
+            left,
+            top: "-8%",
+            width: leaf ? "10px" : "9px",
+            height: leaf ? "7px" : "6px",
+            background: leaf ? LEAF_COLORS[index % LEAF_COLORS.length] : config.ambientColor,
+            animation: `chat-amb-petal ${time}s linear ${-round(between(0, time))}s infinite`,
+          },
+        };
+      }
+      case "pixels": {
+        const size = `${Math.round(between(4, 7))}px`;
+        const time = duration(6, 10);
+        return { className: "chat-amb", text: "", style: { left, top: "105%", width: size, height: size, background: config.ambientColor, animation: `chat-amb-rise ${time}s steps(14) ${-round(between(0, time))}s infinite` } };
+      }
     }
   });
 }
@@ -135,7 +170,42 @@ export function getChatDecorCss(config: CameraChatConfig, panel: string, row: st
       "@keyframes chat-amb-confetti { from { top: -8%; transform: rotate(0deg); } to { top: 108%; transform: rotate(540deg); } }",
       "@keyframes chat-amb-rise { 0% { top: 105%; opacity: 0; } 15% { opacity: .9; } 85% { opacity: .9; } 100% { top: -10%; opacity: 0; } }",
       "@keyframes chat-amb-twinkle { 0%, 100% { opacity: .15; transform: scale(.6); } 50% { opacity: 1; transform: scale(1.1); } }",
+      ".chat-amb-petal { border-radius: 70% 0 70% 0; opacity: .9; }",
+      ".chat-amb-leaf { border-radius: 0 80% 0 80%; }",
+      "@keyframes chat-amb-rain { from { top: -12%; transform: translateX(0) rotate(12deg); } to { top: 108%; transform: translateX(-14px) rotate(12deg); } }",
+      "@keyframes chat-amb-wander { 0%, 100% { transform: translate(0, 0); opacity: .2; } 25% { transform: translate(14px, -10px); opacity: 1; } 50% { transform: translate(-6px, -20px); opacity: .4; } 75% { transform: translate(-14px, -6px); opacity: .9; } }",
+      "@keyframes chat-amb-petal { 0% { top: -8%; transform: translateX(0) rotate(0deg); } 50% { transform: translateX(18px) rotate(200deg); } 100% { top: 108%; transform: translateX(-10px) rotate(400deg); } }",
     );
+  }
+  if (config.panelPattern !== "none") {
+    rules.push(
+      `${panel} { position: relative; isolation: isolate; }`,
+      `.chat-pattern { position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none; opacity: ${config.patternOpacity / 100}; background: ${chatPatternBackground(config.panelPattern, config.patternColor)}; }`,
+    );
+  }
+  if (config.comboMessages) {
+    rules.push(
+      ".chat-combo { display: inline-block; margin-left: 6px; padding: 0 7px; border-radius: 999px; background: #facc15; color: #1c1917; font-size: .78em; font-weight: 900; line-height: 1.55; vertical-align: middle; animation: chat-combo-pop .4s cubic-bezier(.2,1.6,.4,1) both; }",
+      ".chat-combo[data-hot=\"1\"] { background: linear-gradient(90deg, #f97316, #ef4444); color: #fff; box-shadow: 0 0 10px rgba(249,115,22,.7); }",
+      "@keyframes chat-combo-pop { from { transform: scale(.4); opacity: 0; } to { transform: scale(1); opacity: 1; } }",
+      "@media (prefers-reduced-motion: reduce) { .chat-combo { animation: none !important; } }",
+    );
+  }
+  if (config.nameStyle !== "plain") {
+    const clip = "-webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; text-shadow: none; filter: drop-shadow(0 1px 1px rgba(0,0,0,.55));";
+    const nameRules: Record<Exclude<CameraChatNameStyle, "plain">, string[]> = {
+      glow: [".chat-name { text-shadow: 0 0 6px var(--chat-name), 0 0 14px var(--chat-name); }"],
+      gradient: [`.chat-name { background: linear-gradient(90deg, var(--chat-name), #ffffff 160%); ${clip} }`],
+      rainbow: [
+        `.chat-name { background: linear-gradient(90deg, #f43f5e, #f59e0b, #84cc16, #06b6d4, #8b5cf6, #f43f5e) 0 0 / 200% 100%; ${clip} animation: chat-name-flow 3s linear infinite; }`,
+        "@keyframes chat-name-flow { to { background-position: 200% 0; } }",
+      ],
+      shimmer: [
+        `.chat-name { background: linear-gradient(100deg, var(--chat-name) 42%, #ffffff 50%, var(--chat-name) 58%) 0 0 / 250% 100%; ${clip} animation: chat-name-shine 3s ease-in-out infinite; }`,
+        "@keyframes chat-name-shine { from { background-position: 100% 0; } to { background-position: -150% 0; } }",
+      ],
+    };
+    rules.push(...nameRules[config.nameStyle], "@media (prefers-reduced-motion: reduce) { .chat-name { animation: none !important; } }");
   }
   if (chatHeaderContent(config).visible) {
     const accent = config.headerColor;
@@ -226,12 +296,26 @@ export const CHAT_HYPE_LABEL = "HYPE";
 const escapeHtml = (value: string) => value
   .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 
+/** The panel pattern as a CSS background (only fixed shapes; the colour is a validated hex value). */
+export function chatPatternBackground(pattern: CameraChatPanelPattern, color: string): string {
+  switch (pattern) {
+    case "dots": return `radial-gradient(${color} 1.2px, transparent 1.6px) 0 0 / 14px 14px`;
+    case "grid": return `linear-gradient(${color} 1px, transparent 1px) 0 0 / 18px 18px, linear-gradient(90deg, ${color} 1px, transparent 1px) 0 0 / 18px 18px`;
+    case "stripes": return `repeating-linear-gradient(45deg, ${color} 0 2px, transparent 2px 12px)`;
+    case "carbon": return `repeating-linear-gradient(45deg, ${color} 0 3px, transparent 3px 6px), repeating-linear-gradient(-45deg, ${color} 0 3px, transparent 3px 6px)`;
+    case "waves": return `radial-gradient(circle at 50% 100%, transparent 8px, ${color} 9px, ${color} 10px, transparent 11px) 0 0 / 24px 12px`;
+    case "scanlines": return `repeating-linear-gradient(0deg, ${color} 0 1px, transparent 1px 4px)`;
+    case "none": return "none";
+  }
+}
+
 /** Static HTML of the header box and of the particle layer for the StreamElements widget (texts escaped). */
 export function chatDecorHtml(config: CameraChatConfig, goal: ChatGoalProgress | null = null): { ambient: string; header: string } {
   const particles = chatAmbientParticles(config);
-  const ambient = particles.length
+  const pattern = config.panelPattern !== "none" ? `<div class="chat-pattern" aria-hidden="true"></div>` : "";
+  const ambient = pattern + (particles.length
     ? `<div class="chat-ambient" aria-hidden="true">${particles.map((particle) => `<span class="${particle.className}" style="${ambientStyleText(particle)}">${escapeHtml(particle.text)}</span>`).join("")}</div>`
-    : "";
+    : "");
   const content = chatHeaderContent(config);
   const header = content.visible
     ? `<div class="chat-header-box">${content.header ? `<div class="chat-header chat-header-${config.headerStyle}">${content.live ? "<span class=\"chat-live-dot\"></span>" : ""}<span>${escapeHtml(content.title)}</span></div>` : ""}${content.goal && goal ? goalHtml(config, goal) : ""}${content.hype ? hypeHtml() : ""}${content.pinned ? `<div class="chat-pinned">${escapeHtml(content.pinned)}</div>` : ""}</div>`

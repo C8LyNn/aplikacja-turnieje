@@ -283,16 +283,42 @@ export type ChatRow = {
   reply: ChatReply | null;
   /** Channel-points highlighted message, when that option is on. */
   points: boolean;
+  /** How many times the message was sent in a row (combo); 1 without a combo. */
+  combo: number;
 };
+
+/** A combo joins short messages (up to 40 characters) equal to the one just before them. */
+export const CHAT_COMBO_MAX_LENGTH = 40;
+
+export function chatComboKey(message: Pick<ChatMessage, "text" | "event">): string {
+  if (message.event) return "";
+  const key = message.text.trim().replace(/\s+/g, " ").toLowerCase();
+  return key && Array.from(key).length <= CHAT_COMBO_MAX_LENGTH ? key : "";
+}
+
+type ChatGroup = { message: ChatMessage; count: number; lastAt: number | undefined };
 
 /** The rows to draw, in display order: filtered, bounded to the message count, newest first when asked. */
 export function buildChatRows(messages: readonly ChatMessage[], config: CameraChatConfig, now: number): ChatRow[] {
   // Event rows skip the message filters (a cheer text starting with "!" is still a cheer).
-  const kept = messages.filter((message) =>
-    (message.event ? chatEventShown(message.event, config) : !isChatMessageHidden(message, config))
-    && chatMessagePhase(message.receivedAt, config, now) !== "gone");
+  const shown = messages.filter((message) =>
+    message.event ? chatEventShown(message.event, config) : !isChatMessageHidden(message, config));
+  // Combos: a repeat of the row just before (while that row is still fully shown) joins it and keeps it alive.
+  const groups: ChatGroup[] = [];
+  for (const message of shown) {
+    const last = groups[groups.length - 1];
+    const key = config.comboMessages ? chatComboKey(message) : "";
+    if (key && last && chatComboKey(last.message) === key
+      && chatMessagePhase(last.lastAt, config, message.receivedAt ?? now) === "shown") {
+      last.count += 1;
+      last.lastAt = message.receivedAt ?? last.lastAt;
+      continue;
+    }
+    groups.push({ message, count: 1, lastAt: message.receivedAt });
+  }
+  const kept = groups.filter((group) => chatMessagePhase(group.lastAt, config, now) !== "gone");
   const visible = kept.slice(-config.maxMessages);
-  const rows = visible.map((message, index): ChatRow => {
+  const rows = visible.map(({ message, count, lastAt }, index): ChatRow => {
     const event = message.event ?? null;
     const reply = config.showReplies && !event ? message.reply ?? null : null;
     const ownText = stripReplyMention(message.text, reply);
@@ -301,7 +327,7 @@ export function buildChatRows(messages: readonly ChatMessage[], config: CameraCh
     return {
       key: message.id ?? message.msgId ?? `${message.name}|${message.text}|${index}`,
       message,
-      phase: chatMessagePhase(message.receivedAt, config, now) === "leaving" ? "leaving" : "shown",
+      phase: chatMessagePhase(lastAt, config, now) === "leaving" ? "leaving" : "shown",
       opacity: config.fadeOldMessages ? 0.5 + ((index + 1) / visible.length) * 0.5 : 1,
       nameColor: resolveChatNameColor(message, config),
       parts,
@@ -319,6 +345,7 @@ export function buildChatRows(messages: readonly ChatMessage[], config: CameraCh
       event,
       reply,
       points: !event && config.pointsHighlight && message.pointsMessage === true,
+      combo: count,
     };
   });
   return config.newestFirst ? rows.reverse() : rows;

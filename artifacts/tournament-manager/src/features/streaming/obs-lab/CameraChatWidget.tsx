@@ -355,8 +355,9 @@ export function CameraChatWidget({
     const emoteHeight = row.emoteOnly ? emotePx * 2 : emotePx;
     const name = (
       <span
-        className="obs-chat-name"
+        className="obs-chat-name chat-name"
         style={{
+          ...(config.nameStyle !== "plain" ? { "--chat-name": row.nameColor } as CSSProperties : {}),
           color: row.nameColor,
           fontWeight: 900,
           marginRight: block ? undefined : 8,
@@ -463,6 +464,11 @@ export function CameraChatWidget({
           {block
             ? (<><div className="obs-chat-head">{firstTag}{badges}{name}</div>{text}</>)
             : (<>{firstTag}{badges}{name}<wbr />{text}</>)}
+          {row.combo > 1 && (
+            <span key={`combo-${row.combo}`} className="chat-combo" data-hot={row.combo >= 5 ? "1" : undefined}>
+              {"\u00d7"}{row.combo}
+            </span>
+          )}
         </div>
         {burst}
       </div>
@@ -493,6 +499,7 @@ export function CameraChatWidget({
           : { backgroundColor: chatPanelBackground(config) }),
       }}
     >
+      {config.panelPattern !== "none" && <div className="chat-pattern" aria-hidden="true" />}
       {particles.length > 0 && (
         <div className="chat-ambient" aria-hidden="true">
           {particles.map((particle, index) => (

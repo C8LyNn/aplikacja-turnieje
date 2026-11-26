@@ -48,6 +48,7 @@ export const CHAT_BEHAVIOUR_FIELDS = [
   "sound",
   "soundStyle",
   "soundVolume",
+  "comboMessages",
 ] as const satisfies ReadonlyArray<keyof CameraChatConfig>;
 
 export function keepChatPlacement(next: CameraChatConfig, current: CameraChatConfig): CameraChatConfig {
@@ -131,9 +132,9 @@ export function randomChatLook(current: CameraChatConfig, random: () => number =
 
 // --- One-click extras ---------------------------------------------------------------------------------------------
 
-export type QuickExtraId = "snow" | "hearts" | "sparkles" | "header" | "firstTime" | "burst" | "frame" | "fade" | "events" | "calm" | "confetti" | "hype" | "goal" | "sound";
+export type QuickExtraId = "snow" | "hearts" | "sparkles" | "header" | "firstTime" | "burst" | "frame" | "fade" | "events" | "calm" | "confetti" | "hype" | "goal" | "sound" | "combo";
 
-export const QUICK_EXTRAS: readonly QuickExtraId[] = ["snow", "hearts", "sparkles", "header", "firstTime", "burst", "frame", "fade", "events", "calm", "confetti", "hype", "goal", "sound"];
+export const QUICK_EXTRAS: readonly QuickExtraId[] = ["snow", "hearts", "sparkles", "header", "firstTime", "burst", "frame", "fade", "events", "calm", "confetti", "hype", "goal", "sound", "combo"];
 
 /** Message lifetime the "fade out" extra switches on. */
 export const QUICK_FADE_SECONDS = 30;
@@ -158,6 +159,7 @@ export function quickExtraOn(id: QuickExtraId, config: CameraChatConfig): boolea
     case "hype": return config.hypeMeter;
     case "goal": return config.goalKind !== "none";
     case "sound": return config.sound !== "none";
+    case "combo": return config.comboMessages;
   }
 }
 
@@ -188,6 +190,7 @@ export function toggleQuickExtra(id: QuickExtraId, config: CameraChatConfig, liv
     case "hype": return { ...config, hypeMeter: on };
     case "goal": return { ...config, goalKind: on ? "sub" : "none" };
     case "sound": return { ...config, sound: on ? "events" : "none" };
+    case "combo": return { ...config, comboMessages: on };
   }
 }
 

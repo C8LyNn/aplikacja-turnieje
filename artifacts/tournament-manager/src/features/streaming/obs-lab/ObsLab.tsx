@@ -16,7 +16,7 @@ import {
   ToolWorkspace,
 } from "@/components/tool-ui";
 import { StreamElementsSetup } from "./StreamElementsSetup";
-import { ChatQuickSetup, ObsSourceSteps, PresetSwatch, choiceClass } from "./ChatQuickSetup";
+import { ChatQuickSetup, ObsSourceSteps, PresetCategoryChips, PresetSwatch, choiceClass } from "./ChatQuickSetup";
 import { type CameraChatEventStyle, type ChatEventKind, type ChatGoalKind, CHAT_EVENT_KINDS, chatGoalDefaultLabel } from "./chat-events";
 import { type ChatSoundMode, type ChatSoundStyle, CHAT_SOUND_RECIPES, chatAudio, playChatNotes } from "./chat-sound";
 import { chatEventLabels } from "./chat-event-labels";
@@ -58,6 +58,8 @@ import {
   type CameraChatAmbient,
   type CameraChatHeaderStyle,
   type CameraChatBubbleShape,
+  type CameraChatNameStyle,
+  type CameraChatPanelPattern,
   COMMON_CHAT_BOTS,
   DEFAULT_CAMERA_CHAT_CONFIG,
   cameraChatConfigFromSearch,
@@ -67,9 +69,10 @@ import {
 } from "./camera-chat-settings";
 import { parseChatNameList, parseChatWordList } from "./chat-message-format";
 import {
+  type ChatPresetCategory,
+  chatPresetsIn,
   CHAT_COLOR_THEME_IDS,
   CHAT_COLOR_THEMES,
-  CHAT_PRESET_IDS,
   applyChatColorTheme,
   chatColorThemeLabel,
   chatPresetConfig,
@@ -318,6 +321,7 @@ export function ObsLab() {
   const optionsRef = useRef<HTMLDivElement>(null);
   const [optionQuery, setOptionQuery] = useState("");
   const [optionMatches, setOptionMatches] = useState(0);
+  const [presetCategory, setPresetCategory] = useState<ChatPresetCategory | "all">("all");
   const configRef = useRef(config);
   configRef.current = config;
   // Test messages go through the same calm-chat pacing as the OBS page; each lifetime starts when it shows.
@@ -602,8 +606,11 @@ export function ObsLab() {
             <RefreshCw className="h-4 w-4" />{" "}{t("obsLab.reset")}</ToolButton>
         }
       >
+        <div className="mb-3">
+          <PresetCategoryChips value={presetCategory} onChange={setPresetCategory} />
+        </div>
         <div className="grid grid-cols-2 gap-2">
-          {CHAT_PRESET_IDS.map((preset) => (
+          {chatPresetsIn(presetCategory).map((preset) => (
             <ToolButton
               key={preset}
               type="button"
@@ -896,6 +903,15 @@ export function ObsLab() {
           )}
           <ToolToggle label={t("obsLab.dwukropek_po_nicku")} checked={config.showColon} onChange={(showColon) => patchConfig({ showColon })} />
           <ToolToggle label={t("obsLab.nicki_wielkimi_literami")} checked={config.nameUppercase} onChange={(nameUppercase) => patchConfig({ nameUppercase })} />
+          <FieldLabel label={t("obsLab.styl_nickow")}>
+            <ToolSelect value={config.nameStyle} onChange={(event) => patchConfig({ nameStyle: event.target.value as CameraChatNameStyle })} data-testid="chat-name-style">
+              <option value="plain">{t("obsLab.zwykle_nicki")}</option>
+              <option value="glow">{t("obsLab.nicki_swiecace")}</option>
+              <option value="gradient">{t("obsLab.nicki_gradient")}</option>
+              <option value="rainbow">{t("obsLab.nicki_teczowe")}</option>
+              <option value="shimmer">{t("obsLab.nicki_z_polyskiem")}</option>
+            </ToolSelect>
+          </FieldLabel>
         </div>
       </ToolDisclosure>
 
@@ -929,6 +945,23 @@ export function ObsLab() {
               <option value="underline">{t("obsLab.podkreslenie")}</option>
             </ToolSelect>
           </FieldLabel>
+          <FieldLabel label={t("obsLab.wzor_tla")}>
+            <ToolSelect value={config.panelPattern} onChange={(event) => patchConfig({ panelPattern: event.target.value as CameraChatPanelPattern })} data-testid="chat-pattern">
+              <option value="none">{t("obsLab.bez_wzoru")}</option>
+              <option value="dots">{t("obsLab.wzor_kropki")}</option>
+              <option value="grid">{t("obsLab.wzor_kratka")}</option>
+              <option value="stripes">{t("obsLab.wzor_paski")}</option>
+              <option value="carbon">{t("obsLab.wzor_karbon")}</option>
+              <option value="waves">{t("obsLab.wzor_fale")}</option>
+              <option value="scanlines">{t("obsLab.wzor_linie_crt")}</option>
+            </ToolSelect>
+          </FieldLabel>
+          {config.panelPattern !== "none" && (
+            <div className="space-y-3 rounded-xl border border-border bg-background/35 p-3">
+              <ColorField label={t("obsLab.kolor_wzoru")} value={config.patternColor} onChange={(patternColor) => patchConfig({ patternColor })} />
+              <ToolRange label={t("obsLab.widocznosc_wzoru")} value={config.patternOpacity} suffix="%" min={2} max={50} onChange={(patternOpacity) => patchConfig({ patternOpacity })} />
+            </div>
+          )}
           <ToolToggle label={t("obsLab.pasek_w_kolorze_nicku")} checked={config.accentBar} onChange={(accentBar) => patchConfig({ accentBar })} />
           <ToolToggle label={t("obsLab.obramowania")} checked={config.showBorders} onChange={(showBorders) => patchConfig({ showBorders })} />
           <ToolToggle label={t("obsLab.avatary")} checked={config.showAvatars} onChange={(showAvatars) => patchConfig({ showAvatars })} />
@@ -1000,12 +1033,17 @@ export function ObsLab() {
               <option value="bubbles">{t("obsLab.babelki")}</option>
               <option value="stars">{t("obsLab.gwiazdy")}</option>
               <option value="confetti">{t("obsLab.konfetti")}</option>
+              <option value="rain">{t("obsLab.deszcz")}</option>
+              <option value="fireflies">{t("obsLab.swietliki")}</option>
+              <option value="petals">{t("obsLab.platki_sakury")}</option>
+              <option value="leaves">{t("obsLab.jesienne_liscie")}</option>
+              <option value="pixels">{t("obsLab.piksele")}</option>
             </ToolSelect>
           </FieldLabel>
           {config.ambient !== "none" && (
             <div className="space-y-3 rounded-xl border border-border bg-background/35 p-3">
               <ToolRange label={t("obsLab.ilosc_drobinek")} value={config.ambientDensity} min={4} max={40} onChange={(ambientDensity) => patchConfig({ ambientDensity })} />
-              {config.ambient !== "confetti" && (
+              {config.ambient !== "confetti" && config.ambient !== "leaves" && (
                 <ColorField label={t("obsLab.kolor_drobinek")} value={config.ambientColor} onChange={(ambientColor) => patchConfig({ ambientColor })} />
               )}
             </div>
@@ -1065,6 +1103,12 @@ export function ObsLab() {
             description={t("obsLab.etykieta_nowy_przy_pierwszej")}
             checked={config.firstTimeHighlight}
             onChange={(firstTimeHighlight) => patchConfig({ firstTimeHighlight })}
+          />
+          <ToolToggle
+            label={t("obsLab.kombo_wiadomosci")}
+            description={t("obsLab.kombo_wiadomosci_opis")}
+            checked={config.comboMessages}
+            onChange={(comboMessages) => patchConfig({ comboMessages })}
           />
         </div>
       </ToolDisclosure>
@@ -1235,6 +1279,10 @@ export function ObsLab() {
                   <option value="bounce">{t("obsLab.odbicie")}</option>
                   <option value="flip">{t("obsLab.obrot_3d")}</option>
                   <option value="wipe">{t("obsLab.odsloniecie")}</option>
+                  <option value="drop">{t("obsLab.spadniecie")}</option>
+                  <option value="zoom">{t("obsLab.najazd")}</option>
+                  <option value="swing">{t("obsLab.wahadlo")}</option>
+                  <option value="glitch">{t("obsLab.glitch")}</option>
                   <option value="random">{t("obsLab.losowo_dla_kazdej_wiadomosci")}</option>
                 </ToolSelect>
               </label>
