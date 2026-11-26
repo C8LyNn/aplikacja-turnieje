@@ -10,7 +10,7 @@ import CameraChatOverlay from "./CameraChatOverlay";
 import { CameraChatWidget } from "./CameraChatWidget";
 import { generateStreamElementsWidget } from "./stream-elements-widget";
 import { chatEventLabels } from "./chat-event-labels";
-import { CHAT_SCENE_BACKDROP, CHAT_SCENE_IDS, chatSceneFor, chatSceneHtml, getChatSceneCss } from "./chat-scenes";
+import { CHAT_SCENE_BACKDROP, CHAT_SCENE_IDS, CHAT_SCENE_LEVEL_OPACITY, chatSceneFor, chatSceneHtml, chatSceneLevel, getChatSceneCss } from "./chat-scenes";
 import { type CameraChatConfig, DEFAULT_CAMERA_CHAT_CONFIG, cameraChatConfigFromSearch, cameraChatConfigToSearch } from "./camera-chat-settings";
 import { chatPresetConfig, CHAT_PRESET_IDS } from "./chat-presets";
 import { chatTextBackdrop, checkChatSetup } from "./chat-setup-check";
@@ -114,6 +114,40 @@ test("the scene is the same in the preview, the OBS page and the native widget",
   }
   const plain = nativeScene({ ...DEFAULT_CAMERA_CHAT_CONFIG });
   assert.equal(plain.scene, null, "no scene, no layer");
+});
+
+test("an empty chat shows the scene in full; as messages arrive it steps back, the same in all three renderers", () => {
+  assert.deepEqual([0, 1, 2, 3, 4, 5, 9].map((count) => chatSceneLevel(count, 5)), [0, 1, 1, 2, 3, 3, 3]);
+  assert.deepEqual([0, 1, 3, 4, 7, 8].map((count) => chatSceneLevel(count, 10)), [0, 1, 1, 2, 2, 3]);
+  assert.equal(chatSceneLevel(1, 1), 1);
+  const css = getChatDecorCss(chatPresetConfig("ocean"), ".p", ".r");
+  for (const level of [1, 2, 3] as const) {
+    assert.ok(css.includes(`.p[data-chat-level="${level}"] .chat-scene { opacity: ${CHAT_SCENE_LEVEL_OPACITY.scene[level]};`), `scene level ${level}`);
+    assert.ok(css.includes(`.p[data-chat-level="${level}"] .chat-ambient { opacity: ${CHAT_SCENE_LEVEL_OPACITY.particles[level]}; }`), `particles level ${level}`);
+  }
+  assert.ok(CHAT_SCENE_LEVEL_OPACITY.scene.every((value, index, all) => index === 0 || value < all[index - 1]!), "fuller chat, quieter scene");
+  assert.match(css, /\.chat-scene, \.chat-ambient \{ transition: opacity 1\.4s ease/);
+  assert.match(getChatDecorCss(chatPresetConfig("matrix"), ".p", ".r"), /data-chat-level="3"\] \.chat-ambient/, "particles without a scene step back too");
+  assert.doesNotMatch(getChatDecorCss({ ...DEFAULT_CAMERA_CHAT_CONFIG }, ".p", ".r"), /data-chat-level/, "nothing to step back, no rules");
+
+  const config: CameraChatConfig = { ...chatPresetConfig("ocean"), maxMessages: 5 };
+  const snippets = generateStreamElementsWidget(config, t("obsLab.nowy"), chatEventLabels());
+  const dom = new JSDOM(`<!doctype html><html><head><style>${snippets.css}</style></head><body>${snippets.html}</body></html>`, { runScripts: "outside-only" });
+  dom.window.eval(snippets.js);
+  const panel = dom.window.document.querySelector(".se-panel")!;
+  const levels = [panel.getAttribute("data-chat-level")];
+  for (let index = 1; index <= 5; index += 1) {
+    dom.window.dispatchEvent(new dom.window.CustomEvent("onEventReceived", { detail: { listener: "message", event: { data: { displayName: `U${index}`, nick: `u${index}`, text: `hej ${index}`, msgId: `m${index}`, userId: `u${index}`, displayColor: "#1E90FF" } } } }));
+    levels.push(panel.getAttribute("data-chat-level"));
+  }
+  dom.window.close();
+  assert.deepEqual(levels, ["0", "1", "1", "2", "3", "3"], "the widget steps the scene back message by message");
+  for (const count of [0, 1, 3, 5]) {
+    const messages = Array.from({ length: count }, (_, index) => ({ id: String(index), name: `U${index}`, text: "hej" }));
+    const view = render(<CameraChatWidget config={config} messages={messages} />);
+    assert.equal(view.container.querySelector(".obs-chat-panel")!.getAttribute("data-chat-level"), String(chatSceneLevel(count, 5)), `preview with ${count} messages`);
+    view.unmount();
+  }
 });
 
 test("text stays readable over the scenes, and Matrix keeps its code rain behind dark plates", () => {

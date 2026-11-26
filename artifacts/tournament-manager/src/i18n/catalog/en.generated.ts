@@ -2957,7 +2957,7 @@ export const enGenerated: Record<keyof typeof plGenerated, string> = {
   "obsLab.sam_kontur": "Outline only",
   "obsLab.sama_wiadomosc_czatu": "just the chat message",
   "obsLab.scena_w_tle": "Background scene",
-  "obsLab.scena_w_tle_opis": "An animated picture behind the messages: waves and fish, trees, comets, fireworks, a dragon… Messages slightly blur what is right behind them, so the text stays readable.",
+  "obsLab.scena_w_tle_opis": "An animated picture behind the messages: waves and fish, trees, comets, fireworks, a dragon… With an empty chat the scene plays in full; the more messages, the more it steps back behind the chat, and it is dimmed right behind the text.",
   "obsLab.serduszka": "Hearts",
   "obsLab.skopiowano": "Copied",
   "obsLab.skorka_motywu": "Theme skin",

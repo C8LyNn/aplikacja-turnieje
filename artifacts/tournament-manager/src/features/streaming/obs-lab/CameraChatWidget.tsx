@@ -48,7 +48,7 @@ import {
   getChatDecorCss,
 } from "./chat-decor";
 import { chatOrnamentGlyph } from "./chat-ornaments";
-import { chatSceneHtml } from "./chat-scenes";
+import { chatSceneHtml, chatSceneLevel } from "./chat-scenes";
 import {
   type ChatEventLabels,
   type ChatGoalKind,
@@ -486,6 +486,7 @@ export function CameraChatWidget({
 
   const particles = chatAmbientParticles(config);
   const sceneMarkup = chatSceneHtml(config);
+  const chatLevel = chatSceneLevel(rows.filter((row) => row.phase !== "leaving").length, config.maxMessages);
   const headerContent = chatHeaderContent(config);
   const goal = config.goalKind === "none"
     ? null
@@ -496,6 +497,7 @@ export function CameraChatWidget({
     maxHeight?: number,
   ) => (
     <div
+      data-chat-level={chatLevel}
       className={`obs-chat-panel flex min-h-0 w-full flex-col overflow-hidden ${
         config.chatAnchor === "top"
           ? "justify-start"

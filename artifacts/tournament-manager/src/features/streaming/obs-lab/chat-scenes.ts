@@ -1130,6 +1130,37 @@ export function chatSceneFor(id: string): ChatSceneId {
   return (CHAT_SCENE_IDS as readonly string[]).includes(id) ? (id as ChatSceneId) : "none";
 }
 
+/**
+ * How full the chat is: 0 = empty (the scene and the particles play in full), then 1-3 as messages arrive, so the chat
+ * always comes first. The renderers put the level on the panel as data-chat-level.
+ */
+export function chatSceneLevelThresholds(maxMessages: number): [number, number] {
+  const first = Math.max(1, Math.round(maxMessages / 3));
+  return [first, Math.max(first + 1, Math.round((maxMessages * 2) / 3))];
+}
+
+export function chatSceneLevel(visibleMessages: number, maxMessages: number): 0 | 1 | 2 | 3 {
+  if (visibleMessages <= 0) return 0;
+  const [first, second] = chatSceneLevelThresholds(maxMessages);
+  return visibleMessages <= first ? 1 : visibleMessages <= second ? 2 : 3;
+}
+
+/** The scene and the particles step back as the chat fills (opacity per level), smoothly. */
+export const CHAT_SCENE_LEVEL_OPACITY = { scene: [1, 0.8, 0.62, 0.48], particles: [0.85, 0.7, 0.55, 0.42] } as const;
+
+export function getChatFillCss(panel: string): string {
+  const rules = [".chat-scene, .chat-ambient { transition: opacity 1.4s ease, filter 1.4s ease; }"];
+  for (const level of [1, 2, 3] as const) {
+    const muted = level === 1 ? "" : ` filter: saturate(${level === 2 ? ".85" : ".75"});`;
+    rules.push(
+      `${panel}[data-chat-level="${level}"] .chat-scene { opacity: ${CHAT_SCENE_LEVEL_OPACITY.scene[level]};${muted} }`,
+      `${panel}[data-chat-level="${level}"] .chat-ambient { opacity: ${CHAT_SCENE_LEVEL_OPACITY.particles[level]}; }`,
+    );
+  }
+  rules.push("@media (prefers-reduced-motion: reduce) { .chat-scene, .chat-ambient { transition: none !important; } }");
+  return rules.join("\n");
+}
+
 /** What a message does to the scene right behind it: light text gets a dimmed picture, dark text a lightened one. */
 export const CHAT_SCENE_BACKDROP = { light: "blur(6px) brightness(.5)", dark: "blur(6px) brightness(1.35)" } as const;
 

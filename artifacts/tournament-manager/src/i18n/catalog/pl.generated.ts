@@ -2956,7 +2956,7 @@ export const plGenerated = {
   "obsLab.sam_kontur": "Sam kontur",
   "obsLab.sama_wiadomosc_czatu": "samą wiadomość czatu",
   "obsLab.scena_w_tle": "Scena w tle",
-  "obsLab.scena_w_tle_opis": "Animowany obrazek za wiadomościami: fale i ryby, drzewa, komety, fajerwerki, smok… Wiadomości lekko rozmywają to, co jest tuż za nimi, więc tekst zostaje czytelny.",
+  "obsLab.scena_w_tle_opis": "Animowany obrazek za wiadomościami: fale i ryby, drzewa, komety, fajerwerki, smok… Gdy czat jest pusty, scena gra w pełni; im więcej wiadomości, tym bardziej ustępuje czatowi, a za samym tekstem jest przyciemniona.",
   "obsLab.serduszka": "Serduszka",
   "obsLab.skopiowano": "Skopiowano",
   "obsLab.skorka_motywu": "Skórka motywu",

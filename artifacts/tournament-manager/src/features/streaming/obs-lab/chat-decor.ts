@@ -17,7 +17,7 @@ import {
 import { type ChatGoalProgress, CHAT_GOAL_COLORS } from "./chat-events";
 import { chatOrnamentHtml, getChatOrnamentCss } from "./chat-ornaments";
 import { getChatSkinCss } from "./chat-skins";
-import { chatSceneHtml, getChatSceneCss } from "./chat-scenes";
+import { chatSceneHtml, getChatFillCss, getChatSceneCss } from "./chat-scenes";
 
 // --- Background particles -----------------------------------------------------------------------------------------
 
@@ -209,6 +209,8 @@ export function getChatDecorCss(config: CameraChatConfig, panel: string, row: st
   }
   const scene = getChatSceneCss(config, panel, row);
   if (scene) rules.push(scene);
+  // An empty chat shows the scene and the particles in full; as messages arrive they step back behind the chat.
+  if (config.scene !== "none" || config.ambient !== "none") rules.push(getChatFillCss(panel));
   if (config.panelPattern !== "none") {
     rules.push(
       `${panel} { position: relative; isolation: isolate; }`,

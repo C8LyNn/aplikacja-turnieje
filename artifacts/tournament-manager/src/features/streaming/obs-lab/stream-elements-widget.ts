@@ -63,6 +63,7 @@ import {
 } from "./chat-events";
 import { CHAT_SOUND_RECIPES, CHAT_TICK_GAP_MS } from "./chat-sound";
 import { chatOrnamentGlyph } from "./chat-ornaments";
+import { chatSceneLevelThresholds } from "./chat-scenes";
 
 /** The widget's markup; particles and the header box (texts escaped) sit in the panel before the message list. */
 function widgetHtml(config: CameraChatConfig, labels: ChatEventLabels): string {
@@ -70,7 +71,7 @@ function widgetHtml(config: CameraChatConfig, labels: ChatEventLabels): string {
   return `<div id="se-camera-chat">
   <div class="se-camera"></div>
   <div class="se-chat-box">
-    <div class="se-panel">${decor.ambient}${decor.header}
+    <div class="se-panel" data-chat-level="0">${decor.ambient}${decor.header}
       <div class="se-messages" id="se-chat-messages"></div>
     </div>
   </div>
@@ -250,6 +251,7 @@ ${getChatEventCss(config, ".se-message")}
   const js = `(function () {
 const settings = ${scriptJson({
     maxMessages: config.maxMessages,
+    sceneLevels: chatSceneLevelThresholds(config.maxMessages),
     showAvatars: config.showAvatars,
     fadeOldMessages: config.fadeOldMessages,
     animateMessages: config.animateMessages,
@@ -318,6 +320,13 @@ const settings = ${scriptJson({
     comboMax: CHAT_COMBO_MAX_LENGTH,
   })};
 const list = document.getElementById("se-chat-messages");
+const panelBox = list ? list.parentNode : null;
+
+// How full the chat is (0 = empty): the scene and the particles step back as messages arrive (same as the preview).
+function sceneLevel(count) {
+  if (count <= 0) return 0;
+  return count <= settings.sceneLevels[0] ? 1 : count <= settings.sceneLevels[1] ? 2 : 3;
+}
 const nameColors = ${scriptJson(CHAT_NAME_PALETTES[config.namePalette])};
 const motionPresets = ${scriptJson(CHAT_MOTION_PRESETS)};
 const imageHosts = ${scriptJson(CHAT_IMAGE_HOSTS)};
@@ -888,6 +897,7 @@ function renderMessages() {
     if (row.parentNode !== list || row.nextSibling !== anchor) list.insertBefore(row, anchor);
     anchor = row;
   }
+  if (panelBox && panelBox.setAttribute) panelBox.setAttribute("data-chat-level", String(sceneLevel(visible.length)));
   visible.forEach((message, index) => {
     renderedRows.get(message.localId).style.opacity = settings.fadeOldMessages
       ? String(0.5 + (index + 1) / visible.length * 0.5)

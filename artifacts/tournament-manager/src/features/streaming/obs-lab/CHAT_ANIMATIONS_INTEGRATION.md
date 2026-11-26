@@ -292,6 +292,10 @@ natywnego widgetu StreamElements. Reguły wiadomości są w
   to, co jest tuż za nią, i przyciemnia to za jasnym tekstem albo rozjaśnia za ciemnym (`CHAT_SCENE_BACKDROP`,
   `backdrop-filter`); jasny tekst dostaje lekki cień. Motywy z jasną sceną mają jasne karty i ciemny tekst.
   Animacje zatrzymują się przy `prefers-reduced-motion`.
+- Czat ma pierwszeństwo: pusty czat pokazuje scenę i cząsteczki w pełni, a w miarę przybywania wiadomości ustępują
+  (`data-chat-level` 0–3 na panelu, liczony z liczby widocznych wiadomości względem `maxMessages`; scena 100% → 80% →
+  62% → 48%, cząsteczki 85% → 42%, płynne przejście 1,4 s). Tak samo w podglądzie, na stronie OBS i w widżecie
+  StreamElements (test w `chat-scenes.test.tsx`). Wiadomości, które zniknęły po czasie, przywracają scenę.
 - Pomiar (Edge bez okna, 60 motywów, 6 chwil animacji): tekst ukryty, zrzut i kontrast koloru tekstu z prawdziwymi
   pikselami za każdą linią (10. percentyl). Przed poprawką sceny psuły kontrast m.in. w motywach Lampa lava (5,5 → 1,8),
   Zima (8,4 → 2,7), Liliowy sen, Zorza, Vaporwave i Pustynia. Po poprawce żadna scena nie obniża kontrastu tekstu poniżej
