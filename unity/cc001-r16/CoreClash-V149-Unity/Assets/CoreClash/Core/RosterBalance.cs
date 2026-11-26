@@ -123,6 +123,12 @@ namespace CoreClash.Core
     // freezing for 15 HP (the ice decks +2 and +3, not needed once the Jungle came down).
     // A spread of 6.5 points is what chance alone gives six equal decks at 300 matches each
     // (about 7): tuning single points further cannot be measured at this sample.
+    // Checked afterwards on a run twice as large (120 matches a pair, 600 a deck, about 2 points
+    // of chance a deck): Fire Pit 55  Frozen Garden 52  Dynamo 50.5  Acid Rain 48  Jungle 48
+    // Polar Storm 47, first player 50.9%, spread 8. Fire Pit is probably still a few points
+    // ahead of the rest. (The small deck report of the same rules showed Acid Rain at 35% of its
+    // 120 matches, which the larger run did not bear out - once more a reason not to judge the
+    // ready decks by that report.)
     public static class RosterBalance
     {
         // The Poison Pool's field. (The Blizzard keeps the reference 165.)
