@@ -91,6 +91,17 @@ function nativeScene(config: CameraChatConfig) {
   return { scene, css: snippets.css };
 }
 
+test("every scene is a whole picture: something in the lower half too, since messages may sit at the top", () => {
+  for (const id of SCENES) {
+    const html = chatSceneHtml({ scene: id });
+    const lower = /bottom: /.test(html)
+      || /top: (?:[5-9]\d(?:\.\d)?|100)%/.test(html)
+      || /top: calc\((?:[5-9]\d|100)%/.test(html)
+      || /cs-(?:fall|rise) /.test(html);
+    assert.ok(lower, `${id} draws something low in the panel`);
+  }
+});
+
 test("the scene is the same in the preview, the OBS page and the native widget", () => {
   for (const id of ["ocean", "dragon", "cyberpunk", "christmas"] as const) {
     const config = chatPresetConfig(id);

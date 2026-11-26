@@ -239,29 +239,44 @@ function mountains(seed: number, color: string, snow: string): string {
 }
 
 /** A city skyline with lit windows; some of them flicker. */
-function skyline(seed: number, color: string, lights: string[], flicker: boolean): string {
+type SkylineBox = { span: number; base: number; minHeight: number; maxHeight: number; minWidth: number; maxWidth: number; window: number; lit: number };
+const WIDE_SKYLINE: SkylineBox = { span: 1200, base: 100, minHeight: 30, maxHeight: 92, minWidth: 34, maxWidth: 80, window: 3.5, lit: 0.22 };
+
+function skyline(seed: number, color: string, lights: string[], flicker: boolean, box: SkylineBox = WIDE_SKYLINE): string {
   const random = seeded(seed);
   let buildings = "";
   let windows = "";
-  let x = 0;
-  while (x < 1200) {
-    const width = 34 + random() * 46;
-    const height = 30 + random() * 62;
-    const top = 100 - height;
-    buildings += `<rect x="${r1(x)}" y="${r1(top)}" width="${r1(width)}" height="${r1(height)}" fill="${color}"/>`;
-    if (random() < 0.3) buildings += `<rect x="${r1(x + width / 2 - 1)}" y="${r1(top - 10)}" width="2" height="10" fill="${color}"/>`;
-    for (let wy = top + 5; wy < 96; wy += 7) {
-      for (let wx = x + 5; wx < x + width - 6; wx += 8) {
-        if (random() < 0.22) {
+  let x = -4;
+  const pitch = box.window * 2.3;
+  while (x < box.span) {
+    const width = box.minWidth + random() * (box.maxWidth - box.minWidth);
+    const height = box.minHeight + random() * (box.maxHeight - box.minHeight);
+    const top = box.base - height;
+    buildings += `<rect x="${r1(x)}" y="${r1(top)}" width="${r1(width)}" height="${r1(height + 2)}" fill="${color}"/>`;
+    if (random() < 0.3) buildings += `<rect x="${r1(x + width / 2 - 1)}" y="${r1(top - box.window * 3)}" width="2" height="${r1(box.window * 3)}" fill="${color}"/>`;
+    for (let wy = top + box.window * 1.5; wy < box.base - box.window * 1.2; wy += pitch) {
+      for (let wx = x + box.window * 1.4; wx < x + width - box.window * 1.8; wx += pitch) {
+        if (random() < box.lit) {
           const light = lights[Math.floor(random() * lights.length)]!;
           const blink = flicker && random() < 0.18 ? ` class="cs-win" style="animation-delay: ${-r1(random() * 6)}s"` : "";
-          windows += `<rect x="${r1(wx)}" y="${r1(wy)}" width="3.5" height="3" fill="${light}"${blink}/>`;
+          windows += `<rect x="${r1(wx)}" y="${r1(wy)}" width="${box.window}" height="${r1(box.window * 0.85)}" fill="${light}"${blink}/>`;
         }
       }
     }
-    x += width + 2 + random() * 6;
+    x += width + 1 + random() * 4;
   }
   return buildings + windows;
+}
+
+/** A whole city standing on the ground in three planes (far, middle, near) with a wet street glowing at the bottom. */
+function city(seed: number, colors: [string, string, string], lights: string[], street: string): string {
+  const far: SkylineBox = { span: 420, base: 400, minHeight: 170, maxHeight: 390, minWidth: 24, maxWidth: 52, window: 2.6, lit: 0.16 };
+  const middle: SkylineBox = { span: 420, base: 260, minHeight: 80, maxHeight: 250, minWidth: 28, maxWidth: 60, window: 3, lit: 0.24 };
+  const near: SkylineBox = { span: 420, base: 110, minHeight: 36, maxHeight: 104, minWidth: 34, maxWidth: 74, window: 3.4, lit: 0.3 };
+  return item("", { left: 0, right: 0, bottom: 0, height: "82%", opacity: 0.5 }, svg("0 0 420 400", skyline(seed, colors[0], lights, false, far), "xMidYMax slice"))
+    + item("", { left: 0, right: 0, bottom: 0, height: "54%", opacity: 0.85 }, svg("0 0 420 260", skyline(seed + 1, colors[1], lights, true, middle), "xMidYMax slice"))
+    + item("", { left: 0, right: 0, bottom: 0, height: "24%" }, svg("0 0 420 110", skyline(seed + 2, colors[2], lights, true, near), "xMidYMax slice"))
+    + item("", { left: 0, right: 0, bottom: 0, height: "9%", background: street });
 }
 
 /** A gear with teeth, round holes and an axle. */
@@ -492,10 +507,10 @@ const SCENES = {
     crosser({ name: "space-ship", body: SHIP, viewBox: "-12 0 72 24", width: 62, height: 21, top: "30%", duration: 26, delay: 3, share: 0.24, bob: 2.4, opacity: 0.9 }),
   ),
   sunset: (): Scene => join(
-    item("", { left: 0, right: 0, top: "14%", height: "34%", background: "radial-gradient(ellipse at 50% 100%, rgba(251,146,60,.8), rgba(244,63,94,.34) 45%, transparent 72%)" }),
+    item("", { left: 0, right: 0, top: "14%", height: "34%", background: "radial-gradient(ellipse at 50% 100%, rgba(251,146,60,.62), rgba(244,63,94,.26) 45%, transparent 72%)" }),
     item("sunset-sun", { left: "50%", top: "46%", width: "84px", height: "84px", animation: "cs-sunset-sink 40s ease-in-out infinite alternate" }),
     ...[[14, 26, 170, 52], [56, 32, 130, 64], [4, 39, 120, 70]].map(([left, top, width, time]) => item("sunset-cloud", { left: `${left}%`, top: `${top}%`, width: `${width}px`, height: "8px", animation: `cs-sunset-cloud ${time}s ease-in-out infinite alternate` })),
-    item("", { left: 0, right: 0, top: "46%", bottom: 0, background: "linear-gradient(180deg, rgba(124,45,18,.9), rgba(76,29,149,.9) 22%, rgba(30,27,75,.96) 60%, rgba(15,23,42,.98))" }),
+    item("", { left: 0, right: 0, top: "46%", bottom: 0, background: "linear-gradient(180deg, rgba(100,36,20,.9), rgba(76,29,149,.9) 22%, rgba(30,27,75,.96) 60%, rgba(15,23,42,.98))" }),
     item("", { left: 0, right: 0, top: "46%", height: "1px", background: "rgba(254,215,170,.85)" }),
     ...[70, 56, 46, 36, 28, 20, 14, 9].map((width, index) => item("sunset-glint", { left: "50%", top: `${47.5 + index * 3.2}%`, width: `${width}px`, height: "2px", animation: `cs-sunset-glint ${r1(1.8 + (index % 3) * 0.6)}s ease-in-out ${-index * 0.4}s infinite alternate` })),
     item("", { right: "-6px", top: "calc(46% - 46px)", width: "70px", height: "48px" }, svg("0 0 70 48", `<path d="M0,48 L0,30 C8,22 14,26 20,18 C26,10 34,14 40,20 C48,14 56,22 70,26 L70,48 Z" fill="#1e1035"/>`, "xMaxYMax meet")),
@@ -520,6 +535,8 @@ const SCENES = {
       { x: 48, y: 34, color: "#67e8f9", size: 26, duration: 4.7, delay: 2.6 },
       { x: 84, y: 38, color: "#86efac", size: 24, duration: 5.6, delay: 3.5 },
       { x: 12, y: 44, color: "#ffffff", size: 22, duration: 6.4, delay: 4.4 },
+      { x: 34, y: 60, color: "#f472b6", size: 26, duration: 5.8, delay: 2 },
+      { x: 74, y: 68, color: "#fde68a", size: 24, duration: 6.6, delay: 0.6 },
     ]),
     item("", { left: 0, right: 0, bottom: 0, height: "70px", opacity: 0.95 }, svg("0 0 1200 100", skyline(19, "#0c0a09", ["#fde68a", "#fef3c7", "#fbbf24"], true), "xMidYMax slice")),
   ),
@@ -622,15 +639,15 @@ const SCENES = {
   ),
   cyberpunk: (): Scene => join(
     item("", { left: 0, right: 0, top: "18%", height: "34%", background: "radial-gradient(ellipse at 50% 100%, rgba(255,42,109,.28), rgba(0,229,255,.12) 45%, transparent 72%)" }),
-    // A far megacity on the horizon above the messages, with flying cars, and a near one at the bottom.
-    item("", { left: 0, right: 0, top: "calc(52% - 120px)", height: "120px", opacity: 0.75 }, svg("0 0 1200 100", skyline(91, "#1a1530", ["#00e5ff", "#ff2a6d", "#fcee0a", "#c084fc"], true), "xMidYMax slice")),
+    // A megacity standing on the ground in three planes, neon signs, flying cars between the towers.
+    city(91, ["#2a1f4a", "#16112a", "#08060f"], ["#00e5ff", "#ff2a6d", "#fcee0a", "#c084fc"], "linear-gradient(0deg, rgba(255,42,109,.4), rgba(0,229,255,.14) 50%, transparent)"),
+    ...[[12, 38, "#ff2a6d", 0], [80, 30, "#00e5ff", 1.7], [46, 52, "#fcee0a", 3.1]].map(([left, top, color, delay]) => item("tokyo-sign", { left: `${left}%`, top: `${top}%`, width: "12px", height: "46px", color: color as string, animation: `cs-tokyo-sign 5s steps(1) ${delay}s infinite` }, "<i></i><i></i><i></i>")),
     ...[[30, 9, 1, false], [38, 13, 5, true], [24, 17, 9, false]].map(([top, time, delay, back], index) => crosser({ name: `cyber-car${index}`, body: `<rect x="2" y="3" width="20" height="4" rx="2" fill="#111827"/><circle cx="21" cy="5" r="1.6" fill="${back ? "#ff2a6d" : "#ffffff"}"/><circle cx="3" cy="5" r="1.4" fill="${back ? "#ffffff" : "#ff2a6d"}"/><path d="M-14,5 H2" stroke="${back ? "rgba(255,42,109,.5)" : "rgba(0,229,255,.55)"}" stroke-width="1.6"/>`, viewBox: "-14 0 38 10", width: 38, height: 10, top: `${top}%`, duration: time as number, delay: delay as number, share: 0.45, back: back as boolean })),
-    item("", { left: 0, right: 0, bottom: 0, height: "78px", opacity: 0.9 }, svg("0 0 1200 100", skyline(83, "#120f1f", ["#00e5ff", "#ff2a6d", "#fcee0a"], true), "xMidYMax slice")),
     ...[["left", "top"], ["right", "top"], ["left", "bottom"], ["right", "bottom"]].map(([x, y]) => item(`cyber-corner cs-cyber-${x}-${y}`, { [x as string]: "6px", [y as string]: "6px", width: "14px", height: "14px" })),
     item("cyber-label", { left: "26px", top: "8px" }, "NET//LINK 97%"),
-    item("cyber-label", { right: "26px", bottom: "84px" }, "SEC.04 // REC"),
+    item("cyber-label", { right: "26px", bottom: "10px" }, "SEC.04 // REC"),
     item("cyber-barcode", { right: "26px", top: "9px", width: "46px", height: "9px" }),
-    item("cyber-hazard", { left: "6px", bottom: "84px", width: "34px", height: "8px" }),
+    item("cyber-hazard", { left: "26px", bottom: "12px", width: "34px", height: "8px" }),
     ...[[18, 5.3, "rgba(0,229,255,.55)"], [47, 7.9, "rgba(255,42,109,.5)"], [71, 11.7, "rgba(252,238,10,.45)"]].map(([top, time, color], index) => item("cyber-glitch", { left: 0, right: 0, top: `${top}%`, height: `${[3, 7, 4][index]}px`, background: color as string, animation: `cs-cyber-glitch ${time}s steps(1) ${-index * 1.7}s infinite` })),
   ),
   racing: (): Scene => join(
@@ -818,8 +835,8 @@ const SCENES = {
     item("", { right: "-10px", top: "18%", width: "70px", height: "110px", opacity: 0.8 }, svg("0 0 90 260", `<path d="M50,260 C46,200 42,120 54,40" stroke="#f0abfc" stroke-width="5" fill="none"/><path d="M54,40 C42,26 24,24 6,34 C24,28 40,32 54,40 Z M54,40 C68,24 84,24 90,36 C78,30 64,32 54,40 Z M54,40 C48,20 36,10 22,10 C36,18 46,28 54,40 Z M54,40 C60,18 72,8 84,10 C72,18 62,28 54,40 Z" fill="#f0abfc"/>`, "xMaxYMin meet")),
   ),
   neontokyo: (): Scene => join(
-    item("", { left: 0, right: 0, top: "calc(54% - 130px)", height: "130px", opacity: 0.85 }, svg("0 0 1200 100", skyline(211, "#0b0718", ["#05d9e8", "#ff2a6d", "#d1f7ff", "#f9c80e"], true), "xMidYMax slice")),
-    ...[[8, 18, "#ff2a6d", 0], [74, 12, "#05d9e8", 1.3], [40, 24, "#f9c80e", 2.1]].map(([left, top, color, delay]) => item("tokyo-sign", { left: `${left}%`, top: `${top}%`, width: "14px", height: "54px", color: color as string, animation: `cs-tokyo-sign 5s steps(1) ${delay}s infinite` }, "<i></i><i></i><i></i>")),
+    city(211, ["#241a3d", "#120c22", "#05030a"], ["#05d9e8", "#ff2a6d", "#d1f7ff", "#f9c80e"], "linear-gradient(0deg, rgba(5,217,232,.38), rgba(255,42,109,.16) 50%, transparent)"),
+    ...[[8, 34, "#ff2a6d", 0], [74, 26, "#05d9e8", 1.3], [40, 46, "#f9c80e", 2.1]].map(([left, top, color, delay]) => item("tokyo-sign", { left: `${left}%`, top: `${top}%`, width: "14px", height: "54px", color: color as string, animation: `cs-tokyo-sign 5s steps(1) ${delay}s infinite` }, "<i></i><i></i><i></i>")),
     fallers({ seed: 213, count: 26, viewBox: "0 0 2 20", size: [12, 20], duration: [0.7, 1.3], spin: "rock", opacity: 0.45, shapes: [`<rect x="0" y="0" width="1" height="20" fill="#a5f3fc"/>`] }),
   ),
   arcade: (): Scene => join(
@@ -894,6 +911,193 @@ const SCENES = {
   ),
 } satisfies Record<string, () => Scene>;
 
+
+// --- Lower parts --------------------------------------------------------------------------------------------------
+
+/** Soft hills along the bottom (two layers). */
+const hills = (seed: number, back: string, front: string, height: string) =>
+  item("", { left: 0, right: 0, bottom: 0, height }, svg("0 0 1200 100",
+    `<path d="${periodicCurve(seed, 2, 10, 50)} L1200,100 L0,100 Z" fill="${back}"/><path d="${periodicCurve(seed + 1, 3, 40, 75)} L1200,100 L0,100 Z" fill="${front}"/>`, "none"));
+
+/** A strip of ground drawn in a box of its own (keeps shapes undistorted; the sides are cut on narrow panels). */
+const groundStrip = (body: string, viewBox: string, height: string, style: Style = {}) =>
+  item("", { left: 0, right: 0, bottom: 0, height, ...style }, svg(viewBox, body, "xMidYMax slice"));
+
+const TOMBSTONES = `<path d="M0,120 L0,104 C60,96 140,100 200,96 C260,92 340,100 420,98 L420,120 Z" fill="#2a2036"/>`
+  + [[30, 34, 1], [92, 26, 0], [150, 40, 1], [262, 30, 0], [318, 38, 1], [384, 28, 0]].map(([x, h, cross]) => cross
+    ? `<path d="M${x! - 2},${100 - h!} h4 v-10 h8 v-4 h-8 v-8 h-4 v8 h-8 v4 h8 Z M${x! - 2},${100 - h!} h4 v${h} h-4 Z" fill="#4b3d5c"/>`
+    : `<path d="M${x! - 10},100 V${100 - h! + 8} C${x! - 10},${100 - h!} ${x! + 10},${100 - h!} ${x! + 10},${100 - h! + 8} V100 Z" fill="#4b3d5c"/>`).join("")
+  + Array.from({ length: 14 }, (_, index) => `<path d="M${196 + index * 4.5},100 V78 l1.5,-4 l1.5,4 V100 Z" fill="#4b3d5c"/>`).join("") + `<path d="M196,84 H260 M196,94 H260" stroke="#1c1325" stroke-width="2"/>`;
+
+const FLOWER_MEADOW = (colors: string[]) => Array.from({ length: 70 }, (_, index) => {
+  const x = index * 6;
+  const height = 10 + ((index * 7) % 13);
+  return `<path d="M${x},60 L${x + 3},${60 - height} L${x + 6},60 Z" fill="${index % 2 ? "#4ade80" : "#22c55e"}"/>`;
+}).join("") + Array.from({ length: 12 }, (_, index) => {
+  const x = 14 + index * 34 + ((index * 13) % 11);
+  const top = 30 + ((index * 17) % 14);
+  const color = colors[index % colors.length]!;
+  return `<path d="M${x},60 C${x - 1},50 ${x + 1},44 ${x},${top + 6}" stroke="#15803d" stroke-width="1.6" fill="none"/><path d="M${x - 5},${top + 6} L${x - 5},${top - 2} L${x - 2},${top + 2} L${x},${top - 4} L${x + 2},${top + 2} L${x + 5},${top - 2} L${x + 5},${top + 6} C${x + 4},${top + 10} ${x - 4},${top + 10} ${x - 5},${top + 6} Z" fill="${color}"/>`;
+}).join("");
+
+const GROUNDS: Partial<Record<keyof typeof SCENES, () => Scene | string>> = {
+  winter: () => join(
+    hills(301, "rgba(203,213,225,.75)", "rgba(241,245,249,.92)", "64px"),
+    item("", { left: "8%", bottom: "14px", width: "44px", height: "66px" }, svg("0 -8 40 68", `<circle cx="20" cy="46" r="13" fill="#f8fafc"/><circle cx="20" cy="26" r="9.5" fill="#f8fafc"/><circle cx="20" cy="11" r="7" fill="#f8fafc"/><circle cx="17.5" cy="9.5" r="1" fill="#111827"/><circle cx="22.5" cy="9.5" r="1" fill="#111827"/><path d="M20,12 L27,13 L20,14 Z" fill="#f97316"/><path d="M11,24 L1,18 M29,24 L39,18" stroke="#78350f" stroke-width="1.6"/><path d="M13,5 H27 L25,-6 H15 Z" fill="#111827"/><path d="M12,32 C16,36 24,36 28,32" stroke="#dc2626" stroke-width="3" fill="none"/>`, "xMidYMax meet")),
+  ),
+  christmas: () => join(
+    hills(311, "rgba(203,213,225,.7)", "rgba(241,245,249,.9)", "56px"),
+    item("", { left: "6%", bottom: "8px", width: "96px", height: "48px" }, svg("0 0 96 48", [[0, 18, 34, 30, "#dc2626", "#facc15"], [30, 8, 30, 40, "#16a34a", "#f8fafc"], [58, 22, 36, 26, "#2563eb", "#f472b6"]].map(([x, y, w, h, box, ribbon]) =>
+      `<rect x="${x}" y="${y}" width="${w}" height="${h}" fill="${box}"/><path d="M${(x as number) + (w as number) / 2 - 2},${y} h4 v${h} h-4 Z M${x},${(y as number) + (h as number) / 2 - 2} h${w} v4 h-${w} Z" fill="${ribbon}"/><path d="M${(x as number) + (w as number) / 2},${y} c-6,-8 -10,-2 0,0 c6,-8 10,-2 0,0" stroke="${ribbon}" stroke-width="2" fill="none"/>`).join(""), "xMidYMax meet")),
+  ),
+  halloween: () => join(
+    groundStrip(TOMBSTONES, "0 0 420 120", "26%"),
+    item("forest-fog", { left: "-20%", width: "140%", bottom: "0", height: "50px", animation: "cs-forest-fog 12s ease-in-out -4s infinite alternate" }),
+  ),
+  spring: () => groundStrip(FLOWER_MEADOW(["#f472b6", "#facc15", "#f87171", "#a78bfa", "#ffffff"]), "0 0 420 60", "16%"),
+  sakura: () => join(
+    item("sakura-pond", { left: 0, right: 0, bottom: 0, height: "20%" }),
+    ...[[22, 0], [64, 1.6], [42, 3.2]].map(([left, delay]) => item("sakura-ripple", { left: `${left}%`, bottom: "8%", width: "60px", height: "14px", animation: `cs-sakura-ripple 4.8s ease-out ${delay}s infinite` })),
+    ...[[12, 6], [78, 10], [52, 3]].map(([left, bottom]) => item("", { left: `${left}%`, bottom: `${bottom}%`, width: "26px", height: "12px" }, svg("0 0 26 12", `<path d="M13,6 L26,6 A13,6 0 1 1 13,0 Z" fill="#15803d" opacity=".85"/><circle cx="9" cy="4" r="2.6" fill="#f9a8d4"/>`))),
+  ),
+  volcano: () => join(
+    item("volcano-lava", { left: 0, right: 0, bottom: 0, height: "12%" }),
+    groundStrip(`<path d="M0,60 L0,30 L30,22 L60,34 L96,18 L140,30 L180,20 L220,34 L262,24 L300,36 L340,22 L380,30 L420,24 L420,60 Z" fill="#140805"/>`, "0 0 420 60", "15%"),
+  ),
+  jungle: () => groundStrip(Array.from({ length: 9 }, (_, index) => {
+    const x = 10 + index * 48;
+    const color = ["#14532d", "#166534", "#15803d"][index % 3];
+    return Array.from({ length: 5 }, (_, leaf) => `<path d="M${x},80 C${x - 30 + leaf * 15},50 ${x - 24 + leaf * 12},${30 + (leaf % 2) * 8} ${x - 20 + leaf * 10},${24 + (leaf % 3) * 6} C${x - 10 + leaf * 5},40 ${x - 4 + leaf * 2},60 ${x},80 Z" fill="${color}"/>`).join("");
+  }).join(""), "0 0 420 80", "22%"),
+  pirate: () => join(
+    item("", { left: 0, right: 0, top: "76%", height: "26px" }, svg("0 0 400 26", Array.from({ length: 3 }, (_, row) => `<path d="M${row * 8 + 4},${10 + row * 6}${" q5,-5 10,0 q5,5 10,0".repeat(20)}" stroke="#5b3a1a" stroke-width="1.1" fill="none" opacity="${0.75 - row * 0.2}"/>`).join(""), "none")),
+    item("", { right: "8%", top: "56%", width: "80px", height: "64px" }, svg("0 0 80 64", `<path d="M4,60 C16,48 64,48 76,60 Z" fill="#c9a46a" stroke="#5b3a1a" stroke-width="1.2"/><path d="M40,54 C38,40 42,26 46,14" stroke="#5b3a1a" stroke-width="2.4" fill="none"/><path d="M46,14 C38,6 26,6 18,12 C28,10 38,12 46,14 Z M46,14 C54,4 66,4 72,10 C62,8 54,10 46,14 Z M46,14 C44,4 38,-2 30,-2 C38,2 44,8 46,14 Z" fill="#5b3a1a"/><path d="M58,52 L64,46 M64,52 L58,46" stroke="#7f1d1d" stroke-width="2"/>`, "xMidYMax meet")),
+  ),
+  horror: () => join(item("", { left: 0, right: 0, bottom: 0, height: "34%", background: "radial-gradient(ellipse at 50% 100%, rgba(185,28,28,.45), rgba(69,10,10,.25) 55%, transparent 80%)" }), groundStrip(`<path d="M0,140 L0,128 C80,122 200,126 420,124 L420,140 Z" fill="#0a0a0a"/><path d="M64,128 C62,96 58,70 66,40 M64,92 C46,80 34,66 26,48 M62,74 C80,62 92,48 96,30 M66,52 C58,40 54,28 56,16 M34,62 C24,58 16,50 12,40 M88,44 C98,42 104,36 108,28" stroke="#0a0a0a" stroke-width="5" fill="none" stroke-linecap="round"/>`
+    + Array.from({ length: 16 }, (_, index) => `<path d="M${220 + index * 12},126 V104 l2,-6 l2,6 V126 Z" fill="#111111"/>`).join("") + `<path d="M220,110 H412 M220,120 H412" stroke="#111111" stroke-width="2"/>`, "0 0 420 140", "30%")),
+  western: () => join(
+    item("", { left: 0, right: 0, bottom: 0, height: "16%", background: "linear-gradient(180deg, rgba(154,52,18,.55), rgba(124,45,18,.85))" }),
+    groundStrip(`<path d="M300,70 L300,34 C300,30 306,30 306,34 L306,70 Z M300,52 L294,52 C291,52 290,49 290,46 L290,40 C290,37 294,37 294,40 L294,46 L300,46 Z M306,46 L312,46 L312,38 C312,35 316,35 316,38 L316,48 C316,51 314,52 312,52 L306,52 Z" fill="#166534"/><ellipse cx="80" cy="66" rx="22" ry="7" fill="#7c2d12"/><ellipse cx="200" cy="68" rx="12" ry="4" fill="#7c2d12"/>`, "0 0 420 70", "16%"),
+    crosser({ name: "western-weed2", body: `<g class="cs-roll"><circle cx="15" cy="15" r="13" fill="none" stroke="#78350f" stroke-width="1.6"/><path d="M4,10 C12,18 20,4 27,14 M6,22 C14,8 22,26 26,18 M10,4 C14,14 8,22 18,27" stroke="#92400e" stroke-width="1.3" fill="none"/></g>`, viewBox: "0 0 30 30", width: 24, height: 24, top: "calc(100% - 34px)", duration: 11, delay: 6, share: 0.5, back: true }),
+  ),
+  gothic: () => groundStrip(Array.from({ length: 7 }, (_, index) => {
+    const x = index * 62;
+    return `<path d="M${x},120 V60 C${x},30 ${x + 26},18 ${x + 31},10 C${x + 36},18 ${x + 62},30 ${x + 62},60 V120 Z" fill="#1c1917"/><path d="M${x + 14},120 V66 C${x + 14},48 ${x + 31},36 ${x + 31},36 C${x + 31},36 ${x + 48},48 ${x + 48},66 V120 Z" fill="rgba(127,29,29,.35)"/>`;
+  }).join(""), "0 0 434 120", "28%", { opacity: 0.85 }),
+  princess: () => join(
+    hills(321, "rgba(167,243,208,.55)", "rgba(110,231,183,.75)", "70px"),
+    groundStrip(Array.from({ length: 14 }, (_, index) => `<circle cx="${14 + index * 30}" cy="${36 + (index % 3) * 4}" r="3.2" fill="${["#f9a8d4", "#fde68a", "#ffffff", "#c4b5fd"][index % 4]}"/>`).join(""), "0 0 420 50", "12%"),
+  ),
+  unicorn: () => join(...[[-8, 82, 110, 50], [56, 76, 96, 62], [24, 90, 80, 44]].map(([left, top, width, time]) => item("summer-cloud", { left: `${left}%`, top: `${top}%`, width: `${width}px`, height: `${(width as number) / 2}px`, opacity: 0.9, animation: `cs-summer-cloud ${time}s ease-in-out infinite alternate` }, svg("0 0 60 30", cloud("#ffffff"))))),
+  cottoncandy: () => join(...[[-10, 56, 110, 58, "#bae6fd"], [60, 66, 100, 66, "#fbcfe8"], [18, 82, 120, 52, "#f5d0fe"], [70, 88, 90, 60, "#bae6fd"]].map(([left, top, width, time, color]) => item("summer-cloud", { left: `${left}%`, top: `${top}%`, width: `${width}px`, height: `${(width as number) / 2}px`, opacity: 0.85, animation: `cs-summer-cloud ${time}s ease-in-out infinite alternate` }, svg("0 0 60 30", cloud(color as string))))),
+  kawaii: () => join(
+    hills(331, "rgba(187,247,208,.8)", "rgba(134,239,172,.9)", "70px"),
+    ...[[14, 0], [46, 1], [78, 2]].map(([left, index]) => item("", { left: `${left}%`, bottom: "18px", width: "30px", height: "40px", animation: `cs-fantasy-float ${5 + (index as number)}s ease-in-out ${-(index as number)}s infinite alternate` }, svg("-15 -20 30 40", `<path d="M0,20 V2" stroke="#16a34a" stroke-width="2"/>` + [0, 72, 144, 216, 288].map((angle) => `<circle cx="${r1(Math.cos((angle * Math.PI) / 180) * 7)}" cy="${r1(Math.sin((angle * Math.PI) / 180) * 7 - 6)}" r="5" fill="${["#f9a8d4", "#fde68a", "#c4b5fd"][index as number]}"/>`).join("") + `<circle cx="0" cy="-6" r="5.5" fill="#fff7ed"/>` + KAWAII_FACE(0, -6, 0.42), "xMidYMax meet"))),
+  ),
+  pastelgoth: () => join(
+    hills(341, "rgba(76,29,149,.55)", "rgba(59,7,100,.8)", "70px"),
+    groundStrip([40, 110, 250, 330, 392].map((x, index) => `<path d="M${x - 2},${50 - (index % 2) * 6} h4 v-12 h7 v-4 h-7 v-7 h-4 v7 h-7 v4 h7 Z M${x - 2},${50 - (index % 2) * 6} h4 v${12 + (index % 2) * 6} h-4 Z" fill="#f9a8d4" opacity=".75"/>`).join(""), "0 0 420 60", "14%"),
+  ),
+  y2k: () => join(...[[22, 58, 26, 8], [72, 70, 20, 7], [40, 84, 30, 9], [8, 76, 16, 6]].map(([left, top, size, time], index) => item("y2k-blob", { left: `${left}%`, top: `${top}%`, width: `${size}px`, height: `${size}px`, animation: `cs-fantasy-float ${time}s ease-in-out ${-index * 1.5}s infinite alternate` }))),
+  peach: () => groundStrip(Array.from({ length: 70 }, (_, index) => `<path d="M${index * 6},50 L${index * 6 + 3},${50 - 8 - ((index * 7) % 9)} L${index * 6 + 6},50 Z" fill="${index % 2 ? "#86efac" : "#4ade80"}"/>`).join("")
+    + [[90, 44], [260, 46], [330, 43]].map(([x, y]) => `<circle cx="${x}" cy="${y}" r="7" fill="#fb923c"/><ellipse cx="${x! - 2}" cy="${y! - 2}" rx="2" ry="3" fill="rgba(255,237,213,.6)"/>`).join(""), "0 0 420 50", "13%"),
+  arcade: () => join(
+    item("", { left: 0, right: 0, bottom: "12px", height: "2px", background: "repeating-linear-gradient(90deg, #4ade80 0 10px, transparent 10px 14px)" }),
+    item("arcade-ship", { left: "10%", bottom: "18px", width: "30px", height: "20px", animation: "cs-arcade-ship 7s steps(14) infinite alternate" }, svg("0 0 11 8", `<path d="M5,0h1v2h-1zM4,2h3v2h-3zM1,4h9v2h-9zM0,6h11v2h-11z" fill="#22d3ee"/>`, "xMidYMid meet", "shape-rendering: crispEdges")),
+  ),
+  retro: () => join(
+    item("retro-bricks", { left: 0, right: 0, bottom: 0, height: "28px" }),
+    ...[[12, 0], [62, 1]].map(([left]) => item("", { left: `${left}%`, bottom: "28px", width: "48px", height: "18px" }, svg("0 0 16 6", `<path d="M2,6 V4 H4 V2 H7 V1 H10 V2 H12 V4 H14 V6 Z" fill="#16a34a"/><path d="M5,3 H7 V4 H5 Z M10,3 H11 V4 H10 Z" fill="#4ade80"/>`, "xMidYMax meet", "shape-rendering: crispEdges"))),
+  ),
+  music: () => item("music-eq", { left: "6%", right: "6%", bottom: "8px", height: "44px", opacity: 0.6 }, Array.from({ length: 18 }, (_, index) => `<i style="animation-duration: ${r1(0.5 + ((index * 5) % 6) * 0.11)}s; animation-delay: ${-r1(index * 0.17)}s"></i>`).join("")),
+  neonwaves: () => join(...[[60, "#f472b6", 15, 3], [76, "#22d3ee", 11, 2]].map(([top, color, time, crests], index) => item("", { left: 0, width: "100%", top: `${top}%`, height: "50px" }, item("", { left: 0, top: 0, width: "200%", height: "100%", animation: `${index % 2 ? "cs-drift" : "cs-drift-back"} ${time}s linear infinite` }, svg("0 0 1200 100", `<path d="${periodicCurve(231 + index, crests as number, 15, 85)}" stroke="${color}" stroke-width="2.5" fill="none" vector-effect="non-scaling-stroke"/>`, "none", `filter: drop-shadow(0 0 4px ${color})`))))),
+  fps: () => join(
+    item("fps-hud", { left: "12px", bottom: "12px", width: "86px", height: "8px" }, "<i></i>"),
+    item("fps-ammo", { right: "14px", bottom: "8px" }, "30 / 90"),
+  ),
+  hologram: () => join(
+    item("holo-cone", { left: "50%", bottom: "16px", width: "140px", height: "60%", marginLeft: "-70px" }),
+    item("", { left: "50%", bottom: "6px", width: "90px", height: "18px", marginLeft: "-45px" }, svg("0 0 90 18", `<ellipse cx="45" cy="9" rx="44" ry="8" fill="#0e7490" opacity=".6"/><ellipse cx="45" cy="7" rx="30" ry="5" fill="#67e8f9" opacity=".7"/>`)),
+  ),
+  memphis: () => join(...[
+    [70, 58, 34, `<path d="M2,20 Q8,4 14,20 T26,20 T38,20" stroke="#f472b6" stroke-width="3" fill="none" stroke-linecap="round"/>`, "0 0 40 30"],
+    [14, 66, 30, `<path d="M4,30 L18,4 L32,30 Z" fill="#22d3ee" stroke="#111827" stroke-width="2"/>`, "0 0 36 34"],
+    [48, 80, 26, `<circle cx="13" cy="13" r="11" fill="#facc15" stroke="#111827" stroke-width="2"/>`, "0 0 26 26"],
+    [84, 86, 24, `<path d="M2,4 L8,14 L14,4 L20,14 L26,4" stroke="#a78bfa" stroke-width="3" fill="none"/>`, "0 0 28 18"],
+  ].map(([left, top, size, body, viewBox], index) => item("", { left: `${left}%`, top: `${top}%`, width: `${size}px`, height: `${size}px`, animation: `cs-memphis-drift ${8 + index}s ease-in-out ${-index * 2}s infinite alternate` }, svg(viewBox as string, body as string)))),
+  chalkboard: () => join(
+    item("chalk-doodle", { left: "14px", top: "62%" }, "a² + b² = c²"),
+    item("chalk-tray", { left: 0, right: 0, bottom: 0, height: "12px" }, "<i></i><i></i>"),
+  ),
+  blueprint: () => item("", { left: "10%", bottom: "16px", width: "60%", height: "70px", opacity: 0.55 }, svg("0 0 200 70", `<circle cx="40" cy="35" r="26" stroke="#bfdbfe" stroke-width="1.2" fill="none"/><path d="M40,4 V66 M9,35 H71 M90,10 H190 V60 H90 Z M90,66 H190 M90,62 V70 M190,62 V70 M120,10 V60 M150,10 V60" stroke="#bfdbfe" stroke-width="1" fill="none" stroke-dasharray="4 2"/>`, "xMinYMax meet")),
+  comic: () => join(...[["ZAP!", 56, 62, "#a3e635", 1.1], ["BOOM!", 14, 78, "#fb923c", 3.3], ["KA-POW!", 60, 86, "#f472b6", 5.5]].map(([word, left, top, color, delay]) => item("comic-burst", { left: `${left}%`, top: `${top}%`, width: "76px", height: "54px", animation: `cs-comic-pop 6.6s ease-out ${delay}s infinite` }, svg("0 0 70 52", `<path d="M35,2 L42,14 L56,6 L52,20 L68,22 L54,30 L64,44 L48,40 L42,50 L35,40 L26,50 L22,38 L6,44 L14,30 L2,22 L18,18 L12,4 L28,12 Z" fill="${color}" stroke="#111111" stroke-width="2"/>`) + `<b>${word}</b>`))),
+  corkboard: () => join(
+    item("cork-photo", { right: "8%", bottom: "16px", width: "54px", height: "60px", transform: "rotate(5deg)", background: "#f8fafc" }),
+    item("cork-note", { left: "8%", bottom: "22px", width: "64px", height: "40px", transform: "rotate(-4deg)" }, "<i></i><i></i><i></i>"),
+  ),
+  fantasy: () => groundStrip([[40, 1.1, "#a78bfa"], [96, 0.8, "#67e8f9"], [300, 1.2, "#f0abfc"], [356, 0.9, "#a78bfa"], [200, 0.7, "#67e8f9"]].map(([x, scale, color], index) =>
+    `<g transform="translate(${x},70) scale(${scale})" class="cs-shroom" style="animation-delay: ${-index * 0.7}s"><path d="M-3,0 V-16 H3 V0 Z" fill="#e9d5ff"/><path d="M-16,-14 C-16,-30 16,-30 16,-14 Z" fill="${color}"/><circle cx="-6" cy="-21" r="2" fill="#ffffff" opacity=".8"/><circle cx="5" cy="-18" r="1.5" fill="#ffffff" opacity=".8"/></g>`).join("")
+    + `<path d="M0,70 C100,62 300,64 420,68 L420,80 L0,80 Z" fill="#0f0a1f"/>`, "0 0 420 80", "16%"),
+  steampunk: () => join(
+    item("", { right: "-40px", bottom: "-40px", width: "130px", height: "130px", opacity: 0.7, animation: "cs-spin-back 22s linear infinite" }, svg("-52 -52 104 104", gear(13, "#c9a227") + `<circle r="46" fill="none" stroke="rgba(255,236,179,.35)" stroke-width="1.5"/>`)),
+    item("", { right: "70px", bottom: "34px", width: "60px", height: "60px", opacity: 0.66, animation: "cs-spin 10.2s linear infinite" }, svg("-52 -52 104 104", gear(7, "#b87333"))),
+    item("steam-pipe-h", { left: 0, right: "120px", bottom: "22px", height: "12px" }),
+    item("steam-valve", { left: "38%", bottom: "16px", width: "14px", height: "24px" }),
+    ...[0.6, 1.8, 3].map((delay) => item("steam-puff", { left: "calc(38% - 8px)", bottom: "36px", width: "30px", height: "30px", animation: `cs-steam-puff 3.6s ease-out ${delay}s infinite` })),
+  ),
+  dragon: () => join(
+    item("", { left: 0, right: 0, bottom: 0, height: "26%", background: "radial-gradient(ellipse at 50% 100%, rgba(249,115,22,.45), rgba(127,29,29,.25) 50%, transparent 75%)" }),
+    groundStrip(`<path d="M0,100 L0,60 L24,40 L40,52 L64,20 L84,44 L110,30 L140,56 L176,34 L210,58 L240,26 L262,40 L290,22 L318,48 L350,32 L380,50 L420,36 L420,100 Z" fill="#1a0705"/><path d="M64,20 L70,34 L58,32 Z M240,26 L246,40 L234,38 Z M290,22 L296,36 L284,34 Z" fill="#f97316" opacity=".55"/>`, "0 0 420 100", "22%"),
+  ),
+  coffee: () => join(
+    item("coffee-counter", { left: 0, right: 0, bottom: 0, height: "16%" }),
+    groundStrip([[40, "#4a2c17"], [92, "#6f4e37"], [330, "#4a2c17"]].map(([x, fill]) => `<rect x="${(x as number) - 13}" y="14" width="26" height="34" rx="4" fill="rgba(255,255,255,.35)" stroke="rgba(255,255,255,.6)"/><rect x="${(x as number) - 11}" y="26" width="22" height="20" rx="3" fill="${fill}"/><rect x="${(x as number) - 14}" y="8" width="28" height="7" rx="2" fill="#a16207"/>`).join("")
+      + `<path d="M200,40 C206,26 236,26 242,40 Z" fill="#f5d0a9"/><path d="M204,40 C208,32 214,30 220,40 M222,40 C226,30 232,32 238,40" stroke="#b45309" stroke-width="1.5" fill="none"/>`, "0 0 420 52", "16%"),
+  ),
+  space: () => item("", { right: "10%", bottom: "8%", width: "34px", height: "34px", borderRadius: "50%", background: "radial-gradient(circle at 36% 34%, #e5e7eb, #9ca3af 55%, #374151)", boxShadow: "inset -6px -4px 0 rgba(0,0,0,.25)" }),
+  racing: () => join(
+    item("racing-checker", { left: 0, right: 0, bottom: 0, height: "12px" }),
+    crosser({ name: "racing-car2", body: CAR.split("#dc2626").join("#2563eb") + `<path d="M-30,10 H4 M-22,13.5 H4 M-36,7 H0" stroke="rgba(255,255,255,.55)" stroke-width="1.2"/>`, viewBox: "-36 0 100 20", width: 100, height: 20, top: "72%", duration: 8, delay: 4.5, share: 0.13, back: true, opacity: 0.9 }),
+  ),
+};
+
+/** Rules of the lower parts. */
+const GROUND_CSS: Partial<Record<keyof typeof SCENES, string[]>> = {
+  sakura: [
+    ".cs-sakura-pond { background: linear-gradient(180deg, rgba(251,207,232,.25), rgba(147,197,253,.35) 40%, rgba(30,58,138,.45)); }",
+    ".cs-sakura-ripple { border-radius: 50%; border: 1.5px solid rgba(255,255,255,.6); opacity: 0; }",
+    "@keyframes cs-sakura-ripple { 0% { transform: scale(.2); opacity: .9; } 100% { transform: scale(1.4); opacity: 0; } }",
+  ],
+  volcano: [
+    ".cs-volcano-lava { background: linear-gradient(90deg, #7f1d1d, #ea580c 20%, #facc15 30%, #ea580c 40%, #7f1d1d 55%, #ea580c 75%, #fde047 82%, #b91c1c 92%) 0 0 / 300% 100%; filter: blur(1.5px); box-shadow: 0 -10px 24px rgba(249,115,22,.45); animation: cs-volcano-lava 9s linear infinite; }",
+    "@keyframes cs-volcano-lava { to { background-position: 300% 0; } }",
+  ],
+  arcade: ["@keyframes cs-arcade-ship { from { left: 6%; } to { left: calc(94% - 30px); } }"],
+  retro: [".cs-retro-bricks { background: linear-gradient(#7c2d12 2px, transparent 2px) 0 0 / 100% 14px, linear-gradient(90deg, #7c2d12 2px, transparent 2px) 0 0 / 28px 14px, #c2410c; opacity: .85; }"],
+  fps: [
+    ".chat-scene .cs-fps-hud { padding: 1px; border: 1px solid rgba(239,68,68,.7); }",
+    ".cs-fps-hud i { display: block; width: 72%; height: 100%; background: linear-gradient(90deg, #ef4444, #f97316); }",
+    ".cs-fps-ammo { font: 700 13px/1 Consolas, \"Courier New\", monospace; letter-spacing: .08em; color: rgba(254,202,202,.85); white-space: nowrap; }",
+  ],
+  hologram: [".cs-holo-cone { background: linear-gradient(0deg, rgba(103,232,249,.35), rgba(103,232,249,0)); clip-path: polygon(42% 100%, 58% 100%, 100% 0, 0 0); filter: blur(2px); animation: cs-glow 2.4s ease-in-out infinite alternate; }"],
+  chalkboard: [
+    ".chat-scene .cs-chalk-tray { display: flex; align-items: flex-start; gap: 12px; padding-left: 30%; background: linear-gradient(180deg, #8a5a2b, #5b3a1a); }",
+    ".cs-chalk-tray i { display: block; width: 22px; height: 5px; margin-top: -3px; border-radius: 2px; background: #f8fafc; }",
+    ".cs-chalk-tray i:nth-child(2) { width: 14px; background: #fde68a; }",
+  ],
+  corkboard: [
+    ".chat-scene .cs-cork-note { display: flex; flex-direction: column; gap: 5px; padding: 8px 7px; background: #fef08a; box-shadow: 0 3px 6px rgba(0,0,0,.35); }",
+    ".cs-cork-note i { display: block; height: 2px; background: rgba(30,41,59,.45); }",
+    ".cs-cork-note i:nth-child(2) { width: 70%; }",
+  ],
+  fantasy: [
+    ".cs-shroom { animation: cs-shroom 3s ease-in-out infinite alternate; }",
+    "@keyframes cs-shroom { from { opacity: .55; } to { opacity: 1; } }",
+  ],
+  steampunk: [".cs-steam-pipe-h { background: linear-gradient(180deg, #5b3714, #b87333 40%, #e9b872 55%, #8a5a2b); opacity: .65; border-radius: 3px; }"],
+  coffee: [".cs-coffee-counter { background: linear-gradient(180deg, #a16207 0 6px, #78350f 6px, #451a03); box-shadow: 0 -2px 6px rgba(0,0,0,.4); }"],
+};
+
 /** Rules each scene needs besides the shared ones (pieces named in its markup). */
 const SCENE_CSS: Partial<Record<keyof typeof SCENES, string[]>> = {
   ocean: [
@@ -908,7 +1112,7 @@ const SCENE_CSS: Partial<Record<keyof typeof SCENES, string[]>> = {
     "@keyframes cs-flame { from { transform: scaleX(.7); opacity: .7; } to { transform: scaleX(1.15); opacity: 1; } }",
   ],
   sunset: [
-    ".cs-sunset-sun { border-radius: 50%; margin-left: -37px; background: radial-gradient(circle, #fff7ed 0%, #fde68a 34%, #fb923c 68%, #f43f5e 100%); box-shadow: 0 0 40px 14px rgba(251,146,60,.5), 0 0 90px 30px rgba(244,63,94,.25); }",
+    ".cs-sunset-sun { border-radius: 50%; margin-left: -37px; background: radial-gradient(circle, #fff7ed 0%, #fde68a 34%, #fb923c 68%, #f43f5e 100%); box-shadow: 0 0 34px 10px rgba(251,146,60,.4), 0 0 80px 24px rgba(244,63,94,.18); }",
     "@keyframes cs-sunset-sink { from { transform: translateY(-62%); } to { transform: translateY(-40%); } }",
     ".cs-sunset-cloud { border-radius: 50%; background: linear-gradient(90deg, transparent, rgba(126,34,206,.55) 25%, rgba(190,24,93,.5) 70%, transparent); filter: blur(1.5px); }",
     "@keyframes cs-sunset-cloud { from { transform: translateX(-14px); } to { transform: translateX(14px); } }",
@@ -1054,12 +1258,7 @@ const SCENE_CSS: Partial<Record<keyof typeof SCENES, string[]>> = {
     ".cs-vapor-floor { background: linear-gradient(0deg, rgba(103,232,249,.75) 1.5px, transparent 1.5px) 0 0 / 100% 24px, linear-gradient(90deg, rgba(240,171,252,.75) 1.5px, transparent 1.5px) 0 0 / 44px 100%; transform: perspective(160px) rotateX(58deg); transform-origin: 50% 0; -webkit-mask-image: linear-gradient(180deg, transparent, #000 40%); mask-image: linear-gradient(180deg, transparent, #000 40%); animation: cs-vapor-floor 1.6s linear infinite; }",
     "@keyframes cs-vapor-floor { from { background-position: 0 0, 0 0; } to { background-position: 0 24px, 0 0; } }",
   ],
-  neontokyo: [
-    ".chat-scene .cs-tokyo-sign { display: flex; flex-direction: column; gap: 4px; padding: 4px 3px; border: 2px solid currentColor; border-radius: 3px; box-shadow: 0 0 8px currentColor, inset 0 0 6px currentColor; }",
-    ".cs-tokyo-sign i { flex: 1; border-radius: 1px; background: currentColor; opacity: .85; }",
-    ".cs-tokyo-sign i:nth-child(2) { margin: 0 2px; }",
-    "@keyframes cs-tokyo-sign { 0%, 78% { opacity: 1; } 79%, 81% { opacity: .25; } 82%, 85% { opacity: 1; } 86%, 87% { opacity: .3; } 88%, 100% { opacity: 1; } }",
-  ],
+  neontokyo: [],
   arcade: [
     ".cs-arcade-score { font: 700 10px/1 Consolas, \"Courier New\", monospace; letter-spacing: .14em; color: #facc15; white-space: nowrap; }",
     ".cs-arcade-blink { font: 700 10px/1 Consolas, \"Courier New\", monospace; letter-spacing: .18em; color: #f8fafc; white-space: nowrap; transform: translateX(-50%); animation: cs-arcade-blink 1.2s steps(1) infinite; }",
@@ -1102,7 +1301,7 @@ const SCENE_CSS: Partial<Record<keyof typeof SCENES, string[]>> = {
     "@keyframes cs-lava-morph { from { border-radius: 50% 40% 60% 45%; transform: scale(1, .9); } to { border-radius: 40% 60% 45% 55%; transform: scale(.9, 1.1); } }",
   ],
   gold: [
-    ".cs-gold-sweep { background: linear-gradient(90deg, transparent, rgba(253,230,138,.3), transparent); transform: skewX(-20deg); }",
+    ".cs-gold-sweep { background: linear-gradient(90deg, transparent, rgba(253,230,138,.17), transparent); transform: skewX(-20deg); }",
     "@keyframes cs-gold-sweep { 0% { left: -60%; } 40%, 100% { left: 130%; } }",
   ],
   chalkboard: [".cs-chalk-doodle { font: 700 15px/1 \"Segoe Print\", \"Comic Sans MS\", cursive; color: rgba(248,250,252,.55); transform: rotate(-6deg); white-space: nowrap; }"],
@@ -1178,8 +1377,9 @@ const built = new Map<keyof typeof SCENES, Scene>();
 function buildScene(id: keyof typeof SCENES): Scene {
   let scene = built.get(id);
   if (!scene) {
-    const made = SCENES[id]();
-    scene = { html: made.html, css: [...made.css, ...(SCENE_CSS[id] ?? [])] };
+    // Every scene is a whole picture from top to bottom: messages may sit at the top, at the bottom or fill the panel.
+    const made = join(SCENES[id](), GROUNDS[id]?.() ?? "");
+    scene = { html: made.html, css: [...made.css, ...(SCENE_CSS[id] ?? []), ...(GROUND_CSS[id] ?? [])] };
     built.set(id, scene);
   }
   return scene;
@@ -1222,6 +1422,10 @@ export function getChatSceneCss(config: Pick<CameraChatConfig, "scene"> & Partia
     "@keyframes cs-twinkle { 0%, 100% { opacity: .3; } 50% { opacity: 1; } }",
     "@keyframes cs-win { 0%, 62% { opacity: 1; } 63%, 71% { opacity: .15; } 72%, 100% { opacity: 1; } }",
     "@keyframes cs-glow { from { opacity: .6; } to { opacity: 1; } }",
+    "@keyframes cs-tokyo-sign { 0%, 78% { opacity: 1; } 79%, 81% { opacity: .25; } 82%, 85% { opacity: 1; } 86%, 87% { opacity: .3; } 88%, 100% { opacity: 1; } }",
+    ".cs-tokyo-sign i:nth-child(2) { margin: 0 2px; }",
+    ".cs-tokyo-sign i { flex: 1; border-radius: 1px; background: currentColor; opacity: .85; }",
+    ".chat-scene .cs-tokyo-sign { display: flex; flex-direction: column; gap: 4px; padding: 4px 3px; border: 2px solid currentColor; border-radius: 3px; box-shadow: 0 0 8px currentColor, inset 0 0 6px currentColor; }",
     "@keyframes cs-summer-cloud { from { transform: translateX(-16px); } to { transform: translateX(22px); } }",
     "@keyframes cs-fantasy-float { from { transform: translate(-6px, 6px); opacity: .55; } to { transform: translate(6px, -10px); opacity: 1; } }",
     "@keyframes cs-spring-path0 { 0% { transform: translate(0, 0); } 25% { transform: translate(60px, -20px); } 50% { transform: translate(110px, 10px); } 75% { transform: translate(50px, 30px); } 100% { transform: translate(-20px, 0); } }",
