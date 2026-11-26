@@ -10,7 +10,7 @@ import CameraChatOverlay from "./CameraChatOverlay";
 import { CameraChatWidget } from "./CameraChatWidget";
 import { generateStreamElementsWidget } from "./stream-elements-widget";
 import { chatEventLabels } from "./chat-event-labels";
-import { CHAT_SCENE_IDS, chatSceneFor, chatSceneHtml, getChatSceneCss } from "./chat-scenes";
+import { CHAT_SCENE_BACKDROP, CHAT_SCENE_IDS, chatSceneFor, chatSceneHtml, getChatSceneCss } from "./chat-scenes";
 import { type CameraChatConfig, DEFAULT_CAMERA_CHAT_CONFIG, cameraChatConfigFromSearch, cameraChatConfigToSearch } from "./camera-chat-settings";
 import { chatPresetConfig, CHAT_PRESET_IDS } from "./chat-presets";
 import { chatTextBackdrop, checkChatSetup } from "./chat-setup-check";
@@ -74,7 +74,7 @@ test("every scene is fixed, safe markup with valid shapes and every animation de
     const used = new Set([...(html + css).matchAll(/animation(?:-name)?:\s*([a-z][\w-]*)/g)].map((match) => match[1]!));
     for (const name of used) if (name !== "none") assert.ok(css.includes(`@keyframes ${name} `), `${id}: @keyframes ${name}`);
     assert.match(css, /prefers-reduced-motion: reduce/, `${id}: still for viewers who turn motion off`);
-    assert.match(css, /\.row \{ -webkit-backdrop-filter: blur\(3px\); backdrop-filter: blur\(3px\); \}/, `${id}: messages blur what is behind them`);
+    assert.ok(css.includes(`.row { -webkit-backdrop-filter: ${CHAT_SCENE_BACKDROP.light}; backdrop-filter: ${CHAT_SCENE_BACKDROP.light}; }`), `${id}: messages blur and dim what is behind light text`);
     assert.equal(chatSceneHtml({ scene: id }), html, `${id}: the same scene on every call`);
     const dom = new JSDOM(`<div>${html}</div>`);
     assert.ok(dom.window.document.querySelectorAll(".cs").length > 0, `${id} parses as HTML`);

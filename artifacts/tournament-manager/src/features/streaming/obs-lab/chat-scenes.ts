@@ -659,7 +659,7 @@ const SCENES = {
   // --- Seasons ---------------------------------------------------------------------------------------------------
   winter: (): Scene => join(
     item("", { inset: 0, background: "radial-gradient(circle at 0 0, rgba(255,255,255,.35), transparent 22%), radial-gradient(circle at 100% 0, rgba(255,255,255,.3), transparent 20%)" }),
-    item("", { left: 0, right: 0, top: "calc(50% - 110px)", height: "110px", opacity: 0.8 }, svg("0 0 1200 100", mountains(43, "#94a3b8", "#f8fafc"), "xMidYMax slice")),
+    item("", { left: 0, right: 0, top: "calc(50% - 110px)", height: "110px", opacity: 0.8 }, svg("0 0 1200 100", mountains(43, "#334155", "rgba(241,245,249,.85)"), "xMidYMax slice")),
     item("", { left: "-30px", bottom: 0, width: "112px", height: "76%" }, svg("0 0 100 300", `<path d="${pines(21, 2, 220, 292, 100, 300)}" fill="#1e3a5f"/><path d="${pines(21, 2, 220, 292, 100, 300)}" fill="none" stroke="#f8fafc" stroke-width="3" stroke-dasharray="14 22" opacity=".85"/>`, "xMinYMax meet")),
     item("", { right: "-26px", bottom: 0, width: "100px", height: "64%" }, svg("0 0 100 300", `<path d="${pines(29, 2, 200, 286, 100, 300)}" fill="#1e3a5f"/><path d="${pines(29, 2, 200, 286, 100, 300)}" fill="none" stroke="#f8fafc" stroke-width="3" stroke-dasharray="12 20" opacity=".85"/>`, "xMaxYMax meet")),
     fallers({ seed: 101, count: 12, viewBox: "-12 -12 24 24", size: [10, 20], duration: [10, 18], spin: "tumble", opacity: 0.9, shapes: [SNOWFLAKE] }),
@@ -1097,7 +1097,7 @@ const SCENE_CSS: Partial<Record<keyof typeof SCENES, string[]>> = {
   ],
   memphis: ["@keyframes cs-memphis-drift { from { transform: translate(-6px, 4px) rotate(-10deg); } to { transform: translate(6px, -6px) rotate(12deg); } }"],
   lavalamp: [
-    ".cs-lava-blob { border-radius: 50%; filter: blur(1px); }",
+    ".cs-lava-blob { border-radius: 50%; filter: blur(1px); opacity: .6; }",
     "@keyframes cs-lava-rise { 0%, 100% { bottom: -15%; } 50% { bottom: 82%; } }",
     "@keyframes cs-lava-morph { from { border-radius: 50% 40% 60% 45%; transform: scale(1, .9); } to { border-radius: 40% 60% 45% 55%; transform: scale(.9, 1.1); } }",
   ],
@@ -1130,6 +1130,18 @@ export function chatSceneFor(id: string): ChatSceneId {
   return (CHAT_SCENE_IDS as readonly string[]).includes(id) ? (id as ChatSceneId) : "none";
 }
 
+/** What a message does to the scene right behind it: light text gets a dimmed picture, dark text a lightened one. */
+export const CHAT_SCENE_BACKDROP = { light: "blur(6px) brightness(.5)", dark: "blur(6px) brightness(1.35)" } as const;
+
+function hexLuminance(hex: string): number {
+  const value = /^#([0-9a-f]{6})$/i.exec(hex)?.[1] ?? "ffffff";
+  const channel = (offset: number) => {
+    const c = parseInt(value.slice(offset, offset + 2), 16) / 255;
+    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  };
+  return 0.2126 * channel(0) + 0.7152 * channel(2) + 0.0722 * channel(4);
+}
+
 const built = new Map<keyof typeof SCENES, Scene>();
 
 function buildScene(id: keyof typeof SCENES): Scene {
@@ -1148,8 +1160,9 @@ export function chatSceneHtml(config: Pick<CameraChatConfig, "scene">): string {
 }
 
 /** Shared and scene rules; `panel` and `row` are the renderer's own selectors for the chat panel and a message row. */
-export function getChatSceneCss(config: Pick<CameraChatConfig, "scene">, panel: string, row: string): string {
+export function getChatSceneCss(config: Pick<CameraChatConfig, "scene"> & Partial<Pick<CameraChatConfig, "textColor">>, panel: string, row: string): string {
   if (config.scene === "none") return "";
+  const lightText = hexLuminance(config.textColor ?? "#ffffff") > 0.35;
   return [
     `${panel} { position: relative; isolation: isolate; }`,
     ".chat-scene { position: absolute; inset: 0; z-index: -1; overflow: hidden; pointer-events: none; border-radius: inherit; }",
@@ -1157,8 +1170,10 @@ export function getChatSceneCss(config: Pick<CameraChatConfig, "scene">, panel: 
     ".chat-scene svg { position: absolute; inset: 0; display: block; width: 100%; height: 100%; overflow: visible; }",
     ".chat-scene .cs-star { border-radius: 50%; }",
     ".chat-scene .cs-win { animation: cs-win 6s steps(1) infinite; }",
-    // Messages blur the picture right behind them, so the text never fights with it.
-    `${row} { -webkit-backdrop-filter: blur(3px); backdrop-filter: blur(3px); }`,
+    // Messages blur the picture right behind them and dim it behind light text (or lighten it behind dark text), so
+    // nothing in the scene, not even a flame or a bright aurora, competes with the words.
+    `${row} { -webkit-backdrop-filter: ${CHAT_SCENE_BACKDROP[lightText ? "light" : "dark"]}; backdrop-filter: ${CHAT_SCENE_BACKDROP[lightText ? "light" : "dark"]}; }`,
+    lightText ? ".chat-text { text-shadow: 0 1px 2px rgba(0,0,0,.6); }" : ".chat-text { text-shadow: 0 1px 1px rgba(255,255,255,.5); }",
     "@keyframes cs-fall { from { top: -12%; } to { top: 110%; } }",
     "@keyframes cs-rise { 0% { top: 104%; opacity: 0; } 12% { opacity: 1; } 85% { opacity: .9; } 100% { top: -10%; opacity: 0; } }",
     "@keyframes cs-sway { from { transform: translateX(-12px); } to { transform: translateX(12px); } }",

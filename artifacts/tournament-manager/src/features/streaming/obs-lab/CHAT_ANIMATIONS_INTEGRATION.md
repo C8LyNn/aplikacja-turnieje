@@ -288,9 +288,14 @@ natywnego widgetu StreamElements. Reguły wiadomości są w
   liliowy sen, kawaii, bąbelki, pastel goth, Y2K, brzoskwinia, synthwave, vaporwave, neonowe miasto, salon gier,
   retro 8-bit, rytm muzyki, neonowe fale, e-sport, FPS, noir, hologram, Memphis, lampa lava, złoto, tablica kredowa,
   plan techniczny, komiks, tablica korkowa). Proste style (Glass, Minimal, Klasyczny…) zostają bez sceny.
-- Czytelność: najważniejsze części obrazka są w górnej połowie i po bokach (czat rośnie od dołu); wiadomości lekko
-  rozmywają to, co jest tuż za nimi (`backdrop-filter`); motywy z jasną sceną mają jasne karty i ciemny tekst.
+- Czytelność: najważniejsze części obrazka są w górnej połowie i po bokach (czat rośnie od dołu). Wiadomość rozmywa
+  to, co jest tuż za nią, i przyciemnia to za jasnym tekstem albo rozjaśnia za ciemnym (`CHAT_SCENE_BACKDROP`,
+  `backdrop-filter`); jasny tekst dostaje lekki cień. Motywy z jasną sceną mają jasne karty i ciemny tekst.
   Animacje zatrzymują się przy `prefers-reduced-motion`.
+- Pomiar (Edge bez okna, 60 motywów, 6 chwil animacji): tekst ukryty, zrzut i kontrast koloru tekstu z prawdziwymi
+  pikselami za każdą linią (10. percentyl). Przed poprawką sceny psuły kontrast m.in. w motywach Lampa lava (5,5 → 1,8),
+  Zima (8,4 → 2,7), Liliowy sen, Zorza, Vaporwave i Pustynia. Po poprawce żadna scena nie obniża kontrastu tekstu poniżej
+  poziomu tego samego motywu bez sceny o więcej niż 10% (Zima 8,8, Zorza 7,5, Vaporwave 9,3, Lampa lava 5,6 = bez sceny).
 - Bezpieczeństwo: znaczniki sceny są stałe (tylko stałe z pliku, bez tekstu od kogokolwiek), bez `url()`, skryptów
   i obrazków z sieci. Test sprawdza też poprawność każdej ścieżki SVG i to, że każda użyta animacja ma swoje
   `@keyframes`, oraz zgodność sceny w podglądzie, na stronie OBS i w widżecie StreamElements (`chat-scenes.test.tsx`).
