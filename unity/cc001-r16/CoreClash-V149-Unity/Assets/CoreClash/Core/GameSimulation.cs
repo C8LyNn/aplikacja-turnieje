@@ -110,6 +110,9 @@ namespace CoreClash.Core
         public void Damage(BallRuntime b,int amount,bool kinetic=false,int sourceId=0)
         {
             if(b==null||b.dead||amount<=0)return;
+            // Match rule noFriendlyFire: a ball takes no HP from another ball of its own player
+            // (whatever the power: this is the one gate every power's damage goes through).
+            if(State.noFriendlyFire&&sourceId!=0&&sourceId!=b.id){var source=State.balls.FirstOrDefault(x=>x.id==sourceId);if(source!=null&&source.owner==b.owner)return;}
             // Match rule compassDashHurt: on its second shot the Compass takes only part of what a collision would cost it.
             if(kinetic&&b.compassDash&&State.compassDashHurt<100){amount=Round(amount*Math.Max(0,State.compassDashHurt)/100f);if(amount<=0)return;}
             // Match rule brittleBonus: a frozen ball is brittle - a hard hit takes more from it.

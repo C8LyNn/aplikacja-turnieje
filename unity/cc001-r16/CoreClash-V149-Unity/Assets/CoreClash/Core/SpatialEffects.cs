@@ -123,6 +123,8 @@ namespace CoreClash.Core
                     foreach(var b in Living().Where(b=>b.id!=z.sourceId)){float d=(float)Math.Sqrt((b.x-z.x)*(b.x-z.x)+(b.y-z.y)*(b.y-z.y));if(d>z.radius||!FieldHolds(z,b))continue;Impulse(b,z.x,z.y,70*dt);if(b.owner!=z.owner){z.dead=true;var source=S.balls.FirstOrDefault(x=>x.id==z.sourceId);if(source!=null){var blast=new BallRuntime{id=source.id,owner=z.owner,type="gravitymine",x=z.x,y=z.y};if(S.mineDamage>0)MineBlast(blast,z.radius,S.mineDamage,390);else Explode(blast,100,14,390);sim.Kill(source);}break;}}
                 }else if(z.kind=="blackHole"){
                     foreach(var b in Living()){
+                        // Match rule noFriendlyFire: a black hole leaves its owner's balls alone.
+                        if(S.noFriendlyFire&&b.owner==z.owner)continue;
                         float dx=z.x-b.x,dy=z.y-b.y,d=(float)Math.Sqrt(dx*dx+dy*dy),swallow=Math.Max(z.coreRadius,z.radius*.145f)+b.radius*.34f;
                         if(d<swallow){Consume(z.owner,z.sourceId,b);if(++z.swallowed>=10){z.dead=true;break;}}
                         else if(d<z.radius)Impulse(b,z.x,z.y,(.24f+.76f*(1-d/z.radius))*z.pull*dt);

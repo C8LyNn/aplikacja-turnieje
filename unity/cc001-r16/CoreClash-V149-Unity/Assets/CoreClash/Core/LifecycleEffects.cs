@@ -216,7 +216,10 @@ namespace CoreClash.Core
         void Explode(BallRuntime source,float radius,int damage,float force)
         {
             foreach(var b in Living()){
-                if(b.id==source.id)continue;float d=Dist(source,b);if(d>=radius)continue;float fall=Math.Max(.2f,1-d/radius);Impulse(b,2*b.x-source.x,2*b.y-source.y,force*fall);sim.Damage(b,GameSimulation.Round(damage*(.45f+.55f*fall)),false,source.id);
+                if(b.id==source.id)continue;float d=Dist(source,b);if(d>=radius)continue;float fall=Math.Max(.2f,1-d/radius);Impulse(b,2*b.x-source.x,2*b.y-source.y,force*fall);
+                // Match rule noFriendlyFire: the blast throws its owner's balls back and takes nothing from them.
+                if(S.noFriendlyFire&&b.owner==source.owner)continue;
+                sim.Damage(b,GameSimulation.Round(damage*(.45f+.55f*fall)),false,source.id);
             }
             sim.Emit("EXPLOSION",source,"Area explosion");
         }

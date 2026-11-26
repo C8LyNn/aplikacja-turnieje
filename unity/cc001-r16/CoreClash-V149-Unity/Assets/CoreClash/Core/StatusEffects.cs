@@ -5,6 +5,9 @@ namespace CoreClash.Core
     public sealed partial class AbilityResolver
     {
         void Stamp(BallRuntime b,string family,int owner){var stamp=b.statusOrder.FirstOrDefault(x=>x.family==family);if(stamp==null)b.statusOrder.Add(new StatusStamp{family=family,order=++S.statusClock,owner=owner});else stamp.owner=owner;}
+        // Match rule noFriendlyFire: a player's own fire, ice or poison does not land on that player's
+        // balls. (The part that helps stays: own fire thaws, own ice puts a fire out.)
+        bool Own(BallRuntime b,int owner)=>S.noFriendlyFire&&b.owner==owner;
         void ClearFire(BallRuntime b){b.fireStacks=b.burnTurns=0;b.statusOrder.RemoveAll(x=>x.family=="FIRE");}
         void ClearIce(BallRuntime b){b.iceStacks=b.iceTurns=0;b.frozen=0;b.thawTurn=-1;b.statusOrder.RemoveAll(x=>x.family=="ICE");}
         // Match rule deepFreeze: frozen through the next turns (GameState.freezeTurns), whoever plays them.
@@ -20,7 +23,7 @@ namespace CoreClash.Core
         // The ice trap of the deepFreeze rule: frozen at once (ice and fire still cancel each other).
         public void FreezeNow(BallRuntime b,int owner)
         {
-            if(b.dead)return;if(b.fireStacks>0){ClearFire(b);return;}if(b.frozen>0)return;
+            if(b.dead)return;if(b.fireStacks>0){ClearFire(b);return;}if(b.frozen>0||Own(b,owner))return;
             Stamp(b,"ICE",owner);Freeze(b);
         }
         void ClearToxin(BallRuntime b){b.toxinTurns=0;b.statusOrder.RemoveAll(x=>x.family=="TOXIN");S.virulence.RemoveAll(x=>x.targetLineage==b.lineageId);}
@@ -29,19 +32,19 @@ namespace CoreClash.Core
         {
             if(b.dead||!visited.Add(b.id)||!Enter())return;
             try{
-                if(b.iceStacks>0||b.frozen>0){ClearIce(b);return;}Stamp(b,"FIRE",owner);b.fireStacks++;
+                if(b.iceStacks>0||b.frozen>0){ClearIce(b);return;}if(Own(b,owner))return;Stamp(b,"FIRE",owner);b.fireStacks++;
                 if(b.fireStacks>=3){ClearFire(b);sim.Damage(b,5);foreach(var other in Near(b,58).Where(t=>t.owner!=owner))ApplyFireChain(other,owner,visited);sim.Emit("FIRE_BURST",b,"Third fire stack");return;}
                 b.burnTurns=b.fireStacks==1?3:4;sim.Emit("FIRE",b,"Fire "+b.fireStacks);
             }finally{depth--;}
         }
         public void ApplyIce(BallRuntime b,int owner)
         {
-            if(b.dead)return;if(b.fireStacks>0){ClearFire(b);return;}Stamp(b,"ICE",owner);
+            if(b.dead)return;if(b.fireStacks>0){ClearFire(b);return;}if(Own(b,owner))return;Stamp(b,"ICE",owner);
             if(b.frozen>0){if(!S.deepFreeze)b.frozen=2.4f;return;}b.iceStacks++;
             if(b.iceStacks>=3)Freeze(b);
             else{b.iceTurns=b.iceStacks==1?3:4;sim.Emit("ICE",b,"Ice "+b.iceStacks);}
         }
-        public void ApplyToxin(BallRuntime b,int owner){if(b.dead)return;Stamp(b,"TOXIN",owner);b.toxinTurns=Math.Max(1,S.poisonTurns);sim.Emit("TOXIN",b,"Toxin "+b.toxinTurns);}
+        public void ApplyToxin(BallRuntime b,int owner){if(b.dead||Own(b,owner))return;Stamp(b,"TOXIN",owner);b.toxinTurns=Math.Max(1,S.poisonTurns);sim.Emit("TOXIN",b,"Toxin "+b.toxinTurns);}
         public void Root(BallRuntime b){if(b.dead)return;b.rooted=true;b.rootExpiresOwnerTurn=S.players[b.owner].ownerTurns+1;b.vx=b.vy=0;sim.Emit("ROOTED",b,"Rooted until own turn ends");}
         void StatusTurn(BallRuntime b)
         {

@@ -63,9 +63,11 @@ public static partial class Program
             True(Enemies(W24RunShow(c,"furnace")).All(b=>b.fireStacks>=1));
             // Fire trap: the enemy that rolled over it burns.
             True(W24Ball(W24RunShow(c,"embertrap"),1,"normal").fireStacks>=1);
-            // Bomb: gone after the blast; enemies took 10-15, and so did your own ball.
+            // Bomb: gone after the blast; the enemies took 10-15, and your own ball standing in the blast
+            // took nothing (owner rule 2026-11-26: your own balls do not hurt your other balls).
             var bomb=W24RunShow(c,"bomb");True(W24Ball(bomb,0,"bomb")==null);
-            foreach(var ball in bomb.Simulation.State.balls.Where(b=>b.type=="normal"))True(ball.hp==15||ball.hp==20,"bomb damage "+(30-ball.hp));
+            foreach(var ball in Enemies(bomb))True(ball.hp==15||ball.hp==20,"bomb damage "+(30-ball.hp));
+            Eq(30,W24Ball(bomb,0,"normal").hp);
             // Volcano: it is still there, both enemies next to it burn and have already lost 5 HP.
             var volcano=W24RunShow(c,"firebrand");True(W24Ball(volcano,0,"firebrand")!=null);True(Enemies(volcano).All(b=>b.fireStacks==1&&b.hp==25),"Volcano: "+string.Join(",",Enemies(volcano).Select(b=>b.fireStacks+"/"+b.hp)));
             // --- Poison. Venom: both steps, poison first and the extra 5 on the second touch.

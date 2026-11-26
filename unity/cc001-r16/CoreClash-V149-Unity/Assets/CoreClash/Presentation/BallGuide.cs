@@ -246,9 +246,14 @@ namespace CoreClash.Presentation
                 "One trap for each ball, laid where it first stops.",
                 "Kulka stawia jedną pułapkę: tam, gdzie stanie po raz pierwszy.",
                 Burning,Count("Works once","Działa raz"));
-            Add("bomb","Bomba",GuideWhen.Stop,GuideWho.Everyone,165,"Blast","Wybuch",
-                "Explodes and is gone. The blast hurts and throws back every ball in range — yours too.",
-                "Wybucha i znika. Wybuch rani i odrzuca wszystkie kulki w zasięgu — twoje też.",
+            // Owner rule 2026-11-26: the blast hurts enemies only (it still throws everybody back).
+            Add("bomb","Bomba",GuideWhen.Stop,CoreClash.Core.RosterBalance.NoFriendlyFire?GuideWho.Enemies:GuideWho.Everyone,165,"Blast","Wybuch",
+                CoreClash.Core.RosterBalance.NoFriendlyFire
+                    ?"Explodes and is gone. The blast hurts every enemy in range and throws back every ball — it does not hurt yours."
+                    :"Explodes and is gone. The blast hurts and throws back every ball in range — yours too.",
+                CoreClash.Core.RosterBalance.NoFriendlyFire
+                    ?"Wybucha i znika. Wybuch rani wrogów w zasięgu i odrzuca wszystkie kulki — twoich nie rani."
+                    :"Wybucha i znika. Wybuch rani i odrzuca wszystkie kulki w zasięgu — twoje też.",
                 "Destroyed before it stops? It still explodes.",
                 "Zniszczona, zanim się zatrzyma? I tak wybuchnie.",
                 Damage("10–15 damage","10–15 obrażeń"));

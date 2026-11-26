@@ -103,6 +103,15 @@ namespace CoreClash.Core
         // reference rules 5 for each, so a second touch made 40 HP of fire, more than a ball has.
         // A second fire still makes the ball burn longer, and a third bursts.
         public bool fireFlat;
+        // W24 match rule (off = the reference rules; owner rule 2026-11-26, "an important rule:
+        // your own balls must not hurt your other balls"). A player's ball never hurts another ball of
+        // the same player: an explosion (the Bomb, a mine, a time bomb) and any other power takes
+        // no HP from its owner's other balls - it still throws them back - and a player's own fire,
+        // ice or poison does not land on that player's balls (own fire still thaws, own ice still
+        // puts a fire out). A black hole leaves its owner's balls alone. What a ball does to itself
+        // (the Bomb is gone when it explodes) and what an enemy's fire does on your ball stay as
+        // they were. In the reference rules a blast hurts everybody in range.
+        public bool noFriendlyFire;
         public float poolRadius=165;
         // W24 match rules, magnetism and electricity (off / 0 = the reference rules; owner decision
         // 2026-11-24 "strengthen magnetism and electricity", after the lab's measurement: Dynamo, the

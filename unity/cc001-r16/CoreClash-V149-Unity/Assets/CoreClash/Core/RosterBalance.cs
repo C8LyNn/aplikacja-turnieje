@@ -92,6 +92,14 @@ namespace CoreClash.Core
     //   a shield of 10 for the Anchor    Dynamo +3, inside the noise
     //   shock trap 15, Battery 3 charges inside the noise; together the first player fell to 44%
     // Still true after the pass: three ready decks stand at 55-56% and three at 44-46%.
+    //
+    // Owner rule, 2026-11-26: "an important rule: your own balls must not hurt your other balls"
+    // (GameState.noFriendlyFire, NoFriendlyFire below). In the roster only the Bomb did: its blast
+    // took 10-15 HP from everybody in range, its owner's balls too. The seats run, same draws:
+    //   before  Fire Pit 62.5  Jungle 56.5  Acid Rain 55  Dynamo 42.5  Polar Storm 42.5  Frozen Garden 42   first player 49.7%
+    //   after   Fire Pit 63    Jungle 56.5  Acid Rain 55  Polar Storm 42.5  Frozen Garden 42  Dynamo 41     first player 49.3%
+    // Nothing moved beyond the noise (about 6 points) - the computer seldom caught its own balls
+    // in a blast - so nothing was retuned.
     public static class RosterBalance
     {
         // The Poison Pool's field. (The Blizzard keeps the reference 165.)
@@ -135,6 +143,10 @@ namespace CoreClash.Core
         public const bool PlaceOnce=true;
         // The opening: HP of the extra Standard ball Player 2 plays on the first turn (0 = a whole ball).
         public const int OpeningBonusHp=15;
+        // Owner rule, 2026-11-26 ("an important rule: your own balls must not hurt your other
+        // balls"): no power of a ball takes HP from another ball of the same player or puts fire,
+        // ice or poison on it. In the roster this changes the Bomb, whose blast hurt everybody.
+        public const bool NoFriendlyFire=true;
 
         public static void Apply(GameState state)
         {
@@ -149,6 +161,7 @@ namespace CoreClash.Core
             state.mineDamage=MineDamage;state.anchorShield=AnchorShield;state.compassDashHurt=CompassDashHurt;
             state.openingBonusHp=OpeningBonusHp;
             state.trapRadius=TrapRadius;state.trapsApart=TrapsApart;state.placeOnce=PlaceOnce;
+            state.noFriendlyFire=NoFriendlyFire;
         }
     }
 }
