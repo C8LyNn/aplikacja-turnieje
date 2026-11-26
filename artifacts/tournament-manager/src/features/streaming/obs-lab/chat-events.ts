@@ -434,7 +434,8 @@ export function getChatEventCss(
     const color = CHAT_EVENT_COLORS[kind];
     rules.push(`${row}.chat-event-${kind} { --chat-event: ${color}; --chat-event-soft: ${rgba(color, 0.34)}; --chat-event-faint: ${rgba(color, 0.08)}; }`);
   }
-  rules.push(`${row}.chat-event { position: relative; overflow: hidden; align-self: stretch; max-width: none; align-items: center; gap: 10px; border-radius: ${config.bubbleRadius}px; }`);
+  // flex-shrink: 0 keeps the row whole when the list is squeezed under a header (overflow: hidden would let it shrink).
+  rules.push(`${row}.chat-event { position: relative; flex-shrink: 0; overflow: hidden; align-self: stretch; max-width: none; align-items: center; gap: 10px; border-radius: ${config.bubbleRadius}px; }`);
   rules.push(`${row}.chat-event::before { display: none; }`);
   rules.push(`.chat-event-icon { display: grid; flex: none; place-items: center; width: 1.9em; height: 1.9em; border-radius: 50%; background: var(--chat-event); color: #0b1020; font-weight: 900; line-height: 1; }`);
   rules.push(`.chat-event-body { min-width: 0; color: ${rgba(config.textColor, config.textOpacity / 100)}; }`);

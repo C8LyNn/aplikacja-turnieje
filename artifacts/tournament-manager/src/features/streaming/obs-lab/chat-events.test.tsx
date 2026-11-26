@@ -295,6 +295,7 @@ test("an export with events, replies and calm chat is still standalone and safe"
   assert.doesNotMatch(snippets.html + snippets.css + snippets.js, FORBIDDEN_IN_SNIPPETS);
   assert.match(snippets.js, /"follower-latest":"follow"/);
   assert.match(snippets.css, /@media \(prefers-reduced-motion: reduce\) \{ \.se-message\.chat-event::after/);
+  assert.match(snippets.css, /\.se-message\.chat-event \{[^}]*flex-shrink: 0;/, "an event row never shrinks when the list is squeezed under a header");
   const dom = new JSDOM(`<!doctype html><body>${snippets.html}</body>`, { runScripts: "outside-only" });
   try {
     dom.window.eval(snippets.js);
