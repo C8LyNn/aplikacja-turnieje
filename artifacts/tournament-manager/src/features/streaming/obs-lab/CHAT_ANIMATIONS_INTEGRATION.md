@@ -80,6 +80,22 @@ natywnego widgetu StreamElements. Reguły wiadomości są w
 - `prefers-reduced-motion` wyłącza efekt i odsłanianie (tekst od razu widoczny).
 - `chat-options.test.tsx` porównuje podgląd i widget SE także dla ról, efektu i czasów odsłaniania.
 
+## Zrealizowany etap 4 — położenie, ramka i ruch czatu (2026-11-26)
+
+- **Położenie:** czat po lewej (`layout=left`) i nad kamerką (`above`); na kamerce dodatkowo środek górnej
+  i dolnej krawędzi oraz środek lewej i prawej strony (`position=top-center` itd.).
+- **Ramka czatu** (`frame`, `framew`, `framec`, `framec2`, `framespd`): jednolita, gradientowa, pulsująca,
+  świecąca (z poświatą do środka), płynący gradient, wirujący neon (`@property`, OBS 28+; starsze wersje
+  pokażą ramkę bez ruchu), tęczowa, biegnące kreski, narożniki HUD. Pierścień to `::before` panelu
+  z maską, więc przezroczysty panel zostaje przezroczysty. Panel dostaje zaokrąglenie tylko przy ramce.
+- **Ruch czatu** (`panelanim`): unoszenie wiadomości, oddychanie panelu, błysk co kilka sekund, wejście przy
+  starcie.
+- **Wygląd:** gradient panelu (`panelgrad`, `panelc2`, `gradangle`), 11 nowych czcionek systemowych,
+  pogrubiony tekst (`bold`), nicki wielkimi literami (`nameupper`), palety kolorów nicków (`namepal`:
+  klasyczna, pastelowa, neonowa, ciepła, chłodna), 8 szybkich zestawów kolorów, motyw „Tęczowa ramka”.
+- CSS ramki i ruchu tworzy jedna funkcja (`getChatFrameCss`) dla podglądu i widgetu SE; test porównuje
+  reguły obu renderów dla każdej ramki.
+
 ## Kierunek następnych etapów
 
 1. **Animacja tekstu wiadomości:** wejście znakami/słowami, maska reveal,

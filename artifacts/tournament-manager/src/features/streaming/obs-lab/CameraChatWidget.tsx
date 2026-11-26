@@ -17,6 +17,9 @@ import {
   getCameraChatExitCss,
   getCameraChatSize,
   getChatEffectCss,
+  getChatFrameCss,
+  chatOverlayPlacement,
+  chatPanelBackground,
   rgbaCss,
 } from "./camera-chat-settings";
 import {
@@ -183,7 +186,15 @@ export function CameraChatWidget({
     };
     const emoteHeight = row.emoteOnly ? emotePx * 2 : emotePx;
     const name = (
-      <span className="obs-chat-name" style={{ color: row.nameColor, fontWeight: 900, marginRight: block ? undefined : 8 }}>
+      <span
+        className="obs-chat-name"
+        style={{
+          color: row.nameColor,
+          fontWeight: 900,
+          marginRight: block ? undefined : 8,
+          textTransform: config.nameUppercase ? "uppercase" : undefined,
+        }}
+      >
         {message.name}{config.showColon ? ":" : ""}
       </span>
     );
@@ -202,6 +213,7 @@ export function CameraChatWidget({
         style={{
           color: message.isAction ? row.nameColor : rgbaCss(config.textColor, config.textOpacity),
           fontStyle: message.isAction ? "italic" : undefined,
+          fontWeight: config.textBold ? 600 : undefined,
           overflowWrap: "anywhere",
           display: block ? "block" : undefined,
         }}
@@ -286,7 +298,7 @@ export function CameraChatWidget({
     maxHeight?: number,
   ) => (
     <div
-      className={`flex min-h-0 w-full flex-col overflow-hidden ${
+      className={`obs-chat-panel flex min-h-0 w-full flex-col overflow-hidden ${
         config.chatAnchor === "top"
           ? "justify-start"
           : "justify-end"
@@ -294,11 +306,13 @@ export function CameraChatWidget({
       style={{
         height: forceHeight,
         maxHeight,
-        backgroundColor: rgbaCss(config.panelColor, config.panelOpacity),
+        ...(config.panelGradient
+          ? { background: chatPanelBackground(config) }
+          : { backgroundColor: chatPanelBackground(config) }),
       }}
     >
       <div
-        className="flex shrink-0 flex-col"
+        className="obs-chat-list flex shrink-0 flex-col"
         style={{
           gap: chatDensityGap(config.density),
           padding:
@@ -350,39 +364,15 @@ export function CameraChatWidget({
   const overlayInset = Math.min(config.overlayInset,
     Math.max(0, (size.cameraHeight - 1) / 2),
     Math.max(0, (config.cameraWidth - size.chatWidthPx) / 2));
-  const overlayPositionStyle:
-    CSSProperties = {
-      ...(config.overlayPosition.includes(
-        "top",
-      )
-        ? {
-            top:
-              overlayInset,
-          }
-        : {
-            bottom:
-              overlayInset,
-          }),
-
-      ...(config.overlayPosition.includes(
-        "left",
-      )
-        ? {
-            left:
-              overlayInset,
-          }
-        : {
-            right:
-              overlayInset,
-          }),
-    };
+  const overlayPositionStyle: CSSProperties = chatOverlayPlacement(config.overlayPosition, overlayInset);
 
   return (
     <>
       <style>{`${getCameraChatAnimationCss(config.animationStyle, "obs-chat-in")}
 ${getCameraChatExitCss(config.exitStyle, config.textAlign, "obs-chat-out")}
 ${getChatEffectCss(config, ".obs-chat-fx")}
-@media (prefers-reduced-motion: reduce) { .obs-chat-message, .obs-chat-message::after, .obs-chat-reveal, .obs-chat-emote { animation: none !important; } }`}</style>
+${getChatFrameCss(config, ".obs-chat-panel", ".obs-chat-list")}
+@media (prefers-reduced-motion: reduce) { .obs-chat-message, .obs-chat-message::after, .obs-chat-reveal, .obs-chat-emote, .obs-chat-panel, .obs-chat-panel::before, .obs-chat-panel::after, .obs-chat-list { animation: none !important; } }`}</style>
 
       <div
         className="relative shrink-0 overflow-hidden"
@@ -397,12 +387,13 @@ ${getChatEffectCss(config, ".obs-chat-fx")}
       >
         {config.layout === "chat" && renderMessages("100%")}
 
-        {config.layout === "right" && (
+        {(config.layout === "right" || config.layout === "left") && (
           <div
             className="flex h-full"
             style={{
               gap:
                 `${config.gap}px`,
+              flexDirection: config.layout === "left" ? "row-reverse" : undefined,
             }}
           >
             {camera}
@@ -430,12 +421,13 @@ ${getChatEffectCss(config, ".obs-chat-fx")}
           </div>
         )}
 
-        {config.layout === "below" && (
+        {(config.layout === "below" || config.layout === "above") && (
           <div
             className="flex h-full flex-col"
             style={{
               gap:
                 `${config.gap}px`,
+              flexDirection: config.layout === "above" ? "column-reverse" : undefined,
             }}
           >
             {camera}

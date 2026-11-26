@@ -1,8 +1,11 @@
 import {
   type CameraChatConfig,
   CHAT_MOTION_PRESETS,
-  CHAT_NAME_PALETTE,
+  CHAT_NAME_PALETTES,
   CHAT_TEXT_SHADOWS,
+  chatOverlayPlacement,
+  chatPanelBackground,
+  getChatFrameCss,
   chatAvatarPx,
   chatBadgePx,
   chatDensityGap,
@@ -64,23 +67,30 @@ export function generateStreamElementsWidget(config: CameraChatConfig) {
   const right = config.textAlign === "right";
   const block = config.messageLayout !== "inline";
   const chatOnly = config.layout === "chat";
+  const beside = config.layout === "right" || config.layout === "left";
+  const stacked = config.layout === "below" || config.layout === "above";
+  const placement = Object.entries(chatOverlayPlacement(config.overlayPosition, inset))
+    .map(([property, value]) => `${property}: ${value};`)
+    .join("\n  ");
   const chatBox = chatOnly
     ? `width: 100%;
   height: 100%;`
-    : config.layout === "right"
+    : beside
       ? `width: ${size.chatWidthPx}px;
   height: ${size.cameraHeight}px;
   display: flex;
   align-items: ${config.chatAnchor === "top" ? "flex-start" : "flex-end"};`
-      : config.layout === "below"
+      : stacked
         ? `width: 100%;
   height: ${config.belowHeight}px;`
         : `position: absolute;
   width: ${config.chatWidth}%;
   max-height: ${size.cameraHeight - inset * 2}px;
   border-radius: ${Math.max(6, config.radius * .7)}px;
-  ${config.overlayPosition.includes("top") ? "top" : "bottom"}: ${inset}px;
-  ${config.overlayPosition.includes("left") ? "left" : "right"}: ${inset}px;`;
+  ${placement}`;
+  const direction = config.layout === "below" ? "column"
+    : config.layout === "above" ? "column-reverse"
+      : config.layout === "left" ? "row-reverse" : "row";
 
   const css = `html, body {
   margin: 0;
@@ -92,7 +102,7 @@ export function generateStreamElementsWidget(config: CameraChatConfig) {
 #se-camera-chat {
   position: relative;
   display: flex;
-  flex-direction: ${config.layout === "below" ? "column" : "row"};
+  flex-direction: ${direction};
   gap: ${config.layout === "overlay" || chatOnly ? 0 : config.gap}px;
   width: ${size.width}px;
   height: ${size.height}px;
@@ -118,11 +128,11 @@ export function generateStreamElementsWidget(config: CameraChatConfig) {
   flex-direction: column;
   justify-content: ${config.chatAnchor === "top" ? "flex-start" : "flex-end"};
   width: 100%;
-  ${chatOnly || config.layout === "below" || (config.layout === "right" && config.fitChatHeight) ? "height: 100%;" : ""}
+  ${chatOnly || stacked || (beside && config.fitChatHeight) ? "height: 100%;" : ""}
   ${config.layout === "overlay" ? `max-height: ${size.cameraHeight - inset * 2}px;` : ""}
   min-height: 0;
   overflow: hidden;
-  background: ${rgbaCss(config.panelColor, config.panelOpacity)};
+  background: ${chatPanelBackground(config)};
 }
 .se-messages {
   display: flex;
@@ -167,8 +177,8 @@ export function generateStreamElementsWidget(config: CameraChatConfig) {
   ${config.textShadow === "none" ? "" : `text-shadow: ${CHAT_TEXT_SHADOWS[config.textShadow]};`}
 }
 .se-head { display: block; }
-.se-name { ${block ? "" : "margin-right: 8px; "}font-weight: 900; }
-.se-text { color: ${rgbaCss(config.textColor, config.textOpacity)}; overflow-wrap: anywhere;${block ? " display: block;" : ""} }
+.se-name { ${block ? "" : "margin-right: 8px; "}font-weight: 900;${config.nameUppercase ? " text-transform: uppercase;" : ""} }
+.se-text { color: ${rgbaCss(config.textColor, config.textOpacity)}; overflow-wrap: anywhere;${block ? " display: block;" : ""}${config.textBold ? " font-weight: 600;" : ""} }
 .se-action { font-style: italic; }
 .se-badge { display: inline-block; height: ${chatBadgePx(config)}px; width: auto; margin-right: 4px; vertical-align: middle; }
 .se-emote { display: inline-block; height: ${emoteSize}px; width: auto; margin: 0 1px; vertical-align: middle; }
@@ -176,8 +186,10 @@ export function generateStreamElementsWidget(config: CameraChatConfig) {
 ${getCameraChatAnimationCss(config.animationStyle, "se-chat-in")}
 ${getCameraChatExitCss(config.exitStyle, config.textAlign, "se-chat-out")}
 ${getChatEffectCss(config, ".se-fx")}
+${getChatFrameCss(config, ".se-panel", ".se-messages")}
 @media (prefers-reduced-motion: reduce) {
-  .se-message, .se-leaving, .se-message::after, .se-reveal, .se-emote { animation: none !important; }
+  .se-message, .se-leaving, .se-message::after, .se-reveal, .se-emote,
+  .se-panel, .se-panel::before, .se-panel::after, .se-messages { animation: none !important; }
 }`;
 
   // Only validated, bounded configuration values are embedded in the exported script.
@@ -214,7 +226,7 @@ const settings = ${scriptJson({
     revealBaseMs: chatRevealBaseMs(config),
   })};
 const list = document.getElementById("se-chat-messages");
-const nameColors = ${scriptJson(CHAT_NAME_PALETTE)};
+const nameColors = ${scriptJson(CHAT_NAME_PALETTES[config.namePalette])};
 const motionPresets = ${scriptJson(CHAT_MOTION_PRESETS)};
 const imageHosts = ${scriptJson(CHAT_IMAGE_HOSTS)};
 const linkPattern = new RegExp(${scriptJson(CHAT_LINK_PATTERN.source)}, "gi");

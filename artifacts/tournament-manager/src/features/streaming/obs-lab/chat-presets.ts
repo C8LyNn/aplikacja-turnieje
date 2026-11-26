@@ -2,10 +2,11 @@ import { t } from "@/i18n";
 import { type CameraChatConfig, DEFAULT_CAMERA_CHAT_CONFIG } from "./camera-chat-settings";
 
 /** Ready-made chat looks for the configurator; each one is a complete, URL-safe configuration. */
-export type ChatPresetId = "glass" | "minimal" | "compact" | "neon" | "classic" | "bubbles" | "light" | "clear" | "terminal" | "esport";
+export type ChatPresetId =
+  "glass" | "minimal" | "compact" | "neon" | "classic" | "bubbles" | "light" | "clear" | "terminal" | "esport" | "rainbow";
 
 export const CHAT_PRESET_IDS: readonly ChatPresetId[] =
-  ["glass", "minimal", "compact", "neon", "classic", "bubbles", "light", "clear", "terminal", "esport"];
+  ["glass", "minimal", "compact", "neon", "classic", "bubbles", "light", "clear", "terminal", "esport", "rainbow"];
 
 export function chatPresetLabel(id: ChatPresetId): string {
   switch (id) {
@@ -19,6 +20,7 @@ export function chatPresetLabel(id: ChatPresetId): string {
     case "clear": return t("obsLab.bez_tla_obrys");
     case "terminal": return t("obsLab.terminal");
     case "esport": return t("obsLab.e_sport");
+    case "rainbow": return t("obsLab.teczowa_ramka");
   }
 }
 
@@ -71,6 +73,10 @@ export function chatPresetConfig(id: ChatPresetId): CameraChatConfig {
         highlightColor: "#22d3ee",
         animationStyle: "pop",
         newMessageEffect: "glow",
+        frameStyle: "rotate",
+        frameColor: "#d946ef",
+        frameColor2: "#22d3ee",
+        frameWidth: 2,
       };
     case "classic":
       return {
@@ -173,6 +179,63 @@ export function chatPresetConfig(id: ChatPresetId): CameraChatConfig {
         animationStyle: "slide",
         newMessageEffect: "shine",
         roleHighlight: true,
+        frameStyle: "corners",
+        frameColor: "#38bdf8",
+        frameWidth: 3,
+        frameSpeed: 3,
+      };
+    case "rainbow":
+      return {
+        ...base,
+        panelColor: "#0f0f1a",
+        panelOpacity: 82,
+        radius: 18,
+        showBorders: false,
+        bubbleOpacity: 7,
+        readableNames: true,
+        animationStyle: "pop",
+        frameStyle: "rainbow",
+        frameWidth: 3,
+        frameSpeed: 5,
+        panelAnimation: "shimmer",
       };
   }
+}
+
+// --- Quick colours ------------------------------------------------------------------------------------------------
+
+export type ChatColorThemeId = "violet" | "ocean" | "sunset" | "forest" | "fire" | "ice" | "candy" | "graphite";
+
+type ChatColorTheme = Pick<CameraChatConfig,
+  "panelColor" | "panelColor2" | "bubbleColor" | "frameColor" | "frameColor2" | "highlightColor" | "nameColor">;
+
+export const CHAT_COLOR_THEMES: Record<ChatColorThemeId, ChatColorTheme> = {
+  violet: { panelColor: "#1e1b4b", panelColor2: "#4c1d95", bubbleColor: "#a78bfa", frameColor: "#a78bfa", frameColor2: "#f0abfc", highlightColor: "#facc15", nameColor: "#c4b5fd" },
+  ocean: { panelColor: "#082f49", panelColor2: "#0e7490", bubbleColor: "#38bdf8", frameColor: "#22d3ee", frameColor2: "#3b82f6", highlightColor: "#fde047", nameColor: "#7dd3fc" },
+  sunset: { panelColor: "#431407", panelColor2: "#9d174d", bubbleColor: "#fb923c", frameColor: "#f97316", frameColor2: "#ec4899", highlightColor: "#fde68a", nameColor: "#fdba74" },
+  forest: { panelColor: "#052e16", panelColor2: "#14532d", bubbleColor: "#4ade80", frameColor: "#22c55e", frameColor2: "#a3e635", highlightColor: "#fef08a", nameColor: "#86efac" },
+  fire: { panelColor: "#450a0a", panelColor2: "#7c2d12", bubbleColor: "#f87171", frameColor: "#ef4444", frameColor2: "#f59e0b", highlightColor: "#fde047", nameColor: "#fca5a5" },
+  ice: { panelColor: "#0c4a6e", panelColor2: "#1e3a8a", bubbleColor: "#bae6fd", frameColor: "#e0f2fe", frameColor2: "#7dd3fc", highlightColor: "#f0abfc", nameColor: "#e0f2fe" },
+  candy: { panelColor: "#500724", panelColor2: "#581c87", bubbleColor: "#f9a8d4", frameColor: "#f472b6", frameColor2: "#c084fc", highlightColor: "#67e8f9", nameColor: "#fbcfe8" },
+  graphite: { panelColor: "#0a0a0a", panelColor2: "#262626", bubbleColor: "#a3a3a3", frameColor: "#e5e5e5", frameColor2: "#737373", highlightColor: "#facc15", nameColor: "#e5e5e5" },
+};
+
+export const CHAT_COLOR_THEME_IDS = Object.keys(CHAT_COLOR_THEMES) as ChatColorThemeId[];
+
+export function chatColorThemeLabel(id: ChatColorThemeId): string {
+  switch (id) {
+    case "violet": return t("obsLab.fiolet");
+    case "ocean": return t("obsLab.ocean");
+    case "sunset": return t("obsLab.zachod_slonca");
+    case "forest": return t("obsLab.las");
+    case "fire": return t("obsLab.ogien");
+    case "ice": return t("obsLab.lod");
+    case "candy": return t("obsLab.cukierek");
+    case "graphite": return t("obsLab.grafit");
+  }
+}
+
+/** Only colours change; layout, text, motion and filters stay as they are. */
+export function applyChatColorTheme(config: CameraChatConfig, id: ChatColorThemeId): CameraChatConfig {
+  return { ...config, ...CHAT_COLOR_THEMES[id] };
 }

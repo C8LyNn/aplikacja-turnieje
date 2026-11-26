@@ -40,6 +40,9 @@ import {
   type CameraChatExitStyle,
   type CameraChatMessageEffect,
   type CameraChatTextReveal,
+  type CameraChatFrameStyle,
+  type CameraChatPanelAnimation,
+  type CameraChatNamePalette,
   COMMON_CHAT_BOTS,
   DEFAULT_CAMERA_CHAT_CONFIG,
   cameraChatConfigFromSearch,
@@ -49,11 +52,21 @@ import {
   rgbaCss,
 } from "./camera-chat-settings";
 import { parseChatNameList, parseChatWordList } from "./chat-message-format";
-import { CHAT_PRESET_IDS, chatPresetConfig, chatPresetLabel } from "./chat-presets";
+import {
+  CHAT_COLOR_THEME_IDS,
+  CHAT_COLOR_THEMES,
+  CHAT_PRESET_IDS,
+  applyChatColorTheme,
+  chatColorThemeLabel,
+  chatPresetConfig,
+  chatPresetLabel,
+} from "./chat-presets";
 
 const LAYOUT_OPTIONS = [
   { value: "right", get label() { return t("obsLab.prawo"); } },
+  { value: "left", get label() { return t("obsLab.lewo"); } },
   { value: "below", get label() { return t("obsLab.dol"); } },
+  { value: "above", get label() { return t("obsLab.gora"); } },
   { value: "overlay", get label() { return t("obsLab.na_kamerce"); } },
   { value: "chat", get label() { return t("obsLab.sam_czat"); } },
 ] as const;
@@ -217,7 +230,13 @@ function PresetSwatch({ config }: { config: CameraChatConfig }) {
     <span
       aria-hidden="true"
       className="flex h-10 w-12 shrink-0 flex-col justify-end gap-0.5 overflow-hidden rounded-md border border-white/10 p-1"
-      style={{ background: config.panelOpacity > 0 ? panel : PREVIEW_BACKGROUNDS.checker, alignItems: config.textAlign === "right" ? "flex-end" : "flex-start" }}
+      style={{
+        background: config.panelOpacity > 0 ? panel : PREVIEW_BACKGROUNDS.checker,
+        alignItems: config.textAlign === "right" ? "flex-end" : "flex-start",
+        boxShadow: config.frameStyle === "none"
+          ? undefined
+          : `inset 0 0 0 2px ${config.frameStyle === "rainbow" ? "#f472b6" : config.frameColor}`,
+      }}
     >
       {bar("60%")}
       {bar("80%")}
@@ -241,6 +260,10 @@ export function ObsLab() {
 
   const size = getCameraChatSize(config);
   const chatOnly = config.layout === "chat";
+  const beside = config.layout === "right" || config.layout === "left";
+  const stacked = config.layout === "below" || config.layout === "above";
+  const frameAnimated = !["none", "solid", "gradient"].includes(config.frameStyle);
+  const frameTwoColours = ["gradient", "flow", "rotate"].includes(config.frameStyle);
 
   useEffect(() => {
     storeValue(CONFIG_STORAGE_KEY, cameraChatConfigToSearch(config));
@@ -398,6 +421,31 @@ export function ObsLab() {
             </ToolButton>
           ))}
         </div>
+        <div className="mt-4">
+          <div className="mb-2 text-xs font-semibold text-muted-foreground">{t("obsLab.szybkie_kolory")}</div>
+          <div className="grid grid-cols-4 gap-1.5">
+            {CHAT_COLOR_THEME_IDS.map((theme) => {
+              const colors = CHAT_COLOR_THEMES[theme];
+              return (
+                <button
+                  key={theme}
+                  type="button"
+                  onClick={() => setConfig((current) => applyChatColorTheme(current, theme))}
+                  className="flex flex-col items-center gap-1 rounded-lg border border-border/70 bg-background/35 px-1 py-1.5 text-[10px] font-semibold text-muted-foreground transition hover:border-fuchsia-400/60 hover:text-foreground"
+                  data-testid={`chat-colors-${theme}`}
+                >
+                  <span
+                    aria-hidden="true"
+                    className="h-5 w-full rounded"
+                    style={{ background: `linear-gradient(90deg, ${colors.panelColor}, ${colors.panelColor2} 45%, ${colors.frameColor} 75%, ${colors.frameColor2})` }}
+                  />
+                  {chatColorThemeLabel(theme)}
+                </button>
+              );
+            })}
+          </div>
+          <p className="mt-1.5 text-[11px] leading-4 text-muted-foreground">{t("obsLab.zmienia_tylko_kolory_panelu_dymkow")}</p>
+        </div>
       </ToolPanel>
 
       <ToolDisclosure title={t("obsLab.moje_konfiguracje")}>
@@ -483,29 +531,35 @@ export function ObsLab() {
         <div className="space-y-4 text-fuchsia-300">
           <ToolSelect value={config.layout} onChange={(event) => patchConfig({ layout: event.target.value as CameraChatLayout })}>
             <option value="right">{t("obsLab.czat_po_prawej")}</option>
+            <option value="left">{t("obsLab.czat_po_lewej")}</option>
             <option value="below">{t("obsLab.czat_pod_kamerka")}</option>
+            <option value="above">{t("obsLab.czat_nad_kamerka")}</option>
             <option value="overlay">{t("obsLab.czat_na_kamerce")}</option>
             <option value="chat">{t("obsLab.sam_czat_bez_kamerki")}</option>
           </ToolSelect>
 
-          {(config.layout === "right" || config.layout === "overlay") && (
+          {(beside || config.layout === "overlay") && (
             <ToolRange label={t("obsLab.szerokosc_czatu")} value={config.chatWidth} suffix="%" min={20} max={55} onChange={(chatWidth) => patchConfig({ chatWidth })} />
           )}
-          {config.layout === "below" && (
+          {stacked && (
             <ToolRange label={t("obsLab.wysokosc_czatu")} value={config.belowHeight} suffix="px" min={80} max={300} onChange={(belowHeight) => patchConfig({ belowHeight })} />
           )}
-          {(config.layout === "right" || config.layout === "below") && (
+          {(beside || stacked) && (
             <ToolRange label={t("obsLab.odstep")} value={config.gap} suffix="px" min={0} max={40} onChange={(gap) => patchConfig({ gap })} />
           )}
-          {config.layout === "right" && (
+          {beside && (
             <ToolToggle label={t("obsLab.pelna_wysokosc_czatu")} checked={config.fitChatHeight} onChange={(fitChatHeight) => patchConfig({ fitChatHeight })} />
           )}
           {config.layout === "overlay" && (
             <>
               <ToolSelect value={config.overlayPosition} onChange={(event) => patchConfig({ overlayPosition: event.target.value as CameraChatOverlayPosition })}>
                 <option value="top-left">{t("obsLab.lewy_gorny")}</option>
+                <option value="top-center">{t("obsLab.gora_srodek")}</option>
                 <option value="top-right">{t("obsLab.prawy_gorny")}</option>
+                <option value="middle-left">{t("obsLab.srodek_lewa_strona")}</option>
+                <option value="middle-right">{t("obsLab.srodek_prawa_strona")}</option>
                 <option value="bottom-left">{t("obsLab.lewy_dolny")}</option>
+                <option value="bottom-center">{t("obsLab.dol_srodek")}</option>
                 <option value="bottom-right">{t("obsLab.prawy_dolny")}</option>
               </ToolSelect>
               <ToolRange label={t("obsLab.odsuniecie")} value={config.overlayInset} suffix="px" min={0} max={50} onChange={(overlayInset) => patchConfig({ overlayInset })} />
@@ -579,6 +633,17 @@ export function ObsLab() {
               <option value="mono">{t("obsLab.stala_szerokosc_mono")}</option>
               <option value="impact">Impact</option>
               <option value="comic">Comic Sans MS</option>
+              <option value="bahnschrift">Bahnschrift</option>
+              <option value="arialblack">Arial Black</option>
+              <option value="tahoma">Tahoma</option>
+              <option value="calibri">Calibri</option>
+              <option value="cambria">Cambria</option>
+              <option value="franklin">Franklin Gothic</option>
+              <option value="times">Times New Roman</option>
+              <option value="courier">Courier New</option>
+              <option value="lucida">Lucida Console</option>
+              <option value="palatino">Palatino</option>
+              <option value="segoeprint">Segoe Print</option>
               <option value="custom">{t("obsLab.wlasna_zainstalowana_na_komputerze")}</option>
             </ToolSelect>
           </FieldLabel>
@@ -607,6 +672,7 @@ export function ObsLab() {
               <option value="outline">{t("obsLab.obrys")}</option>
             </ToolSelect>
           </FieldLabel>
+          <ToolToggle label={t("obsLab.pogrubiony_tekst_wiadomosci")} checked={config.textBold} onChange={(textBold) => patchConfig({ textBold })} />
           <FieldLabel label={t("obsLab.kolory_nickow")}>
             <ToolSelect value={config.nameColorMode} onChange={(event) => patchConfig({ nameColorMode: event.target.value as CameraChatNameColorMode })}>
               <option value="user">{t("obsLab.kolor_widza_z_twitcha")}</option>
@@ -620,7 +686,19 @@ export function ObsLab() {
           {config.nameColorMode === "user" && (
             <ToolToggle label={t("obsLab.czytelne_kolory_nickow")} description={t("obsLab.rozjasnia_zbyt_ciemne_kolory_widzow")} checked={config.readableNames} onChange={(readableNames) => patchConfig({ readableNames })} />
           )}
+          {config.nameColorMode !== "single" && (
+            <FieldLabel label={t("obsLab.paleta_kolorow_nickow")} hint={t("obsLab.dla_widzow_bez_wlasnego_koloru")}>
+              <ToolSelect value={config.namePalette} onChange={(event) => patchConfig({ namePalette: event.target.value as CameraChatNamePalette })}>
+                <option value="classic">{t("obsLab.klasyczna")}</option>
+                <option value="pastel">{t("obsLab.pastelowa")}</option>
+                <option value="neon">{t("obsLab.neonowa")}</option>
+                <option value="warm">{t("obsLab.ciepla")}</option>
+                <option value="cool">{t("obsLab.chlodna")}</option>
+              </ToolSelect>
+            </FieldLabel>
+          )}
           <ToolToggle label={t("obsLab.dwukropek_po_nicku")} checked={config.showColon} onChange={(showColon) => patchConfig({ showColon })} />
+          <ToolToggle label={t("obsLab.nicki_wielkimi_literami")} checked={config.nameUppercase} onChange={(nameUppercase) => patchConfig({ nameUppercase })} />
         </div>
       </ToolDisclosure>
 
@@ -628,6 +706,13 @@ export function ObsLab() {
         <div className="space-y-4 text-fuchsia-300">
           <ColorField label={t("obsLab.kolor_panelu")} value={config.panelColor} onChange={(panelColor) => patchConfig({ panelColor })} />
           <ToolRange label={t("obsLab.krycie_panelu")} value={config.panelOpacity} suffix="%" min={0} max={100} onChange={(panelOpacity) => patchConfig({ panelOpacity })} />
+          <ToolToggle label={t("obsLab.gradient_panelu")} checked={config.panelGradient} onChange={(panelGradient) => patchConfig({ panelGradient })} />
+          {config.panelGradient && (
+            <div className="space-y-3 rounded-xl border border-border bg-background/35 p-3">
+              <ColorField label={t("obsLab.drugi_kolor_panelu")} value={config.panelColor2} onChange={(panelColor2) => patchConfig({ panelColor2 })} />
+              <ToolRange label={t("obsLab.kat_gradientu")} value={config.panelGradientAngle} suffix="°" min={0} max={360} step={5} onChange={(panelGradientAngle) => patchConfig({ panelGradientAngle })} />
+            </div>
+          )}
           <ToolRange label={t("obsLab.zaokraglenie")} value={config.radius} suffix="px" min={0} max={48} onChange={(radius) => patchConfig({ radius })} />
           <ToolRange label={t("obsLab.padding")} value={config.innerPadding} suffix="px" min={0} max={30} onChange={(innerPadding) => patchConfig({ innerPadding })} />
           <ToolToggle label={t("obsLab.tla_wiadomosci")} checked={config.messageBackground} onChange={(messageBackground) => patchConfig({ messageBackground })} />
@@ -650,6 +735,51 @@ export function ObsLab() {
             </div>
           )}
           <ToolToggle label={t("obsLab.wygaszanie_starszych")} checked={config.fadeOldMessages} onChange={(fadeOldMessages) => patchConfig({ fadeOldMessages })} />
+        </div>
+      </ToolDisclosure>
+
+      <ToolDisclosure title={t("obsLab.ramka_i_ruch_czatu")}>
+        <div className="space-y-4 text-fuchsia-300">
+          <FieldLabel label={t("obsLab.ramka")}>
+            <ToolSelect value={config.frameStyle} onChange={(event) => patchConfig({ frameStyle: event.target.value as CameraChatFrameStyle })}>
+              <option value="none">{t("obsLab.bez_ramki")}</option>
+              <option value="solid">{t("obsLab.jednolita")}</option>
+              <option value="gradient">{t("obsLab.gradientowa")}</option>
+              <option value="pulse">{t("obsLab.pulsujaca")}</option>
+              <option value="glow">{t("obsLab.swiecaca")}</option>
+              <option value="flow">{t("obsLab.plynacy_gradient")}</option>
+              <option value="rotate">{t("obsLab.wirujacy_neon")}</option>
+              <option value="rainbow">{t("obsLab.teczowa")}</option>
+              <option value="dashes">{t("obsLab.biegnace_kreski")}</option>
+              <option value="corners">{t("obsLab.narozniki_hud")}</option>
+            </ToolSelect>
+          </FieldLabel>
+          {config.frameStyle !== "none" && (
+            <div className="space-y-3 rounded-xl border border-border bg-background/35 p-3">
+              <ToolRange label={t("obsLab.grubosc_ramki")} value={config.frameWidth} suffix="px" min={1} max={12} onChange={(frameWidth) => patchConfig({ frameWidth })} />
+              {config.frameStyle !== "rainbow" && (
+                <ColorField label={t("obsLab.kolor_ramki")} value={config.frameColor} onChange={(frameColor) => patchConfig({ frameColor })} />
+              )}
+              {frameTwoColours && (
+                <ColorField label={t("obsLab.drugi_kolor_ramki")} value={config.frameColor2} onChange={(frameColor2) => patchConfig({ frameColor2 })} />
+              )}
+              {frameAnimated && (
+                <ToolRange label={t("obsLab.czas_jednego_cyklu_ramki")} value={config.frameSpeed} suffix=" s" min={1} max={20} step={0.5} onChange={(frameSpeed) => patchConfig({ frameSpeed })} />
+              )}
+              {config.frameStyle === "rotate" && (
+                <p className="text-[11px] leading-4 text-muted-foreground">{t("obsLab.wirujacy_neon_potrzebuje_obs_28")}</p>
+              )}
+            </div>
+          )}
+          <FieldLabel label={t("obsLab.ruch_czatu")}>
+            <ToolSelect value={config.panelAnimation} onChange={(event) => patchConfig({ panelAnimation: event.target.value as CameraChatPanelAnimation })}>
+              <option value="none">{t("obsLab.brak")}</option>
+              <option value="float">{t("obsLab.unoszenie_wiadomosci")}</option>
+              <option value="breathe">{t("obsLab.oddychanie")}</option>
+              <option value="shimmer">{t("obsLab.blysk_co_kilka_sekund")}</option>
+              <option value="intro">{t("obsLab.wejscie_przy_starcie")}</option>
+            </ToolSelect>
+          </FieldLabel>
         </div>
       </ToolDisclosure>
 

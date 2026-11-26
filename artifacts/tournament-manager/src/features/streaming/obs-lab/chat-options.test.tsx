@@ -7,15 +7,21 @@ import { act, cleanup, render } from "@testing-library/react";
 import { JSDOM } from "jsdom";
 import CameraChatOverlay from "./CameraChatOverlay";
 import { CameraChatWidget, type MockChatMessage } from "./CameraChatWidget";
-import { CHAT_PRESET_IDS, chatPresetConfig } from "./chat-presets";
+import { CHAT_COLOR_THEME_IDS, CHAT_PRESET_IDS, applyChatColorTheme, chatPresetConfig } from "./chat-presets";
 import { generateStreamElementsWidget } from "./stream-elements-widget";
 import {
   type CameraChatConfig,
+  CHAT_FRAME_STYLES,
+  CHAT_NAME_PALETTES,
+  CHAT_OVERLAY_POSITIONS,
   DEFAULT_CAMERA_CHAT_CONFIG,
   cameraChatConfigFromSearch,
   cameraChatConfigFromUrl,
   cameraChatConfigToSearch,
   chatFontFamily,
+  chatOverlayPlacement,
+  chatPaletteColor,
+  chatPanelBackground,
   getCameraChatSize,
   readableNameColor,
   resolveChatNameColor,
@@ -83,6 +89,18 @@ const CUSTOM: CameraChatConfig = {
   exitStyle: "slide",
   newMessageEffect: "glow",
   textReveal: "words",
+  panelGradient: true,
+  panelColor2: "#4c1d95",
+  panelGradientAngle: 45,
+  frameStyle: "rotate",
+  frameWidth: 4,
+  frameColor: "#d946ef",
+  frameColor2: "#22d3ee",
+  frameSpeed: 6.5,
+  panelAnimation: "float",
+  textBold: true,
+  namePalette: "neon",
+  nameUppercase: true,
 };
 
 test("every new option survives the Browser Source URL", () => {
@@ -340,6 +358,17 @@ const PARITY_CONFIGS: Array<[string, CameraChatConfig]> = [
     newMessageEffect: "glow",
     animateMessages: false,
   }],
+  ["pastel palette, bold text, names in capitals, frame and floating messages", {
+    ...DEFAULT_CAMERA_CHAT_CONFIG,
+    maxMessages: 10,
+    nameColorMode: "palette",
+    namePalette: "pastel",
+    textBold: true,
+    nameUppercase: true,
+    frameStyle: "glow",
+    panelAnimation: "float",
+    panelGradient: true,
+  }],
   ["stacked bubbles on the right, palette colours", {
     ...DEFAULT_CAMERA_CHAT_CONFIG,
     maxMessages: 10,
@@ -421,6 +450,123 @@ test("the new-message effect is a ::after layer in the name colour, in preview a
   const none = generateStreamElementsWidget(DEFAULT_CAMERA_CHAT_CONFIG).css;
   assert.doesNotMatch(none, /chat-fx|chat-reveal/);
   assert.match(none, /prefers-reduced-motion[\s\S]*\.se-message::after, \.se-reveal/);
+});
+
+// --- Placement, panel, frame and chat motion ----------------------------------------------------------------------
+
+test("chat on the left and above the camera: same size as right/below, mirrored in preview and StreamElements", () => {
+  for (const [layout, twin, direction] of [["left", "right", "row-reverse"], ["above", "below", "column-reverse"]] as const) {
+    const config = { ...DEFAULT_CAMERA_CHAT_CONFIG, layout, gap: 10 };
+    assert.deepEqual(getCameraChatSize(config), getCameraChatSize({ ...config, layout: twin }));
+    assert.match(generateStreamElementsWidget(config).css, new RegExp(`flex-direction: ${direction};`));
+    const { container } = render(<CameraChatWidget config={config} messages={[{ id: "1", name: "A", text: "hi" }]} previewCamera />);
+    const flexbox = container.querySelector("div.relative.shrink-0 > div.flex") as HTMLElement;
+    assert.equal(flexbox.style.flexDirection, direction);
+    assert.equal(container.querySelectorAll(".obs-chat-text").length, 1);
+    cleanup();
+  }
+  assert.deepEqual(cameraChatConfigFromSearch("?layout=left").layout, "left");
+  assert.deepEqual(cameraChatConfigFromSearch("?layout=above").layout, "above");
+});
+
+test("every place on the camera is written the same way in preview and StreamElements", () => {
+  for (const position of CHAT_OVERLAY_POSITIONS) {
+    const config = { ...DEFAULT_CAMERA_CHAT_CONFIG, layout: "overlay" as const, overlayPosition: position, overlayInset: 20 };
+    assert.equal(cameraChatConfigFromSearch(cameraChatConfigToSearch(config)).overlayPosition, position);
+    const placement = chatOverlayPlacement(position, 20);
+    const { css } = generateStreamElementsWidget(config);
+    for (const [property, value] of Object.entries(placement)) assert.match(css, new RegExp(`\\n  ${property}: ${value.replace(/[()]/g, "\\$&")};`), `${position} ${property}`);
+    const { container } = render(<CameraChatWidget config={config} messages={[{ id: "1", name: "A", text: "hi" }]} />);
+    const box = container.querySelector("div.absolute.overflow-hidden") as HTMLElement;
+    for (const [property, value] of Object.entries(placement)) assert.equal(box.style.getPropertyValue(property), value, `${position} ${property}`);
+    cleanup();
+  }
+  assert.deepEqual(chatOverlayPlacement("bottom-center", 14), { bottom: "14px", left: "50%", transform: "translateX(-50%)" });
+  assert.deepEqual(chatOverlayPlacement("middle-left", 14), { top: "50%", transform: "translateY(-50%)", left: "14px" });
+});
+
+test("frames: a masked ::before ring (or HUD corners) in the chosen colours, the same CSS in preview and StreamElements", () => {
+  for (const frameStyle of CHAT_FRAME_STYLES) {
+    const config = { ...DEFAULT_CAMERA_CHAT_CONFIG, frameStyle, frameWidth: 5, frameColor: "#d946ef", frameColor2: "#22d3ee", frameSpeed: 3 };
+    const css = generateStreamElementsWidget(config).css;
+    const preview = render(<CameraChatWidget config={config} messages={[{ id: "1", name: "A", text: "hi" }]} />);
+    const previewCss = preview.container.querySelector("style")?.textContent ?? "";
+    assert.ok(preview.container.querySelector(".obs-chat-panel"), "the panel carries the frame class");
+    cleanup();
+    if (frameStyle === "none") {
+      assert.doesNotMatch(css, /\.se-panel::before \{|chat-frame-/);
+      continue;
+    }
+    assert.equal(
+      previewCss.slice(previewCss.indexOf(".obs-chat-panel { position")).split("@media")[0]!.replace(/obs-chat-panel/g, "P").replace(/obs-chat-list/g, "L"),
+      css.slice(css.indexOf(".se-panel { position")).split("@media")[0]!.replace(/se-panel/g, "P").replace(/se-messages/g, "L"),
+      `${frameStyle}: identical frame rules`,
+    );
+    assert.match(css, /\.se-panel \{ position: relative; border-radius: 22px; \}/);
+    assert.match(css, /\.se-panel::before \{[^}]*position: absolute; inset: 0;/);
+    if (frameStyle === "corners") {
+      assert.match(css, /linear-gradient\(#d946ef, #d946ef\) top left \/ 22px 5px/);
+      assert.doesNotMatch(css, /mask-composite/);
+    } else {
+      assert.match(css, /padding: 5px; -webkit-mask: [^;]+; -webkit-mask-composite: xor; mask: [^;]+ exclude/);
+    }
+    if (frameStyle === "rotate") assert.match(css, /@property --chat-frame-angle/);
+    if (frameStyle === "glow") assert.match(css, /\.se-panel \{ animation: chat-frame-glow 3s ease-in-out infinite; \}/);
+    if (["gradient", "flow", "rotate"].includes(frameStyle)) assert.match(css, /#22d3ee/);
+  }
+});
+
+test("chat motion: floating list, breathing or shimmering panel, intro; reduced motion stops everything", () => {
+  const css = (panelAnimation: CameraChatConfig["panelAnimation"]) => generateStreamElementsWidget({ ...DEFAULT_CAMERA_CHAT_CONFIG, panelAnimation }).css;
+  assert.match(css("float"), /\.se-messages \{ animation: chat-panel-float 6s ease-in-out infinite; \}/);
+  assert.match(css("breathe"), /\.se-panel::after \{[^}]*chat-panel-breathe/);
+  assert.match(css("shimmer"), /\.se-panel::after \{[^}]*chat-panel-shimmer/);
+  assert.match(css("intro"), /\.se-panel \{ animation: chat-panel-intro 700ms/);
+  assert.doesNotMatch(css("intro"), /border-radius: 22px; \}/, "no frame, so the panel keeps its classic square corners");
+  assert.doesNotMatch(css("none"), /chat-panel-|chat-frame-/);
+  assert.match(css("none"), /\.se-panel, \.se-panel::before, \.se-panel::after, \.se-messages \{ animation: none !important; \}/);
+  const both = generateStreamElementsWidget({ ...DEFAULT_CAMERA_CHAT_CONFIG, frameStyle: "glow", panelAnimation: "intro", frameSpeed: 2 }).css;
+  assert.match(both, /\.se-panel \{ animation: chat-frame-glow 2s ease-in-out infinite, chat-panel-intro 700ms/);
+});
+
+test("panel gradient, bold text, capital names and name palettes reach both renderers", () => {
+  const config = {
+    ...DEFAULT_CAMERA_CHAT_CONFIG,
+    panelGradient: true, panelColor: "#082f49", panelColor2: "#0e7490", panelGradientAngle: 45, panelOpacity: 80,
+    textBold: true, nameUppercase: true, nameColorMode: "palette" as const, namePalette: "neon" as const,
+  };
+  assert.equal(chatPanelBackground(config), "linear-gradient(45deg, rgba(8, 47, 73, 0.8), rgba(14, 116, 144, 0.8))");
+  const snippets = generateStreamElementsWidget(config);
+  assert.match(snippets.css, /background: linear-gradient\(45deg, rgba\(8, 47, 73, 0\.8\), rgba\(14, 116, 144, 0\.8\)\);/);
+  assert.match(snippets.css, /\.se-text \{[^}]*font-weight: 600;/);
+  assert.match(snippets.css, /\.se-name \{[^}]*text-transform: uppercase;/);
+  assert.ok(snippets.js.includes(JSON.stringify(CHAT_NAME_PALETTES.neon)));
+  const { container } = render(<CameraChatWidget config={config} messages={[{ id: "1", name: "Ala", text: "hej" }]} />);
+  const name = container.querySelector(".obs-chat-name") as HTMLElement;
+  assert.equal(name.style.textTransform, "uppercase");
+  assert.equal((container.querySelector(".obs-chat-text") as HTMLElement).style.fontWeight, "600");
+  assert.equal(resolveChatNameColor({ name: "Ala" }, config), chatPaletteColor("Ala", "neon"));
+  assert.ok(CHAT_NAME_PALETTES.neon.includes(resolveChatNameColor({ name: "Ala" }, config)));
+  assert.equal(chatPaletteColor("Ala"), chatPaletteColor("Ala", "classic"), "classic stays the default palette");
+});
+
+test("frame and motion parameters are bounded; colour themes change only colours", () => {
+  const parsed = cameraChatConfigFromSearch("?frame=evil&framew=99&framespd=0&framec=red&panelanim=spin&namepal=gold&gradangle=999&position=center-center&layout=diagonal");
+  assert.equal(parsed.frameStyle, "none");
+  assert.equal(parsed.frameWidth, 12);
+  assert.equal(parsed.frameSpeed, 1);
+  assert.equal(parsed.frameColor, "#a78bfa");
+  assert.equal(parsed.panelAnimation, "none");
+  assert.equal(parsed.namePalette, "classic");
+  assert.equal(parsed.panelGradientAngle, 360);
+  assert.equal(parsed.overlayPosition, "bottom-right");
+  assert.equal(parsed.layout, "right");
+  for (const theme of CHAT_COLOR_THEME_IDS) {
+    const themed = applyChatColorTheme(CUSTOM, theme);
+    const changed = Object.keys(themed).filter((key) => themed[key as keyof CameraChatConfig] !== CUSTOM[key as keyof CameraChatConfig]);
+    assert.ok(changed.every((key) => /color/i.test(key)), `${theme}: ${changed.join(", ")}`);
+    assert.deepEqual(cameraChatConfigFromSearch(cameraChatConfigToSearch(themed)), themed);
+  }
 });
 
 test("the preview applies the rules: hidden, truncated, highlighted, emote-only, action", () => {
@@ -540,7 +686,7 @@ test("OBS page bridge carries badges, emotes and /me from StreamElements data", 
 });
 
 test("every preset is a valid URL and a standalone StreamElements widget", () => {
-  assert.equal(CHAT_PRESET_IDS.length, 10);
+  assert.equal(CHAT_PRESET_IDS.length, 11);
   for (const preset of CHAT_PRESET_IDS) {
     const config = chatPresetConfig(preset);
     assert.deepEqual(cameraChatConfigFromSearch(cameraChatConfigToSearch(config)), config, preset);
