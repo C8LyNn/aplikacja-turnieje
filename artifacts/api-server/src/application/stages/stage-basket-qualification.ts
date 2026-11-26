@@ -28,7 +28,7 @@ import {
   computeRankingFingerprint,
   PROPOSAL_SUPPORTED_FORMATS,
 } from "../../domain/tournament/stage-basket-qualification";
-import { calculateRanking } from "./stage-lifecycle";
+import { calculateRanking, leagueTableDecisions } from "./stage-lifecycle";
 import { StageLifecycleError } from "./stage-lifecycle-error";
 
 // ─── Error types ─────────────────────────────────────────────────────────────
@@ -316,8 +316,11 @@ export async function generateQualificationProposal(
 
   // ── 6. Compute ranking ────────────────────────────────────────────────────
   let ranked;
+  let leagueDecisions: Map<number, string | null> | null;
   try {
     ranked = calculateRanking(stage, memberships, players, matches);
+    // V6.2: a points table decides its own ties (points, draws, adjustments, configured tie-breakers).
+    leagueDecisions = leagueTableDecisions(stage, memberships, players, matches);
   } catch (error) {
     if (error instanceof StageLifecycleError) {
       throw new QualificationProposalError("RANKING_INCONSISTENT");
@@ -341,7 +344,9 @@ export async function generateQualificationProposal(
       gameWins: r.gameWins,
       gameDiff: r.gameDiff,
       buchholz: r.buchholz,
+      decidedBy: leagueDecisions?.get(r.playerId) ?? null,
     })),
+    leagueTable: leagueDecisions != null,
     outputBaskets,
     rawMatches: matches.map((m) => ({
       player1Id: m.player1Id,

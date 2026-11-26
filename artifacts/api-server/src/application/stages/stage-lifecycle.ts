@@ -19,6 +19,7 @@ import {
   groupKeyFromIndex,
   seedQualifiedGroupEntries,
   seedQualifiedGroupEntriesGlobally,
+  separateGroupMatesInBracket,
 } from "../../domain/tournament/group-stage";
 import { generateRoundRobinSchedule, normaliseRoundRobinLegs } from "../../domain/tournament/round-robin";
 import {
@@ -92,6 +93,32 @@ export interface RankedParticipant {
   groupId?: number;
   groupKey?: string;
   groupRank?: number;
+  /**
+   * V6.2 · groups with league rules only, internal: draws and table points (adjustments included) for the
+   * qualifier seeding. Stripped from qualification previews, so API answers keep their earlier shape.
+   */
+  matchDraws?: number;
+  points?: number | null;
+}
+
+/** V6.2 · drops the internal league record of a ranking row before it leaves the server. */
+function withoutLeagueRecord<T extends RankedParticipant>(entry: T): T {
+  if (entry.matchDraws === undefined && entry.points === undefined) return entry;
+  const copy = { ...entry };
+  delete copy.matchDraws;
+  delete copy.points;
+  return copy;
+}
+
+/**
+ * V6.2 · the next stage places qualifiers by their incoming seeds in an elimination bracket (standard placement),
+ * so qualifiers from the same group can be kept apart there. A random bracket or a stage that seeds its entrants
+ * again ignores the incoming seeds.
+ */
+function bracketKeepsGroupMatesApart(nextStage: typeof tournamentStagesTable.$inferSelect | undefined): boolean {
+  if (!nextStage || nextStage.entrySeedingPolicy !== "preserve") return false;
+  if (nextStage.format === "double_elimination") return true;
+  return nextStage.format === "single_elimination" && nextStage.seedingPolicy !== "random_bracket";
 }
 
 export interface QualificationPreview {
@@ -353,6 +380,30 @@ function leagueProjectionRanking(
   };
 }
 
+/**
+ * V6.2 · for a round robin with league rules: why each row of the points table sits below the previous one
+ * ("points", a tie-breaker, or "seed" when every configured criterion left the two level). Built from the same
+ * projection as calculateRanking, so it matches that order row for row. null for stages without league rules.
+ */
+export function leagueTableDecisions(
+  stage: typeof tournamentStagesTable.$inferSelect,
+  memberships: Array<typeof stageParticipantsTable.$inferSelect>,
+  players: Array<typeof playersTable.$inferSelect>,
+  matches: Array<typeof matchesTable.$inferSelect>,
+): Map<number, string | null> | null {
+  if (stage.format !== "round_robin" || stage.leagueRules == null) return null;
+  const rules = leagueRulesFromStorage(stage.leagueRules);
+  if (rules == null) return null;
+  const playerById = new Map(players.map((player) => [player.id, player]));
+  const stagePlayers = memberships.map((membership) => {
+    const player = playerById.get(membership.playerId);
+    if (!player) throw new StageLifecycleError("STAGE_PARTICIPANTS_INCONSISTENT");
+    return { ...player, seed: membership.stageSeed, status: "active" as const };
+  });
+  const projections = calculateMatchRecordStandings(stagePlayers, matches, "round_robin", rules, stagePointTotals(stage));
+  return new Map(projections.map((entry) => [entry.playerId, entry.decidedBy ?? null]));
+}
+
 export function calculateGroupRanking(
   stage: typeof tournamentStagesTable.$inferSelect,
   groups: Array<typeof stageGroupsTable.$inferSelect>,
@@ -419,6 +470,7 @@ export function calculateGroupRanking(
         groupId: group.id,
         groupKey: group.groupKey,
         groupRank: entry.rank,
+        ...(leagueRules != null ? { matchDraws: projection.matchDraws ?? 0, points: projection.points ?? 0 } : {}),
       });
     }
   }
@@ -433,6 +485,7 @@ function buildGroupPreview(params: {
   stage: typeof tournamentStagesTable.$inferSelect;
   groups: Array<typeof stageGroupsTable.$inferSelect>;
   ranking: RankedParticipant[];
+  nextStage?: typeof tournamentStagesTable.$inferSelect;
 }): QualificationPreview {
   if (
     params.stage.groupCount == null ||
@@ -455,11 +508,15 @@ function buildGroupPreview(params: {
     groupKey: entry.groupKey!,
     groupRank: entry.groupRank!,
   }));
-  const seeded = params.stage.resultSeedingPolicy === "global_ranking"
+  const ordered = params.stage.resultSeedingPolicy === "global_ranking"
     ? seedQualifiedGroupEntriesGlobally(selectedEntries)
     : seedQualifiedGroupEntries(selectedEntries);
+  // V6.2: in a seeded play-off bracket, qualifiers of one group meet as late as possible (A1–B2, B1–A2).
+  const seeded = bracketKeepsGroupMatesApart(params.nextStage)
+    ? separateGroupMatesInBracket(ordered).sort((left, right) => left.nextStageSeed - right.nextStageSeed)
+    : ordered;
   const qualifiers = seeded.map((entry) => ({
-    ...entry,
+    ...withoutLeagueRecord(entry),
     qualificationSource: "group_position" as const,
   }));
 
@@ -505,7 +562,7 @@ function buildGroupPreview(params: {
     stageId: params.stage.id,
     stageVersion: params.stage.version,
     fingerprint,
-    ranking: params.ranking,
+    ranking: params.ranking.map(withoutLeagueRecord),
     qualifiers,
   };
 }
@@ -587,6 +644,7 @@ export async function getQualificationPreview(input: {
       stage,
       groups,
       ranking: calculateGroupRanking(stage, groups, memberships, players, matches),
+      nextStage,
     });
   }
   const advancingCount = nextStage == null ? 0 : stage.advancingCount ?? 0;
@@ -700,6 +758,7 @@ export async function completeStage(
         stage,
         groups,
         ranking: calculateGroupRanking(stage, groups, memberships, players, matches),
+        nextStage,
       });
     } else if (stage.format === "double_elimination") {
       if (nextStage || !doubleEliminationEvaluation?.championParticipantKey) {
