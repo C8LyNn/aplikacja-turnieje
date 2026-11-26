@@ -590,6 +590,23 @@
     body{padding:12px}
     .bottom-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   }
+
+  /* --- Board on screen (2026-11-25) ---
+     The machine is 980×1480, so at full width only part of it fit on a laptop screen.
+     "Cały tor" lets the viewport height bound the canvas (no change where width is the limit, e.g. phones). */
+  body.board-fit .board-wrap canvas{
+    width:auto;
+    max-width:100%;
+    max-height:calc(100vh - var(--board-fit-gap, 28px));
+    margin:0 auto;
+  }
+  @supports (height:100dvh){
+    body.board-fit .board-wrap canvas{max-height:calc(100dvh - var(--board-fit-gap, 28px))}
+  }
+  body.presentation-mode #boardPanel > .sub{display:none}
+  .board-start{min-width:112px;box-shadow:0 0 0 1px rgba(255,255,255,.08),0 8px 22px rgba(124,156,255,.28)}
+  .board-start:disabled{box-shadow:none}
+  #fitBoardBtn[aria-pressed="true"]{border-color:var(--accent);color:#dfe6ff;background:rgba(124,156,255,.14)}
 </style>
 </head>
 <body>
@@ -925,6 +942,8 @@ Team 32</textarea>
           <span class="small" id="boardStateLabel">Gotowy</span>
         </div>
         <div class="board-toolbar-group">
+          <button id="boardStartBtn" class="board-start" type="button" aria-label="Pociągnij dźwignię i wypuść kulki">Start ▶</button>
+          <button id="fitBoardBtn" class="secondary" type="button" aria-pressed="true" title="Przełącz: cały tor na ekranie albo pełna szerokość">Cały tor</button>
           <button id="presentationBtn" data-tds-action="presentation" class="secondary" type="button">Tryb prezentacji</button>
           <button id="scrollStartBtn" class="secondary" type="button">Do STARTU</button>
           <button id="scrollResultsBtn" class="secondary" type="button">Do wyników</button>
@@ -1392,11 +1411,14 @@ Team 32</textarea>
   let gravity = 0.065;
   const air = 0.997;
   const wallBounce = 0.72;
-  const pegBounce = 0.76;
+  const pegBounce = 0.58;   // was .76: balls climbed half a row after every peg and seemed to hover
   const bumperBounce = 0.84;
 
   let boardLeft = 120;
   let boardRight = W - 120;
+  // Text scale for names: the canvas is drawn at 980 px wide but often shown at ~0.35-0.6×.
+  let labelScaleBall = 1, labelScalePocket = 1, labelScaleForHeight = 0;
+  const fittedLabelCache = new Map();
   const boardTop = 30;
   const floorY = 1180;
   const railTop = 70;
@@ -1903,8 +1925,10 @@ Team 32</textarea>
     const unique = [...new Set(list)];
     const wanted = getBallLimit();
 
-    if (unique.length < 2 || unique.length > 120) {
-      setStatus('<div><strong style="color:var(--danger)">Błąd.</strong> Potrzebujesz od 2 do 120 unikalnych nazw.</div>');
+    // The limit was 120 here while every other place (and the UI) allows 128, so the
+    // "128 kulek" scenario failed and left the previous balls on the board.
+    if (unique.length < 2 || unique.length > 128) {
+      setStatus('<div><strong style="color:var(--danger)">Błąd.</strong> Potrzebujesz od 2 do 128 unikalnych nazw.</div>');
       return null;
     }
     if (unique.length < wanted) {
@@ -2745,9 +2769,26 @@ Team 32</textarea>
     // już wewnątrz zamkniętego lejka i wyrzuca PONAD jego krawędzie.
     ball.y = yTop - ball.r - 18;
 
-    // Mocny impuls w górę + wyraźny impuls boczny w stronę wolnego miejsca.
-    ball.vy = -(6.8 + seededRandom() * 1.4) * springPower;
-    ball.vx = dir * (3.3 + seededRandom() * 1.5) * springPower;
+    // Celowany, niski skok nad lejkami w stronę najbliższego wolnego otworu.
+    // Dawny impuls (~7 px/klatkę w górę) wyrzucał kulkę ~400 px z powrotem między pegi,
+    // więc przy ostatnich wolnych otworach jedna kulka potrafiła krążyć 10–20 s.
+    const free = findNearestFreeSlotByX(ball.x);
+    if (free) {
+      let lowestPeg = -Infinity;
+      for (const peg of pegs) lowestPeg = Math.max(lowestPeg, peg.y + peg.r);
+      const clearance = (ball.y - ball.r) - lowestPeg - 6;
+      const hop = Math.max(14, Math.min(70, clearance)) * Math.max(0.75, Math.min(1.15, springPower));
+      const vy = Math.sqrt(2 * gravity * hop);
+      const flight = 2 * vy / gravity;                       // klatki do powrotu na wysokość wyrzutu
+      const drag = (1 - Math.pow(air, flight)) / Math.max(1e-6, -Math.log(air) * flight);
+      const vx = (free.x - ball.x) / flight / drag;
+      ball.vy = -vy * (0.96 + seededRandom() * 0.08);
+      ball.vx = Math.max(-11, Math.min(11, vx * (0.94 + seededRandom() * 0.12)));
+    } else {
+      // Mocny impuls w górę + wyraźny impuls boczny (gdy nie ma już wolnych otworów).
+      ball.vy = -(6.8 + seededRandom() * 1.4) * springPower;
+      ball.vx = dir * (3.3 + seededRandom() * 1.5) * springPower;
+    }
 
     // Kilkadziesiąt klatek ochrony przed ponownym "złapaniem"
     // przez to samo zamknięte wyjście.
@@ -3251,14 +3292,49 @@ Team 32</textarea>
       ctx.fillText(`${loadCount}/${getHoleCapacity()}`, chamber.x, chamber.bottom + 13);
 
       // Nazwy obok faktycznie zatrzymanych kulek.
-      assignedSlots[idx].forEach((name, pos) => {
-        if (!name) return;
-        const target = getPocketStackPosition(pocket, pos);
-        ctx.textAlign = 'left';
-        ctx.font = '600 9px Segoe UI';
+      const names = assignedSlots[idx];
+      const outlined = (text, x, y, size, weight) => {
+        ctx.save();
+        ctx.font = `${weight} ${size.toFixed(1)}px Segoe UI`;
+        ctx.lineWidth = Math.max(2, size * 0.22);
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = 'rgba(8,11,18,.9)';
+        ctx.strokeText(text, x, y);
         ctx.fillStyle = '#dbe5f3';
-        ctx.fillText(name, chamber.right + 5, target.y + 3);
-      });
+        ctx.fillText(text, x, y);
+        ctx.restore();
+      };
+      if (getHoleCapacity() === 1) {
+        // One ball per tube: there is no room beside it for a readable name (8 tubes left ~25 px),
+        // so the name runs up the empty pipe above the ball.
+        const name = names.find(Boolean);
+        if (name) {
+          const len = Math.max(24, (chamber.top - 22) - (tubeTop + 6));
+          const size = Math.max(10, Math.min(9 * labelScalePocket * 1.2, tubeWidth * 0.66));
+          ctx.save();
+          ctx.translate(chamber.x, (tubeTop + 6 + chamber.top - 22) / 2);
+          ctx.rotate(-Math.PI / 2);
+          ctx.textAlign = 'center';
+          ctx.font = `700 ${size.toFixed(1)}px Segoe UI`;
+          outlined(fitLabel(name, len, ctx.font), 0, size * 0.35, size, 700);
+          ctx.restore();
+        }
+      } else {
+        // Several balls per tube: names beside the stack, as large as the gap to the next tube allows.
+        const nextLeft = chambers[idx + 1] ? chambers[idx + 1].left : boardRight + 40;
+        const room = Math.max(24, nextLeft - (chamber.right + 5) - 4);
+        const maxFont = Math.max(9, Math.min(9 * labelScalePocket, chamber.ballPitch * 0.82));
+        names.forEach((name, pos) => {
+          if (!name) return;
+          const target = getPocketStackPosition(pocket, pos);
+          ctx.font = '600 9px Segoe UI';
+          const at9 = ctx.measureText(name).width || 1;
+          const size = Math.max(7.5, Math.min(maxFont, 9 * room / at9));
+          ctx.textAlign = 'left';
+          ctx.font = `600 ${size.toFixed(1)}px Segoe UI`;
+          outlined(fitLabel(name, room, ctx.font), chamber.right + 5, target.y + size * 0.33, size, 600);
+        });
+      }
 
       if (full) {
         const pulse = springPulse[idx] / 18;
@@ -3278,14 +3354,22 @@ Team 32</textarea>
       ctx.restore();
     });
 
+    // While balls wait in the chamber they covered this label; then it sits just under them.
+    let startLabelY = 58;
+    if (activeBalls.some(b => b.held)) {
+      const rack = getStartRackMetrics();
+      const lastRowBottom = rack.top + (rack.rows - 1) * rack.pitch + ballRadius;
+      const pegTop = pegs.length ? pegs[0].y - pegRadius : Infinity;
+      startLabelY = Math.max(58, Math.min(lastRowBottom + 24, pegTop - 28));
+    }
     ctx.fillStyle = 'rgba(255,255,255,.75)';
     ctx.font = 'bold 16px Segoe UI';
     ctx.textAlign = 'center';
-    ctx.fillText('START', W / 2, 58);
+    ctx.fillText('START', W / 2, startLabelY);
 
     ctx.fillStyle = 'rgba(255,255,255,.48)';
     ctx.font = '600 11px Segoe UI';
-    ctx.fillText('odblokowanie: dół → góra', W / 2, 76);
+    ctx.fillText('odblokowanie: dół → góra', W / 2, startLabelY + 18);
 
     ctx.restore();
   }
@@ -3379,12 +3463,25 @@ Team 32</textarea>
     ctx.textAlign = 'center';
     ctx.fillText((ball.idx + 1).toString(), ball.x, ball.y + 3);
 
-    ctx.fillStyle = '#eef2ff';
-    ctx.font = ball.settled ? 'bold 9px Segoe UI' : (ball.held ? 'bold 10px Segoe UI' : 'bold 12px Segoe UI');
-    ctx.textAlign = 'center';
-    const labelY = ball.settled ? ball.y - ball.r - 4 : Math.max(22, ball.y - ball.r - 8);
     if (!ball.settled && !ball.captured) {
-      ctx.fillText(ball.name, ball.x, labelY);
+      // With many balls the names stay smaller, or they would cover each other.
+      const ls = participants.length > 16 ? Math.min(1.3, labelScaleBall) : labelScaleBall;
+      const size = (ball.held ? 10 : 12) * ls;
+      ctx.font = `bold ${size.toFixed(1)}px Segoe UI`;
+      ctx.textAlign = 'center';
+      // In the START rack the balls sit side by side: a name is shown only if it fits its slot.
+      const fits = !ball.held || ctx.measureText(ball.name).width <= getStartRackMetrics().pitch - 2;
+      if (fits) {
+        const labelY = Math.max(10 + size, ball.y - ball.r - 4 - size * 0.35);
+        ctx.save();
+        ctx.lineWidth = Math.max(2.5, size * 0.24);
+        ctx.lineJoin = 'round';
+        ctx.strokeStyle = 'rgba(8,11,18,.88)';
+        ctx.strokeText(ball.name, ball.x, labelY);
+        ctx.fillStyle = '#eef2ff';
+        ctx.fillText(ball.name, ball.x, labelY);
+        ctx.restore();
+      }
     }
   }
 
@@ -3395,7 +3492,23 @@ Team 32</textarea>
     });
   }
 
+  // Shortens a name with "…" to the given width; cached because draw() runs every frame.
+  function fitLabel(text, room, font){
+    const key = font + '|' + Math.round(room) + '|' + text;
+    let out = fittedLabelCache.get(key);
+    if (out !== undefined) return out;
+    out = text;
+    if (ctx.measureText(out).width > room) {
+      while (out.length > 1 && ctx.measureText(out + '…').width > room) out = out.slice(0, -1);
+      out += '…';
+    }
+    fittedLabelCache.set(key, out);
+    return out;
+  }
+
   function draw(){
+    // A new set-up can change the canvas height, and with "Cały tor" also its size on screen.
+    if (canvas.height !== labelScaleForHeight) { labelScaleForHeight = canvas.height; updateLabelScale(); }
     ctx.clearRect(0, 0, W, H);
 
     drawBackplate();
@@ -3589,8 +3702,70 @@ Team 32</textarea>
     resultsPanel.scrollIntoView({behavior:'smooth',block:'start'});
   });
 
-  leverBtn.addEventListener('click', pullLever);
+  // Start next to the board: the lever sits at the bottom of the settings column,
+  // which presentation mode hides, so there the draw could not be started at all.
+  const boardStartBtn = document.getElementById('boardStartBtn');
+  const fitBoardBtn = document.getElementById('fitBoardBtn');
+
+  function syncBoardStart(){
+    boardStartBtn.disabled = leverBtn.disabled;
+    boardStartBtn.textContent = !leverBtn.disabled
+      ? 'Start ▶'
+      : (leverTitle.textContent === 'Losowanie zakończone' ? 'Zakończone' : 'Losowanie trwa…');
+  }
+  new MutationObserver(syncBoardStart).observe(leverBtn, {attributes:true, attributeFilter:['disabled']});
+  new MutationObserver(syncBoardStart).observe(leverTitle, {childList:true, characterData:true, subtree:true});
+
+  // In presentation mode the toolbar and counters stay on screen above the machine,
+  // so the canvas may only take what is left of the viewport.
+  function updateBoardFitGap(){
+    const pres = document.body.classList.contains('presentation-mode');
+    const above = pres ? Math.round(canvas.getBoundingClientRect().top - boardPanel.getBoundingClientRect().top) : 0;
+    document.body.style.setProperty('--board-fit-gap', `${Math.max(28, above + 24)}px`);
+    updateLabelScale();
+  }
+  window.addEventListener('resize', updateBoardFitGap);
+  presentationBtn.addEventListener('click', updateBoardFitGap);
+
+  // Pulling the lever from the settings column used to leave the machine off screen.
+  function bringBoardIntoView(){
+    const r = canvas.getBoundingClientRect();
+    const vh = window.innerHeight || document.documentElement.clientHeight;
+    const shown = Math.max(0, Math.min(r.bottom, vh) - Math.max(r.top, 0));
+    if (shown >= Math.min(r.height, vh) * 0.97) return;
+    const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+    canvas.scrollIntoView({behavior: reduce ? 'auto' : 'smooth', block: r.height <= vh ? 'center' : 'start'});
+  }
+
+  function startFromAnywhere(){
+    if (runStarted || !activeBalls.length) return;
+    pullLever();
+    bringBoardIntoView();
+  }
+
+  function updateLabelScale(){
+    const shown = canvas.getBoundingClientRect().width;
+    const disp = shown > 0 ? shown / canvas.width : 1;
+    labelScaleBall = Math.max(1, Math.min(2, 11 / (12 * disp)));     // ~11 px on screen
+    labelScalePocket = Math.max(1, Math.min(2.4, 10 / (9 * disp)));  // ~10 px on screen
+    fittedLabelCache.clear();
+  }
+
+  function setBoardFit(on){
+    document.body.classList.toggle('board-fit', on);
+    fitBoardBtn.setAttribute('aria-pressed', String(on));
+    updateLabelScale();
+  }
+
+  boardStartBtn.addEventListener('click', startFromAnywhere);
+  fitBoardBtn.addEventListener('click', ()=>setBoardFit(fitBoardBtn.getAttribute('aria-pressed') !== 'true'));
+  setBoardFit(true);
+  updateBoardFitGap();
+  syncBoardStart();
+
+  leverBtn.addEventListener('click', startFromAnywhere);
   resetBtn.addEventListener('click', resetBoard);
+  resetBtn.addEventListener('click', updateBoardFitGap);   // reset also leaves presentation mode
   seedRandomBtn.addEventListener('click', randomSeed);
 
   // init

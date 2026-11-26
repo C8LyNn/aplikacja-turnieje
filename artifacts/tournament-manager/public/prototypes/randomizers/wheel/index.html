@@ -772,6 +772,20 @@ body.draw-running .quick-config select{pointer-events:none}
 @media(prefers-reduced-motion:reduce){
   button{transition:none}.slot.just-filled{animation:none}
 }
+
+/* --- Stage first (2026-11-25) ---
+   The wheel used to sit under ~600 px of settings, and the "Wylosowano: …" line under the effects studio. */
+.wheel-config{width:100%;margin-top:14px;text-align:left}
+body.presentation-mode .wheel-config{display:none!important}
+.wheel-area > .result{margin-top:10px}
+/* Phones: 91vw plus the 13 px momentum ring was wider than the panel, so the page scrolled sideways. */
+@media(max-width:650px){
+  .wheel-wrap,body.presentation-mode .wheel-wrap{width:calc(100vw - 78px)}
+  /* While it spins, the square wheel and trail layers turn, so their corners (empty, the wheel is round) reach past
+     the screen edge for a moment and the page could be pushed sideways. clip cuts only what is off screen anyway and,
+     unlike hidden, does not turn the page into a separate scroll box. */
+  html,body{overflow-x:clip}
+}
 </style>
 </head>
 <body data-theme="">
@@ -820,98 +834,6 @@ body.draw-running .quick-config select{pointer-events:none}
         </div>
       </div>
 
-      <div class="tds-standard-bar">
-        <span><strong>Wspólna konfiguracja turnieju</strong> · mechanizm: Koło</span>
-        <span class="tds-standard-badge">TDS 1.0</span>
-      </div>
-
-      <div class="quick-config">
-        <div class="quick-card">
-          <div class="quick-title">Liczba uczestników</div>
-          <div class="quick-row">
-            <input id="quickTeamCount" data-tds-setting="participantCount" type="number" min="2" max="128" value="8" aria-label="Liczba uczestników">
-            <button id="generateTeamsBtn" class="ghost" type="button">Team 1…N</button>
-          </div>
-          <div class="quick-help">Szybko generuje 2–128 uczestników. Własne nazwy nadal możesz wkleić w ustawieniach zaawansowanych.</div>
-        </div>
-
-        <div class="quick-card wide">
-          <div class="quick-title">Format turnieju</div>
-          <div class="quick-row">
-            <select id="drawFormatSelect" data-tds-setting="format" aria-label="Format losowania">
-              <option value="elimination" selected>Single Elimination — drabinka</option>
-              <option value="groups">Grupy</option>
-              <option value="swiss">Szwajcarski — pary rundy 1</option>
-            </select>
-
-            <label id="groupCountWrap" class="quick-row" style="display:none">
-              <span class="small">Liczba grup</span>
-              <input id="groupCountInput" data-tds-setting="groupCount" type="number" min="2" max="16" value="4" aria-label="Liczba grup">
-            </label>
-          </div>
-          <div class="quick-row" style="margin-top:8px">
-            <label class="quick-row">
-              <span class="small">Tempo</span>
-              <select id="drawSpeedSelect" data-tds-setting="pace" aria-label="Tempo losowania">
-                <option value="auto" selected>Auto — zależne od liczby graczy</option>
-                <option value="show">Pokazowe</option>
-                <option value="fast">Szybkie</option>
-                <option value="turbo">Turbo</option>
-              </select>
-            </label>
-            <button id="autoGroupsBtn" class="ghost" type="button" style="display:none">Dobierz grupy</button>
-          </div>
-
-          <div class="format-summary">
-            <div class="format-summary-item"><b id="formatMetricA">—</b><span id="formatMetricALabel">Format</span></div>
-            <div class="format-summary-item"><b id="formatMetricB">—</b><span id="formatMetricBLabel">Układ</span></div>
-            <div class="format-summary-item"><b id="formatMetricC">—</b><span id="formatMetricCLabel">Tempo</span></div>
-          </div>
-          <div id="structuralLockNote" class="structural-lock-note">Format, uczestnicy i seed są zablokowane po pierwszym losowaniu. Użyj „Nowe losowanie”, aby je zmienić.</div>
-
-          <div id="formatHelp" class="quick-help">
-            Losowanie obsadza pozycje w drabince. Przy liczbie niebędącej potęgą 2 wolne losy BYE są rozkładane w pierwszej rundzie.
-          </div>
-        </div>
-
-        <div class="quick-card">
-          <div class="quick-title">Seed losowania</div>
-          <div class="quick-row">
-            <input id="quickSeedInput" data-tds-setting="seed" type="text" value="" placeholder="opcjonalny seed" style="flex:1;min-width:150px">
-            <button id="quickRandomSeedBtn" class="ghost" type="button">Losowy</button>
-          </div>
-          <div class="quick-help">Ten sam seed + ten sam stan wejściowy pozwala powtórzyć kolejność losowania.</div>
-        </div>
-
-        <div class="quick-card">
-          <div class="quick-title">Mechanika losowania · Koło</div>
-          <div class="quick-row">
-            <select id="quickStyleSelect" aria-label="Gotowy styl prezentacji">
-              <option value="sport" selected>Sport — czytelny</option>
-              <option value="broadcast">Broadcast — transmisja</option>
-              <option value="casino">Casino — mocniejsze efekty</option>
-              <option value="cyber">Cyber — neon</option>
-              <option value="minimal">Minimal — spokojny</option>
-            </select>
-            <button id="applyQuickStyleBtn" class="ghost" type="button">Ustaw</button>
-          </div>
-          <div class="quick-help">Ustawia wygląd i charakter animacji. Nie zmienia formatu ani wyników.</div>
-        </div>
-
-        <div class="quick-card wide">
-          <div class="quick-row" style="justify-content:space-between">
-            <div>
-              <strong id="configSummary">8 uczestników · 8 miejsc</strong>
-              <div class="quick-help" id="configHint">Gotowe do losowania.</div>
-            </div>
-            <div class="quick-row">
-              <button id="presentationBtn" data-tds-action="presentation" class="ghost" type="button">Tryb prezentacji</button>
-              <button id="scrollBracketBtn" class="ghost" type="button">Do układu</button>
-            </div>
-          </div>
-        </div>
-      </div>
-
       <div class="wheel-area">
         <div id="wheelWrap" data-tds-engine-root="wheel" class="wheel-wrap fx-glow fx-lines fx-hub fx-momentum" data-pointer="triangle" data-wheel-style="flat">
           <svg id="trail2" class="trail-ghost" viewBox="0 0 600 600" aria-hidden="true"></svg>
@@ -928,6 +850,12 @@ body.draw-running .quick-config select{pointer-events:none}
           <button id="spinBtn" data-tds-action="start" type="button">Losuj pierwszego</button>
           <button id="demoBtn" class="secondary" type="button">Losuj automatycznie</button>
           <button id="resetBtn" data-tds-action="reset" class="secondary" type="button">Nowe losowanie</button>
+        </div>
+
+        <div id="result" class="result waiting" aria-live="polite">Kliknij „Losuj”, aby rozpocząć.</div>
+        <div class="meta-row">
+          <span id="nextSlotText"></span>
+          <span id="drawCountText"></span>
         </div>
 
         <div class="draw-dashboard">
@@ -954,6 +882,100 @@ body.draw-running .quick-config select{pointer-events:none}
           <span id="throwStrength">Siła rzutu: —</span>
         </div>
 
+
+        <div class="wheel-config">
+        <div class="tds-standard-bar">
+          <span><strong>Wspólna konfiguracja turnieju</strong> · mechanizm: Koło</span>
+          <span class="tds-standard-badge">TDS 1.0</span>
+        </div>
+
+        <div class="quick-config">
+          <div class="quick-card">
+            <div class="quick-title">Liczba uczestników</div>
+            <div class="quick-row">
+              <input id="quickTeamCount" data-tds-setting="participantCount" type="number" min="2" max="128" value="8" aria-label="Liczba uczestników">
+              <button id="generateTeamsBtn" class="ghost" type="button">Team 1…N</button>
+            </div>
+            <div class="quick-help">Szybko generuje 2–128 uczestników. Własne nazwy nadal możesz wkleić w ustawieniach zaawansowanych.</div>
+          </div>
+
+          <div class="quick-card wide">
+            <div class="quick-title">Format turnieju</div>
+            <div class="quick-row">
+              <select id="drawFormatSelect" data-tds-setting="format" aria-label="Format losowania">
+                <option value="elimination" selected>Single Elimination — drabinka</option>
+                <option value="groups">Grupy</option>
+                <option value="swiss">Szwajcarski — pary rundy 1</option>
+              </select>
+
+              <label id="groupCountWrap" class="quick-row" style="display:none">
+                <span class="small">Liczba grup</span>
+                <input id="groupCountInput" data-tds-setting="groupCount" type="number" min="2" max="16" value="4" aria-label="Liczba grup">
+              </label>
+            </div>
+            <div class="quick-row" style="margin-top:8px">
+              <label class="quick-row">
+                <span class="small">Tempo</span>
+                <select id="drawSpeedSelect" data-tds-setting="pace" aria-label="Tempo losowania">
+                  <option value="auto" selected>Auto — zależne od liczby graczy</option>
+                  <option value="show">Pokazowe</option>
+                  <option value="fast">Szybkie</option>
+                  <option value="turbo">Turbo</option>
+                </select>
+              </label>
+              <button id="autoGroupsBtn" class="ghost" type="button" style="display:none">Dobierz grupy</button>
+            </div>
+
+            <div class="format-summary">
+              <div class="format-summary-item"><b id="formatMetricA">—</b><span id="formatMetricALabel">Format</span></div>
+              <div class="format-summary-item"><b id="formatMetricB">—</b><span id="formatMetricBLabel">Układ</span></div>
+              <div class="format-summary-item"><b id="formatMetricC">—</b><span id="formatMetricCLabel">Tempo</span></div>
+            </div>
+            <div id="structuralLockNote" class="structural-lock-note">Format, uczestnicy i seed są zablokowane po pierwszym losowaniu. Użyj „Nowe losowanie”, aby je zmienić.</div>
+
+            <div id="formatHelp" class="quick-help">
+              Losowanie obsadza pozycje w drabince. Przy liczbie niebędącej potęgą 2 wolne losy BYE są rozkładane w pierwszej rundzie.
+            </div>
+          </div>
+
+          <div class="quick-card">
+            <div class="quick-title">Seed losowania</div>
+            <div class="quick-row">
+              <input id="quickSeedInput" data-tds-setting="seed" type="text" value="" placeholder="opcjonalny seed" style="flex:1;min-width:150px">
+              <button id="quickRandomSeedBtn" class="ghost" type="button">Losowy</button>
+            </div>
+            <div class="quick-help">Ten sam seed + ten sam stan wejściowy pozwala powtórzyć kolejność losowania.</div>
+          </div>
+
+          <div class="quick-card">
+            <div class="quick-title">Mechanika losowania · Koło</div>
+            <div class="quick-row">
+              <select id="quickStyleSelect" aria-label="Gotowy styl prezentacji">
+                <option value="sport" selected>Sport — czytelny</option>
+                <option value="broadcast">Broadcast — transmisja</option>
+                <option value="casino">Casino — mocniejsze efekty</option>
+                <option value="cyber">Cyber — neon</option>
+                <option value="minimal">Minimal — spokojny</option>
+              </select>
+              <button id="applyQuickStyleBtn" class="ghost" type="button">Ustaw</button>
+            </div>
+            <div class="quick-help">Ustawia wygląd i charakter animacji. Nie zmienia formatu ani wyników.</div>
+          </div>
+
+          <div class="quick-card wide">
+            <div class="quick-row" style="justify-content:space-between">
+              <div>
+                <strong id="configSummary">8 uczestników · 8 miejsc</strong>
+                <div class="quick-help" id="configHint">Gotowe do losowania.</div>
+              </div>
+              <div class="quick-row">
+                <button id="presentationBtn" data-tds-action="presentation" class="ghost" type="button">Tryb prezentacji</button>
+                <button id="scrollBracketBtn" class="ghost" type="button">Do układu</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        </div>
 
         <details class="lab-panel">
           <summary>Zaawansowane / Test Lab — uczestnicy, seed, replay, fizyka i A/B</summary>
@@ -1277,11 +1299,6 @@ Team 8</textarea>
           <div class="diag-item"><span>Cel:</span> <b id="diagTarget">—</b></div>
         </div>
 
-        <div id="result" class="result waiting" aria-live="polite">Kliknij „Losuj”, aby rozpocząć.</div>
-        <div class="meta-row">
-          <span id="nextSlotText"></span>
-          <span id="drawCountText"></span>
-        </div>
       </div>
     </section>
 
@@ -2745,6 +2762,45 @@ Team 8</textarea>
     });
   }
 
+  // Labels are oriented for the moment that matters: a segment stopping under the pointer at
+  // the top. Earlier labels were level in the wheel's frame (≤20) or flipped on the lower half
+  // (>20), so the winner often read sideways or upside down under the pointer.
+  // Tangential labels read upright there; if a name is longer than its arc, every label runs
+  // along the radius instead (ending at the rim), so all winners read the same way.
+  function orientWheelLabels(labels){
+    if(labels.length<2)return;
+    const step=360/labels.length;
+    const widths=labels.map(l=>{
+      let w=0;
+      try{w=l.text.getComputedTextLength()}catch{}
+      return w||l.text.textContent.length*l.fontSize*.62;
+    });
+    const fitsArc=labels.every((l,i)=>{
+      const chord=2*l.labelRadius*Math.sin(Math.min(step,180)*Math.PI/360);
+      return widths[i]<=chord*.86;
+    });
+
+    if(fitsArc){
+      labels.forEach(l=>l.text.setAttribute("transform",`rotate(${l.mid.toFixed(2)} ${l.pos.x.toFixed(2)} ${l.pos.y.toFixed(2)})`));
+      return;
+    }
+
+    const wrapPx=wheelWrap.clientWidth||505;
+    const hubUnits=35*600/wrapPx;                 // .hub is 70 px wide whatever the wheel size
+    const outer=radius-14;
+    const room=Math.max(40,outer-(hubUnits+10));
+    labels.forEach((l,i)=>{
+      const p=polar(cx,cy,outer,l.mid);
+      l.text.setAttribute("x",p.x.toFixed(2));l.text.setAttribute("y",p.y.toFixed(2));
+      l.text.setAttribute("text-anchor","end");
+      if(widths[i]>room){
+        l.text.setAttribute("textLength",room.toFixed(1));
+        l.text.setAttribute("lengthAdjust","spacingAndGlyphs");
+      }
+      l.text.setAttribute("transform",`rotate(${(l.mid-90).toFixed(2)} ${p.x.toFixed(2)} ${p.y.toFixed(2)})`);
+    });
+  }
+
   function buildWheel(){
     wheel.innerHTML="";
     segmentGroups=[];
@@ -2754,11 +2810,14 @@ Team 8</textarea>
       c.setAttribute("cx",cx);c.setAttribute("cy",cy);c.setAttribute("r",radius);
       c.setAttribute("fill","#22252b");c.setAttribute("stroke","#59606b");c.setAttribute("stroke-width","6");
       wheel.appendChild(c);
-      const t=document.createElementNS(NS,"text");
-      t.setAttribute("x",cx);t.setAttribute("y",cy);t.setAttribute("text-anchor","middle");
-      t.setAttribute("dominant-baseline","middle");t.setAttribute("fill","#a8adb6");
-      t.setAttribute("font-size","29");t.setAttribute("font-weight","900");t.textContent="Losowanie zakończone";
-      wheel.appendChild(t);
+      // Two lines above and below the hub: one centred line was cut in half by the DRAW hub.
+      [["Losowanie",cy-98],["zakończone",cy+100]].forEach(([word,y])=>{
+        const t=document.createElementNS(NS,"text");
+        t.setAttribute("x",cx);t.setAttribute("y",y);t.setAttribute("text-anchor","middle");
+        t.setAttribute("dominant-baseline","middle");t.setAttribute("fill","#a8adb6");
+        t.setAttribute("font-size","34");t.setAttribute("font-weight","900");t.textContent=word;
+        wheel.appendChild(t);
+      });
     }else{
       const step=360/teams.length;
 
@@ -2782,6 +2841,7 @@ Team 8</textarea>
         });
       }
 
+      const labels=[];
       teams.forEach((team,i)=>{
         const step=360/teams.length;
         const mid=i*step+step/2;
@@ -2793,28 +2853,26 @@ Team 8</textarea>
         const label=many
           ? String(i+1)
           : (team.length>18?team.slice(0,17)+"…":team);
+        const fontSize=extreme?6.5:veryMany?9:many?13:teams.length>=12?15:teams.length>=8?20:25;
 
         const text=document.createElementNS(NS,"text");
         text.setAttribute("x",pos.x);text.setAttribute("y",pos.y);
         text.setAttribute("text-anchor","middle");text.setAttribute("dominant-baseline","middle");
         text.setAttribute("fill","#fff");
-        text.setAttribute("font-size",extreme?"6.5":veryMany?"9":many?"13":teams.length>=12?"15":teams.length>=8?"20":"25");
+        text.setAttribute("font-size",String(fontSize));
         text.setAttribute("font-weight","900");text.setAttribute("paint-order","stroke");
         text.setAttribute("stroke","rgba(0,0,0,.68)");
         text.setAttribute("stroke-width",veryMany?"3":many?"4":"6");
         text.setAttribute("stroke-linejoin","round");
-        if(many){
-          let rot=mid;
-          if(rot>90&&rot<270)rot+=180;
-          text.setAttribute("transform",`rotate(${rot} ${pos.x} ${pos.y})`);
-        }
         text.textContent=label;
 
         const title=document.createElementNS(NS,"title");
         title.textContent=`${i+1}. ${team}`;
         segmentGroups[i]?.appendChild(title);
         segmentGroups[i]?.appendChild(text);
+        labels.push({text,mid,pos,fontSize,labelRadius});
       });
+      orientWheelLabels(labels);
 
       const outline=document.createElementNS(NS,"circle");
       outline.setAttribute("cx",cx);outline.setAttribute("cy",cy);outline.setAttribute("r",radius);
@@ -2828,9 +2886,19 @@ Team 8</textarea>
     trail1.style.opacity="0";trail2.style.opacity="0";
   }
 
-  function targetRotation(index,direction=1,turns=6){
+  // Where in the winning segment the pointer comes to rest. Always the exact centre made the
+  // last ~2 s of every spin a crawl with no suspense; now it can stop anywhere between 8% and
+  // 92% of the segment, sometimes right by a boundary. Visual only: the winner is already fixed,
+  // and Math.random keeps the seeded result order untouched.
+  function landingAngle(index){
     const step=360/teams.length;
-    const center=index*step+step/2;
+    if(teams.length<2)return index*step+step/2;
+    return index*step+step*(.08+.84*Math.random());
+  }
+
+  function targetRotation(index,direction=1,turns=6,landing=null){
+    const step=360/teams.length;
+    const center=landing===null?index*step+step/2:landing;
     const current=mod360(rotation);
     const wanted=mod360(360-center);
 
@@ -3030,18 +3098,29 @@ Team 8</textarea>
     if(bucket!==lastTickBucket){lastTickBucket=bucket;feedbackTick()}
   }
 
-  function animateWheel(to,duration,done){
+  function animateWheel(to,duration,done,rampMs=0){
     if(raf)cancelAnimationFrame(raf);
     const from=rotation,start=performance.now();
+    // Optional launch: for rampMs the speed rises from 0 (∝ sin), then the motion profile takes
+    // over at exactly that speed. The end point is unchanged; the spin lasts rampMs longer.
+    const deriv0=rampMs>0?Math.max(1,(progressAt(.002)-progressAt(0))/.002):0;
+    const mainAngle=(to-from)/(1+(rampMs>0?(2/Math.PI)*deriv0*rampMs/duration:0));
+    const rampAngle=(to-from)-mainAngle;
+    const totalMs=duration+rampMs;
     lastFrameTime=start;lastFrameAngle=from;lastTickBucket=null;
     clearSpeedChart();
     spinning=true;wheelWrap.classList.add("spinning");
     startTensionTone();
 
     function frame(now){
-      const raw=Math.min((now-start)/duration,1);
-      const p=progressAt(raw);
-      const v=from+(to-from)*p;
+      // A rAF timestamp can be a little earlier than performance.now() taken at the call.
+      const elapsed=Math.max(0,now-start);
+      let v;
+      if(rampMs>0&&elapsed<rampMs){
+        v=from+rampAngle*(1-Math.cos(elapsed/rampMs*Math.PI/2));
+      }else{
+        v=from+rampAngle+mainAngle*progressAt(Math.min((elapsed-rampMs)/duration,1));
+      }
       const dt=Math.max(now-lastFrameTime,1);
       liveDegPerSec=(v-lastFrameAngle)/dt*1000;
       const phys=getPhysics();
@@ -3057,7 +3136,7 @@ Team 8</textarea>
 
       lastFrameTime=now;lastFrameAngle=v;
 
-      if(raw<1)raf=requestAnimationFrame(frame);
+      if(elapsed<totalMs)raf=requestAnimationFrame(frame);
       else{
         rotation=to;setWheelAngle(to);liveDegPerSec=0;raf=null;
         wheelWrap.classList.remove("spinning");stopTensionTone();
@@ -3374,6 +3453,7 @@ Team 8</textarea>
           placeInBracket(team);
           smoothReflow(index,()=>{
             updateMeta();markNextTarget();drawBracketLines();
+            updateCompletionPanel();       // was defined but never called, so the summary never appeared
             spinning=false;spinBtn.disabled=!teams.length;
             spinBtn.textContent=teams.length?"Losuj kolejnego":"Losowanie zakończone";
             setSetupLocked(false);
@@ -3412,7 +3492,7 @@ Team 8</textarea>
     const teamsBefore=[...teams];
     const i=secureIndex(teams.length);targetWinnerIndex=i;
     const turns=computeTurnsForButton();
-    const target=targetRotation(i,1,turns);
+    const target=targetRotation(i,1,turns,landingAngle(i));
     const inertia=fx.inertia.enabled?fx.inertia.intensity/100:.55;
     const friction=fx.friction.enabled?fx.friction.intensity/100:.45;
     const p=getPhysics();
@@ -3422,8 +3502,11 @@ Team 8</textarea>
         (2600+3000*inertia+1300*(1-friction))*p.mass*(1+.45*p.drag)*(1+.35*p.brake)*speedScale
       ));
 
-    pendingReplay={teamsBefore,winnerIndex:i,fromRotation:startRotation,target,duration,team:teams[i]};
-    animateWheel(target,duration,()=>finishWinner(i));
+    // From rest the wheel speeds up for a moment instead of jumping straight to full speed.
+    const rampMs=matchMedia("(prefers-reduced-motion: reduce)").matches?0:Math.round(Math.max(160,420*speedScale));
+
+    pendingReplay={teamsBefore,winnerIndex:i,fromRotation:startRotation,target,duration:duration+rampMs,team:teams[i]};
+    animateWheel(target,duration,()=>finishWinner(i),rampMs);
   }
 
   function pointerAngle(e){
@@ -3491,15 +3574,23 @@ Team 8</textarea>
     const n=Math.min(speed/speedNormBase,1);
     const inertia=fx.inertia.enabled?fx.inertia.intensity/100:.55;
     const friction=fx.friction.enabled?fx.friction.intensity/100:.45;
-    const turns=Math.max(3,Math.min(26,Math.round(
-      2+15*Math.pow(n,.78)+7*inertia-4*friction+5*(p.mass-1)-4*p.drag
-    )));
-    const target=targetRotation(i,dir,turns);
-    throwStrength.textContent=`Siła rzutu: ${Math.round(n*100)}% • ${turns} obrotów`;
+    // How long a throw of this strength should spin (unchanged formula).
+    const wantedMs=Math.round((1700+4100*Math.pow(n,.62)+1600*inertia-850*friction)*p.mass*(1+.4*p.drag)*(1+.3*p.brake));
+    // The wheel leaves the hand at the hand's speed. The motion profile starts at deriv0 × the
+    // average speed, so the turns follow from speed × time. Before, the turn count was fixed
+    // first (up to 26), and a 1000°/s throw jumped to ~10 000°/s the moment it was released.
+    const deriv0=Math.max(1,(progressAt(.002)-progressAt(0))/.002);
+    const omega=Math.max(speed,1)/1000;                  // deg per ms
+    const landing=landingAngle(i);
+    const wantedAngle=mod360(360-landing),currentAngle=mod360(rotation);
+    const delta=dir>=0?mod360(wantedAngle-currentAngle):mod360(currentAngle-wantedAngle);
+    const turns=Math.max(1,Math.min(26,Math.round((omega*wantedMs/deriv0-delta)/360)));
+    const target=targetRotation(i,dir,turns,landing);
+    throwStrength.textContent=`Siła rzutu: ${Math.round(n*100)}% • ${turns} ${turns===1?"obrót":(turns%10>=2&&turns%10<=4&&(turns%100<12||turns%100>14))?"obroty":"obrotów"}`;
     result.textContent=n>.72?"Mocny rzut — koło wiruje bardzo szybko…":n>.35?"Średni rzut — koło wiruje…":"Rzut zaakceptowany…";
     result.classList.add("waiting");
     const duration=matchMedia("(prefers-reduced-motion: reduce)").matches?450:
-      Math.round((1700+4100*Math.pow(n,.62)+1600*inertia-850*friction)*p.mass*(1+.4*p.drag)*(1+.3*p.brake));
+      Math.max(1800,Math.min(9500,Math.round((turns*360+delta)*deriv0/omega)));
 
     pendingReplay={teamsBefore,winnerIndex:i,fromRotation:startRotation,target,duration,team:teams[i]};
     animateWheel(target,duration,()=>finishWinner(i));

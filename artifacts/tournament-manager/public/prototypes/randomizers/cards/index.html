@@ -849,6 +849,28 @@ body.presentation .panel{padding:10px}
   .result-row{grid-template-columns:34px minmax(0,1fr)}
   .result-row span:nth-child(3),.result-row span:last-child{grid-column:2}
 }
+
+/* --- Stage fit (2026-11-25) ---
+   The revealed card ends 45px higher and 6% larger, so it covered the TALIA/GRUPA chips;
+   the deck title collided with the bottom caption; "CENTRUM" did not fit a 42px column. */
+.center-stage{min-height:500px!important;padding-top:112px!important;padding-bottom:100px!important}
+.reveal-caption{display:none}
+.deck-position-controls{grid-template-columns:42px minmax(78px,auto) 42px}
+.engine-controls #stageDrawBtn{min-width:150px}
+
+/* --- Compact decks (2026-11-26) ---
+   Eight 130×215 px tiles took two rows above the stage on a laptop and ~1800 px on a phone. */
+.decks-area{min-height:0;padding:11px 13px}
+.decks-grid{grid-template-columns:repeat(auto-fill,minmax(92px,1fr));gap:8px}
+.deck-box{padding:7px}
+.physical-stack{height:94px}
+.physical-card{width:52px;height:74px;top:6px;border-radius:6px}
+.physical-card::after{inset:4px;border-radius:4px}
+.deck-top-name{margin-top:5px;font-size:.62rem}
+@media(max-width:700px){
+  .decks-grid{display:flex;overflow-x:auto;scroll-snap-type:x proximity;padding:5px 5px 9px;-webkit-overflow-scrolling:touch}
+  .deck-box{flex:0 0 96px;scroll-snap-align:start}
+}
 </style>
 </head>
 <body>
@@ -1141,6 +1163,7 @@ body.presentation .panel{padding:10px}
     </div>
 
     <div class="engine-controls">
+      <button id="stageDrawBtn" type="button">Losuj kartę</button>
       <button id="shuffleAllBtn" class="secondary">Potasuj wszystkie talie</button>
       <button id="autoBtn" class="secondary">Losuj automatycznie</button>
       <button id="showMixBtn" class="ghost">Wymieszaj 2 talie</button>
@@ -1681,12 +1704,11 @@ body.presentation .panel{padding:10px}
       if(!cards.length){
         stack.innerHTML='<div class="empty-mark">pusta</div>';
       }else{
-        const maxOffset=42;
+        const maxOffset=18;
         const offset=cards.length<=1?0:Math.min(4,maxOffset/(cards.length-1));
         cards.forEach((card,i)=>{
           const el=document.createElement("div");
           el.className="physical-card";
-          el.title=card.name;
           el.style.background=skin.back;
           el.style.borderColor=skin.edge;
           el.style.transform=`translateY(${(i*offset).toFixed(2)}px) rotate(${((i%5)-2)*.18}deg)`;
@@ -1698,7 +1720,8 @@ body.presentation .panel{padding:10px}
 
       const top=document.createElement("div");
       top.className="deck-top-name";
-      top.textContent=cards.length?`góra: ${cards[cards.length-1].name}`:"brak kart";
+      // Face down: showing the top card let the person drawing pick the deck with the name they wanted.
+      top.textContent=cards.length?"karty zakryte":"brak kart";
       box.appendChild(top);
 
       box.addEventListener("click",()=>{
@@ -1714,6 +1737,13 @@ body.presentation .panel{padding:10px}
 
     updateDeckSelectors();
     updateActiveDeckStage();
+    const activeBox=decksGrid.querySelector(".deck-box.active");
+    if(activeBox&&decksGrid.scrollWidth>decksGrid.clientWidth+1){
+      const left=activeBox.offsetLeft-decksGrid.offsetLeft;
+      if(left<decksGrid.scrollLeft||left+activeBox.offsetWidth>decksGrid.scrollLeft+decksGrid.clientWidth){
+        decksGrid.scrollLeft=Math.max(0,left-(decksGrid.clientWidth-activeBox.offsetWidth)/2);
+      }
+    }
   }
 
   function updateDeckSelectors(){
@@ -1996,7 +2026,6 @@ body.presentation .panel{padding:10px}
       cards.forEach((card,i)=>{
         const el=document.createElement("div");
         el.className=`mini-card${i===cards.length-1?" top-card":""}`;
-        el.title=card.name;
         el.dataset.participantIndex=String(card.index);
 
         const centered=i-(cards.length-1)/2;
@@ -2021,51 +2050,91 @@ body.presentation .panel{padding:10px}
     drawOriginCard.style.borderColor=skin.edge;
   }
 
-  function animateFromDeckToReveal(deckIndex){
+  // Where each reveal animation starts (its first keyframe), relative to the card's own box.
+  const REVEAL_START={
+    "anim-flip":{x:0,y:0,rot:0,scale:.92},
+    "anim-slide":{x:-180,y:0,rot:-12,scale:.9},
+    "anim-fan":{x:160,y:0,rot:22,scale:.9},
+    "anim-deal":{x:0,y:-160,rot:-4,scale:.82},
+    "anim-cinematic":{x:0,y:80,rot:0,scale:.7}
+  };
+
+  // The card's untransformed box inside the stage. While it is hidden (before the first draw)
+  // it has no box, so it is shown invisibly for the measurement.
+  function revealCardBox(){
+    const hidden=!revealCard.classList.contains("visible");
+    if(hidden){revealCard.style.visibility="hidden";revealCard.classList.add("visible")}
+    const box={
+      cx:revealCard.offsetLeft+revealCard.offsetWidth/2,
+      cy:revealCard.offsetTop+revealCard.offsetHeight/2,
+      w:revealCard.offsetWidth||190
+    };
+    if(hidden){revealCard.classList.remove("visible");revealCard.style.visibility=""}
+    return box;
+  }
+
+  function animateFromDeckToReveal(deckIndex,revealClass="anim-flip"){
     return new Promise(resolve=>{
       updateActiveDeckStage(deckIndex);
 
       const stageRect=centerStage.getBoundingClientRect();
       const topCard=activeDeckCards.querySelector(".top-card");
       const topRect=topCard?.getBoundingClientRect() || activeDeckCards.getBoundingClientRect();
-      const revealRect=revealCard.getBoundingClientRect();
+      const ghostW=topRect.width||92, ghostH=topRect.height||132;
 
       // Ghost starts exactly on the physical top card.
       const startCenterX=topRect.left+topRect.width/2-stageRect.left;
       const startCenterY=topRect.top+topRect.height/2-stageRect.top;
 
-      const targetCenterX=stageRect.width/2;
-      const targetCenterY=Math.max(145,revealRect.top+revealRect.height/2-stageRect.top);
+      // ...and ends exactly where (and as large as) the reveal animation begins, so the hand-off
+      // is invisible. Before, it stopped at y=145 at 1.13× its size while the card appeared
+      // ~110 px lower and ~1.7× larger, which read as a jump.
+      const box=revealCardBox();
+      const start=REVEAL_START[revealClass]||REVEAL_START["anim-flip"];
+      const endScale=start.scale*box.w/ghostW;
+      const dx=box.cx+start.x-startCenterX;
+      const dy=box.cy+start.y-startCenterY;
 
-      drawOriginCard.style.width=`${topRect.width || 92}px`;
-      drawOriginCard.style.height=`${topRect.height || 132}px`;
+      drawOriginCard.style.width=`${ghostW}px`;
+      drawOriginCard.style.height=`${ghostH}px`;
       drawOriginCard.style.left=`${startCenterX}px`;
-      drawOriginCard.style.top=`${startCenterY-(topRect.height || 132)/2}px`;
+      drawOriginCard.style.top=`${startCenterY-ghostH/2}px`;
       drawOriginCard.style.bottom="auto";
       drawOriginCard.style.translate="-50% 0";
       drawOriginCard.style.opacity="1";
 
+      // Same lettering as the card back it turns into, sized so it matches after scaling.
+      const backStyle=getComputedStyle(revealBack);
+      drawOriginCard.textContent=revealBack.textContent;
+      drawOriginCard.style.display="grid";
+      drawOriginCard.style.placeItems="center";
+      drawOriginCard.style.fontWeight=backStyle.fontWeight;
+      drawOriginCard.style.letterSpacing=backStyle.letterSpacing;
+      drawOriginCard.style.color=backStyle.color;
+      drawOriginCard.style.fontSize=`${parseFloat(backStyle.fontSize)/Math.max(.1,endScale)}px`;
+
       if(topCard)topCard.style.opacity=".08";
 
-      const dx=targetCenterX-startCenterX;
-      const dy=targetCenterY-startCenterY;
       const ms=Math.max(220,Math.round(paceMs().reveal*.52));
+      const lift=Math.min(60,Math.abs(dy)*.18+24);
 
       const keyframes=[
-        {transform:"translate(0,0) rotate(0deg) scale(1)",opacity:1},
+        {transform:"translate(0,0) rotate(0deg) scale(1)",opacity:1,color:"transparent"},
         {
-          transform:`translate(${dx*.26}px,${dy*.23-24}px) rotate(-5deg) scale(1.035)`,
+          transform:`translate(${dx*.26}px,${dy*.23-lift*.6}px) rotate(-5deg) scale(${1+(endScale-1)*.25})`,
           opacity:1,
           offset:.30
         },
         {
-          transform:`translate(${dx*.62}px,${dy*.58-42}px) rotate(4deg) scale(1.09)`,
+          transform:`translate(${dx*.62}px,${dy*.58-lift}px) rotate(4deg) scale(${1+(endScale-1)*.65})`,
           opacity:1,
+          color:"transparent",
           offset:.65
         },
         {
-          transform:`translate(${dx}px,${dy}px) rotate(0deg) scale(1.13)`,
-          opacity:.98
+          transform:`translate(${dx}px,${dy}px) rotate(${start.rot}deg) scale(${endScale})`,
+          opacity:1,
+          color:backStyle.color
         }
       ];
 
@@ -2075,7 +2144,10 @@ body.presentation .panel{padding:10px}
           {duration:ms,easing:"cubic-bezier(.2,.78,.15,1)",fill:"forwards"}
         );
         anim.onfinish=()=>{
+          // fill:"forwards" keeps the last keyframe above the inline style, so the card back
+          // stayed on top of the revealed card. Hide it, then drop the effect.
           drawOriginCard.style.opacity="0";
+          anim.cancel();
           resolve();
         };
       }else{
@@ -2100,7 +2172,7 @@ body.presentation .panel{padding:10px}
     applyCardPresentation();
   }
 
-  function revealAnimation(card,assignment,sourceDeck){
+  function revealAnimation(card,assignment,sourceDeck,revealClass=chosenRevealClass()){
     return new Promise(resolve=>{
       const ms=paceMs().reveal;
       setRevealSkin();
@@ -2118,7 +2190,7 @@ body.presentation .panel{padding:10px}
 
       void revealCard.offsetWidth;
       centerStage.classList.add("is-revealing");
-      revealCard.classList.add(chosenRevealClass());
+      revealCard.classList.add(revealClass);
 
       setTimeout(burstParticles,Math.max(100,ms*.54));
       setTimeout(()=>{
@@ -2128,10 +2200,32 @@ body.presentation .panel{padding:10px}
     });
   }
 
+  // Bring the stage on screen before a card leaves the deck (the draw buttons can sit far above it).
+  function ensureStageVisible(){
+    const r=centerStage.getBoundingClientRect();
+    const vh=window.innerHeight||document.documentElement.clientHeight;
+    const shown=Math.max(0,Math.min(r.bottom,vh)-Math.max(r.top,0));
+    if(shown>=Math.min(r.height,vh)*.8)return Promise.resolve();
+    const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+    centerStage.scrollIntoView({behavior:reduce?"auto":"smooth",block:"nearest"});
+    return new Promise(res=>setTimeout(res,reduce?0:360));
+  }
+
+  // The assignment grid scrolls on its own; show the target slot inside it (no page scroll).
+  function revealAssignmentSlot(target){
+    const grid=assignmentGrid;
+    if(grid.scrollHeight<=grid.clientHeight+1)return;
+    const top=target.offsetTop-grid.offsetTop;
+    if(top<grid.scrollTop||top+target.offsetHeight>grid.scrollTop+grid.clientHeight){
+      grid.scrollTop=Math.max(0,top-grid.clientHeight/2+target.offsetHeight/2);
+    }
+  }
+
   function flyToAssignment(card,assignment,index){
     return new Promise(resolve=>{
       const target=assignmentGrid.querySelector(`[data-assignment-index="${index}"]`);
       if(!target){resolve();return}
+      revealAssignmentSlot(target);
       const from=revealCard.getBoundingClientRect(), to=target.getBoundingClientRect();
       const skin=skinData();
       const ghost=document.createElement("div");
@@ -2197,14 +2291,16 @@ body.presentation .panel{padding:10px}
     engineState.textContent=`Pobieranie karty z Talii ${d+1}…`;
     statusBox.innerHTML=`<strong>Talia ${d+1}.</strong> Górna karta opuszcza stos.`;
 
-    await animateFromDeckToReveal(d);
+    const revealClass=chosenRevealClass();
+    await ensureStageVisible();
+    await animateFromDeckToReveal(d,revealClass);
 
     // Dopiero po fizycznym wyjściu karty usuwamy ją z talii.
     decks[d].pop();
     renderDecks();
 
     engineState.textContent=`Odkrywanie karty z Talii ${d+1}…`;
-    await revealAnimation(card,assignment,d);
+    await revealAnimation(card,assignment,d,revealClass);
     await flyToAssignment(card,assignment,results.length);
 
     results.push({
@@ -2518,6 +2614,12 @@ body.presentation .panel{padding:10px}
     updateActiveDeckStage(d);
   });
   drawBtn.addEventListener("click",drawOne);
+  // Second draw button right under the stage; it follows the main button's state.
+  const stageDrawBtn=$("stageDrawBtn");
+  const syncStageDrawBtn=()=>{stageDrawBtn.disabled=drawBtn.disabled};
+  new MutationObserver(syncStageDrawBtn).observe(drawBtn,{attributes:true,attributeFilter:["disabled"]});
+  syncStageDrawBtn();
+  stageDrawBtn.addEventListener("click",drawOne);
   autoBtn.addEventListener("click",()=>{
     autoMode=!autoMode;
     autoBtn.textContent=autoMode?"Zatrzymaj automat":"Losuj automatycznie";
