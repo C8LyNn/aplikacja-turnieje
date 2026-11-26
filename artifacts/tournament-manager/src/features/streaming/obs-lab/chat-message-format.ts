@@ -14,6 +14,7 @@ import {
   resolveChatMotion,
   resolveChatNameColor,
 } from "./camera-chat-settings";
+import { type ChatReply, type ChatStreamEvent, chatEventShown, stripReplyMention } from "./chat-events";
 
 export type ChatEmote = { name: string; url: string };
 export type ChatBadge = { type?: string; url: string; description?: string };
@@ -40,6 +41,12 @@ export type ChatMessage = {
   firstMessage?: boolean;
   /** Arrival time (ms); only messages with it can hide after their lifetime. */
   receivedAt?: number;
+  /** A stream event (follow, sub, cheer...) drawn as its own row; text is the message that came with it. */
+  event?: ChatStreamEvent;
+  /** The message this one answers (Twitch reply). */
+  reply?: ChatReply;
+  /** Highlighted with channel points ("Highlight my message"). */
+  pointsMessage?: boolean;
 };
 
 /** Hosts of Twitch, BTTV, FFZ, 7TV, YouTube and StreamElements images (subdomains included). */
@@ -270,15 +277,26 @@ export type ChatRow = {
   firstTime: boolean;
   /** Letters or words of the text with their reveal animation; null shows the text at once. */
   reveal: RevealPiece[] | null;
+  /** Set for an event row (follow, sub, cheer...). */
+  event: ChatStreamEvent | null;
+  /** Set when reply lines are on and the message answers another one. */
+  reply: ChatReply | null;
+  /** Channel-points highlighted message, when that option is on. */
+  points: boolean;
 };
 
 /** The rows to draw, in display order: filtered, bounded to the message count, newest first when asked. */
 export function buildChatRows(messages: readonly ChatMessage[], config: CameraChatConfig, now: number): ChatRow[] {
+  // Event rows skip the message filters (a cheer text starting with "!" is still a cheer).
   const kept = messages.filter((message) =>
-    !isChatMessageHidden(message, config) && chatMessagePhase(message.receivedAt, config, now) !== "gone");
+    (message.event ? chatEventShown(message.event, config) : !isChatMessageHidden(message, config))
+    && chatMessagePhase(message.receivedAt, config, now) !== "gone");
   const visible = kept.slice(-config.maxMessages);
   const rows = visible.map((message, index): ChatRow => {
-    const shownText = truncateChatText(config.hideLinks ? hideChatLinks(message.text) : message.text, config.maxMessageLength);
+    const event = message.event ?? null;
+    const reply = config.showReplies && !event ? message.reply ?? null : null;
+    const ownText = stripReplyMention(message.text, reply);
+    const shownText = truncateChatText(config.hideLinks ? hideChatLinks(ownText) : ownText, config.maxMessageLength);
     const parts = chatMessageParts(shownText, message.emotes, config.showEmotes);
     return {
       key: message.id ?? message.msgId ?? `${message.name}|${message.text}|${index}`,
@@ -287,17 +305,20 @@ export function buildChatRows(messages: readonly ChatMessage[], config: CameraCh
       opacity: config.fadeOldMessages ? 0.5 + ((index + 1) / visible.length) * 0.5 : 1,
       nameColor: resolveChatNameColor(message, config),
       parts,
-      emoteOnly: config.emoteOnlyLarge && isEmoteOnly(parts),
-      highlighted: isChatHighlighted(message.text, config),
+      emoteOnly: !event && config.emoteOnlyLarge && isEmoteOnly(parts),
+      highlighted: !event && isChatHighlighted(message.text, config),
       badges: config.showBadges
         ? (message.badges ?? []).filter((badge) => safeChatImageUrl(badge.url)).slice(0, 6)
         : [],
       motion: resolveChatMotion(config.animationStyle, message.msgId || message.name + "|" + message.text),
-      role: config.roleHighlight
+      role: config.roleHighlight && !event
         ? chatMessageRole(message.roles ?? (message.badges ?? []).map((badge) => badge.type ?? ""))
         : null,
-      reveal: chatRevealPieces(parts, config.textReveal, chatRevealBaseMs(config)),
-      firstTime: config.firstTimeHighlight && message.firstMessage === true,
+      reveal: event ? null : chatRevealPieces(parts, config.textReveal, chatRevealBaseMs(config)),
+      firstTime: !event && config.firstTimeHighlight && message.firstMessage === true,
+      event,
+      reply,
+      points: !event && config.pointsHighlight && message.pointsMessage === true,
     };
   });
   return config.newestFirst ? rows.reverse() : rows;

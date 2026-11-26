@@ -1,4 +1,6 @@
-﻿export type CameraChatLayout = "right" | "left" | "below" | "above" | "overlay" | "chat";
+﻿import { type CameraChatEventStyle, type ChatEventKind, CHAT_EVENT_KINDS, CHAT_EVENT_STYLES } from "./chat-events";
+
+export type CameraChatLayout = "right" | "left" | "below" | "above" | "overlay" | "chat";
 export type CameraChatAspectRatio = "16:9" | "4:3" | "1:1";
 export type CameraChatFontSize = "small" | "medium" | "large" | "custom";
 export type CameraChatDensity = "compact" | "normal" | "relaxed";
@@ -206,6 +208,18 @@ export type CameraChatConfig = {
   firstTimeHighlight: boolean;
   /** Emotes of a new message float up above it. */
   emoteBurst: boolean;
+  /** Follows, subs, gifts, cheers, raids and tips as rows in the chat (StreamElements events). */
+  streamEvents: boolean;
+  eventKinds: ChatEventKind[];
+  eventStyle: CameraChatEventStyle;
+  /** Cheers below this many bits get no row. */
+  eventMinBits: number;
+  /** Twitch "Highlight my message" (channel points) gets a purple tint. */
+  pointsHighlight: boolean;
+  /** A short line with the message a viewer replied to. */
+  showReplies: boolean;
+  /** Calm chat: at most this many messages a second reach the screen (0 = off); events are never held back. */
+  floodLimit: number;
 
   animateMessages: boolean;
   animationStyle: CameraChatAnimationStyle;
@@ -304,6 +318,13 @@ export const DEFAULT_CAMERA_CHAT_CONFIG: CameraChatConfig = {
   roleHighlight: false,
   firstTimeHighlight: false,
   emoteBurst: false,
+  streamEvents: false,
+  eventKinds: [...CHAT_EVENT_KINDS],
+  eventStyle: "banner",
+  eventMinBits: 1,
+  pointsHighlight: false,
+  showReplies: false,
+  floodLimit: 0,
 
   animateMessages: true,
   animationStyle: "rise",
@@ -722,6 +743,13 @@ function enumParam<T extends string>(params: URLSearchParams, key: string, allow
   return raw !== null && (allowed as readonly string[]).includes(raw) ? raw as T : fallback;
 }
 
+/** Event kinds in their fixed order; a missing parameter means all kinds, an empty one none. */
+function eventKindsParam(raw: string | null): ChatEventKind[] {
+  if (raw === null) return [...CHAT_EVENT_KINDS];
+  const picked = new Set(raw.split(",").map((item) => item.trim()));
+  return CHAT_EVENT_KINDS.filter((kind) => picked.has(kind));
+}
+
 function textParam(params: URLSearchParams, key: string, fallback: string, maxLength: number) {
   const raw = params.get(key);
   return raw === null ? fallback : raw.slice(0, maxLength);
@@ -882,6 +910,13 @@ export function cameraChatConfigToSearch(
   flag("roles", config.roleHighlight);
   flag("firsttime", config.firstTimeHighlight);
   flag("burst", config.emoteBurst);
+  flag("events", config.streamEvents);
+  params.set("eventkinds", config.eventKinds.join(","));
+  params.set("eventstyle", config.eventStyle);
+  params.set("eventbits", String(config.eventMinBits));
+  flag("points", config.pointsHighlight);
+  flag("replies", config.showReplies);
+  params.set("flood", String(config.floodLimit));
   flag("anim", config.animateMessages);
   params.set("animstyle", config.animationStyle);
   params.set("animdur", String(config.animationDurationMs));
@@ -1004,6 +1039,13 @@ export function cameraChatConfigFromSearch(
     roleHighlight: booleanParam(params, "roles", defaults.roleHighlight),
     firstTimeHighlight: booleanParam(params, "firsttime", defaults.firstTimeHighlight),
     emoteBurst: booleanParam(params, "burst", defaults.emoteBurst),
+    streamEvents: booleanParam(params, "events", defaults.streamEvents),
+    eventKinds: eventKindsParam(params.get("eventkinds")),
+    eventStyle: enumParam(params, "eventstyle", CHAT_EVENT_STYLES, defaults.eventStyle),
+    eventMinBits: integerParam(params, "eventbits", defaults.eventMinBits, 1, 100_000),
+    pointsHighlight: booleanParam(params, "points", defaults.pointsHighlight),
+    showReplies: booleanParam(params, "replies", defaults.showReplies),
+    floodLimit: integerParam(params, "flood", defaults.floodLimit, 0, 20),
 
     animateMessages: booleanParam(params, "anim", defaults.animateMessages),
     animationStyle,

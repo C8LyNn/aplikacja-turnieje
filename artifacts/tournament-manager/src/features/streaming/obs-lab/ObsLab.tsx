@@ -16,7 +16,9 @@ import {
   ToolWorkspace,
 } from "@/components/tool-ui";
 import { StreamElementsSetup } from "./StreamElementsSetup";
-import { ChatQuickSetup, ObsSourceSteps, PresetSwatch } from "./ChatQuickSetup";
+import { ChatQuickSetup, ObsSourceSteps, PresetSwatch, choiceClass } from "./ChatQuickSetup";
+import { type CameraChatEventStyle, type ChatEventKind, CHAT_EVENT_KINDS } from "./chat-events";
+import { useChatPacer } from "./use-chat-pacer";
 import { commitChatHistory, redoChatHistory, startChatHistory, undoChatHistory } from "./chat-quick-setup";
 import {
   CameraChatWidget,
@@ -156,9 +158,15 @@ const PREVIEW_BACKGROUND_OPTIONS = [
   { value: "game", get label() { return t("obsLab.gra"); } },
 ] as const;
 
-type TestKind = "plain" | "emotes" | "mod" | "command" | "link" | "long" | "mention" | "action" | "bot" | "first";
+type TestKind = "plain" | "emotes" | "mod" | "command" | "link" | "long" | "mention" | "action" | "bot" | "first" | "reply" | "points";
 
-const TEST_KINDS: readonly TestKind[] = ["plain", "emotes", "mod", "command", "link", "long", "mention", "action", "bot", "first"];
+const TEST_KINDS: readonly TestKind[] = [
+  "plain", "emotes", "mod", "command", "link", "long", "mention", "action", "bot", "first", "reply", "points",
+];
+
+/** Messages sent at once by the chat-flood test. */
+const FLOOD_TEST_COUNT = 20;
+const FLOOD_NAMES = ["NightOwl", "PixelMaja", "GreenWolf", "LunaPlays", "frostbyte", "AdaQ", "Bartek_TV"] as const;
 
 function testKindLabel(kind: TestKind): string {
   switch (kind) {
@@ -172,6 +180,37 @@ function testKindLabel(kind: TestKind): string {
     case "action": return "/me";
     case "bot": return t("obsLab.bot");
     case "first": return t("obsLab.nowy_widz");
+    case "reply": return t("obsLab.odpowiedz");
+    case "points": return t("obsLab.za_punkty");
+  }
+}
+
+function eventKindLabel(kind: ChatEventKind): string {
+  switch (kind) {
+    case "follow": return t("obsLab.obserwacja");
+    case "sub": return t("obsLab.subskrypcja");
+    case "gift": return t("obsLab.suby_w_prezencie");
+    case "cheer": return t("obsLab.bitsy");
+    case "raid": return t("obsLab.raid");
+    case "tip": return t("obsLab.napiwek");
+  }
+}
+
+function testEvent(kind: ChatEventKind, id: number): MockChatMessage {
+  const base = { id: `event-test-${id}`, receivedAt: Date.now() };
+  switch (kind) {
+    case "follow":
+      return { ...base, name: "MartaGra", text: "", event: { kind, name: "MartaGra", amount: 0 } };
+    case "sub":
+      return { ...base, name: "LunaPlays", text: t("obsLab.pol_roku_z_wami"), event: { kind, name: "LunaPlays", amount: 6, tier: "1000" } };
+    case "gift":
+      return { ...base, name: "AdaQ", text: "", event: { kind, name: "AdaQ", sender: "AdaQ", amount: 5, bulk: true, tier: "1000" } };
+    case "cheer":
+      return { ...base, name: "frostbyte", text: "GG!", event: { kind, name: "frostbyte", amount: 500 } };
+    case "raid":
+      return { ...base, name: "KubaGG", text: "", event: { kind, name: "KubaGG", amount: 42 } };
+    case "tip":
+      return { ...base, name: "Bartek_TV", text: t("obsLab.na_nowa_kamerke"), event: { kind, name: "Bartek_TV", amount: 25 } };
   }
 }
 
@@ -209,6 +248,17 @@ function testMessage(kind: TestKind, id: number, config: CameraChatConfig): Mock
       return { ...base, name: "StreamElements", nick: "streamelements", color: "#5B99FF", badges: [SAMPLE_BADGES.moderator], text: t("obsLab.dolacz_do_naszego_discorda") };
     case "first":
       return { ...base, name: "ZielonaZaba", color: "#7CFC00", firstMessage: true, text: `${t("obsLab.pierwszy_raz_tutaj")} ${SAMPLE_EMOTES[3]!.name}` };
+    case "reply":
+      return {
+        ...base,
+        name: "LunaPlays",
+        color: "#9ACD32",
+        badges: [SAMPLE_BADGES.subscriber],
+        text: `@NightOwl ${t("obsLab.tez_tak_mysle")}`,
+        reply: { name: "NightOwl", text: t("obsLab.czesc_jak_leci") },
+      };
+    case "points":
+      return { ...base, name: "PixelMaja", color: "#FF69B4", badges: [SAMPLE_BADGES.vip], pointsMessage: true, text: t("obsLab.wyroznione_za_punkty_tekst") };
   }
 }
 
@@ -259,6 +309,10 @@ export function ObsLab() {
   const previewMessageId = useRef(0);
   const configRef = useRef(config);
   configRef.current = config;
+  // Test messages go through the same calm-chat pacing as the OBS page; each lifetime starts when it shows.
+  const pacer = useChatPacer<MockChatMessage>(config.floodLimit, (message) => {
+    setMockMessages((current) => [...current, { ...message, receivedAt: Date.now() }].slice(-40));
+  });
 
   const size = getCameraChatSize(config);
   const chatOnly = config.layout === "chat";
@@ -282,10 +336,16 @@ export function ObsLab() {
   // Live preview: a test message every few seconds, so animations and extras show without clicking.
   useEffect(() => {
     if (!livePreview) return undefined;
-    let index = 0;
+    let tick = 0;
+    let messageIndex = 0;
+    let eventIndex = 0;
     const timer = window.setInterval(() => {
-      const kind = TEST_KINDS[index++ % TEST_KINDS.length]!;
-      setMockMessages((current) => [...current, testMessage(kind, ++previewMessageId.current, configRef.current)].slice(-40));
+      const current = configRef.current;
+      // Every third test is a stream event when events are on.
+      const next = current.streamEvents && current.eventKinds.length && tick++ % 3 === 2
+        ? testEvent(current.eventKinds[eventIndex++ % current.eventKinds.length]!, ++previewMessageId.current)
+        : testMessage(TEST_KINDS[messageIndex++ % TEST_KINDS.length]!, ++previewMessageId.current, current);
+      setMockMessages((list) => [...list, next].slice(-40));
     }, LIVE_PREVIEW_MS);
     return () => window.clearInterval(timer);
   }, [livePreview]);
@@ -321,7 +381,41 @@ export function ObsLab() {
   }
 
   function pushTestMessages(incoming: MockChatMessage[]) {
-    setMockMessages((current) => [...current, ...incoming].slice(-40));
+    for (const message of incoming) pacer.push(message);
+  }
+
+  /** A test event; when events are off (or this kind is not picked) it switches them on, so the row shows. */
+  function sendEvent(kind: ChatEventKind) {
+    if (!config.streamEvents || !config.eventKinds.includes(kind)) {
+      patchConfig({
+        streamEvents: true,
+        eventKinds: CHAT_EVENT_KINDS.filter((item) => item === kind || config.eventKinds.includes(item)),
+      });
+    }
+    setMockMessages((current) => [...current, testEvent(kind, ++previewMessageId.current)].slice(-40));
+  }
+
+  function toggleEventKind(kind: ChatEventKind) {
+    patchConfig({
+      eventKinds: config.eventKinds.includes(kind)
+        ? config.eventKinds.filter((item) => item !== kind)
+        : CHAT_EVENT_KINDS.filter((item) => item === kind || config.eventKinds.includes(item)),
+    });
+  }
+
+  /** Many messages at once, to see the calm chat at work. */
+  function floodTest() {
+    pushTestMessages(Array.from({ length: FLOOD_TEST_COUNT }, (_, index) => {
+      const id = ++previewMessageId.current;
+      return {
+        id: `flood-${id}`,
+        msgId: `chat-flood-${id}`,
+        name: FLOOD_NAMES[index % FLOOD_NAMES.length]!,
+        text: `${t("obsLab.zalew_wiadomosc", { n: index + 1 })} ${SAMPLE_EMOTES[index % SAMPLE_EMOTES.length]!.name}`,
+        emotes: [...SAMPLE_EMOTES],
+        receivedAt: Date.now(),
+      };
+    }));
   }
 
   function testChatAnimation(count = 1) {
@@ -911,6 +1005,79 @@ export function ObsLab() {
         </div>
       </ToolDisclosure>
 
+      <ToolDisclosure title={t("obsLab.zdarzenia_i_spokojny_czat")}>
+        <div className="space-y-4 text-fuchsia-300" data-testid="chat-events-options">
+          <ToolToggle
+            label={t("obsLab.zdarzenia_na_czacie")}
+            description={t("obsLab.zdarzenia_na_czacie_opis")}
+            checked={config.streamEvents}
+            onChange={(streamEvents) => patchConfig({
+              streamEvents,
+              ...(streamEvents && !config.eventKinds.length ? { eventKinds: [...CHAT_EVENT_KINDS] } : {}),
+            })}
+          />
+          {config.streamEvents && (
+            <div className="space-y-3 rounded-xl border border-border bg-background/35 p-3">
+              <FieldLabel label={t("obsLab.ktore_zdarzenia")}>
+                <div className="flex flex-wrap gap-1.5">
+                  {CHAT_EVENT_KINDS.map((kind) => {
+                    const on = config.eventKinds.includes(kind);
+                    return (
+                      <button
+                        key={kind}
+                        type="button"
+                        aria-pressed={on}
+                        onClick={() => toggleEventKind(kind)}
+                        className={`${choiceClass(on)} px-2.5 py-1 text-xs`}
+                        data-testid={`chat-event-kind-${kind}`}
+                      >
+                        {eventKindLabel(kind)}
+                      </button>
+                    );
+                  })}
+                </div>
+              </FieldLabel>
+              <FieldLabel label={t("obsLab.wyglad_zdarzen")}>
+                <ToolSelect value={config.eventStyle} onChange={(event) => patchConfig({ eventStyle: event.target.value as CameraChatEventStyle })} data-testid="chat-event-style">
+                  <option value="banner">{t("obsLab.baner_z_blyskiem")}</option>
+                  <option value="glow">{t("obsLab.swiecaca_ramka_zdarzenia")}</option>
+                  <option value="compact">{t("obsLab.jedna_linia")}</option>
+                </ToolSelect>
+              </FieldLabel>
+              {config.eventKinds.includes("cheer") && (
+                <FieldLabel label={t("obsLab.najmniej_bitsow")} hint={t("obsLab.mniejsze_cheery_bez_wiersza")}>
+                  <ToolInput
+                    type="number"
+                    min={1}
+                    max={100000}
+                    value={config.eventMinBits}
+                    onChange={(event) => patchConfig({ eventMinBits: Math.min(100000, Math.max(1, Math.round(Number(event.target.value) || 1))) })}
+                  />
+                </FieldLabel>
+              )}
+            </div>
+          )}
+          <ToolToggle
+            label={t("obsLab.wiadomosci_za_punkty")}
+            description={t("obsLab.wiadomosci_za_punkty_opis")}
+            checked={config.pointsHighlight}
+            onChange={(pointsHighlight) => patchConfig({ pointsHighlight })}
+          />
+          <ToolToggle
+            label={t("obsLab.pokazuj_odpowiedzi")}
+            description={t("obsLab.pokazuj_odpowiedzi_opis")}
+            checked={config.showReplies}
+            onChange={(showReplies) => patchConfig({ showReplies })}
+          />
+          <FieldLabel
+            label={t("obsLab.spokojny_czat")}
+            hint={config.floodLimit > 0 ? t("obsLab.spokojny_czat_opis", { n: config.floodLimit }) : t("obsLab.spokojny_czat_wylaczony")}
+          >
+            <ToolRange label={t("obsLab.wiadomosci_na_sekunde")} value={config.floodLimit} min={0} max={10} onChange={(floodLimit) => patchConfig({ floodLimit })} />
+          </FieldLabel>
+        </div>
+      </ToolDisclosure>
+
       <ToolDisclosure title={t("obsLab.animacje")}>
         <div className="space-y-4 text-fuchsia-300">
           <ToolToggle label={t("obsLab.animacja_wejscia")} checked={config.animateMessages} onChange={(animateMessages) => patchConfig({ animateMessages })} />
@@ -1013,6 +1180,17 @@ export function ObsLab() {
                   {testKindLabel(kind)}
                 </ToolButton>
               ))}
+            </div>
+            <div className="mt-2 flex flex-wrap items-center gap-1.5">
+              <span className="mr-1 text-xs font-semibold text-muted-foreground">{t("obsLab.testowe_zdarzenie")}</span>
+              {CHAT_EVENT_KINDS.map((kind) => (
+                <ToolButton key={kind} type="button" className="px-2.5 py-1 text-xs" onClick={() => sendEvent(kind)} data-testid={`chat-test-event-${kind}`}>
+                  {eventKindLabel(kind)}
+                </ToolButton>
+              ))}
+              <ToolButton type="button" className="px-2.5 py-1 text-xs" onClick={floodTest} data-testid="chat-test-flood">
+                {t("obsLab.zalew_czatu", { n: FLOOD_TEST_COUNT })}
+              </ToolButton>
             </div>
             <div className="mt-3 max-w-md" data-testid="chat-live-preview">
               <ToolToggle label={t("obsLab.ozyw_podglad")} description={t("obsLab.ozyw_podglad_opis")} checked={livePreview} onChange={setLivePreview} />

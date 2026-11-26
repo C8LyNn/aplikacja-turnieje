@@ -101,6 +101,8 @@ function quickExtraLabel(id: QuickExtraId): string {
     case "burst": return t("obsLab.wylatujace_emotki");
     case "frame": return t("obsLab.animowana_ramka");
     case "fade": return t("obsLab.znikanie_po_30_s");
+    case "events": return t("obsLab.zdarzenia_na_czacie");
+    case "calm": return t("obsLab.spokojny_czat");
   }
 }
 
@@ -116,7 +118,7 @@ function Step({ title, hint, children }: { title: string; hint?: string; childre
   );
 }
 
-const choiceClass = (active: boolean) => [
+export const choiceClass = (active: boolean) => [
   "rounded-lg border text-[11px] font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-fuchsia-400/60",
   active
     ? "border-fuchsia-400 bg-fuchsia-500/15 text-foreground"

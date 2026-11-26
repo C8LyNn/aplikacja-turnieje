@@ -42,6 +42,16 @@ import {
   chatShapeBorder,
   getChatDecorCss,
 } from "./chat-decor";
+import {
+  type ChatEventLabels,
+  type ChatStreamEvent,
+  CHAT_EVENT_ICONS,
+  POINTS_MESSAGE_COLOR,
+  chatEventTag,
+  chatEventTitleParts,
+  getChatEventCss,
+} from "./chat-events";
+import { chatEventLabels } from "./chat-event-labels";
 
 /** Kept under its old name: the preview, the OBS page and tests all pass messages of this shape. */
 export type MockChatMessage = ChatMessage;
@@ -142,12 +152,18 @@ type Props = {
   config: CameraChatConfig;
   messages: MockChatMessage[];
   previewCamera?: boolean;
+  /** Event templates; the site's language by default. */
+  eventLabels?: ChatEventLabels;
+  /** Tip currency from the platform; the label's currency by default. */
+  currency?: string;
 };
 
 export function CameraChatWidget({
   config,
   messages,
   previewCamera = false,
+  eventLabels,
+  currency,
 }: Props) {
   useChatClock(messages, config);
   const size =
@@ -164,14 +180,65 @@ export function CameraChatWidget({
   const right = config.textAlign === "right";
   const block = config.messageLayout !== "inline";
 
+  const labels = eventLabels ?? chatEventLabels();
+  const tipCurrency = currency ?? labels.tipCurrency;
+  const contentStyle: CSSProperties = {
+    fontSize: fontPx,
+    lineHeight: `${lineHeight}px`,
+    textShadow: config.textShadow === "none" ? undefined : CHAT_TEXT_SHADOWS[config.textShadow],
+  };
+
+  /** A follow, sub, gift, cheer, raid or tip: icon, title with the names, and the message that came with it. */
+  const renderEventRow = (row: ChatRow, event: ChatStreamEvent) => {
+    const entry = config.animateMessages
+      ? `${config.animationStyle === "random" ? "obs-chat-in-" + row.motion : "obs-chat-in"} ${config.animationDurationMs}ms cubic-bezier(.2,.7,.2,1) backwards`
+      : undefined;
+    const tag = chatEventTag(event);
+    const said = row.parts.map((part) => (part.kind === "text" ? part.text : part.name)).join("").trim();
+    return (
+      <div
+        key={row.key}
+        className={[
+          "obs-chat-message flex min-w-0 items-start chat-event",
+          `chat-event-${event.kind} chat-event-${config.eventStyle}`,
+          row.phase === "leaving" ? "obs-chat-leaving" : "",
+        ].filter(Boolean).join(" ")}
+        style={{
+          opacity: row.opacity,
+          padding: chatDensityPadding(config.density),
+          flexDirection: right ? "row-reverse" : "row",
+          textAlign: config.textAlign,
+          // The glow style draws its own border in the event colour.
+          border: config.showBorders && config.eventStyle !== "glow" ? "1px solid rgba(255,255,255,.07)" : undefined,
+          animation: row.phase === "leaving" && exitMs > 0 ? `obs-chat-out ${exitMs}ms ease-in forwards` : entry,
+        }}
+        data-event={event.kind}
+      >
+        <span className="chat-event-icon" aria-hidden="true">{CHAT_EVENT_ICONS[event.kind]}</span>
+        <div className="chat-event-body" style={contentStyle}>
+          <span className="chat-event-title">
+            {chatEventTitleParts(event, labels, tipCurrency).map((part, index) => (part.strong
+              ? <span key={index} className="chat-event-name">{part.text}</span>
+              : part.text))}
+            {tag && <span className="chat-event-tag">{tag}</span>}
+          </span>
+          {said && <span className="chat-event-text">{said}</span>}
+        </div>
+      </div>
+    );
+  };
+
   const renderRow = (row: ChatRow) => {
+    if (row.event) return renderEventRow(row, row.event);
     const { message } = row;
     const entry = config.animateMessages
       ? `${config.animationStyle === "random" ? "obs-chat-in-" + row.motion : "obs-chat-in"} ${config.animationDurationMs}ms cubic-bezier(.2,.7,.2,1) backwards`
       : undefined;
-    // Precedence: highlighted word, first message, role, then the plain bubble.
-    const roleColor = !row.highlighted && !row.firstTime && row.role ? CHAT_ROLE_COLORS[row.role] : null;
-    const tintColor = row.highlighted ? null : row.firstTime ? FIRST_MESSAGE_COLOR : roleColor;
+    // Precedence: highlighted word, channel-points highlight, first message, role, then the plain bubble.
+    const roleColor = !row.highlighted && !row.points && !row.firstTime && row.role ? CHAT_ROLE_COLORS[row.role] : null;
+    const tintColor = row.highlighted ? null
+      : row.points ? POINTS_MESSAGE_COLOR
+        : row.firstTime ? FIRST_MESSAGE_COLOR : roleColor;
     const fill = row.highlighted
       ? rgbaCss(config.highlightColor, 18)
       : tintColor ? rgbaCss(tintColor, 14)
@@ -284,6 +351,7 @@ export function CameraChatWidget({
         style={style}
         data-role={roleColor ? row.role ?? undefined : undefined}
         data-first={row.firstTime ? "1" : undefined}
+        data-points={row.points ? "1" : undefined}
       >
         {config.showAvatars && (
           <div
@@ -300,14 +368,12 @@ export function CameraChatWidget({
           </div>
         )}
 
-        <div
-          className="min-w-0"
-          style={{
-            fontSize: fontPx,
-            lineHeight: `${lineHeight}px`,
-            textShadow: config.textShadow === "none" ? undefined : CHAT_TEXT_SHADOWS[config.textShadow],
-          }}
-        >
+        <div className="min-w-0" style={contentStyle}>
+          {row.reply && (
+            <span className="chat-reply">
+              {"\u21aa "}<span className="chat-reply-name">@{row.reply.name}</span>{row.reply.text ? `: ${row.reply.text}` : ""}
+            </span>
+          )}
           {block
             ? (<><div className="obs-chat-head">{firstTag}{badges}{name}</div>{text}</>)
             : (<>{firstTag}{badges}{name}<wbr />{text}</>)}
@@ -418,6 +484,7 @@ ${getCameraChatExitCss(config.exitStyle, config.textAlign, "obs-chat-out")}
 ${getChatEffectCss(config, ".obs-chat-fx")}
 ${getChatFrameCss(config, ".obs-chat-panel", ".obs-chat-list")}
 ${getChatDecorCss(config, ".obs-chat-panel", ".obs-chat-message")}
+${getChatEventCss(config, ".obs-chat-message")}
 @media (prefers-reduced-motion: reduce) { .obs-chat-message, .obs-chat-message::after, .obs-chat-reveal, .obs-chat-emote, .obs-chat-panel, .obs-chat-panel::before, .obs-chat-panel::after, .obs-chat-list, .chat-amb, .chat-live-dot, .chat-burst { animation: none !important; } }`}</style>
 
       <div

@@ -3,6 +3,7 @@
  * a random look and the undo / redo history. Pure functions, so the configurator and the tests share them.
  */
 import { type CameraChatConfig } from "./camera-chat-settings";
+import { CHAT_EVENT_KINDS } from "./chat-events";
 import { CHAT_COLOR_THEME_IDS, CHAT_PRESET_IDS, type ChatPresetId, applyChatColorTheme, chatPresetConfig } from "./chat-presets";
 
 /** Where the chat sits and how big the scene is: chosen in step 1, never changed by a style. */
@@ -40,12 +41,15 @@ export function randomChatLook(current: CameraChatConfig, random: () => number =
 
 // --- One-click extras ---------------------------------------------------------------------------------------------
 
-export type QuickExtraId = "snow" | "hearts" | "sparkles" | "header" | "firstTime" | "burst" | "frame" | "fade";
+export type QuickExtraId = "snow" | "hearts" | "sparkles" | "header" | "firstTime" | "burst" | "frame" | "fade" | "events" | "calm";
 
-export const QUICK_EXTRAS: readonly QuickExtraId[] = ["snow", "hearts", "sparkles", "header", "firstTime", "burst", "frame", "fade"];
+export const QUICK_EXTRAS: readonly QuickExtraId[] = ["snow", "hearts", "sparkles", "header", "firstTime", "burst", "frame", "fade", "events", "calm"];
 
 /** Message lifetime the "fade out" extra switches on. */
 export const QUICK_FADE_SECONDS = 30;
+
+/** Messages a second the "calm chat" extra lets through. */
+export const QUICK_CALM_LIMIT = 3;
 
 export function quickExtraOn(id: QuickExtraId, config: CameraChatConfig): boolean {
   switch (id) {
@@ -58,6 +62,8 @@ export function quickExtraOn(id: QuickExtraId, config: CameraChatConfig): boolea
     case "burst": return config.emoteBurst && config.showEmotes;
     case "frame": return config.frameStyle !== "none";
     case "fade": return config.messageLifetime > 0;
+    case "events": return config.streamEvents && config.eventKinds.length > 0;
+    case "calm": return config.floodLimit > 0;
   }
 }
 
@@ -77,6 +83,10 @@ export function toggleQuickExtra(id: QuickExtraId, config: CameraChatConfig, liv
     case "burst": return on ? { ...config, emoteBurst: true, showEmotes: true } : { ...config, emoteBurst: false };
     case "frame": return { ...config, frameStyle: on ? "rotate" : "none" };
     case "fade": return { ...config, messageLifetime: on ? QUICK_FADE_SECONDS : 0 };
+    case "events": return on
+      ? { ...config, streamEvents: true, eventKinds: config.eventKinds.length ? config.eventKinds : [...CHAT_EVENT_KINDS] }
+      : { ...config, streamEvents: false };
+    case "calm": return { ...config, floodLimit: on ? QUICK_CALM_LIMIT : 0 };
   }
 }
 

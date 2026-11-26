@@ -37,6 +37,22 @@ import {
   chatDecorHtml,
   getChatDecorCss,
 } from "./chat-decor";
+import {
+  type ChatEventLabels,
+  CHAT_CONTROL_RANGES,
+  CHAT_EVENT_ICONS,
+  CHAT_EVENT_LABELS_EN,
+  CHAT_EVENT_LISTENERS,
+  CHAT_PACE_QUEUE_MAX,
+  CHAT_PLACEHOLDER_PATTERN,
+  CHAT_REPLY_MAX,
+  CHEERMOTE_PATTERN,
+  IRC_ESCAPE_PATTERN,
+  POINTS_MESSAGE_COLOR,
+  PREFIX_CURRENCIES,
+  chatPaceIntervalMs,
+  getChatEventCss,
+} from "./chat-events";
 
 /** The widget's markup; particles and the header box (texts escaped) sit in the panel before the message list. */
 function widgetHtml(config: CameraChatConfig): string {
@@ -61,9 +77,14 @@ function scriptJson(value: unknown): string {
 
 /**
  * The native StreamElements Custom Widget: standalone HTML/CSS/JS with the configuration written in. It listens to the
- * StreamElements chat events ("message", "delete-message", "delete-messages") and loads nothing from this site.
+ * StreamElements chat events ("message", "delete-message", "delete-messages"), the stream events shown as chat rows
+ * (follows, subs, cheers, raids, tips) and the channel currency from "onWidgetLoad"; it loads nothing from this site.
  */
-export function generateStreamElementsWidget(config: CameraChatConfig, firstLabel = "NEW") {
+export function generateStreamElementsWidget(
+  config: CameraChatConfig,
+  firstLabel = "NEW",
+  eventLabels: ChatEventLabels = CHAT_EVENT_LABELS_EN,
+) {
   const size = getCameraChatSize(config);
   const inset = Math.min(
     config.overlayInset,
@@ -205,6 +226,7 @@ ${getCameraChatExitCss(config.exitStyle, config.textAlign, "se-chat-out")}
 ${getChatEffectCss(config, ".se-fx")}
 ${getChatFrameCss(config, ".se-panel", ".se-messages")}
 ${getChatDecorCss(config, ".se-panel", ".se-message")}
+${getChatEventCss(config, ".se-message")}
 @media (prefers-reduced-motion: reduce) {
   .se-message, .se-leaving, .se-message::after, .se-reveal, .se-emote,
   .se-panel, .se-panel::before, .se-panel::after, .se-messages { animation: none !important; }
@@ -250,6 +272,18 @@ const settings = ${scriptJson({
     shapedBubble: shaped,
     emoteBurst: config.emoteBurst && config.showEmotes,
     burstPieces: chatBurstPieces(config),
+    streamEvents: config.streamEvents,
+    eventKinds: config.eventKinds,
+    eventMinBits: config.eventMinBits,
+    eventStyle: config.eventStyle,
+    eventIcons: CHAT_EVENT_ICONS,
+    eventLabels: Object.fromEntries(Object.entries(eventLabels).map(([key, value]) => [key, String(value).slice(0, 200)])),
+    pointsHighlight: config.pointsHighlight,
+    pointsColor: POINTS_MESSAGE_COLOR,
+    showReplies: config.showReplies,
+    replyMax: CHAT_REPLY_MAX,
+    paceMs: chatPaceIntervalMs(config.floodLimit),
+    paceMax: CHAT_PACE_QUEUE_MAX,
   })};
 const list = document.getElementById("se-chat-messages");
 const nameColors = ${scriptJson(CHAT_NAME_PALETTES[config.namePalette])};
@@ -257,6 +291,15 @@ const motionPresets = ${scriptJson(CHAT_MOTION_PRESETS)};
 const imageHosts = ${scriptJson(CHAT_IMAGE_HOSTS)};
 const linkPattern = new RegExp(${scriptJson(CHAT_LINK_PATTERN.source)}, "gi");
 const dataImagePattern = new RegExp(${scriptJson(CHAT_DATA_IMAGE_PATTERN.source)}, "i");
+const eventListeners = ${scriptJson(CHAT_EVENT_LISTENERS)};
+const cheerPattern = new RegExp(${scriptJson(CHEERMOTE_PATTERN.source)}, "gi");
+const prefixCurrencies = ${scriptJson(PREFIX_CURRENCIES)};
+const placeholderPattern = new RegExp(${scriptJson(CHAT_PLACEHOLDER_PATTERN.source)});
+const ircEscapePattern = new RegExp(${scriptJson(IRC_ESCAPE_PATTERN.source)}, "g");
+const controlPattern = new RegExp("[" + ${scriptJson(CHAT_CONTROL_RANGES)}.map(function (range) {
+  return String.fromCharCode(range[0]) + "-" + String.fromCharCode(range[1]);
+}).join("") + "]", "g");
+let currency = settings.eventLabels.tipCurrency || "";
 function hash(key) {
   let value = 0;
   for (let i = 0; i < key.length; i++) {
@@ -374,6 +417,82 @@ function textParts(text, known) {
   if (buffer) parts.push({ kind: "text", text: buffer });
   return parts;
 }
+function cleanText(value, max) {
+  return Array.from(asString(value).replace(controlPattern, " ").replace(/\\s+/g, " ").trim()).slice(0, max).join("");
+}
+function eventAmount(value) {
+  const number = typeof value === "number" ? value : parseFloat(asString(value));
+  return isFinite(number) && number > 0 ? Math.min(number, 10000000) : 0;
+}
+function formatTip(amount) {
+  const rounded = Math.round(amount * 100) / 100;
+  const value = rounded % 1 === 0 ? String(rounded) : rounded.toFixed(2);
+  if (!currency) return value;
+  return prefixCurrencies.indexOf(currency) !== -1 ? currency + value : value + " " + currency;
+}
+// Each sub of a gift bomb arrives on its own after the bomb ("isCommunityGift"); only the bomb gets a row.
+function eventFrom(listener, data) {
+  const kind = eventListeners[listener];
+  if (!kind || !data || typeof data !== "object") return null;
+  const name = cleanText(data.displayName != null ? data.displayName : data.name, 40);
+  if (!name) return null;
+  const id = cleanText(data._id != null ? data._id : data.activityId, 80);
+  const text = cleanText(data.message, 300);
+  const amount = eventAmount(data.amount);
+  if (kind === "sub") {
+    if (data.isCommunityGift === true && data.bulkGifted !== true) return null;
+    const tier = cleanText(data.tier, 10).toLowerCase();
+    const sender = cleanText(data.sender, 40);
+    if (data.bulkGifted === true) {
+      return { event: { kind: "gift", name: sender || name, sender: sender || name, amount: Math.max(1, amount), bulk: true, tier: tier }, text: "", id: id };
+    }
+    if (data.gifted === true) return { event: { kind: "gift", name: name, sender: sender || "?", amount: 1, tier: tier }, text: "", id: id };
+    return { event: { kind: "sub", name: name, amount: Math.max(1, amount), tier: tier }, text: text, id: id };
+  }
+  const said = kind === "cheer" ? text.replace(cheerPattern, "$1").replace(/\\s+/g, " ").trim() : text;
+  return { event: { kind: kind, name: name, amount: amount }, text: said, id: id };
+}
+function eventShown(event) {
+  if (!settings.streamEvents || settings.eventKinds.indexOf(event.kind) === -1) return false;
+  return event.kind !== "cheer" || event.amount >= settings.eventMinBits;
+}
+// The template is split on its placeholders; names are inserted as text.
+function eventTitleParts(event) {
+  const labels = settings.eventLabels;
+  const template = event.kind === "sub" ? (event.amount > 1 ? labels.resub : labels.sub)
+    : event.kind === "gift" ? (event.bulk ? labels.giftBulk : labels.gift)
+      : labels[event.kind];
+  const values = {
+    "{name}": event.name,
+    "{sender}": event.sender || "",
+    "{amount}": event.kind === "tip" ? formatTip(event.amount) : String(Math.round(event.amount)),
+  };
+  return asString(template).split(placeholderPattern).filter(Boolean).map(function (piece) {
+    return Object.prototype.hasOwnProperty.call(values, piece) ? { text: values[piece], strong: true } : { text: piece };
+  });
+}
+function eventTag(event) {
+  if (event.kind !== "sub" && event.kind !== "gift") return "";
+  return event.tier === "prime" ? "Prime" : event.tier === "2000" ? "T2" : event.tier === "3000" ? "T3" : "";
+}
+function unescapeTag(value) {
+  return value.replace(ircEscapePattern, function (match, code) {
+    return code === "s" ? " " : code === ":" ? ";" : code === "r" || code === "n" ? " " : code;
+  });
+}
+function replyFrom(tags) {
+  if (!tags) return null;
+  const parent = tags["reply-parent-display-name"] != null ? tags["reply-parent-display-name"] : tags["reply-parent-user-login"];
+  const name = cleanText(unescapeTag(asString(parent)), 40);
+  if (!name) return null;
+  const chars = Array.from(cleanText(unescapeTag(asString(tags["reply-parent-msg-body"])), 400));
+  return { name: name, text: chars.length > settings.replyMax ? chars.slice(0, settings.replyMax).join("").trimEnd() + "\\u2026" : chars.join("") };
+}
+function withoutMention(text, reply) {
+  if (!reply) return text;
+  const prefix = "@" + reply.name.toLowerCase() + " ";
+  return text.toLowerCase().indexOf(prefix) === 0 ? text.slice(prefix.length) : text;
+}
 function roleOf(types) {
   if (types.indexOf("broadcaster") !== -1) return "broadcaster";
   if (types.indexOf("moderator") !== -1) return "moderator";
@@ -431,26 +550,74 @@ function image(className, src, alt) {
   element.alt = alt;
   return element;
 }
+function buildEventRow(message) {
+  const event = message.event;
+  const row = document.createElement("div");
+  row.className = "se-message chat-event chat-event-" + event.kind + " chat-event-" + settings.eventStyle;
+  row.dataset.event = event.kind;
+  if (settings.animateMessages && settings.animationStyle === "random") {
+    row.style.animationName = "se-chat-in-" + pickMotion(message.msgId || message.name + "|" + message.text);
+  }
+  const icon = document.createElement("span");
+  icon.className = "chat-event-icon";
+  icon.setAttribute("aria-hidden", "true");
+  icon.textContent = settings.eventIcons[event.kind];
+  row.appendChild(icon);
+  const body = document.createElement("div");
+  body.className = "se-content chat-event-body";
+  const title = document.createElement("span");
+  title.className = "chat-event-title";
+  eventTitleParts(event).forEach(function (part) {
+    if (part.strong) {
+      const strong = document.createElement("span");
+      strong.className = "chat-event-name";
+      strong.textContent = part.text;
+      title.appendChild(strong);
+    } else {
+      title.appendChild(document.createTextNode(part.text));
+    }
+  });
+  const tag = eventTag(event);
+  if (tag) {
+    const badge = document.createElement("span");
+    badge.className = "chat-event-tag";
+    badge.textContent = tag;
+    title.appendChild(badge);
+  }
+  body.appendChild(title);
+  const said = shownText(message.text).trim();
+  if (said) {
+    const line = document.createElement("span");
+    line.className = "chat-event-text";
+    line.textContent = said;
+    body.appendChild(line);
+  }
+  row.appendChild(body);
+  return row;
+}
 function buildRow(message) {
+  if (message.event) return buildEventRow(message);
   const row = document.createElement("div");
   row.className = "se-message";
   const color = nameColor(message);
-  const parts = textParts(shownText(message.text), message.emotes);
+  const parts = textParts(shownText(withoutMention(message.text, message.reply)), message.emotes);
   const onlyEmotes = parts.some(function (part) { return part.kind === "emote"; })
     && parts.every(function (part) { return part.kind === "emote" || !part.text.trim(); });
   if (settings.emoteOnlyLarge && onlyEmotes) row.classList.add("se-emote-only");
   const role = settings.roleHighlight ? roleOf(message.roles) : null;
+  const points = settings.pointsHighlight && message.pointsMessage === true;
   const first = settings.firstTimeHighlight && message.firstMessage === true;
+  if (points) row.dataset.points = "1";
   if (first) row.dataset.first = "1";
   // Outline / underline shapes draw a line in the name colour.
   if (settings.bubbleShape === "outline") row.style.border = "1.5px solid " + rgba(color, 0.7);
   if (settings.bubbleShape === "underline") row.style.borderBottom = "2px solid " + color;
-  // Precedence: highlighted word, first message, role, then the plain bubble.
+  // Precedence: highlighted word, channel-points highlight, first message, role, then the plain bubble.
   if (highlighted(message.text)) {
     row.classList.add("se-highlight");
-  } else if (first || role) {
-    const tint = first ? settings.firstColor : settings.roleColors[role];
-    if (!first) row.dataset.role = role;
+  } else if (points || first || role) {
+    const tint = points ? settings.pointsColor : first ? settings.firstColor : settings.roleColors[role];
+    if (!points && !first) row.dataset.role = role;
     row.style.borderRadius = settings.bubbleRadius + "px";
     row.style.background = rgba(tint, 0.14);
     row.style.boxShadow = "inset " + (settings.alignRight ? -3 : 3) + "px 0 0 " + tint;
@@ -475,6 +642,17 @@ function buildRow(message) {
   }
   const content = document.createElement("div");
   content.className = "se-content";
+  if (message.reply) {
+    const reply = document.createElement("span");
+    reply.className = "chat-reply";
+    reply.appendChild(document.createTextNode("\\u21aa "));
+    const who = document.createElement("span");
+    who.className = "chat-reply-name";
+    who.textContent = "@" + message.reply.name;
+    reply.appendChild(who);
+    if (message.reply.text) reply.appendChild(document.createTextNode(": " + message.reply.text));
+    content.appendChild(reply);
+  }
   let head = content;
   if (settings.blockLayout) {
     head = document.createElement("div");
@@ -579,6 +757,55 @@ function scheduleExit(message) {
   }, settings.lifetimeMs);
 }
 
+// Calm chat: at most one message per interval; the rest wait in a short queue (the oldest is dropped when it is full).
+const paceQueue = [];
+let paceLast = -Infinity;
+let paceTimer = null;
+function show(message) {
+  messages.push(message);
+  messages = messages.slice(-100);
+  scheduleExit(message);
+  renderMessages();
+}
+function schedulePace() {
+  if (paceTimer !== null) return;
+  paceTimer = window.setTimeout(function () {
+    paceTimer = null;
+    const next = paceQueue.shift();
+    if (!next) return;
+    paceLast = Date.now();
+    show(next);
+    if (paceQueue.length) schedulePace();
+  }, Math.max(0, paceLast + settings.paceMs - Date.now()));
+}
+function pace(message) {
+  if (!(settings.paceMs > 0)) {
+    show(message);
+    return;
+  }
+  const now = Date.now();
+  if (!paceQueue.length && now - paceLast >= settings.paceMs) {
+    paceLast = now;
+    show(message);
+    return;
+  }
+  paceQueue.push(message);
+  if (paceQueue.length > settings.paceMax) paceQueue.shift();
+  schedulePace();
+}
+function dropWaiting(test) {
+  for (let i = paceQueue.length - 1; i >= 0; i--) {
+    if (test(paceQueue[i])) paceQueue.splice(i, 1);
+  }
+}
+
+// The channel currency for tips.
+window.addEventListener("onWidgetLoad", function (event) {
+  const detail = event.detail || {};
+  const symbol = detail.currency && typeof detail.currency === "object" ? cleanText(detail.currency.symbol, 5) : "";
+  if (symbol) currency = symbol;
+});
+
 window.addEventListener("onEventReceived", function (event) {
   const detail = event.detail || {};
   const payload = detail.event || {};
@@ -588,16 +815,19 @@ window.addEventListener("onEventReceived", function (event) {
     const text = asString(data.text);
     if (!text) return;
     const msgId = asString(data.msgId);
-    if (msgId && messages.some(message => message.msgId === msgId)) return;
+    if (msgId && (messages.some(message => message.msgId === msgId) || paceQueue.some(message => message.msgId === msgId))) return;
     const name = asString(data.displayName) || asString(data.nick) || "user";
     const nick = asString(data.nick);
     if (hiddenMessage(name, nick, text)) return;
+    const tags = data.tags && typeof data.tags === "object" ? data.tags : null;
     const message = {
       localId: ++nextLocalId,
       name,
       nick,
       text,
       msgId,
+      pointsMessage: Boolean(tags && tags["msg-id"] === "highlighted-message"),
+      reply: settings.showReplies ? replyFrom(tags) : null,
       userId: asString(data.userId),
       color: asString(data.displayColor),
       isAction: data.isAction === true,
@@ -608,17 +838,38 @@ window.addEventListener("onEventReceived", function (event) {
       badges: badgeList(data.badges),
       emotes: emoteMap(data.emotes)
     };
-    messages.push(message);
-    messages = messages.slice(-100);
-    scheduleExit(message);
+    pace(message);
+    return;
+  } else if (eventListeners[detail.listener]) {
+    // Events go straight to the screen, past the calm-chat queue.
+    const intake = eventFrom(detail.listener, data);
+    if (!intake || !eventShown(intake.event)) return;
+    if (intake.id && messages.some(message => message.eventId === intake.id)) return;
+    show({
+      localId: ++nextLocalId,
+      name: intake.event.name,
+      nick: "",
+      text: intake.text,
+      msgId: "",
+      eventId: intake.id,
+      userId: "",
+      event: intake.event,
+      reply: null,
+      roles: [],
+      badges: [],
+      emotes: new Map()
+    });
+    return;
   } else if (detail.listener === "delete-message") {
     const id = asString(data.msgId);
     if (!id) return;
     messages = messages.filter(message => message.msgId !== id);
+    dropWaiting(message => message.msgId === id);
   } else if (detail.listener === "delete-messages") {
     const id = asString(data.userId);
     if (!id) return;
     messages = messages.filter(message => message.userId !== id);
+    dropWaiting(message => message.userId === id);
   } else {
     return;
   }

@@ -4,6 +4,7 @@ import { Copy } from "lucide-react";
 import { ToolButton, ToolDisclosure, ToolPanel } from "@/components/tool-ui";
 import type { CameraChatConfig } from "./camera-chat-settings";
 import { generateStreamElementsWidget } from "./stream-elements-widget";
+import { chatEventLabels } from "./chat-event-labels";
 
 type Props = {
   config: CameraChatConfig;
@@ -14,7 +15,7 @@ type Props = {
 export function StreamElementsSetup({ config, width, height }: Props) {
   const [copied, setCopied] = useState<"html" | "css" | "js" | null>(null);
   const { html: htmlCode, css: cssCode, js: jsCode } = useMemo(
-    () => generateStreamElementsWidget(config, t("obsLab.nowy")),
+    () => generateStreamElementsWidget(config, t("obsLab.nowy"), chatEventLabels()),
     [config],
   );
 

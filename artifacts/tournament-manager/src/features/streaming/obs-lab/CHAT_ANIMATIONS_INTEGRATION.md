@@ -128,6 +128,28 @@ natywnego widgetu StreamElements. Reguły wiadomości są w
 - Ta sama instrukcja OBS jest też w panelu Browser Source.
 - Logika jest w `chat-quick-setup.ts` (czyste funkcje), testy w `chat-quick-setup.test.tsx`.
 
+## Zrealizowany etap 7 — zdarzenia na czacie, odpowiedzi i spokojny czat (2026-11-26)
+
+- **Zdarzenia na czacie** (`events`, `eventkinds`, `eventstyle`, `eventbits`): obserwacje, suby (z liczbą miesięcy
+  i plakietką T2/T3/Prime), suby w prezencie, bitsy, raidy i napiwki ze zdarzeń StreamElements (`follower-latest`,
+  `subscriber-latest`, `cheer-latest`, `raid-latest`, `tip-latest`) jako wyróżnione wiersze czatu z ikoną.
+  Trzy wyglądy: baner z błyskiem, świecąca ramka, jedna linia. Gift bomb to jeden wiersz (pojedyncze suby
+  z `isCommunityGift` są pomijane), cheermotki („Cheer100”) znikają z tekstu, bitsy poniżej progu nie dostają
+  wiersza, powtórzone zdarzenie (to samo `_id`) pojawia się raz. Waluta napiwków pochodzi z `onWidgetLoad`.
+- **Odpowiedzi** (`replies`): nad odpowiedzią krótka linia „↪ @nick: …” z tagów `reply-parent-*` (zdejmowane są
+  znaki ucieczki IRC i powtórzone „@nick” z początku wiadomości).
+- **Wiadomości za punkty** (`points`): fioletowe wyróżnienie dla `msg-id=highlighted-message`. Kolejność wyróżnień:
+  słowo, punkty, nowy widz, rola.
+- **Spokojny czat** (`flood`, 0–20 wiadomości na sekundę): przy zalewie wiadomości trafiają na ekran po kolei,
+  reszta czeka w kolejce (najwyżej 30, najstarsza wypada); moderacja usuwa też wiadomości z kolejki; zdarzenia
+  nie czekają. Czas życia wiadomości liczy się od pokazania.
+- Konfigurator: sekcja „Zdarzenia i spokojny czat”, przyciski testowych zdarzeń (włączają zdarzenia, jeśli są
+  wyłączone), „Zalew czatu (20)”, testy odpowiedzi i punktów, dodatki „Zdarzenia na czacie” i „Spokojny czat”
+  w szybkim ustawieniu; „Ożyw podgląd” co trzecią wiadomość wysyła zdarzenie.
+- Wspólne reguły są w `chat-events.ts` (odczyt zdarzeń, szablony, kolejka `ChatPacer`, CSS); widget SE ma ich kopię.
+  Szablony zdarzeń pochodzą z katalogu tłumaczeń i są dzielone na tekst i imiona — nigdy nie są HTML.
+  `chat-events.test.tsx` porównuje stronę OBS i natywny widget na tym samym strumieniu zdarzeń.
+
 ## Kierunek następnych etapów
 
 1. **Animacja tekstu wiadomości:** wejście znakami/słowami, maska reveal,
@@ -135,8 +157,8 @@ natywnego widgetu StreamElements. Reguły wiadomości są w
 2. **Opcjonalne dodatki wizualne:** iskry, konfetti, elektryczne obramowanie,
    niewielki glow wokół nowej wiadomości. Efekty ze 104-elementowej galerii
    są inspiracją lub przyszłym źródłem warstw, nie globalnym tłem czatu.
-3. **Kolejka i priorytety z PR #8:** synchronizacja z natywnym widgetem,
-   testy flood/rAF, awatary i dynamiczne podpisy.
+3. **Kolejka i priorytety z PR #8:** kolejka czatu i pierwszeństwo zdarzeń są w etapie 7;
+   zostają testy rAF, awatary i dynamiczne podpisy.
 4. **Wspólny panel diagnostyki:** zapis/replay anonimowej sekwencji zdarzeń
    i porównania A/B, bez ściągania prywatnych danych widzów.
 5. **Ręczne OBS/StreamElements QA** i dopiero po nim publikacja.
