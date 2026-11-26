@@ -9518,3 +9518,123 @@ body {
 .ae-diagnostics-compare-table tbody tr:hover {
   background: rgba(98,142,183,.11);
 }
+
+/* --- Ready-made alerts ----------------------------------------------------------------------------------------- */
+.ae-ready-dialog {
+  width: min(820px, calc(100vw - 32px));
+}
+.ae-ready-dialog .export-header > div {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+}
+.ae-ready-lead {
+  color: var(--ae-muted, #8090a9);
+  font-size: 13px;
+}
+.ae-ready-section {
+  display: grid;
+  gap: 10px;
+  padding: 14px 18px 4px;
+}
+.ae-ready-section > strong {
+  font-size: 12px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--ae-muted, #8090a9);
+}
+.ae-ready-events {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.ae-ready-event,
+.ae-ready-style {
+  position: relative;
+  cursor: pointer;
+  border: 1px solid var(--ae-line-strong, rgba(255, 255, 255, .13));
+  background: var(--ae-panel-soft, #111722);
+  transition: border-color .15s, background .15s;
+}
+.ae-ready-event {
+  padding: 7px 12px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+}
+.ae-ready-event input,
+.ae-ready-style input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+.ae-ready-event:has(input:checked),
+.ae-ready-style:has(input:checked) {
+  border-color: var(--ae-accent-line, rgba(124, 92, 255, .48));
+  background: var(--ae-accent-soft, rgba(124, 92, 255, .14));
+}
+.ae-ready-event:has(input:focus-visible),
+.ae-ready-style:has(input:focus-visible) {
+  outline: 2px solid var(--ae-accent, #7c5cff);
+  outline-offset: 2px;
+}
+.ae-ready-styles {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(176px, 1fr));
+  gap: 8px;
+}
+.ae-ready-style {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr);
+  gap: 2px 10px;
+  align-items: center;
+  padding: 10px;
+  border-radius: 12px;
+}
+.ae-ready-swatch {
+  grid-row: span 2;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .25);
+}
+.ae-ready-name {
+  font-weight: 700;
+  font-size: 14px;
+}
+.ae-ready-hint {
+  font-size: 12px;
+  line-height: 1.3;
+  color: var(--ae-muted, #8090a9);
+}
+.ae-ready-preview {
+  margin: 14px 18px 0;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .04);
+  font-size: 13px;
+}
+.ae-ready-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 14px 18px 18px;
+}
+.ae-ready-actions .ae-caption-switch {
+  margin-right: auto;
+}
+.ae-sound-fields {
+  margin-top: 4px;
+}
+.ae-sound-fields .ae-caption-row {
+  align-items: end;
+}
+/* Two columns for the longer caption selects (fonts, effects, animations) in the narrow inspector. */
+.ae-caption-row.ae-caption-row-2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.ae-caption-row.ae-caption-row-2 > [hidden] {
+  display: none;
+}

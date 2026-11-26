@@ -22,7 +22,7 @@ for (const layout of ["right", "below", "overlay"] as const) test(`${layout}: UR
   assert.equal(parsed.innerPadding, 50);
   const size = getCameraChatSize(config);
   const { container } = render(<CameraChatWidget config={config} messages={Array.from({ length: 30 }, (_, i) => ({ name: `Viewer ${i}`, text: `Message ${i}` }))} />);
-  assert.equal(container.querySelectorAll("span.break-all").length, 12);
+  assert.equal(container.querySelectorAll("span.obs-chat-text").length, 12);
   assert.equal((container.querySelector("div.relative.shrink-0") as HTMLElement).style.width, `${size.width}px`);
 });
 
@@ -62,7 +62,7 @@ test("public overlay is transparent, handles parent bridge safely and restores d
 });
 
 test("StreamElements snippets are standalone and do not load the app or embed a frame", () => {
-  const { container } = render(<StreamElementsSetup config={DEFAULT_CAMERA_CHAT_CONFIG} width={845} height={360} />);
+  const { container } = render(<StreamElementsSetup config={{ ...DEFAULT_CAMERA_CHAT_CONFIG, layout: "right" }} width={845} height={360} />);
   const snippets = Array.from(container.querySelectorAll("code"), node => node.textContent ?? "");
   assert.equal(snippets.length, 3);
   assert.match(snippets[0], /id="se-chat-messages"/);
@@ -108,7 +108,7 @@ test("native StreamElements widget preserves layout and styling settings", () =>
     assert.match(css, /background: rgba\(2, 6, 23, 0.4\)/);
     assert.match(css, /border-radius: 30px/);
     assert.match(css, /border: 1px solid/);
-    assert.match(css, /background: rgba\(255,255,255,.055\)/);
+    assert.match(css, /background: rgba\(255, 255, 255, 0.055\)/);
     assert.match(css, /animation: se-chat-in/);
     assert.match(js, /"maxMessages":3/);
     assert.match(js, /"showAvatars":true/);
