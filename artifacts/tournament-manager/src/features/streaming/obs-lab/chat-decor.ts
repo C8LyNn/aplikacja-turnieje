@@ -15,6 +15,7 @@ import {
   rgbaCss,
 } from "./camera-chat-settings";
 import { type ChatGoalProgress, CHAT_GOAL_COLORS } from "./chat-events";
+import { chatOrnamentHtml, getChatOrnamentCss } from "./chat-ornaments";
 
 // --- Background particles -----------------------------------------------------------------------------------------
 
@@ -210,6 +211,14 @@ export function getChatDecorCss(config: CameraChatConfig, panel: string, row: st
       `.chat-pattern { position: absolute; inset: 0; z-index: -1; border-radius: inherit; pointer-events: none; opacity: ${config.patternOpacity / 100}; background: ${chatPatternBackground(config.panelPattern, config.patternColor)}; }`,
     );
   }
+  rules.push(...chatCardCss(config, row));
+  rules.push(...chatNameTagCss(config));
+  const ornament = getChatOrnamentCss(config, panel);
+  if (ornament) {
+    rules.push(ornament);
+    // The divider stays on screen: a long chat is cut inside the message list, as under the header.
+    rules.push(`${panel} > .chat-divider ~ :last-child { flex-shrink: 1 !important; min-height: 0; overflow: hidden; justify-content: ${config.chatAnchor === "top" ? "flex-start" : "flex-end"}; }`);
+  }
   if (config.comboMessages) {
     rules.push(
       ".chat-combo { display: inline-block; margin-left: 6px; padding: 0 7px; border-radius: 999px; background: #facc15; color: #1c1917; font-size: .78em; font-weight: 900; line-height: 1.55; vertical-align: middle; animation: chat-combo-pop .4s cubic-bezier(.2,1.6,.4,1) both; }",
@@ -323,6 +332,62 @@ export const CHAT_HYPE_LABEL = "HYPE";
 const escapeHtml = (value: string) => value
   .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 
+/**
+ * Message cards drawn over the row's own background (hence !important): a comic speech bubble with a thick outline,
+ * a sticky note with tape, frosted glass and an 8-bit pixel frame in the frame colour. Event rows keep their own look.
+ */
+function chatCardCss(config: CameraChatConfig, row: string): string[] {
+  const card = `${row}:not(.chat-event)`;
+  const outline = `${card}[data-highlight="1"] { outline: 2px dashed ${config.highlightColor}; outline-offset: 2px; }`;
+  switch (config.bubbleShape) {
+    case "comic":
+      return [
+        `${card} { position: relative; margin: 0 6px 6px 0; background: ${config.bubbleColor} !important; border: 2.5px solid #111111 !important; border-radius: 16px !important; box-shadow: 4px 4px 0 #111111 !important; }`,
+        outline,
+      ];
+    case "sticky":
+      return [
+        `${card} { position: relative; margin-top: 6px; background: ${config.bubbleColor} !important; border: none !important; border-radius: 3px !important; box-shadow: 0 8px 12px -6px rgba(0,0,0,.6) !important; rotate: -1deg; }`,
+        `${card}:nth-child(even) { rotate: 1.2deg; }`,
+        `${card}::before { content: ""; position: absolute; top: -7px; left: 50%; width: 42px; height: 13px; transform: translateX(-50%) rotate(-3deg); background: rgba(255,255,255,.5); box-shadow: 0 1px 2px rgba(0,0,0,.2); pointer-events: none; }`,
+        outline,
+      ];
+    case "glass":
+      return [
+        `${card} { background: linear-gradient(135deg, rgba(255,255,255,.17), rgba(255,255,255,.05)) !important; border: 1px solid rgba(255,255,255,.24) !important; border-radius: 14px !important; box-shadow: inset 0 1px 0 rgba(255,255,255,.32), 0 4px 14px rgba(0,0,0,.28) !important; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }`,
+        outline,
+      ];
+    case "pixel": {
+      const edge = config.frameColor;
+      return [
+        `${card} { margin: 4px; border: none !important; border-radius: 0 !important; box-shadow: 0 -3px 0 0 ${edge}, 0 3px 0 0 ${edge}, -3px 0 0 0 ${edge}, 3px 0 0 0 ${edge} !important; }`,
+        outline,
+      ];
+    }
+    default:
+      return [];
+  }
+}
+
+/** Nick tags; the renderers set --chat-name (the nick colour) and --chat-name-bg (a readable version of it). */
+function chatNameTagCss(config: Pick<CameraChatConfig, "nameTag">): string[] {
+  const solid = "-webkit-background-clip: border-box; background-clip: border-box; filter: none;";
+  switch (config.nameTag) {
+    case "pill":
+      return [`.chat-name { display: inline-block; padding: 0 .5em; border-radius: 999px; background: var(--chat-name-bg); color: #0b1020 !important; -webkit-text-fill-color: #0b1020; text-shadow: none; line-height: 1.45; ${solid} }`];
+    case "box":
+      return [`.chat-name { display: inline-block; padding: 0 .4em; border: 1.5px solid var(--chat-name); border-radius: 4px; background: rgba(0,0,0,.28); -webkit-text-fill-color: var(--chat-name); line-height: 1.35; ${solid} }`];
+    case "bracket":
+      return [".chat-name::before { content: \"[\"; opacity: .7; }", ".chat-name::after { content: \"]\"; opacity: .7; }"];
+    case "prompt":
+      return [".chat-name::before { content: \"> \"; opacity: .65; }"];
+    case "underline":
+      return [".chat-name { text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: 3px; }"];
+    case "plain":
+      return [];
+  }
+}
+
 /** The panel pattern as a CSS background (only fixed shapes; the colour is a validated hex value). */
 export function chatPatternBackground(pattern: CameraChatPanelPattern, color: string): string {
   switch (pattern) {
@@ -333,6 +398,9 @@ export function chatPatternBackground(pattern: CameraChatPanelPattern, color: st
     case "waves": return `radial-gradient(circle at 50% 100%, transparent 8px, ${color} 9px, ${color} 10px, transparent 11px) 0 0 / 24px 12px`;
     case "scanlines": return `repeating-linear-gradient(0deg, ${color} 0 1px, transparent 1px 4px)`;
     case "checker": return `conic-gradient(${color} 25%, transparent 0 50%, ${color} 0 75%, transparent 0) 0 0 / 16px 16px`;
+    case "planks": return `repeating-linear-gradient(0deg, transparent 0 22px, ${color} 22px 24px), repeating-linear-gradient(90deg, transparent 0 118px, ${color} 118px 120px)`;
+    case "vignette": return `radial-gradient(ellipse at center, transparent 40%, ${color} 100%)`;
+    case "halftone": return `radial-gradient(${color} 2px, transparent 2.6px) 0 0 / 8px 8px`;
     case "none": return "none";
   }
 }
@@ -341,14 +409,15 @@ export function chatPatternBackground(pattern: CameraChatPanelPattern, color: st
 export function chatDecorHtml(config: CameraChatConfig, goal: ChatGoalProgress | null = null): { ambient: string; header: string } {
   const particles = chatAmbientParticles(config);
   const pattern = config.panelPattern !== "none" ? `<div class="chat-pattern" aria-hidden="true"></div>` : "";
+  const ornament = chatOrnamentHtml(config);
   const ambient = pattern + (particles.length
     ? `<div class="chat-ambient" aria-hidden="true">${particles.map((particle) => `<span class="${particle.className}" style="${ambientStyleText(particle)}">${escapeHtml(particle.text)}</span>`).join("")}</div>`
-    : "");
+    : "") + ornament.emblem;
   const content = chatHeaderContent(config);
   const header = content.visible
     ? `<div class="chat-header-box">${content.header ? `<div class="chat-header chat-header-${config.headerStyle}">${content.live ? "<span class=\"chat-live-dot\"></span>" : ""}<span>${escapeHtml(content.title)}</span></div>` : ""}${content.goal && goal ? goalHtml(config, goal) : ""}${content.hype ? hypeHtml() : ""}${content.pinned ? `<div class="chat-pinned">${escapeHtml(content.pinned)}</div>` : ""}</div>`
     : "";
-  return { ambient, header };
+  return { ambient, header: ornament.divider + header };
 }
 
 function goalHtml(config: CameraChatConfig, goal: ChatGoalProgress): string {

@@ -47,6 +47,8 @@ export function contrastRatio(a: string, b: string): number {
 
 /** The colours behind the text, or null when the chat is see-through (the game shows through). */
 export function chatTextBackdrop(config: CameraChatConfig): string[] | null {
+  // Comic bubbles and sticky notes are always a solid card in the bubble colour.
+  if (config.bubbleShape === "comic" || config.bubbleShape === "sticky") return [config.bubbleColor];
   if (chatBubbleFilled(config) && config.bubbleOpacity >= 50) return [config.bubbleColor];
   if (config.panelOpacity >= 50) return config.panelGradient ? [config.panelColor, config.panelColor2] : [config.panelColor];
   return null;

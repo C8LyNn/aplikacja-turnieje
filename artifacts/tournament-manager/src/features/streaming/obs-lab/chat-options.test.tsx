@@ -706,7 +706,7 @@ test("OBS page bridge carries badges, emotes and /me from StreamElements data", 
 });
 
 test("every preset is a valid URL and a standalone StreamElements widget", () => {
-  assert.equal(CHAT_PRESET_IDS.length, 72, "72 looks in seven groups");
+  assert.equal(CHAT_PRESET_IDS.length, 74, "74 looks in seven groups");
   for (const preset of CHAT_PRESET_IDS) {
     const config = chatPresetConfig(preset);
     assert.deepEqual(cameraChatConfigFromSearch(cameraChatConfigToSearch(config)), config, preset);

@@ -17,6 +17,7 @@ import {
   getCameraChatExitCss,
   getCameraChatSize,
   getChatEffectCss,
+  readableNameColor,
   getChatFrameCss,
   chatOverlayPlacement,
   chatOverlaySize,
@@ -46,6 +47,7 @@ import {
   chatShapeBorder,
   getChatDecorCss,
 } from "./chat-decor";
+import { chatOrnamentGlyph } from "./chat-ornaments";
 import {
   type ChatEventLabels,
   type ChatGoalKind,
@@ -261,6 +263,7 @@ export function CameraChatWidget({
   const block = config.messageLayout !== "inline";
 
   const labels = eventLabels ?? chatEventLabels();
+  const ornamentGlyph = chatOrnamentGlyph(config.ornament);
   const tipCurrency = currency ?? labels.tipCurrency;
   const contentStyle: CSSProperties = {
     fontSize: fontPx,
@@ -359,7 +362,8 @@ export function CameraChatWidget({
       <span
         className="obs-chat-name chat-name"
         style={{
-          ...(config.nameStyle !== "plain" ? { "--chat-name": row.nameColor } as CSSProperties : {}),
+          ...(config.nameStyle !== "plain" || config.nameTag !== "plain" ? { "--chat-name": row.nameColor } as CSSProperties : {}),
+          ...(config.nameTag === "pill" ? { "--chat-name-bg": readableNameColor(row.nameColor) } as CSSProperties : {}),
           color: row.nameColor,
           fontWeight: 900,
           marginRight: block ? undefined : 8,
@@ -370,6 +374,7 @@ export function CameraChatWidget({
       </span>
     );
     const firstTag = row.firstTime ? <span className="chat-first-tag">{t("obsLab.nowy")}</span> : null;
+    const mark = ornamentGlyph ? <span className="chat-mark" aria-hidden="true">{ornamentGlyph}</span> : null;
     const firstEmote = row.parts.find((part) => part.kind === "emote");
     const burst = config.emoteBurst && firstEmote && firstEmote.kind === "emote"
       ? chatBurstPieces(config).map((piece, index) => (
@@ -441,6 +446,7 @@ export function CameraChatWidget({
         data-role={roleColor ? row.role ?? undefined : undefined}
         data-first={row.firstTime ? "1" : undefined}
         data-points={row.points ? "1" : undefined}
+        data-highlight={row.highlighted ? "1" : undefined}
       >
         {config.showAvatars && (
           <div
@@ -464,8 +470,8 @@ export function CameraChatWidget({
             </span>
           )}
           {block
-            ? (<><div className="obs-chat-head">{firstTag}{badges}{name}</div>{text}</>)
-            : (<>{firstTag}{badges}{name}<wbr />{text}</>)}
+            ? (<><div className="obs-chat-head">{firstTag}{badges}{mark}{name}</div>{text}</>)
+            : (<>{firstTag}{badges}{mark}{name}<wbr />{text}</>)}
           {row.combo > 1 && (
             <span key={`combo-${row.combo}`} className="chat-combo" data-hot={row.combo >= 5 ? "1" : undefined}>
               {"\u00d7"}{row.combo}
@@ -509,6 +515,8 @@ export function CameraChatWidget({
           ))}
         </div>
       )}
+      {ornamentGlyph && <div className="chat-emblem" aria-hidden="true">{ornamentGlyph}</div>}
+      {ornamentGlyph && <div className="chat-divider" aria-hidden="true">{ornamentGlyph}</div>}
       {headerContent.visible && (
         <div className="chat-header-box">
           {headerContent.header && (

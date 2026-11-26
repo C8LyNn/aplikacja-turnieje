@@ -227,6 +227,25 @@ natywnego widgetu StreamElements. Reguły wiadomości są w
 - Na wąskim ekranie opcje, do których przewija przeglądarka (np. klawiszem Tab), zatrzymują się pod przyklejonym
   podglądem, a nie za nim.
 
+## Zrealizowany etap 12 — motywy z charakterem (2026-11-26)
+
+- **Ozdoby motywu** (`ornament`, `ornac`, `chat-ornaments.ts`): symbol przed każdym nickiem, duży blady emblemat
+  w rogu panelu i ozdobna linia u góry — 30 symboli (kotwica, czaszka, zębatka, miecze, korona, śnieżynka, nuty…),
+  zawsze w wersji tekstowej (U+FE0E), żeby OBS nie zamieniał ich na kolorowe emoji.
+- **Karty wiadomości** (`shape`): dymek komiksowy (gruby kontur i cień), karteczka z taśmą (lekko przekrzywiona),
+  matowe szkło, ramka pikselowa 8-bit w kolorze ramki. Wiersze zdarzeń zachowują swój wygląd; wyróżnione słowo
+  pokazuje przerywany obrys (`data-highlight` w obu renderach).
+- **Oprawa nicku** (`nametag`): kolorowa plakietka (czytelny kolor tła), ramka, [nawiasy], `> nick` jak w terminalu,
+  podkreślenie.
+- **Tekstury:** drewniane deski, przyciemnione brzegi (stara mapa), raster komiksowy.
+- **Przegląd wszystkich motywów** (`THEME_IDENTITY` w `chat-presets.ts`): każdy dostał symbol i — gdzie pasuje —
+  kartę, oprawę nicku lub teksturę. Piracki to teraz stara mapa skarbów (pergamin z przypalonymi brzegami, ramka jak
+  lina, brązowe pismo odręczne, ☠ przy nickach); Steampunk ma mosiężne nicki w ramkach, ⚙ i drewno; Retro — ramki
+  pikselowe i serca; Memphis i Guma balonowa — dymki komiksowe; Papier w kratkę — karteczki. Nowe motywy: Komiks,
+  Tablica korkowa (74 motywy).
+- Test różnic liczy teraz 14 cech (doszły oprawa nicku i symbol); test czytelności obejmuje karty komiksowe
+  i karteczki (tekst na tle karty). Testy w `chat-identity.test.tsx`.
+
 ## Kierunek następnych etapów
 
 1. **Animacja tekstu wiadomości:** wejście znakami/słowami, maska reveal,

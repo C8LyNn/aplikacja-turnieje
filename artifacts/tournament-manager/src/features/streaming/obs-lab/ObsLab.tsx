@@ -16,6 +16,43 @@ import {
 } from "@/components/tool-ui";
 import { FitPreview, usePreviewMaxHeight } from "./FitPreview";
 import { checkChatSetup } from "./chat-setup-check";
+import { type ChatOrnament, CHAT_ORNAMENTS, chatOrnamentGlyph } from "./chat-ornaments";
+
+function ornamentLabel(ornament: ChatOrnament): string {
+  switch (ornament) {
+    case "none": return t("obsLab.orn_brak");
+    case "anchor": return t("obsLab.orn_kotwica");
+    case "skull": return t("obsLab.orn_czaszka");
+    case "gear": return t("obsLab.orn_zebatka");
+    case "swords": return t("obsLab.orn_miecze");
+    case "crown": return t("obsLab.orn_korona");
+    case "fleur": return t("obsLab.orn_lilia");
+    case "star": return t("obsLab.orn_gwiazda");
+    case "sparkle": return t("obsLab.orn_blask");
+    case "snow": return t("obsLab.orn_sniezynka");
+    case "flower": return t("obsLab.orn_kwiat");
+    case "blossom": return t("obsLab.orn_kwiat_wisni");
+    case "leaf": return t("obsLab.orn_lisc");
+    case "clover": return t("obsLab.orn_trefl");
+    case "sun": return t("obsLab.orn_slonce");
+    case "moon": return t("obsLab.orn_ksiezyc");
+    case "comet": return t("obsLab.orn_kometa");
+    case "note": return t("obsLab.orn_nuty");
+    case "bolt": return t("obsLab.orn_blyskawica");
+    case "heart": return t("obsLab.orn_serce");
+    case "diamond": return t("obsLab.orn_romb");
+    case "prompt": return t("obsLab.orn_znak_zachety");
+    case "coffin": return t("obsLab.orn_trumna");
+    case "cloud": return t("obsLab.orn_chmurka");
+    case "crosshair": return t("obsLab.orn_celownik");
+    case "flag": return t("obsLab.orn_flaga");
+    case "wave": return t("obsLab.orn_fala");
+    case "triangle": return t("obsLab.orn_trojkat");
+    case "target": return t("obsLab.orn_tarcza");
+    case "pen": return t("obsLab.orn_pioro");
+    case "circle": return t("obsLab.orn_kolo");
+  }
+}
 import { StreamElementsSetup } from "./StreamElementsSetup";
 import { ChatQuickSetup, ObsSourceSteps, PresetCategoryChips, PresetSwatch, choiceClass } from "./ChatQuickSetup";
 import { type CameraChatEventStyle, type ChatEventKind, type ChatGoalKind, CHAT_EVENT_KINDS, chatGoalDefaultLabel } from "./chat-events";
@@ -60,6 +97,7 @@ import {
   type CameraChatHeaderStyle,
   type CameraChatBubbleShape,
   type CameraChatNameStyle,
+  type CameraChatNameTag,
   type CameraChatPanelPattern,
   COMMON_CHAT_BOTS,
   DEFAULT_CAMERA_CHAT_CONFIG,
@@ -929,6 +967,16 @@ export function ObsLab() {
               <option value="shimmer">{t("obsLab.nicki_z_polyskiem")}</option>
             </ToolSelect>
           </FieldLabel>
+          <FieldLabel label={t("obsLab.oprawa_nicku")}>
+            <ToolSelect value={config.nameTag} onChange={(event) => patchConfig({ nameTag: event.target.value as CameraChatNameTag })} data-testid="chat-name-tag">
+              <option value="plain">{t("obsLab.nick_bez_oprawy")}</option>
+              <option value="pill">{t("obsLab.nick_plakietka")}</option>
+              <option value="box">{t("obsLab.nick_ramka")}</option>
+              <option value="bracket">{t("obsLab.nick_nawiasy")}</option>
+              <option value="prompt">{t("obsLab.nick_terminal")}</option>
+              <option value="underline">{t("obsLab.nick_podkreslony")}</option>
+            </ToolSelect>
+          </FieldLabel>
         </div>
       </ToolDisclosure>
 
@@ -960,8 +1008,22 @@ export function ObsLab() {
               <option value="skew">{t("obsLab.skosne")}</option>
               <option value="outline">{t("obsLab.sam_kontur")}</option>
               <option value="underline">{t("obsLab.podkreslenie")}</option>
+              <option value="comic">{t("obsLab.dymek_komiksowy")}</option>
+              <option value="sticky">{t("obsLab.karteczka")}</option>
+              <option value="glass">{t("obsLab.matowe_szklo")}</option>
+              <option value="pixel">{t("obsLab.ramka_pikselowa")}</option>
             </ToolSelect>
           </FieldLabel>
+          <FieldLabel label={t("obsLab.symbol_motywu")} hint={t("obsLab.symbol_motywu_opis")}>
+            <ToolSelect value={config.ornament} onChange={(event) => patchConfig({ ornament: event.target.value as ChatOrnament })} data-testid="chat-ornament">
+              {CHAT_ORNAMENTS.map((ornament) => (
+                <option key={ornament} value={ornament}>{ornament === "none" ? ornamentLabel(ornament) : `${chatOrnamentGlyph(ornament)}  ${ornamentLabel(ornament)}`}</option>
+              ))}
+            </ToolSelect>
+          </FieldLabel>
+          {config.ornament !== "none" && (
+            <ColorField label={t("obsLab.kolor_symbolu")} value={config.ornamentColor} onChange={(ornamentColor) => patchConfig({ ornamentColor })} />
+          )}
           <FieldLabel label={t("obsLab.wzor_tla")}>
             <ToolSelect value={config.panelPattern} onChange={(event) => patchConfig({ panelPattern: event.target.value as CameraChatPanelPattern })} data-testid="chat-pattern">
               <option value="none">{t("obsLab.bez_wzoru")}</option>
@@ -972,6 +1034,9 @@ export function ObsLab() {
               <option value="waves">{t("obsLab.wzor_fale")}</option>
               <option value="scanlines">{t("obsLab.wzor_linie_crt")}</option>
               <option value="checker">{t("obsLab.wzor_szachownica")}</option>
+              <option value="planks">{t("obsLab.wzor_deski")}</option>
+              <option value="vignette">{t("obsLab.wzor_przyciemnione_brzegi")}</option>
+              <option value="halftone">{t("obsLab.wzor_raster_komiksowy")}</option>
             </ToolSelect>
           </FieldLabel>
           {config.panelPattern !== "none" && (

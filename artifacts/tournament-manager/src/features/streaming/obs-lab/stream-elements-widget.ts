@@ -62,6 +62,7 @@ import {
   getChatEventCss,
 } from "./chat-events";
 import { CHAT_SOUND_RECIPES, CHAT_TICK_GAP_MS } from "./chat-sound";
+import { chatOrnamentGlyph } from "./chat-ornaments";
 
 /** The widget's markup; particles and the header box (texts escaped) sit in the panel before the message list. */
 function widgetHtml(config: CameraChatConfig, labels: ChatEventLabels): string {
@@ -311,6 +312,8 @@ const settings = ${scriptJson({
     tickRecipe: CHAT_SOUND_RECIPES.tick,
     tickGap: CHAT_TICK_GAP_MS,
     nameStyle: config.nameStyle,
+    nameTag: config.nameTag,
+    ornamentGlyph: chatOrnamentGlyph(config.ornament),
     combo: config.comboMessages,
     comboMax: CHAT_COMBO_MAX_LENGTH,
   })};
@@ -759,6 +762,7 @@ function buildRow(message) {
   // Precedence: highlighted word, channel-points highlight, first message, role, then the plain bubble.
   if (highlighted(message.text)) {
     row.classList.add("se-highlight");
+    row.dataset.highlight = "1";
   } else if (points || first || role) {
     const tint = points ? settings.pointsColor : first ? settings.firstColor : settings.roleColors[role];
     if (!points && !first) row.dataset.role = role;
@@ -815,7 +819,15 @@ function buildRow(message) {
   const name = document.createElement("span");
   name.className = "se-name chat-name";
   name.textContent = message.name + (settings.showColon ? ":" : "");
-  if (settings.nameStyle !== "plain") name.style.setProperty("--chat-name", color);
+  if (settings.nameStyle !== "plain" || settings.nameTag !== "plain") name.style.setProperty("--chat-name", color);
+  if (settings.nameTag === "pill") name.style.setProperty("--chat-name-bg", readable(color));
+  if (settings.ornamentGlyph) {
+    const mark = document.createElement("span");
+    mark.className = "chat-mark";
+    mark.setAttribute("aria-hidden", "true");
+    mark.textContent = settings.ornamentGlyph;
+    head.appendChild(mark);
+  }
   name.style.color = color;
   head.appendChild(name);
   // A line may break after the name, so the first word of the message is not split in two.

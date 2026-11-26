@@ -1,7 +1,7 @@
 /**
- * How different two chat looks are: each look is described by twelve visible traits (font, message layout, bubble
- * shape, frame, background particles, pattern, nick style, entry motion, panel colour family, corners, accent and
- * message effect). The theme test requires every pair of looks to differ in several of them, so new looks cannot be
+ * How different two chat looks are: each look is described by fourteen visible traits (font, message layout, bubble
+ * shape, frame, background particles, pattern, nick style, entry motion, panel colour family, corners, accent,
+ * message effect, nick tag and theme ornament). The theme test requires every pair of looks to differ in several of them, so new looks cannot be
  * mere recolours of old ones.
  */
 import { type CameraChatConfig, hexToRgb } from "./camera-chat-settings";
@@ -23,11 +23,11 @@ export function chatPanelTone(hex: string): string {
 }
 
 export function chatLookTraits(config: CameraChatConfig): Record<string, string> {
-  const lineShape = config.bubbleShape === "outline" || config.bubbleShape === "underline";
+  const ownShape = ["outline", "underline", "comic", "sticky", "glass", "pixel"].includes(config.bubbleShape);
   return {
     font: config.fontFamily,
     layout: config.messageLayout,
-    shape: lineShape ? config.bubbleShape : config.messageBackground ? config.bubbleShape : "none",
+    shape: ownShape ? config.bubbleShape : config.messageBackground ? config.bubbleShape : "none",
     frame: config.frameStyle,
     ambient: config.ambient,
     pattern: config.panelPattern,
@@ -37,10 +37,12 @@ export function chatLookTraits(config: CameraChatConfig): Record<string, string>
     corners: config.radius <= 6 ? "square" : config.radius <= 16 ? "soft" : "round",
     accent: config.accentBar ? "bar" : config.showAvatars ? "avatar" : "none",
     effect: `${config.newMessageEffect}/${config.textReveal}`,
+    nameTag: config.nameTag,
+    ornament: config.ornament,
   };
 }
 
-/** Number of traits in which two looks differ (0-12). */
+/** Number of traits in which two looks differ (0-14). */
 export function chatLookDistance(a: CameraChatConfig, b: CameraChatConfig): number {
   const first = chatLookTraits(a);
   const second = chatLookTraits(b);

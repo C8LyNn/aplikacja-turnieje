@@ -9,6 +9,7 @@ export type ChatPresetId =
   | "ocean" | "forest" | "space" | "sunset" | "sakura" | "autumn" | "newyear" | "easter" | "summer"
   | "matrix" | "fantasy" | "steampunk" | "gothic" | "dragon" | "princess" | "cottoncandy" | "lilac" | "unicorn"
   | "aurora" | "hologram" | "memphis" | "lavalamp" | "vaporwave"
+  | "comic" | "corkboard"
   | "chalkboard" | "blueprint" | "newspaper" | "amberterm" | "neontokyo" | "arcade" | "racing" | "pirate" | "samurai" | "horror" | "western" | "bubblegum" | "pastelgoth" | "y2k" | "peach" | "chrome" | "neonwaves" | "music" | "desert" | "volcano" | "jungle" | "spring" | "carnival";
 
 export const CHAT_PRESET_IDS: readonly ChatPresetId[] =
@@ -18,17 +19,18 @@ export const CHAT_PRESET_IDS: readonly ChatPresetId[] =
     "ocean", "forest", "space", "sunset", "sakura", "autumn", "newyear", "easter", "summer",
     "matrix", "fantasy", "steampunk", "gothic", "dragon", "princess", "cottoncandy", "lilac", "unicorn",
     "aurora", "hologram", "memphis", "lavalamp", "vaporwave",
+    "comic", "corkboard",
     "chalkboard", "blueprint", "newspaper", "amberterm", "neontokyo", "arcade", "racing", "pirate", "samurai", "horror", "western", "bubblegum", "pastelgoth", "y2k", "peach", "chrome", "neonwaves", "music", "desert", "volcano", "jungle", "spring", "carnival"];
 
 export type ChatPresetCategory = "classic" | "neon" | "fantasy" | "cute" | "abstract" | "nature" | "seasonal";
 
 /** Looks grouped for the pickers; every look is in exactly one group. */
 export const CHAT_PRESET_CATEGORIES: Record<ChatPresetCategory, readonly ChatPresetId[]> = {
-  classic: ["glass", "minimal", "compact", "classic", "light", "clear", "paper", "noir", "gold", "chalkboard", "blueprint", "newspaper"],
+  classic: ["glass", "minimal", "compact", "classic", "light", "clear", "paper", "noir", "gold", "chalkboard", "blueprint", "newspaper", "corkboard"],
   neon: ["neon", "esport", "rainbow", "terminal", "cyberpunk", "synthwave", "retro", "fps", "matrix", "amberterm", "neontokyo", "arcade", "racing"],
   fantasy: ["fantasy", "steampunk", "gothic", "dragon", "pirate", "samurai", "horror", "western"],
   cute: ["bubbles", "kawaii", "candy", "mint", "coffee", "princess", "cottoncandy", "lilac", "unicorn", "bubblegum", "pastelgoth", "y2k", "peach"],
-  abstract: ["aurora", "hologram", "memphis", "lavalamp", "vaporwave", "chrome", "neonwaves", "music"],
+  abstract: ["aurora", "hologram", "memphis", "lavalamp", "vaporwave", "chrome", "neonwaves", "music", "comic"],
   nature: ["ocean", "forest", "space", "sunset", "sakura", "desert", "volcano", "jungle"],
   seasonal: ["winter", "christmas", "halloween", "valentine", "autumn", "newyear", "easter", "summer", "spring", "carnival"],
 };
@@ -103,6 +105,8 @@ export function chatPresetLabel(id: ChatPresetId): string {
     case "memphis": return t("obsLab.motyw_memphis");
     case "lavalamp": return t("obsLab.motyw_lampa_lava");
     case "vaporwave": return t("obsLab.motyw_vaporwave");
+    case "comic": return t("obsLab.motyw_komiks");
+    case "corkboard": return t("obsLab.motyw_tablica_korkowa");
     case "chalkboard": return t("obsLab.motyw_tablica");
     case "blueprint": return t("obsLab.motyw_plan");
     case "newspaper": return t("obsLab.motyw_gazeta");
@@ -167,8 +171,96 @@ const LOOK_TRAITS: Partial<Record<ChatPresetId, Partial<CameraChatConfig>>> = {
   racing: { messageLayout: "inline", fontFamily: "impact", frameStyle: "solid", panelPattern: "stripes", animationStyle: "zoom" },
 };
 
+/**
+ * What makes each look read as its theme: the ornament (symbol before nicks, corner emblem, top divider) in a fitting
+ * colour, and where it helps a message card, a nick tag or a texture. Reviewed look by look.
+ */
+const THEME_IDENTITY: Partial<Record<ChatPresetId, Partial<CameraChatConfig>>> = {
+  // Classic looks stay clean; the themed ones get their symbol.
+  glass: { bubbleShape: "glass" },
+  compact: { nameTag: "pill" },
+  paper: { bubbleShape: "sticky", bubbleColor: "#fef08a", messageBackground: true, ornament: "pen", ornamentColor: "#1d4ed8" },
+  noir: { panelPattern: "vignette", patternColor: "#000000", patternOpacity: 50, nameTag: "underline" },
+  gold: { ornament: "crown", ornamentColor: "#fbbf24", bubbleShape: "glass" },
+  chalkboard: { ornament: "star", ornamentColor: "#fde047", nameTag: "underline" },
+  blueprint: { ornament: "crosshair", ornamentColor: "#bfdbfe", nameTag: "box" },
+  newspaper: { ornament: "pen", ornamentColor: "#111111" },
+  corkboard: { ornament: "pen", ornamentColor: "#5b3a1a" },
+  // Neon and games
+  neon: { ornament: "sparkle", ornamentColor: "#d946ef" },
+  esport: { ornament: "star", ornamentColor: "#38bdf8", nameTag: "pill" },
+  terminal: { nameTag: "prompt" },
+  cyberpunk: { ornament: "bolt", ornamentColor: "#facc15", nameTag: "box" },
+  synthwave: { ornament: "sun", ornamentColor: "#f472b6", panelPattern: "grid", patternColor: "#f472b6", patternOpacity: 12 },
+  retro: { bubbleShape: "pixel", messageBackground: true, bubbleColor: "#4ade80", bubbleOpacity: 8, ornament: "heart", ornamentColor: "#ef4444" },
+  fps: { ornament: "crosshair", ornamentColor: "#ef4444", nameTag: "bracket" },
+  matrix: { ornament: "prompt", ornamentColor: "#22c55e" },
+  amberterm: { nameTag: "prompt" },
+  neontokyo: { ornament: "moon", ornamentColor: "#05d9e8" },
+  arcade: { ornament: "diamond", ornamentColor: "#facc15", nameTag: "pill" },
+  racing: { ornament: "flag", ornamentColor: "#facc15", nameTag: "box", panelPattern: "checker", patternColor: "#ffffff", patternOpacity: 8 },
+  // Fantasy
+  fantasy: { ornament: "sparkle", ornamentColor: "#fbbf24", panelPattern: "vignette", patternColor: "#000000", patternOpacity: 40 },
+  steampunk: { nameColorMode: "single", nameColor: "#e9b872", ornament: "gear", ornamentColor: "#d4a373", nameTag: "box", panelPattern: "planks", patternColor: "#000000", patternOpacity: 25 },
+  gothic: { ornament: "fleur", ornamentColor: "#b91c1c", panelPattern: "vignette", patternColor: "#000000", patternOpacity: 50 },
+  dragon: { ornament: "swords", ornamentColor: "#f97316" },
+  samurai: { ornament: "swords", ornamentColor: "#dc2626" },
+  horror: { ornament: "coffin", ornamentColor: "#7f1d1d", panelPattern: "vignette", patternColor: "#000000", patternOpacity: 50 },
+  western: { nameColorMode: "single", nameColor: "#f4a261", ornament: "star", ornamentColor: "#e9c46a", panelPattern: "planks", patternColor: "#000000", patternOpacity: 25 },
+  // Cute and girly
+  bubbles: { ornament: "circle", ornamentColor: "#7dd3fc" },
+  kawaii: { ornament: "heart", ornamentColor: "#f472b6", nameTag: "pill" },
+  candy: { ornament: "star", ornamentColor: "#f0abfc" },
+  mint: { ornament: "leaf", ornamentColor: "#34d399" },
+  coffee: { ornament: "heart", ornamentColor: "#d6a77a" },
+  princess: { ornament: "crown", ornamentColor: "#fde68a" },
+  cottoncandy: { ornament: "cloud", ornamentColor: "#f9a8d4" },
+  lilac: { ornament: "blossom", ornamentColor: "#d8b4fe" },
+  unicorn: { ornament: "sparkle", ornamentColor: "#fef9c3" },
+  bubblegum: {
+    bubbleShape: "comic", bubbleColor: "#ffe4f1", textColor: "#4a044e", textShadow: "none", nameColorMode: "single",
+    nameColor: "#db2777", ornament: "circle", ornamentColor: "#f472b6",
+  },
+  pastelgoth: { ornament: "moon", ornamentColor: "#f9a8d4" },
+  y2k: { bubbleShape: "glass", ornament: "sparkle", ornamentColor: "#e0e7ff" },
+  peach: { ornament: "flower", ornamentColor: "#fb923c" },
+  // Abstract
+  aurora: { ornament: "sparkle", ornamentColor: "#34d399" },
+  hologram: { bubbleShape: "glass", nameTag: "box", ornament: "target", ornamentColor: "#67e8f9" },
+  memphis: {
+    bubbleShape: "comic", bubbleColor: "#ffffff", textColor: "#111827", textShadow: "none", nameColorMode: "single",
+    nameColor: "#7c3aed", nameTag: "pill", ornament: "triangle", ornamentColor: "#f472b6",
+  },
+  lavalamp: { ornament: "circle", ornamentColor: "#fb923c" },
+  vaporwave: { ornament: "diamond", ornamentColor: "#67e8f9", panelPattern: "checker", patternColor: "#f0abfc", patternOpacity: 10 },
+  chrome: { nameTag: "box" },
+  neonwaves: { ornament: "wave", ornamentColor: "#22d3ee" },
+  music: { ornament: "note", ornamentColor: "#c4b5fd", nameTag: "pill" },
+  comic: { ornament: "bolt", ornamentColor: "#111111" },
+  // Nature
+  ocean: { ornament: "anchor", ornamentColor: "#7dd3fc" },
+  forest: { ornament: "clover", ornamentColor: "#84cc16" },
+  space: { ornament: "comet", ornamentColor: "#c4b5fd" },
+  sunset: { ornament: "sun", ornamentColor: "#fb923c" },
+  sakura: { ornament: "flower", ornamentColor: "#fbcfe8" },
+  desert: { ornament: "sun", ornamentColor: "#fcd34d" },
+  volcano: { ornament: "triangle", ornamentColor: "#ef4444" },
+  jungle: { ornament: "leaf", ornamentColor: "#bef264" },
+  // Seasons
+  winter: { ornament: "snow", ornamentColor: "#e0f2fe" },
+  christmas: { ornament: "star", ornamentColor: "#facc15" },
+  halloween: { ornament: "moon", ornamentColor: "#f97316" },
+  valentine: { ornament: "heart", ornamentColor: "#fb7185" },
+  autumn: { ornament: "leaf", ornamentColor: "#ea580c" },
+  newyear: { ornament: "star", ornamentColor: "#fde68a" },
+  easter: { ornament: "blossom", ornamentColor: "#f9a8d4" },
+  summer: { ornament: "sun", ornamentColor: "#fde047" },
+  spring: { ornament: "flower", ornamentColor: "#fbcfe8" },
+  carnival: { ornament: "diamond", ornamentColor: "#fde047", nameTag: "pill" },
+};
+
 export function chatPresetConfig(id: ChatPresetId): CameraChatConfig {
-  return { ...basePresetConfig(id), ...LOOK_TRAITS[id] };
+  return { ...basePresetConfig(id), ...LOOK_TRAITS[id], ...THEME_IDENTITY[id] };
 }
 
 function basePresetConfig(id: ChatPresetId): CameraChatConfig {
@@ -735,6 +827,24 @@ function basePresetConfig(id: ChatPresetId): CameraChatConfig {
         nameStyle: "gradient", fontFamily: "trebuchet", frameStyle: "gradient", frameColor: "#f0abfc", frameColor2: "#67e8f9",
         frameWidth: 2, panelPattern: "grid", patternColor: "#f0abfc", patternOpacity: 12, animationStyle: "slide",
       };
+    case "comic":
+      return {
+        ...base,
+        panelColor: "#fde047", panelOpacity: 96, radius: 4, showBorders: false, textColor: "#111111", textOpacity: 100,
+        textShadow: "none", bubbleShape: "comic", bubbleColor: "#ffffff", fontFamily: "comic", textBold: true,
+        nameColorMode: "single", nameColor: "#dc2626", nameUppercase: true, messageLayout: "stacked",
+        frameStyle: "solid", frameColor: "#111111", frameWidth: 4, panelPattern: "halftone", patternColor: "#dc2626",
+        patternOpacity: 22, animationStyle: "pop", newMessageEffect: "flash",
+      };
+    case "corkboard":
+      return {
+        ...base,
+        panelColor: "#a8774a", panelGradient: true, panelColor2: "#8a5a32", panelOpacity: 97, radius: 6,
+        showBorders: false, textColor: "#1f2937", textOpacity: 100, textShadow: "none", bubbleShape: "sticky",
+        bubbleColor: "#fef08a", fontFamily: "segoeprint", nameColorMode: "single", nameColor: "#1d4ed8",
+        frameStyle: "solid", frameColor: "#5b3a1a", frameWidth: 8, panelPattern: "halftone", patternColor: "#5b3a1a",
+        patternOpacity: 18, animationStyle: "drop", density: "relaxed",
+      };
     // Classic
     case "chalkboard":
       return {
@@ -798,13 +908,15 @@ function basePresetConfig(id: ChatPresetId): CameraChatConfig {
       };
     // Fantasy
     case "pirate":
+      // An old treasure map: parchment with burnt edges, a rope frame, brown handwriting and a skull for every nick.
       return {
         ...base,
-        panelColor: "#06253a", panelGradient: true, panelColor2: "#0b3b5c", panelOpacity: 88, radius: 12,
-        showBorders: false, textColor: "#fdf6e3", bubbleColor: "#d4a373", bubbleOpacity: 12, bubbleShape: "tail",
-        messageLayout: "bubble", fontFamily: "georgia", namePalette: "warm", readableNames: true,
-        frameStyle: "solid", frameColor: "#b08d57", frameWidth: 3, panelPattern: "waves", patternColor: "#7dd3fc",
-        patternOpacity: 8, animationStyle: "swing",
+        panelColor: "#e8d5a3", panelGradient: true, panelColor2: "#c9a46a", panelGradientAngle: 160, panelOpacity: 97,
+        radius: 6, showBorders: false, messageBackground: false, bubbleShape: "underline", textColor: "#3b2412",
+        textOpacity: 100, textShadow: "none", fontFamily: "segoeprint", messageLayout: "stacked",
+        nameColorMode: "single", nameColor: "#7f1d1d", frameStyle: "dashes", frameColor: "#5b3a1a", frameWidth: 4,
+        panelPattern: "vignette", patternColor: "#5b3a1a", patternOpacity: 45, animationStyle: "swing",
+        ornament: "skull", ornamentColor: "#3b2412",
       };
     case "samurai":
       return {

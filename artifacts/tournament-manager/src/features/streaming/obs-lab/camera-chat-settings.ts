@@ -7,6 +7,7 @@
   CHAT_GOAL_KINDS,
 } from "./chat-events";
 import { type ChatSoundMode, type ChatSoundStyle, CHAT_SOUND_MODES, CHAT_SOUND_STYLES } from "./chat-sound";
+import { type ChatOrnament, CHAT_ORNAMENTS } from "./chat-ornaments";
 
 export type CameraChatLayout = "right" | "left" | "below" | "above" | "overlay" | "chat";
 export type CameraChatAspectRatio = "16:9" | "4:3" | "1:1";
@@ -60,9 +61,14 @@ export type CameraChatAmbient =
   | "none" | "snow" | "sparkles" | "hearts" | "bubbles" | "stars" | "confetti"
   | "rain" | "fireflies" | "petals" | "leaves" | "pixels" | "code" | "embers" | "music" | "fog";
 export type CameraChatNameStyle = "plain" | "glow" | "gradient" | "rainbow" | "shimmer";
-export type CameraChatPanelPattern = "none" | "dots" | "grid" | "stripes" | "carbon" | "waves" | "scanlines" | "checker";
+export type CameraChatPanelPattern =
+  | "none" | "dots" | "grid" | "stripes" | "carbon" | "waves" | "scanlines" | "checker" | "planks" | "vignette" | "halftone";
 export type CameraChatHeaderStyle = "none" | "bar" | "pill" | "minimal";
-export type CameraChatBubbleShape = "rounded" | "tail" | "skew" | "outline" | "underline";
+export type CameraChatBubbleShape =
+  | "rounded" | "tail" | "skew" | "outline" | "underline"
+  /** Message cards: a comic speech bubble, a sticky note, frosted glass, an 8-bit pixel frame. */
+  | "comic" | "sticky" | "glass" | "pixel";
+export type CameraChatNameTag = "plain" | "pill" | "box" | "bracket" | "prompt" | "underline";
 
 /** The motions "random" picks from (unchanged, so random overlays keep the look they had). */
 export const CHAT_MOTION_PRESETS: readonly CameraChatMotionPreset[] =
@@ -90,9 +96,12 @@ export const CHAT_NAME_PALETTE_IDS: readonly CameraChatNamePalette[] = ["classic
 export const CHAT_AMBIENTS: readonly CameraChatAmbient[] =
   ["none", "snow", "sparkles", "hearts", "bubbles", "stars", "confetti", "rain", "fireflies", "petals", "leaves", "pixels", "code", "embers", "music", "fog"];
 export const CHAT_NAME_STYLES: readonly CameraChatNameStyle[] = ["plain", "glow", "gradient", "rainbow", "shimmer"];
-export const CHAT_PANEL_PATTERNS: readonly CameraChatPanelPattern[] = ["none", "dots", "grid", "stripes", "carbon", "waves", "scanlines", "checker"];
+export const CHAT_PANEL_PATTERNS: readonly CameraChatPanelPattern[] =
+  ["none", "dots", "grid", "stripes", "carbon", "waves", "scanlines", "checker", "planks", "vignette", "halftone"];
 export const CHAT_HEADER_STYLES: readonly CameraChatHeaderStyle[] = ["none", "bar", "pill", "minimal"];
-export const CHAT_BUBBLE_SHAPES: readonly CameraChatBubbleShape[] = ["rounded", "tail", "skew", "outline", "underline"];
+export const CHAT_BUBBLE_SHAPES: readonly CameraChatBubbleShape[] =
+  ["rounded", "tail", "skew", "outline", "underline", "comic", "sticky", "glass", "pixel"];
+export const CHAT_NAME_TAGS: readonly CameraChatNameTag[] = ["plain", "pill", "box", "bracket", "prompt", "underline"];
 export const CHAT_TEXT_SHADOW_STYLES: readonly CameraChatTextShadow[] = ["none", "soft", "strong", "outline"];
 export const CHAT_MESSAGE_LAYOUTS: readonly CameraChatMessageLayout[] = ["inline", "stacked", "bubble"];
 export const CHAT_NAME_COLOR_MODES: readonly CameraChatNameColorMode[] = ["user", "palette", "single"];
@@ -272,6 +281,11 @@ export type CameraChatConfig = {
   patternOpacity: number;
   /** The same short message sent again in a row becomes one row with a "x2, x3..." counter. */
   comboMessages: boolean;
+  /** How the nick is set: plain, in a coloured tag, in a frame, in brackets, like a terminal prompt, underlined. */
+  nameTag: CameraChatNameTag;
+  /** Theme symbol before every nick, as a corner emblem and in a divider at the top. */
+  ornament: ChatOrnament;
+  ornamentColor: string;
 
   animateMessages: boolean;
   animationStyle: CameraChatAnimationStyle;
@@ -392,6 +406,9 @@ export const DEFAULT_CAMERA_CHAT_CONFIG: CameraChatConfig = {
   patternColor: "#ffffff",
   patternOpacity: 10,
   comboMessages: false,
+  nameTag: "plain",
+  ornament: "none",
+  ornamentColor: "#facc15",
 
   animateMessages: true,
   animationStyle: "rise",
@@ -1046,6 +1063,9 @@ export function cameraChatConfigToSearch(
   params.set("patternc", config.patternColor);
   params.set("patterno", String(config.patternOpacity));
   flag("combo", config.comboMessages);
+  params.set("nametag", config.nameTag);
+  params.set("ornament", config.ornament);
+  params.set("ornac", config.ornamentColor);
   flag("anim", config.animateMessages);
   params.set("animstyle", config.animationStyle);
   params.set("animdur", String(config.animationDurationMs));
@@ -1190,6 +1210,9 @@ export function cameraChatConfigFromSearch(
     patternColor: color("patternc", defaults.patternColor),
     patternOpacity: integerParam(params, "patterno", defaults.patternOpacity, 2, 50),
     comboMessages: booleanParam(params, "combo", defaults.comboMessages),
+    nameTag: enumParam(params, "nametag", CHAT_NAME_TAGS, defaults.nameTag),
+    ornament: enumParam(params, "ornament", CHAT_ORNAMENTS, defaults.ornament),
+    ornamentColor: color("ornac", defaults.ornamentColor),
 
     animateMessages: booleanParam(params, "anim", defaults.animateMessages),
     animationStyle,
