@@ -98,6 +98,11 @@ export interface ScoredParticipant {
   gameWins: number;
   gameDiff: number;
   buchholz: number | null;
+  /**
+   * V6.2 · points (league) tables only: what placed this row below the previous one — "points", a configured
+   * tie-breaker, or "seed" when every criterion left the two level. null/undefined for the first row.
+   */
+  decidedBy?: string | null;
 }
 
 export type RawMatchForTie = {
@@ -151,6 +156,11 @@ function decisiveH2H(
  *
  * For single_elimination, `lossRoundByPlayerId` must be provided; the
  * function returns false conservatively if it is absent.
+ *
+ * V6.2 · a round robin with league rules (`leagueTable`) is ranked by points and the configured tie-breakers, so
+ * only the points table can say whether two rows are level: the boundary is tied exactly when the row below it
+ * was placed there by seed alone (`decidedBy === "seed"`). Match wins, goals and head-to-head wins alone would
+ * call a points gap — e.g. a draw — a tie and block the qualification.
  */
 export function hasTieAtBoundary(params: {
   format: string;
@@ -158,6 +168,7 @@ export function hasTieAtBoundary(params: {
   boundaryAfterIndex: number;
   rawMatches: readonly RawMatchForTie[];
   lossRoundByPlayerId?: ReadonlyMap<number, number>;
+  leagueTable?: boolean;
 }): boolean {
   const {
     format,
@@ -165,6 +176,7 @@ export function hasTieAtBoundary(params: {
     boundaryAfterIndex,
     rawMatches,
     lossRoundByPlayerId,
+    leagueTable,
   } = params;
 
   if (boundaryAfterIndex < 0 || boundaryAfterIndex >= ranked.length - 1) {
@@ -173,6 +185,11 @@ export function hasTieAtBoundary(params: {
 
   const a = ranked[boundaryAfterIndex];
   const b = ranked[boundaryAfterIndex + 1];
+
+  // ── Round Robin with league rules (V6.2) ──────────────────────────────────
+  if (format === "round_robin" && leagueTable) {
+    return b.decidedBy === "seed";
+  }
 
   // ── Swiss ─────────────────────────────────────────────────────────────────
   // Rank key: matchWins → buchholz → gameDiff → gameWins → stageSeed (technical).
@@ -265,8 +282,10 @@ export function buildQualificationProposal(params: {
   outputBaskets: readonly OutputBasketSpec[];
   rawMatches: readonly RawMatchForTie[];
   lossRoundByPlayerId?: ReadonlyMap<number, number>;
+  /** V6.2 · true for a round robin ranked by league points (see hasTieAtBoundary). */
+  leagueTable?: boolean;
 }): ProposalBuildResult {
-  const { format, ranked, rawMatches, lossRoundByPlayerId } = params;
+  const { format, ranked, rawMatches, lossRoundByPlayerId, leagueTable } = params;
 
   // Sort baskets by order ascending (defensive — callers should already sort).
   const sortedBaskets = [...params.outputBaskets].sort(
@@ -292,6 +311,7 @@ export function buildQualificationProposal(params: {
         boundaryAfterIndex,
         rawMatches,
         lossRoundByPlayerId,
+        leagueTable,
       });
       if (isTie) {
         return {

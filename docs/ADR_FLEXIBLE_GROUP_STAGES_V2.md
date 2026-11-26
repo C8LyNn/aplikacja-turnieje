@@ -74,6 +74,8 @@ When everyone advances, no participant is marked eliminated. The completed group
 
 The next stage receives seeds `1..N` in the calculated order. A single-elimination stage uses the existing standard seeded-bracket placement, so the strongest seed is paired against the weakest seed and top seeds are separated across the bracket. Non-power-of-two participant counts are supported through BYEs.
 
+V6.2 amendment (`docs/v6.2-awans-z-grup-i-koszyki.md`): when the next stage is a seeded single- or double-elimination bracket that keeps the incoming seeds, seeds are then exchanged within each group place so that qualifiers of one group meet as late as possible (two per group: in opposite halves, at the earliest in the final), restoring the V1 cross-group guarantee. Group winners keep their seeds. In groups with league rules, points per match is the first ordering criterion.
+
 The group stage may also feed a supported non-elimination stage. Qualification source remains `group_position` and the new seeds are preserved.
 
 ### Persistence and API
