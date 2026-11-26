@@ -7,6 +7,8 @@ import { act, cleanup, render } from "@testing-library/react";
 import { JSDOM } from "jsdom";
 import { t } from "@/i18n";
 import CameraChatOverlay from "./CameraChatOverlay";
+import { CameraChatWidget } from "./CameraChatWidget";
+import { CHAT_SKIN_IDS, getChatSkinCss } from "./chat-skins";
 import { generateStreamElementsWidget } from "./stream-elements-widget";
 import { chatEventLabels } from "./chat-event-labels";
 import {
@@ -122,4 +124,29 @@ test("every look has a theme identity, and the pirate is an old treasure map", (
   assert.equal(chatPanelTone(pirate.panelColor), "light", "parchment, not a dark sea");
   assert.deepEqual([pirate.ornament, pirate.fontFamily, pirate.panelPattern, pirate.frameStyle], ["skull", "segoeprint", "vignette", "dashes"]);
   assert.deepEqual(checkChatSetup({ ...pirate, ignoredUsers: "x" }, "Live"), [], "brown ink on parchment is readable");
+});
+
+test("every theme has its own skin, in valid CSS, in both renderers", () => {
+  assert.deepEqual([...CHAT_SKIN_IDS].sort(), ["none", ...CHAT_PRESET_IDS].sort(), "one skin per theme");
+  const seen = new Set<string>();
+  for (const id of CHAT_PRESET_IDS) {
+    const config = chatPresetConfig(id);
+    assert.equal(config.skin, id);
+    const css = getChatSkinCss(config, ".panel", ".row");
+    assert.ok(css.length > 40, `${id} has rules`);
+    assert.equal(css.split("{").length, css.split("}").length, `${id}: balanced braces`);
+    assert.doesNotMatch(css, /url\(|expression|javascript:|@import/i, id);
+    const ownRules = css.split("\n").filter((rule) => !rule.startsWith("@media")).join("\n");
+    assert.ok(!seen.has(ownRules), `${id} does not repeat another skin`);
+    seen.add(ownRules);
+  }
+  assert.equal(getChatSkinCss({ ...DEFAULT_CAMERA_CHAT_CONFIG }, ".p", ".r"), "", "no skin, no rules");
+  const pirate = chatPresetConfig("pirate");
+  const rule = "border-bottom: 1px dashed rgba(59,36,18,.55) !important";
+  assert.ok(generateStreamElementsWidget(pirate).css.includes(rule), "the widget carries the skin");
+  const { container } = render(<CameraChatWidget config={pirate} messages={[{ id: "1", name: "A", text: "ahoy" }]} />);
+  assert.ok(container.querySelector("style")!.textContent!.includes(rule), "the preview carries the skin");
+  assert.ok(container.querySelector(".obs-chat-text.chat-text"), "text spans share the chat-text class");
+  assert.equal(cameraChatConfigFromSearch(cameraChatConfigToSearch(pirate)).skin, "pirate");
+  assert.equal(cameraChatConfigFromSearch("skin=%3Cscript%3E").skin, "none");
 });

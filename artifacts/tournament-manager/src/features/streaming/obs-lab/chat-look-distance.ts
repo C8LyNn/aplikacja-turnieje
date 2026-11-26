@@ -1,7 +1,7 @@
 /**
- * How different two chat looks are: each look is described by fourteen visible traits (font, message layout, bubble
+ * How different two chat looks are: each look is described by fifteen visible traits (font, message layout, bubble
  * shape, frame, background particles, pattern, nick style, entry motion, panel colour family, corners, accent,
- * message effect, nick tag and theme ornament). The theme test requires every pair of looks to differ in several of them, so new looks cannot be
+ * message effect, nick tag, theme ornament and its own skin). The theme test requires every pair of looks to differ in several of them, so new looks cannot be
  * mere recolours of old ones.
  */
 import { type CameraChatConfig, hexToRgb } from "./camera-chat-settings";
@@ -39,10 +39,11 @@ export function chatLookTraits(config: CameraChatConfig): Record<string, string>
     effect: `${config.newMessageEffect}/${config.textReveal}`,
     nameTag: config.nameTag,
     ornament: config.ornament,
+    skin: config.skin,
   };
 }
 
-/** Number of traits in which two looks differ (0-14). */
+/** Number of traits in which two looks differ (0-15). */
 export function chatLookDistance(a: CameraChatConfig, b: CameraChatConfig): number {
   const first = chatLookTraits(a);
   const second = chatLookTraits(b);

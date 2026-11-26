@@ -116,7 +116,11 @@ import {
   chatColorThemeLabel,
   chatPresetConfig,
   chatPresetLabel,
+  CHAT_PRESET_CATEGORIES,
+  CHAT_PRESET_CATEGORY_IDS,
+  chatPresetCategoryLabel,
 } from "./chat-presets";
+import type { ChatSkinId } from "./chat-skins";
 
 const LAYOUT_OPTIONS = [
   { value: "chat", get label() { return t("obsLab.sam_czat"); } },
@@ -1024,6 +1028,16 @@ export function ObsLab() {
           {config.ornament !== "none" && (
             <ColorField label={t("obsLab.kolor_symbolu")} value={config.ornamentColor} onChange={(ornamentColor) => patchConfig({ ornamentColor })} />
           )}
+          <FieldLabel label={t("obsLab.skorka_motywu")} hint={t("obsLab.skorka_motywu_opis")}>
+            <ToolSelect value={config.skin} onChange={(event) => patchConfig({ skin: event.target.value as ChatSkinId })} data-testid="chat-skin">
+              <option value="none">{t("obsLab.bez_skorki")}</option>
+              {CHAT_PRESET_CATEGORY_IDS.map((category) => (
+                <optgroup key={category} label={chatPresetCategoryLabel(category)}>
+                  {CHAT_PRESET_CATEGORIES[category].map((preset) => <option key={preset} value={preset}>{chatPresetLabel(preset)}</option>)}
+                </optgroup>
+              ))}
+            </ToolSelect>
+          </FieldLabel>
           <FieldLabel label={t("obsLab.wzor_tla")}>
             <ToolSelect value={config.panelPattern} onChange={(event) => patchConfig({ panelPattern: event.target.value as CameraChatPanelPattern })} data-testid="chat-pattern">
               <option value="none">{t("obsLab.bez_wzoru")}</option>

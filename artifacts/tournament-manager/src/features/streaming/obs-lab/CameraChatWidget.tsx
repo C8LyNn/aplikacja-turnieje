@@ -392,7 +392,7 @@ export function CameraChatWidget({
     ));
     const text = (
       <span
-        className="obs-chat-text"
+        className="obs-chat-text chat-text"
         style={{
           color: message.isAction ? row.nameColor : rgbaCss(config.textColor, config.textOpacity),
           fontStyle: message.isAction ? "italic" : undefined,

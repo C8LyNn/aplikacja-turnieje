@@ -16,6 +16,7 @@ import {
 } from "./camera-chat-settings";
 import { type ChatGoalProgress, CHAT_GOAL_COLORS } from "./chat-events";
 import { chatOrnamentHtml, getChatOrnamentCss } from "./chat-ornaments";
+import { getChatSkinCss } from "./chat-skins";
 
 // --- Background particles -----------------------------------------------------------------------------------------
 
@@ -243,6 +244,9 @@ export function getChatDecorCss(config: CameraChatConfig, panel: string, row: st
     };
     rules.push(...nameRules[config.nameStyle], "@media (prefers-reduced-motion: reduce) { .chat-name { animation: none !important; } }");
   }
+  // The theme skin comes last, so its own look wins over the shared rules above.
+  const skin = getChatSkinCss(config, panel, row);
+  if (skin) rules.push(skin);
   if (chatHeaderContent(config).visible) {
     const accent = config.headerColor;
     rules.push(

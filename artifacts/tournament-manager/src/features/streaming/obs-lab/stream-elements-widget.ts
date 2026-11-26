@@ -833,7 +833,7 @@ function buildRow(message) {
   // A line may break after the name, so the first word of the message is not split in two.
   if (!settings.blockLayout) content.appendChild(document.createElement("wbr"));
   const text = document.createElement("span");
-  text.className = message.isAction ? "se-text se-action" : "se-text";
+  text.className = message.isAction ? "se-text se-action chat-text" : "se-text chat-text";
   if (message.isAction) text.style.color = color;
   (revealPieces(parts) || parts).forEach(function (part) {
     if (part.kind === "emote") {

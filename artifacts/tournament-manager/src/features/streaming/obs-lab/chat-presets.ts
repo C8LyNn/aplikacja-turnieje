@@ -260,7 +260,7 @@ const THEME_IDENTITY: Partial<Record<ChatPresetId, Partial<CameraChatConfig>>> =
 };
 
 export function chatPresetConfig(id: ChatPresetId): CameraChatConfig {
-  return { ...basePresetConfig(id), ...LOOK_TRAITS[id], ...THEME_IDENTITY[id] };
+  return { ...basePresetConfig(id), ...LOOK_TRAITS[id], ...THEME_IDENTITY[id], skin: id };
 }
 
 function basePresetConfig(id: ChatPresetId): CameraChatConfig {

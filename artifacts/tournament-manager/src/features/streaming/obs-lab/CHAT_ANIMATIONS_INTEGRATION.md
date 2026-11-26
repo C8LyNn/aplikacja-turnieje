@@ -246,6 +246,24 @@ natywnego widgetu StreamElements. Reguły wiadomości są w
 - Test różnic liczy teraz 14 cech (doszły oprawa nicku i symbol); test czytelności obejmuje karty komiksowe
   i karteczki (tekst na tle karty). Testy w `chat-identity.test.tsx`.
 
+## Zrealizowany etap 13 — własna skórka każdego motywu (2026-11-26)
+
+- **Skórki** (`skin`, `chat-skins.ts`): każdy z 74 motywów ma własny, ręcznie napisany zestaw reguł CSS, który
+  nakłada się na wspólne części (kolory, ramka, karty, symbole) i wygrywa z nimi, bo idzie na końcu
+  `getChatDecorCss`. Skórka zmienia kształt wierszy, obramowania, typografię i drobne detale, np.:
+  Terminal — mrugający kursor po ostatniej wiadomości; Gazeta — inicjał (duża pierwsza litera) i justowanie;
+  Tablica korkowa — karteczki w trzech kolorach na zmianę; Memphis — wiersze ułożone zygzakiem; Cukierki, Jednorożec,
+  Święta — malowane paski na obramowaniu; Cyberpunk — ścięte rogi; FPS i Smok — wiersze jak strzałka i proporzec;
+  Lampa lava — wiersze jak bąble wosku; Chrom — metaliczny gradient w tekście; Piracki — przerywane linie jak
+  na mapie.
+- Skórka dotyczy tylko wiadomości (`:not(.chat-event)`), więc wiersze zdarzeń zachowują swój wygląd;
+  ma blok `prefers-reduced-motion` dla animowanych detali. Tekst wiadomości ma wspólną klasę `chat-text` w podglądzie,
+  na stronie OBS i w natywnym widżecie StreamElements.
+- Wybór skórki w konfiguratorze (lista pogrupowana według kategorii motywów, opcja „bez skórki”); motyw ustawia
+  swoją skórkę sam. Stare adresy bez parametru `skin` wyglądają jak dotąd; nieznana wartość daje „bez skórki”.
+- Test różnic liczy 15 cech (doszła skórka); test w `chat-identity.test.tsx` sprawdza, że każdy motyw ma własną,
+  niepowtarzalną skórkę bez `url()`/`@import`, z domkniętymi nawiasami, i że trafia ona do podglądu i do widżetu.
+
 ## Kierunek następnych etapów
 
 1. **Animacja tekstu wiadomości:** wejście znakami/słowami, maska reveal,

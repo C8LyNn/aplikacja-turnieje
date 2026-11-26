@@ -224,7 +224,7 @@ test("the pickers filter looks by group; a seasonal look and the combo extra app
   assert.ok(view.container.querySelector(".chat-pattern"));
 });
 
-test("every two looks differ in at least five of fourteen visible traits, not only in colour", () => {
+test("every two looks differ in at least five of fifteen visible traits, not only in colour", () => {
   const close: string[] = [];
   let total = 0;
   let pairs = 0;
@@ -238,6 +238,6 @@ test("every two looks differ in at least five of fourteen visible traits, not on
   }
   assert.deepEqual(close, []);
   assert.ok(total / pairs >= 8, `on average looks differ in ${(total / pairs).toFixed(1)} traits`);
-  assert.equal(Object.keys(chatLookTraits(DEFAULT_CAMERA_CHAT_CONFIG)).length, 14);
+  assert.equal(Object.keys(chatLookTraits(DEFAULT_CAMERA_CHAT_CONFIG)).length, 15);
   assert.deepEqual([chatPanelTone("#fdf6e3"), chatPanelTone("#0a0a0a"), chatPanelTone("#7f1d1d")], ["light", "neutral", "hue-0"]);
 });

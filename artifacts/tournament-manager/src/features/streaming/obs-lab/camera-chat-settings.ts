@@ -8,6 +8,7 @@
 } from "./chat-events";
 import { type ChatSoundMode, type ChatSoundStyle, CHAT_SOUND_MODES, CHAT_SOUND_STYLES } from "./chat-sound";
 import { type ChatOrnament, CHAT_ORNAMENTS } from "./chat-ornaments";
+import { type ChatSkinId, CHAT_SKIN_IDS } from "./chat-skins";
 
 export type CameraChatLayout = "right" | "left" | "below" | "above" | "overlay" | "chat";
 export type CameraChatAspectRatio = "16:9" | "4:3" | "1:1";
@@ -286,6 +287,8 @@ export type CameraChatConfig = {
   /** Theme symbol before every nick, as a corner emblem and in a divider at the top. */
   ornament: ChatOrnament;
   ornamentColor: string;
+  /** The theme's own bespoke look (row shapes, borders, type); every theme has its own. */
+  skin: ChatSkinId;
 
   animateMessages: boolean;
   animationStyle: CameraChatAnimationStyle;
@@ -409,6 +412,7 @@ export const DEFAULT_CAMERA_CHAT_CONFIG: CameraChatConfig = {
   nameTag: "plain",
   ornament: "none",
   ornamentColor: "#facc15",
+  skin: "none",
 
   animateMessages: true,
   animationStyle: "rise",
@@ -1066,6 +1070,7 @@ export function cameraChatConfigToSearch(
   params.set("nametag", config.nameTag);
   params.set("ornament", config.ornament);
   params.set("ornac", config.ornamentColor);
+  params.set("skin", config.skin);
   flag("anim", config.animateMessages);
   params.set("animstyle", config.animationStyle);
   params.set("animdur", String(config.animationDurationMs));
@@ -1213,6 +1218,7 @@ export function cameraChatConfigFromSearch(
     nameTag: enumParam(params, "nametag", CHAT_NAME_TAGS, defaults.nameTag),
     ornament: enumParam(params, "ornament", CHAT_ORNAMENTS, defaults.ornament),
     ornamentColor: color("ornac", defaults.ornamentColor),
+    skin: enumParam(params, "skin", CHAT_SKIN_IDS, defaults.skin),
 
     animateMessages: booleanParam(params, "anim", defaults.animateMessages),
     animationStyle,
