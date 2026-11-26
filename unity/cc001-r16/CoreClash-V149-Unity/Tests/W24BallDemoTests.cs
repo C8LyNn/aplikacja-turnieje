@@ -59,10 +59,14 @@ public static partial class Program
             // Snowman: dug in with a shield; the ball that hit it is chilled.
             var snowman=W24RunShow(c,"frostguard");True(W24Ball(snowman,0,"frostguard").frostguardAnchored);Eq(1,W24Ball(snowman,1,"normal").iceStacks);True(snowman.Seen.Contains("SHIELD"));
             // --- Fire. Flame: the enemy burns; Campfire: both enemies in its field burn.
-            True(W24Ball(W24RunShow(c,"fire"),1,"normal").fireStacks>=1);
-            True(Enemies(W24RunShow(c,"furnace")).All(b=>b.fireStacks>=1));
+            // The show runs through two of the enemy's turns: it catches fire, loses 5 HP in each, and
+            // with the game's two-turn fire the flames are out by the end (a three-turn fire would still burn).
+            var flame=W24RunShow(c,"fire");True(flame.Seen.Contains("FIRE"),"Flame: no fire in the show");
+            True(W24Ball(flame,1,"normal").hp<=20,"Flame: the enemy lost "+(30-W24Ball(flame,1,"normal").hp)+" HP");
+            Eq(RosterBalance.FireLasts>2,W24Ball(flame,1,"normal").fireStacks>=1);
+            True(Enemies(W24RunShow(c,"furnace")).All(b=>b.fireStacks>=1),"Campfire: an enemy in the field does not burn");
             // Fire trap: the enemy that rolled over it burns.
-            True(W24Ball(W24RunShow(c,"embertrap"),1,"normal").fireStacks>=1);
+            True(W24Ball(W24RunShow(c,"embertrap"),1,"normal").fireStacks>=1,"Fire trap: the enemy does not burn");
             // Bomb: gone after the blast; the enemies took 10-15, and your own ball standing in the blast
             // took nothing (owner rule 2026-11-26: your own balls do not hurt your other balls).
             var bomb=W24RunShow(c,"bomb");True(W24Ball(bomb,0,"bomb")==null);
@@ -71,15 +75,18 @@ public static partial class Program
             // Volcano: it is still there, both enemies next to it burn and have already lost 5 HP.
             var volcano=W24RunShow(c,"firebrand");True(W24Ball(volcano,0,"firebrand")!=null);True(Enemies(volcano).All(b=>b.fireStacks==1&&b.hp==25),"Volcano: "+string.Join(",",Enemies(volcano).Select(b=>b.fireStacks+"/"+b.hp)));
             // --- Poison. Venom: both steps, poison first and the extra 5 on the second touch.
-            var venom=W24RunShow(c,"venom");True(venom.Seen.Contains("TOXIN")&&venom.Seen.Contains("VENOM"));
-            True(Enemies(W24RunShow(c,"blightpool")).All(b=>b.toxinTurns>0));
-            True(W24Ball(W24RunShow(c,"sporetrap"),1,"normal").toxinTurns>0);
+            var venom=W24RunShow(c,"venom");True(venom.Seen.Contains("TOXIN")&&venom.Seen.Contains("VENOM"),"Venom: poison and bite are not both shown");
+            True(Enemies(W24RunShow(c,"blightpool")).All(b=>b.toxinTurns>0),"Poison Pool: an enemy in it is not poisoned");
+            True(W24Ball(W24RunShow(c,"sporetrap"),1,"normal").toxinTurns>0,"Poison trap: the enemy is not poisoned");
             // Mushroom: dead, and both the ball that killed it and the one standing by are poisoned.
             var mushroom=W24RunShow(c,"plagueburst");True(W24Ball(mushroom,0,"plagueburst")==null);Eq(2,Enemies(mushroom).Count(b=>b.toxinTurns>0));
             // Leech: the drain happens on its owner's turn.
-            var leech=W24RunShow(c,"plagueleech");True(leech.Seen.Contains("LINK")&&leech.Seen.Contains("DRAIN"));True(W24Ball(leech,1,"normal").toxinTurns>0,"the Leech's target is not poisoned");
-            // It came in with 15 HP and fed twice; its target lost only the poison's 5 HP a turn.
-            Eq(25,W24Ball(leech,0,"plagueleech").hp);Eq(20,W24Ball(leech,1,"normal").hp);
+            var leech=W24RunShow(c,"plagueleech");True(leech.Seen.Contains("LINK")&&leech.Seen.Contains("DRAIN"),"Leech: tie and feeding are not both shown");
+            // It came in with 15 HP and fed in each of its owner's turns while the poison lasted (the game's
+            // two-turn poison: once; a three-turn poison: twice, and the target would still be poisoned at
+            // the end). Its target lost only the poison's 5 HP a turn.
+            Eq(RosterBalance.PoisonTurns>2,W24Ball(leech,1,"normal").toxinTurns>0);
+            Eq(15+5*Math.Min(2,RosterBalance.PoisonTurns-1),W24Ball(leech,0,"plagueleech").hp);Eq(20,W24Ball(leech,1,"normal").hp);
             // --- Magnetism. Magnet: every other ball ends closer to where the Magnet stopped.
             var magnet=W24RunShow(c,"magnet");
             foreach(var ball in magnet.Simulation.State.balls.Where(b=>b.type=="normal"))True(Far(ball,270,480)<75&&ball.hp==30,"Magnet did not gather a ball: "+Far(ball,270,480).ToString("0")+" hp "+ball.hp);

@@ -209,7 +209,7 @@ public static partial class Program
             var state=new GameState();
             Eq(165f,state.poolRadius);Eq(5,state.leechDrain);Eq(3,state.poisonTurns);False(state.deepFreeze);
             RosterBalance.Apply(state);
-            True(state.deepFreeze);Eq(2,state.freezeTurns);True(state.venomOncePerTurn);Eq(0,state.leechDrain);Eq(130f,state.poolRadius);Eq(3,state.poisonTurns);
+            True(state.deepFreeze);Eq(2,state.freezeTurns);True(state.venomOncePerTurn);Eq(0,state.leechDrain);Eq(130f,state.poolRadius);Eq(RosterBalance.PoisonTurns,state.poisonTurns);
             False(new GameState().venomOncePerTurn);
             Eq(RosterBalance.PoolRadius,state.poolRadius);Eq(RosterBalance.LeechDrain,state.leechDrain);
             RosterBalance.Apply(null);

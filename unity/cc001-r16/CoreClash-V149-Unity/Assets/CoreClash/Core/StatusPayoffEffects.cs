@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 
 namespace CoreClash.Core
@@ -37,8 +38,9 @@ namespace CoreClash.Core
                 {
                     // Match rule venomOncePerTurn: once a turn for each enemy.
                     if(S.venomOncePerTurn&&!PerTargetTurn(source,target))return;
-                    sim.Damage(target,5,false,source.id);sim.Heal(source,5);
-                    sim.Emit("VENOM",source,"Toxin payoff +5 HP",target.id);
+                    // Match rule venomHeal: what the bite gives back to Venom.
+                    sim.Damage(target,5,false,source.id);if(S.venomHeal>0)sim.Heal(source,S.venomHeal);
+                    sim.Emit("VENOM",source,"Toxin payoff +"+Math.Max(0,S.venomHeal)+" HP",target.id);
                 }
                 else if(target.type!="plague")ApplyToxin(target,source.owner);
             }

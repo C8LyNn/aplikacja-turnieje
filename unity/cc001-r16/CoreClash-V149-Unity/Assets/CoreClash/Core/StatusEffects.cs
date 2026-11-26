@@ -34,7 +34,8 @@ namespace CoreClash.Core
             try{
                 if(b.iceStacks>0||b.frozen>0){ClearIce(b);return;}if(Own(b,owner))return;Stamp(b,"FIRE",owner);b.fireStacks++;
                 if(b.fireStacks>=3){ClearFire(b);sim.Damage(b,5);foreach(var other in Near(b,58).Where(t=>t.owner!=owner))ApplyFireChain(other,owner,visited);sim.Emit("FIRE_BURST",b,"Third fire stack");return;}
-                b.burnTurns=b.fireStacks==1?3:4;sim.Emit("FIRE",b,"Fire "+b.fireStacks);
+                // Match rule fireLasts: turns one fire burns; a second fire burns one turn longer.
+                int lasts=Math.Max(1,S.fireLasts);b.burnTurns=b.fireStacks==1?lasts:lasts+1;sim.Emit("FIRE",b,"Fire "+b.fireStacks);
             }finally{depth--;}
         }
         public void ApplyIce(BallRuntime b,int owner)

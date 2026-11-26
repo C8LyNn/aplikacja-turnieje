@@ -44,11 +44,11 @@ namespace CoreClash.Core
                 case "cascade":CascadeReturn(b);break;
                 case "singularity":var hole=CreateZone(b,"blackHole",34,-1);hole.coreRadius=12;hole.pull=690;break;
                 case "genesis":CreateZone(b,"whiteHole",36,3);break;
-                case "bomb":if(!b.dead||!b.exploded){if(b.dead)b.exploded=true;Explode(b,165,17,405);}break;
+                case "bomb":if(!b.dead||!b.exploded){if(b.dead)b.exploded=true;Explode(b,165,S.bombDamage>0?S.bombDamage:17,405);}break;
                 case "deathpulse":foreach(var t in Near(b,100))Impulse(t,2*t.x-b.x,2*t.y-b.y,300);break;
                 case "frostgrave":CreateZone(b,"ice",104,3);break;
                 case "martyr":S.players[b.owner].hp=Math.Min(20,S.players[b.owner].hp+3);break;
-                case "plagueburst":foreach(var t in Near(b,100,false))ApplyToxin(t,b.owner);if(S.plainPowers)sim.Emit("SPORES",b,"Spore cloud");break;
+                case "plagueburst":foreach(var t in Near(b,S.sporeRadius>0?S.sporeRadius:100,false))ApplyToxin(t,b.owner);if(S.plainPowers)sim.Emit("SPORES",b,"Spore cloud");break;
                 case "eggsac":SpawnEggSacBroodlings(b);break;
                 case "swarmcore":SpawnSwarmShards(b);break;
                 case "conscriptor":ConscriptorDeath(b);break;

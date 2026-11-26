@@ -103,6 +103,18 @@ namespace CoreClash.Core
         // reference rules 5 for each, so a second touch made 40 HP of fire, more than a ball has.
         // A second fire still makes the ball burn longer, and a third bursts.
         public bool fireFlat;
+        // W24 match rules, numbers of the fire group (the defaults are the reference numbers; fifth
+        // balance pass, 2026-11-26, owner: "balance it with the numbers").
+        //   fireLasts   how many turns one fire burns (a second fire burns one turn longer)
+        //   bombDamage  above 0: what the Bomb's blast takes at its centre, whether it stopped or
+        //               was destroyed (reference: 19 and 17); a ball further out loses less
+        public int fireLasts=3,bombDamage;
+        // W24 match rules, numbers of the poison group in the same pass (the defaults are the
+        // reference numbers):
+        //   venomHeal    HP Venom gets back when it bites an already poisoned enemy
+        //   sporeRadius  how far the cloud of the Mushroom reaches when it bursts
+        public int venomHeal=5;
+        public float sporeRadius=100;
         // W24 match rule (off = the reference rules; owner rule 2026-11-26, "an important rule:
         // your own balls must not hurt your other balls"). A player's ball never hurts another ball of
         // the same player: an explosion (the Bomb, a mine, a time bomb) and any other power takes

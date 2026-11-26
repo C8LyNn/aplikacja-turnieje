@@ -155,8 +155,18 @@ namespace CoreClash.Presentation
         static GuideFact Count(string en,string pl)=>new GuideFact(GuideFactKind.Count,en,pl);
         static GuideFact Fact(GuideFactKind kind,string en,string pl)=>new GuideFact(kind,en,pl);
         // The lasting states, worded the same on every card.
-        static GuideFact Burning=>Fact(GuideFactKind.Fire,"Fire: 5 HP × 3 turns","Ogień: 5 HP × 3 tury");
-        static GuideFact Poisoned=>Fact(GuideFactKind.Poison,"Poison: 5 HP × 3 turns","Trucizna: 5 HP × 3 tury");
+        // What the Bomb's blast takes, from a ball at its edge to one right next to it (the blast
+        // loses strength with distance; every loss is counted in fives).
+        static string BombHits()
+        {
+            int centre=CoreClash.Core.RosterBalance.BombDamage>0?CoreClash.Core.RosterBalance.BombDamage:19;
+            int Fives(float amount)=>Math.Max(5,CoreClash.Core.GameSimulation.Round(CoreClash.Core.GameSimulation.Round(amount)/5f)*5);
+            return Fives(centre*.56f)+"–"+Fives(centre*.85f);
+        }
+        // (The numbers of turns are the roster's balance.)
+        static string Turns(int n,bool polish)=>polish?n+(n==1?" tura":n<5?" tury":" tur"):n+(n==1?" turn":" turns");
+        static GuideFact Burning=>Fact(GuideFactKind.Fire,"Fire: 5 HP × "+Turns(CoreClash.Core.RosterBalance.FireLasts,false),"Ogień: 5 HP × "+Turns(CoreClash.Core.RosterBalance.FireLasts,true));
+        static GuideFact Poisoned=>Fact(GuideFactKind.Poison,"Poison: 5 HP × "+Turns(CoreClash.Core.RosterBalance.PoisonTurns,false),"Trucizna: 5 HP × "+Turns(CoreClash.Core.RosterBalance.PoisonTurns,true));
         static GuideFact Chilled=>Fact(GuideFactKind.Ice,"3 chills = frozen","3 mrozy = zamrożenie");
         static GuideFact FrozenFact=>Fact(GuideFactKind.Frozen,"Frozen for 2 turns","Zamrożona na 2 tury");
         // What freezing costs a ball under the roster's balance.
@@ -231,8 +241,12 @@ namespace CoreClash.Presentation
             Add("fire","Płomień",GuideWhen.Touch,GuideWho.Enemies,0,"Burn","Podpala",
                 "Sets fire to every enemy it touches.",
                 "Podpala każdego wroga, którego dotknie.",
-                "Second fire on the same ball: 10 HP a turn. Third: a burst that ignites enemies next to it. Fire and ice cancel each other.",
-                "Drugi ogień na tej samej kulce: 10 HP co turę. Trzeci: wybuch, który podpala wrogów obok. Ogień i lód znoszą się nawzajem.",
+                CoreClash.Core.RosterBalance.FireFlat
+                    ?"A second fire on the same ball burns a turn longer. A third: a burst that ignites enemies next to it. Fire and ice cancel each other."
+                    :"Second fire on the same ball: 10 HP a turn. Third: a burst that ignites enemies next to it. Fire and ice cancel each other.",
+                CoreClash.Core.RosterBalance.FireFlat
+                    ?"Drugi ogień na tej samej kulce pali o turę dłużej. Trzeci: wybuch, który podpala wrogów obok. Ogień i lód znoszą się nawzajem."
+                    :"Drugi ogień na tej samej kulce: 10 HP co turę. Trzeci: wybuch, który podpala wrogów obok. Ogień i lód znoszą się nawzajem.",
                 Burning);
             Add("furnace","Ognisko",GuideWhen.Turn,GuideWho.Enemies,104,"Fire field","Pole ognia",
                 "In each turn of yours it lights a field of fire around itself. At the end of every turn, enemies standing in the field catch fire.",
@@ -256,7 +270,7 @@ namespace CoreClash.Presentation
                     :"Wybucha i znika. Wybuch rani i odrzuca wszystkie kulki w zasięgu — twoje też.",
                 "Destroyed before it stops? It still explodes.",
                 "Zniszczona, zanim się zatrzyma? I tak wybuchnie.",
-                Damage("10–15 damage","10–15 obrażeń"));
+                Damage(BombHits()+" damage",BombHits()+" obrażeń"));
             Add("firebrand","Wulkan",GuideWhen.Stop,GuideWho.Enemies,100,"Fire burst","Fala ognia",
                 "Erupts: every enemy nearby catches fire.",
                 "Wybucha ogniem: każdy wróg w pobliżu zaczyna płonąć.",
@@ -268,8 +282,12 @@ namespace CoreClash.Presentation
             Add("venom","Jad",GuideWhen.Touch,GuideWho.Enemies,0,"Poison","Zatruwa",
                 "Poisons the enemy it touches.",
                 "Zatruwa wroga, którego dotknie.",
-                "Touch an enemy that is already poisoned: it loses 5 HP at once and Venom gets 5 HP back. Once a turn for each enemy.",
-                "Dotknij już zatrutego wroga: od razu traci 5 HP, a Jad odzyskuje 5 HP. Raz na turę na każdego wroga.",
+                CoreClash.Core.RosterBalance.VenomHeal>0
+                    ?"Touch an enemy that is already poisoned: it loses 5 HP at once and Venom gets "+CoreClash.Core.RosterBalance.VenomHeal+" HP back. Once a turn for each enemy."
+                    :"Touch an enemy that is already poisoned: it loses 5 HP at once. Once a turn for each enemy.",
+                CoreClash.Core.RosterBalance.VenomHeal>0
+                    ?"Dotknij już zatrutego wroga: od razu traci 5 HP, a Jad odzyskuje "+CoreClash.Core.RosterBalance.VenomHeal+" HP. Raz na turę na każdego wroga."
+                    :"Dotknij już zatrutego wroga: od razu traci 5 HP. Raz na turę na każdego wroga.",
                 Poisoned);
             Add("blightpool","Trująca kałuża",GuideWhen.Stop,GuideWho.Enemies,CoreClash.Core.RosterBalance.PoolRadius,"Poison pool","Kałuża jadu",
                 "Spills a pool of poison that lasts 3 turns. At the end of every turn, enemies standing in the pool get poisoned.",
@@ -283,7 +301,7 @@ namespace CoreClash.Presentation
                 "One trap for each ball, laid where it first stops.",
                 "Kulka stawia jedną pułapkę: tam, gdzie stanie po raz pierwszy.",
                 Poisoned,Count("Works once","Działa raz"));
-            Add("plagueburst","Grzyb",GuideWhen.Death,GuideWho.Enemies,100,"Spore cloud","Zarodniki",
+            Add("plagueburst","Grzyb",GuideWhen.Death,GuideWho.Enemies,CoreClash.Core.RosterBalance.SporeRadius,"Spore cloud","Zarodniki",
                 "Bursts into a cloud of spores: every enemy nearby is poisoned.",
                 "Pęka i rozsiewa zarodniki: każdy wróg w pobliżu zostaje zatruty.",
                 "Leave it where enemies will have to hit it.",

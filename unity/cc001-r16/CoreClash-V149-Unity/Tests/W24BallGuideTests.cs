@@ -63,7 +63,8 @@ public static partial class Program
             // Bomb: 15 next to it, 10 further out, nothing beyond its reach; the same when it dies first.
             Eq(15,Blast("bomb",43,(s,b,t)=>s.Abilities.OnStop(b)));Eq(10,Blast("bomb",160,(s,b,t)=>s.Abilities.OnStop(b)));Eq(0,Blast("bomb",170,(s,b,t)=>s.Abilities.OnStop(b)));
             Eq(15,Blast("bomb",43,(s,b,t)=>s.Kill(b)));Eq(10,Blast("bomb",160,(s,b,t)=>s.Kill(b)));
-            True(W24Fact("bomb",0).StartsWith("10–15"));Eq(165f,BallGuide.For("bomb").Range);
+            // (Those are the reference numbers. The card prints the game's: see the fifth balance pass.)
+            True(W24Fact("bomb",0).StartsWith(RosterBalance.BombDamage==12?"5–10":"10–15"),W24Fact("bomb",0));Eq(165f,BallGuide.For("bomb").Range);
             // Mine and Time Bomb are outside the roster; their rules are still the reference ones.
             Eq(10,Blast("mine",43,(s,b,t)=>{s.Abilities.OnStop(b);s.Abilities.OnPairContact(b,t,false,false,30);}));
             Eq(0,Blast("timebomb",43,(s,b,t)=>{s.Abilities.OnStop(b);ExplosiveOwnTurn(s,0);}));
@@ -81,7 +82,8 @@ public static partial class Program
             // Fire and poison: 5 HP on each of the target's own turns, three times.
             {var s=Sim();var t=s.Spawn(1,"normal",200,300);s.Abilities.ApplyFire(t,0);for(int i=1;i<=3;i++){ExplosiveOwnTurn(s,1);Eq(30-5*i,t.hp);}ExplosiveOwnTurn(s,1);Eq(15,t.hp);Eq(0,t.fireStacks);}
             {var s=Sim();var t=s.Spawn(1,"normal",200,300);s.Abilities.ApplyToxin(t,0);for(int i=1;i<=3;i++){ExplosiveOwnTurn(s,1);Eq(30-5*i,t.hp);}ExplosiveOwnTurn(s,1);Eq(15,t.hp);Eq(0,t.toxinTurns);}
-            True(W24Fact("fire",0).Contains("5 HP × 3 turns")&&W24Fact("venom",0).Contains("5 HP × 3 turns"));
+            // (Three turns is the reference rule. The cards print the game's numbers of turns.)
+            True(W24Fact("fire",0).Contains("5 HP × "+RosterBalance.FireLasts+" turns")&&W24Fact("venom",0).Contains("5 HP × "+RosterBalance.PoisonTurns+" turns"));
             // Second fire: 10 a turn.
             {var s=Sim();var t=s.Spawn(1,"normal",200,300);s.Abilities.ApplyFire(t,0);s.Abilities.ApplyFire(t,0);ExplosiveOwnTurn(s,1);Eq(20,t.hp);}
             // The third chill freezes.

@@ -100,6 +100,29 @@ namespace CoreClash.Core
     //   after   Fire Pit 63    Jungle 56.5  Acid Rain 55  Polar Storm 42.5  Frozen Garden 42  Dynamo 41     first player 49.3%
     // Nothing moved beyond the noise (about 6 points) - the computer seldom caught its own balls
     // in a blast - so nothing was retuned.
+    //
+    // Fifth pass, 2026-11-26 (owner: "balance it with the numbers"). The three strong decks were the
+    // ones with fire and poison: one touch of either took 15 HP (5 a turn for 3 turns) and a second
+    // fire doubled, while the other groups take 5-10 for a touch. Every run below is the seats run
+    // (every pair of ready decks 60 times, 300 matches a deck), same draws, one after another:
+    //                                         Fire Pit  Frozen G.  Acid Rain  Dynamo  Polar St.  Jungle   first  spread
+    //   the game before the pass                63        42         55        41      42.5      56.5    49.3%   22
+    //   flat fire, poison 2 turns               56        46         47        48.5    48        55      48.3%   10
+    //   ... and fire 2 turns                    53        46         47.5      50.5    48        56      48.3%   10
+    //   ... and Venom's bite gives nothing back 55.5      50.5       46.5      50.5    50        48      48.0%    9
+    //   ... and Bomb 12, Mushroom 130,
+    //       opening ball 10 HP  (the game now)  52.5      53         50        48      49.5      46.5    50.2%    6.5
+    // Taken: a second fire burns a turn longer and no harder (FireFlat), a fire burns 2 turns, a
+    // poisoning lasts 2 turns, Venom's bite into a poisoned enemy takes its 5 HP and gives none back
+    // (the Jungle deck stood at 56% whatever else changed, and fell to 48% with this one number),
+    // the Bomb takes 5-10 (only Fire Pit has it), the Mushroom's cloud reaches 130 (only Acid Rain
+    // has it), and Player 2's extra opening ball has 10 HP - the slower fire and poison had moved
+    // the first player's share down to 48%.
+    // Tried in the same pass and not kept: the Acorn growing back once (Jungle 56% -> 56%), the Vine
+    // putting out 2 shoots instead of 4 (Jungle 56% -> 54%, the ice decks moved as much by chance),
+    // freezing for 15 HP (the ice decks +2 and +3, not needed once the Jungle came down).
+    // A spread of 6.5 points is what chance alone gives six equal decks at 300 matches each
+    // (about 7): tuning single points further cannot be measured at this sample.
     public static class RosterBalance
     {
         // The Poison Pool's field. (The Blizzard keeps the reference 165.)
@@ -114,9 +137,9 @@ namespace CoreClash.Core
         public const bool ShatterKeepsIce=true;
         public const int FreezeDamage=10;
         public const int BrittleBonus=0;
-        // Fire: a burning ball loses 5 HP a turn however many fires are on it. Off until the owner
-        // decides (see the fourth pass above); the fire group's card follows this switch.
-        public const bool FireFlat=false;
+        // Fire: a burning ball loses 5 HP a turn however many fires are on it (fifth pass, after the
+        // owner's "balance it with the numbers"); the fire group's cards follow this switch.
+        public const bool FireFlat=true;
 
         // Electricity: the Lightning's bolt goes on down a row of enemies; a switched-off ball takes
         // this much more from every bolt.
@@ -142,7 +165,17 @@ namespace CoreClash.Core
         // its field appears at its first stop and never again.
         public const bool PlaceOnce=true;
         // The opening: HP of the extra Standard ball Player 2 plays on the first turn (0 = a whole ball).
-        public const int OpeningBonusHp=15;
+        public const int OpeningBonusHp=10;
+        // Fifth pass (owner, 2026-11-26: "balance it with the numbers"): how many turns one fire and
+        // one poisoning last (5 HP a turn; the reference 3), what the Bomb's blast takes at its
+        // centre (the reference 19 and 17: 10-15 HP by distance; 12 gives 5-10), what Venom gets
+        // back for a bite into a poisoned enemy (the reference 5), how far the Mushroom's cloud
+        // reaches (the reference 100).
+        public const int FireLasts=2;
+        public const int PoisonTurns=2;
+        public const int BombDamage=12;
+        public const int VenomHeal=0;
+        public const float SporeRadius=130;
         // Owner rule, 2026-11-26 ("an important rule: your own balls must not hurt your other
         // balls"): no power of a ball takes HP from another ball of the same player or puts fire,
         // ice or poison on it. In the roster this changes the Bomb, whose blast hurt everybody.
@@ -162,6 +195,8 @@ namespace CoreClash.Core
             state.openingBonusHp=OpeningBonusHp;
             state.trapRadius=TrapRadius;state.trapsApart=TrapsApart;state.placeOnce=PlaceOnce;
             state.noFriendlyFire=NoFriendlyFire;
+            state.fireLasts=FireLasts;state.poisonTurns=PoisonTurns;state.bombDamage=BombDamage;
+            state.venomHeal=VenomHeal;state.sporeRadius=SporeRadius;
         }
     }
 }

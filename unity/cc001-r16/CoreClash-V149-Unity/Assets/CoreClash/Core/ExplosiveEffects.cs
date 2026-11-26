@@ -10,7 +10,8 @@ namespace CoreClash.Core
             switch(b.type){
                 case "mine":b.mineArmed=true;sim.Emit("ARMED",b,"Mine armed");break;
                 case "timebomb":b.timeBombArmed=true;b.timeBombCounter=0;b.timeBombLastTickTurn=S.turnNumber;sim.Emit("FUSE",b,"Fuse: 2 own turns");break;
-                case "bomb":Detonate(b,165,19,455);break;
+                // Match rule bombDamage: the blast's damage at its centre.
+                case "bomb":Detonate(b,165,S.bombDamage>0?S.bombDamage:19,455);break;
             }
         }
         public void OnPairContact(BallRuntime a,BallRuntime b,bool hit,bool aSource,float impact)

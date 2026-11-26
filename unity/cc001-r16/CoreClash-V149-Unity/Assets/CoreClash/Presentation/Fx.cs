@@ -396,7 +396,7 @@ namespace CoreClash.Presentation
                     Shake(now, .12f, 1.2f);
                     break;
                 case "SPORES":
-                    Push(Shape.Shock, x, y, x, y, now, .6f, 100, Theme.Status(StatusKind.Toxin), e.id);
+                    Push(Shape.Shock, x, y, x, y, now, .6f, RosterBalance.SporeRadius, Theme.Status(StatusKind.Toxin), e.id);
                     Burst(x, y, 16, Theme.Status(StatusKind.Toxin), Bubble, 50, 190, .8f, 8, -30);
                     break;
                 case "BLOOM":
