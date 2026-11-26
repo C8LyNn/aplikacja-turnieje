@@ -213,6 +213,20 @@ natywnego widgetu StreamElements. Reguły wiadomości są w
   Memphis, Lampa lava, Vaporwave (grupa „Abstrakcyjne”). Nowe drobinki: spadający kod i żarzące się iskry.
 - Testy w `chat-layout.test.tsx` (domyślny układ, pasy w obu renderach, przyklejony i skalowany podgląd, Matrix).
 
+## Zrealizowany etap 11 — 72 motywy, które naprawdę się różnią (2026-11-26)
+
+- **23 nowe motywy** we wszystkich grupach: Tablica kredowa, Plan techniczny, Gazeta; Terminal bursztynowy, Neonowe
+  miasto, Salon gier, Wyścigi; Piracki, Samuraj, Horror, Dziki Zachód; Guma balonowa, Pastel goth, Y2K, Brzoskwinia;
+  Chrom, Neonowe fale, Rytm muzyki; Pustynia, Wulkan, Dżungla; Wiosna, Karnawał. Nowe efekty: nuty, mgła, wzór
+  „kratka szachowa”.
+- **Motywy różnią się nie tylko kolorami:** każdy opisuje 12 widocznych cech (czcionka, układ wiadomości, kształt
+  dymka, ramka, drobinki, wzór, styl nicków, animacja wejścia, rodzina koloru panelu, rogi, akcent, efekt —
+  `chat-look-distance.ts`). Test wymaga, żeby każde dwa motywy różniły się co najmniej 5 cechami (średnio ok. 9).
+  Starsze motywy, które były zbyt podobne (np. Glass, Minimal, Compact, Jasny, Zima, Lato), dostały własny charakter
+  (`LOOK_TRAITS` w `chat-presets.ts`), a ich kolory zostały.
+- Na wąskim ekranie opcje, do których przewija przeglądarka (np. klawiszem Tab), zatrzymują się pod przyklejonym
+  podglądem, a nie za nim.
+
 ## Kierunek następnych etapów
 
 1. **Animacja tekstu wiadomości:** wejście znakami/słowami, maska reveal,

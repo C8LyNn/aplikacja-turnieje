@@ -58,9 +58,9 @@ export type CameraChatNamePalette = "classic" | "pastel" | "neon" | "warm" | "co
 /** Particles floating behind the messages. */
 export type CameraChatAmbient =
   | "none" | "snow" | "sparkles" | "hearts" | "bubbles" | "stars" | "confetti"
-  | "rain" | "fireflies" | "petals" | "leaves" | "pixels" | "code" | "embers";
+  | "rain" | "fireflies" | "petals" | "leaves" | "pixels" | "code" | "embers" | "music" | "fog";
 export type CameraChatNameStyle = "plain" | "glow" | "gradient" | "rainbow" | "shimmer";
-export type CameraChatPanelPattern = "none" | "dots" | "grid" | "stripes" | "carbon" | "waves" | "scanlines";
+export type CameraChatPanelPattern = "none" | "dots" | "grid" | "stripes" | "carbon" | "waves" | "scanlines" | "checker";
 export type CameraChatHeaderStyle = "none" | "bar" | "pill" | "minimal";
 export type CameraChatBubbleShape = "rounded" | "tail" | "skew" | "outline" | "underline";
 
@@ -88,9 +88,9 @@ export const CHAT_FRAME_STYLES: readonly CameraChatFrameStyle[] =
 export const CHAT_PANEL_ANIMATIONS: readonly CameraChatPanelAnimation[] = ["none", "float", "breathe", "shimmer", "intro"];
 export const CHAT_NAME_PALETTE_IDS: readonly CameraChatNamePalette[] = ["classic", "pastel", "neon", "warm", "cool"];
 export const CHAT_AMBIENTS: readonly CameraChatAmbient[] =
-  ["none", "snow", "sparkles", "hearts", "bubbles", "stars", "confetti", "rain", "fireflies", "petals", "leaves", "pixels", "code", "embers"];
+  ["none", "snow", "sparkles", "hearts", "bubbles", "stars", "confetti", "rain", "fireflies", "petals", "leaves", "pixels", "code", "embers", "music", "fog"];
 export const CHAT_NAME_STYLES: readonly CameraChatNameStyle[] = ["plain", "glow", "gradient", "rainbow", "shimmer"];
-export const CHAT_PANEL_PATTERNS: readonly CameraChatPanelPattern[] = ["none", "dots", "grid", "stripes", "carbon", "waves", "scanlines"];
+export const CHAT_PANEL_PATTERNS: readonly CameraChatPanelPattern[] = ["none", "dots", "grid", "stripes", "carbon", "waves", "scanlines", "checker"];
 export const CHAT_HEADER_STYLES: readonly CameraChatHeaderStyle[] = ["none", "bar", "pill", "minimal"];
 export const CHAT_BUBBLE_SHAPES: readonly CameraChatBubbleShape[] = ["rounded", "tail", "skew", "outline", "underline"];
 export const CHAT_TEXT_SHADOW_STYLES: readonly CameraChatTextShadow[] = ["none", "soft", "strong", "outline"];

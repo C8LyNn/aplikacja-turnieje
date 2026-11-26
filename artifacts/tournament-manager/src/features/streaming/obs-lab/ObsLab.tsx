@@ -971,6 +971,7 @@ export function ObsLab() {
               <option value="carbon">{t("obsLab.wzor_karbon")}</option>
               <option value="waves">{t("obsLab.wzor_fale")}</option>
               <option value="scanlines">{t("obsLab.wzor_linie_crt")}</option>
+              <option value="checker">{t("obsLab.wzor_szachownica")}</option>
             </ToolSelect>
           </FieldLabel>
           {config.panelPattern !== "none" && (
@@ -1057,6 +1058,8 @@ export function ObsLab() {
               <option value="pixels">{t("obsLab.piksele")}</option>
               <option value="code">{t("obsLab.kod_matrix")}</option>
               <option value="embers">{t("obsLab.zarzace_iskry")}</option>
+              <option value="music">{t("obsLab.nuty")}</option>
+              <option value="fog">{t("obsLab.mgla")}</option>
             </ToolSelect>
           </FieldLabel>
           {config.ambient !== "none" && (
@@ -1427,9 +1430,11 @@ export function ObsLab() {
           </section>
         </div>
 
-        <div className="min-w-0 lg:col-start-1 lg:row-start-1">{controls}</div>
+        {/* On narrow screens the docked preview covers the top, so focused or scrolled-to options stop below it. */}
+        <style>{"@media (max-width: 1023px) { [data-chat-controls] *, [data-chat-panels] * { scroll-margin-top: 48vh; } }"}</style>
+        <div className="min-w-0 lg:col-start-1 lg:row-start-1" data-chat-controls>{controls}</div>
 
-        <div className="mt-4 min-w-0 space-y-4 lg:col-start-1 lg:row-start-2">
+        <div className="mt-4 min-w-0 space-y-4 lg:col-start-1 lg:row-start-2" data-chat-panels>
           <ChatSetupCheck config={config} update={setConfig} />
 
           <ToolPanel title={t("obsLab.browser_source")} description={t("obsLab.gotowy_adres_zawierajacy_aktualna_konfig")}>

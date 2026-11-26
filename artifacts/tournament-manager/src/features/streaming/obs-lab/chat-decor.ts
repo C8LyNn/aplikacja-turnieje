@@ -37,6 +37,7 @@ export type AmbientParticle = {
 const CONFETTI_COLORS = ["#f472b6", "#facc15", "#34d399", "#60a5fa", "#a78bfa", "#fb923c"];
 /** Digits and half-width katakana for the code rain (fonts on Windows and macOS have them). */
 const CODE_GLYPHS = Array.from("0101ｱｲｳｴｵｶｷｸｹｺｻｼｽｾｿﾀﾁﾂﾃﾄﾅﾆﾇﾈﾉﾊﾋﾌﾍﾎ");
+const MUSIC_GLYPHS = ["\u266a", "\u266b", "\u2669", "\u266c"];
 const LEAF_COLORS = ["#f59e0b", "#ea580c", "#dc2626", "#ca8a04", "#b45309"];
 
 /** Small deterministic generator (mulberry32): the same particles in every renderer and on every reload. */
@@ -127,6 +128,14 @@ export function chatAmbientParticles(config: Pick<CameraChatConfig, "ambient" | 
         const time = duration(4, 8);
         return { className: "chat-amb chat-amb-dot", text: "", style: { left, top: "105%", width: size, height: size, background: config.ambientColor, boxShadow: `0 0 6px 1px ${config.ambientColor}`, animation: `chat-amb-ember ${time}s ease-out ${-round(between(0, time))}s infinite` } };
       }
+      case "music": {
+        const time = duration(6, 11);
+        return { className: "chat-amb", text: MUSIC_GLYPHS[index % MUSIC_GLYPHS.length]!, style: { left, top: "105%", fontSize: `${round(between(12, 18))}px`, color: config.ambientColor, animation: `chat-amb-rise ${time}s ease-in ${-round(between(0, time))}s infinite` } };
+      }
+      case "fog": {
+        const time = duration(14, 26);
+        return { className: "chat-amb chat-amb-fog", text: "", style: { left: `${round(between(-20, 70))}%`, top: `${round(between(5, 85))}%`, width: `${Math.round(between(90, 160))}px`, height: `${Math.round(between(30, 60))}px`, background: `radial-gradient(closest-side, ${config.ambientColor}, transparent)`, animation: `chat-amb-fog ${time}s ease-in-out ${-round(between(0, time))}s infinite alternate` } };
+      }
       case "pixels": {
         const size = `${Math.round(between(4, 7))}px`;
         const time = duration(6, 10);
@@ -187,6 +196,8 @@ export function getChatDecorCss(config: CameraChatConfig, panel: string, row: st
       ".chat-amb-leaf { border-radius: 0 80% 0 80%; }",
       ".chat-amb-code { white-space: pre; font-family: Consolas, \"Courier New\", monospace; font-weight: 700; line-height: 1.05; opacity: .75; text-shadow: 0 0 6px currentColor; }",
       "@keyframes chat-amb-code { from { top: -40%; } to { top: 110%; } }",
+      ".chat-amb-fog { border-radius: 50%; filter: blur(6px); }",
+      "@keyframes chat-amb-fog { from { transform: translateX(-30px); opacity: .15; } to { transform: translateX(40px); opacity: .4; } }",
       "@keyframes chat-amb-ember { 0% { top: 105%; opacity: 0; transform: translateX(0); } 15% { opacity: 1; } 60% { transform: translateX(10px); } 100% { top: -5%; opacity: 0; transform: translateX(-8px); } }",
       "@keyframes chat-amb-rain { from { top: -12%; transform: translateX(0) rotate(12deg); } to { top: 108%; transform: translateX(-14px) rotate(12deg); } }",
       "@keyframes chat-amb-wander { 0%, 100% { transform: translate(0, 0); opacity: .2; } 25% { transform: translate(14px, -10px); opacity: 1; } 50% { transform: translate(-6px, -20px); opacity: .4; } 75% { transform: translate(-14px, -6px); opacity: .9; } }",
@@ -321,6 +332,7 @@ export function chatPatternBackground(pattern: CameraChatPanelPattern, color: st
     case "carbon": return `repeating-linear-gradient(45deg, ${color} 0 3px, transparent 3px 6px), repeating-linear-gradient(-45deg, ${color} 0 3px, transparent 3px 6px)`;
     case "waves": return `radial-gradient(circle at 50% 100%, transparent 8px, ${color} 9px, ${color} 10px, transparent 11px) 0 0 / 24px 12px`;
     case "scanlines": return `repeating-linear-gradient(0deg, ${color} 0 1px, transparent 1px 4px)`;
+    case "checker": return `conic-gradient(${color} 25%, transparent 0 50%, ${color} 0 75%, transparent 0) 0 0 / 16px 16px`;
     case "none": return "none";
   }
 }

@@ -1,4 +1,4 @@
-// Themes and look gadgets: 49 looks in seven groups, all readable; new colour sets, particles, entry motions, nick
+// Themes and look gadgets: 72 looks in seven groups, all readable; new colour sets, particles, entry motions, nick
 // styles and panel patterns reach both renderers; message combos count the same in the OBS page and the native
 // StreamElements widget; the pickers filter looks by group.
 import assert from "node:assert/strict";
@@ -34,6 +34,7 @@ import {
   chatPresetsIn,
 } from "./chat-presets";
 import { checkChatSetup } from "./chat-setup-check";
+import { chatLookDistance, chatLookTraits, chatPanelTone } from "./chat-look-distance";
 import { buildChatRows, chatComboKey } from "./chat-message-format";
 
 afterEach(() => { cleanup(); localStorage.clear(); window.history.replaceState({}, "", "/"); });
@@ -75,11 +76,11 @@ function rowsOf(root: ParentNode, rowClass: string, textClass: string) {
   }));
 }
 
-test("49 looks in seven groups, each a valid address and readable by the settings check", () => {
-  assert.equal(CHAT_PRESET_IDS.length, 49);
+test("72 looks in seven groups, each a valid address and readable by the settings check", () => {
+  assert.equal(CHAT_PRESET_IDS.length, 72);
   const grouped = CHAT_PRESET_CATEGORY_IDS.flatMap((category) => [...CHAT_PRESET_CATEGORIES[category]]);
   assert.deepEqual([...grouped].sort(), [...CHAT_PRESET_IDS].sort(), "every look is in exactly one group");
-  assert.equal(chatPresetsIn("all").length, 49);
+  assert.equal(chatPresetsIn("all").length, 72);
   const unreadable: string[] = [];
   for (const preset of CHAT_PRESET_IDS) {
     const config = { ...chatPresetConfig(preset), ignoredUsers: "bot" };
@@ -203,7 +204,7 @@ test("the pickers filter looks by group; a seasonal look and the combo extra app
   fireEvent.click(view.getByText("Camera + Chat Overlay"));
   const stored = () => cameraChatConfigFromSearch(localStorage.getItem("tm_obs_camera_chat_config") ?? "");
   const quickPresets = () => view.container.querySelectorAll("[data-testid^='quick-preset-']").length;
-  assert.equal(quickPresets(), 49);
+  assert.equal(quickPresets(), 72);
   act(() => { fireEvent.click(view.getByTestId("preset-category-seasonal")); });
   assert.equal(quickPresets(), CHAT_PRESET_CATEGORIES.seasonal.length);
   act(() => { fireEvent.click(view.getByTestId("quick-preset-autumn")); });
@@ -221,4 +222,22 @@ test("the pickers filter looks by group; a seasonal look and the combo extra app
   act(() => { fireEvent.click(view.getByTestId("chat-preset-cyberpunk")); });
   assert.deepEqual([stored().nameStyle, stored().panelPattern, stored().animationStyle], ["glow", "grid", "glitch"]);
   assert.ok(view.container.querySelector(".chat-pattern"));
+});
+
+test("every two looks differ in at least five of twelve visible traits, not only in colour", () => {
+  const close: string[] = [];
+  let total = 0;
+  let pairs = 0;
+  for (let i = 0; i < CHAT_PRESET_IDS.length; i++) {
+    for (let j = i + 1; j < CHAT_PRESET_IDS.length; j++) {
+      const distance = chatLookDistance(chatPresetConfig(CHAT_PRESET_IDS[i]!), chatPresetConfig(CHAT_PRESET_IDS[j]!));
+      total += distance;
+      pairs += 1;
+      if (distance < 5) close.push(`${CHAT_PRESET_IDS[i]} ~ ${CHAT_PRESET_IDS[j]}: ${distance}`);
+    }
+  }
+  assert.deepEqual(close, []);
+  assert.ok(total / pairs >= 8, `on average looks differ in ${(total / pairs).toFixed(1)} traits`);
+  assert.equal(Object.keys(chatLookTraits(DEFAULT_CAMERA_CHAT_CONFIG)).length, 12);
+  assert.deepEqual([chatPanelTone("#fdf6e3"), chatPanelTone("#0a0a0a"), chatPanelTone("#7f1d1d")], ["light", "neutral", "hue-0"]);
 });

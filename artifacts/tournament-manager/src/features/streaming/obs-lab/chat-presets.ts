@@ -8,7 +8,8 @@ export type ChatPresetId =
   | "paper" | "noir" | "gold" | "cyberpunk" | "synthwave" | "retro" | "fps" | "kawaii" | "candy" | "mint" | "coffee"
   | "ocean" | "forest" | "space" | "sunset" | "sakura" | "autumn" | "newyear" | "easter" | "summer"
   | "matrix" | "fantasy" | "steampunk" | "gothic" | "dragon" | "princess" | "cottoncandy" | "lilac" | "unicorn"
-  | "aurora" | "hologram" | "memphis" | "lavalamp" | "vaporwave";
+  | "aurora" | "hologram" | "memphis" | "lavalamp" | "vaporwave"
+  | "chalkboard" | "blueprint" | "newspaper" | "amberterm" | "neontokyo" | "arcade" | "racing" | "pirate" | "samurai" | "horror" | "western" | "bubblegum" | "pastelgoth" | "y2k" | "peach" | "chrome" | "neonwaves" | "music" | "desert" | "volcano" | "jungle" | "spring" | "carnival";
 
 export const CHAT_PRESET_IDS: readonly ChatPresetId[] =
   ["glass", "minimal", "compact", "neon", "classic", "bubbles", "light", "clear", "terminal", "esport", "rainbow",
@@ -16,19 +17,20 @@ export const CHAT_PRESET_IDS: readonly ChatPresetId[] =
     "paper", "noir", "gold", "cyberpunk", "synthwave", "retro", "fps", "kawaii", "candy", "mint", "coffee",
     "ocean", "forest", "space", "sunset", "sakura", "autumn", "newyear", "easter", "summer",
     "matrix", "fantasy", "steampunk", "gothic", "dragon", "princess", "cottoncandy", "lilac", "unicorn",
-    "aurora", "hologram", "memphis", "lavalamp", "vaporwave"];
+    "aurora", "hologram", "memphis", "lavalamp", "vaporwave",
+    "chalkboard", "blueprint", "newspaper", "amberterm", "neontokyo", "arcade", "racing", "pirate", "samurai", "horror", "western", "bubblegum", "pastelgoth", "y2k", "peach", "chrome", "neonwaves", "music", "desert", "volcano", "jungle", "spring", "carnival"];
 
 export type ChatPresetCategory = "classic" | "neon" | "fantasy" | "cute" | "abstract" | "nature" | "seasonal";
 
 /** Looks grouped for the pickers; every look is in exactly one group. */
 export const CHAT_PRESET_CATEGORIES: Record<ChatPresetCategory, readonly ChatPresetId[]> = {
-  classic: ["glass", "minimal", "compact", "classic", "light", "clear", "paper", "noir", "gold"],
-  neon: ["neon", "esport", "rainbow", "terminal", "cyberpunk", "synthwave", "retro", "fps", "matrix"],
-  fantasy: ["fantasy", "steampunk", "gothic", "dragon"],
-  cute: ["bubbles", "kawaii", "candy", "mint", "coffee", "princess", "cottoncandy", "lilac", "unicorn"],
-  abstract: ["aurora", "hologram", "memphis", "lavalamp", "vaporwave"],
-  nature: ["ocean", "forest", "space", "sunset", "sakura"],
-  seasonal: ["winter", "christmas", "halloween", "valentine", "autumn", "newyear", "easter", "summer"],
+  classic: ["glass", "minimal", "compact", "classic", "light", "clear", "paper", "noir", "gold", "chalkboard", "blueprint", "newspaper"],
+  neon: ["neon", "esport", "rainbow", "terminal", "cyberpunk", "synthwave", "retro", "fps", "matrix", "amberterm", "neontokyo", "arcade", "racing"],
+  fantasy: ["fantasy", "steampunk", "gothic", "dragon", "pirate", "samurai", "horror", "western"],
+  cute: ["bubbles", "kawaii", "candy", "mint", "coffee", "princess", "cottoncandy", "lilac", "unicorn", "bubblegum", "pastelgoth", "y2k", "peach"],
+  abstract: ["aurora", "hologram", "memphis", "lavalamp", "vaporwave", "chrome", "neonwaves", "music"],
+  nature: ["ocean", "forest", "space", "sunset", "sakura", "desert", "volcano", "jungle"],
+  seasonal: ["winter", "christmas", "halloween", "valentine", "autumn", "newyear", "easter", "summer", "spring", "carnival"],
 };
 
 export const CHAT_PRESET_CATEGORY_IDS = Object.keys(CHAT_PRESET_CATEGORIES) as ChatPresetCategory[];
@@ -101,10 +103,75 @@ export function chatPresetLabel(id: ChatPresetId): string {
     case "memphis": return t("obsLab.motyw_memphis");
     case "lavalamp": return t("obsLab.motyw_lampa_lava");
     case "vaporwave": return t("obsLab.motyw_vaporwave");
+    case "chalkboard": return t("obsLab.motyw_tablica");
+    case "blueprint": return t("obsLab.motyw_plan");
+    case "newspaper": return t("obsLab.motyw_gazeta");
+    case "amberterm": return t("obsLab.motyw_bursztyn");
+    case "neontokyo": return t("obsLab.motyw_neonowe_miasto");
+    case "arcade": return t("obsLab.motyw_salon_gier");
+    case "racing": return t("obsLab.motyw_wyscigi");
+    case "pirate": return t("obsLab.motyw_piracki");
+    case "samurai": return t("obsLab.motyw_samuraj");
+    case "horror": return t("obsLab.motyw_horror");
+    case "western": return t("obsLab.motyw_dziki_zachod");
+    case "bubblegum": return t("obsLab.motyw_guma_balonowa");
+    case "pastelgoth": return t("obsLab.motyw_pastel_goth");
+    case "y2k": return t("obsLab.motyw_y2k");
+    case "peach": return t("obsLab.motyw_brzoskwinia");
+    case "chrome": return t("obsLab.motyw_chrom");
+    case "neonwaves": return t("obsLab.motyw_neonowe_fale");
+    case "music": return t("obsLab.motyw_muzyka");
+    case "desert": return t("obsLab.motyw_pustynia");
+    case "volcano": return t("obsLab.motyw_wulkan");
+    case "jungle": return t("obsLab.motyw_dzungla");
+    case "spring": return t("obsLab.motyw_wiosna");
+    case "carnival": return t("obsLab.motyw_karnawal");
   }
 }
 
+/**
+ * What sets each look apart beyond its colours (font, message layout, bubble shape, motion, nick style). Applied on
+ * top of the base looks, so no two looks are mere recolours of each other (see chat-look-distance.ts).
+ */
+const LOOK_TRAITS: Partial<Record<ChatPresetId, Partial<CameraChatConfig>>> = {
+  glass: { fontFamily: "calibri", messageLayout: "stacked", frameStyle: "solid", frameColor: "#ffffff", frameWidth: 1, animationStyle: "fade" },
+  minimal: { fontFamily: "arial", bubbleShape: "underline", animationStyle: "fade" },
+  compact: { fontFamily: "tahoma", accentBar: true, animationStyle: "slide", nameUppercase: true },
+  classic: { messageLayout: "stacked", accentBar: true },
+  light: { fontFamily: "verdana", messageLayout: "stacked", showAvatars: true },
+  clear: { fontFamily: "arialblack", animationStyle: "pop", nameUppercase: true, radius: 4, messageLayout: "stacked", nameStyle: "glow" },
+  rainbow: { messageLayout: "bubble", bubbleShape: "skew", fontFamily: "trebuchet" },
+  winter: { messageLayout: "stacked", fontFamily: "georgia", nameStyle: "glow", textReveal: "words" },
+  summer: { messageLayout: "stacked", bubbleShape: "skew", fontFamily: "verdana", nameStyle: "gradient", animationStyle: "drop" },
+  easter: { messageLayout: "stacked", bubbleShape: "outline", fontFamily: "segoeprint", animationStyle: "swing" },
+  sakura: { messageLayout: "stacked", bubbleShape: "underline", messageBackground: false, fontFamily: "cambria", nameStyle: "shimmer" },
+  lilac: { messageLayout: "bubble", bubbleShape: "tail", fontFamily: "lucida", nameStyle: "shimmer", animationStyle: "fade" },
+  lavalamp: { messageLayout: "bubble", bubbleShape: "skew", fontFamily: "tahoma", nameStyle: "gradient" },
+  unicorn: { messageLayout: "bubble", bubbleShape: "tail", fontFamily: "segoeprint", showAvatars: true },
+  candy: { messageLayout: "stacked", fontFamily: "comic", bubbleShape: "skew" },
+  ocean: { fontFamily: "verdana", messageLayout: "bubble", nameStyle: "glow" },
+  forest: { fontFamily: "palatino", messageLayout: "stacked", messageBackground: false, bubbleShape: "underline", textReveal: "words" },
+  halloween: { fontFamily: "impact", messageLayout: "stacked", bubbleShape: "skew" },
+  autumn: { fontFamily: "georgia", messageLayout: "bubble", bubbleShape: "tail" },
+  valentine: { fontFamily: "trebuchet", messageLayout: "stacked", nameStyle: "glow" },
+  synthwave: { fontFamily: "trebuchet", messageLayout: "bubble" },
+  aurora: { fontFamily: "verdana", messageLayout: "stacked" },
+  chrome: { messageLayout: "stacked", animationStyle: "wipe", bubbleShape: "outline" },
+  y2k: { messageLayout: "bubble", bubbleShape: "outline", animationStyle: "pop" },
+  fantasy: { messageLayout: "stacked", animationStyle: "flip" },
+  cottoncandy: { messageLayout: "stacked", bubbleShape: "tail", fontFamily: "segoe", animationStyle: "zoom", nameUppercase: true },
+  noir: { messageLayout: "stacked", bubbleShape: "underline", animationStyle: "wipe" },
+  paper: { animationStyle: "pop", accentBar: true },
+  mint: { messageLayout: "bubble", bubbleShape: "tail", fontFamily: "tahoma" },
+  coffee: { messageLayout: "bubble", bubbleShape: "tail", fontFamily: "palatino" },
+  racing: { messageLayout: "inline", fontFamily: "impact", frameStyle: "solid", panelPattern: "stripes", animationStyle: "zoom" },
+};
+
 export function chatPresetConfig(id: ChatPresetId): CameraChatConfig {
+  return { ...basePresetConfig(id), ...LOOK_TRAITS[id] };
+}
+
+function basePresetConfig(id: ChatPresetId): CameraChatConfig {
   const base = DEFAULT_CAMERA_CHAT_CONFIG;
   switch (id) {
     case "glass":
@@ -667,6 +734,214 @@ export function chatPresetConfig(id: ChatPresetId): CameraChatConfig {
         showBorders: false, bubbleColor: "#f0abfc", bubbleOpacity: 8, readableNames: true, namePalette: "neon",
         nameStyle: "gradient", fontFamily: "trebuchet", frameStyle: "gradient", frameColor: "#f0abfc", frameColor2: "#67e8f9",
         frameWidth: 2, panelPattern: "grid", patternColor: "#f0abfc", patternOpacity: 12, animationStyle: "slide",
+      };
+    // Classic
+    case "chalkboard":
+      return {
+        ...base,
+        panelColor: "#1f3a2e", panelOpacity: 95, radius: 8, showBorders: false, messageBackground: false,
+        textColor: "#f1f5f9", textShadow: "soft", fontFamily: "segoeprint", messageLayout: "stacked",
+        namePalette: "pastel", readableNames: true, frameStyle: "solid", frameColor: "#8b5e3c", frameWidth: 6,
+        animationStyle: "fade", textReveal: "typewriter",
+      };
+    case "blueprint":
+      return {
+        ...base,
+        panelColor: "#0b3d91", panelOpacity: 93, radius: 2, showBorders: false, messageBackground: false,
+        textColor: "#e0f2fe", fontFamily: "courier", nameColorMode: "single", nameColor: "#ffffff", nameUppercase: true,
+        frameStyle: "dashes", frameColor: "#bfdbfe", frameWidth: 1, panelPattern: "grid", patternColor: "#bfdbfe",
+        patternOpacity: 18, animationStyle: "wipe", density: "compact",
+      };
+    case "newspaper":
+      return {
+        ...base,
+        panelColor: "#f5f1e6", panelOpacity: 96, radius: 0, showBorders: false, messageBackground: false,
+        bubbleShape: "underline", textColor: "#111111", textOpacity: 100, textShadow: "none", fontFamily: "times",
+        messageLayout: "stacked", nameColorMode: "single", nameColor: "#7f1d1d", nameUppercase: true,
+        frameStyle: "solid", frameColor: "#111111", frameWidth: 2, animationStyle: "drop", density: "relaxed",
+      };
+    // Neon and games
+    case "amberterm":
+      return {
+        ...base,
+        panelColor: "#0a0700", panelOpacity: 93, radius: 3, showBorders: false, messageBackground: false,
+        bubbleShape: "outline", fontFamily: "mono", textColor: "#fbbf24", messageLayout: "stacked",
+        nameColorMode: "single", nameColor: "#f59e0b", nameUppercase: true,
+        frameStyle: "corners", frameColor: "#f59e0b", frameWidth: 2, panelPattern: "scanlines", patternColor: "#f59e0b",
+        patternOpacity: 7, animationStyle: "drop", textReveal: "words",
+      };
+    case "neontokyo":
+      return {
+        ...base,
+        panelColor: "#0d0221", panelGradient: true, panelColor2: "#26014a", panelOpacity: 86, radius: 12,
+        showBorders: false, bubbleColor: "#ff2a6d", bubbleOpacity: 10, bubbleShape: "skew", messageLayout: "bubble",
+        fontFamily: "verdana", readableNames: true, namePalette: "neon", nameStyle: "glow", accentBar: true,
+        frameStyle: "flow", frameColor: "#ff2a6d", frameColor2: "#05d9e8", frameWidth: 2,
+        ambient: "rain", ambientDensity: 22, ambientColor: "#05d9e8", animationStyle: "slide",
+      };
+    case "arcade":
+      return {
+        ...base,
+        panelColor: "#05050f", panelOpacity: 93, radius: 0, bubbleRadius: 0, showBorders: false, bubbleOpacity: 6,
+        bubbleColor: "#facc15", bubbleShape: "outline", fontFamily: "arialblack", nameUppercase: true,
+        namePalette: "neon", readableNames: true, nameStyle: "gradient", newMessageEffect: "flash",
+        frameStyle: "rainbow", frameWidth: 3, frameSpeed: 3, panelPattern: "checker", patternOpacity: 4,
+        ambient: "pixels", ambientDensity: 12, ambientColor: "#facc15", animationStyle: "bounce",
+      };
+    case "racing":
+      return {
+        ...base,
+        panelColor: "#111111", panelOpacity: 88, radius: 4, showBorders: false, bubbleColor: "#ef4444", bubbleOpacity: 9,
+        bubbleShape: "skew", accentBar: true, readableNames: true, nameUppercase: true, fontFamily: "franklin",
+        messageLayout: "stacked", newMessageEffect: "shine", frameStyle: "corners", frameColor: "#facc15", frameWidth: 3,
+        panelPattern: "carbon", patternOpacity: 6, animationStyle: "slide", density: "compact",
+      };
+    // Fantasy
+    case "pirate":
+      return {
+        ...base,
+        panelColor: "#06253a", panelGradient: true, panelColor2: "#0b3b5c", panelOpacity: 88, radius: 12,
+        showBorders: false, textColor: "#fdf6e3", bubbleColor: "#d4a373", bubbleOpacity: 12, bubbleShape: "tail",
+        messageLayout: "bubble", fontFamily: "georgia", namePalette: "warm", readableNames: true,
+        frameStyle: "solid", frameColor: "#b08d57", frameWidth: 3, panelPattern: "waves", patternColor: "#7dd3fc",
+        patternOpacity: 8, animationStyle: "swing",
+      };
+    case "samurai":
+      return {
+        ...base,
+        panelColor: "#0c0a09", panelGradient: true, panelColor2: "#3f0d12", panelOpacity: 90, radius: 2,
+        showBorders: false, messageBackground: false, bubbleShape: "underline", textColor: "#f5f5f4",
+        fontFamily: "cambria", nameColorMode: "single", nameColor: "#ef4444", accentBar: true,
+        frameStyle: "solid", frameColor: "#dc2626", frameWidth: 2, ambient: "petals", ambientDensity: 10,
+        ambientColor: "#fecdd3", animationStyle: "wipe", textReveal: "words",
+      };
+    case "horror":
+      return {
+        ...base,
+        panelColor: "#050805", panelGradient: true, panelColor2: "#14140a", panelOpacity: 92, radius: 4,
+        showBorders: false, messageBackground: false, textColor: "#d6d3d1", textShadow: "strong", fontFamily: "lucida",
+        messageLayout: "stacked", nameColorMode: "single", nameColor: "#dc2626", nameStyle: "glow",
+        frameStyle: "pulse", frameColor: "#7f1d1d", frameColor2: "#14532d", frameWidth: 2,
+        ambient: "fog", ambientDensity: 8, ambientColor: "#a3e635", animationStyle: "glitch", textReveal: "words",
+      };
+    case "western":
+      return {
+        ...base,
+        panelColor: "#2b1b0e", panelGradient: true, panelColor2: "#5c3a1e", panelOpacity: 90, radius: 8,
+        showBorders: false, textColor: "#fde9c9", bubbleColor: "#e9c46a", bubbleOpacity: 10, bubbleShape: "skew",
+        fontFamily: "cambria", namePalette: "warm", readableNames: true, nameUppercase: true, showAvatars: true,
+        frameStyle: "solid", frameColor: "#a0522d", frameWidth: 4, panelPattern: "stripes", patternColor: "#e9c46a",
+        patternOpacity: 6, ambient: "fog", ambientDensity: 6, ambientColor: "#e9c46a", animationStyle: "drop",
+      };
+    // Cute and girly
+    case "bubblegum":
+      return {
+        ...base,
+        panelColor: "#4a0d3a", panelGradient: true, panelColor2: "#1e3a8a", panelOpacity: 86, radius: 26,
+        showBorders: false, bubbleColor: "#f9a8d4", bubbleOpacity: 14, bubbleRadius: 20, bubbleShape: "tail",
+        messageLayout: "bubble", fontFamily: "comic", readableNames: true, namePalette: "pastel", showAvatars: true,
+        newMessageEffect: "pulse", frameStyle: "glow", frameColor: "#f472b6", frameWidth: 3,
+        ambient: "bubbles", ambientDensity: 14, ambientColor: "#f9a8d4", animationStyle: "bounce",
+      };
+    case "pastelgoth":
+      return {
+        ...base,
+        panelColor: "#0b0b10", panelOpacity: 90, radius: 16, showBorders: false, messageBackground: false,
+        bubbleShape: "outline", textColor: "#f5f3ff", messageLayout: "stacked", namePalette: "pastel", readableNames: true,
+        nameStyle: "glow", fontFamily: "trebuchet", frameStyle: "dashes", frameColor: "#f9a8d4", frameWidth: 2,
+        panelPattern: "dots", patternColor: "#c4b5fd", patternOpacity: 10, ambient: "stars", ambientDensity: 10,
+        ambientColor: "#f9a8d4", animationStyle: "fade",
+      };
+    case "y2k":
+      return {
+        ...base,
+        panelColor: "#1e1b4b", panelGradient: true, panelColor2: "#0f766e", panelOpacity: 84, radius: 18,
+        showBorders: false, bubbleColor: "#e0e7ff", bubbleOpacity: 10, readableNames: true, namePalette: "neon",
+        nameStyle: "shimmer", fontFamily: "verdana", newMessageEffect: "shine", density: "relaxed",
+        frameStyle: "gradient", frameColor: "#c0c0c0", frameColor2: "#f0abfc", frameWidth: 3,
+        ambient: "sparkles", ambientDensity: 12, ambientColor: "#e0e7ff", animationStyle: "zoom",
+      };
+    case "peach":
+      return {
+        ...base,
+        panelColor: "#fff1e6", panelOpacity: 95, radius: 20, showBorders: false, textColor: "#7c2d12", textOpacity: 100,
+        textShadow: "none", bubbleColor: "#fdba74", bubbleOpacity: 24, bubbleRadius: 16, messageLayout: "bubble",
+        fontFamily: "calibri", nameColorMode: "single", nameColor: "#c2410c", showAvatars: true,
+        frameStyle: "glow", frameColor: "#fb923c", frameWidth: 2, ambient: "petals", ambientDensity: 8,
+        ambientColor: "#fdba74", animationStyle: "pop",
+      };
+    // Abstract
+    case "chrome":
+      return {
+        ...base,
+        panelColor: "#18181b", panelGradient: true, panelColor2: "#3f3f46", panelOpacity: 88, radius: 14,
+        showBorders: false, messageBackground: false, nameColorMode: "single", nameColor: "#e4e4e7",
+        nameStyle: "shimmer", fontFamily: "segoe", accentBar: true, panelAnimation: "shimmer",
+        frameStyle: "gradient", frameColor: "#f4f4f5", frameColor2: "#71717a", frameWidth: 2, animationStyle: "zoom",
+      };
+    case "neonwaves":
+      return {
+        ...base,
+        panelColor: "#020617", panelOpacity: 88, radius: 18, showBorders: false, bubbleColor: "#22d3ee", bubbleOpacity: 6,
+        messageLayout: "stacked", readableNames: true, namePalette: "neon", nameStyle: "gradient", fontFamily: "tahoma",
+        newMessageEffect: "glow", frameStyle: "flow", frameColor: "#22d3ee", frameColor2: "#e879f9", frameWidth: 2,
+        panelPattern: "waves", patternColor: "#e879f9", patternOpacity: 14, panelAnimation: "float", animationStyle: "swing",
+      };
+    case "music":
+      return {
+        ...base,
+        panelColor: "#120a24", panelGradient: true, panelColor2: "#0a1a2e", panelOpacity: 88, radius: 18,
+        showBorders: false, bubbleColor: "#a78bfa", bubbleOpacity: 10, messageLayout: "bubble", bubbleShape: "tail",
+        readableNames: true, namePalette: "neon", fontFamily: "segoe", newMessageEffect: "pulse",
+        frameStyle: "pulse", frameColor: "#a78bfa", frameColor2: "#22d3ee", frameWidth: 2,
+        ambient: "music", ambientDensity: 12, ambientColor: "#c4b5fd", animationStyle: "bounce",
+      };
+    // Nature
+    case "desert":
+      return {
+        ...base,
+        panelColor: "#3b2412", panelGradient: true, panelColor2: "#7c4a1e", panelOpacity: 88, radius: 14,
+        showBorders: false, messageBackground: false, bubbleShape: "underline", textColor: "#fff7ed",
+        namePalette: "warm", readableNames: true, fontFamily: "palatino", frameStyle: "solid", frameColor: "#d97706",
+        frameWidth: 2, panelPattern: "stripes", patternColor: "#fcd34d", patternOpacity: 5,
+        ambient: "fog", ambientDensity: 6, ambientColor: "#fcd34d", animationStyle: "slide",
+      };
+    case "volcano":
+      return {
+        ...base,
+        panelColor: "#1a0500", panelGradient: true, panelColor2: "#4a0d00", panelOpacity: 90, radius: 10,
+        showBorders: false, bubbleColor: "#f97316", bubbleOpacity: 9, bubbleShape: "skew", messageLayout: "stacked",
+        namePalette: "warm", readableNames: true, nameStyle: "glow", nameUppercase: true, accentBar: true,
+        fontFamily: "bahnschrift", newMessageEffect: "flash", frameStyle: "pulse", frameColor: "#ef4444",
+        frameColor2: "#f97316", frameWidth: 3, ambient: "embers", ambientDensity: 20, ambientColor: "#fb923c",
+        animationStyle: "drop",
+      };
+    case "jungle":
+      return {
+        ...base,
+        panelColor: "#052e16", panelGradient: true, panelColor2: "#14532d", panelOpacity: 88, radius: 22,
+        showBorders: false, textColor: "#f0fdf4", bubbleColor: "#86efac", bubbleOpacity: 10, bubbleShape: "tail",
+        messageLayout: "bubble", namePalette: "warm", readableNames: true, showAvatars: true, fontFamily: "trebuchet",
+        frameStyle: "glow", frameColor: "#22c55e", frameWidth: 2, ambient: "fireflies", ambientDensity: 14,
+        ambientColor: "#bef264", animationStyle: "swing",
+      };
+    // Seasons
+    case "spring":
+      return {
+        ...base,
+        panelColor: "#052e2b", panelGradient: true, panelColor2: "#14532d", panelOpacity: 84, radius: 20,
+        showBorders: false, bubbleColor: "#bbf7d0", bubbleOpacity: 8, namePalette: "pastel", readableNames: true,
+        nameStyle: "gradient", fontFamily: "calibri", textReveal: "words", frameStyle: "glow", frameColor: "#86efac",
+        frameWidth: 2, panelPattern: "dots", patternColor: "#bbf7d0", patternOpacity: 8,
+        ambient: "petals", ambientDensity: 12, ambientColor: "#fbcfe8", animationStyle: "rise",
+      };
+    case "carnival":
+      return {
+        ...base,
+        panelColor: "#2e1065", panelGradient: true, panelColor2: "#831843", panelOpacity: 86, radius: 12,
+        showBorders: false, bubbleColor: "#fde047", bubbleOpacity: 10, bubbleShape: "skew", messageLayout: "bubble",
+        namePalette: "neon", readableNames: true, nameStyle: "rainbow", fontFamily: "arialblack", newMessageEffect: "flash",
+        frameStyle: "rainbow", frameWidth: 3, ambient: "confetti", ambientDensity: 16, animationStyle: "flip",
       };
   }
 }
