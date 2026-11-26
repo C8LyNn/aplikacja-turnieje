@@ -2882,9 +2882,19 @@ Team 8</textarea>
     trail1.style.opacity="0";trail2.style.opacity="0";
   }
 
-  function targetRotation(index,direction=1,turns=6){
+  // Where in the winning segment the pointer comes to rest. Always the exact centre made the
+  // last ~2 s of every spin a crawl with no suspense; now it can stop anywhere between 8% and
+  // 92% of the segment, sometimes right by a boundary. Visual only: the winner is already fixed,
+  // and Math.random keeps the seeded result order untouched.
+  function landingAngle(index){
     const step=360/teams.length;
-    const center=index*step+step/2;
+    if(teams.length<2)return index*step+step/2;
+    return index*step+step*(.08+.84*Math.random());
+  }
+
+  function targetRotation(index,direction=1,turns=6,landing=null){
+    const step=360/teams.length;
+    const center=landing===null?index*step+step/2:landing;
     const current=mod360(rotation);
     const wanted=mod360(360-center);
 
@@ -3084,18 +3094,29 @@ Team 8</textarea>
     if(bucket!==lastTickBucket){lastTickBucket=bucket;feedbackTick()}
   }
 
-  function animateWheel(to,duration,done){
+  function animateWheel(to,duration,done,rampMs=0){
     if(raf)cancelAnimationFrame(raf);
     const from=rotation,start=performance.now();
+    // Optional launch: for rampMs the speed rises from 0 (∝ sin), then the motion profile takes
+    // over at exactly that speed. The end point is unchanged; the spin lasts rampMs longer.
+    const deriv0=rampMs>0?Math.max(1,(progressAt(.002)-progressAt(0))/.002):0;
+    const mainAngle=(to-from)/(1+(rampMs>0?(2/Math.PI)*deriv0*rampMs/duration:0));
+    const rampAngle=(to-from)-mainAngle;
+    const totalMs=duration+rampMs;
     lastFrameTime=start;lastFrameAngle=from;lastTickBucket=null;
     clearSpeedChart();
     spinning=true;wheelWrap.classList.add("spinning");
     startTensionTone();
 
     function frame(now){
-      const raw=Math.min((now-start)/duration,1);
-      const p=progressAt(raw);
-      const v=from+(to-from)*p;
+      // A rAF timestamp can be a little earlier than performance.now() taken at the call.
+      const elapsed=Math.max(0,now-start);
+      let v;
+      if(rampMs>0&&elapsed<rampMs){
+        v=from+rampAngle*(1-Math.cos(elapsed/rampMs*Math.PI/2));
+      }else{
+        v=from+rampAngle+mainAngle*progressAt(Math.min((elapsed-rampMs)/duration,1));
+      }
       const dt=Math.max(now-lastFrameTime,1);
       liveDegPerSec=(v-lastFrameAngle)/dt*1000;
       const phys=getPhysics();
@@ -3111,7 +3132,7 @@ Team 8</textarea>
 
       lastFrameTime=now;lastFrameAngle=v;
 
-      if(raw<1)raf=requestAnimationFrame(frame);
+      if(elapsed<totalMs)raf=requestAnimationFrame(frame);
       else{
         rotation=to;setWheelAngle(to);liveDegPerSec=0;raf=null;
         wheelWrap.classList.remove("spinning");stopTensionTone();
@@ -3467,7 +3488,7 @@ Team 8</textarea>
     const teamsBefore=[...teams];
     const i=secureIndex(teams.length);targetWinnerIndex=i;
     const turns=computeTurnsForButton();
-    const target=targetRotation(i,1,turns);
+    const target=targetRotation(i,1,turns,landingAngle(i));
     const inertia=fx.inertia.enabled?fx.inertia.intensity/100:.55;
     const friction=fx.friction.enabled?fx.friction.intensity/100:.45;
     const p=getPhysics();
@@ -3477,8 +3498,11 @@ Team 8</textarea>
         (2600+3000*inertia+1300*(1-friction))*p.mass*(1+.45*p.drag)*(1+.35*p.brake)*speedScale
       ));
 
-    pendingReplay={teamsBefore,winnerIndex:i,fromRotation:startRotation,target,duration,team:teams[i]};
-    animateWheel(target,duration,()=>finishWinner(i));
+    // From rest the wheel speeds up for a moment instead of jumping straight to full speed.
+    const rampMs=matchMedia("(prefers-reduced-motion: reduce)").matches?0:Math.round(Math.max(160,420*speedScale));
+
+    pendingReplay={teamsBefore,winnerIndex:i,fromRotation:startRotation,target,duration:duration+rampMs,team:teams[i]};
+    animateWheel(target,duration,()=>finishWinner(i),rampMs);
   }
 
   function pointerAngle(e){
@@ -3553,11 +3577,11 @@ Team 8</textarea>
     // first (up to 26), and a 1000°/s throw jumped to ~10 000°/s the moment it was released.
     const deriv0=Math.max(1,(progressAt(.002)-progressAt(0))/.002);
     const omega=Math.max(speed,1)/1000;                  // deg per ms
-    const stepDeg=360/teams.length;
-    const wantedAngle=mod360(360-(i*stepDeg+stepDeg/2)),currentAngle=mod360(rotation);
+    const landing=landingAngle(i);
+    const wantedAngle=mod360(360-landing),currentAngle=mod360(rotation);
     const delta=dir>=0?mod360(wantedAngle-currentAngle):mod360(currentAngle-wantedAngle);
     const turns=Math.max(1,Math.min(26,Math.round((omega*wantedMs/deriv0-delta)/360)));
-    const target=targetRotation(i,dir,turns);
+    const target=targetRotation(i,dir,turns,landing);
     throwStrength.textContent=`Siła rzutu: ${Math.round(n*100)}% • ${turns} ${turns===1?"obrót":(turns%10>=2&&turns%10<=4&&(turns%100<12||turns%100>14))?"obroty":"obrotów"}`;
     result.textContent=n>.72?"Mocny rzut — koło wiruje bardzo szybko…":n>.35?"Średni rzut — koło wiruje…":"Rzut zaakceptowany…";
     result.classList.add("waiting");
