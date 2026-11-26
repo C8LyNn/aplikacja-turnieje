@@ -1,4 +1,4 @@
-import type { EffectInstance, EffectTrigger, EffectTriggerEvent } from "../core/types";
+import type { AlertSound, EffectInstance, EffectTrigger, EffectTriggerEvent } from "../core/types";
 import { normalizedMotionTimeline } from "./motion";
 import { normalizeAlertCaption } from "./alertText";
 
@@ -19,11 +19,44 @@ const limit = (value: unknown, defaultValue: number, max: number): number => {
     : defaultValue;
 };
 
+/** An https sound file without credentials in the address; anything else means "no sound". */
+export function safeAlertSoundUrl(raw: unknown): string | null {
+  if (typeof raw !== "string" || raw.length > 500) return null;
+  let url: URL;
+  try {
+    url = new URL(raw.trim());
+  } catch {
+    return null;
+  }
+  if (url.protocol !== "https:" || url.username || url.password) return null;
+  return url.href;
+}
+
+/** Editor counterpart of the widget's aePlaySound: a missing or blocked file never breaks the preview. */
+export function playAlertSound(sound: AlertSound | undefined): void {
+  if (!sound) return;
+  try {
+    const audio = new Audio(sound.url);
+    audio.volume = Math.max(0, Math.min(1, sound.volume / 100));
+    void audio.play().catch(() => undefined);
+  } catch {
+    // No audio support.
+  }
+}
+
+export function normalizeAlertSound(value: unknown): AlertSound | undefined {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
+  const raw = value as Record<string, unknown>;
+  const url = safeAlertSoundUrl(raw.url);
+  return url ? { url, volume: limit(raw.volume, 70, 100) } : undefined;
+}
+
 /** Preserve old scenes: no trigger means a permanently visible layer. */
 export function normalizeEffectTrigger(value: unknown): EffectTrigger | undefined {
   if (!value || typeof value !== "object" || Array.isArray(value)) return undefined;
   const raw = value as Record<string, unknown>;
   if (raw.source !== "event") return undefined;
+  const sound = normalizeAlertSound(raw.sound);
   return {
     source: "event",
     event: EVENT_NAMES.has(String(raw.event)) ? raw.event as EffectTriggerEvent : "follower-latest",
@@ -32,6 +65,7 @@ export function normalizeEffectTrigger(value: unknown): EffectTrigger | undefine
     caption: raw.caption === undefined ? undefined : normalizeAlertCaption(raw.caption),
     queueMode: raw.queueMode === "queue" ? "queue" : "replace",
     priority: limit(raw.priority, 5, 10),
+    ...(sound ? { sound } : {}),
   };
 }
 

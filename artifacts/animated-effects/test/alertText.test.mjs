@@ -112,3 +112,83 @@ test("entry and exit timing is identical in editor and generated widget", () => 
   assert.equal(normalized.intro, "slide");
   assert.equal(normalized.outro, "fade");
 });
+
+// --- Caption styles (fonts, effects, background, second line, letters) -------------------------------------------
+const liveStyles = {};
+runInNewContext(
+  runtime.ALERT_WIDGET_RUNTIME
+    + "\nthis.shadow = aeCaptionShadow; this.background = aeCaptionBackground; this.step = aeLetterStep;"
+    + " this.letter = aeLetterAnimation; this.fonts = aeCaptionFonts; this.motion = aeCaptionAnimation;",
+  liveStyles,
+);
+
+test("new caption options default to the original look and reject unknown values", () => {
+  const legacy = editor.normalizeAlertCaption({ enabled: true, template: "{name}", intro: "pop", outro: "slide" });
+  assert.equal(legacy.font, "default");
+  assert.equal(legacy.effect, "shadow");
+  assert.equal(legacy.background, "none");
+  assert.equal(legacy.letters, "none");
+  assert.equal(legacy.subtitle, "");
+  assert.equal(legacy.intro, "pop");
+  assert.equal(legacy.outro, "slide");
+  const hostile = editor.normalizeAlertCaption({
+    enabled: true, font: "url(x)", effect: "expression(alert(1))", background: "image", letters: "rotate",
+    backgroundColor: "red;display:none", backgroundOpacity: 999, subtitle: "a\nb".padEnd(400, "c"),
+    intro: "teleport", outro: "explode",
+  });
+  assert.equal(hostile.font, "default");
+  assert.equal(hostile.effect, "shadow");
+  assert.equal(hostile.background, "none");
+  assert.equal(hostile.letters, "none");
+  assert.equal(hostile.backgroundColor, "#0f172a");
+  assert.equal(hostile.backgroundOpacity, 100);
+  assert.equal(hostile.subtitle.length, 160);
+  assert.ok(!hostile.subtitle.includes("\n"));
+  assert.equal(hostile.intro, "slide");
+  assert.equal(hostile.outro, "fade");
+  const chosen = editor.normalizeAlertCaption({
+    enabled: true, font: "impact", effect: "glow", background: "pill", letters: "typewriter",
+    backgroundColor: "#123456", backgroundOpacity: 40, subtitle: "{message}", intro: "bounce", outro: "blur",
+  });
+  assert.deepEqual(
+    [chosen.font, chosen.effect, chosen.background, chosen.letters, chosen.backgroundColor, chosen.backgroundOpacity, chosen.subtitle, chosen.intro, chosen.outro],
+    ["impact", "glow", "pill", "typewriter", "#123456", 40, "{message}", "bounce", "blur"],
+  );
+});
+
+test("caption styles are identical in the editor and the generated widget", () => {
+  assert.deepEqual({ ...liveStyles.fonts }, { ...editor.CAPTION_FONT_STACKS });
+  for (const effect of ["shadow", "outline", "glow", "none"]) {
+    assert.equal(editor.captionTextShadow(effect, "#fde68a"), liveStyles.shadow(effect, "#fde68a"));
+  }
+  assert.equal(editor.captionTextShadow("shadow", "#ffffff"), "0 3px 14px rgba(0,0,0,.9),0 0 36px rgba(0,0,0,.65)", "original look");
+  for (const opacity of [0, 35, 70, 100]) {
+    assert.equal(editor.captionBackgroundColor("#0c4a6e", opacity), liveStyles.background("#0c4a6e", opacity));
+  }
+  for (const count of [0, 1, 5, 30, 119]) {
+    for (const playback of [300, 4000, 7100, 180000, NaN]) {
+      const step = motionStyles.captionLetterStepMs(count, playback);
+      assert.equal(step, liveStyles.step(count, playback));
+      for (const style of ["wave", "typewriter", "pop"]) {
+        assert.equal(motionStyles.captionLetterAnimation(style, count, step), liveStyles.letter(style, count, step));
+      }
+    }
+  }
+});
+
+test("every entry and exit animation has keyframes and the same timing in both renderers", () => {
+  for (const intro of motionStyles.CAPTION_INTROS) {
+    assert.ok(motionStyles.CAPTION_ANIMATIONS_CSS.includes(`@keyframes ae-caption-in-${intro} `), intro);
+  }
+  for (const outro of motionStyles.CAPTION_OUTROS) {
+    assert.ok(motionStyles.CAPTION_ANIMATIONS_CSS.includes(`@keyframes ae-caption-out-${outro} `), outro);
+  }
+  for (const name of ["wave", "type", "pop"]) {
+    assert.ok(motionStyles.CAPTION_ANIMATIONS_CSS.includes(`@keyframes ae-letter-${name} `), name);
+  }
+  for (const intro of motionStyles.CAPTION_INTROS) {
+    for (const outro of motionStyles.CAPTION_OUTROS) {
+      assert.equal(motionStyles.captionAnimationShorthand(intro, outro, 6000), liveStyles.motion(intro, outro, 6000));
+    }
+  }
+});

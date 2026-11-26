@@ -71,6 +71,35 @@ W trybach zdarzeń po załadowaniu widget jest **przezroczysty i pusty**. Po pop
 
 Komendy są normalizowane do małych liter i muszą spełniać wzór `![a-z0-9_]{1,24}`. Niepoprawna komenda przyjmuje bezpieczną wartość `!hype`. **Każdy widz może wywołać komendę**; ta wersja nie weryfikuje uprawnień moderatora/subskrybenta ani nie filtruje stawki donacji. Nie wpisuj do wywołania tokenów ani sekretów.
 
+## Gotowe alerty, styl napisów i dźwięk
+
+Przycisk **＋ Gotowy alert** w nagłówku edytora otwiera okno z wyborem zdarzenia (obserwujący, subskrypcja,
+donacja, bits, raid, wiadomość na czacie) i jednego z 10 stylów (np. Konfetti, Fajerwerki, Neon, Portal).
+**Dodaj alert** tworzy kompletną warstwę: efekt, jednorazową oś czasu, wyzwalacz w trybie kolejki z zalecanym
+priorytetem i napis z drugą linią (np. wiadomość widza z donacji). **Dodaj komplet** robi to samo naraz dla
+obserwującego, subskrypcji, donacji, bits i raidu. Każde dodanie to jeden krok Undo; wszystko można potem zmienić
+w ustawieniach warstwy.
+
+Napis alertu ma nowe opcje (domyślne wartości zachowują dotychczasowy wygląd):
+
+| Opcja | Wartości |
+| --- | --- |
+| Druga linia | dowolny tekst z tymi samymi zmiennymi, np. `{message}`; pusta = brak |
+| Czcionka | domyślna strony, systemowa, Impact, Trebuchet MS, Verdana, Georgia, stała szerokość, Comic Sans (nic nie jest pobierane) |
+| Efekt tekstu | cień (dotychczasowy), obrys, poświata, brak |
+| Tło napisu | brak, prostokąt, plakietka — z kolorem i kryciem |
+| Animacja liter | brak, fala, maszyna do pisania, wyskakiwanie (tytuły do 120 znaków; słowa nie są łamane) |
+| Wejście / wyjście | dotychczasowe + zbliżenie, odbicie, spadnięcie, wyostrzenie / oddalenie, opadnięcie, rozmycie |
+| Obrazek / GIF | adres `https` obrazka lub GIF-a nad napisem (np. z biblioteki mediów StreamElements), wysokość 40–400 px; pusty = bez obrazka |
+
+**Dźwięk alertu** (opcjonalny): adres `https` pliku audio (najprościej wgrać plik do biblioteki mediów
+StreamElements i wkleić jego adres) i głośność. Adresy `http`, z danymi logowania lub dłuższe niż 500 znaków są
+odrzucane. Zablokowany lub brakujący plik nie zatrzymuje animacji. Dźwięk gra przy starcie alertu (także z kolejki)
+i przy **Testuj w podglądzie** / **Odsłuchaj**.
+
+Edytor i widget rysują napis tym samym algorytmem; test `animated-effects-alerts.test.ts` porównuje ich HTML.
+`prefers-reduced-motion` wyłącza animacje napisu i liter, zostawiając tekst.
+
 ## Kompatybilność
 
 - Domyślny tryb `always` zachowuje się jak poprzedni eksport.

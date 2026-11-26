@@ -13,6 +13,20 @@ import {
 import {
   cameraChatConfigFromSearch,
 } from "./camera-chat-settings";
+import {
+  chatBadgesFromEvent,
+  chatEmotesFromEvent,
+  chatFirstMessageFromEvent,
+  chatRolesFromEvent,
+} from "./chat-message-format";
+import {
+  chatEventFromStreamElements,
+  chatEventShown,
+  chatGoalAmount,
+  chatPointsFromTags,
+  chatReplyFromTags,
+} from "./chat-events";
+import { useChatPacer } from "./use-chat-pacer";
 
 type BridgeMessage = {
   source?: string;
@@ -20,7 +34,8 @@ type BridgeMessage = {
   type?:
     | "message"
     | "delete-message"
-    | "delete-messages";
+    | "delete-messages"
+    | "event";
 
   payload?: Record<
     string,
@@ -75,10 +90,20 @@ export default function CameraChatOverlay() {
           : generateMockMessages(),
     );
 
+  // Calm chat: a flood reaches the screen a few messages a second; each message's lifetime starts when it shows.
+  const pacer = useChatPacer<MockChatMessage>(config.floodLimit, (message) => {
+    setMessages((current) =>
+      message.msgId && current.some((shown) => shown.msgId === message.msgId)
+        ? current
+        : [...current, { ...message, receivedAt: Date.now() }].slice(-100));
+  });
+
   useEffect(() => {
     if (!streamElementsMode) {
       return;
     }
+
+    let nextLocalId = 0;
 
     function handleMessage(
       event: MessageEvent,
@@ -156,25 +181,70 @@ export default function CameraChatOverlay() {
             ],
           );
 
-        setMessages(
-          (current) =>
-            [
+        const nick =
+          valueAsString(
+            data["nick"],
+          );
+
+        const localId = `se-${++nextLocalId}`;
+
+        pacer.push(
+                {
+                  id: localId,
+                  name,
+                  text,
+                  msgId:
+                    msgId ||
+                    undefined,
+                  userId:
+                    userId ||
+                    undefined,
+                  nick:
+                    nick ||
+                    undefined,
+                  color:
+                    color ||
+                    undefined,
+                  badges: chatBadgesFromEvent(data["badges"]),
+                  roles: chatRolesFromEvent(data["badges"]),
+                  emotes: chatEmotesFromEvent(data["emotes"]),
+                  isAction: data["isAction"] === true,
+                  firstMessage: chatFirstMessageFromEvent(data["tags"]),
+                  pointsMessage: chatPointsFromTags(data["tags"]),
+                  reply: chatReplyFromTags(data["tags"]) ?? undefined,
+                },
+        );
+
+        return;
+      }
+
+      // Follows, subs, cheers, raids and tips skip the calm-chat queue.
+      if (bridge.type === "event") {
+        const intake = chatEventFromStreamElements(
+          valueAsString(raw["listener"]),
+          raw["event"],
+        );
+
+        // Events that get no row still move the goal bar.
+        if (!intake || !(chatEventShown(intake.event, config) || chatGoalAmount(intake.event, config.goalKind) > 0)) {
+          return;
+        }
+
+        const localId = `se-event-${++nextLocalId}`;
+
+        setMessages((current) =>
+          intake.id && current.some((message) => message.id === `event-${intake.id}`)
+            ? current
+            : [
               ...current,
               {
-                name,
-                text,
-                msgId:
-                  msgId ||
-                  undefined,
-                userId:
-                  userId ||
-                  undefined,
-                color:
-                  color ||
-                  undefined,
+                id: intake.id ? `event-${intake.id}` : localId,
+                name: intake.event.name,
+                text: intake.text,
+                event: intake.event,
+                receivedAt: Date.now(),
               },
-            ].slice(-100),
-        );
+            ].slice(-100));
 
         return;
       }
@@ -191,6 +261,8 @@ export default function CameraChatOverlay() {
         if (!msgId) {
           return;
         }
+
+        pacer.remove((message) => message.msgId === msgId);
 
         setMessages(
           (current) =>
@@ -217,6 +289,8 @@ export default function CameraChatOverlay() {
           return;
         }
 
+        pacer.remove((message) => message.userId === userId);
+
         setMessages(
           (current) =>
             current.filter(
@@ -239,7 +313,7 @@ export default function CameraChatOverlay() {
         handleMessage,
       );
     };
-  }, [streamElementsMode]);
+  }, [streamElementsMode, pacer, config]);
 
   useEffect(() => {
     const html =
