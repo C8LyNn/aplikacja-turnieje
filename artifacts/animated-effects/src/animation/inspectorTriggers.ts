@@ -1,5 +1,5 @@
 import type { AlertCaption, AlertSound, EffectInstance, EffectTriggerEvent } from "../core/types";
-import { CAPTION_BACKGROUNDS, CAPTION_EFFECTS, CAPTION_FONT_IDS, CAPTION_LETTERS, DEFAULT_ALERT_CAPTION, normalizeAlertCaption } from "./alertText";
+import { CAPTION_BACKGROUNDS, CAPTION_EFFECTS, CAPTION_FONT_IDS, CAPTION_LETTERS, DEFAULT_ALERT_CAPTION, normalizeAlertCaption, safeAlertImageUrl } from "./alertText";
 import { CAPTION_INTROS, CAPTION_OUTROS } from "./captionMotion";
 
 const INTRO_LABELS: Record<string, string> = {
@@ -179,6 +179,16 @@ export function triggerInspectorTemplate(effect: EffectInstance): string {
               <input type="number" data-ae-caption-avatar-size min="32" max="144" step="4" value="${caption.avatarSize ?? 72}">
             </label>
             <p class="ae-timeline-hint">Zdjęcie pojawi się tylko, jeśli StreamElements przekaże adres z zaufanego serwera obrazów. W pozostałych przypadkach użyty zostanie inicjał nazwy widza.</p>
+            <label class="ae-timeline-field">
+              <span class="inspector-label"><span>Obrazek / GIF alertu (adres https)</span></span>
+              <input type="url" data-ae-caption-image maxlength="500" value="${esc(caption.imageUrl ?? "")}"
+                placeholder="https://…/alert.gif" aria-label="Adres obrazka alertu" spellcheck="false" autocomplete="off">
+            </label>
+            <label class="ae-timeline-field" data-ae-image-size-row ${caption.imageUrl ? "" : "hidden"}>
+              <span class="inspector-label"><span>Wysokość obrazka (px)</span></span>
+              <input type="number" data-ae-caption-image-size min="40" max="400" step="10" value="${caption.imageSize ?? 160}">
+            </label>
+            <p class="ae-timeline-hint">Obrazek lub GIF stoi nad napisem. Najprościej wgrać plik do StreamElements (biblioteka mediów) i wkleić jego adres. Puste pole = bez obrazka.</p>
           </div>
         </div>
         <div class="ae-caption-fields ae-sound-fields">
@@ -292,6 +302,17 @@ export function bindTriggerControls(container: HTMLElement, effect: EffectInstan
   container.querySelector<HTMLInputElement>("[data-ae-caption-avatar-size]")?.addEventListener("change", (event) => {
     const size = Number((event.currentTarget as HTMLInputElement).value);
     if (Number.isFinite(size)) changeCaption({ avatarSize: size });
+  });
+  container.querySelector<HTMLInputElement>("[data-ae-caption-image]")?.addEventListener("change", (event) => {
+    const input = event.currentTarget as HTMLInputElement;
+    const imageUrl = safeAlertImageUrl(input.value);
+    if (input.value.trim() && !imageUrl) input.setCustomValidity("Adres musi zaczynać się od https://");
+    else input.setCustomValidity("");
+    changeCaption({ imageUrl });
+  });
+  container.querySelector<HTMLInputElement>("[data-ae-caption-image-size]")?.addEventListener("change", (event) => {
+    const size = Number((event.currentTarget as HTMLInputElement).value);
+    if (Number.isFinite(size)) changeCaption({ imageSize: size });
   });
   container.querySelector<HTMLInputElement>("[data-ae-caption-color]")?.addEventListener("change", (event) => {
     changeCaption({ color: (event.currentTarget as HTMLInputElement).value });

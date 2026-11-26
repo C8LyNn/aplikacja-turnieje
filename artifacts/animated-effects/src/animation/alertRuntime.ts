@@ -125,7 +125,8 @@ function aeAttachCaption(parent, caption, listener, event, playbackMs) {
   const subtitle = caption.subtitle ? aeCaptionText(caption.subtitle, listener, event).trim() : "";
   const letters = caption.letters ?? "none";
   const background = caption.background ?? "none";
-  if (!subtitle && letters === "none" && background === "none") {
+  const imageUrl = typeof caption.imageUrl === "string" && caption.imageUrl.slice(0, 8).toLowerCase() === "https://" ? caption.imageUrl : "";
+  if (!subtitle && letters === "none" && background === "none" && !imageUrl) {
     label.textContent = title;
   } else {
     const box = document.createElement("span");
@@ -136,6 +137,19 @@ function aeAttachCaption(parent, caption, listener, event, playbackMs) {
       box.style.background = aeCaptionBackground(caption.backgroundColor ?? "#0f172a", caption.backgroundOpacity ?? 70);
       box.style.padding = ".3em .75em";
       box.style.borderRadius = background === "pill" ? "999px" : ".3em";
+    }
+    if (imageUrl) {
+      const picture = document.createElement("img");
+      picture.className = "ae-alert-image";
+      picture.src = imageUrl;
+      picture.alt = "";
+      picture.style.display = "block";
+      picture.style.height = (caption.imageSize ?? 160) + "px";
+      picture.style.width = "auto";
+      picture.style.maxWidth = "100%";
+      picture.style.margin = "0 auto .2em";
+      picture.style.objectFit = "contain";
+      box.appendChild(picture);
     }
     const main = document.createElement("span");
     main.className = "ae-alert-caption-title";

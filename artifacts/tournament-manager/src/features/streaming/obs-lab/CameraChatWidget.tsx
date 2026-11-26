@@ -33,6 +33,15 @@ import {
   buildChatRows,
   nextChatPhaseChange,
 } from "./chat-message-format";
+import {
+  FIRST_MESSAGE_COLOR,
+  chatAmbientParticles,
+  chatBubbleFilled,
+  chatBurstPieces,
+  chatHeaderContent,
+  chatShapeBorder,
+  getChatDecorCss,
+} from "./chat-decor";
 
 /** Kept under its old name: the preview, the OBS page and tests all pass messages of this shape. */
 export type MockChatMessage = ChatMessage;
@@ -160,24 +169,30 @@ export function CameraChatWidget({
     const entry = config.animateMessages
       ? `${config.animationStyle === "random" ? "obs-chat-in-" + row.motion : "obs-chat-in"} ${config.animationDurationMs}ms cubic-bezier(.2,.7,.2,1) backwards`
       : undefined;
-    const roleColor = !row.highlighted && row.role ? CHAT_ROLE_COLORS[row.role] : null;
+    // Precedence: highlighted word, first message, role, then the plain bubble.
+    const roleColor = !row.highlighted && !row.firstTime && row.role ? CHAT_ROLE_COLORS[row.role] : null;
+    const tintColor = row.highlighted ? null : row.firstTime ? FIRST_MESSAGE_COLOR : roleColor;
+    const fill = row.highlighted
+      ? rgbaCss(config.highlightColor, 18)
+      : tintColor ? rgbaCss(tintColor, 14)
+        : chatBubbleFilled(config) ? rgbaCss(config.bubbleColor, config.bubbleOpacity) : undefined;
     const bar = row.highlighted
       ? `inset ${right ? -3 : 3}px 0 0 ${config.highlightColor}`
-      : roleColor ? `inset ${right ? -3 : 3}px 0 0 ${roleColor}`
+      : tintColor ? `inset ${right ? -3 : 3}px 0 0 ${tintColor}`
         : config.accentBar ? `inset ${right ? -3 : 3}px 0 0 ${row.nameColor}` : undefined;
-    const style: CSSProperties & { "--chat-fx"?: string } = {
+    const style: CSSProperties & { "--chat-fx"?: string; "--chat-bubble"?: string } = {
       opacity: row.opacity,
       gap: 8,
       padding: chatDensityPadding(config.density),
       flexDirection: right ? "row-reverse" : "row",
       textAlign: config.textAlign,
-      borderRadius: config.messageBackground || row.highlighted || roleColor ? config.bubbleRadius : undefined,
-      background: row.highlighted
-        ? rgbaCss(config.highlightColor, 18)
-        : roleColor ? rgbaCss(roleColor, 14)
-          : config.messageBackground ? rgbaCss(config.bubbleColor, config.bubbleOpacity) : undefined,
+      borderRadius: chatBubbleFilled(config) || config.bubbleShape === "outline" || row.highlighted || tintColor
+        ? config.bubbleRadius : undefined,
+      background: fill,
       border: config.showBorders ? "1px solid rgba(255,255,255,.07)" : undefined,
+      ...chatShapeBorder(config, row.nameColor),
       boxShadow: bar,
+      ...(config.bubbleShape === "tail" || config.bubbleShape === "skew" ? { "--chat-bubble": fill ?? "transparent" } : {}),
       ...(config.messageLayout === "bubble" ? { alignSelf: right ? "flex-end" : "flex-start", maxWidth: "100%" } : {}),
       animation: row.phase === "leaving" && exitMs > 0
         ? `obs-chat-out ${exitMs}ms ease-in forwards`
@@ -198,6 +213,13 @@ export function CameraChatWidget({
         {message.name}{config.showColon ? ":" : ""}
       </span>
     );
+    const firstTag = row.firstTime ? <span className="chat-first-tag">{t("obsLab.nowy")}</span> : null;
+    const firstEmote = row.parts.find((part) => part.kind === "emote");
+    const burst = config.emoteBurst && firstEmote && firstEmote.kind === "emote"
+      ? chatBurstPieces(config).map((piece, index) => (
+        <img key={`burst-${index}`} className="chat-burst" src={firstEmote.url} alt="" style={{ left: piece.left, animationDelay: piece.delay }} />
+      ))
+      : null;
     const badges = row.badges.map((badge, index) => (
       <img
         key={`${badge.type ?? "badge"}-${index}`}
@@ -261,6 +283,7 @@ export function CameraChatWidget({
         ].filter(Boolean).join(" ")}
         style={style}
         data-role={roleColor ? row.role ?? undefined : undefined}
+        data-first={row.firstTime ? "1" : undefined}
       >
         {config.showAvatars && (
           <div
@@ -286,12 +309,16 @@ export function CameraChatWidget({
           }}
         >
           {block
-            ? (<><div className="obs-chat-head">{badges}{name}</div>{text}</>)
-            : (<>{badges}{name}<wbr />{text}</>)}
+            ? (<><div className="obs-chat-head">{firstTag}{badges}{name}</div>{text}</>)
+            : (<>{firstTag}{badges}{name}<wbr />{text}</>)}
         </div>
+        {burst}
       </div>
     );
   };
+
+  const particles = chatAmbientParticles(config);
+  const headerContent = chatHeaderContent(config);
 
   const renderMessages = (
     forceHeight?: number | string,
@@ -311,6 +338,24 @@ export function CameraChatWidget({
           : { backgroundColor: chatPanelBackground(config) }),
       }}
     >
+      {particles.length > 0 && (
+        <div className="chat-ambient" aria-hidden="true">
+          {particles.map((particle, index) => (
+            <span key={index} className={particle.className} style={particle.style}>{particle.text}</span>
+          ))}
+        </div>
+      )}
+      {headerContent.visible && (
+        <div className="chat-header-box">
+          {headerContent.header && (
+            <div className={`chat-header chat-header-${config.headerStyle}`}>
+              {headerContent.live && <span className="chat-live-dot" />}
+              <span>{headerContent.title}</span>
+            </div>
+          )}
+          {headerContent.pinned && <div className="chat-pinned">{headerContent.pinned}</div>}
+        </div>
+      )}
       <div
         className="obs-chat-list flex shrink-0 flex-col"
         style={{
@@ -372,7 +417,8 @@ export function CameraChatWidget({
 ${getCameraChatExitCss(config.exitStyle, config.textAlign, "obs-chat-out")}
 ${getChatEffectCss(config, ".obs-chat-fx")}
 ${getChatFrameCss(config, ".obs-chat-panel", ".obs-chat-list")}
-@media (prefers-reduced-motion: reduce) { .obs-chat-message, .obs-chat-message::after, .obs-chat-reveal, .obs-chat-emote, .obs-chat-panel, .obs-chat-panel::before, .obs-chat-panel::after, .obs-chat-list { animation: none !important; } }`}</style>
+${getChatDecorCss(config, ".obs-chat-panel", ".obs-chat-message")}
+@media (prefers-reduced-motion: reduce) { .obs-chat-message, .obs-chat-message::after, .obs-chat-reveal, .obs-chat-emote, .obs-chat-panel, .obs-chat-panel::before, .obs-chat-panel::after, .obs-chat-list, .chat-amb, .chat-live-dot, .chat-burst { animation: none !important; } }`}</style>
 
       <div
         className="relative shrink-0 overflow-hidden"

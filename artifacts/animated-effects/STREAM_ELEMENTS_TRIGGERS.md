@@ -90,6 +90,7 @@ Napis alertu ma nowe opcje (domyślne wartości zachowują dotychczasowy wygląd
 | Tło napisu | brak, prostokąt, plakietka — z kolorem i kryciem |
 | Animacja liter | brak, fala, maszyna do pisania, wyskakiwanie (tytuły do 120 znaków; słowa nie są łamane) |
 | Wejście / wyjście | dotychczasowe + zbliżenie, odbicie, spadnięcie, wyostrzenie / oddalenie, opadnięcie, rozmycie |
+| Obrazek / GIF | adres `https` obrazka lub GIF-a nad napisem (np. z biblioteki mediów StreamElements), wysokość 40–400 px; pusty = bez obrazka |
 
 **Dźwięk alertu** (opcjonalny): adres `https` pliku audio (najprościej wgrać plik do biblioteki mediów
 StreamElements i wkleić jego adres) i głośność. Adresy `http`, z danymi logowania lub dłuższe niż 500 znaków są

@@ -104,6 +104,10 @@ export interface AlertCaption {
   backgroundOpacity?: number;
   /** Per-letter animation of the main line. */
   letters?: CaptionLetters;
+  /** Optional picture or GIF above the text: an https file the streamer chose. Empty = no picture. */
+  imageUrl?: string;
+  /** Picture height in px. */
+  imageSize?: number;
 }
 
 /** Played when the alert starts; an https file the streamer chose (for example uploaded to StreamElements). */

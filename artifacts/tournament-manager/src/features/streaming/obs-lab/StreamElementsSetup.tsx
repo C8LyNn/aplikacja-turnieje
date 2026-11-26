@@ -14,7 +14,7 @@ type Props = {
 export function StreamElementsSetup({ config, width, height }: Props) {
   const [copied, setCopied] = useState<"html" | "css" | "js" | null>(null);
   const { html: htmlCode, css: cssCode, js: jsCode } = useMemo(
-    () => generateStreamElementsWidget(config),
+    () => generateStreamElementsWidget(config, t("obsLab.nowy")),
     [config],
   );
 

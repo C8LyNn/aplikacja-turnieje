@@ -44,6 +44,10 @@ export type CameraChatFrameStyle =
 export type CameraChatPanelAnimation = "none" | "float" | "breathe" | "shimmer" | "intro";
 /** Palette for viewers without their own colour (and for palette mode). */
 export type CameraChatNamePalette = "classic" | "pastel" | "neon" | "warm" | "cool";
+/** Particles floating behind the messages. */
+export type CameraChatAmbient = "none" | "snow" | "sparkles" | "hearts" | "bubbles" | "stars" | "confetti";
+export type CameraChatHeaderStyle = "none" | "bar" | "pill" | "minimal";
+export type CameraChatBubbleShape = "rounded" | "tail" | "skew" | "outline" | "underline";
 
 export const CHAT_MOTION_PRESETS: readonly CameraChatMotionPreset[] =
   ["rise", "slide", "pop", "fade", "bounce", "flip", "wipe"];
@@ -61,6 +65,9 @@ export const CHAT_FRAME_STYLES: readonly CameraChatFrameStyle[] =
   ["none", "solid", "gradient", "pulse", "glow", "flow", "rotate", "rainbow", "dashes", "corners"];
 export const CHAT_PANEL_ANIMATIONS: readonly CameraChatPanelAnimation[] = ["none", "float", "breathe", "shimmer", "intro"];
 export const CHAT_NAME_PALETTE_IDS: readonly CameraChatNamePalette[] = ["classic", "pastel", "neon", "warm", "cool"];
+export const CHAT_AMBIENTS: readonly CameraChatAmbient[] = ["none", "snow", "sparkles", "hearts", "bubbles", "stars", "confetti"];
+export const CHAT_HEADER_STYLES: readonly CameraChatHeaderStyle[] = ["none", "bar", "pill", "minimal"];
+export const CHAT_BUBBLE_SHAPES: readonly CameraChatBubbleShape[] = ["rounded", "tail", "skew", "outline", "underline"];
 export const CHAT_TEXT_SHADOW_STYLES: readonly CameraChatTextShadow[] = ["none", "soft", "strong", "outline"];
 export const CHAT_MESSAGE_LAYOUTS: readonly CameraChatMessageLayout[] = ["inline", "stacked", "bubble"];
 export const CHAT_NAME_COLOR_MODES: readonly CameraChatNameColorMode[] = ["user", "palette", "single"];
@@ -134,6 +141,17 @@ export type CameraChatConfig = {
   /** Seconds of one animation cycle of the frame. */
   frameSpeed: number;
   panelAnimation: CameraChatPanelAnimation;
+  ambient: CameraChatAmbient;
+  ambientDensity: number;
+  ambientColor: string;
+  /** Header above the messages: a title typed by the streamer, an optional pulsing "live" dot. */
+  headerStyle: CameraChatHeaderStyle;
+  headerText: string;
+  headerLive: boolean;
+  headerColor: string;
+  /** A fixed line under the header (rules, a command); empty = none. */
+  pinnedText: string;
+  bubbleShape: CameraChatBubbleShape;
 
   chatAnchor: CameraChatAnchor;
   newestFirst: boolean;
@@ -184,6 +202,10 @@ export type CameraChatConfig = {
   highlightColor: string;
   /** Broadcaster, moderators and VIPs get a tint and bar in their badge colour. */
   roleHighlight: boolean;
+  /** A "NEW" tag and tint on someone's first message in the channel (Twitch "first-msg"). */
+  firstTimeHighlight: boolean;
+  /** Emotes of a new message float up above it. */
+  emoteBurst: boolean;
 
   animateMessages: boolean;
   animationStyle: CameraChatAnimationStyle;
@@ -226,6 +248,15 @@ export const DEFAULT_CAMERA_CHAT_CONFIG: CameraChatConfig = {
   frameColor2: "#22d3ee",
   frameSpeed: 4,
   panelAnimation: "none",
+  ambient: "none",
+  ambientDensity: 16,
+  ambientColor: "#ffffff",
+  headerStyle: "none",
+  headerText: "",
+  headerLive: false,
+  headerColor: "#8b5cf6",
+  pinnedText: "",
+  bubbleShape: "rounded",
 
   chatAnchor: "bottom",
   newestFirst: false,
@@ -271,6 +302,8 @@ export const DEFAULT_CAMERA_CHAT_CONFIG: CameraChatConfig = {
   highlightWords: "",
   highlightColor: "#facc15",
   roleHighlight: false,
+  firstTimeHighlight: false,
+  emoteBurst: false,
 
   animateMessages: true,
   animationStyle: "rise",
@@ -309,6 +342,11 @@ const FONT_STACKS: Record<Exclude<CameraChatFontFamily, "custom">, string> = {
   palatino: "\"Palatino Linotype\", Palatino, \"Book Antiqua\", serif",
   segoeprint: "\"Segoe Print\", \"Bradley Hand\", cursive",
 };
+
+/** Text typed by the streamer (header, pinned line): one line, no control characters, bounded. Shown as text only. */
+export function cleanChatText(raw: string, maxLength: number): string {
+  return Array.from(raw.replace(/[\u0000-\u001f\u007f]/g, " ").replace(/\s+/g, " ").trim()).slice(0, maxLength).join("");
+}
 
 /** Letters, digits, spaces, "-" and "_" only, so a typed font name can never break out of the CSS it is put into. */
 export function sanitizeFontName(raw: string): string {
@@ -794,6 +832,15 @@ export function cameraChatConfigToSearch(
   params.set("framec2", config.frameColor2);
   params.set("framespd", String(config.frameSpeed));
   params.set("panelanim", config.panelAnimation);
+  params.set("ambient", config.ambient);
+  params.set("ambientn", String(config.ambientDensity));
+  params.set("ambientc", config.ambientColor);
+  params.set("header", config.headerStyle);
+  params.set("headertext", config.headerText);
+  flag("headerlive", config.headerLive);
+  params.set("headerc", config.headerColor);
+  params.set("pinned", config.pinnedText);
+  params.set("shape", config.bubbleShape);
   params.set("gap", String(config.gap));
   params.set("padding", String(config.innerPadding));
   params.set("anchor", config.chatAnchor);
@@ -833,6 +880,8 @@ export function cameraChatConfigToSearch(
   params.set("hl", config.highlightWords);
   params.set("hlc", config.highlightColor);
   flag("roles", config.roleHighlight);
+  flag("firsttime", config.firstTimeHighlight);
+  flag("burst", config.emoteBurst);
   flag("anim", config.animateMessages);
   params.set("animstyle", config.animationStyle);
   params.set("animdur", String(config.animationDurationMs));
@@ -897,6 +946,15 @@ export function cameraChatConfigFromSearch(
     frameColor2: color("framec2", defaults.frameColor2),
     frameSpeed: numberParam(params, "framespd", defaults.frameSpeed, 1, 20),
     panelAnimation: enumParam(params, "panelanim", CHAT_PANEL_ANIMATIONS, defaults.panelAnimation),
+    ambient: enumParam(params, "ambient", CHAT_AMBIENTS, defaults.ambient),
+    ambientDensity: integerParam(params, "ambientn", defaults.ambientDensity, 4, 40),
+    ambientColor: color("ambientc", defaults.ambientColor),
+    headerStyle: enumParam(params, "header", CHAT_HEADER_STYLES, defaults.headerStyle),
+    headerText: cleanChatText(textParam(params, "headertext", defaults.headerText, 120), 40),
+    headerLive: booleanParam(params, "headerlive", defaults.headerLive),
+    headerColor: color("headerc", defaults.headerColor),
+    pinnedText: cleanChatText(textParam(params, "pinned", defaults.pinnedText, 300), 120),
+    bubbleShape: enumParam(params, "shape", CHAT_BUBBLE_SHAPES, defaults.bubbleShape),
     gap: numberParam(params, "gap", defaults.gap, 0, 100),
     innerPadding: numberParam(params, "padding", defaults.innerPadding, 0, 50),
 
@@ -944,6 +1002,8 @@ export function cameraChatConfigFromSearch(
     highlightWords: textParam(params, "hl", defaults.highlightWords, 300),
     highlightColor: color("hlc", defaults.highlightColor),
     roleHighlight: booleanParam(params, "roles", defaults.roleHighlight),
+    firstTimeHighlight: booleanParam(params, "firsttime", defaults.firstTimeHighlight),
+    emoteBurst: booleanParam(params, "burst", defaults.emoteBurst),
 
     animateMessages: booleanParam(params, "anim", defaults.animateMessages),
     animationStyle,

@@ -5,12 +5,16 @@ import { afterEach, test } from "node:test";
 import React from "react";
 import { act, cleanup, render } from "@testing-library/react";
 import { JSDOM } from "jsdom";
+import { t } from "@/i18n";
 import CameraChatOverlay from "./CameraChatOverlay";
 import { CameraChatWidget, type MockChatMessage } from "./CameraChatWidget";
 import { CHAT_COLOR_THEME_IDS, CHAT_PRESET_IDS, applyChatColorTheme, chatPresetConfig } from "./chat-presets";
 import { generateStreamElementsWidget } from "./stream-elements-widget";
+import { chatAmbientParticles, chatDecorHtml } from "./chat-decor";
 import {
   type CameraChatConfig,
+  CHAT_AMBIENTS,
+  CHAT_BUBBLE_SHAPES,
   CHAT_FRAME_STYLES,
   CHAT_NAME_PALETTES,
   CHAT_OVERLAY_POSITIONS,
@@ -25,6 +29,7 @@ import {
   getCameraChatSize,
   readableNameColor,
   resolveChatNameColor,
+  rgbaCss,
 } from "./camera-chat-settings";
 import {
   buildChatRows,
@@ -101,6 +106,17 @@ const CUSTOM: CameraChatConfig = {
   textBold: true,
   namePalette: "neon",
   nameUppercase: true,
+  ambient: "snow",
+  ambientDensity: 22,
+  ambientColor: "#e0f2fe",
+  headerStyle: "bar",
+  headerText: "Czat na żywo",
+  headerLive: true,
+  headerColor: "#f43f5e",
+  pinnedText: "Regulamin: bez spamu",
+  bubbleShape: "tail",
+  firstTimeHighlight: true,
+  emoteBurst: true,
 };
 
 test("every new option survives the Browser Source URL", () => {
@@ -271,6 +287,7 @@ type Incoming = {
   isAction?: boolean;
   badges?: Array<{ type: string; url: string; description: string }>;
   emotes?: Array<{ name: string; urls: Record<string, string> }>;
+  tags?: Record<string, string>;
 };
 
 const CHAT: Incoming[] = [
@@ -295,11 +312,12 @@ function asPreview(message: Incoming): MockChatMessage {
     isAction: message.isAction,
     badges: message.badges,
     emotes: message.emotes?.map((emote) => ({ name: emote.name, url: emote.urls["2"] ?? emote.urls["1"] ?? "" })),
+    firstMessage: message.tags?.["first-msg"] === "1",
   };
 }
 
 function nativeWidget(config: CameraChatConfig) {
-  const snippets = generateStreamElementsWidget(config);
+  const snippets = generateStreamElementsWidget(config, t("obsLab.nowy"));
   const dom = new JSDOM(`<!doctype html><html><head><style>${snippets.css}</style></head><body>${snippets.html}</body></html>`, { runScripts: "outside-only" });
   const timers: Array<{ at: number; run: () => void }> = [];
   let clock = 0;
@@ -711,6 +729,201 @@ test("typed words and names cannot break out of the exported script", () => {
   try {
     native.send("message", { displayName: "x", text: "hello \"});alert(1);// there", msgId: "1", userId: "x" });
     assert.equal(native.dom.window.document.querySelectorAll(".se-highlight").length, 1);
+  } finally {
+    native.dom.window.close();
+  }
+});
+
+// --- Chat extras: particles, header, pinned line, shapes, first-time chatters, emote burst -------------------------
+
+test("chat extras are bounded and cleaned when the address is edited by hand", () => {
+  const parsed = cameraChatConfigFromSearch(
+    `?ambient=lava&ambientn=999&ambientc=blue&header=huge&headerc=red&shape=star&firsttime=yes&burst=2`
+    + `&headertext=${encodeURIComponent("A\u0000B\nC   " + "x".repeat(80))}&pinned=${encodeURIComponent("p".repeat(400))}`,
+  );
+  assert.equal(parsed.ambient, "none");
+  assert.equal(parsed.ambientDensity, 40);
+  assert.equal(parsed.ambientColor, "#ffffff");
+  assert.equal(parsed.headerStyle, "none");
+  assert.equal(parsed.headerColor, "#8b5cf6");
+  assert.equal(parsed.bubbleShape, "rounded");
+  assert.equal(parsed.firstTimeHighlight, false);
+  assert.equal(parsed.emoteBurst, false);
+  assert.ok(parsed.headerText.startsWith("A B C x"), "control characters and runs of spaces become one space");
+  assert.equal(Array.from(parsed.headerText).length, 40);
+  assert.equal(parsed.pinnedText.length, 120);
+  assert.equal(cameraChatConfigFromSearch("?ambientn=1").ambientDensity, 4);
+  const plain = generateStreamElementsWidget(DEFAULT_CAMERA_CHAT_CONFIG);
+  assert.doesNotMatch(plain.html, /chat-ambient|chat-header/, "the old look has none of the extras");
+  assert.doesNotMatch(plain.css, /\.chat-ambient \{|\.chat-header|\.chat-first-tag|@keyframes chat-(amb|live|burst)|--chat-bubble/);
+});
+
+test("background particles: the same deterministic layer in preview and StreamElements, for every kind", () => {
+  for (const ambient of CHAT_AMBIENTS.filter((kind) => kind !== "none")) {
+    const config = { ...DEFAULT_CAMERA_CHAT_CONFIG, ambient, ambientDensity: 12, ambientColor: "#fde68a" };
+    const particles = chatAmbientParticles(config);
+    assert.equal(particles.length, 12, ambient);
+    assert.deepEqual(chatAmbientParticles(config), particles, "the same particles on every reload");
+    const shape = (spans: Iterable<HTMLElement>) => Array.from(spans, (span) => [span.className, span.textContent, span.style.left, span.style.top, span.style.animation, span.style.background, span.style.color].join("|"));
+    const preview = render(<CameraChatWidget config={config} messages={[{ id: "1", name: "Ala", text: "hej" }]} />);
+    const expected = shape(preview.container.querySelectorAll<HTMLElement>(".chat-ambient > span"));
+    assert.equal(expected.length, 12);
+    const previewCss = preview.container.querySelector("style")?.textContent ?? "";
+    preview.unmount();
+    const native = nativeWidget(config);
+    try {
+      const document = native.dom.window.document;
+      assert.deepEqual(shape(document.querySelectorAll<HTMLElement>(".se-panel > .chat-ambient > span")), expected, ambient);
+      const css = native.snippets.css;
+      for (const keyframes of css.match(/@keyframes chat-amb-[a-z]+/g) ?? []) assert.ok(previewCss.includes(keyframes), keyframes);
+      assert.match(css, /\.chat-ambient \{ position: absolute; inset: 0; z-index: -1;/);
+      assert.match(css, /prefers-reduced-motion[\s\S]*\.chat-amb, \.chat-live-dot, \.chat-burst \{ animation: none !important; \}/);
+    } finally {
+      native.dom.window.close();
+    }
+  }
+});
+
+test("header with a live dot and a pinned line: same markup in both renderers, typed text stays text", () => {
+  const hostile = "<img src=x onerror=alert(1)> & \"quotes\"";
+  for (const headerStyle of ["bar", "pill", "minimal"] as const) {
+    const config = { ...DEFAULT_CAMERA_CHAT_CONFIG, headerStyle, headerText: hostile, headerLive: true, pinnedText: `${hostile} pinned` };
+    const preview = render(<CameraChatWidget config={config} messages={[{ id: "1", name: "Ala", text: "hej" }]} />);
+    const box = preview.container.querySelector(".chat-header-box") as HTMLElement;
+    const expected = box.outerHTML;
+    assert.equal(box.querySelector(`.chat-header-${headerStyle} > span:last-child`)?.textContent, hostile.slice(0, 40));
+    assert.ok(box.querySelector(".chat-live-dot"));
+    assert.equal(box.querySelector("img"), null);
+    assert.equal(box.nextElementSibling?.className.includes("obs-chat-list"), true, "the header sits before the messages");
+    preview.unmount();
+    const native = nativeWidget(config);
+    try {
+      const nativeBox = native.dom.window.document.querySelector(".se-panel > .chat-header-box") as HTMLElement;
+      assert.equal(nativeBox.outerHTML, expected, headerStyle);
+      assert.equal(nativeBox.nextElementSibling?.id, "se-chat-messages");
+      assert.doesNotMatch(native.snippets.html, /<img/);
+      assert.match(native.snippets.css, /\.chat-header-box \+ \* \{ flex-shrink: 1 !important; min-height: 0; overflow: hidden; justify-content: flex-end; \}/);
+    } finally {
+      native.dom.window.close();
+    }
+  }
+  const pinnedOnly = { ...DEFAULT_CAMERA_CHAT_CONFIG, pinnedText: "Regulamin" };
+  const { container } = render(<CameraChatWidget config={pinnedOnly} messages={[]} />);
+  assert.equal(container.querySelector(".chat-header"), null, "no header without a style");
+  assert.equal(container.querySelector(".chat-pinned")?.textContent, "Regulamin");
+  assert.match(generateStreamElementsWidget(pinnedOnly).html, /<div class="chat-header-box"><div class="chat-pinned">Regulamin<\/div><\/div>/);
+  assert.equal(chatDecorHtml({ ...DEFAULT_CAMERA_CHAT_CONFIG, headerStyle: "bar" }).header, "", "an empty bar is not drawn");
+});
+
+const FIRST_CHAT: Incoming[] = [
+  { displayName: "Nowa", nick: "nowa", displayColor: "#7CFC00", text: "Pierwszy raz Kappa", msgId: "f1", userId: "n", tags: { "first-msg": "1" }, emotes: [{ name: "Kappa", urls: { "1": EMOTE_URL } }] },
+  { displayName: "NowyMod", nick: "nowymod", text: "hej", msgId: "f2", userId: "nm", tags: { "first-msg": "1" }, badges: [{ type: "moderator", url: BADGE_URL, description: "Moderator" }] },
+  { displayName: "Mod", nick: "mod", text: "witam", msgId: "f3", userId: "m", tags: { "first-msg": "0" }, badges: [{ type: "moderator", url: BADGE_URL, description: "Moderator" }] },
+  { displayName: "Fan", nick: "fan", displayColor: "#1E90FF", text: "giveaway Kappa", msgId: "f4", userId: "f", tags: { "first-msg": "1" }, emotes: [{ name: "Kappa", urls: { "1": EMOTE_URL } }] },
+  { displayName: "Stary", nick: "stary", displayColor: "#FF69B4", text: "zwykla wiadomosc", msgId: "f5", userId: "s" },
+];
+
+type DecorRow = { first: string; role: string; tag: string; tint: string; bubble: string; border: string; underline: string; burst: string[] };
+
+/** The thin border every row has with "borders" on (a class rule in the widget) is not a shape line. */
+const shapeLine = (value: string) => (value.includes("255, 255, 255, 0.07") ? "" : value);
+
+function decorShape(rows: Iterable<HTMLElement>): DecorRow[] {
+  return Array.from(rows, (row) => {
+    const tinted = Boolean(row.dataset.first || row.dataset.role) && !row.className.includes("highlight");
+    return {
+      first: row.dataset.first ?? "",
+      role: row.dataset.role ?? "",
+      tag: row.querySelector(".chat-first-tag")?.textContent ?? "",
+      tint: tinted ? `${row.style.background} ${row.style.boxShadow}` : "",
+      bubble: tinted ? row.style.getPropertyValue("--chat-bubble") : "",
+      border: shapeLine(row.style.border),
+      underline: shapeLine(row.style.borderBottom),
+      burst: Array.from(row.querySelectorAll<HTMLImageElement>(".chat-burst"), (img) => `${img.src}@${img.style.left}+${img.style.animationDelay}`),
+    };
+  });
+}
+
+test("first-time chatters: NEW tag and colour in both renderers; a highlighted word still wins the colour", () => {
+  const config = { ...DEFAULT_CAMERA_CHAT_CONFIG, maxMessages: 10, firstTimeHighlight: true, roleHighlight: true, highlightWords: "giveaway", bubbleShape: "skew" as const };
+  const expected = decorShape(render(<CameraChatWidget config={config} messages={FIRST_CHAT.map(asPreview)} />).container.querySelectorAll<HTMLElement>(".obs-chat-message"));
+  const label = t("obsLab.nowy");
+  assert.deepEqual(expected.map((row) => [row.first, row.role, row.tag]), [["1", "", label], ["1", "", label], ["", "moderator", ""], ["1", "", label], ["", "", ""]]);
+  assert.equal(expected[0]!.tint, "rgba(34, 211, 238, 0.14) inset 3px 0 0 #22d3ee");
+  assert.equal(expected[0]!.bubble, "rgba(34, 211, 238, 0.14)");
+  assert.equal(expected[3]!.tint, "", "the highlighted word keeps its own colour");
+  const native = nativeWidget(config);
+  try {
+    for (const message of FIRST_CHAT) native.send("message", message as unknown as Record<string, unknown>);
+    assert.deepEqual(decorShape(native.dom.window.document.querySelectorAll<HTMLElement>(".se-message")), expected);
+    assert.match(native.snippets.css, /\.chat-first-tag \{/);
+    assert.match(native.snippets.css, /\.se-message::before \{[^}]*skewX\(-10deg\)[^}]*var\(--chat-bubble\)/);
+  } finally {
+    native.dom.window.close();
+  }
+  const off = decorShape(render(<CameraChatWidget config={{ ...config, firstTimeHighlight: false }} messages={FIRST_CHAT.map(asPreview)} />).container.querySelectorAll<HTMLElement>(".obs-chat-message"));
+  assert.ok(off.every((row) => row.first === "" && row.tag === ""));
+  assert.equal(off[1]!.role, "moderator", "without the option a first-time moderator is a moderator again");
+});
+
+test("bubble shapes and the emote burst: the same per-row styles in preview and StreamElements", () => {
+  for (const bubbleShape of CHAT_BUBBLE_SHAPES) {
+    const config = { ...DEFAULT_CAMERA_CHAT_CONFIG, maxMessages: 10, bubbleShape, emoteBurst: true, firstTimeHighlight: true, roleHighlight: true, animationDurationMs: 300 };
+    const preview = render(<CameraChatWidget config={config} messages={FIRST_CHAT.map(asPreview)} />);
+    const expected = decorShape(preview.container.querySelectorAll<HTMLElement>(".obs-chat-message"));
+    const plainRow = preview.container.querySelectorAll<HTMLElement>(".obs-chat-message")[4]!;
+    preview.unmount();
+    assert.deepEqual(expected[0]!.burst, ["12%", "34%", "58%", "80%"].map((left, index) => `${EMOTE_URL}@${left}+${150 + index * 140}ms`));
+    assert.deepEqual(expected[1]!.burst, [], "no emote, no burst");
+    const native = nativeWidget(config);
+    try {
+      for (const message of FIRST_CHAT) native.send("message", message as unknown as Record<string, unknown>);
+      assert.deepEqual(decorShape(native.dom.window.document.querySelectorAll<HTMLElement>(".se-message")), expected, bubbleShape);
+      const css = native.snippets.css;
+      const bubble = rgbaCss(config.bubbleColor, config.bubbleOpacity);
+      if (bubbleShape === "tail" || bubbleShape === "skew") {
+        assert.equal(plainRow.style.getPropertyValue("--chat-bubble"), bubble);
+        assert.match(css, new RegExp(`\\.se-message \\{[^}]*--chat-bubble: ${bubble.replace(/[().]/g, "\\$&")};`));
+      }
+      if (bubbleShape === "outline") {
+        assert.equal(plainRow.style.border, "1.5px solid rgba(255, 105, 180, 0.7)");
+        assert.equal(plainRow.style.background, "", "outline has no fill");
+        assert.match(css, /\.se-message \{[^}]*border-radius: 12px;/);
+        assert.doesNotMatch(css, /\.se-message \{[^}]*background: rgba/);
+      }
+      if (bubbleShape === "underline") assert.equal(plainRow.style.borderBottom, "2px solid rgb(255, 105, 180)");
+      if (bubbleShape === "tail") assert.match(css, /\.se-message::before \{[^}]*border-color: var\(--chat-bubble\) transparent/);
+      assert.match(css, /@keyframes chat-burst /);
+    } finally {
+      native.dom.window.close();
+    }
+  }
+  const noEmotes = generateStreamElementsWidget({ ...DEFAULT_CAMERA_CHAT_CONFIG, emoteBurst: true, showEmotes: false });
+  assert.doesNotMatch(noEmotes.css, /\.chat-burst \{ position|@keyframes chat-burst/);
+  assert.match(noEmotes.js, /"emoteBurst":false/);
+});
+
+test("the OBS page reads the first-message tag from StreamElements data", () => {
+  window.history.replaceState({}, "", "/stream/overlay/camera-chat?source=streamelements&messages=5&firsttime=1");
+  const view = render(<CameraChatOverlay />);
+  act(() => {
+    window.dispatchEvent(new window.MessageEvent("message", { source: window.parent, data: { source: "camera-chat-se", type: "message", payload: { data: FIRST_CHAT[0] } } }));
+    window.dispatchEvent(new window.MessageEvent("message", { source: window.parent, data: { source: "camera-chat-se", type: "message", payload: { data: { ...FIRST_CHAT[4], tags: { "first-msg": 1 } } } } }));
+  });
+  assert.deepEqual(decorShape(view.container.querySelectorAll<HTMLElement>(".obs-chat-message")).map((row) => row.first), ["1", ""], "only the string tag 1 counts");
+});
+
+test("a widget with every extra switched on is still standalone and safe", () => {
+  const config = { ...CUSTOM, showEmotes: true, headerText: "</script><script>alert(1)</script>", pinnedText: "</style><img src=x>" };
+  const snippets = generateStreamElementsWidget(config, "</script>");
+  assert.doesNotMatch(snippets.css + snippets.js, /<\/script>|<script>|<\/style>/i);
+  assert.doesNotMatch(snippets.html, /<script|<img|<\/style>/i);
+  assert.doesNotMatch(snippets.html + snippets.css + snippets.js, FORBIDDEN_IN_SNIPPETS);
+  const native = nativeWidget(config);
+  try {
+    native.send("message", { ...FIRST_CHAT[0], emotes: [] });
+    assert.equal(native.dom.window.document.querySelectorAll(".se-message").length, 1);
+    assert.equal(native.dom.window.document.querySelector(".chat-header-bar span:last-child")?.textContent, "</script><script>alert(1)</script>".slice(0, 40));
   } finally {
     native.dom.window.close();
   }

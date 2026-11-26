@@ -96,6 +96,25 @@ natywnego widgetu StreamElements. Reguły wiadomości są w
 - CSS ramki i ruchu tworzy jedna funkcja (`getChatFrameCss`) dla podglądu i widgetu SE; test porównuje
   reguły obu renderów dla każdej ramki.
 
+## Zrealizowany etap 5 — dodatki czatu i obrazek w alertach (2026-11-26)
+
+- **Efekt w tle czatu** (`ambient`, `ambientn`, `ambientc`): śnieg, iskierki, serduszka, bąbelki, gwiazdy,
+  konfetti; 4–40 drobinek. Drobinki losuje stały generator, więc podgląd, strona OBS i widget SE rysują
+  dokładnie te same (warstwa `z-index: -1` w panelu, pod wiadomościami).
+- **Nagłówek czatu** (`header`: pasek, plakietka, minimalny; `headertext`, `headerlive`, `headerc`)
+  z pulsującą kropką „na żywo” oraz **przypięta wiadomość** (`pinned`). Teksty są czyszczone (bez znaków
+  sterujących, 40/120 znaków) i zawsze wstawiane jako tekst. Długi czat jest przycinany pod nagłówkiem.
+  Wybór stylu nagłówka po raz pierwszy wpisuje tytuł „Czat na żywo” i włącza kropkę.
+- **Kształt wiadomości** (`shape`): zaokrąglone, dymek z ogonkiem, skośne, sam kontur, podkreślenie
+  (kontur i podkreślenie w kolorze nicku).
+- **Nowi widzowie** (`firsttime`): etykieta NOWY i turkusowe wyróżnienie przy pierwszej wiadomości widza
+  na kanale (tag Twitcha `first-msg=1` z danych StreamElements). Kolejność: wyróżnione słowo, nowy widz, rola.
+- **Wylatujące emotki** (`burst`): pierwsza emotka wiadomości kilka razy wylatuje w górę.
+- **Animated Effects:** podpis alertu może mieć obrazek lub GIF nad tekstem (adres https bez loginu,
+  wysokość 40–400 px), ten sam w edytorze i w wyeksportowanym widgecie.
+- CSS i dane dodatków tworzy `chat-decor.ts` dla obu renderów; testy porównują drobinki, nagłówek,
+  kształty, etykietę NOWY i emotki między podglądem a widgetem SE.
+
 ## Kierunek następnych etapów
 
 1. **Animacja tekstu wiadomości:** wejście znakami/słowami, maska reveal,

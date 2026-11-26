@@ -30,15 +30,26 @@ import {
   parseChatNameList,
   parseChatWordList,
 } from "./chat-message-format";
+import {
+  FIRST_MESSAGE_COLOR,
+  chatBubbleFilled,
+  chatBurstPieces,
+  chatDecorHtml,
+  getChatDecorCss,
+} from "./chat-decor";
 
-const html = `<div id="se-camera-chat">
+/** The widget's markup; particles and the header box (texts escaped) sit in the panel before the message list. */
+function widgetHtml(config: CameraChatConfig): string {
+  const decor = chatDecorHtml(config);
+  return `<div id="se-camera-chat">
   <div class="se-camera"></div>
   <div class="se-chat-box">
-    <div class="se-panel">
+    <div class="se-panel">${decor.ambient}${decor.header}
       <div class="se-messages" id="se-chat-messages"></div>
     </div>
   </div>
 </div>`;
+}
 
 /** JSON that stays inert even if the platform puts the script into an HTML <script> element. */
 function scriptJson(value: unknown): string {
@@ -52,7 +63,7 @@ function scriptJson(value: unknown): string {
  * The native StreamElements Custom Widget: standalone HTML/CSS/JS with the configuration written in. It listens to the
  * StreamElements chat events ("message", "delete-message", "delete-messages") and loads nothing from this site.
  */
-export function generateStreamElementsWidget(config: CameraChatConfig) {
+export function generateStreamElementsWidget(config: CameraChatConfig, firstLabel = "NEW") {
   const size = getCameraChatSize(config);
   const inset = Math.min(
     config.overlayInset,
@@ -88,6 +99,9 @@ export function generateStreamElementsWidget(config: CameraChatConfig) {
   max-height: ${size.cameraHeight - inset * 2}px;
   border-radius: ${Math.max(6, config.radius * .7)}px;
   ${placement}`;
+  const filled = chatBubbleFilled(config);
+  const bubbleFill = filled ? rgbaCss(config.bubbleColor, config.bubbleOpacity) : "transparent";
+  const shaped = config.bubbleShape === "tail" || config.bubbleShape === "skew";
   const direction = config.layout === "below" ? "column"
     : config.layout === "above" ? "column-reverse"
       : config.layout === "left" ? "row-reverse" : "row";
@@ -149,7 +163,9 @@ export function generateStreamElementsWidget(config: CameraChatConfig) {
   text-align: ${config.textAlign};
   gap: 8px;
   padding: ${chatDensityPadding(config.density)};
-  ${config.messageBackground ? `border-radius: ${config.bubbleRadius}px; background: ${rgbaCss(config.bubbleColor, config.bubbleOpacity)};` : ""}
+  ${filled || config.bubbleShape === "outline" ? `border-radius: ${config.bubbleRadius}px;` : ""}
+  ${filled ? `background: ${bubbleFill};` : ""}
+  ${shaped ? `--chat-bubble: ${bubbleFill};` : ""}
   ${config.showBorders ? "border: 1px solid rgba(255,255,255,.07);" : ""}
   ${config.messageLayout === "bubble" ? `align-self: ${right ? "flex-end" : "flex-start"}; max-width: 100%;` : ""}
   ${config.animateMessages ? `animation: ${config.animationStyle === "random" ? "se-chat-in-rise" : "se-chat-in"} ${config.animationDurationMs}ms cubic-bezier(.2,.7,.2,1) backwards;` : ""}
@@ -158,6 +174,7 @@ export function generateStreamElementsWidget(config: CameraChatConfig) {
   border-radius: ${config.bubbleRadius}px;
   background: ${rgbaCss(config.highlightColor, 18)};
   box-shadow: inset ${right ? -3 : 3}px 0 0 ${config.highlightColor};
+  ${shaped ? `--chat-bubble: ${rgbaCss(config.highlightColor, 18)};` : ""}
 }
 .se-leaving { animation: se-chat-out ${exitMs}ms ease-in forwards !important; }
 .se-avatar {
@@ -187,9 +204,11 @@ ${getCameraChatAnimationCss(config.animationStyle, "se-chat-in")}
 ${getCameraChatExitCss(config.exitStyle, config.textAlign, "se-chat-out")}
 ${getChatEffectCss(config, ".se-fx")}
 ${getChatFrameCss(config, ".se-panel", ".se-messages")}
+${getChatDecorCss(config, ".se-panel", ".se-message")}
 @media (prefers-reduced-motion: reduce) {
   .se-message, .se-leaving, .se-message::after, .se-reveal, .se-emote,
   .se-panel, .se-panel::before, .se-panel::after, .se-messages { animation: none !important; }
+  .chat-amb, .chat-live-dot, .chat-burst { animation: none !important; }
 }`;
 
   // Only validated, bounded configuration values are embedded in the exported script.
@@ -224,6 +243,13 @@ const settings = ${scriptJson({
     bubbleRadius: config.bubbleRadius,
     textReveal: config.textReveal,
     revealBaseMs: chatRevealBaseMs(config),
+    firstTimeHighlight: config.firstTimeHighlight,
+    firstColor: FIRST_MESSAGE_COLOR,
+    firstLabel: firstLabel.slice(0, 20),
+    bubbleShape: config.bubbleShape,
+    shapedBubble: shaped,
+    emoteBurst: config.emoteBurst && config.showEmotes,
+    burstPieces: chatBurstPieces(config),
   })};
 const list = document.getElementById("se-chat-messages");
 const nameColors = ${scriptJson(CHAT_NAME_PALETTES[config.namePalette])};
@@ -414,14 +440,21 @@ function buildRow(message) {
     && parts.every(function (part) { return part.kind === "emote" || !part.text.trim(); });
   if (settings.emoteOnlyLarge && onlyEmotes) row.classList.add("se-emote-only");
   const role = settings.roleHighlight ? roleOf(message.roles) : null;
+  const first = settings.firstTimeHighlight && message.firstMessage === true;
+  if (first) row.dataset.first = "1";
+  // Outline / underline shapes draw a line in the name colour.
+  if (settings.bubbleShape === "outline") row.style.border = "1.5px solid " + rgba(color, 0.7);
+  if (settings.bubbleShape === "underline") row.style.borderBottom = "2px solid " + color;
+  // Precedence: highlighted word, first message, role, then the plain bubble.
   if (highlighted(message.text)) {
     row.classList.add("se-highlight");
-  } else if (role) {
-    const roleColor = settings.roleColors[role];
-    row.dataset.role = role;
+  } else if (first || role) {
+    const tint = first ? settings.firstColor : settings.roleColors[role];
+    if (!first) row.dataset.role = role;
     row.style.borderRadius = settings.bubbleRadius + "px";
-    row.style.background = rgba(roleColor, 0.14);
-    row.style.boxShadow = "inset " + (settings.alignRight ? -3 : 3) + "px 0 0 " + roleColor;
+    row.style.background = rgba(tint, 0.14);
+    row.style.boxShadow = "inset " + (settings.alignRight ? -3 : 3) + "px 0 0 " + tint;
+    if (settings.shapedBubble) row.style.setProperty("--chat-bubble", rgba(tint, 0.14));
   } else if (settings.accentBar) {
     row.style.boxShadow = "inset " + (settings.alignRight ? -3 : 3) + "px 0 0 " + color;
   }
@@ -447,6 +480,12 @@ function buildRow(message) {
     head = document.createElement("div");
     head.className = "se-head";
     content.appendChild(head);
+  }
+  if (first) {
+    const tag = document.createElement("span");
+    tag.className = "chat-first-tag";
+    tag.textContent = settings.firstLabel;
+    head.appendChild(tag);
   }
   message.badges.forEach(function (badge) {
     head.appendChild(image("se-badge", badge.url, badge.description || badge.type || ""));
@@ -479,6 +518,15 @@ function buildRow(message) {
   });
   content.appendChild(text);
   row.appendChild(content);
+  const firstEmote = parts.find(function (part) { return part.kind === "emote"; });
+  if (settings.emoteBurst && firstEmote) {
+    settings.burstPieces.forEach(function (piece) {
+      const copy = image("chat-burst", firstEmote.url, "");
+      copy.style.left = piece.left;
+      copy.style.animationDelay = piece.delay;
+      row.appendChild(copy);
+    });
+  }
   return row;
 }
 
@@ -553,6 +601,7 @@ window.addEventListener("onEventReceived", function (event) {
       userId: asString(data.userId),
       color: asString(data.displayColor),
       isAction: data.isAction === true,
+      firstMessage: Boolean(data.tags && typeof data.tags === "object" && data.tags["first-msg"] === "1"),
       roles: Array.isArray(data.badges) ? data.badges.slice(0, 10).map(function (badge) {
         return badge && typeof badge === "object" ? asString(badge.type).toLowerCase().slice(0, 40) : "";
       }).filter(Boolean) : [],
@@ -577,5 +626,5 @@ window.addEventListener("onEventReceived", function (event) {
 });
 })();`;
 
-  return { html, css, js };
+  return { html: widgetHtml(config), css, js };
 }

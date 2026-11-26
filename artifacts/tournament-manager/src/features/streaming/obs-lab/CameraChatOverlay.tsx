@@ -16,6 +16,7 @@ import {
 import {
   chatBadgesFromEvent,
   chatEmotesFromEvent,
+  chatFirstMessageFromEvent,
   chatRolesFromEvent,
 } from "./chat-message-format";
 
@@ -196,6 +197,7 @@ export default function CameraChatOverlay() {
                   roles: chatRolesFromEvent(data["badges"]),
                   emotes: chatEmotesFromEvent(data["emotes"]),
                   isAction: data["isAction"] === true,
+                  firstMessage: chatFirstMessageFromEvent(data["tags"]),
                   receivedAt: Date.now(),
                 },
               ].slice(-100),

@@ -43,6 +43,9 @@ import {
   type CameraChatFrameStyle,
   type CameraChatPanelAnimation,
   type CameraChatNamePalette,
+  type CameraChatAmbient,
+  type CameraChatHeaderStyle,
+  type CameraChatBubbleShape,
   COMMON_CHAT_BOTS,
   DEFAULT_CAMERA_CHAT_CONFIG,
   cameraChatConfigFromSearch,
@@ -133,9 +136,9 @@ const PREVIEW_BACKGROUND_OPTIONS = [
   { value: "game", get label() { return t("obsLab.gra"); } },
 ] as const;
 
-type TestKind = "plain" | "emotes" | "mod" | "command" | "link" | "long" | "mention" | "action" | "bot";
+type TestKind = "plain" | "emotes" | "mod" | "command" | "link" | "long" | "mention" | "action" | "bot" | "first";
 
-const TEST_KINDS: readonly TestKind[] = ["plain", "emotes", "mod", "command", "link", "long", "mention", "action", "bot"];
+const TEST_KINDS: readonly TestKind[] = ["plain", "emotes", "mod", "command", "link", "long", "mention", "action", "bot", "first"];
 
 function testKindLabel(kind: TestKind): string {
   switch (kind) {
@@ -148,6 +151,7 @@ function testKindLabel(kind: TestKind): string {
     case "mention": return t("obsLab.wzmianka");
     case "action": return "/me";
     case "bot": return t("obsLab.bot");
+    case "first": return t("obsLab.nowy_widz");
   }
 }
 
@@ -183,6 +187,8 @@ function testMessage(kind: TestKind, id: number, config: CameraChatConfig): Mock
       return { ...base, name: "Bartek_TV", color: "#0000FF", isAction: true, text: t("obsLab.tanczy_z_radosci") };
     case "bot":
       return { ...base, name: "StreamElements", nick: "streamelements", color: "#5B99FF", badges: [SAMPLE_BADGES.moderator], text: t("obsLab.dolacz_do_naszego_discorda") };
+    case "first":
+      return { ...base, name: "ZielonaZaba", color: "#7CFC00", firstMessage: true, text: `${t("obsLab.pierwszy_raz_tutaj")} ${SAMPLE_EMOTES[3]!.name}` };
   }
 }
 
@@ -723,6 +729,15 @@ export function ObsLab() {
               <ToolRange label={t("obsLab.zaokraglenie_dymkow")} value={config.bubbleRadius} suffix="px" min={0} max={40} onChange={(bubbleRadius) => patchConfig({ bubbleRadius })} />
             </div>
           )}
+          <FieldLabel label={t("obsLab.ksztalt_wiadomosci")} hint={config.messageBackground ? undefined : t("obsLab.ogonek_i_skos_potrzebuja_tla")}>
+            <ToolSelect value={config.bubbleShape} onChange={(event) => patchConfig({ bubbleShape: event.target.value as CameraChatBubbleShape })}>
+              <option value="rounded">{t("obsLab.zaokraglone")}</option>
+              <option value="tail">{t("obsLab.dymek_z_ogonkiem")}</option>
+              <option value="skew">{t("obsLab.skosne")}</option>
+              <option value="outline">{t("obsLab.sam_kontur")}</option>
+              <option value="underline">{t("obsLab.podkreslenie")}</option>
+            </ToolSelect>
+          </FieldLabel>
           <ToolToggle label={t("obsLab.pasek_w_kolorze_nicku")} checked={config.accentBar} onChange={(accentBar) => patchConfig({ accentBar })} />
           <ToolToggle label={t("obsLab.obramowania")} checked={config.showBorders} onChange={(showBorders) => patchConfig({ showBorders })} />
           <ToolToggle label={t("obsLab.avatary")} checked={config.showAvatars} onChange={(showAvatars) => patchConfig({ showAvatars })} />
@@ -783,6 +798,59 @@ export function ObsLab() {
         </div>
       </ToolDisclosure>
 
+      <ToolDisclosure title={t("obsLab.dodatki_czatu")}>
+        <div className="space-y-4 text-fuchsia-300">
+          <FieldLabel label={t("obsLab.efekt_w_tle_czatu")}>
+            <ToolSelect value={config.ambient} onChange={(event) => patchConfig({ ambient: event.target.value as CameraChatAmbient })} data-testid="chat-ambient">
+              <option value="none">{t("obsLab.brak")}</option>
+              <option value="snow">{t("obsLab.snieg")}</option>
+              <option value="sparkles">{t("obsLab.iskierki")}</option>
+              <option value="hearts">{t("obsLab.serduszka")}</option>
+              <option value="bubbles">{t("obsLab.babelki")}</option>
+              <option value="stars">{t("obsLab.gwiazdy")}</option>
+              <option value="confetti">{t("obsLab.konfetti")}</option>
+            </ToolSelect>
+          </FieldLabel>
+          {config.ambient !== "none" && (
+            <div className="space-y-3 rounded-xl border border-border bg-background/35 p-3">
+              <ToolRange label={t("obsLab.ilosc_drobinek")} value={config.ambientDensity} min={4} max={40} onChange={(ambientDensity) => patchConfig({ ambientDensity })} />
+              {config.ambient !== "confetti" && (
+                <ColorField label={t("obsLab.kolor_drobinek")} value={config.ambientColor} onChange={(ambientColor) => patchConfig({ ambientColor })} />
+              )}
+            </div>
+          )}
+          <FieldLabel label={t("obsLab.naglowek_czatu")}>
+            <ToolSelect
+              value={config.headerStyle}
+              // A header picked for the first time starts with a title and the live dot, so it shows at once.
+              onChange={(event) => patchConfig({
+                headerStyle: event.target.value as CameraChatHeaderStyle,
+                ...(config.headerStyle === "none" && !config.headerText.trim() && !config.headerLive
+                  ? { headerText: t("obsLab.czat_na_zywo"), headerLive: true } : {}),
+              })}
+              data-testid="chat-header-style"
+            >
+              <option value="none">{t("obsLab.bez_naglowka")}</option>
+              <option value="bar">{t("obsLab.pasek")}</option>
+              <option value="pill">{t("obsLab.plakietka")}</option>
+              <option value="minimal">{t("obsLab.minimalny")}</option>
+            </ToolSelect>
+          </FieldLabel>
+          {config.headerStyle !== "none" && (
+            <div className="space-y-3 rounded-xl border border-border bg-background/35 p-3">
+              <FieldLabel label={t("obsLab.tytul_naglowka")}>
+                <ToolInput value={config.headerText} maxLength={40} placeholder={t("obsLab.np_czat_na_zywo")} onChange={(event) => patchConfig({ headerText: event.target.value })} />
+              </FieldLabel>
+              <ToolToggle label={t("obsLab.kropka_na_zywo")} checked={config.headerLive} onChange={(headerLive) => patchConfig({ headerLive })} />
+              <ColorField label={t("obsLab.kolor_naglowka")} value={config.headerColor} onChange={(headerColor) => patchConfig({ headerColor })} />
+            </div>
+          )}
+          <FieldLabel label={t("obsLab.przypieta_wiadomosc")} hint={t("obsLab.zawsze_widoczna_nad_wiadomosciami")}>
+            <ToolInput value={config.pinnedText} maxLength={120} placeholder={t("obsLab.np_regulamin")} onChange={(event) => patchConfig({ pinnedText: event.target.value })} />
+          </FieldLabel>
+        </div>
+      </ToolDisclosure>
+
       <ToolDisclosure title={t("obsLab.filtry_i_wyroznienia")}>
         <div className="space-y-4 text-fuchsia-300">
           <ToolToggle label={t("obsLab.ukryj_komendy_komenda")} checked={config.hideCommands} onChange={(hideCommands) => patchConfig({ hideCommands })} />
@@ -800,6 +868,12 @@ export function ObsLab() {
             description={t("obsLab.kolor_wedlug_odznaki_z_twitcha")}
             checked={config.roleHighlight}
             onChange={(roleHighlight) => patchConfig({ roleHighlight })}
+          />
+          <ToolToggle
+            label={t("obsLab.wyrozniaj_nowych_widzow")}
+            description={t("obsLab.etykieta_nowy_przy_pierwszej")}
+            checked={config.firstTimeHighlight}
+            onChange={(firstTimeHighlight) => patchConfig({ firstTimeHighlight })}
           />
         </div>
       </ToolDisclosure>
@@ -852,6 +926,14 @@ export function ObsLab() {
               <option value="none">{t("obsLab.bez_animacji")}</option>
             </ToolSelect>
           </FieldLabel>
+          {config.showEmotes && (
+            <ToolToggle
+              label={t("obsLab.wylatujace_emotki")}
+              description={t("obsLab.pierwsza_emotka_wylatuje")}
+              checked={config.emoteBurst}
+              onChange={(emoteBurst) => patchConfig({ emoteBurst })}
+            />
+          )}
         </div>
       </ToolDisclosure>
     </div>

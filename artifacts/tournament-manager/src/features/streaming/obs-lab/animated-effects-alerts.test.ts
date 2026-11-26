@@ -21,6 +21,7 @@ import {
 } from "../../../../../animated-effects/src/editor/readyAlerts";
 
 const SOUND_URL = "https://cdn.streamelements.com/uploads/alert.mp3";
+const IMAGE_URL = "https://cdn.streamelements.com/uploads/party.gif";
 
 function editorCaption(caption: AlertCaption, listener: string, event: unknown, playbackMs: number): string {
   const host = document.createElement("div");
@@ -51,6 +52,8 @@ test("captions render to identical HTML in the editor and in the StreamElements 
     [{ template: "Raid od {name}!", letters: "wave", effect: "outline", position: "top" }, "raid-latest", { name: "Bartek", amount: 12 }],
     [{ template: "{name}", subtitle: "{message}", letters: "pop", position: "custom", xPercent: 40, yPercent: 30, avatarEnabled: true, avatarSize: 64 }, "message", CHAT],
     [{ template: "x".repeat(150), letters: "pop" }, "follower-latest", TIP],
+    [{ template: "{name} obserwuje!", imageUrl: IMAGE_URL, imageSize: 120 }, "follower-latest", TIP],
+    [{ template: "{name}", subtitle: "{message}", imageUrl: IMAGE_URL, background: "box", letters: "wave" }, "tip-latest", TIP],
   ];
   for (const [patch, listener, event] of cases) {
     const caption = normalizeAlertCaption({ enabled: true, ...patch });
@@ -67,6 +70,26 @@ test("a caption without the new options keeps its original single-line structure
   assert.equal(label.children.length, 0);
   assert.equal(label.textContent, "Ala · 50");
   assert.equal(label.style.fontFamily, "");
+});
+
+test("alert picture / GIF: only https addresses without a login, above the text, bounded height", () => {
+  const caption = normalizeAlertCaption({ enabled: true, template: "{name}", imageUrl: ` ${IMAGE_URL} `, imageSize: 9999 });
+  assert.equal(caption.imageUrl, IMAGE_URL);
+  assert.equal(caption.imageSize, 400);
+  assert.equal(normalizeAlertCaption({ enabled: true, imageSize: 3 }).imageSize, 40);
+  assert.equal(normalizeAlertCaption({ enabled: true }).imageUrl, "", "old captions have no picture");
+  for (const bad of ["http://cdn.example/a.gif", "https://user:pw@cdn.example/a.gif", "javascript:alert(1)", "data:image/gif;base64,R0lGOD", `https://a.example/${"x".repeat(600)}.gif`, 42]) {
+    assert.equal(normalizeAlertCaption({ enabled: true, imageUrl: bad }).imageUrl, "", String(bad));
+  }
+  const host = document.createElement("div");
+  const label = appendAlertCaption(host, caption, "tip-latest", TIP, 4000)!;
+  const picture = label.querySelector("img.ae-alert-image") as HTMLImageElement;
+  assert.equal(picture.getAttribute("src"), IMAGE_URL);
+  assert.equal(picture.style.height, "400px");
+  assert.equal(picture.nextElementSibling?.className, "ae-alert-caption-title", "the picture stands above the text");
+  // A hand-edited scene that skipped normalisation still gets no picture from a non-https address.
+  const raw = widgetCaption({ ...caption, imageUrl: "javascript:alert(1)" }, "tip-latest", TIP, 4000);
+  assert.doesNotMatch(raw, /<img/);
 });
 
 test("letters animate one by one inside unbroken words; long titles stay plain text", () => {

@@ -44,7 +44,22 @@ export const DEFAULT_ALERT_CAPTION: AlertCaption = {
   backgroundColor: "#0f172a",
   backgroundOpacity: 70,
   letters: "none",
+  imageUrl: "",
+  imageSize: 160,
 };
+
+/** Alert picture / GIF: an https address without a login in it; anything else shows no picture. */
+export function safeAlertImageUrl(raw: unknown): string {
+  if (typeof raw !== "string" || raw.length > 500) return "";
+  let url: URL;
+  try {
+    url = new URL(raw.trim());
+  } catch {
+    return "";
+  }
+  if (url.protocol !== "https:" || url.username || url.password) return "";
+  return url.href;
+}
 
 const pick = <T extends string>(value: unknown, allowed: readonly T[], fallback: T): T =>
   typeof value === "string" && (allowed as readonly string[]).includes(value) ? value as T : fallback;
@@ -81,6 +96,9 @@ export function normalizeAlertCaption(value: unknown): AlertCaption {
     backgroundOpacity: input.backgroundOpacity !== undefined && Number.isFinite(backgroundOpacity)
       ? Math.max(0, Math.min(100, Math.round(backgroundOpacity))) : DEFAULT_ALERT_CAPTION.backgroundOpacity,
     letters: pick(input.letters, CAPTION_LETTERS, "none"),
+    imageUrl: safeAlertImageUrl(input.imageUrl),
+    imageSize: Number.isFinite(Number(input.imageSize)) && input.imageSize !== null && input.imageSize !== ""
+      ? Math.max(40, Math.min(400, Math.round(Number(input.imageSize)))) : 160,
   };
 }
 
@@ -179,7 +197,8 @@ export function appendAlertCaption(
   const subtitle = options.subtitle ? formatAlertCaption(options.subtitle, listener, event).trim() : "";
   const letters = options.letters ?? "none";
   const background = options.background ?? "none";
-  if (!subtitle && letters === "none" && background === "none") {
+  const imageUrl = typeof options.imageUrl === "string" && options.imageUrl.slice(0, 8).toLowerCase() === "https://" ? options.imageUrl : "";
+  if (!subtitle && letters === "none" && background === "none" && !imageUrl) {
     // The original single-line caption.
     label.textContent = title;
   } else {
@@ -191,6 +210,19 @@ export function appendAlertCaption(
       box.style.background = captionBackgroundColor(options.backgroundColor ?? "#0f172a", options.backgroundOpacity ?? 70);
       box.style.padding = ".3em .75em";
       box.style.borderRadius = background === "pill" ? "999px" : ".3em";
+    }
+    if (imageUrl) {
+      const picture = document.createElement("img");
+      picture.className = "ae-alert-image";
+      picture.src = imageUrl;
+      picture.alt = "";
+      picture.style.display = "block";
+      picture.style.height = (options.imageSize ?? 160) + "px";
+      picture.style.width = "auto";
+      picture.style.maxWidth = "100%";
+      picture.style.margin = "0 auto .2em";
+      picture.style.objectFit = "contain";
+      box.appendChild(picture);
     }
     const main = document.createElement("span");
     main.className = "ae-alert-caption-title";

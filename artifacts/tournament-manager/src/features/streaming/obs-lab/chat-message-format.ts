@@ -36,6 +36,8 @@ export type ChatMessage = {
   isAction?: boolean;
   /** Badge types (for example "moderator"), kept even when badge images are hidden or have no address. */
   roles?: string[];
+  /** The viewer's first message in the channel (Twitch tag "first-msg"). */
+  firstMessage?: boolean;
   /** Arrival time (ms); only messages with it can hide after their lifetime. */
   receivedAt?: number;
 };
@@ -264,6 +266,8 @@ export type ChatRow = {
   motion: CameraChatMotionPreset;
   /** Set only when role highlighting is on and the viewer has a highlighted role. */
   role: ChatRole | null;
+  /** First message in the channel, shown with a "NEW" tag when that option is on. */
+  firstTime: boolean;
   /** Letters or words of the text with their reveal animation; null shows the text at once. */
   reveal: RevealPiece[] | null;
 };
@@ -293,6 +297,7 @@ export function buildChatRows(messages: readonly ChatMessage[], config: CameraCh
         ? chatMessageRole(message.roles ?? (message.badges ?? []).map((badge) => badge.type ?? ""))
         : null,
       reveal: chatRevealPieces(parts, config.textReveal, chatRevealBaseMs(config)),
+      firstTime: config.firstTimeHighlight && message.firstMessage === true,
     };
   });
   return config.newestFirst ? rows.reverse() : rows;
@@ -317,6 +322,11 @@ export function chatRolesFromEvent(raw: unknown): string[] {
   return raw.slice(0, 10).flatMap((item) => item && typeof item === "object"
     ? [asString((item as Record<string, unknown>)["type"]).toLowerCase().slice(0, 40)]
     : []);
+}
+
+/** Twitch marks a viewer's first message in the channel with the IRC tag first-msg=1. */
+export function chatFirstMessageFromEvent(tags: unknown): boolean {
+  return Boolean(tags && typeof tags === "object" && (tags as Record<string, unknown>)["first-msg"] === "1");
 }
 
 /** Emotes from a StreamElements message ({ name, urls: { 1, 2, 4 } }), Twitch and third-party alike. */
