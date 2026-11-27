@@ -135,17 +135,27 @@ async function fetchJson(fetcher: Fetcher, url: string, init?: RequestInit): Pro
   }
 }
 
+/** How long the first messages wait for the channel's first 7TV answer, so even they show zero-width emotes on top. */
+export const SEVENTV_FIRST_WAIT_MS = 1500;
+
 export type SevenTvCache = {
   /** The channel's 7TV emotes with the global ones, by name; null until the first answer for this channel. */
   get(roomId: string): ReadonlyMap<string, ChatEmote> | null;
+  /** Resolves when the channel's first 7TV answer is in (at once when it already is), or after timeoutMs at the latest. */
+  ready(roomId: string, timeoutMs: number): Promise<void>;
 };
 
 /** One 7TV lookup per channel (Twitch room id from the message tags), asked again after SEVENTV_REFRESH_MS. */
-export function createSevenTvCache(fetcher: Fetcher, now: () => number = () => Date.now()): SevenTvCache {
+export function createSevenTvCache(
+  fetcher: Fetcher,
+  now: () => number = () => Date.now(),
+  wait: (ms: number) => Promise<void> = (ms) => new Promise((resolve) => setTimeout(resolve, ms)),
+): SevenTvCache {
   let room = "";
   let askedAt = 0;
   let loading = false;
   let emotes: Map<string, ChatEmote> | null = null;
+  let waiters: Array<() => void> = [];
   function load(roomId: string) {
     loading = true;
     room = roomId;
@@ -154,9 +164,12 @@ export function createSevenTvCache(fetcher: Fetcher, now: () => number = () => D
       if (room !== roomId) return;
       emotes = new Map(mergeEmotes(sevenTvEmotes(user), sevenTvEmotes(global)).map((emote) => [emote.name, emote]));
       loading = false;
+      const done = waiters;
+      waiters = [];
+      for (const resolve of done) resolve();
     });
   }
-  return {
+  const cache: SevenTvCache = {
     get(roomId) {
       if (!isTwitchId(roomId)) return null;
       if (roomId !== room) {
@@ -167,7 +180,21 @@ export function createSevenTvCache(fetcher: Fetcher, now: () => number = () => D
       }
       return emotes;
     },
+    ready(roomId, timeoutMs) {
+      if (!isTwitchId(roomId) || cache.get(roomId)) return Promise.resolve();
+      return new Promise<void>((resolve) => {
+        let settled = false;
+        const finish = () => {
+          if (settled) return;
+          settled = true;
+          resolve();
+        };
+        waiters.push(finish);
+        void wait(timeoutMs).then(finish);
+      });
+    },
   };
+  return cache;
 }
 
 export type ChannelEmotes = {

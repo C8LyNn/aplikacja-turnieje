@@ -11,6 +11,7 @@ import { CameraChatWidget } from "./CameraChatWidget";
 import { DEFAULT_CAMERA_CHAT_CONFIG, type CameraChatConfig } from "./camera-chat-settings";
 import { CHAT_EMOTE_LAYERS, chatMessageParts, chatRevealPieces, type ChatEmote } from "./chat-message-format";
 import {
+  SEVENTV_FIRST_WAIT_MS,
   SEVENTV_GLOBAL_URL,
   SEVENTV_GQL_URL,
   SEVENTV_REFRESH_MS,
@@ -213,9 +214,29 @@ function nativeWidget(config: CameraChatConfig, fetcher: (url: string) => Promis
   const snippets = generateStreamElementsWidget(config, t("obsLab.nowy"));
   const dom = new JSDOM(`<!doctype html><html><head><style>${snippets.css}</style></head><body>${snippets.html}</body></html>`, { runScripts: "outside-only" });
   (dom.window as unknown as { fetch: typeof fetcher }).fetch = fetcher;
+  // Timers run only when the test says so (the 1.5 s wait for 7TV).
+  const timers = new Map<number, { at: number; run: () => void }>();
+  let clock = 0;
+  let nextTimer = 1;
+  dom.window.setTimeout = ((run: () => void, ms = 0) => { const id = nextTimer++; timers.set(id, { at: clock + ms, run }); return id; }) as unknown as typeof dom.window.setTimeout;
+  dom.window.clearTimeout = ((id: number) => { timers.delete(id); }) as unknown as typeof dom.window.clearTimeout;
+  const advance = (ms: number) => {
+    const target = clock + ms;
+    for (;;) {
+      const next = [...timers].filter(([, timer]) => timer.at <= target).sort((a, b) => a[1].at - b[1].at)[0];
+      if (!next) break;
+      timers.delete(next[0]);
+      clock = next[1].at;
+      next[1].run();
+    }
+    clock = target;
+  };
   dom.window.eval(snippets.js);
-  const send = (data: Record<string, unknown>) => dom.window.dispatchEvent(new dom.window.CustomEvent("onEventReceived", { detail: { listener: "message", event: { data } } }));
-  return { dom, send };
+  const event = (listener: string, data: Record<string, unknown>) => dom.window.dispatchEvent(new dom.window.CustomEvent("onEventReceived", { detail: { listener, event: { data } } }));
+  const send = (data: Record<string, unknown>) => event("message", data);
+  const load = (detail: Record<string, unknown>) => dom.window.dispatchEvent(new dom.window.CustomEvent("onWidgetLoad", { detail }));
+  const rows = () => Array.from(dom.window.document.querySelectorAll(".se-message"), nativeStacks);
+  return { dom, send, event, load, advance, rows };
 }
 
 test("zero-width 7TV emotes stack the same way in the preview and in the StreamElements widget", async () => {
@@ -224,11 +245,12 @@ test("zero-width 7TV emotes stack the same way in the preview and in the StreamE
   const native = nativeWidget(config, fetcher);
   try {
     native.send(seMessage("a"));
+    assert.equal(native.rows().length, 0, "the first message waits for the channel's first 7TV answer");
     await flush();
     native.send(seMessage("b"));
-    const rows = Array.from(native.dom.window.document.querySelectorAll(".se-message"), nativeStacks);
+    const rows = native.rows();
     assert.equal(rows.length, 2);
-    assert.deepEqual(rows[0]!.stacks, [], "the first message came before 7TV answered");
+    assert.deepEqual(rows[0], rows[1], "the first message stacks like the next ones");
     assert.deepEqual(calls, [sevenTvUserUrl("123"), SEVENTV_GLOBAL_URL]);
 
     const sevenTv = new Map(mergeEmotes(sevenTvEmotes(USER_SET), sevenTvEmotes(GLOBAL_SET)).map((emote) => [emote.name, emote]));
@@ -264,6 +286,64 @@ test("without emotes the StreamElements widget asks 7TV nothing; its only addres
   assert.deepEqual(addresses, ["https://7tv.io/v3/emote-sets/global", "https://7tv.io/v3/users/twitch/"]);
 });
 
+test("StreamElements widget: 7TV is asked at load when SE gives the channel id; a hung 7TV delays messages 1.5 s at most; moderation reaches waiting messages", async () => {
+  const config = { ...DEFAULT_CAMERA_CHAT_CONFIG, maxMessages: 10 };
+  const atLoad = fakeFetch({ [sevenTvUserUrl("123")]: USER_SET, [SEVENTV_GLOBAL_URL]: GLOBAL_SET });
+  const early = nativeWidget(config, atLoad.fetcher);
+  try {
+    early.load({ channel: { username: "streamer", providerId: "123" } });
+    assert.deepEqual(atLoad.calls, [sevenTvUserUrl("123"), SEVENTV_GLOBAL_URL], "asked before any message");
+    await flush();
+    early.send(seMessage("a"));
+    assert.deepEqual(early.rows().map((row) => row.stacks), [["Kappa+RainTime"]], "the first message shows at once, stacked");
+    early.load({ channel: { username: "streamer", providerId: "not-a-number" } });
+    assert.equal(atLoad.calls.length, 2, "a strange id asks nobody");
+  } finally {
+    early.dom.window.close();
+  }
+
+  let answer: (value: Response) => void = () => {};
+  const hung = (url: string) => (url === SEVENTV_GLOBAL_URL ? new Promise<Response>((resolve) => { answer = resolve; }) : Promise.resolve({ ok: false, status: 404, json: async () => ({}) } as Response));
+  const slow = nativeWidget(config, hung);
+  try {
+    slow.send(seMessage("a"));
+    slow.send(seMessage("a"));
+    slow.send({ ...seMessage("gone"), userId: "u9" });
+    slow.event("delete-messages", { userId: "u9" });
+    slow.advance(1499);
+    assert.equal(slow.rows().length, 0, "still waiting for 7TV");
+    slow.advance(1);
+    assert.deepEqual(slow.rows().map((row) => row.stacks), [[]], "after 1.5 s the message shows without 7TV, once; the removed one never shows");
+    answer({ ok: true, status: 200, json: async () => GLOBAL_SET } as Response);
+    await flush();
+    slow.send(seMessage("b"));
+    assert.deepEqual(slow.rows().map((row) => row.stacks), [[], ["Kappa+RainTime"]], "the late answer still helps the next messages");
+  } finally {
+    slow.dom.window.close();
+  }
+});
+
+test("the 7TV cache tells when the channel's first answer is in, or gives up after the wait", async () => {
+  let release: () => void = () => {};
+  const waitForTest = () => new Promise<void>((resolve) => { release = resolve; });
+  const quick = createSevenTvCache(fakeFetch({ [sevenTvUserUrl("123")]: USER_SET, [SEVENTV_GLOBAL_URL]: GLOBAL_SET }).fetcher, () => 0, waitForTest);
+  let done = false;
+  void quick.ready("123", 1500).then(() => { done = true; });
+  await flush();
+  assert.equal(done, true, "resolved by the answer");
+  await quick.ready("123", 1500);
+  await quick.ready("abc", 1500);
+  let hungDone = false;
+  const hung = createSevenTvCache(() => new Promise<Response>(() => {}), () => 0, waitForTest);
+  void hung.ready("123", 1500).then(() => { hungDone = true; });
+  await flush();
+  assert.equal(hungDone, false);
+  release();
+  await flush();
+  assert.equal(hungDone, true, "resolved by the wait");
+  assert.equal(SEVENTV_FIRST_WAIT_MS, 1500);
+});
+
 test("the OBS page stacks zero-width emotes once 7TV has answered", async () => {
   const original = window.fetch;
   const { fetcher } = fakeFetch({ [sevenTvUserUrl("123")]: USER_SET, [SEVENTV_GLOBAL_URL]: GLOBAL_SET });
@@ -278,11 +358,12 @@ test("the OBS page stacks zero-width emotes once 7TV has answered", async () => 
       }));
     });
     post("a");
+    assert.equal(view.container.querySelectorAll(".obs-chat-message").length, 0, "the first message waits for 7TV");
     await act(async () => { await flush(); });
     post("b");
     const rows = Array.from(view.container.querySelectorAll(".obs-chat-message"), previewStacks);
     assert.equal(rows.length, 2);
-    assert.deepEqual(rows.map((row) => row.stacks), [[], ["Kappa+RainTime"]]);
+    assert.deepEqual(rows.map((row) => row.stacks), [["Kappa+RainTime"], ["Kappa+RainTime"]], "the first message stacks too");
     assert.ok(rows[1]!.emotes.includes(`catJAM@${sevenTvUrl("01CAT")}`), "the unlisted 7TV emote is an image");
   } finally {
     window.fetch = original;

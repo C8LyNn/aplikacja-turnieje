@@ -321,8 +321,12 @@ natywnego widgetu StreamElements. Reguły wiadomości są w
 - **Emotki nakładane** (`chat-emote-sources.ts`): strona OBS i widżet StreamElements pytają raz 7TV o listę kanału
   (numer kanału z tagu `room-id` wiadomości) i globalną, ponownie po 15 minutach. Emotka zero-width zaraz po emotce
   (same spacje między) leży na niej, wyśrodkowana, tej samej wysokości (do 4 warstw); w innym miejscu stoi sama.
-  Niepubliczne emotki 7TV ze słów wiadomości są dodawane; emotki od SE zostają przy swoim obrazku. Pierwsza wiadomość
-  przed odpowiedzią 7TV jest bez nakładania. Bez emotek nic nie idzie do 7TV.
+  Niepubliczne emotki 7TV ze słów wiadomości są dodawane; emotki od SE zostają przy swoim obrazku. Bez emotek nic nie
+  idzie do 7TV.
+- Pierwsza wiadomość też nakłada (poprawka 27.11 po teście na żywo): widżet pyta 7TV już przy `onWidgetLoad`, gdy SE
+  poda `channel.providerId`, a wiadomości, które przyjdą przed pierwszą odpowiedzią 7TV dla kanału, czekają na nią
+  najwyżej 1,5 s (strona OBS tak samo, `SevenTvCache.ready`). Moderacja usuwa też czekające wiadomości, powtórzone
+  `msgId` liczy się raz.
 - Widżet SE ma kopię reguł; jedyne adresy w jego kodzie to dwa adresy API 7TV (testy osłonowe dopuszczają tylko
   `https://7tv.io/v3/`). Obrazki dalej tylko z CDN emotek.
 - **Emotki kanału w podglądzie:** w „Emotki” pole z nazwą kanału na Twitchu i „Wczytaj”. FFZ znajduje kanał po nazwie

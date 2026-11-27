@@ -472,6 +472,20 @@ function sevenTvLoad(roomId) {
     });
     sevenTv.emotes = emotes;
     sevenTv.loading = false;
+    releaseSevenTvWaiting();
+  });
+}
+// Until the channel's first 7TV answer is in (1.5 s at most) messages wait, so the first ones stack too.
+const sevenTvWaiting = [];
+let sevenTvWaitTimer = null;
+function releaseSevenTvWaiting() {
+  if (sevenTvWaitTimer !== null) {
+    window.clearTimeout(sevenTvWaitTimer);
+    sevenTvWaitTimer = null;
+  }
+  sevenTvWaiting.splice(0).forEach(function (item) {
+    item.message.emotes = emoteMap(item.rawEmotes, item.message.text, sevenTv.room === item.roomId ? sevenTv.emotes : null);
+    pace(item.message);
   });
 }
 function sevenTvFor(roomId) {
@@ -1096,6 +1110,9 @@ function dropWaiting(test) {
   for (let i = paceQueue.length - 1; i >= 0; i--) {
     if (test(paceQueue[i])) paceQueue.splice(i, 1);
   }
+  for (let i = sevenTvWaiting.length - 1; i >= 0; i--) {
+    if (test(sevenTvWaiting[i].message)) sevenTvWaiting.splice(i, 1);
+  }
 }
 
 // The channel currency for tips.
@@ -1111,6 +1128,9 @@ window.addEventListener("onWidgetLoad", function (event) {
     if (isFinite(value) && value >= 0) goalSession = Math.min(value, 10000000);
   }
   renderGoal();
+  // The channel's Twitch id (when SE gives it): ask 7TV now, before the first message.
+  const channel = detail.channel && typeof detail.channel === "object" ? detail.channel : null;
+  if (channel) sevenTvFor(asString(channel.providerId));
 });
 
 window.addEventListener("onEventReceived", function (event) {
@@ -1123,7 +1143,8 @@ window.addEventListener("onEventReceived", function (event) {
     if (!text) return;
     const msgId = asString(data.msgId);
     if (msgId && (messages.some(message => membersOf(message).some(member => member.msgId === msgId))
-      || paceQueue.some(message => message.msgId === msgId))) return;
+      || paceQueue.some(message => message.msgId === msgId)
+      || sevenTvWaiting.some(item => item.message.msgId === msgId))) return;
     const name = asString(data.displayName) || asString(data.nick) || "user";
     const nick = asString(data.nick);
     if (hiddenMessage(name, nick, text)) return;
@@ -1144,8 +1165,16 @@ window.addEventListener("onEventReceived", function (event) {
         return badge && typeof badge === "object" ? asString(badge.type).toLowerCase().slice(0, 40) : "";
       }).filter(Boolean) : [],
       badges: badgeList(data.badges),
-      emotes: emoteMap(data.emotes, text, sevenTvFor(tags ? asString(tags["room-id"]) : ""))
+      emotes: new Map()
     };
+    const roomId = tags ? asString(tags["room-id"]) : "";
+    const seven = sevenTvFor(roomId);
+    message.emotes = emoteMap(data.emotes, text, seven);
+    if (settings.showEmotes && !seven && sevenTv.loading && sevenTv.room === roomId) {
+      sevenTvWaiting.push({ message: message, rawEmotes: data.emotes, roomId: roomId });
+      if (sevenTvWaitTimer === null) sevenTvWaitTimer = window.setTimeout(releaseSevenTvWaiting, 1500);
+      return;
+    }
     pace(message);
     return;
   } else if (eventListeners[detail.listener]) {
