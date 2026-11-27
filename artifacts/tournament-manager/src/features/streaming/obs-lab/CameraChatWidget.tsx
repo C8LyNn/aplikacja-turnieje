@@ -90,6 +90,21 @@ export const SAMPLE_EMOTES: readonly ChatEmote[] = [
   { name: "swarmGG", url: svgImage(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><rect x="2" y="6" width="28" height="20" rx="6" fill="#22c55e"/><path d="M12 12h-3.5a1.5 1.5 0 0 0-1.5 1.5v5a1.5 1.5 0 0 0 1.5 1.5H12v-3.5h-2M23.5 12H20a1.5 1.5 0 0 0-1.5 1.5v5A1.5 1.5 0 0 0 20 20h3.5v-3.5h-2" stroke="#fff" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`) },
 ];
 
+/** A sample zero-width emote (like 7TV "RainTime"): rain falling over the emote before it. */
+export const SAMPLE_OVERLAY_EMOTE: ChatEmote = {
+  name: "swarmRain",
+  zeroWidth: true,
+  url: svgImage(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><g fill="#60a5fa" opacity=".9">`
+    + `<animateTransform attributeName="transform" type="translate" values="0 -6;0 6" dur="0.9s" repeatCount="indefinite"/>`
+    + `<path d="M7 4c1.6 2.6 2.4 4.2 2.4 5.3a2.4 2.4 0 0 1-4.8 0C4.6 8.2 5.4 6.6 7 4z"/>`
+    + `<path d="M18 9c1.6 2.6 2.4 4.2 2.4 5.3a2.4 2.4 0 0 1-4.8 0c0-1.1.8-2.7 2.4-5.3z"/>`
+    + `<path d="M27 3c1.6 2.6 2.4 4.2 2.4 5.3a2.4 2.4 0 0 1-4.8 0c0-1.1.8-2.7 2.4-5.3z"/>`
+    + `<path d="M11 17c1.6 2.6 2.4 4.2 2.4 5.3a2.4 2.4 0 0 1-4.8 0c0-1.1.8-2.7 2.4-5.3z"/>`
+    + `<path d="M24 19c1.6 2.6 2.4 4.2 2.4 5.3a2.4 2.4 0 0 1-4.8 0c0-1.1.8-2.7 2.4-5.3z"/></g></svg>`,
+  ),
+};
+
 const badgeIcon = (fill: string, shape: string) => svgImage(
   `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 18 18"><rect width="18" height="18" rx="4" fill="${fill}"/>${shape}</svg>`,
 );
@@ -403,22 +418,48 @@ export function CameraChatWidget({
         }}
       >
         {(row.reveal ?? row.parts as ReadonlyArray<ChatPart | RevealPiece>).map((part, index) => part.kind === "emote"
-          ? (
-            <img
-              key={index}
-              className="obs-chat-emote"
-              src={part.url}
-              alt={part.name}
-              style={{
-                display: "inline-block",
-                height: emoteHeight,
-                width: "auto",
-                margin: "0 1px",
-                verticalAlign: "middle",
-                animation: "animation" in part ? part.animation : undefined,
-              }}
-            />
-          )
+          ? part.overlays?.length
+            ? (
+              // Zero-width emotes (7TV) sit on top of the emote before them, centred, at the same height.
+              <span
+                key={index}
+                className="obs-chat-emote-stack"
+                style={{
+                  position: "relative",
+                  display: "inline-block",
+                  margin: "0 1px",
+                  verticalAlign: "middle",
+                  animation: "animation" in part ? part.animation : undefined,
+                }}
+              >
+                <img className="obs-chat-emote" src={part.url} alt={part.name} style={{ display: "block", height: emoteHeight, width: "auto" }} />
+                {part.overlays.map((layer, layerIndex) => (
+                  <img
+                    key={layerIndex}
+                    className="obs-chat-emote obs-chat-emote-over"
+                    src={layer.url}
+                    alt={layer.name}
+                    style={{ position: "absolute", left: "50%", top: "50%", height: emoteHeight, width: "auto", maxWidth: "none", transform: "translate(-50%, -50%)" }}
+                  />
+                ))}
+              </span>
+            )
+            : (
+              <img
+                key={index}
+                className="obs-chat-emote"
+                src={part.url}
+                alt={part.name}
+                style={{
+                  display: "inline-block",
+                  height: emoteHeight,
+                  width: "auto",
+                  margin: "0 1px",
+                  verticalAlign: "middle",
+                  animation: "animation" in part ? part.animation : undefined,
+                }}
+              />
+            )
           : "animation" in part && part.animation
             ? (
               <span
@@ -614,7 +655,7 @@ ${getChatEffectCss(config, ".obs-chat-fx")}
 ${getChatFrameCss(config, ".obs-chat-panel", ".obs-chat-list")}
 ${getChatDecorCss(config, ".obs-chat-panel", ".obs-chat-message")}
 ${getChatEventCss(config, ".obs-chat-message")}
-@media (prefers-reduced-motion: reduce) { .obs-chat-message, .obs-chat-message::after, .obs-chat-reveal, .obs-chat-emote, .obs-chat-panel, .obs-chat-panel::before, .obs-chat-panel::after, .obs-chat-list, .chat-amb, .chat-live-dot, .chat-burst { animation: none !important; } }`}</style>
+@media (prefers-reduced-motion: reduce) { .obs-chat-message, .obs-chat-message::after, .obs-chat-reveal, .obs-chat-emote, .obs-chat-emote-stack, .obs-chat-panel, .obs-chat-panel::before, .obs-chat-panel::after, .obs-chat-list, .chat-amb, .chat-live-dot, .chat-burst { animation: none !important; } }`}</style>
 
       <div
         className="relative shrink-0 overflow-hidden"

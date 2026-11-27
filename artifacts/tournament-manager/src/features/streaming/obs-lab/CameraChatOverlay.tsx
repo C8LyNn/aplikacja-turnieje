@@ -26,6 +26,7 @@ import {
   chatPointsFromTags,
   chatReplyFromTags,
 } from "./chat-events";
+import { createSevenTvCache, withSevenTvEmotes } from "./chat-emote-sources";
 import { useChatPacer } from "./use-chat-pacer";
 
 type BridgeMessage = {
@@ -104,6 +105,8 @@ export default function CameraChatOverlay() {
     }
 
     let nextLocalId = 0;
+    // 7TV tells which emotes stack on the previous one and adds unlisted ones (asked once per channel).
+    const sevenTv = createSevenTvCache((url, init) => window.fetch(url, init));
 
     function handleMessage(
       event: MessageEvent,
@@ -207,7 +210,11 @@ export default function CameraChatOverlay() {
                     undefined,
                   badges: chatBadgesFromEvent(data["badges"]),
                   roles: chatRolesFromEvent(data["badges"]),
-                  emotes: chatEmotesFromEvent(data["emotes"]),
+                  emotes: config.showEmotes
+                    ? withSevenTvEmotes(chatEmotesFromEvent(data["emotes"]), text, sevenTv.get(valueAsString(
+                      data["tags"] && typeof data["tags"] === "object" ? (data["tags"] as Record<string, unknown>)["room-id"] : "",
+                    )))
+                    : chatEmotesFromEvent(data["emotes"]),
                   isAction: data["isAction"] === true,
                   firstMessage: chatFirstMessageFromEvent(data["tags"]),
                   pointsMessage: chatPointsFromTags(data["tags"]),

@@ -90,6 +90,7 @@ function scriptJson(value: unknown): string {
  * The native StreamElements Custom Widget: standalone HTML/CSS/JS with the configuration written in. It listens to the
  * StreamElements chat events ("message", "delete-message", "delete-messages"), the stream events shown as chat rows
  * (follows, subs, cheers, raids, tips) and the channel currency from "onWidgetLoad"; it loads nothing from this site.
+ * With emotes on it asks 7TV once for the channel's emote list (zero-width emotes stack on the previous one).
  */
 export function generateStreamElementsWidget(
   config: CameraChatConfig,
@@ -235,6 +236,9 @@ export function generateStreamElementsWidget(
 .se-badge { display: inline-block; height: ${chatBadgePx(config)}px; width: auto; margin-right: 4px; vertical-align: middle; }
 .se-emote { display: inline-block; height: ${emoteSize}px; width: auto; margin: 0 1px; vertical-align: middle; }
 .se-emote-only .se-emote { height: ${emoteSize * 2}px; }
+.se-emote-stack { position: relative; display: inline-block; margin: 0 1px; vertical-align: middle; }
+.se-emote-stack > .se-emote { display: block; margin: 0; }
+.se-emote-stack > .se-emote-over { position: absolute; left: 50%; top: 50%; max-width: none; transform: translate(-50%, -50%); }
 ${getCameraChatAnimationCss(config.animationStyle, "se-chat-in")}
 ${getCameraChatExitCss(config.exitStyle, config.textAlign, "se-chat-out")}
 ${getChatEffectCss(config, ".se-fx")}
@@ -242,7 +246,7 @@ ${getChatFrameCss(config, ".se-panel", ".se-messages")}
 ${getChatDecorCss(config, ".se-panel", ".se-message")}
 ${getChatEventCss(config, ".se-message")}
 @media (prefers-reduced-motion: reduce) {
-  .se-message, .se-leaving, .se-message::after, .se-reveal, .se-emote,
+  .se-message, .se-leaving, .se-message::after, .se-reveal, .se-emote, .se-emote-stack,
   .se-panel, .se-panel::before, .se-panel::after, .se-messages { animation: none !important; }
   .chat-amb, .chat-live-dot, .chat-burst { animation: none !important; }
 }`;
@@ -429,28 +433,95 @@ function badgeList(raw) {
     return url ? { type: asString(badge.type).slice(0, 40), url: url, description: asString(badge.description).slice(0, 60) } : null;
   }).filter(Boolean);
 }
-function emoteMap(raw) {
+// 7TV (asked once per channel, again after 15 minutes): which emotes are zero-width, drawn on top of the emote before
+// them, and unlisted 7TV emotes StreamElements leaves out. Copy of chat-emote-sources.ts.
+const sevenTv = { room: "", askedAt: 0, loading: false, emotes: null };
+function sevenTvList(raw) {
+  const root = raw && typeof raw === "object" ? raw : {};
+  const set = root.emote_set && typeof root.emote_set === "object" ? root.emote_set : root;
+  const result = [];
+  (Array.isArray(set.emotes) ? set.emotes.slice(0, 2000) : []).forEach(function (entry) {
+    if (!entry || typeof entry !== "object") return;
+    const data = entry.data && typeof entry.data === "object" ? entry.data : {};
+    const host = data.host && typeof data.host === "object" ? data.host : {};
+    const name = typeof entry.name === "string" ? entry.name.slice(0, 100) : "";
+    const base = typeof host.url === "string" ? host.url.slice(0, 300) : "";
+    if (!name || !base) return;
+    const files = Array.isArray(host.files) ? host.files.map(function (file) {
+      return file && typeof file.name === "string" ? file.name.slice(0, 40) : "";
+    }) : [];
+    const file = ["2x.webp", "1x.webp", "2x.gif", "1x.gif"].find(function (candidate) { return files.indexOf(candidate) !== -1; }) || "2x.webp";
+    const url = safeImage((base.indexOf("//") === 0 ? "https:" : "") + base + "/" + file);
+    if (url) result.push({ name: name, url: url, zeroWidth: (Number(entry.flags) & 1) !== 0 || (Number(data.flags) & 256) !== 0 });
+  });
+  return result;
+}
+function sevenTvJson(url) {
+  if (typeof fetch !== "function") return Promise.resolve(null);
+  return fetch(url).then(function (response) { return response.ok ? response.json() : null; }).catch(function () { return null; });
+}
+function sevenTvLoad(roomId) {
+  sevenTv.room = roomId;
+  sevenTv.askedAt = Date.now();
+  sevenTv.loading = true;
+  Promise.all([sevenTvJson("https://7tv.io/v3/users/twitch/" + roomId), sevenTvJson("https://7tv.io/v3/emote-sets/global")]).then(function (answers) {
+    if (sevenTv.room !== roomId) return;
+    const emotes = new Map();
+    sevenTvList(answers[0]).concat(sevenTvList(answers[1])).forEach(function (emote) {
+      if (!emotes.has(emote.name)) emotes.set(emote.name, emote);
+    });
+    sevenTv.emotes = emotes;
+    sevenTv.loading = false;
+  });
+}
+function sevenTvFor(roomId) {
+  if (!settings.showEmotes || !/^\\d{1,20}$/.test(roomId)) return null;
+  if (roomId !== sevenTv.room) {
+    sevenTv.emotes = null;
+    sevenTvLoad(roomId);
+  } else if (!sevenTv.loading && Date.now() - sevenTv.askedAt > 900000) {
+    sevenTvLoad(roomId);
+  }
+  return sevenTv.emotes;
+}
+function emoteMap(raw, text, seven) {
   const known = new Map();
-  if (!settings.showEmotes || !Array.isArray(raw)) return known;
-  raw.slice(0, 100).forEach(function (emote) {
+  if (!settings.showEmotes) return known;
+  (Array.isArray(raw) ? raw.slice(0, 100) : []).forEach(function (emote) {
     if (!emote || typeof emote !== "object") return;
     const urls = emote.urls && typeof emote.urls === "object" ? emote.urls : {};
     const url = safeImage(urls["2"] != null ? urls["2"] : urls["1"] != null ? urls["1"] : urls["4"]);
     const name = asString(emote.name).slice(0, 100);
-    if (name && url && !known.has(name)) known.set(name, url);
+    if (!name || !url || known.has(name)) return;
+    const extra = seven ? seven.get(name) : null;
+    known.set(name, { url: url, zeroWidth: Boolean(extra && extra.zeroWidth) });
   });
+  if (seven && seven.size) {
+    asString(text).split(/\\s+/).forEach(function (word) {
+      if (!word || known.has(word) || known.size >= 100) return;
+      const extra = seven.get(word);
+      if (extra) known.set(word, { url: extra.url, zeroWidth: extra.zeroWidth });
+    });
+  }
   return known;
 }
+// A zero-width emote right after an emote (only spaces between) is drawn on top of it, at most 4 per emote.
 function textParts(text, known) {
   if (!known.size) return [{ kind: "text", text: text }];
   const parts = [];
   let buffer = "";
   text.split(/(\\s+)/).forEach(function (piece) {
-    const url = known.get(piece);
-    if (url) {
+    const emote = known.get(piece);
+    if (emote) {
+      const base = parts[parts.length - 1];
+      if (emote.zeroWidth && base && base.kind === "emote" && !buffer.trim() && (base.overlays ? base.overlays.length : 0) < 4) {
+        base.overlays = (base.overlays || []).concat([{ name: piece, url: emote.url }]);
+        buffer = "";
+        return;
+      }
       if (buffer) parts.push({ kind: "text", text: buffer });
       buffer = "";
-      parts.push({ kind: "emote", name: piece, url: url });
+      parts.push({ kind: "emote", name: piece, url: emote.url });
     } else {
       buffer += piece;
     }
@@ -554,6 +625,7 @@ function revealPieces(parts) {
   parts.forEach(function (part) {
     if (part.kind === "emote") {
       const emote = { kind: "emote", name: part.name, url: part.url };
+      if (part.overlays) emote.overlays = part.overlays;
       pieces.push(emote);
       animated.push(emote);
       return;
@@ -846,7 +918,14 @@ function buildRow(message) {
   if (message.isAction) text.style.color = color;
   (revealPieces(parts) || parts).forEach(function (part) {
     if (part.kind === "emote") {
-      const emote = image("se-emote", part.url, part.name);
+      let emote = image("se-emote", part.url, part.name);
+      if (part.overlays && part.overlays.length) {
+        const stack = document.createElement("span");
+        stack.className = "se-emote-stack";
+        stack.appendChild(emote);
+        part.overlays.forEach(function (layer) { stack.appendChild(image("se-emote se-emote-over", layer.url, layer.name)); });
+        emote = stack;
+      }
       if (part.animation) emote.style.animation = part.animation;
       text.appendChild(emote);
     } else if (part.animation) {
@@ -1065,7 +1144,7 @@ window.addEventListener("onEventReceived", function (event) {
         return badge && typeof badge === "object" ? asString(badge.type).toLowerCase().slice(0, 40) : "";
       }).filter(Boolean) : [],
       badges: badgeList(data.badges),
-      emotes: emoteMap(data.emotes)
+      emotes: emoteMap(data.emotes, text, sevenTvFor(tags ? asString(tags["room-id"]) : ""))
     };
     pace(message);
     return;

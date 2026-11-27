@@ -68,7 +68,7 @@ test("StreamElements snippets are standalone and do not load the app or embed a 
   assert.match(snippets[0], /id="se-chat-messages"/);
   assert.match(snippets[1], /width: 845px/);
   assert.match(snippets[2], /onEventReceived/);
-  assert.doesNotMatch(snippets.join(""), /iframe|https?:\/\/|replit|postMessage|token=|secret=/i);
+  assert.doesNotMatch(snippets.join(""), /iframe|https?:\/\/(?!7tv\.io\/v3\/)|replit|postMessage|token=|secret=/i);
 });
 
 test("native StreamElements widget preserves layout and styling settings", () => {

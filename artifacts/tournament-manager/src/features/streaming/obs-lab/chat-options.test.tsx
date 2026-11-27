@@ -47,7 +47,7 @@ afterEach(() => { cleanup(); window.history.replaceState({}, "", "/"); });
 
 const EMOTE_URL = "https://static-cdn.jtvnw.net/emoticons/v2/25/default/dark/1.0";
 const BADGE_URL = "https://static-cdn.jtvnw.net/badges/v1/3267646d-33f0-4b17-b3df-f923a41db1d0/1";
-const FORBIDDEN_IN_SNIPPETS = /iframe|https?:\/\/|replit|postMessage|token=|secret=/i;
+const FORBIDDEN_IN_SNIPPETS = /iframe|https?:\/\/(?!7tv\.io\/v3\/)|replit|postMessage|token=|secret=/i;
 
 const CUSTOM: CameraChatConfig = {
   ...DEFAULT_CAMERA_CHAT_CONFIG,

@@ -313,6 +313,25 @@ natywnego widgetu StreamElements. Reguły wiadomości są w
 - Wybór sceny w konfiguratorze („Scena w tle”); motyw ustawia swoją scenę sam. Stare adresy bez `scene` wyglądają jak
   dotąd. Test różnic liczy 16 cech (doszła scena).
 
+## Zrealizowany etap 15 — emotki 7TV nakładane i emotki kanału w podglądzie (2026-11-27)
+
+- Sprawdzone na żywo (konto SE właściciela, nakładka „Test emotek 7TV i FFZ”): StreamElements dołącza do wiadomości
+  emotki Twitcha, 7TV, FFZ i BTTV, a widżet rysuje je wszystkie jako obrazki. SE nie podaje jednak, które emotki 7TV
+  są „zero-width”, i pomija niepubliczne emotki 7TV.
+- **Emotki nakładane** (`chat-emote-sources.ts`): strona OBS i widżet StreamElements pytają raz 7TV o listę kanału
+  (numer kanału z tagu `room-id` wiadomości) i globalną, ponownie po 15 minutach. Emotka zero-width zaraz po emotce
+  (same spacje między) leży na niej, wyśrodkowana, tej samej wysokości (do 4 warstw); w innym miejscu stoi sama.
+  Niepubliczne emotki 7TV ze słów wiadomości są dodawane; emotki od SE zostają przy swoim obrazku. Pierwsza wiadomość
+  przed odpowiedzią 7TV jest bez nakładania. Bez emotek nic nie idzie do 7TV.
+- Widżet SE ma kopię reguł; jedyne adresy w jego kodzie to dwa adresy API 7TV (testy osłonowe dopuszczają tylko
+  `https://7tv.io/v3/`). Obrazki dalej tylko z CDN emotek.
+- **Emotki kanału w podglądzie:** w „Emotki” pole z nazwą kanału na Twitchu i „Wczytaj”. FFZ znajduje kanał po nazwie
+  i podaje numer, 7TV znajduje swoich użytkowników (GraphQL v4); potem 7TV, BTTV i FFZ kanału oraz globalne 7TV.
+  „Z emotkami”, „Ożyw podgląd” i zalew używają wtedy emotek kanału (z nakładaną, gdy kanał ją ma). Zapamiętywana jest
+  tylko nazwa kanału. Bez kanału próbka „swarmRain” pokazuje nakładanie na rysowanej emotce.
+- Testy: `chat-emote-sources.test.tsx` (odczyt list, nakładanie, odświeżanie, wczytywanie kanału, zgodność podglądu,
+  strony OBS i widżetu SE na tej samej wiadomości).
+
 ## Kierunek następnych etapów
 
 1. **Animacja tekstu wiadomości:** wejście znakami/słowami, maska reveal,

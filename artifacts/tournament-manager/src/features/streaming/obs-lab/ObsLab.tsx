@@ -71,8 +71,10 @@ import {
   generateMockMessages,
   SAMPLE_BADGES,
   SAMPLE_EMOTES,
+  SAMPLE_OVERLAY_EMOTE,
   type MockChatMessage,
 } from "./CameraChatWidget";
+import { type ChannelEmotes, loadChannelEmotes } from "./chat-emote-sources";
 import {
   type CameraChatConfig,
   type CameraChatLayout,
@@ -106,7 +108,7 @@ import {
   cameraChatConfigToSearch,
   getCameraChatSize,
 } from "./camera-chat-settings";
-import { parseChatNameList, parseChatWordList } from "./chat-message-format";
+import { type ChatEmote, parseChatNameList, parseChatWordList } from "./chat-message-format";
 import {
   type ChatPresetCategory,
   chatPresetsIn,
@@ -181,6 +183,16 @@ function loadSetupMode(): SetupMode {
     return localStorage.getItem(MODE_STORAGE_KEY) === "all" ? "all" : "quick";
   } catch {
     return "quick";
+  }
+}
+
+const CHANNEL_STORAGE_KEY = "tm_obs_camera_chat_channel";
+
+function loadChannelLogin(): string {
+  try {
+    return (localStorage.getItem(CHANNEL_STORAGE_KEY) ?? "").slice(0, 25);
+  } catch {
+    return "";
   }
 }
 
@@ -269,7 +281,23 @@ function testEvent(kind: ChatEventKind, id: number): MockChatMessage {
   }
 }
 
-function testMessage(kind: TestKind, id: number, config: CameraChatConfig): MockChatMessage {
+/**
+ * Emotes of the "with emotes" test: two of the streamer's own (the first with a zero-width one on top when the channel
+ * has one) once the channel is loaded, otherwise the drawn samples with the sample rain on the first.
+ */
+function emoteTestPick(channel: readonly ChatEmote[] | null, seed: number): { a: string; b: string; emotes: ChatEmote[] } {
+  const plain = channel?.filter((emote) => !emote.zeroWidth) ?? [];
+  const layers = channel?.filter((emote) => emote.zeroWidth) ?? [];
+  if (plain.length >= 2) {
+    const first = plain[seed % plain.length]!;
+    const second = plain[(seed + 1 + Math.floor(plain.length / 2)) % plain.length]!;
+    const layer = layers.length ? layers[seed % layers.length]! : null;
+    return { a: layer ? `${first.name} ${layer.name}` : first.name, b: second.name, emotes: layer ? [first, second, layer] : [first, second] };
+  }
+  return { a: `${SAMPLE_EMOTES[0]!.name} ${SAMPLE_OVERLAY_EMOTE.name}`, b: SAMPLE_EMOTES[2]!.name, emotes: [SAMPLE_OVERLAY_EMOTE] };
+}
+
+function testMessage(kind: TestKind, id: number, config: CameraChatConfig, channel: readonly ChatEmote[] | null = null): MockChatMessage {
   const base = {
     id: `test-${id}`,
     msgId: `chat-test-${id}`,
@@ -279,8 +307,10 @@ function testMessage(kind: TestKind, id: number, config: CameraChatConfig): Mock
   switch (kind) {
     case "plain":
       return { ...base, name: "NightOwl", color: "#1E90FF", badges: [SAMPLE_BADGES.subscriber], text: t("obsLab.czesc_jak_leci") };
-    case "emotes":
-      return { ...base, name: "LunaPlays", color: "#9ACD32", text: t("obsLab.ale_akcja_a_b", { a: SAMPLE_EMOTES[0]!.name, b: SAMPLE_EMOTES[2]!.name }) };
+    case "emotes": {
+      const pick = emoteTestPick(channel, id);
+      return { ...base, emotes: [...pick.emotes, ...SAMPLE_EMOTES], name: "LunaPlays", color: "#9ACD32", text: t("obsLab.ale_akcja_a_b", { a: pick.a, b: pick.b }) };
+    }
     case "mod":
       return { ...base, name: "GreenWolf", color: "#2E8B57", badges: [SAMPLE_BADGES.moderator], text: t("obsLab.pamietajcie_o_regulaminie_czatu") };
     case "command":
@@ -368,6 +398,12 @@ export function ObsLab() {
   const [presetCategory, setPresetCategory] = useState<ChatPresetCategory | "all">("all");
   const configRef = useRef(config);
   configRef.current = config;
+  // The streamer's own emotes for the preview (7TV, BTTV, FFZ); only the channel name is remembered.
+  const [channelLogin, setChannelLogin] = useState(loadChannelLogin);
+  const [channelEmotes, setChannelEmotes] = useState<ChannelEmotes | null>(null);
+  const [channelStatus, setChannelStatus] = useState<"idle" | "loading" | "not-found" | "error">("idle");
+  const channelEmotesRef = useRef<readonly ChatEmote[] | null>(null);
+  channelEmotesRef.current = channelEmotes?.emotes ?? null;
   const previewMaxHeight = usePreviewMaxHeight();
   const setupIssues = checkChatSetup(config, t("obsLab.czat_na_zywo")).length;
   // Test messages go through the same calm-chat pacing as the OBS page; each lifetime starts when it shows.
@@ -433,7 +469,7 @@ export function ObsLab() {
       // Every third test is a stream event when events are on.
       const next = current.streamEvents && current.eventKinds.length && tick++ % 3 === 2
         ? testEvent(current.eventKinds[eventIndex++ % current.eventKinds.length]!, ++previewMessageId.current)
-        : testMessage(TEST_KINDS[messageIndex++ % TEST_KINDS.length]!, ++previewMessageId.current, current);
+        : testMessage(TEST_KINDS[messageIndex++ % TEST_KINDS.length]!, ++previewMessageId.current, current, channelEmotesRef.current);
       setMockMessages((list) => [...list, next].slice(-40));
     }, LIVE_PREVIEW_MS);
     return () => window.clearInterval(timer);
@@ -497,19 +533,43 @@ export function ObsLab() {
     });
   }
 
-  /** Many messages at once, to see the calm chat at work. */
+  /** Many messages at once, to see the calm chat at work (with the channel's own emotes once they are loaded). */
   function floodTest() {
+    const own = channelEmotes?.emotes.filter((emote) => !emote.zeroWidth) ?? [];
+    const pool = own.length ? own : SAMPLE_EMOTES;
     pushTestMessages(Array.from({ length: FLOOD_TEST_COUNT }, (_, index) => {
       const id = ++previewMessageId.current;
+      const emote = pool[index % pool.length]!;
       return {
         id: `flood-${id}`,
         msgId: `chat-flood-${id}`,
         name: FLOOD_NAMES[index % FLOOD_NAMES.length]!,
-        text: `${t("obsLab.zalew_wiadomosc", { n: index + 1 })} ${SAMPLE_EMOTES[index % SAMPLE_EMOTES.length]!.name}`,
-        emotes: [...SAMPLE_EMOTES],
+        text: `${t("obsLab.zalew_wiadomosc", { n: index + 1 })} ${emote.name}`,
+        emotes: own.length ? [emote] : [...SAMPLE_EMOTES],
         receivedAt: Date.now(),
       };
     }));
+  }
+
+  /** Loads the channel's 7TV, BTTV and FFZ emotes for the preview and shows one test message with them. */
+  async function loadChannel() {
+    const login = channelLogin.trim().replace(/^@/, "");
+    if (!login) return;
+    try {
+      localStorage.setItem(CHANNEL_STORAGE_KEY, login);
+    } catch {
+      // the preview still works without remembering the name
+    }
+    setChannelStatus("loading");
+    const result = await loadChannelEmotes(login, (url, init) => window.fetch(url, init));
+    if (result === "not-found" || result === "error") {
+      setChannelEmotes(null);
+      setChannelStatus(result);
+      return;
+    }
+    setChannelEmotes(result);
+    setChannelStatus("idle");
+    pushTestMessages([testMessage("emotes", ++previewMessageId.current, config, result.emotes)]);
   }
 
   function testChatAnimation(count = 1) {
@@ -525,7 +585,7 @@ export function ObsLab() {
   }
 
   function sendTest(kind: TestKind) {
-    pushTestMessages([testMessage(kind, ++previewMessageId.current, config)]);
+    pushTestMessages([testMessage(kind, ++previewMessageId.current, config, channelEmotes?.emotes ?? null)]);
   }
 
   function saveSetup() {
@@ -1079,6 +1139,45 @@ export function ObsLab() {
             <div className="space-y-3 rounded-xl border border-border bg-background/35 p-3">
               <ToolRange label={t("obsLab.rozmiar_emotek")} value={config.emoteScale} suffix="%" min={60} max={300} step={10} onChange={(emoteScale) => patchConfig({ emoteScale })} />
               <ToolToggle label={t("obsLab.wieksze_gdy_wiadomosc_to_same")} checked={config.emoteOnlyLarge} onChange={(emoteOnlyLarge) => patchConfig({ emoteOnlyLarge })} />
+              <div className="block text-xs text-muted-foreground">
+                <label htmlFor="chat-channel-login">{t("obsLab.emotki_kanalu_w_podgladzie")}</label>
+                <form
+                  className="mt-1.5 flex gap-2"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    void loadChannel();
+                  }}
+                >
+                  <ToolInput
+                    id="chat-channel-login"
+                    value={channelLogin}
+                    maxLength={26}
+                    placeholder={t("obsLab.nazwa_kanalu_na_twitchu")}
+                    onChange={(event) => setChannelLogin(event.target.value)}
+                    data-testid="chat-channel-login"
+                  />
+                  <ToolButton type="submit" className="shrink-0" disabled={channelStatus === "loading" || !channelLogin.trim()} data-testid="chat-channel-load">
+                    {t("obsLab.wczytaj")}
+                  </ToolButton>
+                </form>
+                <span className="mt-1 block text-[11px] leading-4 text-muted-foreground/80">{t("obsLab.emotki_kanalu_opis")}</span>
+              </div>
+              {(channelStatus !== "idle" || channelEmotes) && (
+                <p className="text-xs leading-5 text-muted-foreground" role="status" data-testid="chat-channel-status">
+                  {channelStatus === "loading"
+                    ? t("obsLab.emotki_kanalu_wczytywanie")
+                    : channelStatus === "not-found"
+                      ? t("obsLab.emotki_kanalu_brak")
+                      : channelStatus === "error"
+                        ? t("obsLab.emotki_kanalu_blad")
+                        : channelEmotes && t("obsLab.emotki_kanalu_wczytane", {
+                          name: channelEmotes.login,
+                          seventv: channelEmotes.counts.sevenTv,
+                          bttv: channelEmotes.counts.bttv,
+                          ffz: channelEmotes.counts.ffz,
+                        })}
+                </p>
+              )}
             </div>
           )}
           <ToolToggle label={t("obsLab.wygaszanie_starszych")} checked={config.fadeOldMessages} onChange={(fadeOldMessages) => patchConfig({ fadeOldMessages })} />

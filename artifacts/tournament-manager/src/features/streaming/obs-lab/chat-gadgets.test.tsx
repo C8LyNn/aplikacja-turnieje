@@ -39,7 +39,7 @@ import { checkChatSetup, contrastRatio, fixAllChatIssues } from "./chat-setup-ch
 
 afterEach(() => { cleanup(); localStorage.clear(); window.history.replaceState({}, "", "/"); resetChatAudio(); });
 
-const FORBIDDEN_IN_SNIPPETS = /iframe|https?:\/\/|replit|postMessage|token=|secret=/i;
+const FORBIDDEN_IN_SNIPPETS = /iframe|https?:\/\/(?!7tv\.io\/v3\/)|replit|postMessage|token=|secret=/i;
 
 type Incoming = { listener: string; data: Record<string, unknown> };
 

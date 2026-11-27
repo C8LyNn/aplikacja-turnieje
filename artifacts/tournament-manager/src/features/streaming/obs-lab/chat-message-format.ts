@@ -16,7 +16,9 @@ import {
 } from "./camera-chat-settings";
 import { type ChatReply, type ChatStreamEvent, chatEventShown, stripReplyMention } from "./chat-events";
 
-export type ChatEmote = { name: string; url: string };
+/** zeroWidth: a 7TV "zero-width" emote, drawn on top of the emote before it (rain, hearts, a hat…). */
+export type ChatEmote = { name: string; url: string; zeroWidth?: boolean };
+export type ChatEmoteLayer = { name: string; url: string };
 export type ChatBadge = { type?: string; url: string; description?: string };
 
 export type ChatMessage = {
@@ -119,26 +121,39 @@ export function isChatHighlighted(text: string, config: Pick<CameraChatConfig, "
   return words.some((word) => lower.includes(word));
 }
 
-export type ChatPart = { kind: "text"; text: string } | { kind: "emote"; name: string; url: string };
+/** overlays: zero-width emotes drawn on top of this one, in order. */
+export type ChatPart = { kind: "text"; text: string } | { kind: "emote"; name: string; url: string; overlays?: ChatEmoteLayer[] };
 
-/** Splits the text into text and emote parts; an emote is a whole word equal to an emote name. */
+/** At most this many zero-width emotes stack on one emote; further ones stand on their own. */
+export const CHAT_EMOTE_LAYERS = 4;
+
+/**
+ * Splits the text into text and emote parts; an emote is a whole word equal to an emote name. A zero-width emote right
+ * after an emote (only spaces between) is drawn on top of it instead of next to it.
+ */
 export function chatMessageParts(text: string, emotes: readonly ChatEmote[] | undefined, showEmotes: boolean): ChatPart[] {
-  const known = new Map<string, string>();
+  const known = new Map<string, { url: string; zeroWidth: boolean }>();
   if (showEmotes && emotes) {
     for (const emote of emotes) {
       const url = safeChatImageUrl(emote.url);
-      if (emote.name && url && !known.has(emote.name)) known.set(emote.name, url);
+      if (emote.name && url && !known.has(emote.name)) known.set(emote.name, { url, zeroWidth: emote.zeroWidth === true });
     }
   }
   if (!known.size) return [{ kind: "text", text }];
   const parts: ChatPart[] = [];
   let buffer = "";
   for (const piece of text.split(/(\s+)/)) {
-    const url = known.get(piece);
-    if (url) {
+    const emote = known.get(piece);
+    if (emote) {
+      const base = parts[parts.length - 1];
+      if (emote.zeroWidth && base?.kind === "emote" && !buffer.trim() && (base.overlays?.length ?? 0) < CHAT_EMOTE_LAYERS) {
+        base.overlays = [...(base.overlays ?? []), { name: piece, url: emote.url }];
+        buffer = "";
+        continue;
+      }
       if (buffer) parts.push({ kind: "text", text: buffer });
       buffer = "";
-      parts.push({ kind: "emote", name: piece, url });
+      parts.push({ kind: "emote", name: piece, url: emote.url });
     } else {
       buffer += piece;
     }
@@ -184,7 +199,7 @@ export function chatRevealAnimation(reveal: Exclude<CameraChatTextReveal, "none"
 
 export type RevealPiece =
   | { kind: "text"; text: string; animation?: string; word?: boolean }
-  | { kind: "emote"; name: string; url: string; animation?: string };
+  | { kind: "emote"; name: string; url: string; overlays?: ChatEmoteLayer[]; animation?: string };
 
 /**
  * The message split for a reveal: letters (typewriter) or words appear one after another; emotes count as one step;
@@ -198,7 +213,9 @@ export function chatRevealPieces(parts: readonly ChatPart[], reveal: CameraChatT
   const animated: RevealPiece[] = [];
   for (const part of parts) {
     if (part.kind === "emote") {
-      const emote: RevealPiece = { kind: "emote", name: part.name, url: part.url };
+      const emote: RevealPiece = part.overlays
+        ? { kind: "emote", name: part.name, url: part.url, overlays: part.overlays }
+        : { kind: "emote", name: part.name, url: part.url };
       pieces.push(emote);
       animated.push(emote);
       continue;
